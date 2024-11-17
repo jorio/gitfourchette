@@ -61,6 +61,8 @@ class Trash:
             if os.path.isfile(fullPath):
                 logger.debug(f"Deleting trash file {fullPath}")
                 os.unlink(fullPath)
+            elif os.path.isdir(fullPath):
+                os.unlink(fullPath)
 
     def newFile(self, workdir: str, ext: str = "", originalPath: str = "") -> str:
         maxFiles = self.maxFileCount
@@ -95,7 +97,10 @@ class Trash:
         if not trashPath:
             return ""
 
-        shutil.copyfile(fullPath, trashPath, follow_symlinks=False)
+        if os.path.isfile(fullPath):
+            shutil.copyfile(fullPath, trashPath, follow_symlinks=False)
+        elif os.path.isdir(fullPath):
+            shutil.copytree(fullPath,trashPath+"/")
         return trashPath
 
     def backupPatch(self, workdir: str, data: bytes, originalPath: str = ""):
