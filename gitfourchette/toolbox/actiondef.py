@@ -81,8 +81,10 @@ class ActionDef:
                 tip = f"<p>{tip}</p>"
             action.setToolTip(tip)
 
-        if self.menuRole != QAction.MenuRole.NoRole:
-            action.setMenuRole(self.menuRole)
+        # Enforce menu role (including NoRole) to prevent Qt/macOS from moving
+        # items that start with the localized word for "Settings" to the
+        # application menu (e.g. "Repository Settings" in French).
+        action.setMenuRole(self.menuRole)
 
         action.setEnabled(bool(self.enabled))
 
