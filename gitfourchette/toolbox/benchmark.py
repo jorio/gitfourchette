@@ -8,8 +8,10 @@ import logging
 import os
 import time
 
-logger = logging.getLogger(__name__)
 BENCHMARK_LOGGING_LEVEL = 5
+
+logger = logging.getLogger(__name__)
+logging.addLevelName(BENCHMARK_LOGGING_LEVEL, "BENCHMARK")
 
 try:
     import psutil
