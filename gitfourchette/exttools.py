@@ -45,10 +45,10 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str):
 
     translatedPrefKey = TrTables.prefKey(prefKey)
 
-    title = _("Failed to start {tool}").format(tool=translatedPrefKey)
+    title = _("Failed to start {tool}", tool=translatedPrefKey)
 
-    message = _("Couldn’t start {command} ({tool}). It might not be installed on your machine."
-                ).format(tool=translatedPrefKey, command=bquo(programName))
+    message = _("Couldn’t start {command} ({tool}). It might not be installed on your machine.",
+                tool=translatedPrefKey, command=bquo(programName))
 
     configureButtonID = QMessageBox.StandardButton.Ok
     browseButtonID = QMessageBox.StandardButton.Open
@@ -61,13 +61,13 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str):
     configureButton.setIcon(stockIcon("configure"))
 
     browseButton = qmb.button(browseButtonID)
-    browseButton.setText(_("Locate {tool}…").format(tool=lquo(programName)))
+    browseButton.setText(_("Locate {tool}…", tool=lquo(programName)))
 
     def onQMBFinished(result):
         if result == configureButtonID:
             openPrefsDialog(parent, prefKey)
         elif result == browseButtonID:
-            qfd = QFileDialog(parent, _("Where is {tool}?").format(tool=lquo(programName)))
+            qfd = QFileDialog(parent, _("Where is {tool}?", tool=lquo(programName)))
             qfd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
             qfd.setFileMode(QFileDialog.FileMode.AnyFile)
             qfd.setWindowModality(Qt.WindowModality.WindowModal)
@@ -85,13 +85,13 @@ def setUpToolCommand(parent: QWidget, prefKey: str):
 
     title = translatedPrefKey
 
-    message = _("{tool} isn’t configured in your settings yet.").format(tool=bquo(translatedPrefKey))
+    message = _("{tool} isn’t configured in your settings yet.", tool=bquo(translatedPrefKey))
 
     qmb = asyncMessageBox(parent, 'warning', title, message,
                           QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
     configureButton = qmb.button(QMessageBox.StandardButton.Ok)
-    configureButton.setText(_("Set up {tool}").format(tool=lquo(translatedPrefKey)))
+    configureButton.setText(_("Set up {tool}", tool=lquo(translatedPrefKey)))
 
     qmb.accepted.connect(lambda: openPrefsDialog(parent, prefKey))
     qmb.show()

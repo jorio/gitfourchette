@@ -183,7 +183,7 @@ class SearchBar(QWidget):
 
     @staticmethod
     def defaultNotFoundMessage(searchTerm: str) -> str:
-        return _p("SearchBar", "{0} not found.").format(bquo(searchTerm))
+        return _("{text} not found.", text=bquo(searchTerm))
 
     # --------------------------------
     # Ready-made QAbstractItemView search flow

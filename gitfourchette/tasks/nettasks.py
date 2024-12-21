@@ -72,10 +72,9 @@ class DeleteRemoteBranch(_BaseNetTask):
         remoteName, _remoteBranchName = split_remote_branch_shorthand(remoteBranchShorthand)
 
         text = paragraphs(
-            _("Really delete branch {0} from the remote repository?"),
-            _("The remote branch will disappear for all users of remote {1}.")
-            + " " + _("This cannot be undone!")
-        ).format(bquo(remoteBranchShorthand), bquo(remoteName))
+            _("Really delete branch {0} from the remote repository?", bquo(remoteBranchShorthand)),
+            _("The remote branch will disappear for all users of remote {0}.", bquo(remoteName))
+            + " " + _("This cannot be undone!"))
         verb = _("Delete on remote")
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="SP_DialogDiscardButton")
 
@@ -88,7 +87,7 @@ class DeleteRemoteBranch(_BaseNetTask):
         with self.remoteLink.remoteContext(remote):
             self.repo.delete_remote_branch(remoteBranchShorthand, self.remoteLink)
 
-        self.postStatus = _("Remote branch {0} deleted.").format(tquo(remoteBranchShorthand))
+        self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
 
 
 class RenameRemoteBranch(_BaseNetTask):
@@ -104,7 +103,7 @@ class RenameRemoteBranch(_BaseNetTask):
 
         dlg = TextInputDialog(
             self.parentWidget(),
-            _("Rename remote branch {0}").format(tquoe(remoteBranchName)),
+            _("Rename remote branch {0}", tquoe(remoteBranchName)),
             _("WARNING: This will rename the branch for all users of the remote!") + "<br>" + _("Enter new name:"))
         dlg.setText(newBranchName)
         dlg.setValidator(lambda name: nameValidationMessage(name, reservedNames, nameTaken))
@@ -132,8 +131,7 @@ class RenameRemoteBranch(_BaseNetTask):
         with self.remoteLink.remoteContext(remote):
             self.repo.rename_remote_branch(remoteBranchName, newBranchName, self.remoteLink)
 
-        self.postStatus = _("Remote branch {0} renamed to {1}."
-                            ).format(tquo(remoteBranchName), tquo(newBranchName))
+        self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchName), tquo(newBranchName))
 
 class FetchRemotes(_BaseNetTask):
     def prereqs(self) -> TaskPrereqs:
@@ -152,9 +150,9 @@ class FetchRemotes(_BaseNetTask):
             remotes = [next(r for r in remotes if r.name == singleRemoteName)]
 
         if len(remotes) == 1:
-            title = _("Fetch remote {0}").format(lquo(remotes[0].name))
+            title = _("Fetch remote {0}", lquo(remotes[0].name))
         else:
-            title = _("Fetch {n} remotes").format(n=len(remotes))
+            title = _("Fetch {n} remotes", n=len(remotes))
 
         self._showRemoteLinkDialog(title)
 
@@ -196,7 +194,7 @@ class FetchRemoteBranch(_BaseNetTask):
             upstream = self._autoDetectUpstream()
             remoteBranchName = upstream.shorthand
 
-        title = _("Fetch remote branch {0}").format(tquoe(remoteBranchName))
+        title = _("Fetch remote branch {0}", tquoe(remoteBranchName))
         self._showRemoteLinkDialog(title)
 
         yield from self.flowEnterWorkerThread()
@@ -218,7 +216,7 @@ class FetchRemoteBranch(_BaseNetTask):
 
         yield from self.flowEnterUiThread()
         self.postStatus = self.remoteLink.formatUpdatedTipsMessage(
-            _("Fetch complete."), noNewCommits=_("No new commits on {0}.").format(lquo(remoteBranchName)))
+            _("Fetch complete."), noNewCommits=_("No new commits on {0}.", lquo(remoteBranchName)))
 
         # Jump to new commit (if branch didn't vanish)
         if oldTarget != newTarget and newTarget != NULL_OID:
@@ -229,7 +227,7 @@ class FetchRemoteBranch(_BaseNetTask):
 
         if newTarget == NULL_OID:
             # Raise exception to prevent PullBranch from continuing
-            raise AbortTask(_("{0} has disappeared from the remote server.").format(bquoe(remoteBranchName)))
+            raise AbortTask(_("{0} has disappeared from the remote server.", bquoe(remoteBranchName)))
 
 
 class PullBranch(_BaseNetTask):

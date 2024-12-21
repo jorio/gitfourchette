@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
             ActionDef(_("&Settings…"), self.openPrefsDialog,
                       shortcuts=QKeySequence.StandardKey.Preferences, icon="configure",
                       menuRole=QAction.MenuRole.PreferencesRole,
-                      tip=_("Configure {app}").format(app=qAppName())),
+                      tip=_("Configure {app}", app=qAppName())),
 
             TaskBook.action(self, tasks.SetUpGitIdentity, taskArgs=('', False)
                             ).replace(menuRole=QAction.MenuRole.ApplicationSpecificRole),
@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
 
             ActionDef(_("&Quit"), self.close,
                       shortcuts=QKeySequence.StandardKey.Quit, icon="application-exit",
-                      tip=_("Quit {app}").format(app=qAppName()),
+                      tip=_("Quit {app}", app=qAppName()),
                       menuRole=QAction.MenuRole.QuitRole),
         )
 
@@ -333,11 +333,11 @@ class MainWindow(QMainWindow):
 
         # -------------------------------------------------------------
 
-        a = helpMenu.addAction(_("&About {0}").format(qAppName()), lambda: AboutDialog.popUp(self))
+        a = helpMenu.addAction(_("&About {0}", qAppName()), lambda: AboutDialog.popUp(self))
         a.setIcon(stockIcon("gitfourchette"))
         a.setMenuRole(QAction.MenuRole.AboutRole)
 
-        a = helpMenu.addAction(_("{0} User’s Guide").format(qAppName()),
+        a = helpMenu.addAction(_("{0} User’s Guide", qAppName()),
                                lambda: QDesktopServices.openUrl(QUrl(USERS_GUIDE_URL)))
         a.setIcon(stockIcon("help-contents"))
 
@@ -485,7 +485,7 @@ class MainWindow(QMainWindow):
             excMessageBox(
                 exc,
                 _("Open repository"),
-                _("Couldn’t open the repository at {0}.").format(bquo(path)),
+                _("Couldn’t open the repository at {0}.", bquo(path)),
                 parent=self,
                 icon='warning')
             return None
@@ -504,7 +504,7 @@ class MainWindow(QMainWindow):
         else:
             with RepoContext(path) as repo:
                 if repo.is_bare:
-                    raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.").format(app=qAppName()))
+                    raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.", app=qAppName()))
                 workdir = repo.workdir
 
         # First check that we don't have a tab for this repo already
@@ -636,7 +636,7 @@ class MainWindow(QMainWindow):
             showInformation(
                 self,
                 _("Open trash folder"),
-                _("There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet.").format(qAppName()))
+                _("There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet.", qAppName()))
 
     def clearRescueFolder(self):
         trash = Trash.instance()
@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
         askPrompt = paragraphs(
             _n("Do you want to permanently delete <b>{n}</b> discarded patch?",
                "Do you want to permanently delete <b>{n}</b> discarded patches?", patchCount),
-            _("This will free up {0} on disk.").format(escape(humanSize)),
+            _("This will free up {0} on disk.", escape(humanSize)),
             _("This cannot be undone!")
         )
 
@@ -692,7 +692,7 @@ class MainWindow(QMainWindow):
         if not detectParentRepo or not parentRepo:
             if not allowNonEmptyDirectory and os.path.exists(path) and os.listdir(path):
                 message = _("Are you sure you want to initialize a Git repository in {0}? "
-                                  "This directory isn’t empty.").format(bquo(path))
+                            "This directory isn’t empty.", bquo(path))
                 askConfirmation(self, _("Directory isn’t empty"), message, messageBoxIcon='warning',
                                 callback=lambda: self.newRepo(path, detectParentRepo, allowNonEmptyDirectory=True))
                 return
@@ -701,7 +701,7 @@ class MainWindow(QMainWindow):
                 pygit2.init_repository(path)
                 return self.openRepo(path, exactMatch=True)
             except Exception as exc:
-                message = _("Couldn’t create an empty repository in {0}.").format(bquo(path))
+                message = _("Couldn’t create an empty repository in {0}.", bquo(path))
                 excMessageBox(exc, _("New repository"), message, parent=self, icon='warning')
 
         if parentRepo:
@@ -736,21 +736,20 @@ class MainWindow(QMainWindow):
                               f"<span style='color: {muted};'>{dp3}</span></div>")
 
                 message = paragraphs(
-                    _("An existing repository, {0}, was found in a parent folder of this location:"),
+                    _("An existing repository, {0}, was found in a parent folder of this location:", bquoe(parentBasename)),
                     prettyPath,
-                    _("Are you sure you want to create {1} within the existing repo?"),
-                ).format(bquoe(parentBasename), hquoe(myBasename))
+                    _("Are you sure you want to create {0} within the existing repo?", hquoe(myBasename)))
 
                 qmb = asyncMessageBox(
                     self, 'information', _("Repository found in parent folder"), message,
                     QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
                 openButton = qmb.button(QMessageBox.StandardButton.Open)
-                openButton.setText(_("&Open {0}").format(lquoe(parentBasename)))
+                openButton.setText(_("&Open {0}", lquoe(parentBasename)))
                 openButton.clicked.connect(lambda: self.openRepo(parentWorkdir, exactMatch=True))
 
                 createButton = qmb.button(QMessageBox.StandardButton.Ok)
-                createButton.setText(_("&Create {0}").format(lquoe(myBasename)))
+                createButton.setText(_("&Create {0}", lquoe(myBasename)))
                 createButton.clicked.connect(lambda: self.newRepo(path, detectParentRepo=False))
 
                 qmb.show()
@@ -1090,7 +1089,7 @@ class MainWindow(QMainWindow):
         if any(k in warnIfNeedRestart for k in prefDiff):
             showInformation(
                 self, _("Apply Settings"),
-                _("You may need to restart {app} for the new settings to take effect fully.").format(app=qAppName()))
+                _("You may need to restart {app} for the new settings to take effect fully.", app=qAppName()))
         elif any(k in warnIfChanged for k in prefDiff) and self.tabs.count():
             qmb = asyncMessageBox(
                 self, "question", _("Apply Settings"),

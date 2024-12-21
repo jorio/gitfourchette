@@ -63,7 +63,7 @@ class AboutDialog(QDialog):
             <br>{tagline}
             <br>{simpleLink(WEBSITE_URL)}"""))
 
-        versionText = _("Version {0}").format(appVersion)
+        versionText = _("Version {0}", appVersion)
         self.ui.versionLabel.setText(dedent(f"""\
             <span style='color:{mutedTextColorHex(self)}'><b>{versionText}</b> {buildInfo}
             <br>Copyright © 2024 Iliyas Jorio"""))
@@ -74,10 +74,11 @@ class AboutDialog(QDialog):
         self.ui.mugshot.setText("")
         self.ui.mugshot.setPixmap(QPixmap("assets:icons/mug"))
 
-        self.ui.aboutBlurb.setText(paragraphs(
-            linkify(_("If {app} helps you get work done, please consider [making a small donation]."), DONATE_URL),
-            _("Thank you for your support!")
-        ).format(app=appName))
+        aboutBlurb = paragraphs(
+            linkify(_("If {app} helps you get work done, "
+                      "please consider [making a small donation].", app=appName), DONATE_URL),
+            _("Thank you for your support!"))
+        self.ui.aboutBlurb.setText(aboutBlurb)
 
         # ---------------------------------------------------------------------
         # Components page
@@ -103,10 +104,11 @@ class AboutDialog(QDialog):
 
         ackText = [
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
-            linkify(
-                _("Portions of this software are based on [{lib}], used under [{lic} license], {copyright}."),
-                "https://github.com/z3ntu/QtWaitingSpinner", "https://github.com/z3ntu/QtWaitingSpinner/blob/055517b18/LICENSE.md"
-            ).format(lib="QtWaitingSpinner", lic="MIT", copyright="© Alexander Turkin, William Hallatt, Jacob Dawid, Luca Weiss")
+
+            _("Portions of this software are based on {lib}, used under {lic}, {copyright}.",
+              lib=linkify("QtWaitingSpinner", "https://github.com/z3ntu/QtWaitingSpinner"),
+              lic=linkify(_("MIT license"), "https://github.com/z3ntu/QtWaitingSpinner/blob/055517b18/LICENSE.md"),
+              copyright="© Alexander Turkin, William Hallatt, Jacob Dawid, Luca Weiss"),
         ]
 
         self.ui.ackBlurb.setText(paragraphs(ackText))

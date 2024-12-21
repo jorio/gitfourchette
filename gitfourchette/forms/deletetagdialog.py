@@ -44,7 +44,7 @@ class DeleteTagDialog(QDialog):
 
         convertToBrandedDialog(
             self,
-            _("Delete tag {0}").format(tquo(tagName)),
-            _("Tagged commit: {0}").format(target) + " – " + tquo(targetSubtitle))
+            _("Delete tag {0}", tquo(tagName)),
+            _("Tagged commit: {0}", target) + " – " + tquo(targetSubtitle))
 
         self.resize(max(512, self.width()), self.height())

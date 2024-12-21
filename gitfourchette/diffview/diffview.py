@@ -492,7 +492,7 @@ class DiffView(QPlainTextEdit):
                 ]
             else:
                 actions = [
-                    ActionDef(_("Export Hunk {0} as Patch…").format(shortHunkHeader), lambda: self.exportHunk(clickedHunkID)),
+                    ActionDef(_("Export Hunk {0} as Patch…", shortHunkHeader), lambda: self.exportHunk(clickedHunkID)),
                     ActionDef(_("Revert Hunk…"), lambda: self.revertHunk(clickedHunkID)),
                 ]
 
@@ -529,7 +529,7 @@ class DiffView(QPlainTextEdit):
             else:
                 actions = [
                     ActionDef(
-                        _("Stage Hunk {0}").format(shortHunkHeader),
+                        _("Stage Hunk {0}", shortHunkHeader),
                         lambda: self.stageHunk(clickedHunkID),
                         "git-stage-lines",
                     ),
@@ -558,7 +558,7 @@ class DiffView(QPlainTextEdit):
             else:
                 actions = [
                     ActionDef(
-                        _("Unstage Hunk {0}").format(shortHunkHeader),
+                        _("Unstage Hunk {0}", shortHunkHeader),
                         lambda: self.unstageHunk(clickedHunkID),
                         "git-unstage-lines",
                     ),
@@ -973,7 +973,7 @@ class DiffView(QPlainTextEdit):
         prompt = [
             _("End of diff reached.") if op == SearchBar.Op.NEXT
             else _("Top of diff reached."),
-            _("No more occurrences of {0} found.").format(bquo(message))
+            _("No more occurrences of {0} found.", bquo(message))
         ]
         askConfirmation(self, _("Find in Diff"), paragraphs(prompt), okButtonText=_("Wrap Around"),
                         messageBoxIcon="information", callback=wrapAround)

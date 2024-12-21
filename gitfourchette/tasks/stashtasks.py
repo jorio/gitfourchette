@@ -88,8 +88,8 @@ class ApplyStash(RepoTask):
         stashCommit: Commit = self.repo.peel_commit(stashCommitId)
         stashMessage = strip_stash_message(stashCommit.message)
 
-        question = _("Do you want to apply the changes stashed in {0} to your working directory?"
-                     ).format(bquoe(stashMessage))
+        question = _("Do you want to apply the changes stashed in {0} "
+                     "to your working directory?", bquoe(stashMessage))
 
         qmb = asyncMessageBox(self.parentWidget(), 'question', self.name(), question,
                               QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
@@ -115,14 +115,13 @@ class ApplyStash(RepoTask):
 
         self.repo.stash_apply_id(stashCommitId)
 
-        self.postStatus = _("Stash {0} applied.").format(tquoe(stashMessage))
+        self.postStatus = _("Stash {0} applied.", tquoe(stashMessage))
 
         if self.repo.index.conflicts:
             yield from self.flowEnterUiThread()
-            self.postStatus = _("Stash {0} applied, with conflicts.").format(tquoe(stashMessage))
+            self.postStatus = _("Stash {0} applied, with conflicts.", tquoe(stashMessage))
             message = [_("Applying the stash {0} has caused merge conflicts "
-                         "because your files have diverged since they were stashed."
-                         ).format(bquoe(stashMessage))]
+                         "because your files have diverged since they were stashed.", bquoe(stashMessage))]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
             showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(message))
@@ -132,7 +131,7 @@ class ApplyStash(RepoTask):
             self.effects |= TaskEffects.Refs
             backupStash(self.repo, stashCommitId)
             self.repo.stash_drop_id(stashCommitId)
-            self.postStatus = _("Stash {0} applied and deleted.").format(tquoe(stashMessage))
+            self.postStatus = _("Stash {0} applied and deleted.", tquoe(stashMessage))
 
 
 class DropStash(RepoTask):
@@ -140,7 +139,7 @@ class DropStash(RepoTask):
         stashCommit = self.repo.peel_commit(stashCommitId)
         stashMessage = strip_stash_message(stashCommit.message)
         yield from self.flowConfirm(
-            text=_("Really delete stash {0}?").format(bquoe(stashMessage)),
+            text=_("Really delete stash {0}?", bquoe(stashMessage)),
             verb=_("Delete stash"),
             buttonIcon="SP_DialogDiscardButton")
 
@@ -149,4 +148,4 @@ class DropStash(RepoTask):
 
         backupStash(self.repo, stashCommitId)
         self.repo.stash_drop_id(stashCommitId)
-        self.postStatus = _("Stash {0} deleted.").format(tquoe(stashMessage))
+        self.postStatus = _("Stash {0} deleted.", tquoe(stashMessage))

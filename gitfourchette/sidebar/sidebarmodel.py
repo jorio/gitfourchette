@@ -566,13 +566,13 @@ class SidebarModel(QAbstractItemModel):
                 return refName
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
-                text += _("{0} (local branch)").format(btag(branchName))
+                text += _("{0} (local branch)", btag(branchName))
                 # Try to get the upstream (branch.upstream_name raises KeyError if there isn't one)
                 # Warning: branch.upstream_name can be a bit expensive
                 with suppress(KeyError):
                     branch = self.repo.branches.local[branchName]
                     upstream = branch.upstream_name.removeprefix(RefPrefix.REMOTES)
-                    text += "\n" + _("Upstream: {0}").format(escape(upstream))
+                    text += "\n" + _("Upstream: {0}", escape(upstream))
                 if branchName == self._checkedOut:
                     text += "\n<img src='assets:icons/git-head' style='vertical-align: bottom;'/> "
                     text += "HEAD " + _("(this is the checked-out branch)")
@@ -588,8 +588,7 @@ class SidebarModel(QAbstractItemModel):
             elif toolTipRole:
                 text = ("<p style='white-space: pre'>"
                         + _("Unborn HEAD: does not point to a commit yet.") + "\n"
-                        + _("Local branch {0} will be created when you create the initial commit.")
-                        ).format(bquo(target))
+                        + _("Local branch {0} will be created when you create the initial commit.", bquo(target)))
                 self.cacheTooltip(index, text)
                 return text
 
@@ -627,10 +626,9 @@ class SidebarModel(QAbstractItemModel):
                 return refName
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
-                text += _("{0} (remote-tracking branch)").format(btag(shorthand))
+                text += _("{0} (remote-tracking branch)", btag(shorthand))
                 if self._checkedOutUpstream == shorthand:
-                    text += ("<br><i>" + _("Upstream for the checked-out branch ({0})")
-                             ).format(hquoe(self._checkedOut))
+                    text += "<br><i>" + _("Upstream for the checked-out branch ({0})", hquoe(self._checkedOut))
                 return text
             elif fontRole:
                 if self._checkedOutUpstream == shorthand:
@@ -651,11 +649,11 @@ class SidebarModel(QAbstractItemModel):
                 text = "<p style='white-space: pre'>"
                 text += "<img src='assets:icons/git-folder' style='vertical-align: bottom;'/> "
                 if prefix == RefPrefix.REMOTES:
-                    text += _("{0} (remote branch folder)").format(btag(name))
+                    text += _("{0} (remote branch folder)", btag(name))
                 elif prefix == RefPrefix.TAGS:
-                    text += _("{0} (tag folder)").format(btag(name))
+                    text += _("{0} (tag folder)", btag(name))
                 else:
-                    text += _("{0} (local branch folder)").format(btag(name))
+                    text += _("{0} (local branch folder)", btag(name))
                 return text
             elif iconKeyRole:
                 return "git-folder"
@@ -671,7 +669,7 @@ class SidebarModel(QAbstractItemModel):
                 return refName
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
-                text += _("Tag {0}").format(bquo(tagName))
+                text += _("Tag {0}", bquo(tagName))
                 return text
             elif iconKeyRole:
                 return "git-tag"
@@ -698,10 +696,10 @@ class SidebarModel(QAbstractItemModel):
                 return node.data.rsplit("/", 1)[-1]
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
-                text += _("{0} (submodule)").format(f"<b>{escape(node.data)}</b>")
-                text += "\n" + _("Workdir: {0}").format(escape(self.repo.listall_submodules_dict()[node.data]))
+                text += _("{0} (submodule)", f"<b>{escape(node.data)}</b>")
+                text += "\n" + _("Workdir: {0}", escape(self.repo.listall_submodules_dict()[node.data]))
                 url = self.repo.submodules[node.data].url or _("[not set]")
-                text += "\n" + _("URL: {0}").format(escape(url))
+                text += "\n" + _("URL: {0}", escape(url))
                 if node.warning:
                     text += "<br>\u26a0 " + node.warning
                 return text

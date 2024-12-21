@@ -37,8 +37,11 @@ def installGettextTranslator(path: str):
     except OSError:
         _translator = NullTranslations()
 
-def _(message: str) -> str:
-    return _translator.gettext(message)
+def _(message: str, *args, **kwargs) -> str:
+    message = _translator.gettext(message)
+    if args or kwargs:
+        message = message.format(*args, **kwargs)
+    return message
 
 def _n(singular: str, plural: str, n: int, *args, **kwargs) -> str:
     return _translator.ngettext(singular, plural, n).format(*args, **kwargs, n=n)
@@ -46,8 +49,11 @@ def _n(singular: str, plural: str, n: int, *args, **kwargs) -> str:
 def _np(context: str, singular: str, plural: str, n: int) -> str:
     return _translator.npgettext(context, singular, plural, n).format(n=n)
 
-def _p(context: str, message: str) -> str:
-    return _translator.pgettext(context, message)
+def _p(context: str, message: str, *args, **kwargs) -> str:
+    message = _translator.pgettext(context, message)
+    if args or kwargs:
+        message = message.format(*args, **kwargs)
+    return message
 
 
 __all__ = [

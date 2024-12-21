@@ -92,8 +92,8 @@ class StageFiles(_BaseStagingTask):
             elif SubtreeCommitDiff.is_subtree_commit_patch(patch):
                 info = self.repo.analyze_subtree_commit_patch(patch, in_workdir=True)
                 if info.is_del and info.was_registered:
-                    m = _("Don’t forget to remove the submodule from {0} to complete its deletion."
-                          ).format(tquo(DOT_GITMODULES))
+                    m = _("Don’t forget to remove the submodule from {0} "
+                          "to complete its deletion.", tquo(DOT_GITMODULES))
                 elif not info.is_del and not info.is_trivially_indexable:
                     m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
 
@@ -136,22 +136,22 @@ class DiscardFiles(_BaseStagingTask):
             patch = patches[0]
             bpath = bquo(patch.delta.new_file.path)
             if patch.delta.status == DeltaStatus.UNTRACKED:
-                really = _("Really delete {0}?").format(bpath)
+                really = _("Really delete {0}?", bpath)
                 really += " " + _("(This file is untracked – it’s never been committed yet.)")
                 verb = _("Delete")
             elif patch.delta.new_file.mode == FileMode.COMMIT:
-                really = _("Really discard changes in submodule {0}?").format(bpath)
+                really = _("Really discard changes in submodule {0}?", bpath)
             else:
-                really = _("Really discard changes to {0}?").format(bpath)
+                really = _("Really discard changes to {0}?", bpath)
         else:
             nFiles = len(patches) - len(submos)
             nSubmos = len(submos)
             if allSubmos:
-                really = _("Really discard changes in {n} submodules?").format(n=nSubmos)
+                really = _("Really discard changes in {n} submodules?", n=nSubmos)
             elif anySubmos:
-                really = _("Really discard changes to {nf} files and in {ns} submodules?").format(nf=nFiles, ns=nSubmos)
+                really = _("Really discard changes to {nf} files and in {ns} submodules?", nf=nFiles, ns=nSubmos)
             else:
-                really = _("Really discard changes to {n} files?").format(n=nFiles)
+                really = _("Really discard changes to {n} files?", n=nFiles)
 
         textPara.append(really)
         if anySubmos:
@@ -201,7 +201,7 @@ class DiscardFiles(_BaseStagingTask):
         if patch.delta.status == DeltaStatus.DELETED:
             didRestore = self.repo.restore_submodule_gitlink(path)
             if not didRestore:
-                raise AbortTask(_("Couldn’t restore gitlink file for submodule {0}.").format(lquo(path)))
+                raise AbortTask(_("Couldn’t restore gitlink file for submodule {0}.", lquo(path)))
 
         with RepoContext(self.repo.in_workdir(path), RepositoryOpenFlag.NO_SEARCH) as subRepo:
             # Reset HEAD to the target commit
@@ -234,9 +234,9 @@ class DiscardModeChanges(_BaseStagingTask):
             raise AbortTask()
         elif len(patches) == 1:
             path = patches[0].delta.new_file.path
-            textPara.append(_("Really discard mode change in {0}?").format(bquo(path)))
+            textPara.append(_("Really discard mode change in {0}?", bquo(path)))
         else:
-            textPara.append(_("Really discard mode changes in <b>{n} files</b>?").format(n=len(patches)))
+            textPara.append(_("Really discard mode changes in <b>{n} files</b>?", n=len(patches)))
         textPara.append(_("This cannot be undone!"))
 
         yield from self.flowConfirm(text=paragraphs(textPara), verb=_("Discard mode changes"), buttonIcon="SP_DialogDiscardButton")
@@ -265,7 +265,7 @@ class ApplyPatch(RepoTask):
         if not subPatch:
             QApplication.beep()
             verb = TrTables.patchPurpose(purpose & PatchPurpose.VERB_MASK).lower()
-            message = _("Can’t {verb} the selection because no red/green lines are selected.").format(verb=verb)
+            message = _("Can’t {verb} the selection because no red/green lines are selected.", verb=verb)
             raise AbortTask(message, asStatusMessage=True)
 
         if purpose & PatchPurpose.DISCARD:
@@ -398,7 +398,7 @@ class AcceptMergeConflictResolution(RepoTask):
 
         # Jump to staged file after confirming conflict resolution
         self.jumpTo = NavLocator.inStaged(path)
-        self.postStatus = _("Merge conflict resolved in {0}.").format(tquo(path))
+        self.postStatus = _("Merge conflict resolved in {0}.", tquo(path))
 
 
 class ApplyPatchFile(RepoTask):
@@ -446,11 +446,11 @@ class ApplyPatchFile(RepoTask):
         yield from self.flowEnterUiThread()
 
         text = paragraphs(
-            _("Do you want to {verb} patch file {path}?"),
+            _("Do you want to {verb} patch file {path}?",
+              verb=btag(verb.lower()), path=bquoe(os.path.basename(path))),
             _n("<b>{n}</b> file will be modified in your working directory:",
-               "<b>{n}</b> files will be modified in your working directory:", len(deltas))
+               "<b>{n}</b> files will be modified in your working directory:", n=len(deltas))
         )
-        text = text.format(path=bquoe(os.path.basename(path)), verb=tagify(verb.lower(), "<b>"))
         details = [f"({d.status_char()}) {escape(d.new_file.path)}" for d in deltas]
 
         yield from self.flowConfirm(title, text, verb=verb, detailList=details)
@@ -485,11 +485,10 @@ class ApplyPatchData(RepoTask):
         verb = _("Revert") if reverse else _("Apply")
 
         text = paragraphs(
-            _("Do you want to {verb} this patch?"),
+            _("Do you want to {verb} this patch?", verb=btag(verb.lower())),
             _n("<b>{n}</b> file will be modified in your working directory:",
-               "<b>{n}</b> files will be modified in your working directory:", len(deltas))
+               "<b>{n}</b> files will be modified in your working directory:", n=len(deltas))
         )
-        text = text.format(verb=tagify(verb.lower(), "<b>"))
         details = [f"({d.status_char()}) {escape(d.new_file.path)}" for d in deltas]
 
         yield from self.flowConfirm(title, text, verb=verb, detailList=details)
@@ -514,8 +513,8 @@ class RestoreRevisionToWorkdir(RepoTask):
         existsNow = os.path.isfile(path)
 
         if not existsNow and delete:
-            message = _("Your working copy of {path} already matches the revision {preposition} this commit.")
-            message = message.format(path=bquo(diffFile.path), preposition=preposition)
+            message = _("Your working copy of {path} already matches the revision {preposition} this commit.",
+                        path=bquo(diffFile.path), preposition=preposition)
             raise AbortTask(message, icon="information")
 
         if not existsNow:
@@ -525,9 +524,9 @@ class RestoreRevisionToWorkdir(RepoTask):
         else:
             actionVerb = _("overwritten")
         prompt = paragraphs(
-            _("Do you want to restore {path} as it was {preposition} this commit?"),
-            _("This file will be {processed} in your working directory.")
-        ).format(path=bquo(diffFile.path), preposition=preposition, processed=actionVerb)
+            _("Do you want to restore {path} as it was {preposition} this commit?",
+              path=bquo(diffFile.path), preposition=preposition),
+            _("This file will be {processed} in your working directory.", processed=actionVerb))
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
 
@@ -542,7 +541,7 @@ class RestoreRevisionToWorkdir(RepoTask):
                 f.write(blob.data)
             os.chmod(path, diffFile.mode)
 
-        self.postStatus = _("File {path} {processed}.").format(path=tquoe(diffFile.path), processed=actionVerb)
+        self.postStatus = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
         self.jumpTo = NavLocator.inUnstaged(diffFile.path)
 
 
@@ -580,14 +579,13 @@ class AbortMerge(RepoTask):
         try:
             abortList = self.repo.get_reset_merge_file_list()
         except MultiFileError as exc:
-            # TODO: GETTEXT?
             exc.message = _n(
                 "Cannot {verb} right now, because a file contain both staged and unstaged changes.",
                 "Cannot {verb} right now, because {n} files contain both staged and unstaged changes.",
                 n=len(exc.file_exceptions), verb=clause)
             raise exc
 
-        lines = [_("Do you want to {0}?").format(clause)]
+        lines = [_("Do you want to {0}?", clause)]
 
         if not abortList:
             lines.append(_("No files are affected."))

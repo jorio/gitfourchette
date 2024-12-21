@@ -282,7 +282,7 @@ class FileList(QListView):
 
         return [
             ActionDef(
-                _("Open Diff in {0}").format(settings.getDiffToolName()),
+                _("Open Diff in {0}", settings.getDiffToolName()),
                 self.wantOpenInDiffTool,
                 icon="vcs-diff"),
 
@@ -296,7 +296,7 @@ class FileList(QListView):
 
         return [
             ActionDef(
-                _("&Edit in {tool}").format(tool=settings.getExternalEditorName()),
+                _("&Edit in {tool}", tool=settings.getExternalEditorName()),
                 self.openWorkdirFile,
                 icon="SP_FileIcon"),
 
@@ -355,11 +355,11 @@ class FileList(QListView):
     def _openInDiffTool(self, patch: Patch):
         if patch.delta.new_file.id == NULL_OID:
             raise SelectedFileBatchError(
-                _("{0}: Can’t open external diff tool on a deleted file.").format(patch.delta.new_file.path))
+                _("{0}: Can’t open external diff tool on a deleted file.", patch.delta.new_file.path))
 
         if patch.delta.old_file.id == NULL_OID:
             raise SelectedFileBatchError(
-                _("{0}: Can’t open external diff tool on a new file.").format(patch.delta.new_file.path))
+                _("{0}: Can’t open external diff tool on a new file.", patch.delta.new_file.path))
 
         oldDiffFile = patch.delta.old_file
         newDiffFile = patch.delta.new_file
@@ -386,7 +386,7 @@ class FileList(QListView):
             path = self.repo.in_workdir(entry.delta.new_file.path)
             path = os.path.normpath(path)  # get rid of any trailing slashes (submodules)
             if not os.path.exists(path):  # check exists, not isfile, for submodules
-                raise SelectedFileBatchError(_("{0}: This file doesn’t exist at this path anymore.").format(entry.delta.new_file.path))
+                raise SelectedFileBatchError(_("{0}: This file doesn’t exist at this path anymore.", entry.delta.new_file.path))
             showInFolder(path)
 
         self.confirmBatch(run, _("Open paths"),

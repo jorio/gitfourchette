@@ -54,7 +54,7 @@ class PrefsDialog(QDialog):
         super().__init__(parent)
 
         self.setObjectName("PrefsDialog")
-        self.setWindowTitle(_("{app} Settings").format(app=qAppName()))
+        self.setWindowTitle(_("{app} Settings", app=qAppName()))
 
         self.prefDiff = {}
 

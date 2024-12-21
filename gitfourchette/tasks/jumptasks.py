@@ -210,24 +210,24 @@ class Jump(RepoTask):
 
         if locator.path == str(SpecialRow.EndOfShallowHistory):
             sde = SpecialDiffError(
-                _("Shallow clone – End of available history.").format(locale.toString(self.repoModel.numRealCommits)),
+                _("Shallow clone – End of available history."),
                 _("More commits may be available in a full clone."))
             raise Jump.Result(locator, _("Shallow clone – End of commit history"), sde)
 
         elif locator.path == str(SpecialRow.TruncatedHistory):
             from gitfourchette import settings
-            prefThreshold = settings.prefs.maxCommits
-            nextThreshold = self.repoModel.nextTruncationThreshold
             expandSome = makeInternalLink("expandlog")
             expandAll = makeInternalLink("expandlog", n=str(0))
             changePref = makeInternalLink("prefs", "maxCommits")
+            humanNextThreshold = locale.toString(self.repoModel.nextTruncationThreshold)
+            humanPrefThreshold = locale.toString(settings.prefs.maxCommits)
             options = [
-                linkify(_("Load up to {0} commits").format(locale.toString(nextThreshold)), expandSome),
+                linkify(_("Load up to {0} commits", humanNextThreshold), expandSome),
                 linkify(_("[Load full commit history] (this may take a moment)"), expandAll),
-                linkify(_("[Change threshold setting] (currently {0} commits)"), changePref).format(locale.toString(prefThreshold)),
+                linkify(_("[Change threshold setting] (currently: {0} commits)", humanPrefThreshold), changePref),
             ]
             sde = SpecialDiffError(
-                _("History truncated to {0} commits.").format(locale.toString(self.repoModel.numRealCommits)),
+                _("History truncated to {0} commits.", locale.toString(self.repoModel.numRealCommits)),
                 _("More commits may be available."),
                 longform=toRoomyUL(options))
             raise Jump.Result(locator, _("History truncated"), sde)
@@ -252,7 +252,7 @@ class Jump(RepoTask):
                 oid = self.repoModel.refs[locator.ref]
                 locator = locator.replace(commit=oid, ref="")
             except KeyError as exc:
-                raise AbortTask(_("Unknown reference {0}.").format(tquo(locator.ref))) from exc
+                raise AbortTask(_("Unknown reference {0}.", tquo(locator.ref))) from exc
 
         assert locator.commit
         assert not locator.ref
@@ -327,7 +327,7 @@ class Jump(RepoTask):
             header = _("Empty commit")
             sde = SpecialDiffError(
                 _("This commit is empty."),
-                _("Commit {0} doesn’t affect any files.").format(hquo(shortHash(locator.commit))))
+                _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit))))
             raise Jump.Result(locator, header, sde)
 
         # Warning banner

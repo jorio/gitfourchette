@@ -58,7 +58,7 @@ class NewTagDialog(QDialog):
 
         convertToBrandedDialog(
             self,
-            _("New tag on commit {0}").format(tquo(target)),
+            _("New tag on commit {0}", tquo(target)),
             tquo(targetSubtitle))
 
         self.resize(max(512, self.width()), self.height())

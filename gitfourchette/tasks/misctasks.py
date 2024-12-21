@@ -109,7 +109,7 @@ class GetCommitInfo(RepoTask):
             # table += tableRow("View row", self.rw.graphView.currentIndex().row())
             details = str(frame) + "\n\n" + details
 
-        title = _("Commit info: {0}").format(shortHash(commit.id))
+        title = _("Commit info: {0}", shortHash(commit.id))
 
         markup = f"""\
         <style>

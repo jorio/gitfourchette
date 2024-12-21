@@ -74,9 +74,9 @@ class ResetHeadDialog(QDialog):
         self.activeMode = DEFAULT_MODE
         self.modeButtons[DEFAULT_MODE].setChecked(True)
 
-        title = _("Reset {0} to {1}").format(lquoe(branchName), lquo(shortHash(oid)))
+        title = _("Reset {0} to {1}", lquoe(branchName), lquo(shortHash(oid)))
         self.setWindowTitle(title)
 
         summary, _dummy = messageSummary(commitText)
-        commitText = _("Commit {0}:").format(shortHash(oid)) + " " + tquo(summary)
+        commitText = _("Commit {0}:", shortHash(oid)) + " " + tquo(summary)
         convertToBrandedDialog(self, subtitleText=commitText)

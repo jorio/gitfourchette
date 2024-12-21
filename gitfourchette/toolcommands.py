@@ -223,7 +223,7 @@ class ToolCommands:
                     prefix = tok.removesuffix(placeholder)
                     break
             else:
-                raise ValueError(_("Placeholder token {0} missing.").format(placeholder))
+                raise ValueError(_("Placeholder token {0} missing.", placeholder))
             if replacement:
                 tokens[i] = prefix + replacement
             else:

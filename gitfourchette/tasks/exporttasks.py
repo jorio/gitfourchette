@@ -54,7 +54,7 @@ class ComposePatch(RepoTask):
         yield from self.flowEnterUiThread()
 
         if skippedBinaryFiles:
-            sorry = _("{app} cannot export binary patches from a hand-picked selection of files.").format(app=qAppName())
+            sorry = _("{app} cannot export binary patches from a hand-picked selection of files.", app=qAppName())
             if not composed:
                 raise AbortTask(sorry)
             sorry += " "

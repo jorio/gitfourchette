@@ -86,8 +86,8 @@ class SpecialDiffView(QTextBrowser):
         humanSizeA = self.locale().formattedDataSize(delta.old_file.size)
         humanSizeB = self.locale().formattedDataSize(delta.new_file.size)
 
-        textA = _("Old:") + " " + _("{0}&times;{1} pixels, {2}").format(imageA.width(), imageA.height(), humanSizeA)
-        textB = _("New:") + " " + _("{0}&times;{1} pixels, {2}").format(imageB.width(), imageB.height(), humanSizeB)
+        textA = _("Old:") + " " + _("{w}×{h} pixels, {size}", w=imageA.width(), h=imageA.height(), size=humanSizeA)
+        textB = _("New:") + " " + _("{w}×{h} pixels, {size}", w=imageB.width(), h=imageB.height(), size=humanSizeB)
 
         if delta.old_file.id == NULL_OID:
             header = f"<add>{textB}</add>"

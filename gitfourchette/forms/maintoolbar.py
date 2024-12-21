@@ -78,7 +78,7 @@ class MainToolBar(QToolBar):
             ActionDef.SEPARATOR,
             ActionDef(_("Settings"), self.openPrefs, icon="git-settings",
                       shortcuts=QKeySequence.StandardKey.Preferences,
-                      tip=_("Configure {app}").format(app=qAppName())),
+                      tip=_("Configure {app}", app=qAppName())),
         ]
         ActionDef.addToQToolBar(self, *defs)
 

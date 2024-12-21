@@ -76,7 +76,7 @@ class CloneDialog(QDialog):
         self.cancelButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
         self.cancelButton.setAutoDefault(False)
 
-        self.ui.statusForm.setBlurb(_("Hit {0} when ready.").format(tquo(self.cloneButton.text().replace("&", ""))))
+        self.ui.statusForm.setBlurb(_("Hit {0} when ready.", tquo(self.cloneButton.text().replace("&", ""))))
 
         self.ui.shallowCloneDepthSpinBox.valueChanged.connect(self.onShallowCloneDepthChanged)
         self.ui.shallowCloneCheckBox.stateChanged.connect(self.onShallowCloneCheckBoxStateChanged)
@@ -160,10 +160,10 @@ class CloneDialog(QDialog):
         display = lquoe(compactPath(location))
         if location == settings.prefs.resolveDefaultCloneLocation():
             action.setEnabled(False)
-            action.setText(_("{0} is the default clone location").format(display))
+            action.setText(_("{0} is the default clone location", display))
         else:
             action.setEnabled(True)
-            action.setText(_("Set {0} as default clone location").format(display))
+            action.setText(_("Set {0} as default clone location", display))
 
     def setDefaultCloneLocationPref(self, location: str):
         settings.prefs.defaultCloneLocation = location
@@ -355,7 +355,7 @@ class CloneTask(RepoTask):
 
     def recurseIntoSubmodules(self, repo: Repo, depth: int):
         for i, submodule in enumerate(repo.recurse_submodules(), 1):
-            stickyStatus = _("Initializing submodule {0}: {1}…").format(i, lquoe(submodule.name))
+            stickyStatus = _("Initializing submodule {0}: {1}…", i, lquoe(submodule.name))
             self.stickyStatus.emit(stickyStatus)
 
             with self.remoteLink.remoteContext(submodule.url or ""):

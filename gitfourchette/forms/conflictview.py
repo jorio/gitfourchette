@@ -221,8 +221,8 @@ class ConflictView(QWidget):
         # Merge busy/ready
         if isMergeBusy:
             assert merge.process is not None
-            progressMessage = _("Waiting for you to finish merging this file in {0} (PID {1})…"
-                                ).format(lquoe(merge.processName), merge.process.processId())
+            progressMessage = _("Waiting for you to finish merging this file in {0} (PID {1})…",
+                                lquoe(merge.processName), merge.process.processId())
             self.ui.mergeInProgressLabel.setText(progressMessage)
             self.ui.stackedWidget.setCurrentWidget(self.ui.mergeInProgressPage)
         elif isMergeReady:

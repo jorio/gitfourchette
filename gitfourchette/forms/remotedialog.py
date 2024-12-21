@@ -41,7 +41,7 @@ class RemoteDialog(QDialog):
         # Different behavior if editing existing remote or creating a new one
         if editExistingRemote:
             # Edit existing remote
-            title = _("Edit remote {0}").format(hquoe(name))
+            title = _("Edit remote {0}", hquoe(name))
             self.setWindowTitle(_("Edit remote"))
             okButton.setText(_("Save"))
             self.ui.fetchAfterAddCheckBox.setVisible(False)

@@ -48,7 +48,7 @@ class CommitDialog(QDialog):
         if amendingCommitHash:
             prompt = _("Amend commit message")
             buttonCaption = _("A&mend")
-            self.setWindowTitle(_("Amend Commit {0}").format(amendingCommitHash))
+            self.setWindowTitle(_("Amend Commit {0}", amendingCommitHash))
         else:
             prompt = _("Enter commit summary")
             buttonCaption = _("Co&mmit")
@@ -62,7 +62,7 @@ class CommitDialog(QDialog):
         elif repositoryState == RepositoryState.REVERT:
             warning = _("This commit will conclude the revert.")
         elif amendingCommitHash:
-            warning = _("You are amending commit {0}.").format(lquo(amendingCommitHash))
+            warning = _("You are amending commit {0}.", lquo(amendingCommitHash))
         elif detachedHead:
             warning = _("<b>Detached HEAD</b> – You are not in any branch! "
                               "You should create a branch to keep track of your commit.")

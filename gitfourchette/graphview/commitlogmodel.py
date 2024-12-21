@@ -194,9 +194,9 @@ def commitAuthorTooltip(commit: Commit) -> str:
         markup += (f"<small><br>{formatTime(author)} {suffixA}"
                    f"<br>{formatTime(committer)} *{suffixC}")
     else:
-        committedBy = _p("CommitTooltip", "Committed by {0}")
-        markup += (f"<small><br>{formatTime(author)}<br><br>"
-                   + "*" + committedBy.format(formatPerson(committer)) +
+        committedBy = _p("CommitTooltip", "Committed by {0}", formatPerson(committer))
+        markup += (f"<small><br>{formatTime(author)}"
+                   f"<br><br>* {committedBy}"
                    f"<br><small>{formatTime(committer)}")
 
     return markup

@@ -41,7 +41,7 @@ class NewRemote(RepoTask):
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.create_remote(newRemoteName, newRemoteUrl)
 
-        self.postStatus = _("Remote {0} added.").format(tquo(newRemoteName))
+        self.postStatus = _("Remote {0} added.", tquo(newRemoteName))
 
         if fetchAfterAdd:
             yield from self.flowEnterUiThread()
@@ -85,10 +85,9 @@ class DeleteRemote(RepoTask):
     def flow(self, remoteName: str):
         yield from self.flowConfirm(
             text=paragraphs(
-                _("Really remove remote {0}?"),
+                _("Really remove remote {0}?", bquo(remoteName)),
                 _("This will merely detach the remote from your local repository. "
-                        "The remote server itself will not be affected.")
-            ).format(bquo(remoteName)),
+                  "The remote server itself will not be affected.")),
             verb=_("Remove remote"),
             buttonIcon="SP_DialogDiscardButton")
 
@@ -96,4 +95,4 @@ class DeleteRemote(RepoTask):
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.delete_remote(remoteName)
 
-        self.postStatus = _("Remote {0} removed.").format(tquo(remoteName))
+        self.postStatus = _("Remote {0} removed.", tquo(remoteName))

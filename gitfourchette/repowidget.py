@@ -626,11 +626,11 @@ class RepoWidget(QStackedWidget):
             basename = os.path.basename(fullPath)
             askConfirmation(
                 self,
-                _("Open {0}").format(tquo(basename)),
+                _("Open {0}", tquo(basename)),
                 paragraphs(
-                    _("File {0} does not exist.").format(bquo(fullPath)),
+                    _("File {0} does not exist.", bquo(fullPath)),
                     _("Do you want to create it?")),
-                okButtonText=_("Create {0}").format(lquo(basename)),
+                okButtonText=_("Create {0}", lquo(basename)),
                 callback=createAndOpen)
         else:
             openInTextEditor(self, fullPath)
@@ -803,7 +803,7 @@ class RepoWidget(QStackedWidget):
                 mergehead = self.repoModel.mergeheads[0]
                 name = self.repoModel.refsAt[mergehead][0]
                 name = RefPrefix.split(name)[1]
-                bannerTitle = _("Merging {0}").format(bquo(name))
+                bannerTitle = _("Merging {0}", bquo(name))
             except (IndexError, KeyError):
                 pass
 
@@ -847,8 +847,8 @@ class RepoWidget(QStackedWidget):
             bannerTitle = _("Warning")
             bannerText = _(
                 "The repo is currently in state {state}, which {app} doesn’t support yet. "
-                "Use <code>git</code> on the command line to continue."
-            ).format(app=qAppName(), state=bquo(TrTables.repositoryState(rstate)))
+                "Use <code>git</code> on the command line to continue.",
+                app=qAppName(), state=bquo(TrTables.repositoryState(rstate)))
 
         if bannerText or bannerTitle:
             self.mergeBanner.popUp(bannerTitle, bannerText, heeded=bannerHeeded, canDismiss=False)
@@ -1011,7 +1011,7 @@ class RepoWidget(QStackedWidget):
             superprojectEnabled = bool(superproject)
             if superprojectEnabled:
                 superprojectName = settings.history.getRepoTabName(superproject)
-                superprojectLabel = _("Open Superproject {0}").format(lquo(superprojectName))
+                superprojectLabel = _("Open Superproject {0}", lquo(superprojectName))
 
         return [
             ActionDef(

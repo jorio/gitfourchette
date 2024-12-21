@@ -45,9 +45,8 @@ class RegisterSubmodule(RepoTask):
 
         if not subRemotes:
             message = paragraphs(
-                _("{0} has no remotes."),
-                _("Please open {0} and add a remote to it before absorbing it as a submodule.")
-            ).format(bquo(subName))
+                _("{0} has no remotes.", bquo(subName)),
+                _("Please open {0} and add a remote to it before absorbing it as a submodule.", bquo(subName)))
             raise AbortTask(message)
 
         reservedNames = set(self.repo.listall_submodules_dict().keys())
@@ -64,7 +63,7 @@ class RegisterSubmodule(RepoTask):
             if i >= 0:
                 dlg.ui.remoteComboBox.setCurrentIndex(i)
 
-        subtitle = _("Settings will be saved in {0}").format(tquo(".gitmodules"))
+        subtitle = _("Settings will be saved in {0}", tquo(".gitmodules"))
         convertToBrandedDialog(dlg, subtitleText=subtitle)
         yield from self.flowDialog(dlg)
 
@@ -91,11 +90,10 @@ class RemoveSubmodule(RepoTask):
     def flow(self, submoduleName: str):
         yield from self.flowConfirm(
             text=paragraphs(
-                _("Really remove submodule {0}?"),
-                _("The submodule will be removed from {1} and its working copy will be deleted."),
+                _("Really remove submodule {0}?", bquo(submoduleName)),
+                _("The submodule will be removed from {0} and its working copy will be deleted.", hquo(".gitmodules")),
                 _("Any changes in the submodule that haven’t been pushed will be lost."),
-                _("This cannot be undone!"),
-            ).format(bquo(submoduleName), hquo(".gitmodules")),
+                _("This cannot be undone!")),
             buttonIcon="SP_DialogDiscardButton",
             verb="Remove")
 

@@ -65,7 +65,7 @@ class PrimeRepo(RepoTask):
         repo = Repo(path, RepositoryOpenFlag.NO_SEARCH)
 
         if repo.is_bare:
-            raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.").format(app=qAppName()))
+            raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.", app=qAppName()))
 
         # Bind to sessionwide git config file
         sessionwideConfigPath = GFApplication.instance().sessionwideGitConfigPath
@@ -121,7 +121,7 @@ class PrimeRepo(RepoTask):
 
             # Report progress, not too often
             if i % progressInterval == 0:
-                message = _("{0} commits…").format(locale.toString(i))
+                message = _("{0} commits…", locale.toString(i))
                 self.progressMessage.emit(message)
                 if numCommitsBallpark > 0 and i <= numCommitsBallpark:
                     self.progressValue.emit(i)
@@ -132,9 +132,9 @@ class PrimeRepo(RepoTask):
         numCommits = len(commitSequence) - 1
         logger.info(f"{repoModel.shortName}: loaded {numCommits} commits")
         if truncatedHistory:
-            message = _("{0} commits (truncated log).").format(locale.toString(numCommits))
+            message = _("{0} commits (truncated log).", locale.toString(numCommits))
         else:
-            message = _("{0} commits total.").format(locale.toString(numCommits))
+            message = _("{0} commits total.", locale.toString(numCommits))
         self.progressMessage.emit(message)
 
         if numCommitsBallpark != 0:
@@ -286,9 +286,8 @@ class LoadPatch(RepoTask):
 
             if locator.context.isWorkdir() and not settings.prefs.autoRefresh:
                 prefKey = "autoRefresh"
-                tip = _("Consider re-enabling [{0}] to prevent this issue."
-                              ).format(hquo(TrTables.prefKey(prefKey)))
-                tip = linkify(tip, makeInternalLink("prefs", prefKey))
+                tip = _("Consider re-enabling {0} to prevent this issue.",
+                        linkify(hquo(TrTables.prefKey(prefKey)), makeInternalLink("prefs", prefKey)))
                 longformItems.append(tip)
 
             return SpecialDiffError(_("Outdated diff."),
@@ -336,7 +335,7 @@ class LoadPatch(RepoTask):
 
         locationText = ""
         if locator.context == NavContext.COMMITTED:
-            locationText = _p("at (specific commit)", "at {0}").format(shortHash(locator.commit))
+            locationText = _p("at (specific commit)", "at {0}", shortHash(locator.commit))
         elif locator.context.isWorkdir():
             locationText = locator.context.translateName().lower()
         if locationText:

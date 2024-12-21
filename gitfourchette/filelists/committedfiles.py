@@ -57,7 +57,6 @@ class CommittedFiles(FileList):
                 ActionDef.SEPARATOR,
 
                 ActionDef(
-                    # TODO: GETTEXT?
                     _n("&Open File in {0}", "&Open {n} Files in {0}", n, settings.getExternalEditorName()),
                     icon="SP_FileIcon", submenu=[
                         ActionDef(_("&As Of This Commit"), self.openNewRevision),
@@ -200,7 +199,7 @@ class CommittedFiles(FileList):
             if os.path.isfile(path):
                 openInTextEditor(self, path)
             else:
-                raise SelectedFileBatchError(_("{0}: There’s no file at this path in the working copy.").format(diffFile.path))
+                raise SelectedFileBatchError(_("{0}: There’s no file at this path in the working copy.", diffFile.path))
 
         self.confirmBatch(run, _("Open working copy revision"), _("Really open <b>{n} files</b>?"))
 

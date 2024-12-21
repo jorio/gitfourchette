@@ -35,7 +35,7 @@ class PushDialog(QDialog):
         localBranch = self.currentLocalBranch
 
         if localBranch.upstream:
-            self.ui.trackingLabel.setText(_("tracking {0}").format(lquo(localBranch.upstream.shorthand)))
+            self.ui.trackingLabel.setText(_("tracking {0}", lquo(localBranch.upstream.shorthand)))
         else:
             self.ui.trackingLabel.setText(_("non-tracking"))
 
@@ -88,15 +88,15 @@ class PushDialog(QDialog):
             willTrack = self.willPushToNewBranch or isTrackingHomeBranch
 
         if not hasUpstream and willTrack:
-            text = _("{0} will track {1}.").format(lbName, rbName)
+            text = _("{0} will track {1}.", lbName, rbName)
         elif not hasUpstream and not willTrack:
-            text = _("{0} currently does not track any remote branch.").format(lbName)
+            text = _("{0} currently does not track any remote branch.", lbName)
         elif isTrackingHomeBranch:
-            text = _("{0} already tracks remote branch {1}.").format(lbName, lbUpstream)
+            text = _("{0} already tracks remote branch {1}.", lbName, lbUpstream)
         elif willTrack:
-            text = _("{0} will track {1} instead of {2}.").format(lbName, rbName, lbUpstream)
+            text = _("{0} will track {1} instead of {2}.", lbName, rbName, lbUpstream)
         else:
-            text = _("{0} currently tracks {1}.").format(lbName, lbUpstream)
+            text = _("{0} currently tracks {1}.", lbName, lbUpstream)
 
         self.ui.trackingLabel.setWordWrap(True)
         self.ui.trackingLabel.setText("<small>" + text + "</small>")
@@ -215,7 +215,7 @@ class PushDialog(QDialog):
                     self.fallbackAutoNewIndex = comboBox.count()
                 comboBox.addItem(
                     stockIcon("SP_FileDialogNewFolder"),
-                    _("New remote branch on {0}").format(lquo(remoteName)),
+                    _("New remote branch on {0}", lquo(remoteName)),
                     (ERemoteItem.NewRef, remoteName))
                 comboBox.setItemData(comboBox.count()-1, remoteUrl, Qt.ItemDataRole.ToolTipRole)
 

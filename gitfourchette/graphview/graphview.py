@@ -100,7 +100,7 @@ class GraphView(QListView):
             expandAll = makeInternalLink("expandlog", n=str(0))
             changePref = makeInternalLink("prefs", "maxCommits")
             actions = [
-                ActionDef(_("Load up to {0} commits").format(QLocale().toString(repoModel.nextTruncationThreshold)),
+                ActionDef(_("Load up to {0} commits", QLocale().toString(repoModel.nextTruncationThreshold)),
                           lambda: self.linkActivated.emit(expandSome)),
                 ActionDef(_("Load full commit history"),
                           lambda: self.linkActivated.emit(expandAll)),
@@ -114,7 +114,7 @@ class GraphView(QListView):
                 with suppress(KeyError, StopIteration):
                     refsHere = repoModel.refsAt[oid]
                     target = next(ref for ref in refsHere if ref.startswith((RefPrefix.HEADS, RefPrefix.REMOTES)))
-                    mergeCaption = _("&Merge into {0}…").format(lquo(repoModel.homeBranch))
+                    mergeCaption = _("&Merge into {0}…", lquo(repoModel.homeBranch))
                     mergeActions = [
                         TaskBook.action(self, MergeBranch, name=mergeCaption, taskArgs=(target,)),
                     ]

@@ -246,17 +246,17 @@ class RemoteLink(QObject, RemoteCallbacks):
         elif self.attempts == 0:
             raise NotImplementedError(
                 _("Unsupported authentication type.") + " " +
-                _("The remote claims to accept: {0}.").format(getAuthNamesFromFlags(allowed_types)))
+                _("The remote claims to accept: {0}.", getAuthNamesFromFlags(allowed_types)))
         elif self.anyKeyIsUnreadable:
             raise ConnectionRefusedError(
                 _("Could not find suitable key files for this remote.") + " " +
                 _("The key files couldn’t be opened (permission issues?)."))
         elif self.usingCustomKeyFile:
-            message = _("The remote has rejected your custom key file ({0})."
-                              ).format(compactPath(self.usingCustomKeyFile))
+            message = _("The remote has rejected your custom key file ({0}).", compactPath(self.usingCustomKeyFile))
             if self.moreDetailsOnCustomKeyFileFail:
-                message += " " + _("To change key file settings for this remote, "
-                                         "right-click on the remote in the sidebar and pick “Edit Remote”.")
+                message += " "
+                message += _("To change key file settings for this remote, "
+                             "right-click on the remote in the sidebar and pick “Edit Remote”.")
             raise ConnectionRefusedError(message)
         else:
             raise ConnectionRefusedError(_("Credentials rejected by remote."))
@@ -286,13 +286,13 @@ class RemoteLink(QObject, RemoteCallbacks):
 
         message = ""
         if stats.received_objects != stats.total_objects:
-            message += _("Downloading: {0}…").format(sizeText)
+            message += _("Downloading: {0}…", sizeText)
             if self.downloadRate != 0:
                 rateText = locale.formattedDataSize(self.downloadRate, 0 if self.downloadRate < 1e6 else 1)
-                message += "\n" + _p("download speed", "({0}/s)").format(rateText)
+                message += "\n" + _p("download speed", "({0}/s)", rateText)
         else:
-            message += _("Download complete ({0}).").format(sizeText)
-            message += "\n" + _("Indexing {0} of {1} objects…").format(locale.toString(obj), locale.toString(stats.total_objects))
+            message += _("Download complete ({0}).", sizeText)
+            message += "\n" + _("Indexing {0} of {1} objects…", locale.toString(obj), locale.toString(stats.total_objects))
 
         self.message.emit(message)
 
@@ -347,13 +347,13 @@ class RemoteLink(QObject, RemoteCallbacks):
             rb = RefPrefix.split(ref)[1]
             oldTip, newTip = self.updatedTips[ref]
             if oldTip == newTip:  # for pushing
-                ps = _("{0} is already up-to-date with {1}.").format(tquo(rb), tquo(shortHash(oldTip)))
+                ps = _("{0} is already up-to-date with {1}.", tquo(rb), tquo(shortHash(oldTip)))
             elif oldTip == NULL_OID:
-                ps = _("{0} created: {1}.").format(tquo(rb), shortHash(newTip))
+                ps = _("{0} created: {1}.", tquo(rb), shortHash(newTip))
             elif newTip == NULL_OID:
-                ps = _("{0} deleted, was {1}.").format(tquo(rb), shortHash(oldTip))
+                ps = _("{0} deleted, was {1}.", tquo(rb), shortHash(oldTip))
             else:
-                ps = _("{0}: {1} → {2}.").format(tquo(rb), shortHash(oldTip), shortHash(newTip))
+                ps = _("{0}: {1} → {2}.", tquo(rb), shortHash(oldTip), shortHash(newTip))
             messages.append(ps)
         if not self.updatedTips:
             messages.append(noNewCommits or _("No new commits."))

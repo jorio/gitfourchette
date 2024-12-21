@@ -22,7 +22,7 @@ class OpenRepoProgress(QWidget):
         self.ui.abortButton.setEnabled(False)
 
         if name:
-            self.initialMessage = _("Opening {0}…").format(tquo(name))
+            self.initialMessage = _("Opening {0}…", tquo(name))
             self.ui.label.setText(self.initialMessage)
         else:
             self.initialMessage = self.ui.label.text()

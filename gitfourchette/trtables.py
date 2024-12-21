@@ -58,7 +58,7 @@ class TrTables:
         try:
             return cls._nameValidationCodes[code]
         except KeyError:
-            return _("Name validation error {0}").format(code)
+            return _("Name validation error {0}", code)
 
     @classmethod
     def sidebarItem(cls, item: SidebarItem):

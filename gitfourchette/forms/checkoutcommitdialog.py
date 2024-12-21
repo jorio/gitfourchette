@@ -25,7 +25,7 @@ class CheckoutCommitDialog(QDialog):
         self.ui = ui
         self.ui.setupUi(self)
 
-        self.setWindowTitle(_("Check out commit {0}").format(shortHash(oid)))
+        self.setWindowTitle(_("Check out commit {0}", shortHash(oid)))
 
         ok = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         ui.detachedHeadRadioButton.clicked.connect(lambda: ok.setText(_("Detach HEAD")))

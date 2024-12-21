@@ -181,7 +181,7 @@ class Sidebar(QTreeView):
                 TaskBook.action(
                     self,
                     SwitchBranch,
-                    _("&Switch to {0}").format(thisBranchDisplay),
+                    _("&Switch to {0}", thisBranchDisplay),
                     taskArgs=branchName,
                 ).replace(enabled=not isCurrentBranch),
 
@@ -190,7 +190,7 @@ class Sidebar(QTreeView):
                 TaskBook.action(
                     self,
                     MergeBranch,
-                    _("&Merge into {0}…").format(activeBranchDisplay),
+                    _("&Merge into {0}…", activeBranchDisplay),
                     taskArgs=refName,
                 ).replace(enabled=not isCurrentBranch and activeBranchName),
 
@@ -199,27 +199,27 @@ class Sidebar(QTreeView):
                 TaskBook.action(
                     self,
                     FetchRemoteBranch,
-                    _("&Fetch {0}…").format(upstreamBranchDisplay) if hasUpstream else _("Fetch…"),
+                    _("&Fetch {0}…", upstreamBranchDisplay) if hasUpstream else _("Fetch…"),
                     taskArgs=branch.upstream.shorthand if hasUpstream else None,
                 ).replace(enabled=hasUpstream),
 
                 TaskBook.action(
                     self,
                     PullBranch,
-                    _("Pu&ll from {0}…").format(upstreamBranchDisplay) if hasUpstream else _("Pull…"),
+                    _("Pu&ll from {0}…", upstreamBranchDisplay) if hasUpstream else _("Pull…"),
                 ).replace(enabled=hasUpstream and isCurrentBranch),
 
                 TaskBook.action(
                     self,
                     FastForwardBranch,
-                    _("Fast-Forward to {0}…").format(upstreamBranchDisplay) if hasUpstream else _("Fast-Forward…"),
+                    _("Fast-Forward to {0}…", upstreamBranchDisplay) if hasUpstream else _("Fast-Forward…"),
                     taskArgs=branchName,
                 ).replace(enabled=hasUpstream),
 
                 TaskBook.action(
                     self,
                     PushBranch,
-                    _("&Push to {0}…").format(upstreamBranchDisplay) if hasUpstream else _("Push…"),
+                    _("&Push to {0}…", upstreamBranchDisplay) if hasUpstream else _("Push…"),
                     taskArgs=branchName,
                 ),
 
@@ -266,7 +266,7 @@ class Sidebar(QTreeView):
             if webUrl:
                 webActions = [
                     ActionDef(
-                        _("Visit Web Page on {0}…").format(escamp(webHost)),
+                        _("Visit Web Page on {0}…", escamp(webHost)),
                         lambda: QDesktopServices.openUrl(QUrl(webUrl)),
                         icon="internet-web-browser",
                         tip=f"<p style='white-space: pre'>{escape(webUrl)}</p>",
@@ -289,7 +289,7 @@ class Sidebar(QTreeView):
                 TaskBook.action(
                     self,
                     MergeBranch,
-                    _("&Merge into {0}…").format(activeBranchDisplay),
+                    _("&Merge into {0}…", activeBranchDisplay),
                     taskArgs=refName,
                 ),
 
@@ -331,7 +331,7 @@ class Sidebar(QTreeView):
             if webUrl:
                 webActions = [
                     ActionDef(
-                        _("Visit Web Page on {0}…").format(escamp(webHost)),
+                        _("Visit Web Page on {0}…", escamp(webHost)),
                         lambda: QDesktopServices.openUrl(QUrl(webUrl)),
                         icon="internet-web-browser",
                         tip=f"<p style='white-space: pre'>{escape(webUrl)}</p>",

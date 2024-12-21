@@ -120,9 +120,9 @@ class MergeDriver(QObject):
         self.state = MergeDriver.State.Fail
 
         if error == QProcess.ProcessError.FailedToStart:
-            self.debrief = _("{0} failed to start.").format(tquo(self.processName))
+            self.debrief = _("{0} failed to start.", tquo(self.processName))
         else:
-            self.debrief = _("{0} ran into error {1}.").format(tquo(self.processName), error.name)
+            self.debrief = _("{0} ran into error {1}.", tquo(self.processName), error.name)
 
         self.flush()
 
@@ -132,8 +132,8 @@ class MergeDriver(QObject):
                 or filecmp.cmp(self.scratchPath, self.targetPath)):
             logger.warning(f"Merge tool PID {self.process.processId()} finished with code {exitCode}, {exitStatus}")
             self.state = MergeDriver.State.Fail
-            self.debrief = _("{0} didn’t complete the merge.").format(tquo(self.processName))
-            self.debrief += "\n" + _("Exit code: {0}.").format(exitCode)
+            self.debrief = _("{0} didn’t complete the merge.", tquo(self.processName))
+            self.debrief += "\n" + _("Exit code: {0}.", exitCode)
         else:
             self.state = MergeDriver.State.Ready
             self.debrief = ""

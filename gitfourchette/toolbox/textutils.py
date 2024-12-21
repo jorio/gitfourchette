@@ -166,9 +166,9 @@ def elide(text: str, mode: Qt.TextElideMode = Qt.TextElideMode.ElideMiddle, ems:
 def clipboardStatusMessage(text: str):
     n = 1 + text.count('\n')
     if n == 1:
-        return _("{0} copied to clipboard.").format(tquoe(text))
+        return _("{0} copied to clipboard.", tquoe(text))
     else:
-        return _("{n} lines copied to clipboard.").format(n=n)
+        return _("{n} lines copied to clipboard.", n=n)
 
 
 def ulify(items: Iterable[str], limit: int = 10, prefix="", suffix="", moreText=""):

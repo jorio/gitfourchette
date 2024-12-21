@@ -291,7 +291,7 @@ class RepoTask(QObject):
             if exc.message:
                 message = exc.message
             else:
-                message = _("Operation failed: {0}.").format(escape(self.name()))
+                message = _("Operation failed: {0}.", escape(self.name()))
             for filePath, fileException in exc.file_exceptions.items():
                 if fileException:
                     details.append(f"<b>{escape(filePath)}</b>: {escape(str(fileException))}")
@@ -301,7 +301,7 @@ class RepoTask(QObject):
             addULToMessageBox(qmb, details)
             qmb.show()
         else:
-            message = _("Operation failed: {0}.").format(escape(self.name()))
+            message = _("Operation failed: {0}.", escape(self.name()))
             excMessageBox(exc, title=self.name(), message=message, parent=self.parentWidget())
 
     def prereqs(self) -> TaskPrereqs:
@@ -676,8 +676,7 @@ class RepoTaskRunner(QObject):
 
         else:
             logger.info(f"Task {task} cannot kill task {self._currentTask}")
-            message = _("Please wait for the current operation to complete ({0})."
-                              ).format(hquo(self._currentTask.name()))
+            message = _("Please wait for the current operation to complete ({0}).", hquo(self._currentTask.name()))
             showInformation(task.parentWidget(), _("Operation in progress"), "<html>" + message)
 
     def _startTask(self, task: RepoTask):
@@ -756,7 +755,7 @@ class RepoTaskRunner(QObject):
 
         elif token.flowControl == FlowControlToken.Kind.ContinueOnWorkThread:
             assert not RepoTaskRunner.ForceSerial
-            busyMessage = _("Busy: {0}…").format(task.name())
+            busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
 
             # Wrapper around `next(flow)`.

@@ -108,11 +108,11 @@ class SpecialDiffError(Exception):
         configure = makeInternalLink("prefs", "largeFileThresholdKB")
         longform = toRoomyUL([
             linkify(_("[Load diff anyway] (this may take a moment)"), loadAnyway.url()),
-            linkify(_("[Configure diff preview limit] (currently: {0})"), configure).format(humanThreshold),
+            linkify(_("[Configure diff preview limit] (currently: {0})", humanThreshold), configure),
         ])
         return SpecialDiffError(
             _("This diff is too large to be previewed."),
-            _("Diff size: {0}").format(humanSize),
+            _("Diff size: {0}", humanSize),
             "SP_MessageBoxWarning",
             longform=longform)
 
@@ -125,11 +125,11 @@ class SpecialDiffError(Exception):
         configure = makeInternalLink("prefs", "imageFileThresholdKB")
         longform = toRoomyUL([
             linkify(_("[Load image anyway] (this may take a moment)"), loadAnyway.url()),
-            linkify(_("[Configure image preview limit] (currently: {0})"), configure).format(humanThreshold),
+            linkify(_("[Configure image preview limit] (currently: {0})", humanThreshold), configure),
         ])
         return SpecialDiffError(
             _("This image is too large to be previewed."),
-            _("Image size: {0}").format(humanSize),
+            _("Image size: {0}", humanSize),
             "SP_MessageBoxWarning",
             longform=longform)
 
@@ -176,10 +176,10 @@ class SpecialDiffError(Exception):
         message = _("This untracked subtree is the root of another Git repository.")
 
         # TODO: if we had the full path to the root repo, we could just make a standard file link, and we wouldn't need the "opensubfolder" authority
-        prompt1 = _("Open {0}").format(bquo(treeName))
+        prompt1 = _("Open {0}", bquo(treeName))
         openLink = makeInternalLink("opensubfolder", treePath)
 
-        prompt2 = _("Absorb {0} as submodule").format(bquo(treeName))
+        prompt2 = _("Absorb {0} as submodule", bquo(treeName))
         prompt2 = _("Recommended action:") + " [" + prompt2 + "]"
         taskLink = AbsorbSubmodule.makeInternalLink(path=treePath)
 
@@ -221,7 +221,7 @@ class SpecialDiffError(Exception):
         if smDiff.still_exists:
             subtitle = _("Open subtree") if isTree else _("Open submodule")
             if smDiff.short_name != patch.delta.new_file.path:
-                subtitle += " " + _("(path: {0})").format(escape(patch.delta.new_file.path))
+                subtitle += " " + _("(path: {0})", escape(patch.delta.new_file.path))
             subtitle = linkify(subtitle, openLink)
 
         # Initialize SpecialDiffError (we'll return this)
