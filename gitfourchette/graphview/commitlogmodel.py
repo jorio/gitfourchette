@@ -220,6 +220,6 @@ def trimCacheDict(d: dict, trimToSize: int):
     if size <= maxCapacity:
         return
     numOldKeys = size - trimToSize
-    oldKeys = list(d.keys())[:numOldKeys]
+    oldKeys = list(d)[:numOldKeys]
     for k in oldKeys:
         del d[k]

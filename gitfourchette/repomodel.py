@@ -163,7 +163,7 @@ class RepoModel:
         if refs == self.refs:
             # Make sure it's sorted in the exact same order...
             if settings.DEVDEBUG:
-                assert list(refs.keys()) == list(self.refs.keys()), "refs key order changed! how did that happen?"
+                assert list(refs) == list(self.refs), "refs key order changed! how did that happen?"
 
             # Nothing to do!
             # Still, signal a change if HEAD just detached/reattached.
