@@ -11,12 +11,12 @@ import os
 import re
 from bisect import bisect_left, bisect_right
 
-from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffrubberband import DiffRubberBand
+from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
 from gitfourchette.exttools import openPrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -29,36 +29,6 @@ from gitfourchette.tasks import ApplyPatch, RevertPatch
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
-
-
-class DiffSearchHighlighter(QSyntaxHighlighter):
-    def __init__(self, parent):
-        super().__init__(parent)
-
-        self.highlightFormat = QTextCharFormat()
-        self.highlightFormat.setBackground(colors.yellow)
-        self.highlightFormat.setFontWeight(QFont.Weight.Bold)
-
-    def highlightBlock(self, text: str):
-        searchBar = self.parent().searchBar
-        if not searchBar.isVisible():
-            return
-
-        term = searchBar.searchTerm
-        if not term:
-            return
-        termLength = len(term)
-
-        text = text.lower()
-        textLength = len(text)
-
-        index = 0
-        while index < textLength:
-            index = text.find(term, index)
-            if index < 0:
-                break
-            self.setFormat(index, termLength, self.highlightFormat)
-            index += termLength
 
 
 class DiffView(QPlainTextEdit):
@@ -92,7 +62,7 @@ class DiffView(QPlainTextEdit):
         self.isDetachedWindow = False
 
         # Highlighter for search terms
-        self.highlighter = DiffSearchHighlighter(self)
+        self.highlighter = DiffSyntaxHighlighter(self)
 
         self.gutter = DiffGutter(self)
         self.gutter.customContextMenuRequested.connect(lambda p: self.execContextMenu(self.gutter.mapToGlobal(p)))
@@ -107,10 +77,10 @@ class DiffView(QPlainTextEdit):
         self.selectionChanged.connect(self.updateRubberBand)
 
         self.searchBar = SearchBar(self, toLengthVariants(_("Find text in diff|Find in diff")))
-        self.searchBar.textChanged.connect(self.highlighter.rehighlight)
         self.searchBar.searchNext.connect(lambda: self.search(SearchBar.Op.NEXT))
         self.searchBar.searchPrevious.connect(lambda: self.search(SearchBar.Op.PREVIOUS))
-        self.searchBar.visibilityChanged.connect(lambda: self.highlighter.rehighlight())
+        self.searchBar.searchTermChanged.connect(self.highlighter.setSearchTerm)
+        self.searchBar.visibilityChanged.connect(self.highlighter.setSearching)
         self.searchBar.hide()
 
         self.rubberBand = DiffRubberBand(self.viewport())

@@ -29,6 +29,7 @@ class SearchBar(QWidget):
     searchPrevious = Signal()
     searchPulse = Signal()
     visibilityChanged = Signal(bool)
+    searchTermChanged = Signal(str)
 
     buddy: QWidget
     """ Widget in which the search is carried out.
@@ -158,6 +159,7 @@ class SearchBar(QWidget):
     def onSearchTextChanged(self, text: str):
         self.turnRed(False)
         self.searchTerm = text.strip().lower()
+        self.searchTermChanged.emit(self.searchTerm)
 
         if self.detectHashes and 0 < len(self.searchTerm) <= 40:
             self.searchTermLooksLikeHash = bool(re.match(LIKELY_HASH_PATTERN, text))
