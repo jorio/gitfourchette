@@ -474,6 +474,7 @@ class PrefsDialog(QDialog):
         preview = QLabel(bogusTime)
         preview.setEnabled(False)
         preview.setMaximumWidth(preview.fontMetrics().horizontalAdvance(bogusTime))
+        preview.setText(genPreview(prefValue))
 
         control = QComboBoxWithPreview(self)
         control.setEditable(True)
@@ -481,8 +482,8 @@ class PrefsDialog(QDialog):
             control.addItemWithPreview(presetName, presetFormat, genPreview(presetFormat))
             if prefValue == presetFormat:
                 control.setCurrentIndex(control.count()-1)
-        control.editTextChanged.connect(onEditTextChanged)
         control.setMinimumWidth(200)
         control.setEditText(prefValue)
+        control.editTextChanged.connect(onEditTextChanged)
 
         return vBoxWidget(control, preview)
