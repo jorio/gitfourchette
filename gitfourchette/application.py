@@ -33,7 +33,7 @@ class GFApplication(QApplication):
     mainWindow: MainWindow | None
     initialSession: Session | None
     installedLocale: QLocale | None
-    installedTranslators: list
+    qtbaseTranslator: QTranslator | None
     tempDir: QTemporaryDir
     sessionwideGitConfigPath: str
     sessionwideGitConfig: GitConfig
@@ -54,7 +54,7 @@ class GFApplication(QApplication):
         self.mainWindow = None
         self.initialSession = None
         self.installedLocale = None
-        self.installedTranslators = []
+        self.qtbaseTranslator = QTranslator(self)
 
         # Don't use app.setOrganizationName because it changes QStandardPaths.
         self.setApplicationName(APP_SYSTEM_NAME)  # used by QStandardPaths
@@ -280,18 +280,6 @@ class GFApplication(QApplication):
 
     # -------------------------------------------------------------------------
 
-    def loadTranslator(self, locale, fileName: str, prefix: str = "", searchDelimiters: str = "", suffix: str = ""):
-        newTranslator = QTranslator(self)
-
-        if newTranslator.load(locale, fileName, prefix, searchDelimiters, suffix):
-            self.installTranslator(newTranslator)
-            self.installedTranslators.append(newTranslator)
-            return True
-        else:
-            # logger.info(f"The app does not support your locale: {locale.uiLanguages()}")
-            newTranslator.deleteLater()
-            return False
-
     def installTranslators(self, preferredLanguage: str = ""):
         from gitfourchette import settings
 
@@ -318,23 +306,20 @@ class GFApplication(QApplication):
             logger.debug(f"Previous locale is similar enough to new locale ({locale.name()}), not reloading translators")
             return
 
-        # Flush all installed translators
-        while self.installedTranslators:
-            self.removeTranslator(self.installedTranslators.pop())
-
         # Try to load gettext translator for application strings.
         languageCode = locale.name()
         languageCode = languageCode.split("_")[0]  # strip territory (e.g. fr_FR --> fr)
         languageFile = QFile(f"assets:lang/{languageCode}.mo")
         installGettextTranslator(languageFile.fileName())
 
-        # Load Qt base translation
-        if not QT5:  # Do this on Qt 6 and up only
-            try:
-                qtTranslationsDir = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
-                self.loadTranslator(locale, "qtbase", "_", qtTranslationsDir)
-            except Exception:
-                logger.warning(f"Failed to load Qt base translation for language: {preferredLanguage}", exc_info=True)
+        # Remove previously installed qtbase translator
+        QCoreApplication.removeTranslator(self.qtbaseTranslator)
+
+        # Load qtbase translator
+        if not QT5:  # Qt 5 doesn't have QLibraryInfo.path
+            qtTranslationsDir = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+            if self.qtbaseTranslator.load(locale, "qtbase", "_", qtTranslationsDir, ".qm"):
+                QCoreApplication.installTranslator(self.qtbaseTranslator)
 
     def applyLanguagePref(self):
         from gitfourchette import settings
