@@ -7,11 +7,10 @@
 import os.path
 from contextlib import suppress
 
-import pygments.formatter
-import pygments.lexer
 import pygments.lexers
-import pygments.style
 import pygments.styles
+from pygments.lexer import Lexer
+from pygments.token import Token
 
 from gitfourchette import colors
 from gitfourchette.qt import *
@@ -30,7 +29,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         self.searching = False
 
         self.lexer = None
-        self.formatter = PygmentsFormatter(self)
+        self.scheme = self.cacheColorScheme()
 
     def setSearchTerm(self, term: str):
         self.searchTerm = term
@@ -45,6 +44,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
     def highlightBlock(self, text: str):
         if self.searching and self.searchTerm:
+            # Highlight occurrences of search term
             term = self.searchTerm
             termLength = len(term)
 
@@ -58,19 +58,28 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                     break
                 self.setFormat(index, termLength, self.occurrenceFormat)
                 index += termLength
+
         elif self.lexer is not None:
-            pygments.highlight(text, self.lexer, self.formatter)
+            # Pygments syntax highlighting
+            column = 0
+            scheme = self.scheme
+            tokens = self.lexer.get_tokens(text)
+            for tokenType, tokenValue in tokens:
+                tokenLength = len(tokenValue)
+                try:
+                    charFormat = scheme[tokenType]
+                    self.setFormat(column, tokenLength, charFormat)
+                except KeyError:
+                    continue
+                finally:
+                    column += tokenLength
 
+    @staticmethod
+    def cacheColorScheme(styleName='default') -> dict[Token, QTextCharFormat]:
+        scheme = {}
+        style = pygments.styles.get_style_by_name(styleName)
 
-class PygmentsFormatter(pygments.formatter.Formatter):
-    def __init__(self, highlighter: QSyntaxHighlighter):
-        super().__init__()
-        self.highlighter = highlighter
-        self.colorscheme = {}
-
-        syntaxStyle: pygments.style.StyleMeta = pygments.styles.get_style_by_name('default')
-
-        for tokenType, styleForToken in syntaxStyle:
+        for tokenType, styleForToken in style:
             charFormat = QTextCharFormat()
             if styleForToken['color']:
                 color = QColor('#' + styleForToken['color'])
@@ -84,20 +93,9 @@ class PygmentsFormatter(pygments.formatter.Formatter):
                 charFormat.setFontItalic(True)
             if styleForToken['underline']:
                 charFormat.setFontUnderline(True)
-            self.colorscheme[tokenType] = charFormat
+            scheme[tokenType] = charFormat
 
-    def format_unencoded(self, tokenSource, _outfile):
-        column = 0
-        highlighter = self.highlighter
-        scheme = self.colorscheme
-        for tokenType, value in tokenSource:
-            tokenLength = len(value)
-            try:
-                charFormat = scheme[tokenType]
-                highlighter.setFormat(column, tokenLength, charFormat)
-            except KeyError:
-                pass
-            column += tokenLength
+        return scheme
 
 
 class LexerCache:
@@ -108,12 +106,12 @@ class LexerCache:
     lexerAliases: dict[str, str] = {}
     " Lexer aliases by file extensions or verbatim file names "
 
-    lexerInstances: dict[str, pygments.lexer.Lexer] = {}
+    lexerInstances: dict[str, Lexer] = {}
     " Lexer instances by aliases "
 
     @classmethod
     @benchmark
-    def getLexerFromPath(cls, path: str) -> pygments.lexer.Lexer | None:
+    def getLexerFromPath(cls, path: str) -> Lexer | None:
         if not cls.lexerAliases:
             cls.warmUp()
 
