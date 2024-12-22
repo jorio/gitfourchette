@@ -252,7 +252,7 @@ class DiffView(QPlainTextEdit):
 
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
-        self.highlighter.setDocument(newDoc.document)
+        self.highlighter.setDiffDocument(newDoc)
         self.highlighter.setLexerFromPath(self.lexerPath())
 
         self.lineData = newDoc.lineData

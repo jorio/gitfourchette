@@ -13,6 +13,7 @@ from pygments.lexer import Lexer
 from pygments.token import Token
 
 from gitfourchette import colors
+from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark
 
@@ -30,6 +31,11 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
         self.lexer: Lexer | None = None
         self.scheme: dict[Token, QTextCharFormat] = {}
+        self.diffDocument = None
+
+    def setDiffDocument(self, diffDocument: DiffDocument):
+        self.diffDocument = diffDocument
+        self.setDocument(diffDocument.document)
 
     def setSearchTerm(self, term: str):
         self.searchTerm = term
@@ -61,6 +67,12 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
         elif self.lexer is not None:
             # Pygments syntax highlighting
+            blockNumber = self.currentBlock().blockNumber()
+
+            lineData: LineData = self.diffDocument.lineData[blockNumber]
+            if lineData.diffLine is None:  # Hunk header, etc.
+                return
+
             column = 0
             scheme = self.scheme
             tokens = self.lexer.get_tokens(text)
