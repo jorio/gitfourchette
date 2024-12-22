@@ -394,6 +394,8 @@ class DiffView(QPlainTextEdit):
     # Prefs
 
     def refreshPrefs(self):
+        dark = isDarkTheme()
+
         monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         if settings.prefs.font:
             monoFont.fromString(settings.prefs.font)
@@ -411,8 +413,11 @@ class DiffView(QPlainTextEdit):
         self.gutter.setFont(monoFont)
         self.syncViewportMarginsWithGutter()
 
-        self.setProperty("dark", "true" if isDarkTheme() else "false")
+        self.setProperty("dark", ["false", "true"][dark])
         self.setStyleSheet(self.styleSheet())
+
+        self.highlighter.setColorScheme(["default", "github-dark"][dark])
+        self.highlighter.rehighlight()
 
     def refreshWordWrap(self):
         if settings.prefs.wordWrap:

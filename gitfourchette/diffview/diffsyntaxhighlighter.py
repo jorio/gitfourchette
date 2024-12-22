@@ -28,8 +28,8 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         self.searchTerm = ""
         self.searching = False
 
-        self.lexer = None
-        self.scheme = self.cacheColorScheme()
+        self.lexer: Lexer | None = None
+        self.scheme: dict[Token, QTextCharFormat] = {}
 
     def setSearchTerm(self, term: str):
         self.searchTerm = term
@@ -74,9 +74,8 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 finally:
                     column += tokenLength
 
-    @staticmethod
-    def cacheColorScheme(styleName='default') -> dict[Token, QTextCharFormat]:
-        scheme = {}
+    def setColorScheme(self, styleName='default'):
+        self.scheme = {}
         style = pygments.styles.get_style_by_name(styleName)
 
         for tokenType, styleForToken in style:
@@ -93,9 +92,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 charFormat.setFontItalic(True)
             if styleForToken['underline']:
                 charFormat.setFontUnderline(True)
-            scheme[tokenType] = charFormat
-
-        return scheme
+            self.scheme[tokenType] = charFormat
 
 
 class LexerCache:
