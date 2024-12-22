@@ -17,7 +17,10 @@ classifiers = [
 ]
 readme = "README.md"
 requires-python = ">= 3.10"
-dependencies = ["pygit2 >= 1.15.1"]
+dependencies = [
+    "pygit2 >= 1.15.1",
+    "pygments >= 2",
+]
 
 [project.urls]
 Homepage = "https://gitfourchette.org"

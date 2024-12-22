@@ -253,6 +253,7 @@ class DiffView(QPlainTextEdit):
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
         self.highlighter.setDocument(newDoc.document)
+        self.highlighter.setLexerFromPath(patch.delta.new_file.path)
 
         self.lineData = newDoc.lineData
         self.lineCursorStartCache = [ld.cursorStart for ld in self.lineData]
