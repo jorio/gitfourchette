@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+from contextlib import suppress
 
 import pygments.formatter
 import pygments.lexer
@@ -31,9 +32,6 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         self.lexer = None
         self.formatter = PygmentsFormatter(self)
 
-        self.lexerClassCache = {}
-        self.lexerInstanceCache = {}
-
     def setSearchTerm(self, term: str):
         self.searchTerm = term
         self.rehighlight()
@@ -42,28 +40,8 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         self.searching = searching
         self.rehighlight()
 
-    @benchmark
     def setLexerFromPath(self, path: str):
-        path = os.path.basename(path)
-        if path.endswith(".svg"):  # help out pygments a bit here
-            path += ".xml"
-
-        # Find lexer class
-        try:
-            lexerClass = self.lexerClassCache[path]
-        except KeyError:
-            lexerClass = pygments.lexers.find_lexer_class_for_filename(path)
-            self.lexerClassCache[path] = lexerClass
-
-        # Find lexer instance
-        if not lexerClass:
-            self.lexer = None
-        else:
-            try:
-                self.lexer = self.lexerInstanceCache[lexerClass]
-            except KeyError:
-                self.lexer = lexerClass()
-                self.lexerInstanceCache[lexerClass] = self.lexer
+        self.lexer = LexerCache.getLexerFromPath(path)
 
     def highlightBlock(self, text: str):
         if self.searching and self.searchTerm:
@@ -120,3 +98,71 @@ class PygmentsFormatter(pygments.formatter.Formatter):
             except KeyError:
                 pass
             column += tokenLength
+
+
+class LexerCache:
+    """
+    Fast drop-in replacement for pygments.lexers.get_lexer_for_filename().
+    """
+
+    lexerAliases: dict[str, str] = {}
+    " Lexer aliases by file extensions or verbatim file names "
+
+    lexerInstances: dict[str, pygments.lexer.Lexer] = {}
+    " Lexer instances by aliases "
+
+    @classmethod
+    @benchmark
+    def getLexerFromPath(cls, path: str) -> pygments.lexer.Lexer | None:
+        if not cls.lexerAliases:
+            cls.warmUp()
+
+        # Find lexer alias by extension
+        _dummy, ext = os.path.splitext(path)
+        try:
+            alias = cls.lexerAliases[ext]
+        except KeyError:
+            # Try verbatim name (e.g. 'Makefile')
+            fileName = os.path.basename(path)
+            alias = cls.lexerAliases.get(fileName, "")
+
+        # Bail early
+        if not alias:
+            return None
+
+        # Get existing lexer instance
+        with suppress(KeyError):
+            return cls.lexerInstances[alias]
+
+        # Instantiate new lexer.
+        # (Passing in an alias from pygments' builtin lexers shouldn't
+        # tap into Pygments plugins, so this should be fairly fast)
+        lexer = pygments.lexers.get_lexer_by_name(alias)
+        cls.lexerInstances[alias] = lexer
+        return lexer
+
+    @classmethod
+    @benchmark
+    def warmUp(cls):
+        aliasTable = {}
+
+        # Significant speedup with plugins=False
+        for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=False):
+            if not patterns or not aliases:
+                continue
+            alias = aliases[0]
+            for pattern in patterns:
+                if pattern.startswith('*.') and not pattern.endswith('*'):
+                    # Simple file extension
+                    ext = pattern[1:]
+                    aliasTable[ext] = alias
+                elif '*' not in pattern:
+                    # Verbatim file name
+                    aliasTable[pattern] = alias
+
+        # Patch missing extensions
+        # TODO: What's pygments' rationale for omitting '*.svg'?
+        with suppress(KeyError):
+            aliasTable['.svg'] = aliasTable['.xml']
+
+        cls.lexerAliases = aliasTable
