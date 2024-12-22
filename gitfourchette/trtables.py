@@ -257,8 +257,8 @@ class TrTables:
         from gitfourchette.toolbox.textutils import paragraphs
         return {
             "general": _p("Prefs", "General"),
-            "diff": _p("Prefs", "Code Diff"),
-            "imageDiff": _p("Prefs", "Image Diff"),
+            "diff": _p("Prefs", "Code"),
+            "imageDiff": _p("Prefs", "Images"),
             "tabs": _p("Prefs", "Tabs"),
             "graph": _p("Prefs", "Commit History"),
             "trash": _p("Prefs", "Trash"),

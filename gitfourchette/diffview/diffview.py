@@ -394,8 +394,6 @@ class DiffView(QPlainTextEdit):
     # Prefs
 
     def refreshPrefs(self, rehighlight=True):
-        dark = isDarkTheme()
-
         monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         if settings.prefs.font:
             monoFont.fromString(settings.prefs.font)
@@ -415,16 +413,24 @@ class DiffView(QPlainTextEdit):
         self.gutter.setFont(monoFont)
         self.syncViewportMarginsWithGutter()
 
-        self.setProperty("dark", ["false", "true"][dark])
-        self.setStyleSheet(self.styleSheet())
-
         if rehighlight:
-            self.highlighter.setColorScheme(["default", "github-dark"][dark])
+            pygmentsStyle = self.highlighter.setColorScheme(settings.prefs.syntaxHighlighting)
             self.highlighter.setLexerFromPath(self.lexerPath())
             self.highlighter.rehighlight()
 
+            styleSheet = "/* dummy */"
+            if pygmentsStyle:
+                bgColor = QColor(pygmentsStyle.background_color)
+                dark = bgColor.lightnessF() < .5
+                # Had better luck setting background color with a stylesheet than via setPalette().
+                styleSheet = f"{type(self).__name__} {{ background-color: {bgColor.name()}; }}"
+            else:
+                dark = isDarkTheme()
+            self.setProperty("dark", ["false", "true"][dark])  # See selection-background-color in .qss asset.
+            self.setStyleSheet(styleSheet)
+
     def lexerPath(self) -> str:
-        if settings.prefs.syntaxHighlighting and self.currentPatch is not None:
+        if settings.prefs.syntaxHighlighting != DiffSyntaxHighlighter.StylePresets.Off and self.currentPatch is not None:
             return self.currentPatch.delta.new_file.path
         return ""
 

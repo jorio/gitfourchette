@@ -11,14 +11,21 @@ import pygments.lexers
 import pygments.styles
 from pygments.lexer import Lexer
 from pygments.token import Token
+from pygments.util import ClassNotFound
 
 from gitfourchette import colors
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.qt import *
-from gitfourchette.toolbox import benchmark
+from gitfourchette.toolbox import benchmark, isDarkTheme
 
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
+    class StylePresets:
+        Automatic = ""
+        Off = "off"
+        Light = "tango"#"default"
+        Dark = "github-dark"
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -65,7 +72,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(index, termLength, self.occurrenceFormat)
                 index += termLength
 
-        elif self.lexer is not None:
+        elif self.lexer is not None and self.scheme:
             # Pygments syntax highlighting
             blockNumber = self.currentBlock().blockNumber()
 
@@ -86,13 +93,25 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 finally:
                     column += tokenLength
 
-    def setColorScheme(self, styleName='default'):
+    def setColorScheme(self, styleName: str = ""):
         self.scheme = {}
-        style = pygments.styles.get_style_by_name(styleName)
+        StylePresets = DiffSyntaxHighlighter.StylePresets
+
+        if styleName == StylePresets.Automatic:
+            styleName = StylePresets.Dark if isDarkTheme() else StylePresets.Light
+
+        if styleName == StylePresets.Off:
+            return
+
+        try:
+            style = pygments.styles.get_style_by_name(styleName)
+        except ClassNotFound:
+            return
 
         for tokenType, styleForToken in style:
             charFormat = QTextCharFormat()
             if styleForToken['color']:
+                assert not styleForToken['color'].startswith('#')
                 color = QColor('#' + styleForToken['color'])
                 charFormat.setForeground(color)
             # if styleForToken['bgcolor']:
@@ -105,6 +124,8 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             if styleForToken['underline']:
                 charFormat.setFontUnderline(True)
             self.scheme[tokenType] = charFormat
+
+        return style
 
 
 class LexerCache:

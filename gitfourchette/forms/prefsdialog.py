@@ -7,6 +7,9 @@
 import logging
 from typing import Any
 
+import pygments.styles
+
+from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -248,6 +251,8 @@ class PrefsDialog(QDialog):
             return self.boundedIntControl(key, value, 1, 32)
         elif key == "tabSpaces":
             return self.boundedIntControl(key, value, 1, 16)
+        elif key == "syntaxHighlighting":
+            return self.syntaxHighlightingControl(key, value)
         elif key == "maxCommits":
             control = self.boundedIntControl(key, value, 0, 999_999_999, 1000)
             control.setSpecialValueText("\u221E")  # infinity
@@ -451,3 +456,39 @@ class PrefsDialog(QDialog):
         control.editTextChanged.connect(onEditTextChanged)
 
         return vBoxWidget(control, preview)
+
+    @benchmark
+    def syntaxHighlightingControl(self, prefKey, prefValue):
+        StylePresets = DiffSyntaxHighlighter.StylePresets
+
+        control = QComboBox(self)
+        control.addItem(stockIcon("light-dark-toggle"), _("Automatic style"), userData=StylePresets.Automatic)
+        control.addItem(stockIcon("SP_BrowserStop"), _("Disabled"), userData=StylePresets.Off)
+        control.insertSeparator(control.count())
+        middleInsertionPoint = control.count()
+        control.insertSeparator(control.count())
+
+        for _dummy1, styleName, _dummy2 in pygments.styles.STYLES.values():
+            style = pygments.styles.get_style_by_name(styleName)
+            bgColor = QColor(style.background_color)
+            if bgColor.lightnessF() >= .5:
+                # Insert light themes at top of list
+                iconKey = "light"
+                insertionPoint = middleInsertionPoint
+                middleInsertionPoint += 1
+            else:
+                # Insert light themes at end of list
+                iconKey = "dark"
+                insertionPoint = control.count()
+            control.insertItem(insertionPoint, stockIcon(iconKey), styleName, userData=styleName)
+
+        index = control.findData(prefValue)
+        control.setCurrentIndex(index)
+
+        def onPickStyle(index):
+            pickedStyleName = control.itemData(index, Qt.ItemDataRole.UserRole)
+            self.assign(prefKey, pickedStyleName)
+
+        control.activated.connect(onPickStyle)
+
+        return control
