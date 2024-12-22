@@ -17,6 +17,7 @@ from .fittedtext import (
     drawFittedText,
 )
 from .excutils import shortenTracebackPath, excStrings
+from .fontpicker import FontPicker
 from .gitutils import (
     shortHash, dumpTempBlob, nameValidationMessage,
     AuthorDisplayStyle, abbreviatePerson,

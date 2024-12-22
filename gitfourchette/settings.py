@@ -81,6 +81,7 @@ class Prefs(PrefsFile):
 
     _category_diff              : int                   = 0
     font                        : str                   = ""
+    fontSize                    : int                   = 0
     contextLines                : int                   = 3
     tabSpaces                   : int                   = 4
     largeFileThresholdKB        : int                   = 500

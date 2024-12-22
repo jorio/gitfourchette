@@ -6,6 +6,7 @@
 
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.nav import NavLocator
+from gitfourchette.toolbox.fontpicker import FontPicker
 from .util import *
 
 
@@ -83,33 +84,26 @@ def testPrefsFontControl(tempDir, mainWindow):
 
     rw.jump(NavLocator.inCommit(rw.repo.head_commit_id))
     defaultFamily = rw.diffView.document().defaultFont().family()
-    if QT5:
-        fontDB = QFontDatabase()  # Qt 5 compat (QFontDatabase.families() static function was introduced in Qt 6)
-    else:
-        fontDB = QFontDatabase
-    randomFamily = next(family for family in fontDB.families(QFontDatabase.WritingSystem.Latin)
-                        if not fontDB.isPrivateFamily(family))
+    randomFamily = next(family for family in QFontDatabase.families(QFontDatabase.WritingSystem.Latin)
+                        if not QFontDatabase.isPrivateFamily(family))
     assert defaultFamily != randomFamily
 
     # Change font setting, and accept
     dlg = mainWindow.openPrefsDialog("font")
-    fontWidget: QWidget = dlg.findChild(QWidget, "prefctl_font")
-    resetFontButton: QPushButton = fontWidget.findChild(QAbstractButton, "ResetFontButton")
-    assert not resetFontButton.isVisible()
-    fontButton: QPushButton = fontWidget.findChild(QAbstractButton, "PickFontButton")
-    fontButton.click()
-    fontDialog: QFontDialog = dlg.findChild(QFontDialog)
-    fontDialog.setCurrentFont(QFont(randomFamily))
-    fontDialog.accept()
+    fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
+    assert not fontPicker.resetButton.isVisible()
+    fontPicker.familyEdit.showPopup()
+    fontPicker.familyEdit.setCurrentFont(QFont(randomFamily))
+    fontPicker.familyEdit.hidePopup()
+    assert fontPicker.resetButton.isVisible()
     dlg.accept()
     assert randomFamily == rw.diffView.document().defaultFont().family()
 
     dlg = mainWindow.openPrefsDialog("font")
-    fontWidget: QWidget = dlg.findChild(QWidget, "prefctl_font")
-    resetFontButton: QPushButton = fontWidget.findChild(QAbstractButton, "ResetFontButton")
-    assert resetFontButton.isVisible()
-    resetFontButton.click()
-    assert not resetFontButton.isVisible()
+    fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
+    assert fontPicker.resetButton.isVisible()
+    fontPicker.resetButton.click()
+    assert not fontPicker.resetButton.isVisible()
     dlg.accept()
     assert defaultFamily == rw.diffView.document().defaultFont().family()
 

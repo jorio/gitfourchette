@@ -211,7 +211,9 @@ class PrefsDialog(QDialog):
         PrefsDialog.lastOpenTab = i
 
     def getHiddenSettingKeys(self) -> set[str]:
-        skipKeys = set()
+        skipKeys = {
+            "fontSize",  # bundled with "font"
+        }
 
         # Prevent hiding menubar on macOS
         if MACOS:
@@ -312,56 +314,18 @@ class PrefsDialog(QDialog):
         return control
 
     def fontControl(self, prefKey: str):
-        def currentFont():
-            fontString = self.getMostRecentValue(prefKey)
-            if fontString:
-                font = QFont()
-                font.fromString(fontString)
-            else:
-                font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-            return font
+        fontControl = FontPicker(self)
 
-        def resetFont():
-            self.assign(prefKey, "")
-            refreshFontButton()
+        familyKey = prefKey
+        sizeKey = "fontSize"
 
-        def onFontSelected(newFont: QFont):
-            self.assign(prefKey, newFont.toString())
-            refreshFontButton()
+        def assignFont(family: str, size: int):
+            self.assign(familyKey, family)
+            self.assign(sizeKey, size)
 
-        def pickFont():
-            qfd = QFontDialog(currentFont(), parent=self)
-            qfd.fontSelected.connect(onFontSelected)
-            qfd.setModal(True)
-            qfd.show()
-
-        fontButton = QPushButton(_("Font"))
-        fontButton.setObjectName("PickFontButton")
-        fontButton.clicked.connect(lambda e: pickFont())
-        fontButton.setMinimumWidth(256)
-        fontButton.setMaximumWidth(256)
-        fontButton.setMaximumHeight(128)
-
-        resetButton = QToolButton(self)
-        resetButton.setObjectName("ResetFontButton")
-        resetButton.setText(_p("reset font to default", "Reset"))
-        resetButton.clicked.connect(lambda: resetFont())
-
-        def refreshFontButton():
-            font = currentFont()
-            if not self.getMostRecentValue(prefKey):
-                resetButton.setVisible(False)
-                caption = _p("default font", "Default")
-                caption += f" ({font.family()} {font.pointSize()})"
-                fontButton.setText(caption)
-            else:
-                resetButton.setVisible(True)
-                fontButton.setText(F"{font.family()} {font.pointSize()}")
-            fontButton.setFont(font)
-
-        refreshFontButton()
-
-        return hBoxWidget(fontButton, resetButton)
+        fontControl.assign.connect(assignFont)
+        fontControl.setCurrentFont(self.getMostRecentValue(familyKey), self.getMostRecentValue(sizeKey))
+        return fontControl
 
     def strControlWithPresets(self, prefKey, prefValue, presets, leaveBlankHint=False, validate=None):
         control = QComboBoxWithPreview(self)

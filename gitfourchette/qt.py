@@ -188,6 +188,14 @@ if QT5:
 
     QMouseEvent.position = _QMouseEvent_position
 
+    # Some of these QFontDatabase functions became static in Qt 6, but they weren't in Qt 5.
+    _QFontDatabase_families = QFontDatabase.families
+    _QFontDatabase_isFixedPitch = QFontDatabase.isFixedPitch
+    _QFontDatabase_isPrivateFamily = QFontDatabase.isPrivateFamily
+    QFontDatabase.families = lambda *a, **k: _QFontDatabase_families(QFontDatabase(), *a, **k)
+    QFontDatabase.isFixedPitch = lambda *a, **k: _QFontDatabase_isFixedPitch(QFontDatabase(), *a, **k)
+    QFontDatabase.isPrivateFamily = lambda *a, **k: _QFontDatabase_isPrivateFamily(QFontDatabase(), *a, **k)
+
 
 # -----------------------------------------------------------------------------
 # Utility functions
