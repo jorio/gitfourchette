@@ -84,6 +84,7 @@ class Prefs(PrefsFile):
     contextLines                : int                   = 3
     tabSpaces                   : int                   = 4
     largeFileThresholdKB        : int                   = 500
+    syntaxHighlighting          : bool                  = True
     wordWrap                    : bool                  = False
     showStrayCRs                : bool                  = True
     colorblind                  : bool                  = False

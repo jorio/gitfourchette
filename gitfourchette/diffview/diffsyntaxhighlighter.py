@@ -109,6 +109,10 @@ class LexerCache:
     @classmethod
     @benchmark
     def getLexerFromPath(cls, path: str) -> Lexer | None:
+        # Empty path disables lexing
+        if not path:
+            return None
+
         if not cls.lexerAliases:
             cls.warmUp()
 

@@ -285,12 +285,11 @@ class TrTables:
             "contextLines_help": _("Amount of unmodified lines to show around red or green lines in a diff."),
             "largeFileThresholdKB": _("Load diffs up to # KB"),
             "imageFileThresholdKB": _("Load images up to # KB"),
+            "syntaxHighlighting": _("Syntax highlighting"),
             "wordWrap": _("Word wrap"),
             "showStrayCRs": _("Display alien line endings (CRLF)"),
-            "colorblind": _("Colorblind-friendly color scheme"),
-            "colorblind_help": "<html>" + _(
-                "Tick this if you have trouble distinguishing red and green. "
-                "The diff will use a yellow and blue color scheme instead."),
+            "colorblind": _("Colorblind-friendly “add/remove” colors"),
+            "colorblind_help": _("Display added/removed lines in blue/yellow instead of green/red."),
             "renderSvg": _("Treat SVG files as"),
 
             "tabCloseButton": _("Show tab close button"),

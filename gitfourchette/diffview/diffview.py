@@ -253,14 +253,14 @@ class DiffView(QPlainTextEdit):
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
         self.highlighter.setDocument(newDoc.document)
-        self.highlighter.setLexerFromPath(patch.delta.new_file.path)
+        self.highlighter.setLexerFromPath(self.lexerPath())
 
         self.lineData = newDoc.lineData
         self.lineCursorStartCache = [ld.cursorStart for ld in self.lineData]
         self.lineHunkIDCache = [ld.hunkPos.hunkID for ld in self.lineData]
 
         # now reset defaults that are lost when changing documents
-        self.refreshPrefs()
+        self.refreshPrefs(rehighlight=False)
 
         if self.currentPatch and len(self.currentPatch.hunks) > 0:
             lastHunk = self.currentPatch.hunks[-1]
@@ -393,7 +393,7 @@ class DiffView(QPlainTextEdit):
     # ---------------------------------------------
     # Prefs
 
-    def refreshPrefs(self):
+    def refreshPrefs(self, rehighlight=True):
         dark = isDarkTheme()
 
         monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
@@ -416,8 +416,15 @@ class DiffView(QPlainTextEdit):
         self.setProperty("dark", ["false", "true"][dark])
         self.setStyleSheet(self.styleSheet())
 
-        self.highlighter.setColorScheme(["default", "github-dark"][dark])
-        self.highlighter.rehighlight()
+        if rehighlight:
+            self.highlighter.setColorScheme(["default", "github-dark"][dark])
+            self.highlighter.setLexerFromPath(self.lexerPath())
+            self.highlighter.rehighlight()
+
+    def lexerPath(self) -> str:
+        if settings.prefs.syntaxHighlighting and self.currentPatch is not None:
+            return self.currentPatch.delta.new_file.path
+        return ""
 
     def refreshWordWrap(self):
         if settings.prefs.wordWrap:
