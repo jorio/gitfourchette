@@ -10,21 +10,15 @@ from contextlib import suppress
 import pygments.lexers
 import pygments.styles
 from pygments.lexer import Lexer
+from pygments.style import StyleMeta
 from pygments.token import Token
-from pygments.util import ClassNotFound
 
 from gitfourchette import colors
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.qt import *
-from gitfourchette.toolbox import benchmark, isDarkTheme
+from gitfourchette.toolbox import benchmark
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
-    class StylePresets:
-        Automatic = ""
-        Off = "off"
-        Light = "tango"#"default"
-        Dark = "github-dark"
-
     diffDocument: DiffDocument | None
     lexer: Lexer | None
     scheme: dict[Token, QTextCharFormat]
@@ -98,19 +92,11 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 finally:
                     column += tokenLength
 
-    def setColorScheme(self, styleName: str = ""):
+    def setColorScheme(self, style: StyleMeta | None):
         self.scheme = {}
         self.highContrastScheme = {}
 
-        # Find style from name
-        StylePresets = DiffSyntaxHighlighter.StylePresets
-        if styleName == StylePresets.Automatic:
-            styleName = StylePresets.Dark if isDarkTheme() else StylePresets.Light
-        if styleName == StylePresets.Off:
-            return
-        try:
-            style = pygments.styles.get_style_by_name(styleName)
-        except ClassNotFound:
+        if style is None:
             return
 
         # Unpack style colors
@@ -146,8 +132,6 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             charFormat.clearBackground()
 
             self.highContrastScheme[tokenType] = charFormat
-
-        return style
 
 
 class LexerCache:

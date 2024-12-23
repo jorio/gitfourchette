@@ -11,6 +11,10 @@ import os
 import sys
 from contextlib import suppress
 
+import pygments.style
+import pygments.styles
+import pygments.util
+
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
@@ -18,6 +22,7 @@ from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL
 from gitfourchette.toolbox.gitutils import AuthorDisplayStyle
 from gitfourchette.toolbox.pathutils import PathDisplayStyle
+from gitfourchette.toolbox.qtutils import isDarkTheme
 from gitfourchette.toolbox.textutils import englishTitleCase
 from gitfourchette.toolcommands import ToolCommands
 
@@ -67,6 +72,13 @@ class LoggingLevel(enum.IntEnum):
     WARNING = logging.WARNING
 
 
+class PygmentsPresets:
+    Automatic = ""
+    Off = "off"
+    Light = "stata-light"
+    Dark = "stata-dark"
+
+
 @dataclasses.dataclass
 class Prefs(PrefsFile):
     _filename = "prefs.json"
@@ -82,7 +94,7 @@ class Prefs(PrefsFile):
     _category_diff              : int                   = 0
     font                        : str                   = ""
     fontSize                    : int                   = 0
-    syntaxHighlighting          : str                   = ""
+    syntaxHighlighting          : str                   = PygmentsPresets.Automatic
     contextLines                : int                   = 3
     tabSpaces                   : int                   = 4
     largeFileThresholdKB        : int                   = 500
@@ -152,6 +164,24 @@ class Prefs(PrefsFile):
         if path:
             return os.path.normpath(path)
         return os.path.expanduser("~")
+
+    def resolvePygmentsStyle(self) -> pygments.style.Style | None:
+        styleName = self.syntaxHighlighting
+        if styleName == PygmentsPresets.Automatic:
+            styleName = PygmentsPresets.Dark if isDarkTheme() else PygmentsPresets.Light
+        if styleName == PygmentsPresets.Off:
+            return None
+        try:
+            return pygments.styles.get_style_by_name(styleName)
+        except pygments.util.ClassNotFound:
+            return None
+
+    def isDarkPygmentsStyle(self) -> bool:
+        style = self.resolvePygmentsStyle()
+        if style is None:
+            return isDarkTheme()
+        bgColor = QColor(style.background_color)
+        return bgColor.lightnessF() < .5
 
 
 @dataclasses.dataclass

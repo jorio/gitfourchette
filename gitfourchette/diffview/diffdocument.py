@@ -63,7 +63,7 @@ class DiffStyle:
             addColor2 = QColor(colors.teal)
             delColor2.setAlphaF(.6)
             addColor2.setAlphaF(.6)
-        elif isDarkTheme():
+        elif settings.prefs.isDarkPygmentsStyle():
             delColor2 = QColor(0x993333)
             addColor2 = QColor(0x339933)
             delColor2.setAlphaF(.6)

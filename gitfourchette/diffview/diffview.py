@@ -24,6 +24,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavFlags, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.settings import PygmentsPresets
 from gitfourchette.subpatch import extractSubpatch
 from gitfourchette.tasks import ApplyPatch, RevertPatch
 from gitfourchette.toolbox import *
@@ -414,23 +415,23 @@ class DiffView(QPlainTextEdit):
         self.syncViewportMarginsWithGutter()
 
         if rehighlight:
-            pygmentsStyle = self.highlighter.setColorScheme(settings.prefs.syntaxHighlighting)
+            pygmentsStyle = settings.prefs.resolvePygmentsStyle()
+            self.highlighter.setColorScheme(pygmentsStyle)
             self.highlighter.setLexerFromPath(self.lexerPath())
             self.highlighter.rehighlight()
 
             styleSheet = "/* dummy */"
-            if pygmentsStyle:
-                bgColor = QColor(pygmentsStyle.background_color)
-                dark = bgColor.lightnessF() < .5
+            dark = settings.prefs.isDarkPygmentsStyle()
+            if pygmentsStyle is not None:
                 # Had better luck setting background color with a stylesheet than via setPalette().
-                styleSheet = f"{type(self).__name__} {{ background-color: {bgColor.name()}; }}"
-            else:
-                dark = isDarkTheme()
+                bgColor = QColor(pygmentsStyle.background_color)
+                fgColor = 'white' if dark else 'black'
+                styleSheet = f"{type(self).__name__} {{ background-color: {bgColor.name()}; color: {fgColor}; }}"
             self.setProperty("dark", ["false", "true"][dark])  # See selection-background-color in .qss asset.
             self.setStyleSheet(styleSheet)
 
     def lexerPath(self) -> str:
-        if settings.prefs.syntaxHighlighting != DiffSyntaxHighlighter.StylePresets.Off and self.currentPatch is not None:
+        if settings.prefs.syntaxHighlighting != PygmentsPresets.Off and self.currentPatch is not None:
             return self.currentPatch.delta.new_file.path
         return ""
 

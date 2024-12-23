@@ -10,7 +10,6 @@ from typing import Any
 
 import pygments.styles
 
-from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -18,6 +17,7 @@ from gitfourchette.settings import (
     SHORT_DATE_PRESETS,
     prefs,
     qtIsNativeMacosStyle,
+    PygmentsPresets,
 )
 from gitfourchette.toolbox import *
 from gitfourchette.toolcommands import ToolCommands
@@ -460,13 +460,14 @@ class PrefsDialog(QDialog):
 
     @benchmark
     def syntaxHighlightingControl(self, prefKey, prefValue):
-        StylePresets = DiffSyntaxHighlighter.StylePresets
+        autoCaption = _p("syntax highlighting", "Automatic ({name})", name=PygmentsPresets.Dark if isDarkTheme() else PygmentsPresets.Light)
+        offCaption = _p("syntax highlighting", "Off")
 
         control = QComboBox(self)
         control.setStyleSheet("::item { height: 16px; }")  # Breeze-themed combobox gets unwieldy otherwise
         control.setMaxVisibleItems(30)
-        control.addItem(stockIcon("light-dark-toggle"), _("Automatic style"), userData=StylePresets.Automatic)
-        control.addItem(stockIcon("SP_BrowserStop"), _("Disabled"), userData=StylePresets.Off)
+        control.addItem(stockIcon("light-dark-toggle"), autoCaption, userData=PygmentsPresets.Automatic)
+        control.addItem(stockIcon("SP_BrowserStop"), offCaption, userData=PygmentsPresets.Off)
         control.insertSeparator(control.count())
         control.insertSeparator(control.count())  # Separator between light and dark styles
         middleInsertionPoint = control.count() - 1
