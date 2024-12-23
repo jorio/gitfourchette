@@ -18,7 +18,6 @@ from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark, isDarkTheme
 
-
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
     class StylePresets:
         Automatic = ""
@@ -26,8 +25,18 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         Light = "tango"#"default"
         Dark = "github-dark"
 
+    diffDocument: DiffDocument | None
+    lexer: Lexer | None
+    scheme: dict[Token, QTextCharFormat]
+    highContrastScheme: dict[Token, QTextCharFormat]
+
     def __init__(self, parent):
         super().__init__(parent)
+
+        self.diffDocument = None
+        self.lexer = None
+        self.scheme: dict[Token, QTextCharFormat] = {}
+        self.highContrastScheme: dict[Token, QTextCharFormat] = {}
 
         self.occurrenceFormat = QTextCharFormat()
         self.occurrenceFormat.setBackground(colors.yellow)
@@ -35,10 +44,6 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
         self.searchTerm = ""
         self.searching = False
-
-        self.lexer: Lexer | None = None
-        self.scheme: dict[Token, QTextCharFormat] = {}
-        self.diffDocument = None
 
     def setDiffDocument(self, diffDocument: DiffDocument):
         self.diffDocument = diffDocument
@@ -81,7 +86,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 return
 
             column = 0
-            scheme = self.scheme
+            scheme = self.highContrastScheme if lineData.diffLine.origin in "+-" else self.scheme
             tokens = self.lexer.get_tokens(text)
             for tokenType, tokenValue in tokens:
                 tokenLength = len(tokenValue)
@@ -95,28 +100,27 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
     def setColorScheme(self, styleName: str = ""):
         self.scheme = {}
-        StylePresets = DiffSyntaxHighlighter.StylePresets
+        self.highContrastScheme = {}
 
+        # Find style from name
+        StylePresets = DiffSyntaxHighlighter.StylePresets
         if styleName == StylePresets.Automatic:
             styleName = StylePresets.Dark if isDarkTheme() else StylePresets.Light
-
         if styleName == StylePresets.Off:
             return
-
         try:
             style = pygments.styles.get_style_by_name(styleName)
         except ClassNotFound:
             return
 
+        # Unpack style colors
+        # (Intentionally skipping 'bgcolor' to prevent confusion with red/green backgrounds)
         for tokenType, styleForToken in style:
             charFormat = QTextCharFormat()
             if styleForToken['color']:
                 assert not styleForToken['color'].startswith('#')
                 color = QColor('#' + styleForToken['color'])
                 charFormat.setForeground(color)
-            # if styleForToken['bgcolor']:
-            #     color = QColor('#' + styleForToken['bgcolor'])
-            #     charFormat.setBackground(color)
             if styleForToken['bold']:
                 charFormat.setFontWeight(QFont.Weight.Bold)
             if styleForToken['italic']:
@@ -124,6 +128,24 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             if styleForToken['underline']:
                 charFormat.setFontUnderline(True)
             self.scheme[tokenType] = charFormat
+
+        # Prepare a high-contrast alternative where colors pop against red/green backgrounds
+        backgroundColor = QColor(style.background_color)
+        isDarkBackground = backgroundColor.lightnessF() < .5
+
+        for tokenType, lowContrastCharFormat in self.scheme.items():
+            charFormat = QTextCharFormat(lowContrastCharFormat)
+
+            fgColor = charFormat.foreground().color()
+            if isDarkBackground:
+                fgColor = fgColor.lighter(150)
+            else:
+                fgColor = fgColor.darker(130)
+
+            charFormat.setForeground(fgColor)
+            charFormat.clearBackground()
+
+            self.highContrastScheme[tokenType] = charFormat
 
         return style
 
