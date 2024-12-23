@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
+from contextlib import suppress
 from typing import Any
 
 import pygments.styles
@@ -462,25 +463,40 @@ class PrefsDialog(QDialog):
         StylePresets = DiffSyntaxHighlighter.StylePresets
 
         control = QComboBox(self)
+        control.setStyleSheet("::item { height: 16px; }")  # Breeze-themed combobox gets unwieldy otherwise
+        control.setMaxVisibleItems(30)
         control.addItem(stockIcon("light-dark-toggle"), _("Automatic style"), userData=StylePresets.Automatic)
         control.addItem(stockIcon("SP_BrowserStop"), _("Disabled"), userData=StylePresets.Off)
         control.insertSeparator(control.count())
-        middleInsertionPoint = control.count()
-        control.insertSeparator(control.count())
+        control.insertSeparator(control.count())  # Separator between light and dark styles
+        middleInsertionPoint = control.count() - 1
+
+        def getStyleColor(style, *tokenTypes):
+            for t in tokenTypes:
+                with suppress(TypeError):
+                    return QColor('#' + style.style_for_token(t)['color'])
+            return QColor(Qt.GlobalColor.black)
 
         for _dummy1, styleName, _dummy2 in pygments.styles.STYLES.values():
             style = pygments.styles.get_style_by_name(styleName)
+
             bgColor = QColor(style.background_color)
+            accent1 = getStyleColor(style, pygments.token.Name.Class, pygments.token.Text)
+            accent2 = getStyleColor(style, pygments.token.Name.Function, pygments.token.Operator)
+            accent3 = getStyleColor(style, pygments.token.Keyword, pygments.token.Comment)
+
+            # Insert light styles at top of list, dark styles at end of list
             if bgColor.lightnessF() >= .5:
-                # Insert light themes at top of list
-                iconKey = "light"
                 insertionPoint = middleInsertionPoint
                 middleInsertionPoint += 1
             else:
-                # Insert light themes at end of list
-                iconKey = "dark"
                 insertionPoint = control.count()
-            control.insertItem(insertionPoint, stockIcon(iconKey), styleName, userData=styleName)
+
+            # Little icon to preview the colors in this style
+            chipColors = f"black={bgColor.name()};white={accent1.name()};red={accent2.name()};blue={accent3.name()}"
+            chip = stockIcon("colorscheme-chip", chipColors)
+
+            control.insertItem(insertionPoint, chip, styleName, userData=styleName)
 
         index = control.findData(prefValue)
         control.setCurrentIndex(index)
