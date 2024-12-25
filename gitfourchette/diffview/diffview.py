@@ -446,12 +446,12 @@ class DiffView(QPlainTextEdit):
             self.highlighter.setColorScheme(pygmentsStyle)
             self.highlighter.rehighlight()
 
+            # Had better luck setting colors with a stylesheet than via setPalette().
             styleSheet = "/* dummy */"
             dark = settings.prefs.isDarkPygmentsStyle()
             if pygmentsStyle is not None:
-                # Had better luck setting background color with a stylesheet than via setPalette().
                 bgColor = QColor(pygmentsStyle.background_color)
-                fgColor = 'white' if dark else 'black'
+                fgColor = self.highlighter.scheme[pygments.token.Token.Text].foreground().color().name()
                 styleSheet = f"{type(self).__name__} {{ background-color: {bgColor.name()}; color: {fgColor}; }}"
             self.setProperty("dark", ["false", "true"][dark])  # See selection-background-color in .qss asset.
             self.setStyleSheet(styleSheet)
