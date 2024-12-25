@@ -14,6 +14,7 @@ from pygments.style import StyleMeta
 from pygments.token import Token
 
 from gitfourchette import colors
+from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.qt import *
@@ -21,6 +22,8 @@ from gitfourchette.toolbox import benchmark, CallbackAccumulator
 
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
+    MaxLineLengthForLowQualityLexing = 200
+
     diffDocument: DiffDocument | None
     lexer: Lexer | None
     scheme: dict[Token, QTextCharFormat]
@@ -118,10 +121,16 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             boundary = len(text) - lineData.trailerLength
             tokens = lexJob.tokens
             tokenNumber = lexJob.getLineStartToken(lineNumber)
+            lexJobReady = tokenNumber >= 0
 
-            if tokenNumber < 0:
-                # Lexer hasn't gotten to this line yet
-                return
+            if not lexJobReady:
+                # Lexer job hasn't gotten to this line yet.
+                # Do low-quality lexing on this line to minimize flashing while the job is busy.
+                if boundary > DiffSyntaxHighlighter.MaxLineLengthForLowQualityLexing:
+                    # Skip low-quality lexing on long lines to ease CPU load.
+                    return
+                tokens = [(tokenType, len(tokenText)) for tokenType, tokenText in self.lexer.get_tokens(text)]
+                tokenNumber = 0
 
             while column < boundary:
                 tokenType, tokenLength = tokens[tokenNumber]
@@ -135,7 +144,9 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 finally:
                     column += tokenLength
 
-            assert column == boundary, "syntax highlighting overstep"
+            if settings.DEVDEBUG and lexJobReady:
+                assert column == boundary, "syntax highlighting overstep"
+                # This assert may fail with low-quality lexing, not a big deal.
 
     def setColorScheme(self, style: StyleMeta | None):
         self.scheme = {}
