@@ -237,7 +237,7 @@ class LexerCache:
         aliasTable = {}
 
         # Significant speedup with plugins=False
-        for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=False):
+        for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=settings.prefs.pygmentsPlugins):
             if not patterns or not aliases:
                 continue
             alias = aliases[0]

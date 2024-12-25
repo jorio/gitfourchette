@@ -278,6 +278,10 @@ class TrTables:
             "showMenuBar_help": _("When the menu bar is hidden, press the Alt key to show it again."),
             "resetDontShowAgain": _("Restore all “don’t show this again” messages"),
             "middleClickToStage": _("Middle-click a file name to stage/unstage the file"),
+            "pygmentsPlugins": _("Allow third-party Pygments plugins"),
+            "pygmentsPlugins_help": "<p>" + _("Let {app} load third-party Pygments plugins installed on your system. "
+                                              "These plugins extend syntax highlighting with new languages "
+                                              "and color schemes. <b>May incur significant slowdowns.</b>"),
 
             "font": _("Font"),
             "tabSpaces": _("One tab is # spaces"),

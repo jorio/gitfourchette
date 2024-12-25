@@ -1089,6 +1089,7 @@ class MainWindow(QMainWindow):
         warnIfNeedRestart = [
             "language",
             "forceQtApi",
+            "pygmentsPlugins",
         ]
 
         if "showMenuBar" in prefDiff and not prefDiff["showMenuBar"]:

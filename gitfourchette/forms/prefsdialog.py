@@ -478,7 +478,12 @@ class PrefsDialog(QDialog):
                     return QColor('#' + style.style_for_token(t)['color'])
             return QColor(Qt.GlobalColor.black)
 
-        for _dummy1, styleName, _dummy2 in pygments.styles.STYLES.values():
+        if prefs.pygmentsPlugins:
+            allStyles = pygments.styles.get_all_styles()
+        else:
+            allStyles = (styleName for _dummy1, styleName, _dummy2 in pygments.styles.STYLES.values())
+
+        for styleName in sorted(allStyles):
             style = pygments.styles.get_style_by_name(styleName)
 
             bgColor = QColor(style.background_color)

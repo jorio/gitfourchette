@@ -137,6 +137,7 @@ class Prefs(PrefsFile):
     flattenLanes                : bool                  = True
     animations                  : bool                  = True
     autoRefresh                 : bool                  = True
+    pygmentsPlugins             : bool                  = False
     verbosity                   : LoggingLevel          = LoggingLevel.WARNING
     forceQtApi                  : QtApiNames            = QtApiNames.QTAPI_AUTOMATIC
 
