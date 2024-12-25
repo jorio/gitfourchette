@@ -10,6 +10,8 @@ import logging
 import os
 import re
 from bisect import bisect_left, bisect_right
+from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -17,6 +19,7 @@ from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffrubberband import DiffRubberBand
 from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
+from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.exttools import openPrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -255,6 +258,22 @@ class DiffView(QPlainTextEdit):
         self.setDocument(newDoc.document)
         self.highlighter.setDiffDocument(newDoc)
         self.highlighter.setLexerFromPath(self.lexerPath())
+
+        # Set up lexer jobs
+        if patch is not None and self.highlighter.lexer is not None:
+            with Benchmark("Read blobs"):
+                oldData = b''
+                newData = b''
+                with suppress(KeyError):
+                    oldData = repo[patch.delta.old_file.id].data
+                with suppress(KeyError, OSError):
+                    if locator.context.isDirty():
+                        newData = Path(repo.in_workdir(patch.delta.new_file.path)).read_bytes()
+                    else:
+                        newData = repo[patch.delta.new_file.id].data
+            with Benchmark("Lex blobs"):
+                self.highlighter.oldLexJob = LexJob(self.highlighter.lexer, oldData)
+                self.highlighter.newLexJob = LexJob(self.highlighter.lexer, newData)
 
         self.lineData = newDoc.lineData
         self.lineCursorStartCache = [ld.cursorStart for ld in self.lineData]

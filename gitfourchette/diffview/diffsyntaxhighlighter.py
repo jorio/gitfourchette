@@ -39,6 +39,9 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         self.searchTerm = ""
         self.searching = False
 
+        self.oldLexJob = None
+        self.newLexJob = None
+
     def setDiffDocument(self, diffDocument: DiffDocument):
         self.diffDocument = diffDocument
         self.setDocument(diffDocument.document)
@@ -53,6 +56,8 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
     def setLexerFromPath(self, path: str):
         self.lexer = LexerCache.getLexerFromPath(path)
+        self.oldLexJob = None
+        self.newLexJob = None
 
     def highlightBlock(self, text: str):
         if self.searching and self.searchTerm:
@@ -71,26 +76,32 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(index, termLength, self.occurrenceFormat)
                 index += termLength
 
-        elif self.lexer is not None and self.scheme:
+        elif self.scheme and self.oldLexJob and self.newLexJob:
             # Pygments syntax highlighting
             blockNumber = self.currentBlock().blockNumber()
 
             lineData: LineData = self.diffDocument.lineData[blockNumber]
-            if lineData.diffLine is None:  # Hunk header, etc.
+            diffLine = lineData.diffLine
+            if diffLine is None:  # Hunk header, etc.
                 return
 
             column = 0
-            scheme = self.highContrastScheme if lineData.diffLine.origin in "+-" else self.scheme
-            tokens = self.lexer.get_tokens(text)
-            trailerStart = lineData.trailerStart
-            for tokenType, tokenValue in tokens:
-                tokenLength = len(tokenValue)
+            scheme = self.highContrastScheme if diffLine.origin in "+-" else self.scheme
 
-                # Adjust token length for trailer (e.g. line comment plus trailer).
-                # Stop processing this line once we've gone past the trailer.
-                tokenLength = min(tokenLength, trailerStart - column)
-                if tokenLength < 0:
-                    break
+            if diffLine.origin == '+':
+                lexJob = self.newLexJob
+                lineNumber = diffLine.new_lineno
+            else:
+                lexJob = self.oldLexJob
+                lineNumber = diffLine.old_lineno
+
+            boundary = len(text) - lineData.trailerLength
+            tokens = lexJob.tokens
+            tokenNumber = lexJob.lineStartTokens[lineNumber]
+
+            while column < boundary:
+                tokenType, tokenLength = tokens[tokenNumber]
+                tokenNumber += 1
 
                 try:
                     charFormat = scheme[tokenType]
@@ -99,6 +110,8 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                     continue
                 finally:
                     column += tokenLength
+
+            assert column == boundary, "syntax highlighting overstep"
 
     def setColorScheme(self, style: StyleMeta | None):
         self.scheme = {}
@@ -181,9 +194,12 @@ class LexerCache:
             return cls.lexerInstances[alias]
 
         # Instantiate new lexer.
-        # (Passing in an alias from pygments' builtin lexers shouldn't
-        # tap into Pygments plugins, so this should be fairly fast)
-        lexer = pygments.lexers.get_lexer_by_name(alias)
+        # Notes:
+        # - Passing in an alias from pygments' builtin lexers shouldn't
+        #   tap into Pygments plugins, so this should be fairly fast.
+        # - stripnl throws off highlighting in files that begin with
+        #   whitespace.
+        lexer = pygments.lexers.get_lexer_by_name(alias, stripnl=False)
         cls.lexerInstances[alias] = lexer
         return lexer
 
