@@ -257,20 +257,29 @@ class DiffView(QPlainTextEdit):
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
         self.highlighter.setDiffDocument(newDoc)
-        self.highlighter.setLexerFromPath(self.lexerPath())
+
+        # Set up lexer
+        if settings.prefs.syntaxHighlighting == PygmentsPresets.Off or patch is None:
+            self.highlighter.setLexerFromPath("")
+            assert not self.highlighter.lexer
+        else:
+            oldFile = patch.delta.old_file
+            newFile = patch.delta.new_file
+            self.highlighter.setLexerFromPath(newFile.path)
+            # This may or may not set self.highlighter.lexer depending on whether the language is supported
 
         # Set up lexer jobs
-        if patch is not None and self.highlighter.lexer is not None:
+        if self.highlighter.lexer:
             with Benchmark("Read blobs"):
                 oldData = b''
                 newData = b''
                 with suppress(KeyError):
-                    oldData = repo[patch.delta.old_file.id].data
+                    oldData = repo[oldFile.id].data
                 with suppress(KeyError, OSError):
                     if locator.context.isDirty():
-                        newData = Path(repo.in_workdir(patch.delta.new_file.path)).read_bytes()
+                        newData = Path(repo.in_workdir(newFile.path)).read_bytes()
                     else:
-                        newData = repo[patch.delta.new_file.id].data
+                        newData = repo[newFile.id].data
             with Benchmark("Lex blobs"):
                 self.highlighter.oldLexJob = LexJob(self.highlighter.lexer, oldData)
                 self.highlighter.newLexJob = LexJob(self.highlighter.lexer, newData)
@@ -280,7 +289,7 @@ class DiffView(QPlainTextEdit):
         self.lineHunkIDCache = [ld.hunkPos.hunkID for ld in self.lineData]
 
         # now reset defaults that are lost when changing documents
-        self.refreshPrefs(rehighlight=False)
+        self.refreshPrefs(changeColorScheme=False)
 
         if self.currentPatch and len(self.currentPatch.hunks) > 0:
             lastHunk = self.currentPatch.hunks[-1]
@@ -413,7 +422,7 @@ class DiffView(QPlainTextEdit):
     # ---------------------------------------------
     # Prefs
 
-    def refreshPrefs(self, rehighlight=True):
+    def refreshPrefs(self, changeColorScheme=True):
         monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         if settings.prefs.font:
             monoFont.fromString(settings.prefs.font)
@@ -433,10 +442,9 @@ class DiffView(QPlainTextEdit):
         self.gutter.setFont(monoFont)
         self.syncViewportMarginsWithGutter()
 
-        if rehighlight:
+        if changeColorScheme:
             pygmentsStyle = settings.prefs.resolvePygmentsStyle()
             self.highlighter.setColorScheme(pygmentsStyle)
-            self.highlighter.setLexerFromPath(self.lexerPath())
             self.highlighter.rehighlight()
 
             styleSheet = "/* dummy */"
@@ -448,11 +456,6 @@ class DiffView(QPlainTextEdit):
                 styleSheet = f"{type(self).__name__} {{ background-color: {bgColor.name()}; color: {fgColor}; }}"
             self.setProperty("dark", ["false", "true"][dark])  # See selection-background-color in .qss asset.
             self.setStyleSheet(styleSheet)
-
-    def lexerPath(self) -> str:
-        if settings.prefs.syntaxHighlighting != PygmentsPresets.Off and self.currentPatch is not None:
-            return self.currentPatch.delta.new_file.path
-        return ""
 
     def refreshWordWrap(self):
         if settings.prefs.wordWrap:

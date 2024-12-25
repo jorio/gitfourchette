@@ -1046,6 +1046,9 @@ class MainWindow(QMainWindow):
         if not prefDiff:
             return
 
+        syntaxWasOff = settings.prefs.syntaxHighlighting == settings.PygmentsPresets.Off
+        syntaxNowOff = prefDiff.get('syntaxHighlighting', '') == settings.PygmentsPresets.Off
+
         # Apply changes from prefDiff to the actual prefs
         for k, v in prefDiff.items():
             settings.prefs.__dict__[k] = v
@@ -1072,6 +1075,11 @@ class MainWindow(QMainWindow):
             "maxCommits",
             "renderSvg",
         ]
+
+        # Force reloading the diff when toggling syntax highlighting.
+        # If we're merely changing color schemes, a quick refreshPrefs suffices.
+        if syntaxWasOff ^ syntaxNowOff:
+            autoReload.append("syntaxHighlighting")
 
         warnIfChanged = [
             "chronologicalOrder",  # need to reload entire commit sequence
