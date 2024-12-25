@@ -13,13 +13,14 @@ from bisect import bisect_left, bisect_right
 from contextlib import suppress
 from pathlib import Path
 
+import pygments.token
+
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffrubberband import DiffRubberBand
 from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
-from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.exttools import openPrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -280,9 +281,7 @@ class DiffView(QPlainTextEdit):
                         newData = Path(repo.in_workdir(newFile.path)).read_bytes()
                     else:
                         newData = repo[newFile.id].data
-            with Benchmark("Lex blobs"):
-                self.highlighter.oldLexJob = LexJob(self.highlighter.lexer, oldData)
-                self.highlighter.newLexJob = LexJob(self.highlighter.lexer, newData)
+            self.highlighter.initLexJobs(oldData, newData)
 
         self.lineData = newDoc.lineData
         self.lineCursorStartCache = [ld.cursorStart for ld in self.lineData]

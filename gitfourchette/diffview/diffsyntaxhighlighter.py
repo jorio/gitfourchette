@@ -15,14 +15,18 @@ from pygments.token import Token
 
 from gitfourchette import colors
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
+from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.qt import *
-from gitfourchette.toolbox import benchmark
+from gitfourchette.toolbox import benchmark, CallbackAccumulator
+
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
     diffDocument: DiffDocument | None
     lexer: Lexer | None
     scheme: dict[Token, QTextCharFormat]
     highContrastScheme: dict[Token, QTextCharFormat]
+    oldLexJob: LexJob | None
+    newLexJob: LexJob | None
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -56,8 +60,24 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
     def setLexerFromPath(self, path: str):
         self.lexer = LexerCache.getLexerFromPath(path)
+        self.stopLexJobs()
+
+    def stopLexJobs(self):
+        for job in self.oldLexJob, self.newLexJob:
+            if job is None:
+                continue
+            job.stop()
+            job.pulse.disconnect(self.onLexPulse)
+            job.deleteLater()
         self.oldLexJob = None
         self.newLexJob = None
+
+    def initLexJobs(self, oldData: bytes, newData: bytes):
+        self.stopLexJobs()
+        self.oldLexJob = LexJob(self, self.lexer, oldData)
+        self.newLexJob = LexJob(self, self.lexer, newData)
+        for job in self.oldLexJob, self.newLexJob:
+            job.pulse.connect(self.onLexPulse)
 
     def highlightBlock(self, text: str):
         if self.searching and self.searchTerm:
@@ -97,7 +117,11 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
             boundary = len(text) - lineData.trailerLength
             tokens = lexJob.tokens
-            tokenNumber = lexJob.lineStartTokens[lineNumber]
+            tokenNumber = lexJob.getLineStartToken(lineNumber)
+
+            if tokenNumber < 0:
+                # Lexer hasn't gotten to this line yet
+                return
 
             while column < boundary:
                 tokenType, tokenLength = tokens[tokenNumber]
@@ -153,6 +177,10 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             charFormat.clearBackground()
 
             self.highContrastScheme[tokenType] = charFormat
+
+    @CallbackAccumulator.deferredMethod
+    def onLexPulse(self):
+        self.rehighlight()
 
 
 class LexerCache:

@@ -6,20 +6,51 @@
 
 from pygments.lexer import Lexer
 
+from gitfourchette.qt import *
+from gitfourchette.toolbox import benchmark
 
-class LexJob:
-    def __init__(self, lexer: Lexer, data: bytes):
-        self.ready = not data
+
+class LexJob(QObject):
+    ChunkSize = 5000  # tokens
+    ScheduleInterval = 0  # ms
+
+    pulse = Signal()
+
+    def __init__(self, parent, lexer: Lexer, data: bytes):
+        super().__init__(parent)
+        self.setObjectName("LexJob")
+
+        self.fullyLexed = not data
         self.lexGen = lexer.get_tokens(data)
         self.tokens = []
         self.lineStartTokens = [0, 0]  # start line numbering at 1 to match libgit2
 
-        # TODO TEMP - don't chunk everything!
-        if not self.ready:
-            self.chunk(1 << 32)
+        self.scheduler = QTimer(self)
+        self.scheduler.setSingleShot(True)
+        self.scheduler.timeout.connect(self._chunk)
 
-    def chunk(self, n: int):
-        assert not self.ready, "lex job ready, no need to keep chunking"
+        self.requestedLine = 0
+
+    def getLineStartToken(self, lineNumber: int):
+        if not self.fullyLexed:
+            try:
+                # Make sure the next line is complete
+                self.requestedLine = max(self.requestedLine, lineNumber + 1)
+                _dummy = self.lineStartTokens[self.requestedLine]
+            except IndexError:
+                if not self.scheduler.isActive():
+                    # Initiate chunking
+                    self.scheduler.start(0)
+                return -1
+
+        try:
+            return self.lineStartTokens[lineNumber]
+        except IndexError:
+            return -1
+
+    @benchmark
+    def _chunk(self, n: int = ChunkSize):
+        assert not self.fullyLexed, "lexing complete, no need to keep chunking"
 
         lexGen = self.lexGen
         tokens = self.tokens
@@ -39,5 +70,15 @@ class LexJob:
                         lineStarts.append(len(tokens))
                     lineStarts.pop()  # for loop inserts one too many lines
 
+            if self.requestedLine >= len(self.lineStartTokens):
+                assert not self.scheduler.isActive()
+                self.scheduler.start(LexJob.ScheduleInterval)
+
         except StopIteration:
-            self.ready = True
+            self.fullyLexed = True
+            self.scheduler.stop()
+
+        self.pulse.emit()
+
+    def stop(self):
+        self.scheduler.stop()
