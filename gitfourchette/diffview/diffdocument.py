@@ -44,6 +44,9 @@ class LineData:
     doppelganger: int = -1
     "Index of the doppelganger LineData in a perfectly even clump."
 
+    trailerStart: int = 0x3fffffff  # Largest int that fits in a 28 bytes object
+    "Stop highlighting the syntax past this column in the line."
+
 
 class DiffStyle:
     def __init__(self):
@@ -265,6 +268,7 @@ class DiffDocument:
             cursor.insertText(ld.text[:trimBack])
 
             if trailer:
+                ld.trailerStart = cursor.positionInBlock()
                 cursor.setCharFormat(style.warningCF)
                 cursor.insertText(trailer)
 

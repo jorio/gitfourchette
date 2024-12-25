@@ -82,8 +82,16 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             column = 0
             scheme = self.highContrastScheme if lineData.diffLine.origin in "+-" else self.scheme
             tokens = self.lexer.get_tokens(text)
+            trailerStart = lineData.trailerStart
             for tokenType, tokenValue in tokens:
                 tokenLength = len(tokenValue)
+
+                # Adjust token length for trailer (e.g. line comment plus trailer).
+                # Stop processing this line once we've gone past the trailer.
+                tokenLength = min(tokenLength, trailerStart - column)
+                if tokenLength < 0:
+                    break
+
                 try:
                     charFormat = scheme[tokenType]
                     self.setFormat(column, tokenLength, charFormat)
