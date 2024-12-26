@@ -94,6 +94,7 @@ class DiffStyle:
         self.hunkCF.setForeground(QColor(0x0050f0))
 
         self.warningCF = QTextCharFormat()
+        self.warningCF.setFontUnderline(True)
         self.warningCF.setFontWeight(QFont.Weight.Bold)
         self.warningCF.setForeground(QColor(0xc81e00))
 
