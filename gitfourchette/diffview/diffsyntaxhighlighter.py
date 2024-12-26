@@ -22,8 +22,6 @@ from gitfourchette.toolbox import benchmark, CallbackAccumulator
 
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
-    MaxLineLengthForLowQualityLexing = 200
-
     diffDocument: DiffDocument | None
     lexer: Lexer | None
     scheme: dict[Token, QTextCharFormat]
@@ -119,34 +117,21 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 lineNumber = diffLine.old_lineno
 
             boundary = len(text) - lineData.trailerLength
-            tokens = lexJob.tokens
-            tokenNumber = lexJob.getLineStartToken(lineNumber)
-            lexJobReady = tokenNumber >= 0
 
-            if not lexJobReady:
-                # Lexer job hasn't gotten to this line yet.
-                # Do low-quality lexing on this line to minimize flashing while the job is busy.
-                if boundary > DiffSyntaxHighlighter.MaxLineLengthForLowQualityLexing:
-                    # Skip low-quality lexing on long lines to ease CPU load.
-                    return
-                tokens = [(tokenType, len(tokenText)) for tokenType, tokenText in self.lexer.get_tokens(text)]
-                tokenNumber = 0
-
-            while column < boundary:
-                tokenType, tokenLength = tokens[tokenNumber]
-                tokenNumber += 1
-
+            for tokenType, tokenLength in lexJob.tokens(lineNumber, text):
                 try:
                     charFormat = scheme[tokenType]
                     self.setFormat(column, tokenLength, charFormat)
                 except KeyError:
-                    continue
-                finally:
-                    column += tokenLength
+                    pass
+                column += tokenLength
+                if column >= boundary:
+                    break
 
-            if settings.DEVDEBUG and lexJobReady:
-                assert column == boundary, "syntax highlighting overstep"
-                # This assert may fail with low-quality lexing, not a big deal.
+            if settings.DEVDEBUG and lexJob.lexingComplete and column != boundary:  # pragma: no cover
+                # Overstep may occur in low-quality lexing (not a big deal, so
+                # we ignore that case) or when the file isn't decoded properly.
+                logger.warning(f"Syntax highlighting overstep on line -{diffLine.old_lineno}+{diffLine.new_lineno} {column} != {boundary}")
 
     def setColorScheme(self, style: StyleMeta | None):
         self.scheme = {}
@@ -190,6 +175,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             self.highContrastScheme[tokenType] = charFormat
 
     @CallbackAccumulator.deferredMethod
+    @benchmark
     def onLexPulse(self):
         self.rehighlight()
 
