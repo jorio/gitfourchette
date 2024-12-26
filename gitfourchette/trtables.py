@@ -292,8 +292,8 @@ class TrTables:
             "syntaxHighlighting": _("Syntax highlighting"),
             "wordWrap": _("Word wrap"),
             "showStrayCRs": _("Display alien line endings (CRLF)"),
-            "colorblind": _("Colorblind-friendly “add/remove” colors"),
-            "colorblind_help": _("Display added/removed lines in blue/yellow instead of green/red."),
+            "colorblind": _("“-/+” colors"),
+            "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),
             "renderSvg": _("Treat SVG files as"),
 
             "tabCloseButton": _("Show tab close button"),

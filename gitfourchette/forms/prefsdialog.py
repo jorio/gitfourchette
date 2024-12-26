@@ -254,6 +254,8 @@ class PrefsDialog(QDialog):
             return self.boundedIntControl(key, value, 1, 16)
         elif key == "syntaxHighlighting":
             return self.syntaxHighlightingControl(key, value)
+        elif key == "colorblind":
+            return self.colorblindControl(key, value)
         elif key == "maxCommits":
             control = self.boundedIntControl(key, value, 0, 999_999_999, 1000)
             control.setSpecialValueText("\u221E")  # infinity
@@ -513,4 +515,19 @@ class PrefsDialog(QDialog):
 
         control.activated.connect(onPickStyle)
 
+        return control
+
+    def colorblindControl(self, prefKey, prefValue):
+        control = QComboBox(self)
+        control.addItem(stockIcon("linebg-chip-redgreen"), _("Red and green"), userData=False)
+        control.addItem(stockIcon("linebg-chip-colorblind"), _("Colorblind-friendly"), userData=True)
+
+        index = control.findData(prefValue)
+        control.setCurrentIndex(index)
+
+        def onPickStyle(index):
+            pickedStyleName = control.itemData(index, Qt.ItemDataRole.UserRole)
+            self.assign(prefKey, pickedStyleName)
+
+        control.activated.connect(onPickStyle)
         return control
