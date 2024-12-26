@@ -168,3 +168,12 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
     @benchmark
     def onLexPulse(self):
         self.rehighlight()
+
+    def onParentVisibilityChanged(self, visible: bool):
+        """ Pause lexing when the parent DiffView is in the background """
+        for job in self.oldLexJob, self.newLexJob:
+            if job and not job.lexingComplete:
+                if visible:
+                    job.start()
+                else:
+                    job.stop()

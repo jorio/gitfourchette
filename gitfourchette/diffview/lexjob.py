@@ -40,7 +40,7 @@ class LexJob(QObject):
 
         self.scheduler = QTimer(self)
         self.scheduler.setSingleShot(True)
-        self.scheduler.timeout.connect(self._chunk)
+        self.scheduler.timeout.connect(self.lexChunk)
 
         self.requestedLine = 0
 
@@ -56,8 +56,7 @@ class LexJob(QObject):
         # Schedule high-quality lexing up to this line.
         if self.requestedLine < lineNumber:
             self.requestedLine = lineNumber
-            if not self.scheduler.isActive():
-                self.scheduler.start(LexJob.ScheduleInitialDelay)  # Initiate chunking
+            self.start()  # Initiate chunking
 
         # Fall back to low-quality lexing on this line
         # to minimize flashing while the job is busy.
@@ -74,11 +73,17 @@ class LexJob(QObject):
                 self.lqTokenMap[lineNumber] = lqTokens
         return lqTokens
 
+    def start(self):
+        assert not self.lexingComplete
+        if self.scheduler.isActive():
+            return
+        self.scheduler.start(LexJob.ScheduleInitialDelay)  # Initiate chunking
+
     def stop(self):
         self.scheduler.stop()
 
     @benchmark
-    def _chunk(self, n: int = ChunkSize):
+    def lexChunk(self, n: int = ChunkSize):
         assert not self.lexingComplete, "lexing complete, no need to keep chunking"
         assert self.lexGen is not None
 

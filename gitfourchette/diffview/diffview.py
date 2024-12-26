@@ -38,6 +38,7 @@ class DiffView(QPlainTextEdit):
 
     contextualHelp = Signal(str)
     selectionActionable = Signal(bool)
+    visibilityChanged = Signal(bool)
 
     lineData: list[LineData]
     lineCursorStartCache: list[int]
@@ -65,6 +66,7 @@ class DiffView(QPlainTextEdit):
 
         # Highlighter for search terms
         self.highlighter = DiffSyntaxHighlighter(self)
+        self.visibilityChanged.connect(self.highlighter.onParentVisibilityChanged)
 
         self.gutter = DiffGutter(self)
         self.gutter.customContextMenuRequested.connect(lambda p: self.execContextMenu(self.gutter.mapToGlobal(p)))
@@ -211,6 +213,14 @@ class DiffView(QPlainTextEdit):
     def focusOutEvent(self, event: QFocusEvent):
         self.rubberBand.repaint()
         super().focusOutEvent(event)
+
+    def showEvent(self, event: QShowEvent):
+        super().showEvent(event)
+        self.visibilityChanged.emit(True)
+
+    def hideEvent(self, event: QHideEvent):
+        super().hideEvent(event)
+        self.visibilityChanged.emit(False)
 
     # ---------------------------------------------
     # Document replacement
