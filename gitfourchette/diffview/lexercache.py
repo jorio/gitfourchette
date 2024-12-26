@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import logging
 import os.path
 from contextlib import suppress
 
@@ -12,6 +13,41 @@ from pygments.lexer import Lexer
 
 from gitfourchette import settings
 from gitfourchette.toolbox import benchmark
+
+logger = logging.getLogger(__name__)
+
+# Override Pygments priorities
+extensionDisambiguations = {
+    ".G": "",
+    ".S": "gas",
+    ".aspx": "aspx-cs",
+    ".bas": "qbasic",
+    ".cp": "cpp",
+    ".ecl": "prolog",
+    ".g": "",
+    ".gd": "gdscript",
+    ".h": "c",
+    ".hh": "cpp",
+    ".html": "html",
+    ".inc": "php",
+    ".inf": "ini",
+    ".m": "objective-c",
+    ".pl": "perl6",
+    ".pm": "perl6",
+    ".pro": "prolog",
+    ".prolog": "prolog",
+    ".rl": "",
+    ".s": "gas",
+    ".sql": "sql",
+    ".t": "perl6",
+    ".toc": "tex",
+    ".tst": "scilab",
+    ".ttl": "turtle",
+    ".v": "verilog",
+    ".xml": "xml",
+    ".xsl": "xslt",
+    ".xslt": "xslt",
+}
 
 
 class LexerCache:
@@ -35,14 +71,15 @@ class LexerCache:
         if not cls.lexerAliases:
             cls.warmUp()
 
-        # Find lexer alias by extension
-        _dummy, ext = os.path.splitext(path)
+        # Find lexer alias by verbatim filename or extension
         try:
-            alias = cls.lexerAliases[ext]
-        except KeyError:
-            # Try verbatim name (e.g. 'Makefile')
+            # Try verbatim name (e.g. 'CMakeLists.txt')
             fileName = os.path.basename(path)
-            alias = cls.lexerAliases.get(fileName, "")
+            alias = cls.lexerAliases[fileName]
+        except KeyError:
+            # Find lexer alias by extension
+            _dummy, ext = os.path.splitext(path)
+            alias = cls.lexerAliases.get(ext, "")
 
         # Bail early
         if not alias:
@@ -67,16 +104,32 @@ class LexerCache:
     def warmUp(cls):
         aliasTable = {}
 
+        def shouldKeep(contenderAlias, contenderExtension):
+            if contenderExtension in extensionDisambiguations:
+                return contenderAlias == extensionDisambiguations[contenderExtension]
+
+            try:
+                aliasTable[contenderExtension]
+            except KeyError:
+                return True
+
+            # print(contenderExtension, existingAlias, "vs", contenderAlias)
+            # existing = pygments.lexers.find_lexer_class_by_name(existingAlias)  # slow!
+            # contender = pygments.lexers.find_lexer_class_by_name(contenderAlias)  # slow!
+            # return contender.priority > existing.priority
+            return False
+
         # Significant speedup with plugins=False
         for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=settings.prefs.pygmentsPlugins):
             if not patterns or not aliases:
                 continue
             alias = aliases[0]
             for pattern in patterns:
-                if pattern.startswith('*.') and not pattern.endswith('*'):
+                if pattern.startswith('*.') and not pattern.endswith('*') and pattern.count('.') == 1 and '[' not in pattern:
                     # Simple file extension
                     ext = pattern[1:]
-                    aliasTable[ext] = alias
+                    if shouldKeep(alias, ext):
+                        aliasTable[ext] = alias
                 elif '*' not in pattern:
                     # Verbatim file name
                     aliasTable[pattern] = alias
@@ -85,5 +138,8 @@ class LexerCache:
         # TODO: What's pygments' rationale for omitting '*.svg'?
         with suppress(KeyError):
             aliasTable['.svg'] = aliasTable['.xml']
+
+        # No Pygments overhead for null lexers
+        aliasTable = {ext: alias for ext, alias in aliasTable.items() if alias != 'text'}
 
         cls.lexerAliases = aliasTable
