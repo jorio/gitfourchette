@@ -10,8 +10,6 @@ import logging
 import os
 import re
 from bisect import bisect_left, bisect_right
-from contextlib import suppress
-from pathlib import Path
 
 import pygments.token
 
@@ -28,7 +26,6 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavFlags, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.settings import PygmentsPresets
 from gitfourchette.subpatch import extractSubpatch
 from gitfourchette.tasks import ApplyPatch, RevertPatch
 from gitfourchette.toolbox import *
@@ -227,6 +224,7 @@ class DiffView(QPlainTextEdit):
         # Clear the actual contents
         super().clear()
 
+    @benchmark
     def replaceDocument(self, repo: Repo, patch: Patch, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
@@ -258,30 +256,6 @@ class DiffView(QPlainTextEdit):
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
         self.highlighter.setDiffDocument(newDoc)
-
-        # Set up lexer
-        if settings.prefs.syntaxHighlighting == PygmentsPresets.Off or patch is None:
-            self.highlighter.setLexerFromPath("")
-            assert not self.highlighter.lexer
-        else:
-            oldFile = patch.delta.old_file
-            newFile = patch.delta.new_file
-            self.highlighter.setLexerFromPath(newFile.path)
-            # This may or may not set self.highlighter.lexer depending on whether the language is supported
-
-        # Set up lexer jobs
-        if self.highlighter.lexer:
-            with Benchmark("Read blobs"):
-                oldData = b''
-                newData = b''
-                with suppress(KeyError):
-                    oldData = repo[oldFile.id].data
-                with suppress(KeyError, OSError):
-                    if locator.context.isDirty():
-                        newData = Path(repo.in_workdir(newFile.path)).read_bytes()
-                    else:
-                        newData = repo[newFile.id].data
-            self.highlighter.initLexJobs(oldData, newData)
 
         self.lineData = newDoc.lineData
         self.lineCursorStartCache = [ld.cursorStart for ld in self.lineData]

@@ -166,6 +166,9 @@ class Prefs(PrefsFile):
             return os.path.normpath(path)
         return os.path.expanduser("~")
 
+    def isSyntaxHighlightingEnabled(self):
+        return self.syntaxHighlighting != PygmentsPresets.Off
+
     def resolvePygmentsStyle(self) -> pygments.style.Style | None:
         styleName = self.syntaxHighlighting
         if styleName == PygmentsPresets.Automatic:

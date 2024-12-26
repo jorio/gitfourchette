@@ -5,11 +5,14 @@
 # -----------------------------------------------------------------------------
 
 import logging
+from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument
+from gitfourchette.diffview.lexercache import LexerCache
 from gitfourchette.diffview.specialdiff import (ShouldDisplayPatchAsImageDiff, SpecialDiffError, DiffImagePair)
 from gitfourchette.graph import GraphBuildLoop
 from gitfourchette.graphview.commitlogmodel import SpecialRow
@@ -344,8 +347,29 @@ class LoadPatch(RepoTask):
         return header
 
     def flow(self, patch: Patch, locator: NavLocator):
-        # yield from self.flowEnterWorkerThread()
-        yield from self.flowEnterUiThread()
+        yield from self.flowEnterWorkerThread()
         # QThread.msleep(500)
         self.result = self._processPatch(patch, locator)
         self.header = self._makeHeader(self.result, locator)
+
+        # Prime lexer
+        if type(self.result) is DiffDocument and settings.prefs.isSyntaxHighlightingEnabled():
+            oldFile = patch.delta.old_file
+            newFile = patch.delta.new_file
+
+            self.result.lexer = LexerCache.getLexerFromPath(newFile.path)
+
+            if self.result.lexer:
+                # Load old data
+                yield from self.flowEnterWorkerThread()  # Allow breaking here
+                with suppress(KeyError):
+                    self.result.oldData = self.repo[oldFile.id].data
+
+                # Load new data
+                yield from self.flowEnterWorkerThread()  # Allow breaking here
+                with suppress(KeyError, OSError):
+                    if locator.context.isDirty():
+                        newFilePath = Path(self.repo.in_workdir(newFile.path))
+                        self.result.newData = newFilePath.read_bytes()
+                    else:
+                        self.result.newData = self.repo[newFile.id].data
