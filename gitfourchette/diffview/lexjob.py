@@ -4,11 +4,16 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import logging
+
 from pygments.lexer import Lexer
 from pygments.token import Token
 
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark
+from gitfourchette.diffview.lexedfilecache import LexedFileCache
+
+logger = logging.getLogger(__name__)
 
 
 class LexJob(QObject):
@@ -28,15 +33,24 @@ class LexJob(QObject):
         self.lexer = lexer
         self.lqTokenMap = {}
         self.hqTokenMap = {1: []}
+        self.fileKey = data
 
-        if not data:
-            # Lexing complete on empty data
+        try:
+            # Try to retrieve existing result
+            self.hqTokenMap = LexedFileCache.get(self.fileKey)
             self.currentLine = 0
             self.lexGen = None
-        else:
-            self.currentLine = 1
-            self.lexGen = lexer.get_tokens(data)
-        assert self.lexingComplete == (not data)
+            assert self.lexingComplete
+            logger.debug("Got lexed file from cache")
+        except KeyError:
+            if not data:
+                # Lexing complete on empty data
+                self.currentLine = 0
+                self.lexGen = None
+            else:
+                self.currentLine = 1
+                self.lexGen = lexer.get_tokens(data)
+            assert self.lexingComplete == (not data)
 
         self.scheduler = QTimer(self)
         self.scheduler.setSingleShot(True)
@@ -119,6 +133,7 @@ class LexJob(QObject):
             self.currentLine = 0
             self.scheduler.stop()
             self.lqTokenMap = {}  # we won't need LQ tokens anymore - free some mem
+            LexedFileCache.put(self.fileKey, self.hqTokenMap)
             assert self.lexingComplete
 
         self.pulse.emit()
