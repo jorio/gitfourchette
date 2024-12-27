@@ -898,6 +898,7 @@ class RepoWidget(QStackedWidget):
             return
 
         self.diffView.refreshPrefs()
+        self.specialDiffView.refreshPrefs()
         self.graphView.refreshPrefs()
         if PREFKEY_MERGETOOL in prefDiff:
             self.conflictView.refreshPrefs()

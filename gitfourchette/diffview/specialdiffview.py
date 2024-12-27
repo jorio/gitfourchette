@@ -5,21 +5,13 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette import colors
+from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import SpecialDiffError
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import stockIcon, escape, DocumentLinks
-
-IMAGE_RESOURCE_TYPE = QTextDocument.ResourceType.ImageResource
-
-HTML_HEADER = f"""\
-<html>
-<style>
-del {{ color: {colors.red.name()}; }}
-add {{ color: {colors.olive.name()}; }}
-</style>
-"""
 
 
 class SpecialDiffView(QTextBrowser):
@@ -31,6 +23,27 @@ class SpecialDiffView(QTextBrowser):
         super().__init__(*args, **kwargs)
         self.documentLinks = None
         self.anchorClicked.connect(self.onAnchorClicked)
+        self.refreshPrefs()
+        GFApplication.instance().restyle.connect(self.refreshPrefs)
+
+    def refreshPrefs(self):
+        styleSheet = settings.prefs.basicQssForPygmentsStyle(self)
+        self.setStyleSheet(styleSheet)
+
+        if settings.prefs.colorblind:
+            addColor = colors.teal
+            delColor = colors.orange
+        else:
+            addColor = colors.olive
+            delColor = colors.red
+
+        self.htmlHeader = f"""\
+        <html>
+        <style>
+        del {{ color: {delColor.name()}; }}
+        add {{ color: {addColor.name()}; }}
+        a {{ font-weight: bold; }}
+        </style>"""
 
     def onAnchorClicked(self, link: QUrl):
         if self.documentLinks is not None and self.documentLinks.processLink(link, self):
@@ -54,10 +67,10 @@ class SpecialDiffView(QTextBrowser):
 
         icon = stockIcon(err.icon)
         pixmap: QPixmap = icon.pixmap(48, 48)
-        document.addResource(IMAGE_RESOURCE_TYPE, QUrl("icon"), pixmap)
+        document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("icon"), pixmap)
 
         markup = (
-            f"{HTML_HEADER}"
+            f"{self.htmlHeader}"
             "<table width='100%'>"
             "<tr>"
             f"<td width='{pixmap.width()}px'><img src='icon'/></td>"
@@ -100,10 +113,10 @@ class SpecialDiffView(QTextBrowser):
             image = imageB
 
         image.setDevicePixelRatio(self.devicePixelRatio())
-        document.addResource(IMAGE_RESOURCE_TYPE, QUrl("image"), image)
+        document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("image"), image)
 
         document.setHtml(
-            f"{HTML_HEADER}"
+            f"{self.htmlHeader}"
             f"<p>{header}</p>"
             "<p style='text-align: center'><img src='image' /></p>")
 

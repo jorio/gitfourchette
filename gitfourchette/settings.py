@@ -187,6 +187,16 @@ class Prefs(PrefsFile):
         bgColor = QColor(style.background_color)
         return bgColor.lightnessF() < .5
 
+    def basicQssForPygmentsStyle(self, qobject):
+        pygmentsStyle = self.resolvePygmentsStyle()
+        if pygmentsStyle is None:
+            return "/* no Pygments style */"
+        bgColor = pygmentsStyle.background_color
+        fgColor = "black"
+        with suppress(TypeError):
+            fgColor = '#' + pygmentsStyle.style_for_token(pygments.token.Token.Text)['color']
+        return f"{type(qobject).__name__} {{ background-color: {bgColor}; color: {fgColor}; }}"
+
 
 @dataclasses.dataclass
 class History(PrefsFile):

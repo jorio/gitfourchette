@@ -11,8 +11,6 @@ import os
 import re
 from bisect import bisect_left, bisect_right
 
-import pygments.token
-
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
@@ -430,14 +428,11 @@ class DiffView(QPlainTextEdit):
             self.highlighter.setColorScheme(pygmentsStyle)
             self.highlighter.rehighlight()
 
-            # Had better luck setting colors with a stylesheet than via setPalette().
-            styleSheet = "/* dummy */"
             dark = settings.prefs.isDarkPygmentsStyle()
-            if pygmentsStyle is not None:
-                bgColor = QColor(pygmentsStyle.background_color)
-                fgColor = self.highlighter.scheme[pygments.token.Token.Text].foreground().color().name()
-                styleSheet = f"{type(self).__name__} {{ background-color: {bgColor.name()}; color: {fgColor}; }}"
             self.setProperty("dark", ["false", "true"][dark])  # See selection-background-color in .qss asset.
+
+            # Had better luck setting colors with a stylesheet than via setPalette().
+            styleSheet = settings.prefs.basicQssForPygmentsStyle(self)
             self.setStyleSheet(styleSheet)
 
     def refreshWordWrap(self):
