@@ -4,15 +4,20 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import logging
+
 from pygments.style import StyleMeta
 from pygments.token import Token
 
+from gitfourchette.diffview.lexjobcache import LexJobCache
 from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark, CallbackAccumulator
+
+logger = logging.getLogger(__name__)
 
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
@@ -47,8 +52,18 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         # Prime lex jobs
         self.stopLexJobs()
         if diffDocument.lexer:
-            self.oldLexJob = LexJob(self, diffDocument.lexer, diffDocument.oldData)
-            self.newLexJob = LexJob(self, diffDocument.lexer, diffDocument.newData)
+            try:
+                self.oldLexJob = LexJobCache.checkOut(diffDocument.oldData)
+                logger.debug("Reusing cached LexJob for old document")
+            except KeyError:
+                self.oldLexJob = LexJob(diffDocument.lexer, diffDocument.oldData)
+
+            try:
+                self.newLexJob = LexJobCache.checkOut(diffDocument.newData)
+                logger.debug("Reusing cached LexJob for new document")
+            except KeyError:
+                self.newLexJob = LexJob(diffDocument.lexer, diffDocument.newData)
+
             for job in self.oldLexJob, self.newLexJob:
                 job.pulse.connect(self.onLexPulse)
 
@@ -66,7 +81,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 continue
             job.stop()
             job.pulse.disconnect(self.onLexPulse)
-            job.deleteLater()
+            LexJobCache.checkIn(job)
         self.oldLexJob = None
         self.newLexJob = None
 
