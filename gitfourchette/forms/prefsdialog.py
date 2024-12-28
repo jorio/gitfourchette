@@ -293,31 +293,33 @@ class PrefsDialog(QDialog):
         else:
             raise NotImplementedError(f"Write pref widget for {key}")
 
+    @benchmark
     def languageControl(self, prefKey: str, prefValue: str):
         defaultCaption = _p("system default language setting", "System default")
         control = QComboBox(self)
         control.addItem(defaultCaption, userData="")
-        if not prefValue:
-            control.setCurrentIndex(0)
         control.insertSeparator(1)
 
         langDir = QDir("assets:lang", "*.mo")
-        languages = [f.removesuffix(".mo") for f in langDir.entryList()]
+        localeCodes = [f.removesuffix(".mo") for f in langDir.entryList()]
 
-        if not languages:  # pragma: no cover
+        if not localeCodes:  # pragma: no cover
             control.addItem("Translation files missing!")
             missingItem: QStandardItem = control.model().item(control.count() - 1)
             missingItem.setFlags(missingItem.flags() & ~Qt.ItemFlag.ItemIsEnabled)
 
-        assert "en" not in "languages"  # English has no .po file
-        languages.insert(0, "en")  # Make English appear on top
+        assert "en" not in localeCodes, "English shouldn't have an .mo file"
+        localeCodes.append("en")
 
-        for enumMember in languages:
-            lang = QLocale(enumMember)
-            control.addItem(lang.nativeLanguageName().title(), enumMember)
-            if prefValue == enumMember:
-                control.setCurrentIndex(control.count() - 1)
+        localeNames = {code: QLocale(code).nativeLanguageName() for code in localeCodes}
+        localeCodes.sort(key=lambda code: localeNames[code].casefold())
 
+        for code in localeCodes:
+            name = localeNames[code]
+            name = name[0].upper() + name[1:]  # Many languages don't capitalize their name
+            control.addItem(name, code)
+
+        control.setCurrentIndex(control.findData(prefValue))
         control.activated.connect(lambda index: self.assign(prefKey, control.currentData(Qt.ItemDataRole.UserRole)))
         return control
 

@@ -287,8 +287,13 @@ def cleanUpPoFiles():
 def compileMoFiles():
     """ Generate .mo files from .po files """
     for poPath in Path(LANG_DIR).glob("*.po"):
-        moPath = poPath.with_suffix(".mo")
+        moPath: Path = poPath.with_suffix(".mo")
+
         call("msgfmt", "-o", str(moPath), str(poPath), capture_output=False)
+
+        if moPath.stat().st_size < 1000:
+            print(f"*** Removing '{moPath.name}' -- looks like a stub.")
+            moPath.unlink()
 
 
 def writeFreezeFile(qtApi: str):

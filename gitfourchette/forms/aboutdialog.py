@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import sys
+from pathlib import Path
 from textwrap import dedent
 
 import pygit2
@@ -104,7 +105,17 @@ class AboutDialog(QDialog):
         # ---------------------------------------------------------------------
         # Acknowledgments page
 
+        try:
+            translatorCreditsIntro = _("Brought to your native language by:")
+            translatorCreditsPath = Path(QFile("assets:translators.html").fileName())
+            translatorCredits = translatorCreditsIntro + "\n" + translatorCreditsPath.read_text("utf-8")
+        except OSError:
+            # TODO: Temporary until we have actual credits
+            translatorCredits = ""
+
         ackText = [
+            translatorCredits,
+
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
 
             _("Portions of this software are based on {lib}, used under {lic}, {copyright}.",
