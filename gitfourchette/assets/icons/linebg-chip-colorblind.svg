@@ -1,4 +1,4 @@
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
-<path fill='#ffbb00' d='M 2,14 V 2 H 14 z' />
-<path fill='#39cccc' d='m 2,14 h 12 V 2 Z' />
+<rect fill='#fba253' rx='3' ry='3' x='0' y='2' width='12' height='6'/>
+<rect fill='#67d6d6' rx='3' ry='3' x='4' y='8' width='12' height='6'/>
 </svg>
