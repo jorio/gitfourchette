@@ -13,6 +13,8 @@ from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.lexercache import LexerCache
+from gitfourchette.diffview.lexjob import LexJob
+from gitfourchette.diffview.lexjobcache import LexJobCache
 from gitfourchette.diffview.specialdiff import (ShouldDisplayPatchAsImageDiff, SpecialDiffError, DiffImagePair)
 from gitfourchette.graph import GraphBuildLoop
 from gitfourchette.graphview.commitlogmodel import SpecialRow
@@ -353,23 +355,46 @@ class LoadPatch(RepoTask):
         self.header = self._makeHeader(self.result, locator)
 
         # Prime lexer
-        if type(self.result) is DiffDocument and settings.prefs.isSyntaxHighlightingEnabled():
-            oldFile = patch.delta.old_file
-            newFile = patch.delta.new_file
+        yield from self.flowEnterUiThread()
+        if type(self.result) is DiffDocument:
+            oldLexJob, newLexJob = self._primeLexJobs(patch.delta.old_file, patch.delta.new_file, locator)
+            self.result.oldLexJob = oldLexJob
+            self.result.newLexJob = newLexJob
 
-            self.result.lexer = LexerCache.getLexerFromPath(newFile.path)
+    def _primeLexJobs(self, oldFile: DiffFile, newFile: DiffFile, locator: NavLocator):
+        assert onAppThread()
 
-            if self.result.lexer:
-                # Load old data
-                yield from self.flowEnterWorkerThread()  # Allow breaking here
-                with suppress(KeyError):
-                    self.result.oldData = self.repo[oldFile.id].data
+        if not settings.prefs.isSyntaxHighlightingEnabled():
+            return None, None
 
-                # Load new data
-                yield from self.flowEnterWorkerThread()  # Allow breaking here
-                with suppress(KeyError, OSError):
-                    if locator.context.isDirty():
-                        newFilePath = Path(self.repo.in_workdir(newFile.path))
-                        self.result.newData = newFilePath.read_bytes()
-                    else:
-                        self.result.newData = self.repo[newFile.id].data
+        lexer = LexerCache.getLexerFromPath(newFile.path)
+
+        if lexer is None:
+            return None, None
+
+        def primeLexJob(file: DiffFile, isDirty: bool):
+            if file.id == NULL_OID:
+                assert not isDirty, "need valid OID if reading dirty file from disk"
+                return None
+
+            with suppress(KeyError):
+                return LexJobCache.get(file.id)
+
+            with suppress(KeyError):
+                data = self.repo[file.id].data
+                return LexJob(lexer, data, file.id)
+
+            assert isDirty, "should only read dirty files from disk"
+            logger.debug("Reading dirty file from disk for lexing...")
+            path = Path(self.repo.in_workdir(file.path))
+            data = path.read_bytes()
+            return LexJob(lexer, data, file.id)
+
+        oldLexJob = primeLexJob(oldFile, False)
+        newLexJob = primeLexJob(newFile, locator.context.isDirty())
+
+        for job in oldLexJob, newLexJob:
+            if job is not None and job.fileKey not in LexJobCache.cache:
+                LexJobCache.put(job)
+
+        return oldLexJob, newLexJob

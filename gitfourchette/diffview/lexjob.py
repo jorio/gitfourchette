@@ -4,15 +4,12 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import logging
-
 from pygments.lexer import Lexer
 from pygments.token import Token
 
+from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark
-
-logger = logging.getLogger(__name__)
 
 
 class LexJob(QObject):
@@ -25,17 +22,19 @@ class LexJob(QObject):
 
     pulse = Signal()
 
-    def __init__(self, lexer: Lexer, data: bytes):
+    def __init__(self, lexer: Lexer, data: bytes, fileKey: Oid):
         # Don't bind the QObject to a parent to allow Python's refcounting to
         # purge evicted cache entries that are not currently in use by the UI.
         super().__init__(None)
-
         self.setObjectName("LexJob")
+
+        assert fileKey != NULL_OID
 
         self.lexer = lexer
         self.lqTokenMap = {}
         self.hqTokenMap = {1: []}
-        self.fileKey = data
+        self.fileKey = fileKey
+        self.fileSize = len(data)
 
         if not data:
             # Lexing complete on empty data
@@ -128,6 +127,7 @@ class LexJob(QObject):
             self.currentLine = 0
             self.scheduler.stop()
             self.lqTokenMap = {}  # we won't need LQ tokens anymore - free some mem
+            self.lexGen = None
             assert self.lexingComplete
 
         self.pulse.emit()

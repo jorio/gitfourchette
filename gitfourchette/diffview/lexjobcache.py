@@ -5,45 +5,59 @@
 # -----------------------------------------------------------------------------
 
 import logging
-from typing import Any
+
+from pygit2 import Oid
 
 from gitfourchette.diffview.lexjob import LexJob
+from gitfourchette.toolbox import shortHash
 
 logger = logging.getLogger(__name__)
 
 
 class LexJobCache:
-    MaxCachedLines = 100_000
+    MaxBudget = 1_048_576
+    """
+    Maximum total size, in bytes, of all the files being lexed.
+    This figure sets an upper bound on the total footprint of lexed tokens
+    (in the worst case scenario, there would be 1 token per source byte).
+    """
 
-    cache: dict[Any, LexJob] = {}
-    totalLines = 0
-
-    @classmethod
-    def checkOut(cls, fileKey: Any):
-        job = cls.cache[fileKey]
-        del cls.cache[fileKey]
-        cls.totalLines -= len(job.hqTokenMap)
-        return job
+    cache: dict[Oid, LexJob] = {}
+    totalFileSize = 0
 
     @classmethod
-    def checkIn(cls, job: LexJob):
-        assert not job.scheduler.isActive()
-
+    def put(cls, job: LexJob):
         fileKey = job.fileKey
-        numLines = len(job.hqTokenMap)
+
+        assert not job.scheduler.isActive()
+        assert fileKey not in cls.cache, "LexJob already cached"
 
         # If the new file is larger than cache capacity, just bail
-        if numLines > cls.MaxCachedLines:
+        if job.fileSize > cls.MaxBudget:
             logger.debug("File too large to fit in cache")
             return
 
         # Make room in FIFO
         keys = list(cls.cache)
-        while cls.totalLines + numLines > cls.MaxCachedLines:
+        while cls.totalFileSize + job.fileSize > cls.MaxBudget:
             oldestKey = keys.pop(0)
-            cls.checkOut(oldestKey)
-            logger.debug(f"Evicting file, {cls.totalLines}")
+            cls.evict(oldestKey)
 
         cls.cache[fileKey] = job
-        cls.totalLines += numLines
-        logger.debug(f"{cls.totalLines} lines from {len(cls.cache)} files")
+        cls.totalFileSize += job.fileSize
+        logger.debug(f"Put {shortHash(fileKey)} (tot: {cls.totalFileSize>>10}K)")
+
+    @classmethod
+    def get(cls, fileKey: Oid):
+        job = cls.cache.pop(fileKey)
+        cls.cache[fileKey] = job  # Bump key
+        logger.debug(f"Get {shortHash(fileKey)}")
+        return job
+
+    @classmethod
+    def evict(cls, fileKey: Oid):
+        job = cls.cache.pop(fileKey)
+        cls.totalFileSize -= job.fileSize
+        logger.debug(f"Del {shortHash(fileKey)} (tot: {cls.totalFileSize>>10:,}K)")
+        return job
+

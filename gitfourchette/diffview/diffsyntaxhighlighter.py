@@ -9,7 +9,6 @@ import logging
 from pygments.style import StyleMeta
 from pygments.token import Token
 
-from gitfourchette.diffview.lexjobcache import LexJobCache
 from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
@@ -51,20 +50,10 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
 
         # Prime lex jobs
         self.stopLexJobs()
-        if diffDocument.lexer:
-            try:
-                self.oldLexJob = LexJobCache.checkOut(diffDocument.oldData)
-                logger.debug("Reusing cached LexJob for old document")
-            except KeyError:
-                self.oldLexJob = LexJob(diffDocument.lexer, diffDocument.oldData)
-
-            try:
-                self.newLexJob = LexJobCache.checkOut(diffDocument.newData)
-                logger.debug("Reusing cached LexJob for new document")
-            except KeyError:
-                self.newLexJob = LexJob(diffDocument.lexer, diffDocument.newData)
-
-            for job in self.oldLexJob, self.newLexJob:
+        self.oldLexJob = diffDocument.oldLexJob
+        self.newLexJob = diffDocument.newLexJob
+        for job in self.oldLexJob, self.newLexJob:
+            if job is not None:
                 job.pulse.connect(self.onLexPulse)
 
     def setSearchTerm(self, term: str):
@@ -81,7 +70,6 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 continue
             job.stop()
             job.pulse.disconnect(self.onLexPulse)
-            LexJobCache.checkIn(job)
         self.oldLexJob = None
         self.newLexJob = None
 
@@ -102,7 +90,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(index, termLength, self.occurrenceFormat)
                 index += termLength
 
-        elif self.scheme and self.oldLexJob and self.newLexJob:
+        elif self.scheme and (self.oldLexJob or self.newLexJob):
             # Pygments syntax highlighting
             blockNumber = self.currentBlock().blockNumber()
 
@@ -120,6 +108,11 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
             else:
                 lexJob = self.oldLexJob
                 lineNumber = diffLine.old_lineno
+
+            # While oldLexJob or newLexJob may be None in the case of a NULL_OID revision
+            # (e.g. the 'old' revision of an untracked file), there shouldn't be any lines
+            # from that revision in the diff.
+            assert lexJob is not None
 
             boundary = len(text) - lineData.trailerLength
 

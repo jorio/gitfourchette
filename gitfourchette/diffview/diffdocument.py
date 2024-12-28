@@ -10,8 +10,8 @@ from dataclasses import dataclass
 
 from gitfourchette import colors
 from gitfourchette import settings
+from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.diffview.specialdiff import SpecialDiffError
-from gitfourchette.diffview.lexercache import Lexer
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags
 from gitfourchette.porcelain import *
@@ -108,9 +108,8 @@ class DiffDocument:
     minuses: int
 
     # Syntax highlighting
-    lexer: Lexer | None = None
-    oldData: bytes = b''
-    newData: bytes = b''
+    oldLexJob: LexJob | None = None
+    newLexJob: LexJob | None = None
 
     @staticmethod
     def fromPatch(patch: Patch, locator: NavLocator):
