@@ -253,6 +253,56 @@ class TrTables:
         }
 
     @staticmethod
+    def _timeFormatTable():
+        from gitfourchette.qt import QLocale, QDateTime, QDate, QTime
+
+        locale = QLocale()
+        firstDay = QDateTime(QDate(2000, 1, 1), QTime(0, 0))
+        lastDay = QDateTime(QDate(2099, 12, 31), QTime(23, 59, 59))
+        monday = QDateTime(QDate(2024, 12, 23), QTime(12, 0))
+        sunday = QDateTime(QDate(2024, 12, 29), QTime(12, 0))
+
+        def row(fmt: str, caption="", date1: QDateTime | None = firstDay, date2=lastDay):
+            sample = ""
+            if date1 is not None:
+                f1 = locale.toString(date1, fmt)
+                f2 = locale.toString(date2, fmt)
+                sample = f1 + "–" + f2
+                if caption:
+                    sample = f", {sample}"
+            return f"\n<code>{fmt:>4} </code> {caption}{sample}"
+
+        return (
+            "<html style='white-space: pre'>"
+            + _p("date/time formats", "Available formats:")
+            + "<p>"
+            + row("yy", _("year"))
+            + row("yyyy", _("year") + f", {QDate.currentDate().year()}", None)
+            + "</p><p>"
+            + row("M", _("month"))
+            + row("MM", _("month"))
+            + row("MMM")
+            + row("MMMM")
+            + "</p><p>"
+            + row("d", _("day"))
+            + row("dd", _("day"))
+            + row("ddd", "", monday, sunday)
+            + row("dddd", "", monday, sunday)
+            + "</p><p>"
+            + row("h", _("hour") + ", 0–23/1–12", None)
+            + row("hh", _("hour") + ", 00–23/01–12", None)
+            + "</p><p>"
+            + row("m", _("minute"))
+            + row("mm", _("minute"))
+            + "</p><p>"
+            + row("s", _("second"))
+            + row("ss", _("second"))
+            + "</p><p>"
+            + row("a")
+            + row("A")
+            + "</p>")
+
+    @staticmethod
     def _init_prefKeys():
         from gitfourchette.toolbox.textutils import paragraphs
         return {
@@ -269,6 +319,7 @@ class TrTables:
             "qtStyle": _("Theme"),
             "shortHashChars": _("Shorten hashes to # characters"),
             "shortTimeFormat": _("Date/time format"),
+            "shortTimeFormat_help": TrTables._timeFormatTable(),
             "pathDisplayStyle": _("Path display style"),
             "authorDisplayStyle": _("Author display style"),
             "maxRecentRepos": _("Remember up to # recent repositories"),
