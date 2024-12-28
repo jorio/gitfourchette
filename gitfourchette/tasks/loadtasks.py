@@ -377,6 +377,9 @@ class LoadPatch(RepoTask):
                 assert not isDirty, "need valid OID if reading dirty file from disk"
                 return None
 
+            if file.id == EMPTYBLOB_OID:
+                return None
+
             with suppress(KeyError):
                 return LexJobCache.get(file.id)
 

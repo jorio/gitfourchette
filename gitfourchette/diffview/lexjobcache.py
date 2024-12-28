@@ -6,9 +6,8 @@
 
 import logging
 
-from pygit2 import Oid
-
 from gitfourchette.diffview.lexjob import LexJob
+from gitfourchette.porcelain import Oid
 from gitfourchette.toolbox import shortHash
 
 logger = logging.getLogger(__name__)
@@ -60,4 +59,3 @@ class LexJobCache:
         cls.totalFileSize -= job.fileSize
         logger.debug(f"Del {shortHash(fileKey)} (tot: {cls.totalFileSize>>10:,}K)")
         return job
-

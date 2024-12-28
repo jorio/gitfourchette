@@ -29,6 +29,7 @@ class LexJob(QObject):
         self.setObjectName("LexJob")
 
         assert fileKey != NULL_OID
+        assert data, "don't create a LexJob without some data"
 
         self.lexer = lexer
         self.lqTokenMap = {}
@@ -36,20 +37,15 @@ class LexJob(QObject):
         self.fileKey = fileKey
         self.fileSize = len(data)
 
-        if not data:
-            # Lexing complete on empty data
-            self.currentLine = 0
-            self.lexGen = None
-        else:
-            self.currentLine = 1
-            self.lexGen = lexer.get_tokens(data)
-        assert self.lexingComplete == (not data)
+        self.currentLine = 1
+        self.lexGen = lexer.get_tokens(data)
 
         self.scheduler = QTimer(self)
         self.scheduler.setSingleShot(True)
         self.scheduler.timeout.connect(self.lexChunk)
 
         self.requestedLine = 0
+        assert not self.lexingComplete
 
     @property
     def lexingComplete(self):
