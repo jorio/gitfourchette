@@ -188,10 +188,12 @@ class GFApplication(QApplication):
     def endSession(self, clearTempDir=True):
         from gitfourchette import settings
         from gitfourchette.toolbox.iconbank import clearStockIconCache
+        from gitfourchette.diffview.lexjobcache import LexJobCache
         if settings.prefs.isDirty():
             settings.prefs.write()
         if settings.history.isDirty():
             settings.history.write()
+        LexJobCache.clear()  # don't cache lexed files across sessions (for unit testing)
         clearStockIconCache()  # release icon temp files
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
         if clearTempDir:

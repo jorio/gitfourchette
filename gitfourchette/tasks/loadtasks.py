@@ -373,8 +373,10 @@ class LoadPatch(RepoTask):
             return None, None
 
         def primeLexJob(file: DiffFile, isDirty: bool):
+            assert file.flags & DiffFlag.VALID_ID, "need valid blob id for lexing"
+
             if file.id == NULL_OID:
-                assert not isDirty, "need valid OID if reading dirty file from disk"
+                assert not file.flags & DiffFlag.EXISTS, "need valid blob id if reading dirty file from disk"
                 return None
 
             if file.id == EMPTYBLOB_OID:

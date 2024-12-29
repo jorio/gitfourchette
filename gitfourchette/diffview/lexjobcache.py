@@ -59,3 +59,8 @@ class LexJobCache:
         cls.totalFileSize -= job.fileSize
         logger.debug(f"Del {shortHash(fileKey)} (tot: {cls.totalFileSize>>10:,}K)")
         return job
+
+    @classmethod
+    def clear(cls):
+        cls.cache.clear()
+        cls.totalFileSize = 0
