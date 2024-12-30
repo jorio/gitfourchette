@@ -228,10 +228,10 @@ def testMergeTool(tempDir, mainWindow):
     conflictUI.mergeButton.click()
 
     scratchLines = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8").strip().splitlines()
-    QTest.qWait(100)
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
+    QTest.qWait(1000)
     assert conflictUI.mergeToolStatus.isVisible()
     assert re.search("didn.t complete", conflictUI.mergeToolStatus.text(), re.I)
 
@@ -336,7 +336,7 @@ def testFake3WayMerge(tempDir, mainWindow):
 
     scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
     scratchLines = scratchText.strip().splitlines()
-    QTest.qWait(100)
+    QTest.qWait(1000)
 
     mergedPath = scratchLines[0]
     oursPath = scratchLines[1]
@@ -385,7 +385,7 @@ def testMergeToolInBackground(tempDir, mainWindow):
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
     assert "merge complete!" == readFile(scratchLines[0]).decode("utf-8").strip()
-    QTest.qWait(100)
+    QTest.qWait(1000)
 
     # Switch back to the merge conflict
     rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
