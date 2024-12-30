@@ -107,8 +107,10 @@ class ExportStashAsPatch(ExportCommitAsPatch):
         patches = itertools.chain.from_iterable((p for p in d) for d in diffs)
 
         commit = self.repo.peel_commit(oid)
+        message = _p("patch file name, please keep it short",
+                     "stashed on {commit}", commit=shortHash(commit.parent_ids[0]))
         coreMessage = strip_stash_message(commit.message)
-        initialName = f"{self.repo.repo_name()} - stashed on {shortHash(commit.parent_ids[0])} - {coreMessage}.patch"
+        initialName = f"{self.repo.repo_name()} - {message} - {coreMessage}.patch"
 
         yield from self.composePatch(patches, initialName)
 
@@ -120,8 +122,9 @@ class ExportWorkdirAsPatch(ComposePatch):
         diff = self.repo.get_uncommitted_changes(show_binary=True, context_lines=contextLines())
         patches = (p for p in diff)
 
-        headId = self.repo.head_commit_id
-        initialName = f"{self.repo.repo_name()} - uncommitted changes on {shortHash(headId)}.patch"
+        message = _p("patch file name, please keep it short",
+                     "uncommitted changes on {commit}", commit=shortHash(self.repo.head_commit_id))
+        initialName = f"{self.repo.repo_name()} - {message}.patch"
 
         yield from self.composePatch(patches, initialName)
 
