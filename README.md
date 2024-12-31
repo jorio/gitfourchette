@@ -12,9 +12,10 @@ Learn more on GitFourchette’s homepage at [gitfourchette.org](https://gitfourc
 
 ## Documentation
 
-- [GitFourchette User’s Guide](https://gitfourchette.org/guide)
-- [How to install or run from source](https://gitfourchette.org/install.html)
-- [Limitations](https://gitfourchette.org/limitations.html)
+- [GitFourchette's website](https://gitfourchette.org) ([source code](https://github.com/jorio/gitfourchette.org))
+  - [How to install or run from source](https://gitfourchette.org/install.html)
+  - [User’s Guide](https://gitfourchette.org/guide)
+  - [Limitations](https://gitfourchette.org/limitations.html)
 - [Changelog](CHANGELOG.md)
 - [Localization guide](gitfourchette/assets/lang/README.md)
 
