@@ -51,31 +51,31 @@ SHORT_DATE_PRESETS = {
 
 
 class GraphRowHeight(enum.IntEnum):
-    CRAMPED = 80
-    TIGHT = 100
-    RELAXED = 130
-    ROOMY = 150
-    SPACIOUS = 175
+    Cramped = 80
+    Tight = 100
+    Relaxed = 130
+    Roomy = 150
+    Spacious = 175
 
 
 class GraphRefBoxWidth(enum.IntEnum):
-    ICONS_ONLY = 0
-    STANDARD = 120
-    WIDE = 1000
+    IconsOnly = 0
+    Standard = 120
+    Wide = 1000
 
 
 class QtApiNames(enum.StrEnum):
-    QTAPI_AUTOMATIC = ""
-    QTAPI_PYQT6 = "pyqt6"
-    QTAPI_PYSIDE6 = "pyside6"
-    QTAPI_PYQT5 = "pyqt5"
+    Automatic = ""
+    PyQt6 = "pyqt6"
+    PySide6 = "pyside6"
+    PyQt5 = "pyqt5"
 
 
 class LoggingLevel(enum.IntEnum):
-    BENCHMARK = BENCHMARK_LOGGING_LEVEL
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
+    Benchmark = BENCHMARK_LOGGING_LEVEL
+    Debug = logging.DEBUG
+    Info = logging.INFO
+    Warning = logging.WARNING
 
 
 class PygmentsPresets:
@@ -92,7 +92,7 @@ class Prefs(PrefsFile):
     _category_general           : int                   = 0
     language                    : str                   = ""
     qtStyle                     : str                   = ""
-    pathDisplayStyle            : PathDisplayStyle      = PathDisplayStyle.FULL_PATHS
+    pathDisplayStyle            : PathDisplayStyle      = PathDisplayStyle.FullPaths
     showToolBar                 : bool                  = True
     showStatusBar               : bool                  = True
     showMenuBar                 : bool                  = True
@@ -114,9 +114,9 @@ class Prefs(PrefsFile):
 
     _category_graph             : int                   = 0
     chronologicalOrder          : bool                  = True
-    graphRowHeight              : GraphRowHeight        = GraphRowHeight.RELAXED
-    refBoxMaxWidth              : GraphRefBoxWidth      = GraphRefBoxWidth.STANDARD
-    authorDisplayStyle          : AuthorDisplayStyle    = AuthorDisplayStyle.FULL_NAME
+    graphRowHeight              : GraphRowHeight        = GraphRowHeight.Relaxed
+    refBoxMaxWidth              : GraphRefBoxWidth      = GraphRefBoxWidth.Standard
+    authorDisplayStyle          : AuthorDisplayStyle    = AuthorDisplayStyle.FullName
     shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
@@ -146,8 +146,8 @@ class Prefs(PrefsFile):
     animations                  : bool                  = True
     condensedFonts              : bool                  = True
     pygmentsPlugins             : bool                  = False
-    verbosity                   : LoggingLevel          = LoggingLevel.WARNING
-    forceQtApi                  : QtApiNames            = QtApiNames.QTAPI_AUTOMATIC
+    verbosity                   : LoggingLevel          = LoggingLevel.Warning
+    forceQtApi                  : QtApiNames            = QtApiNames.Automatic
 
     _category_hidden            : int                   = 0
     smoothScroll                : bool                  = True

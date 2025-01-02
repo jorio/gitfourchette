@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -79,8 +79,8 @@ class DiffView(QPlainTextEdit):
         self.selectionChanged.connect(self.updateRubberBand)
 
         self.searchBar = SearchBar(self, toLengthVariants(_("Find text in diff|Find in diff")))
-        self.searchBar.searchNext.connect(lambda: self.search(SearchBar.Op.NEXT))
-        self.searchBar.searchPrevious.connect(lambda: self.search(SearchBar.Op.PREVIOUS))
+        self.searchBar.searchNext.connect(lambda: self.search(SearchBar.Op.Next))
+        self.searchBar.searchPrevious.connect(lambda: self.search(SearchBar.Op.Previous))
         self.searchBar.searchTermChanged.connect(self.highlighter.setSearchTerm)
         self.searchBar.visibilityChanged.connect(self.highlighter.setSearching)
         self.searchBar.hide()
@@ -169,11 +169,11 @@ class DiffView(QPlainTextEdit):
 
     def processSearchKeys(self, event: QKeyEvent):
         if keyEventMatchesMultiShortcut(event, GlobalShortcuts.find):
-            self.search(SearchBar.Op.START)
+            self.search(SearchBar.Op.Start)
         elif event.matches(QKeySequence.StandardKey.FindPrevious):
-            self.search(SearchBar.Op.PREVIOUS)
+            self.search(SearchBar.Op.Previous)
         elif event.matches(QKeySequence.StandardKey.FindNext):
-            self.search(SearchBar.Op.NEXT)
+            self.search(SearchBar.Op.Next)
         else:
             return False
         return True
@@ -284,12 +284,12 @@ class DiffView(QPlainTextEdit):
 
         buttonMask = 0
         if locator.context == NavContext.UNSTAGED:
-            buttonMask = PatchPurpose.STAGE | PatchPurpose.DISCARD
+            buttonMask = PatchPurpose.Stage | PatchPurpose.Discard
         elif locator.context == NavContext.STAGED:
-            buttonMask = PatchPurpose.UNSTAGE
-        self.stageButton.setVisible(bool(buttonMask & PatchPurpose.STAGE))
-        self.discardButton.setVisible(bool(buttonMask & PatchPurpose.DISCARD))
-        self.unstageButton.setVisible(bool(buttonMask & PatchPurpose.UNSTAGE))
+            buttonMask = PatchPurpose.Unstage
+        self.stageButton.setVisible(bool(buttonMask & PatchPurpose.Stage))
+        self.discardButton.setVisible(bool(buttonMask & PatchPurpose.Discard))
+        self.unstageButton.setVisible(bool(buttonMask & PatchPurpose.Unstage))
 
         # Now restore cursor/scrollbar positions
         self.restorePosition(locator)
@@ -665,25 +665,25 @@ class DiffView(QPlainTextEdit):
         RevertPatch.invoke(self, self.currentPatch, patchData)
 
     def fireApplyLines(self, purpose: PatchPurpose):
-        purpose |= PatchPurpose.LINES
-        reverse = not (purpose & PatchPurpose.STAGE)
+        purpose |= PatchPurpose.Lines
+        reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractSelection(reverse)
         ApplyPatch.invoke(self, self.currentPatch, patchData, purpose)
 
     def fireApplyHunk(self, hunkID: int, purpose: PatchPurpose):
-        purpose |= PatchPurpose.HUNK
-        reverse = not (purpose & PatchPurpose.STAGE)
+        purpose |= PatchPurpose.Hunk
+        reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractHunk(hunkID, reverse)
         ApplyPatch.invoke(self, self.currentPatch, patchData, purpose)
 
     def stageSelection(self):
-        self.fireApplyLines(PatchPurpose.STAGE)
+        self.fireApplyLines(PatchPurpose.Stage)
 
     def unstageSelection(self):
-        self.fireApplyLines(PatchPurpose.UNSTAGE)
+        self.fireApplyLines(PatchPurpose.Unstage)
 
     def discardSelection(self):
-        self.fireApplyLines(PatchPurpose.DISCARD)
+        self.fireApplyLines(PatchPurpose.Discard)
 
     def exportSelection(self):
         patchData = self.extractSelection()
@@ -694,13 +694,13 @@ class DiffView(QPlainTextEdit):
         self.fireRevert(patchData)
 
     def stageHunk(self, hunkID: int):
-        self.fireApplyHunk(hunkID, PatchPurpose.STAGE)
+        self.fireApplyHunk(hunkID, PatchPurpose.Stage)
 
     def unstageHunk(self, hunkID: int):
-        self.fireApplyHunk(hunkID, PatchPurpose.UNSTAGE)
+        self.fireApplyHunk(hunkID, PatchPurpose.Unstage)
 
     def discardHunk(self, hunkID: int):
-        self.fireApplyHunk(hunkID, PatchPurpose.DISCARD)
+        self.fireApplyHunk(hunkID, PatchPurpose.Discard)
 
     def exportHunk(self, hunkID: int):
         patchData = self.extractHunk(hunkID)
@@ -932,9 +932,9 @@ class DiffView(QPlainTextEdit):
 
     def search(self, op: SearchBar.Op):
         assert isinstance(op, SearchBar.Op)
-        self.searchBar.popUp(forceSelectAll=op == SearchBar.Op.START)
+        self.searchBar.popUp(forceSelectAll=op == SearchBar.Op.Start)
 
-        if op == SearchBar.Op.START:
+        if op == SearchBar.Op.Start:
             return
 
         message = self.searchBar.searchTerm
@@ -944,7 +944,7 @@ class DiffView(QPlainTextEdit):
 
         doc: QTextDocument = self.document()
 
-        if op == SearchBar.Op.NEXT:
+        if op == SearchBar.Op.Next:
             newCursor = doc.find(message, self.textCursor())
         else:
             newCursor = doc.find(message, self.textCursor(), QTextDocument.FindFlag.FindBackward)
@@ -955,7 +955,7 @@ class DiffView(QPlainTextEdit):
 
         def wrapAround():
             tc = self.textCursor()
-            if op == SearchBar.Op.NEXT:
+            if op == SearchBar.Op.Next:
                 tc.movePosition(QTextCursor.MoveOperation.Start)
             else:
                 tc.movePosition(QTextCursor.MoveOperation.End)
@@ -963,7 +963,7 @@ class DiffView(QPlainTextEdit):
             self.search(op)
 
         prompt = [
-            _("End of diff reached.") if op == SearchBar.Op.NEXT
+            _("End of diff reached.") if op == SearchBar.Op.Next
             else _("Top of diff reached."),
             _("No more occurrences of {0} found.", bquo(message))
         ]

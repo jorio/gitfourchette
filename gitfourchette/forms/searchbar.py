@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -21,9 +21,9 @@ LIKELY_HASH_PATTERN = re.compile(r"[0-9A-Fa-f]{1,40}")
 
 class SearchBar(QWidget):
     class Op(enum.IntEnum):
-        START = enum.auto()
-        NEXT = enum.auto()
-        PREVIOUS = enum.auto()
+        Start = enum.auto()
+        Next = enum.auto()
+        Previous = enum.auto()
 
     searchNext = Signal()
     searchPrevious = Signal()
@@ -196,8 +196,8 @@ class SearchBar(QWidget):
         assert hasattr(view, "searchRange"), "missing searchRange callback"
 
         self.textChanged.connect(lambda: view.model().layoutChanged.emit())  # Redraw graph view (is this efficient?)
-        self.searchNext.connect(lambda: self.searchItemView(SearchBar.Op.NEXT))
-        self.searchPrevious.connect(lambda: self.searchItemView(SearchBar.Op.PREVIOUS))
+        self.searchNext.connect(lambda: self.searchItemView(SearchBar.Op.Next))
+        self.searchPrevious.connect(lambda: self.searchItemView(SearchBar.Op.Previous))
         self.searchPulse.connect(self.pulseItemView)
 
     def searchItemView(self, op: Op, wrappedFrom=-1, wrapCount=0) -> QModelIndex:
@@ -208,9 +208,9 @@ class SearchBar(QWidget):
 
         model = view.model()  # use the view's top-level model to only search filtered rows
 
-        self.popUp(forceSelectAll=op == SearchBar.Op.START)
+        self.popUp(forceSelectAll=op == SearchBar.Op.Start)
 
-        if op == SearchBar.Op.START:
+        if op == SearchBar.Op.Start:
             return NOT_FOUND
 
         if not self.searchTerm:  # user probably hit F3 without having searched before
@@ -221,7 +221,7 @@ class SearchBar(QWidget):
         # Find start bound of search range
         if not didWrap and len(view.selectedIndexes()) != 0:
             start = view.currentIndex().row()
-        elif op == SearchBar.Op.NEXT:
+        elif op == SearchBar.Op.Next:
             start = -1  # offset +1 to get 0 in searchRange initialization
         else:
             start = model.rowCount()
@@ -229,13 +229,13 @@ class SearchBar(QWidget):
         # Find stop bound of search range
         if didWrap:
             last = wrappedFrom
-        elif op == SearchBar.Op.NEXT:
+        elif op == SearchBar.Op.Next:
             last = model.rowCount() - 1
         else:
             last = 0
 
         # Set up range
-        if op == SearchBar.Op.NEXT:
+        if op == SearchBar.Op.Next:
             searchRange = range(start + 1, last + 1)
         else:
             searchRange = range(start - 1, last - 1, -1)

@@ -261,11 +261,11 @@ class MainWindow(QMainWindow):
                       shortcuts=GlobalShortcuts.find, icon="edit-find",
                       tip=_("Search for a piece of text in commit messages, the current diff, or the name of a file")),
 
-            ActionDef(_("Find Next"), lambda: self.dispatchSearchCommand(SearchBar.Op.NEXT),
+            ActionDef(_("Find Next"), lambda: self.dispatchSearchCommand(SearchBar.Op.Next),
                       shortcuts=QKeySequence.StandardKey.FindNext,
                       tip=_("Find next occurrence")),
 
-            ActionDef(_("Find Previous"), lambda: self.dispatchSearchCommand(SearchBar.Op.PREVIOUS),
+            ActionDef(_("Find Previous"), lambda: self.dispatchSearchCommand(SearchBar.Op.Previous),
                       shortcuts=QKeySequence.StandardKey.FindPrevious,
                       tip=_("Find previous occurrence"))
         )
@@ -1135,7 +1135,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Find
 
-    def dispatchSearchCommand(self, op: SearchBar.Op = SearchBar.Op.START):
+    def dispatchSearchCommand(self, op: SearchBar.Op = SearchBar.Op.Start):
         activeWindow = QApplication.activeWindow()
         if activeWindow is self and self.currentRepoWidget():
             self.currentRepoWidget().dispatchSearchCommand(op)

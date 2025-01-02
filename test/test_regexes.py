@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -86,9 +86,9 @@ def testAuthorNameAbbreviation(fullName):
     initials, firstName, lastName = AUTHOR_ABBREVIATIONS[fullName]
     sig = Signature(fullName, "hello@example.com", 0, 0)
 
-    assert abbreviatePerson(sig, AuthorDisplayStyle.FULL_NAME) == fullName
-    assert abbreviatePerson(sig, AuthorDisplayStyle.FIRST_NAME) == firstName
-    assert abbreviatePerson(sig, AuthorDisplayStyle.LAST_NAME) == lastName
-    assert abbreviatePerson(sig, AuthorDisplayStyle.INITIALS) == initials
-    assert abbreviatePerson(sig, AuthorDisplayStyle.FULL_EMAIL) == "hello@example.com"
-    assert abbreviatePerson(sig, AuthorDisplayStyle.ABBREVIATED_EMAIL) == "hello"
+    assert abbreviatePerson(sig, AuthorDisplayStyle.FullName) == fullName
+    assert abbreviatePerson(sig, AuthorDisplayStyle.FirstName) == firstName
+    assert abbreviatePerson(sig, AuthorDisplayStyle.LastName) == lastName
+    assert abbreviatePerson(sig, AuthorDisplayStyle.Initials) == initials
+    assert abbreviatePerson(sig, AuthorDisplayStyle.FullEmail) == "hello@example.com"
+    assert abbreviatePerson(sig, AuthorDisplayStyle.EmailUserName) == "hello"

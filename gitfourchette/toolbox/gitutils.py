@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -41,46 +41,46 @@ REMOTE_URL_PATTERNS = [
 
 
 class AuthorDisplayStyle(enum.IntEnum):
-    FULL_NAME = 1
-    FIRST_NAME = 2
-    LAST_NAME = 3
-    INITIALS = 4
-    FULL_EMAIL = 5
-    ABBREVIATED_EMAIL = 6
+    FullName = 1
+    FirstName = 2
+    LastName = 3
+    Initials = 4
+    FullEmail = 5
+    EmailUserName = 6
 
 
 @enum.unique
 class PatchPurpose(enum.IntFlag):
-    STAGE = enum.auto()
-    UNSTAGE = enum.auto()
-    DISCARD = enum.auto()
+    Stage = enum.auto()
+    Unstage = enum.auto()
+    Discard = enum.auto()
 
-    LINES = enum.auto()
-    HUNK = enum.auto()
-    FILE = enum.auto()
+    Lines = enum.auto()
+    Hunk = enum.auto()
+    File = enum.auto()
 
-    VERB_MASK = STAGE | UNSTAGE | DISCARD
+    VerbMask = Stage | Unstage | Discard
 
 
-def abbreviatePerson(sig: Signature, style: AuthorDisplayStyle = AuthorDisplayStyle.FULL_NAME):
+def abbreviatePerson(sig: Signature, style: AuthorDisplayStyle = AuthorDisplayStyle.FullName):
     with suppress(IndexError):
-        if style == AuthorDisplayStyle.FULL_NAME:
+        if style == AuthorDisplayStyle.FullName:
             return sig.name
 
-        elif style == AuthorDisplayStyle.FIRST_NAME:
+        elif style == AuthorDisplayStyle.FirstName:
             match = FIRST_NAME_PATTERN.match(sig.name)
             return match[0] if match is not None else sig.name
 
-        elif style == AuthorDisplayStyle.LAST_NAME:
+        elif style == AuthorDisplayStyle.LastName:
             return sig.name.rsplit(' ', maxsplit=1)[-1]
 
-        elif style == AuthorDisplayStyle.INITIALS:
+        elif style == AuthorDisplayStyle.Initials:
             return re.sub(INITIALS_PATTERN, r"\1", sig.name)
 
-        elif style == AuthorDisplayStyle.FULL_EMAIL:
+        elif style == AuthorDisplayStyle.FullEmail:
             return sig.email
 
-        elif style == AuthorDisplayStyle.ABBREVIATED_EMAIL:
+        elif style == AuthorDisplayStyle.EmailUserName:
             emailParts = sig.email.split('@', 1)
             if len(emailParts) == 2 and emailParts[1] == "users.noreply.github.com":
                 # Strip ID from GitHub noreply addresses (1234567+username@users.noreply.github.com)

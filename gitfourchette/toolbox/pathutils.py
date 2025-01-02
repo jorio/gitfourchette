@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -11,9 +11,9 @@ HOME = os.path.abspath(os.path.expanduser('~'))
 
 
 class PathDisplayStyle(enum.IntEnum):
-    FULL_PATHS = 1
-    ABBREVIATE_DIRECTORIES = 2
-    SHOW_FILENAME_ONLY = 3
+    FullPaths = 1
+    AbbreviateDirs = 2
+    FileNameOnly = 3
 
 
 def compactPath(path: str) -> str:
@@ -24,8 +24,8 @@ def compactPath(path: str) -> str:
     return path
 
 
-def abbreviatePath(path: str, style: PathDisplayStyle = PathDisplayStyle.FULL_PATHS) -> str:
-    if style == PathDisplayStyle.ABBREVIATE_DIRECTORIES:
+def abbreviatePath(path: str, style: PathDisplayStyle = PathDisplayStyle.FullPaths) -> str:
+    if style == PathDisplayStyle.AbbreviateDirs:
         splitLong = path.split('/')
         for i in range(len(splitLong) - 1):
             if splitLong[i][0] == '.':
@@ -33,7 +33,7 @@ def abbreviatePath(path: str, style: PathDisplayStyle = PathDisplayStyle.FULL_PA
             else:
                 splitLong[i] = splitLong[i][0]
         return '/'.join(splitLong)
-    elif style == PathDisplayStyle.SHOW_FILENAME_ONLY:
+    elif style == PathDisplayStyle.FileNameOnly:
         return path.rsplit('/', 1)[-1]
     else:
         return path

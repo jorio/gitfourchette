@@ -46,9 +46,9 @@ ELISION_LENGTH = len(ELISION)
 
 
 MAX_AUTHOR_CHARS = {
-    AuthorDisplayStyle.INITIALS: 7,
-    AuthorDisplayStyle.FULL_NAME: 20,
-    AuthorDisplayStyle.FULL_EMAIL: 24,
+    AuthorDisplayStyle.Initials: 7,
+    AuthorDisplayStyle.FullName: 20,
+    AuthorDisplayStyle.FullEmail: 24,
 }
 
 

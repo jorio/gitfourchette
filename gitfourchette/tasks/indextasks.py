@@ -47,7 +47,7 @@ class _BaseStagingTask(RepoTask):
             intro = _n("There is an unresolved merge conflict among your selection.",
                        "There are {n} unresolved merge conflicts among your selection.", numConflicts)
 
-        if purpose == PatchPurpose.STAGE:
+        if purpose == PatchPurpose.Stage:
             please = _np("please fix (the merge conflicts)", "Please fix it before staging:", "Please fix them before staging:", numConflicts)
         else:
             please = _np("please fix (the merge conflicts)", "Please fix it before discarding:", "Please fix them before discarding:", numConflicts)
@@ -68,7 +68,7 @@ class StageFiles(_BaseStagingTask):
             QApplication.beep()
             raise AbortTask()
 
-        self.denyConflicts(patches, PatchPurpose.STAGE)
+        self.denyConflicts(patches, PatchPurpose.Stage)
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
@@ -125,7 +125,7 @@ class DiscardFiles(_BaseStagingTask):
             QApplication.beep()
             raise AbortTask()
 
-        self.denyConflicts(patches, PatchPurpose.DISCARD)
+        self.denyConflicts(patches, PatchPurpose.Discard)
 
         submos = self.filterSubmodules(patches)
         anySubmos = bool(submos)
@@ -264,14 +264,14 @@ class ApplyPatch(RepoTask):
     def flow(self, fullPatch: Patch, subPatch: bytes, purpose: PatchPurpose):
         if not subPatch:
             QApplication.beep()
-            verb = TrTables.patchPurpose(purpose & PatchPurpose.VERB_MASK).lower()
+            verb = TrTables.patchPurpose(purpose & PatchPurpose.VerbMask).lower()
             message = _("Can’t {verb} the selection because no red/green lines are selected.", verb=verb)
             raise AbortTask(message, asStatusMessage=True)
 
-        if purpose & PatchPurpose.DISCARD:
+        if purpose & PatchPurpose.Discard:
             title = TrTables.patchPurpose(purpose)
             textPara = []
-            if purpose & PatchPurpose.HUNK:
+            if purpose & PatchPurpose.Hunk:
                 textPara.append(_("Really discard this hunk?"))
             else:
                 textPara.append(_("Really discard the selected lines?"))

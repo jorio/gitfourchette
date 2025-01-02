@@ -69,7 +69,7 @@ class TrTables:
 
     @classmethod
     def prefKey(cls, key: str):
-        return cls._prefKeys.get(key, key)
+        return cls._prefKeys.get(key, str(key))
 
     @classmethod
     def prefKeyNoDefault(cls, key: str):
@@ -220,36 +220,36 @@ class TrTables:
     def _init_patchPurposes():
         from gitfourchette.toolbox.gitutils import PatchPurpose as pp
         return {
-            pp.STAGE                : _p("PatchPurpose", "Stage"),
-            pp.UNSTAGE              : _p("PatchPurpose", "Unstage"),
-            pp.DISCARD              : _p("PatchPurpose", "Discard"),
-            pp.LINES | pp.STAGE     : _p("PatchPurpose", "Stage lines"),
-            pp.LINES | pp.UNSTAGE   : _p("PatchPurpose", "Unstage lines"),
-            pp.LINES | pp.DISCARD   : _p("PatchPurpose", "Discard lines"),
-            pp.HUNK | pp.STAGE      : _p("PatchPurpose", "Stage hunk"),
-            pp.HUNK | pp.UNSTAGE    : _p("PatchPurpose", "Unstage hunk"),
-            pp.HUNK | pp.DISCARD    : _p("PatchPurpose", "Discard hunk"),
-            pp.FILE | pp.STAGE      : _p("PatchPurpose", "Stage file"),
-            pp.FILE | pp.UNSTAGE    : _p("PatchPurpose", "Unstage file"),
-            pp.FILE | pp.DISCARD    : _p("PatchPurpose", "Discard file"),
+            pp.Stage                : _p("PatchPurpose", "Stage"),
+            pp.Unstage              : _p("PatchPurpose", "Unstage"),
+            pp.Discard              : _p("PatchPurpose", "Discard"),
+            pp.Lines | pp.Stage     : _p("PatchPurpose", "Stage lines"),
+            pp.Lines | pp.Unstage   : _p("PatchPurpose", "Unstage lines"),
+            pp.Lines | pp.Discard   : _p("PatchPurpose", "Discard lines"),
+            pp.Hunk | pp.Stage      : _p("PatchPurpose", "Stage hunk"),
+            pp.Hunk | pp.Unstage    : _p("PatchPurpose", "Unstage hunk"),
+            pp.Hunk | pp.Discard    : _p("PatchPurpose", "Discard hunk"),
+            pp.File | pp.Stage      : _p("PatchPurpose", "Stage file"),
+            pp.File | pp.Unstage    : _p("PatchPurpose", "Unstage file"),
+            pp.File | pp.Discard    : _p("PatchPurpose", "Discard file"),
         }
 
     @staticmethod
     def _init_patchPurposesPastTense():
         from gitfourchette.toolbox.gitutils import PatchPurpose as pp
         return {
-            pp.STAGE                : _p("PatchPurpose", "Staged."),
-            pp.UNSTAGE              : _p("PatchPurpose", "Unstaged."),
-            pp.DISCARD              : _p("PatchPurpose", "Discarded."),
-            pp.LINES | pp.STAGE     : _p("PatchPurpose", "Lines staged."),
-            pp.LINES | pp.UNSTAGE   : _p("PatchPurpose", "Lines unstaged."),
-            pp.LINES | pp.DISCARD   : _p("PatchPurpose", "Lines discarded."),
-            pp.HUNK | pp.STAGE      : _p("PatchPurpose", "Hunk staged."),
-            pp.HUNK | pp.UNSTAGE    : _p("PatchPurpose", "Hunk unstaged."),
-            pp.HUNK | pp.DISCARD    : _p("PatchPurpose", "Hunk discarded."),
-            pp.FILE | pp.STAGE      : _p("PatchPurpose", "File staged."),
-            pp.FILE | pp.UNSTAGE    : _p("PatchPurpose", "File unstaged."),
-            pp.FILE | pp.DISCARD    : _p("PatchPurpose", "File discarded."),
+            pp.Stage                : _p("PatchPurpose", "Staged."),
+            pp.Unstage              : _p("PatchPurpose", "Unstaged."),
+            pp.Discard              : _p("PatchPurpose", "Discarded."),
+            pp.Lines | pp.Stage     : _p("PatchPurpose", "Lines staged."),
+            pp.Lines | pp.Unstage   : _p("PatchPurpose", "Lines unstaged."),
+            pp.Lines | pp.Discard   : _p("PatchPurpose", "Lines discarded."),
+            pp.Hunk | pp.Stage      : _p("PatchPurpose", "Hunk staged."),
+            pp.Hunk | pp.Unstage    : _p("PatchPurpose", "Hunk unstaged."),
+            pp.Hunk | pp.Discard    : _p("PatchPurpose", "Hunk discarded."),
+            pp.File | pp.Stage      : _p("PatchPurpose", "File staged."),
+            pp.File | pp.Unstage    : _p("PatchPurpose", "File unstaged."),
+            pp.File | pp.Discard    : _p("PatchPurpose", "File discarded."),
         }
 
     @staticmethod
@@ -382,9 +382,9 @@ class TrTables:
             "refBoxMaxWidth": _("Ref indicators"),
             "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
 
-            "ICONS_ONLY": _("Icons only"),
-            "STANDARD": _("Truncate long ref names"),
-            "WIDE": _("Show full ref names"),
+            "IconsOnly": _("Icons only"),
+            "Standard": _("Truncate long ref names"),
+            "Wide": _("Show full ref names"),
 
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),
             "maxTrashFileKB": _("Patches bigger than # KB won’t be salvaged"),
@@ -423,27 +423,27 @@ class TrTables:
                 "\n<code>$M</code> - Merged / Output / Result"
             ),
 
-            "FULL_PATHS": _("Full paths"),
-            "ABBREVIATE_DIRECTORIES": _("Abbreviate directories"),
-            "SHOW_FILENAME_ONLY": _("Show filename only"),
+            "FullPaths": _("Full paths"),
+            "AbbreviateDirs": _("Abbreviate directories"),
+            "FileNameOnly": _("Show filename only"),
 
-            "FULL_NAME": _("Full name"),
-            "FIRST_NAME": _("First name"),
-            "LAST_NAME": _("Last name"),
-            "INITIALS": _("Initials"),
-            "FULL_EMAIL": _("Full email"),
-            "ABBREVIATED_EMAIL": _("Abbreviated email"),
+            "FullName": _("Full name"),
+            "FirstName": _("First name"),
+            "LastName": _("Last name"),
+            "Initials": _("Initials"),
+            "FullEmail": _("Full email"),
+            "EmailUserName": _("Abbreviated email"),
 
-            "CRAMPED": _p("row spacing", "Cramped"),
-            "TIGHT": _p("row spacing", "Tight"),
-            "RELAXED": _p("row spacing", "Relaxed"),
-            "ROOMY": _p("row spacing", "Roomy"),
-            "SPACIOUS": _p("row spacing", "Spacious"),
+            "Cramped": _p("row spacing", "Cramped"),
+            "Tight": _p("row spacing", "Tight"),
+            "Relaxed": _p("row spacing", "Relaxed"),
+            "Roomy": _p("row spacing", "Roomy"),
+            "Spacious": _p("row spacing", "Spacious"),
 
-            "QTAPI_AUTOMATIC": _p("Qt binding", "Automatic (recommended)"),
-            "QTAPI_PYSIDE6": "PySide6",
-            "QTAPI_PYQT6": "PyQt6",
-            "QTAPI_PYQT5": "PyQt5",
+            "Automatic": _p("Qt binding", "Automatic (recommended)"),
+            "PySide6": "PySide6",
+            "PyQt6": "PyQt6",
+            "PyQt5": "PyQt5",
         }
 
     @staticmethod
