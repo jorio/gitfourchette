@@ -379,6 +379,12 @@ class TrTables:
             "maxCommits": _("Load up to # commits in the history"),
             "maxCommits_help": _("Set to 0 to always load the full commit history."),
             "alternatingRowColors": _("Draw rows using alternating background colors"),
+            "refBoxMaxWidth": _("Ref indicators"),
+            "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
+
+            "ICONS_ONLY": _("Icons only"),
+            "STANDARD": _("Truncate long ref names"),
+            "WIDE": _("Show full ref names"),
 
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),
             "maxTrashFileKB": _("Patches bigger than # KB won’t be salvaged"),

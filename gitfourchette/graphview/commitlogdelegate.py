@@ -382,8 +382,12 @@ class CommitLogDelegate(QStyledItemDelegate):
         else:
             iconSize = 0
 
-        text, fittedFont, textWidth = FittedText.fit(
-            font, 111, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.ExtraCondensed)
+        maxWidth = settings.prefs.refBoxMaxWidth
+        if maxWidth != 0:
+            text, fittedFont, textWidth = FittedText.fit(
+                font, maxWidth, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.Condensed)
+        else:
+            textWidth = -hPadding
 
         boxRect = QRect(rect)
         boxRect.setWidth(hPadding + iconSize + 2 + textWidth + hPadding)
@@ -400,11 +404,12 @@ class CommitLogDelegate(QStyledItemDelegate):
             icon = stockIcon(iconName, f"gray={color.name()}")
             icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        textRect = QRect(boxRect)
-        textRect.adjust(0, 0, -hPadding, 0)
-        painter.setFont(fittedFont)
-        painter.drawText(textRect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, text)
-        painter.setFont(font)
+        if textWidth > 0:
+            textRect = QRect(boxRect)
+            textRect.adjust(0, 0, -hPadding, 0)
+            painter.setFont(fittedFont)
+            painter.drawText(textRect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, text)
+            painter.setFont(font)
 
         # Advance caller rectangle
         rect.setLeft(boxRect.right() + 6)

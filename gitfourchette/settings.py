@@ -58,6 +58,12 @@ class GraphRowHeight(enum.IntEnum):
     SPACIOUS = 175
 
 
+class GraphRefBoxWidth(enum.IntEnum):
+    ICONS_ONLY = 0
+    STANDARD = 120
+    WIDE = 1000
+
+
 class QtApiNames(enum.StrEnum):
     QTAPI_AUTOMATIC = ""
     QTAPI_PYQT6 = "pyqt6"
@@ -109,6 +115,7 @@ class Prefs(PrefsFile):
     _category_graph             : int                   = 0
     chronologicalOrder          : bool                  = True
     graphRowHeight              : GraphRowHeight        = GraphRowHeight.RELAXED
+    refBoxMaxWidth              : GraphRefBoxWidth      = GraphRefBoxWidth.STANDARD
     authorDisplayStyle          : AuthorDisplayStyle    = AuthorDisplayStyle.FULL_NAME
     shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
     maxCommits                  : int                   = 10000
