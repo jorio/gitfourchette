@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -12,10 +12,7 @@ from .actiondef import ActionDef
 from .autohidemenubar import AutoHideMenuBar
 from .benchmark import Benchmark, benchmark
 from .calledfromqthread import calledFromQThread
-from .fittedtext import (
-    fitText,
-    drawFittedText,
-)
+from .fittedtext import FittedText
 from .excutils import shortenTracebackPath, excStrings
 from .fontpicker import FontPicker
 from .gitutils import (

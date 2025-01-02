@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -315,7 +315,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         if authorWidth != 0:
             rect.setLeft(leftBoundName)
             rect.setRight(leftBoundDate - XMARGIN)
-            drawFittedText(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
+            FittedText.draw(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
 
         # ------ Highlight searched author
         if searchTerm and commit:
@@ -382,7 +382,8 @@ class CommitLogDelegate(QStyledItemDelegate):
         else:
             iconSize = 0
 
-        text, fittedFont, textWidth = fitText(font, 111, text, Qt.TextElideMode.ElideMiddle, minStretch=QFont.Stretch.ExtraCondensed)
+        text, fittedFont, textWidth = FittedText.fit(
+            font, 111, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.ExtraCondensed)
 
         boxRect = QRect(rect)
         boxRect.setWidth(hPadding + iconSize + 2 + textWidth + hPadding)

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,7 +8,7 @@ import enum
 
 from gitfourchette.qt import *
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarModel, SidebarItem, SidebarLayout
-from gitfourchette.toolbox import stockIcon, drawFittedText
+from gitfourchette.toolbox import stockIcon, FittedText
 
 PE_EXPANDED = QStyle.PrimitiveElement.PE_IndicatorArrowDown
 PE_COLLAPSED = QStyle.PrimitiveElement.PE_IndicatorArrowRight
@@ -154,7 +154,7 @@ class SidebarDelegate(QStyledItemDelegate):
         fullText = index.data(Qt.ItemDataRole.DisplayRole)
         isCannedString = node.kind <= SidebarItem.SubmodulesHeader
         if not isCannedString:
-            drawFittedText(painter, textRect, option.displayAlignment, fullText, option.textElideMode)
+            FittedText.draw(painter, textRect, option.displayAlignment, fullText, option.textElideMode)
         else:
             text = painter.fontMetrics().elidedText(fullText, Qt.TextElideMode.ElideMiddle, textRect.width())
             painter.drawText(textRect, option.displayAlignment, text)

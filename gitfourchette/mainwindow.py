@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -34,6 +34,7 @@ from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
 from gitfourchette.tasks import TaskBook
 from gitfourchette.toolbox import *
+from gitfourchette.toolbox.fittedtext import FittedText
 from gitfourchette.trash import Trash
 
 logger = logging.getLogger(__name__)
@@ -1010,6 +1011,8 @@ class MainWindow(QMainWindow):
 
     def refreshPrefs(self, *prefDiff: str):
         app = GFApplication.instance()
+
+        FittedText.enable = settings.prefs.condensedFonts
 
         # Apply new style
         if "qtStyle" in prefDiff:

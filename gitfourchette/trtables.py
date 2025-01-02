@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -389,13 +389,17 @@ class TrTables:
 
             "verbosity": _("Logging verbosity"),
             "autoRefresh": _("Auto-refresh when app regains focus"),
-            "animations": _("Animation effects"),
+            "animations": _("Animation effects in sidebar"),
             "smoothScroll": _("Smooth scrolling (where applicable)"),
             "forceQtApi": _("Preferred Qt binding"),
             "forceQtApi_help": paragraphs(
                 _("After restarting, {app} will use this Qt binding if available."),
                 _("You can also pass the name of a Qt binding via the “QT_API” environment variable."),
             ),
+            "condensedFonts": _("Use condensed fonts"),
+            "condensedFonts_help": "<p>" + _(
+                "When a branch name or author name is too long to fit in its allotted space, "
+                "condense the font before truncating the text."),
 
             "externalEditor": _("Text editor"),
             "externalDiff": _("Diff tool"),

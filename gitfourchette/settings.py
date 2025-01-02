@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -133,10 +133,11 @@ class Prefs(PrefsFile):
     _category_advanced          : int                   = 0
     maxRecentRepos              : int                   = 20
     shortHashChars              : int                   = 7
+    autoRefresh                 : bool                  = True
     middleClickToStage          : bool                  = False
     flattenLanes                : bool                  = True
     animations                  : bool                  = True
-    autoRefresh                 : bool                  = True
+    condensedFonts              : bool                  = True
     pygmentsPlugins             : bool                  = False
     verbosity                   : LoggingLevel          = LoggingLevel.WARNING
     forceQtApi                  : QtApiNames            = QtApiNames.QTAPI_AUTOMATIC
