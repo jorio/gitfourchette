@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -95,7 +95,7 @@ class SpecialDiffError(Exception):
 
         if oldFileExists and oldFile.mode != newFile.mode:
             intro = _("Mode change:")
-            details.append(f"{intro} {TrTables.fileMode(oldFile.mode)} &rarr; {TrTables.fileMode(newFile.mode)}.")
+            details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
         return SpecialDiffError(message, "\n".join(details), longform="\n".join(longform))
 
@@ -139,8 +139,8 @@ class SpecialDiffError(Exception):
         newFile = delta.new_file
         oldText = _("Old type:")
         newText = _("New type:")
-        oldMode = TrTables.fileMode(oldFile.mode)
-        newMode = TrTables.fileMode(newFile.mode)
+        oldMode = TrTables.enum(oldFile.mode)
+        newMode = TrTables.enum(newFile.mode)
         table = ("<table>"
                  f"<tr><td><del><b>{oldText}</b></del> </td><td>{oldMode}</tr>"
                  f"<tr><td><add><b>{newText}</b></add> </td><td>{newMode}</td></tr>"

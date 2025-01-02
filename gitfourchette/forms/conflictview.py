@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -191,7 +191,7 @@ class ConflictView(QWidget):
         self.ui.oursButton.setToolTip(kit.tipO)
         self.ui.theirsButton.setText(kit.captionT)
         self.ui.theirsButton.setToolTip(kit.tipT)
-        self.ui.explainer.setText(f"<b>{englishTitleCase(TrTables.conflictSides(sides))}.</b> {kit.description}")
+        self.ui.explainer.setText(f"<b>{englishTitleCase(TrTables.enum(sides))}.</b> {kit.description}")
 
         # Ours/theirs status icons
         iconOurs = stockIcon(kit.iconO).pixmap(QSize(16, 16), self.devicePixelRatio())

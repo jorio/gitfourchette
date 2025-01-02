@@ -6,28 +6,23 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 
 if TYPE_CHECKING:
-    from gitfourchette.toolbox import PatchPurpose
-    from gitfourchette.sidebar.sidebarmodel import SidebarItem
+    from gitfourchette.toolbox.gitutils import PatchPurpose
 
 
 class TrTables:
+    _enums                      : dict[type[Enum], dict[Enum, str]] = {}
     _exceptionNames             : dict[str, str] = {}
-    _nameValidationCodes        : dict[int, str] = {}
-    _sidebarItems               : dict[SidebarItem, str] = {}
     _prefKeys                   : dict[str, str] = {}
     _diffStatusChars            : dict[str, str] = {}
-    _fileModes                  : dict[FileMode, str] = {}
     _shortFileModes             : dict[FileMode, str] = {}
-    _repositoryStates           : dict[RepositoryState, str] = {}
-    _patchPurposes              : dict[PatchPurpose, str] = {}
     _patchPurposesPastTense     : dict[PatchPurpose, str] = {}
-    _conflictSides              : dict[ConflictSides, str] = {}
 
     @classmethod
     def init(cls):
@@ -36,36 +31,24 @@ class TrTables:
 
     @classmethod
     def retranslate(cls):
+        cls._enums = cls._init_enums()
         cls._exceptionNames = cls._init_exceptionNames()
-        cls._nameValidationCodes = cls._init_nameValidationCodes()
-        cls._sidebarItems = cls._init_sidebarItems()
         cls._prefKeys = cls._init_prefKeys()
         cls._diffStatusChars = cls._init_diffStatusChars()
-        cls._fileModes = cls._init_fileModes()
         cls._shortFileModes = cls._init_shortFileModes()
-        cls._repositoryStates = cls._init_repositoryStates()
-        cls._patchPurposes = cls._init_patchPurposes()
         cls._patchPurposesPastTense = cls._init_patchPurposesPastTense()
-        cls._conflictSides = cls._init_conflictSides()
+
+    @classmethod
+    def enum(cls, enumValue: Enum) -> str:
+        try:
+            return cls._enums[type(enumValue)][enumValue]
+        except KeyError:
+            return enumValue.name
 
     @classmethod
     def exceptionName(cls, exc: BaseException):
         name = type(exc).__name__
         return cls._exceptionNames.get(name, name)
-
-    @classmethod
-    def refNameValidation(cls, code: int):
-        try:
-            return cls._nameValidationCodes[code]
-        except KeyError:
-            return _("Name validation error {0}", code)
-
-    @classmethod
-    def sidebarItem(cls, item: SidebarItem):
-        try:
-            return cls._sidebarItems[item]
-        except KeyError:
-            return "?"+str(item)
 
     @classmethod
     def prefKey(cls, key: str):
@@ -80,13 +63,6 @@ class TrTables:
         return cls._diffStatusChars.get(c, c)
 
     @classmethod
-    def fileMode(cls, m: FileMode):
-        try:
-            return cls._fileModes[m]
-        except KeyError:
-            return f"{m:o}"
-
-    @classmethod
     def shortFileModes(cls, m: FileMode):
         try:
             return cls._shortFileModes[m]
@@ -94,23 +70,8 @@ class TrTables:
             return f"{m:o}"
 
     @classmethod
-    def repositoryState(cls, s: RepositoryState):
-        try:
-            return cls._repositoryStates[s]
-        except KeyError:
-            return f"#{s}"
-
-    @classmethod
-    def patchPurpose(cls, purpose: PatchPurpose):
-        return cls._patchPurposes.get(purpose, "???")
-
-    @classmethod
     def patchPurposePastTense(cls, purpose: PatchPurpose):
         return cls._patchPurposesPastTense.get(purpose, "???")
-
-    @classmethod
-    def conflictSides(cls, key: ConflictSides):
-        return cls._conflictSides.get(key, f"?{key}")
 
     @staticmethod
     def _init_exceptionNames():
@@ -123,40 +84,130 @@ class TrTables:
         }
 
     @staticmethod
-    def _init_nameValidationCodes():
-        from gitfourchette.porcelain import NameValidationError as E
-        return {
-            E.ILLEGAL_NAME: _("Illegal name."),
-            E.ILLEGAL_SUFFIX: _("Illegal suffix."),
-            E.ILLEGAL_PREFIX: _("Illegal prefix."),
-            E.CONTAINS_ILLEGAL_SEQ: _("Contains illegal character sequence."),
-            E.CONTAINS_ILLEGAL_CHAR: _("Contains illegal character."),
-            E.CANNOT_BE_EMPTY: _("Cannot be empty."),
-            E.NOT_WINDOWS_FRIENDLY: _("This name is discouraged for compatibility with Windows."),
-            E.NAME_TAKEN_BY_REF: _("This name is already taken."),
-            E.NAME_TAKEN_BY_FOLDER: _("This name is already taken by a folder."),
-        }
-
-    @staticmethod
-    def _init_sidebarItems():
-        from gitfourchette.sidebar.sidebarmodel import SidebarItem as E
+    def _init_enums():
+        from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
+        from gitfourchette.sidebar.sidebarmodel import SidebarItem
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth
+        from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
+
+        NVERule = NameValidationError.Rule
+
         return {
-            E.UncommittedChanges: toLengthVariants(_p("SidebarModel", "Uncommitted Changes|Changes")),
-            E.LocalBranchesHeader: toLengthVariants(_p("SidebarModel", "Local Branches|Branches")),
-            E.StashesHeader: _p("SidebarModel", "Stashes"),
-            E.RemotesHeader: _p("SidebarModel", "Remotes"),
-            E.TagsHeader: _p("SidebarModel", "Tags"),
-            E.SubmodulesHeader: _p("SidebarModel", "Submodules"),
-            E.LocalBranch: _p("SidebarModel", "Local branch"),
-            E.DetachedHead: _p("SidebarModel", "Detached HEAD"),
-            E.UnbornHead: _p("SidebarModel", "Unborn HEAD"),
-            E.RemoteBranch: _p("SidebarModel", "Remote branch"),
-            E.Stash: _p("SidebarModel", "Stash"),
-            E.Remote: _p("SidebarModel", "Remote"),
-            E.Tag: _p("SidebarModel", "Tag"),
-            E.Submodule: _p("SidebarModel", "Submodules"),
-            E.Spacer: "---",
+            NVERule: {
+                NVERule.ILLEGAL_NAME            : _("Illegal name."),
+                NVERule.ILLEGAL_SUFFIX          : _("Illegal suffix."),
+                NVERule.ILLEGAL_PREFIX          : _("Illegal prefix."),
+                NVERule.CONTAINS_ILLEGAL_SEQ    : _("Contains illegal character sequence."),
+                NVERule.CONTAINS_ILLEGAL_CHAR   : _("Contains illegal character."),
+                NVERule.CANNOT_BE_EMPTY         : _("Cannot be empty."),
+                NVERule.NOT_WINDOWS_FRIENDLY    : _("This name is discouraged for compatibility with Windows."),
+                NVERule.NAME_TAKEN_BY_REF       : _("This name is already taken."),
+                NVERule.NAME_TAKEN_BY_FOLDER    : _("This name is already taken by a folder."),
+            },
+
+            FileMode: {
+                0                       : _p("FileMode", "deleted"),
+                FileMode.BLOB           : _p("FileMode", "regular file"),
+                FileMode.BLOB_EXECUTABLE: _p("FileMode", "executable file"),
+                FileMode.LINK           : _p("FileMode", "symbolic link"),
+                FileMode.TREE           : _p("FileMode", "subtree"),
+                FileMode.COMMIT         : _p("FileMode", "subtree commit"),
+            },
+
+            RepositoryState: {
+                RepositoryState.NONE                    : _p("RepositoryState", "None"),
+                RepositoryState.MERGE                   : _p("RepositoryState", "Merging"),
+                RepositoryState.REVERT                  : _p("RepositoryState", "Reverting"),
+                RepositoryState.REVERT_SEQUENCE         : _p("RepositoryState", "Reverting (sequence)"),
+                RepositoryState.CHERRYPICK              : _p("RepositoryState", "Cherry-picking"),
+                RepositoryState.CHERRYPICK_SEQUENCE     : _p("RepositoryState", "Cherry-picking (sequence)"),
+                RepositoryState.BISECT                  : _p("RepositoryState", "Bisecting"),
+                RepositoryState.REBASE                  : _p("RepositoryState", "Rebasing"),
+                RepositoryState.REBASE_INTERACTIVE      : _p("RepositoryState", "Rebasing (interactive)"),
+                RepositoryState.REBASE_MERGE            : _p("RepositoryState", "Rebasing (merging)"),
+                RepositoryState.APPLY_MAILBOX           : "Apply Mailbox",  # intentionally untranslated
+                RepositoryState.APPLY_MAILBOX_OR_REBASE : "Apply Mailbox or Rebase",  # intentionally untranslated
+            },
+
+            ConflictSides: {
+                ConflictSides.MODIFIED_BY_BOTH  : _p("ConflictSides", "modified by both sides"),
+                ConflictSides.DELETED_BY_US     : _p("ConflictSides", "deleted by us"),
+                ConflictSides.DELETED_BY_THEM   : _p("ConflictSides", "deleted by them"),
+                ConflictSides.DELETED_BY_BOTH   : _p("ConflictSides", "deleted by both sides"),
+                ConflictSides.ADDED_BY_US       : _p("ConflictSides", "added by us"),
+                ConflictSides.ADDED_BY_THEM     : _p("ConflictSides", "added by them"),
+                ConflictSides.ADDED_BY_BOTH     : _p("ConflictSides", "added by both sides"),
+            },
+
+            PatchPurpose: {
+                PatchPurpose.Stage                          : _p("PatchPurpose", "Stage"),
+                PatchPurpose.Unstage                        : _p("PatchPurpose", "Unstage"),
+                PatchPurpose.Discard                        : _p("PatchPurpose", "Discard"),
+                PatchPurpose.Lines | PatchPurpose.Stage     : _p("PatchPurpose", "Stage lines"),
+                PatchPurpose.Lines | PatchPurpose.Unstage   : _p("PatchPurpose", "Unstage lines"),
+                PatchPurpose.Lines | PatchPurpose.Discard   : _p("PatchPurpose", "Discard lines"),
+                PatchPurpose.Hunk | PatchPurpose.Stage      : _p("PatchPurpose", "Stage hunk"),
+                PatchPurpose.Hunk | PatchPurpose.Unstage    : _p("PatchPurpose", "Unstage hunk"),
+                PatchPurpose.Hunk | PatchPurpose.Discard    : _p("PatchPurpose", "Discard hunk"),
+                PatchPurpose.File | PatchPurpose.Stage      : _p("PatchPurpose", "Stage file"),
+                PatchPurpose.File | PatchPurpose.Unstage    : _p("PatchPurpose", "Unstage file"),
+                PatchPurpose.File | PatchPurpose.Discard    : _p("PatchPurpose", "Discard file"),
+            },
+
+            SidebarItem: {
+                SidebarItem.UncommittedChanges  : toLengthVariants(_p("SidebarModel", "Uncommitted Changes|Changes")),
+                SidebarItem.LocalBranchesHeader : toLengthVariants(_p("SidebarModel", "Local Branches|Branches")),
+                SidebarItem.StashesHeader       : _p("SidebarModel", "Stashes"),
+                SidebarItem.RemotesHeader       : _p("SidebarModel", "Remotes"),
+                SidebarItem.TagsHeader          : _p("SidebarModel", "Tags"),
+                SidebarItem.SubmodulesHeader    : _p("SidebarModel", "Submodules"),
+                SidebarItem.LocalBranch         : _p("SidebarModel", "Local branch"),
+                SidebarItem.DetachedHead        : _p("SidebarModel", "Detached HEAD"),
+                SidebarItem.UnbornHead          : _p("SidebarModel", "Unborn HEAD"),
+                SidebarItem.RemoteBranch        : _p("SidebarModel", "Remote branch"),
+                SidebarItem.Stash               : _p("SidebarModel", "Stash"),
+                SidebarItem.Remote              : _p("SidebarModel", "Remote"),
+                SidebarItem.Tag                 : _p("SidebarModel", "Tag"),
+                SidebarItem.Submodule           : _p("SidebarModel", "Submodules"),
+                SidebarItem.Spacer              : "---",
+            },
+
+            PathDisplayStyle: {
+                PathDisplayStyle.FullPaths      : _("Full paths"),
+                PathDisplayStyle.AbbreviateDirs : _("Abbreviate directories"),
+                PathDisplayStyle.FileNameOnly   : _("Show filename only"),
+            },
+
+            AuthorDisplayStyle: {
+                AuthorDisplayStyle.FullName     : _("Full name"),
+                AuthorDisplayStyle.FirstName    : _("First name"),
+                AuthorDisplayStyle.LastName     : _("Last name"),
+                AuthorDisplayStyle.Initials     : _("Initials"),
+                AuthorDisplayStyle.FullEmail    : _("Full email"),
+                AuthorDisplayStyle.EmailUserName: _("Abbreviated email"),
+            },
+
+            GraphRowHeight: {
+                GraphRowHeight.Cramped          : _p("row spacing", "Cramped"),
+                GraphRowHeight.Tight            : _p("row spacing", "Tight"),
+                GraphRowHeight.Relaxed          : _p("row spacing", "Relaxed"),
+                GraphRowHeight.Roomy            : _p("row spacing", "Roomy"),
+                GraphRowHeight.Spacious         : _p("row spacing", "Spacious"),
+            },
+
+            QtApiNames: {
+                QtApiNames.Automatic            : _p("Qt binding", "Automatic (recommended)"),
+                QtApiNames.PySide6              : "PySide6",
+                QtApiNames.PyQt6                : "PyQt6",
+                QtApiNames.PyQt5                : "PyQt5"
+            },
+
+            GraphRefBoxWidth: {
+                GraphRefBoxWidth.IconsOnly      : _("Icons Only"),
+                GraphRefBoxWidth.Standard       : _("Truncate long ref names"),
+                GraphRefBoxWidth.Wide           : _("Show full ref names"),
+            },
         }
 
     @staticmethod
@@ -177,17 +228,6 @@ class TrTables:
         }
 
     @staticmethod
-    def _init_fileModes():
-        return {
-            0                       : _p("FileMode", "deleted"),
-            FileMode.BLOB           : _p("FileMode", "regular file"),
-            FileMode.BLOB_EXECUTABLE: _p("FileMode", "executable file"),
-            FileMode.LINK           : _p("FileMode", "symbolic link"),
-            FileMode.TREE           : _p("FileMode", "subtree"),
-            FileMode.COMMIT         : _p("FileMode", "subtree commit"),
-        }
-
-    @staticmethod
     def _init_shortFileModes():
         # Intentionally untranslated.
         return {
@@ -197,41 +237,6 @@ class TrTables:
             FileMode.LINK: "link",
             FileMode.TREE: "tree",
             FileMode.COMMIT: "tree",
-        }
-
-    @staticmethod
-    def _init_repositoryStates():
-        return {
-            RepositoryState.NONE                : _p("RepositoryState", "None"),
-            RepositoryState.MERGE               : _p("RepositoryState", "Merging"),
-            RepositoryState.REVERT              : _p("RepositoryState", "Reverting"),
-            RepositoryState.REVERT_SEQUENCE     : _p("RepositoryState", "Reverting (sequence)"),
-            RepositoryState.CHERRYPICK          : _p("RepositoryState", "Cherry-picking"),
-            RepositoryState.CHERRYPICK_SEQUENCE : _p("RepositoryState", "Cherry-picking (sequence)"),
-            RepositoryState.BISECT              : _p("RepositoryState", "Bisecting"),
-            RepositoryState.REBASE              : _p("RepositoryState", "Rebasing"),
-            RepositoryState.REBASE_INTERACTIVE  : _p("RepositoryState", "Rebasing (interactive)"),
-            RepositoryState.REBASE_MERGE        : _p("RepositoryState", "Rebasing (merging)"),
-            RepositoryState.APPLY_MAILBOX       : "Apply Mailbox",  # intentionally untranslated
-            RepositoryState.APPLY_MAILBOX_OR_REBASE: "Apply Mailbox or Rebase",  # intentionally untranslated
-        }
-
-    @staticmethod
-    def _init_patchPurposes():
-        from gitfourchette.toolbox.gitutils import PatchPurpose as pp
-        return {
-            pp.Stage                : _p("PatchPurpose", "Stage"),
-            pp.Unstage              : _p("PatchPurpose", "Unstage"),
-            pp.Discard              : _p("PatchPurpose", "Discard"),
-            pp.Lines | pp.Stage     : _p("PatchPurpose", "Stage lines"),
-            pp.Lines | pp.Unstage   : _p("PatchPurpose", "Unstage lines"),
-            pp.Lines | pp.Discard   : _p("PatchPurpose", "Discard lines"),
-            pp.Hunk | pp.Stage      : _p("PatchPurpose", "Stage hunk"),
-            pp.Hunk | pp.Unstage    : _p("PatchPurpose", "Unstage hunk"),
-            pp.Hunk | pp.Discard    : _p("PatchPurpose", "Discard hunk"),
-            pp.File | pp.Stage      : _p("PatchPurpose", "Stage file"),
-            pp.File | pp.Unstage    : _p("PatchPurpose", "Unstage file"),
-            pp.File | pp.Discard    : _p("PatchPurpose", "Discard file"),
         }
 
     @staticmethod
@@ -382,10 +387,6 @@ class TrTables:
             "refBoxMaxWidth": _("Ref indicators"),
             "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
 
-            "IconsOnly": _("Icons only"),
-            "Standard": _("Truncate long ref names"),
-            "Wide": _("Show full ref names"),
-
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),
             "maxTrashFileKB": _("Patches bigger than # KB won’t be salvaged"),
             "trash_HEADER": _(
@@ -422,38 +423,4 @@ class TrTables:
                 "\n<code>$R</code> - Theirs / Remote / Right"
                 "\n<code>$M</code> - Merged / Output / Result"
             ),
-
-            "FullPaths": _("Full paths"),
-            "AbbreviateDirs": _("Abbreviate directories"),
-            "FileNameOnly": _("Show filename only"),
-
-            "FullName": _("Full name"),
-            "FirstName": _("First name"),
-            "LastName": _("Last name"),
-            "Initials": _("Initials"),
-            "FullEmail": _("Full email"),
-            "EmailUserName": _("Abbreviated email"),
-
-            "Cramped": _p("row spacing", "Cramped"),
-            "Tight": _p("row spacing", "Tight"),
-            "Relaxed": _p("row spacing", "Relaxed"),
-            "Roomy": _p("row spacing", "Roomy"),
-            "Spacious": _p("row spacing", "Spacious"),
-
-            "Automatic": _p("Qt binding", "Automatic (recommended)"),
-            "PySide6": "PySide6",
-            "PyQt6": "PyQt6",
-            "PyQt5": "PyQt5",
-        }
-
-    @staticmethod
-    def _init_conflictSides():
-        return {
-            ConflictSides.MODIFIED_BY_BOTH: _p("ConflictSides", "modified by both sides"),
-            ConflictSides.DELETED_BY_US: _p("ConflictSides", "deleted by us"),
-            ConflictSides.DELETED_BY_THEM: _p("ConflictSides", "deleted by them"),
-            ConflictSides.DELETED_BY_BOTH: _p("ConflictSides", "deleted by both sides"),
-            ConflictSides.ADDED_BY_US: _p("ConflictSides", "added by us"),
-            ConflictSides.ADDED_BY_THEM: _p("ConflictSides", "added by them"),
-            ConflictSides.ADDED_BY_BOTH: _p("ConflictSides", "added by both sides"),
         }

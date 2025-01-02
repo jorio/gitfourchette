@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -401,7 +401,7 @@ class PrefsDialog(QDialog):
             # PySide2/PySide6 demotes StrEnum to str when stored with QComboBox.setItemData().
             # Wrap the value in a tuple to preserve the type. (PyQt5 & PyQt6 do the right thing here)
             data = (enumMember,)
-            name = TrTables.prefKey(enumMember.name)
+            name = TrTables.enum(enumMember)
 
             if previewCallback:
                 control.addItemWithPreview(name, data, previewCallback(enumMember))

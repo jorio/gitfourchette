@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -74,7 +74,7 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
         statusCaption += f" ({sc})"
     if sc == 'U':  # conflict sides
         diffConflict = repo.wrap_conflict(nf.path)
-        postfix = TrTables.conflictSides(diffConflict.sides)
+        postfix = TrTables.enum(diffConflict.sides)
         statusCaption += f" ({postfix})"
     text += newLine(_("status"), statusCaption)
 
@@ -86,9 +86,9 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
     if sc not in 'DU':
         legend = _("file mode")
         if sc in 'A?':
-            text += newLine(legend, TrTables.fileMode(nf.mode))
+            text += newLine(legend, TrTables.enum(nf.mode))
         elif of.mode != nf.mode:
-            text += newLine(legend, f"{TrTables.fileMode(of.mode)} &rarr; {TrTables.fileMode(nf.mode)}")
+            text += newLine(legend, f"{TrTables.enum(of.mode)} &rarr; {TrTables.enum(nf.mode)}")
 
     # Size (if available)
     if sc not in 'DU' and nf.size != 0 and (nf.mode & FileMode.BLOB == FileMode.BLOB):

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -31,8 +31,8 @@ class RemoteDialog(QDialog):
         self.ui.keyFilePicker.checkBox.setChecked(bool(customKeyFile))
 
         # Set up input validator
-        nameTaken = _p("NameValidationError", "This name is already taken by another remote.")
-        cannotBeEmpty = _p("NameValidationError", "Cannot be empty.")
+        nameTaken = _("This name is already taken by another remote.")
+        cannotBeEmpty = _("Cannot be empty.")
         validator = ValidatorMultiplexer(self)
         validator.setGatedWidgets(okButton)
         validator.connectInput(self.ui.nameEdit, lambda s: nameValidationMessage(s, existingRemotes, nameTaken))

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -149,19 +149,20 @@ class RefPrefix:
 
 
 class NameValidationError(ValueError):
-    CANNOT_BE_EMPTY = 0
-    ILLEGAL_NAME = 1
-    ILLEGAL_PREFIX = 2
-    ILLEGAL_SUFFIX = 3
-    CONTAINS_ILLEGAL_CHAR = 4
-    CONTAINS_ILLEGAL_SEQ = 5
-    NOT_WINDOWS_FRIENDLY = 6
-    NAME_TAKEN_BY_REF = 7
-    NAME_TAKEN_BY_FOLDER = 8
+    class Rule(enum.IntEnum):
+        CANNOT_BE_EMPTY = 0
+        ILLEGAL_NAME = 1
+        ILLEGAL_PREFIX = 2
+        ILLEGAL_SUFFIX = 3
+        CONTAINS_ILLEGAL_CHAR = 4
+        CONTAINS_ILLEGAL_SEQ = 5
+        NOT_WINDOWS_FRIENDLY = 6
+        NAME_TAKEN_BY_REF = 7
+        NAME_TAKEN_BY_FOLDER = 8
 
-    def __init__(self, code: int):
-        super().__init__(F"Name validation failed ({code})")
-        self.code = code
+    def __init__(self, rule: Rule):
+        super().__init__(f"Name validation failed ({rule})")
+        self.rule = rule
 
 
 class DivergentBranchesError(Exception):
@@ -312,47 +313,45 @@ def validate_refname(name: str, reserved_names: list[str]):
     Raises NameValidationError if the name is incorrect.
     """
 
-    E = NameValidationError
-
     # Can't be empty
     if not name:
-        raise E(E.CANNOT_BE_EMPTY)
+        raise NameValidationError(NameValidationError.Rule.CANNOT_BE_EMPTY)
 
     # Rule 9: can't be single character '@'
     elif name == '@':
-        raise E(E.ILLEGAL_NAME)
+        raise NameValidationError(NameValidationError.Rule.ILLEGAL_NAME)
 
     # Rule 4: forbid space, tilde, caret, colon
     # Rule 5: forbid question mark, asterisk, open bracket
     # Rule 10: forbid backslash
     elif any(c in " ~^:[?*\\" for c in name):
-        raise E(E.CONTAINS_ILLEGAL_CHAR)
+        raise NameValidationError(NameValidationError.Rule.CONTAINS_ILLEGAL_CHAR)
 
     # Rule 1: slash-separated components can't start with dot or end with .lock
     # Rule 3: forbid consecutive dots
     # Rule 6: forbid consecutive slashes
     # Rule 8: forbid '@{'
     elif any(seq in name for seq in ["/.", ".lock/", "..", "//", "@{"]):
-        raise E(E.CONTAINS_ILLEGAL_SEQ)
+        raise NameValidationError(NameValidationError.Rule.CONTAINS_ILLEGAL_SEQ)
 
     # Rule 1: can't start with dot
     # Rule 6: can't start with slash
     elif name.startswith((".", "/")):
-        raise E(E.ILLEGAL_PREFIX)
+        raise NameValidationError(NameValidationError.Rule.ILLEGAL_PREFIX)
 
     # Rule 1: can't end with .lock
     # Rule 6: can't end with slash
     # Rule 7: can't end with dot
     elif name.endswith((".lock", "/", ".")):
-        raise E(E.ILLEGAL_SUFFIX)
+        raise NameValidationError(NameValidationError.Rule.ILLEGAL_SUFFIX)
 
     # Prevent filenames that are reserved on Windows
     elif WINDOWS_RESERVED_FILENAMES_PATTERN.match(name):
-        raise E(E.NOT_WINDOWS_FRIENDLY)
+        raise NameValidationError(NameValidationError.Rule.NOT_WINDOWS_FRIENDLY)
 
     # Don't clash with existing refs
     elif name.lower() in (n.lower() for n in reserved_names):
-        raise E(E.NAME_TAKEN_BY_REF)
+        raise NameValidationError(NameValidationError.Rule.NAME_TAKEN_BY_REF)
 
     # Don't clash with ref folders. If you attempt to rename a branch to the
     # name of an existing folder, libgit2 first deletes the branch, then errors
@@ -361,7 +360,7 @@ def validate_refname(name: str, reserved_names: list[str]):
     else:
         folder = name.lower() + "/"
         if any(n.lower().startswith(folder) for n in reserved_names):
-            raise E(E.NAME_TAKEN_BY_FOLDER)
+            raise NameValidationError(NameValidationError.Rule.NAME_TAKEN_BY_FOLDER)
 
 
 def validate_signature_item(s: str):
@@ -370,11 +369,9 @@ def validate_signature_item(s: str):
     Raises NameValidationError if the item is incorrect.
     """
 
-    E = NameValidationError
-
     # Angle bracket characters are not allowed
     if "<" in s or ">" in s:
-        raise E(E.CONTAINS_ILLEGAL_CHAR)
+        raise NameValidationError(NameValidationError.Rule.CONTAINS_ILLEGAL_CHAR)
 
     # Trim crud from name
     def is_crud(c: str):
@@ -390,7 +387,7 @@ def validate_signature_item(s: str):
 
     # Cannot be empty after trimming
     if not trimmed:
-        raise E(E.CANNOT_BE_EMPTY)
+        raise NameValidationError(NameValidationError.Rule.CANNOT_BE_EMPTY)
 
 
 def signatures_equalish(a: Signature, b: Signature):

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -264,12 +264,12 @@ class ApplyPatch(RepoTask):
     def flow(self, fullPatch: Patch, subPatch: bytes, purpose: PatchPurpose):
         if not subPatch:
             QApplication.beep()
-            verb = TrTables.patchPurpose(purpose & PatchPurpose.VerbMask).lower()
+            verb = TrTables.enum(purpose & PatchPurpose.VerbMask).lower()
             message = _("Can’t {verb} the selection because no red/green lines are selected.", verb=verb)
             raise AbortTask(message, asStatusMessage=True)
 
         if purpose & PatchPurpose.Discard:
-            title = TrTables.patchPurpose(purpose)
+            title = TrTables.enum(purpose)
             textPara = []
             if purpose & PatchPurpose.Hunk:
                 textPara.append(_("Really discard this hunk?"))

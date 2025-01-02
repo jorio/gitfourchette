@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -222,8 +222,7 @@ class FileList(QListView):
                 settings.prefs.pathDisplayStyle = pds
                 settings.prefs.setDirty()
             isCurrent = settings.prefs.pathDisplayStyle == pds
-            name = TrTables.prefKey(pds.name)
-            name = englishTitleCase(name)
+            name = englishTitleCase(TrTables.enum(pds))
             return ActionDef(name, setIt, checkState=isCurrent)
 
         n = len(patches)
@@ -244,7 +243,7 @@ class FileList(QListView):
             ),
 
             ActionDef(
-                englishTitleCase(TrTables.prefKey("pathDisplayStyle")),
+                englishTitleCase(_("Path display style")),
                 submenu=[pathDisplayStyleAction(style) for style in PathDisplayStyle],
             ),
         ]

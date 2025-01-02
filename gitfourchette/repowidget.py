@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -789,7 +789,7 @@ class RepoWidget(QStackedWidget):
 
         rstate = repo.state() if repo else RepositoryState.NONE
 
-        bannerTitle = TrTables.repositoryState(rstate) if rstate != RepositoryState.NONE else ""
+        bannerTitle = TrTables.enum(rstate) if rstate != RepositoryState.NONE else ""
         bannerText = ""
         bannerHeeded = False
         bannerAction = ""
@@ -848,7 +848,7 @@ class RepoWidget(QStackedWidget):
             bannerText = _(
                 "The repo is currently in state {state}, which {app} doesn’t support yet. "
                 "Use <code>git</code> on the command line to continue.",
-                app=qAppName(), state=bquo(TrTables.repositoryState(rstate)))
+                app=qAppName(), state=bquo(TrTables.enum(rstate)))
 
         if bannerText or bannerTitle:
             self.mergeBanner.popUp(bannerTitle, bannerText, heeded=bannerHeeded, canDismiss=False)

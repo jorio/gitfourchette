@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -708,7 +708,7 @@ class SidebarModel(QAbstractItemModel):
 
         elif item == SidebarItem.UncommittedChanges:
             if displayRole:
-                changesText = TrTables.sidebarItem(SidebarItem.UncommittedChanges)
+                changesText = TrTables.enum(SidebarItem.UncommittedChanges)
                 numUncommittedChanges = self.repoModel.numUncommittedChanges
                 if numUncommittedChanges != 0:
                     ucSuffix = f" ({numUncommittedChanges})"
@@ -727,9 +727,9 @@ class SidebarModel(QAbstractItemModel):
                 if item == SidebarItem.WorkdirHeader:
                     return node.displayName
                 elif item == SidebarItem.LocalBranchesHeader:
-                    return TrTables.sidebarItem(item)
+                    return TrTables.enum(item)
                 else:
-                    name = TrTables.sidebarItem(item)
+                    name = TrTables.enum(item)
                     if node.getCollapseHash() in self.collapseCache:
                         name += f" ({len(node.children)})"
                     return name

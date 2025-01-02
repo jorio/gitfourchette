@@ -128,10 +128,10 @@ def nameValidationMessage(name: str, reservedNames: list[str], nameTakenMessage:
     try:
         validate_refname(name, reservedNames)
     except NameValidationError as exc:
-        if exc.code == NameValidationError.NAME_TAKEN_BY_REF and nameTakenMessage:
+        if exc.rule == NameValidationError.Rule.NAME_TAKEN_BY_REF and nameTakenMessage:
             return nameTakenMessage
         else:
-            return TrTables.refNameValidation(exc.code)
+            return TrTables.enum(exc.rule)
 
     return ""  # validation passed, no error
 

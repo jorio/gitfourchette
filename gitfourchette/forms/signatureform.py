@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -34,7 +34,7 @@ class SignatureForm(QWidget):
             validate_signature_item(item)
             return ""
         except NameValidationError as exc:
-            return TrTables.refNameValidation(exc.code)
+            return TrTables.enum(exc.rule)
 
     def __init__(self, parent):
         super().__init__(parent)
