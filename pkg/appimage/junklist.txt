@@ -19,7 +19,6 @@ opt/python*/lib/python*/chunk.py
 opt/python*/lib/python*/curses/
 opt/python*/lib/python*/dbm/
 opt/python*/lib/python*/doctest.py
-opt/python*/lib/python*/email/
 opt/python*/lib/python*/ensurepip/
 opt/python*/lib/python*/idlelib/
 opt/python*/lib/python*/imghdr.py

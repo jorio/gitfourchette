@@ -68,7 +68,7 @@ def makeParser():
     pkg_group = parser.add_argument_group("Packaging options")
 
     pkg_group.add_argument("--freeze", default="", metavar="QT_API",
-                           help="write frozen constants to appconsts.py")
+                           help="write frozen constants to appconsts.py and exit")
 
     return parser
 
@@ -333,6 +333,7 @@ if __name__ == '__main__':
 
     if args.freeze:
         writeFreezeFile(args.freeze)
+        sys.exit(0)
 
     if not (args.ui or args.pot or args.po or args.mo or args.clean_po):
         makeParser().print_usage()

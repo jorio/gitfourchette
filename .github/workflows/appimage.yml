@@ -15,12 +15,6 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "${{ env.PYVER }}" }
       - run: python -m pip install --upgrade pip setuptools wheel
-
-      #########################################################################
-      # TODO: REMOVE THIS once PyQt6 6.8+ installs cleanly on CI runner (December 2024)
-      - run: sed -E -i 's/^pyqt6 = \["pyqt6"\]/pyqt6 = ["pyqt6<6.8"]/g' pyproject.toml
-      #########################################################################
-
       - run: python -m pip install --upgrade -e .[$QT_API]  # install dependencies (installing GF itself isn't necessary)
       - run: python -m pip install --upgrade git+https://github.com/niess/python-appimage
       - name: Build AppImage
