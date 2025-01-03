@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -131,6 +131,28 @@ def addComboBoxItem(comboBox: QComboBox, caption: str, userData=None, isCurrent=
     if isCurrent:
         comboBox.setCurrentIndex(index)
     return index
+
+
+def enforceComboBoxMaxVisibleItems(comboBox: QComboBox):
+    """
+    Some styles, in particular Fusion and macOS, ignore QComboBox.maxVisibleItems
+    (see https://doc.qt.io/qt-6/qcombobox.html#maxVisibleItems-prop).
+
+    This is an issue because if the popup spans the entire height the screen,
+    Fusion doesn't account for taskbars, permanent menubars, etc.
+    So, the first/last items may remain off-screen.
+
+    This function enforces maxVisibleItems on a QComboBox if the style is bad.
+    """
+    isBadStyle = comboBox.style().styleHint(QStyle.StyleHint.SH_ComboBox_Popup, QStyleOptionComboBox())
+    if not isBadStyle:
+        return
+
+    # QStyleSheetStyle::styleHint() (qstylesheetstyle.cpp)
+    comboBox.setStyleSheet(comboBox.styleSheet() + "\nQComboBox { combobox-popup: 0; }")
+
+    listView: QListView = comboBox.view()
+    listView.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
 
 def isDarkTheme(palette: QPalette | None = None):

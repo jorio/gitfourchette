@@ -468,8 +468,8 @@ class PrefsDialog(QDialog):
         offCaption = _p("syntax highlighting", "Off")
 
         control = QComboBox(self)
-        control.setStyleSheet("::item { height: 16px; }")  # Breeze-themed combobox gets unwieldy otherwise
-        control.setMaxVisibleItems(30)
+        control.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
+        control.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
         control.addItem(stockIcon("light-dark-toggle"), autoCaption, userData=PygmentsPresets.Automatic)
         control.addItem(stockIcon("SP_BrowserStop"), offCaption, userData=PygmentsPresets.Off)
         control.insertSeparator(control.count())
@@ -516,6 +516,9 @@ class PrefsDialog(QDialog):
             self.assign(prefKey, pickedStyleName)
 
         control.activated.connect(onPickStyle)
+
+        control.setMaxVisibleItems(30)
+        enforceComboBoxMaxVisibleItems(control)  # Prevent Fusion from creating a giant popup
 
         return control
 
