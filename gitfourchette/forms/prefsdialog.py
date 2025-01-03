@@ -333,8 +333,8 @@ class PrefsDialog(QDialog):
             self.assign(familyKey, family)
             self.assign(sizeKey, size)
 
-        fontControl.assign.connect(assignFont)
         fontControl.setCurrentFont(self.getMostRecentValue(familyKey), self.getMostRecentValue(sizeKey))
+        fontControl.assign.connect(assignFont)
         return fontControl
 
     def strControlWithPresets(self, prefKey, prefValue, presets, leaveBlankHint=False, validate=None):

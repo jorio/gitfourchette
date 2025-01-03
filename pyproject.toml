@@ -107,6 +107,7 @@ exclude_lines = [
     "if FLATPAK:",
     "if not BRANCH_FOLDERS:",
     "if not pygit2_version_at_least\\(",
+    "if qtIsNativeMacosStyle\\(",
 
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",

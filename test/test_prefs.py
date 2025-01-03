@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -91,19 +91,19 @@ def testPrefsFontControl(tempDir, mainWindow):
     # Change font setting, and accept
     dlg = mainWindow.openPrefsDialog("font")
     fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
-    assert not fontPicker.resetButton.isVisible()
+    assert not fontPicker.resetButton.isEnabled()
     fontPicker.familyEdit.showPopup()
     fontPicker.familyEdit.setCurrentFont(QFont(randomFamily))
     fontPicker.familyEdit.hidePopup()
-    assert fontPicker.resetButton.isVisible()
+    assert fontPicker.resetButton.isEnabled()
     dlg.accept()
     assert randomFamily == rw.diffView.document().defaultFont().family()
 
     dlg = mainWindow.openPrefsDialog("font")
     fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
-    assert fontPicker.resetButton.isVisible()
+    assert fontPicker.resetButton.isEnabled()
     fontPicker.resetButton.click()
-    assert not fontPicker.resetButton.isVisible()
+    assert not fontPicker.resetButton.isEnabled()
     dlg.accept()
     assert defaultFamily == rw.diffView.document().defaultFont().family()
 

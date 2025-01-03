@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -39,20 +39,24 @@ class FontPicker(QWidget):
             self.sizeEdit.setMinimumHeight(self.familyEdit.height())
         self.sizeEdit.setSuffix(" " + _("pt"))
 
+        self.resetButtonIconEnabled = stockIcon("SP_LineEditClearButton")
+        self.resetButtonIconDisabled = QIcon()
+        if qtIsNativeMacosStyle():
+            # Mac style QToolButton ignores autoRaise, so never set an empty icon
+            self.resetButtonIconDisabled = self.resetButtonIconEnabled
+
         self.resetButton = QToolButton(self)
-        self.resetButton.setText(_p("reset font to default", "Reset"))
-        self.resetButton.setIcon(stockIcon("SP_RestoreDefaultsButton"))
+        self.resetButton.setIcon(self.resetButtonIconEnabled)
         self.resetButton.setAutoRaise(True)
         self.resetButton.setToolTip(_("Reset to system default monospace font"))
         self.resetButton.clicked.connect(self.resetFont)
-
-        QTimer.singleShot(0, self.refreshControls)
 
         layout = QHBoxLayout(self)
         layout.addWidget(self.familyEdit)
         layout.addWidget(self.sizeEdit)
         layout.addWidget(self.resetButton)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.refreshControls()
 
     def setCurrentFont(self, family: str, size: int) -> QFont:
         font = QFont(self.defaultFont)
@@ -80,10 +84,15 @@ class FontPicker(QWidget):
         self.fireAssign()
 
     def refreshControls(self, updateFontComboBox=True):
-        self.resetButton.setVisible(not self.isDefault())
+        isDefaultFont = self.isDefault()
+
+        self.resetButton.setEnabled(not isDefaultFont)
+        self.resetButton.setIcon(self.resetButtonIconDisabled if isDefaultFont else self.resetButtonIconEnabled)
+
         font = self.currentFont
         with QSignalBlockerContext(self.sizeEdit):
             self.sizeEdit.setValue(font.pointSize())
+
         if updateFontComboBox:
             strippedFont = QFont(font)
             strippedFont.setPointSize(10)
@@ -103,17 +112,25 @@ class FontPicker(QWidget):
             self.assign.emit(cf.family(), cf.pointSize())
 
     class FamilyComboBox(QFontComboBox):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.allFamilies = QFontDatabase.families()
+            self.monospaceFamilies = [fam for fam in self.allFamilies if QFontDatabase.isFixedPitch(fam)]
+
         def showPopup(self):
-            currentFamily = self.currentFont().family()
+            # QFontComboBox automagically resolves alias families like "Monospace" to a concrete font.
+            # The concrete family is set as the current text, so preserve it (instead of currentFont.family()).
+            currentFamily = self.currentText()
+
             showAll = QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.ShiftModifier
 
-            families = QFontDatabase.families()
-            if not showAll:
-                families = [fam for fam in families
-                            if fam == currentFamily or QFontDatabase.isFixedPitch(fam)]
+            families = self.allFamilies if showAll else self.monospaceFamilies
 
             with QSignalBlockerContext(self):
                 self.clear()
+                if not showAll and currentFamily not in families:
+                    # Add current (likely proportional) font first
+                    self.addItem(currentFamily)
                 self.addItems(families)
                 self.setCurrentText(currentFamily)
 
