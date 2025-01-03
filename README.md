@@ -17,7 +17,7 @@ Learn more on GitFourchette’s homepage at [gitfourchette.org](https://gitfourc
   - [User’s Guide](https://gitfourchette.org/guide)
   - [Limitations](https://gitfourchette.org/limitations.html)
 - [Changelog](CHANGELOG.md)
-- [Localization guide](gitfourchette/assets/lang/README.md)
+- [Localization guide](https://gitfourchette.org/localization.html)
 
 ## Install
 
@@ -36,7 +36,7 @@ I started out writing GitFourchette in my spare time to scratch my itch for a Gi
 
 ## Translations welcome
 
-Feel free to [localize GitFourchette for your language on Weblate](https://hosted.weblate.org/projects/gitfourchette/gitfourchette)—it's quick and easy, no need to set up any development tools. See also our [localization guide](gitfourchette/assets/lang/README.md).
+Feel free to [localize GitFourchette for your language on Weblate](https://hosted.weblate.org/projects/gitfourchette/gitfourchette)—it's quick and easy, no need to set up any development tools. See also our [localization guide](https://gitfourchette.org/localization.html).
 
 ## Donate 🩷
 
