@@ -6,13 +6,10 @@
 
 import logging
 
-from pygments.style import StyleMeta
-from pygments.token import Token
-
 from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
-from gitfourchette.diffview.lexjob import LexJob
+from gitfourchette.syntax import ColorScheme, LexJob
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark, CallbackAccumulator
 
@@ -21,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DiffSyntaxHighlighter(QSyntaxHighlighter):
     diffDocument: DiffDocument | None
-    scheme: dict[Token, QTextCharFormat]
-    highContrastScheme: dict[Token, QTextCharFormat]
+    scheme: ColorScheme
     oldLexJob: LexJob | None
     newLexJob: LexJob | None
 
@@ -30,8 +26,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
         super().__init__(parent)
 
         self.diffDocument = None
-        self.scheme: dict[Token, QTextCharFormat] = {}
-        self.highContrastScheme: dict[Token, QTextCharFormat] = {}
+        self.scheme = ColorScheme()
 
         self.occurrenceFormat = QTextCharFormat()
         self.occurrenceFormat.setBackground(colors.yellow)
@@ -100,7 +95,7 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 return
 
             column = 0
-            scheme = self.highContrastScheme if diffLine.origin in "+-" else self.scheme
+            scheme = self.scheme.highContrastScheme if diffLine.origin in "+-" else self.scheme.scheme
 
             if diffLine.origin == '+':
                 lexJob = self.newLexJob
@@ -131,46 +126,9 @@ class DiffSyntaxHighlighter(QSyntaxHighlighter):
                 # we ignore that case) or when the file isn't decoded properly.
                 logger.warning(f"Syntax highlighting overstep on line -{diffLine.old_lineno}+{diffLine.new_lineno} {column} != {boundary}")
 
-    def setColorScheme(self, style: StyleMeta | None):
-        self.scheme = {}
-        self.highContrastScheme = {}
-
-        if style is None:
-            return
-
-        # Unpack style colors
-        # (Intentionally skipping 'bgcolor' to prevent confusion with red/green backgrounds)
-        for tokenType, styleForToken in style:
-            charFormat = QTextCharFormat()
-            if styleForToken['color']:
-                assert not styleForToken['color'].startswith('#')
-                color = QColor('#' + styleForToken['color'])
-                charFormat.setForeground(color)
-            if styleForToken['bold']:
-                charFormat.setFontWeight(QFont.Weight.Bold)
-            if styleForToken['italic']:
-                charFormat.setFontItalic(True)
-            if styleForToken['underline']:
-                charFormat.setFontUnderline(True)
-            self.scheme[tokenType] = charFormat
-
-        # Prepare a high-contrast alternative where colors pop against red/green backgrounds
-        backgroundColor = QColor(style.background_color)
-        isDarkBackground = backgroundColor.lightnessF() < .5
-
-        for tokenType, lowContrastCharFormat in self.scheme.items():
-            charFormat = QTextCharFormat(lowContrastCharFormat)
-
-            fgColor = charFormat.foreground().color()
-            if isDarkBackground:
-                fgColor = fgColor.lighter(150)
-            else:
-                fgColor = fgColor.darker(130)
-
-            charFormat.setForeground(fgColor)
-            charFormat.clearBackground()
-
-            self.highContrastScheme[tokenType] = charFormat
+    def setColorScheme(self, scheme: ColorScheme):
+        self.scheme = scheme
+        scheme.primeHighContrastVersion()
 
     @CallbackAccumulator.deferredMethod
     @benchmark

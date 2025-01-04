@@ -1,11 +1,17 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from pygments.lexer import Lexer
-from pygments.token import Token
+from __future__ import annotations
+
+try:
+    from pygments.lexer import Lexer
+    from pygments.token import Token
+except ImportError:  # pragma: no cover
+    # If Pygments isn't available, LexJob should never be instantiated!
+    pass
 
 from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *

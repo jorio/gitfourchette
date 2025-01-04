@@ -188,7 +188,7 @@ class GFApplication(QApplication):
     def endSession(self, clearTempDir=True):
         from gitfourchette import settings
         from gitfourchette.toolbox.iconbank import clearStockIconCache
-        from gitfourchette.diffview.lexjobcache import LexJobCache
+        from gitfourchette.syntax import LexJobCache
         if settings.prefs.isDirty():
             settings.prefs.write()
         if settings.history.isDirty():

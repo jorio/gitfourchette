@@ -6,7 +6,7 @@
 
 import logging
 
-from gitfourchette.diffview.lexjob import LexJob
+from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.porcelain import Oid
 from gitfourchette.toolbox import shortHash
 

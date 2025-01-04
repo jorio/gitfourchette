@@ -4,7 +4,9 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette.diffview.lexjobcache import LexJobCache
+import pytest
+
+from gitfourchette.syntax import syntaxHighlightingAvailable, LexJobCache
 from gitfourchette.nav import NavLocator
 
 from .util import *
@@ -30,6 +32,7 @@ def digestFormatRange(formatRange: QTextLayout.FormatRange):
     return (start, length, isStyled)
 
 
+@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testDeferredSyntaxHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -64,6 +67,7 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
     assert digestFormatRange(formatRange) == (0, len("hello multiline comment"), True)
 
 
+@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testLexJobCaching(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/big.py", SAMPLE_CODE * 500)  # enough tokens to require LexJob round-trip
@@ -101,6 +105,7 @@ def testLexJobCaching(tempDir, mainWindow):
     assert lexJobId == id(rw.diffView.highlighter.newLexJob)
 
 
+@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testEvictLexJobFromCache(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({ 'largeFileThresholdKB': 1e6 })
 
@@ -146,6 +151,7 @@ def testEvictLexJobFromCache(tempDir, mainWindow):
 
 
 # Simple coverage test
+@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testSyntaxHighlightingNullOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -158,6 +164,7 @@ def testSyntaxHighlightingNullOid(tempDir, mainWindow):
 
 
 # Simple coverage test
+@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

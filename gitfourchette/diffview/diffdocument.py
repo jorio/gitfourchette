@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,13 +10,13 @@ from dataclasses import dataclass
 
 from gitfourchette import colors
 from gitfourchette import settings
-from gitfourchette.diffview.lexjob import LexJob
 from gitfourchette.diffview.specialdiff import SpecialDiffError
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.subpatch import DiffLinePos
+from gitfourchette.syntax import LexJob
 from gitfourchette.toolbox import *
 
 MAX_LINE_LENGTH = 10_000
@@ -67,7 +67,7 @@ class DiffStyle:
             addColor2 = QColor(colors.teal)
             delColor2.setAlphaF(.6)
             addColor2.setAlphaF(.6)
-        elif settings.prefs.isDarkPygmentsStyle():
+        elif settings.prefs.syntaxHighlightingScheme().isDark():
             delColor2 = QColor(0x993333)
             addColor2 = QColor(0x339933)
             delColor2.setAlphaF(.6)

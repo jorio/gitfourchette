@@ -19,7 +19,6 @@ readme = "README.md"
 requires-python = ">= 3.10"
 dependencies = [
     "pygit2 >= 1.15.1",
-    "pygments >= 2.12",
 ]
 
 [project.urls]
@@ -37,6 +36,7 @@ test = ["pytest", "pytest-qt", "pytest-cov", "pytest-xdist", "ruff"]
 pyqt6 = ["pyqt6"]
 pyqt5 = ["pyqt5"]
 pyside6 = ["PySide6 !=6.4.0, !=6.4.0.1, !=6.5.1"]
+pygments = ["pygments >= 2.12"]  # syntax highlighting
 memory-indicator = ["psutil"]
 
 [tool.setuptools]

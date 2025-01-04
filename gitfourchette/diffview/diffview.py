@@ -424,15 +424,16 @@ class DiffView(QPlainTextEdit):
         self.syncViewportMarginsWithGutter()
 
         if changeColorScheme:
-            pygmentsStyle = settings.prefs.resolvePygmentsStyle()
-            self.highlighter.setColorScheme(pygmentsStyle)
+            scheme = settings.prefs.syntaxHighlightingScheme()
+            self.highlighter.setColorScheme(scheme)
             self.highlighter.rehighlight()
 
-            dark = settings.prefs.isDarkPygmentsStyle()
-            self.setProperty("dark", ["false", "true"][dark])  # See selection-background-color in .qss asset.
+            # See selection-background-color in .qss asset.
+            dark = scheme.isDark() if scheme else isDarkTheme()
+            self.setProperty("dark", "true" if dark else "false")
 
             # Had better luck setting colors with a stylesheet than via setPalette().
-            styleSheet = settings.prefs.basicQssForPygmentsStyle(self)
+            styleSheet = scheme.basicQss(self)
             self.setStyleSheet(styleSheet)
 
     def refreshWordWrap(self):

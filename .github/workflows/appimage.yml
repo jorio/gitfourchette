@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "${{ env.PYVER }}" }
       - run: python -m pip install --upgrade pip setuptools wheel
-      - run: python -m pip install --upgrade -e .[$QT_API]  # install dependencies (installing GF itself isn't necessary)
+      - run: python -m pip install --upgrade -e .[$QT_API,pygments]  # install dependencies (installing GF itself isn't necessary)
       - run: python -m pip install --upgrade git+https://github.com/niess/python-appimage
       - name: Build AppImage
         run: |

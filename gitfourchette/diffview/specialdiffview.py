@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -27,7 +27,8 @@ class SpecialDiffView(QTextBrowser):
         GFApplication.instance().restyle.connect(self.refreshPrefs)
 
     def refreshPrefs(self):
-        styleSheet = settings.prefs.basicQssForPygmentsStyle(self)
+        scheme = settings.prefs.syntaxHighlightingScheme()
+        styleSheet = scheme.basicQss(self)
         self.setStyleSheet(styleSheet)
 
         if settings.prefs.colorblind:

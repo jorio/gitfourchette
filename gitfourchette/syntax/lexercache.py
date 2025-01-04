@@ -1,17 +1,22 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
+
+from __future__ import annotations
 
 import logging
 import os.path
 from contextlib import suppress
 
-import pygments.lexers
-from pygments.lexer import Lexer
+try:
+    import pygments.lexers
+    from pygments.lexer import Lexer
+    hasPygments = True
+except ImportError:  # pragma: no cover
+    hasPygments = False
 
-from gitfourchette import settings
 from gitfourchette.toolbox import benchmark
 
 logger = logging.getLogger(__name__)
@@ -63,11 +68,14 @@ class LexerCache:
 
     @classmethod
     @benchmark
-    def getLexerFromPath(cls, path: str) -> Lexer | None:
+    def getLexerFromPath(cls, path: str, allowPlugins: bool) -> Lexer | None:
         assert path
 
+        if not hasPygments:  # pragma: no cover
+            return None
+
         if not cls.lexerAliases:
-            cls.warmUp()
+            cls.warmUp(allowPlugins)
 
         # Find lexer alias by verbatim filename or extension
         try:
@@ -99,7 +107,7 @@ class LexerCache:
 
     @classmethod
     @benchmark
-    def warmUp(cls):
+    def warmUp(cls, allowPlugins: bool):
         aliasTable = {}
 
         def shouldKeep(contenderAlias, contenderExtension):
@@ -118,7 +126,7 @@ class LexerCache:
             return False
 
         # Significant speedup with plugins=False
-        for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=settings.prefs.pygmentsPlugins):
+        for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=allowPlugins):
             if not patterns or not aliases:
                 continue
             alias = aliases[0]

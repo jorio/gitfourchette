@@ -11,18 +11,14 @@ import os
 import sys
 from contextlib import suppress
 
-import pygments.style
-import pygments.styles
-import pygments.util
-
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
 from gitfourchette.qt import *
+from gitfourchette.syntax import syntaxHighlightingAvailable, PygmentsPresets, ColorScheme
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL
 from gitfourchette.toolbox.gitutils import AuthorDisplayStyle
 from gitfourchette.toolbox.pathutils import PathDisplayStyle
-from gitfourchette.toolbox.qtutils import isDarkTheme
 from gitfourchette.toolbox.textutils import englishTitleCase
 from gitfourchette.toolcommands import ToolCommands
 
@@ -76,13 +72,6 @@ class LoggingLevel(enum.IntEnum):
     Debug = logging.DEBUG
     Info = logging.INFO
     Warning = logging.WARNING
-
-
-class PygmentsPresets:
-    Automatic = ""
-    Off = "off"
-    Light = "stata-light"
-    Dark = "stata-dark"
 
 
 @dataclasses.dataclass
@@ -175,35 +164,10 @@ class Prefs(PrefsFile):
         return os.path.expanduser("~")
 
     def isSyntaxHighlightingEnabled(self):
-        return self.syntaxHighlighting != PygmentsPresets.Off
+        return syntaxHighlightingAvailable and self.syntaxHighlighting != PygmentsPresets.Off
 
-    def resolvePygmentsStyle(self) -> pygments.style.Style | None:
-        styleName = self.syntaxHighlighting
-        if styleName == PygmentsPresets.Automatic:
-            styleName = PygmentsPresets.Dark if isDarkTheme() else PygmentsPresets.Light
-        if styleName == PygmentsPresets.Off:
-            return None
-        try:
-            return pygments.styles.get_style_by_name(styleName)
-        except pygments.util.ClassNotFound:
-            return None
-
-    def isDarkPygmentsStyle(self) -> bool:
-        style = self.resolvePygmentsStyle()
-        if style is None:
-            return isDarkTheme()
-        bgColor = QColor(style.background_color)
-        return bgColor.lightnessF() < .5
-
-    def basicQssForPygmentsStyle(self, qobject):
-        pygmentsStyle = self.resolvePygmentsStyle()
-        if pygmentsStyle is None:
-            return "/* no Pygments style */"
-        bgColor = pygmentsStyle.background_color
-        fgColor = "black"
-        with suppress(TypeError):
-            fgColor = '#' + pygmentsStyle.style_for_token(pygments.token.Token.Text)['color']
-        return f"{type(qobject).__name__} {{ background-color: {bgColor}; color: {fgColor}; }}"
+    def syntaxHighlightingScheme(self):
+        return ColorScheme.resolve(self.syntaxHighlighting)
 
 
 @dataclasses.dataclass

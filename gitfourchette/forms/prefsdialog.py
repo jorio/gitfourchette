@@ -5,13 +5,11 @@
 # -----------------------------------------------------------------------------
 
 import logging
-from contextlib import suppress
 from typing import Any
-
-import pygments.styles
 
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
+from gitfourchette.syntax import ColorScheme, syntaxHighlightingAvailable
 from gitfourchette.qt import *
 from gitfourchette.settings import (
     SHORT_DATE_PRESETS,
@@ -464,6 +462,11 @@ class PrefsDialog(QDialog):
 
     @benchmark
     def syntaxHighlightingControl(self, prefKey, prefValue):
+        if not syntaxHighlightingAvailable:  # pragma: no cover
+            sorry = QLabel(_("This feature requires {0}.", "Pygments"))
+            sorry.setEnabled(False)
+            return sorry
+
         autoCaption = _p("syntax highlighting", "Automatic ({name})", name=PygmentsPresets.Dark if isDarkTheme() else PygmentsPresets.Light)
         offCaption = _p("syntax highlighting", "Off")
 
@@ -473,40 +476,16 @@ class PrefsDialog(QDialog):
         control.addItem(stockIcon("light-dark-toggle"), autoCaption, userData=PygmentsPresets.Automatic)
         control.addItem(stockIcon("SP_BrowserStop"), offCaption, userData=PygmentsPresets.Off)
         control.insertSeparator(control.count())
-        control.insertSeparator(control.count())  # Separator between light and dark styles
-        middleInsertionPoint = control.count() - 1
 
-        def getStyleColor(style, *tokenTypes):
-            for t in tokenTypes:
-                with suppress(TypeError):
-                    return QColor('#' + style.style_for_token(t)['color'])
-            return QColor(Qt.GlobalColor.black)
-
-        if prefs.pygmentsPlugins:
-            allStyles = pygments.styles.get_all_styles()
-        else:
-            allStyles = (styleName for _dummy1, styleName, _dummy2 in pygments.styles.STYLES.values())
-
-        for styleName in sorted(allStyles):
-            style = pygments.styles.get_style_by_name(styleName)
-
-            bgColor = QColor(style.background_color)
-            accent1 = getStyleColor(style, pygments.token.Name.Class, pygments.token.Text)
-            accent2 = getStyleColor(style, pygments.token.Name.Function, pygments.token.Operator)
-            accent3 = getStyleColor(style, pygments.token.Keyword, pygments.token.Comment)
-
-            # Insert light styles at top of list, dark styles at end of list
-            if bgColor.lightnessF() >= .5:
-                insertionPoint = middleInsertionPoint
-                middleInsertionPoint += 1
-            else:
-                insertionPoint = control.count()
-
+        previousStyleName = ""
+        for styleName, chipColors in ColorScheme.stylePreviews(prefs.pygmentsPlugins).items():
+            # Insert a separator between light and dark themes, i.e. when sorting resets
+            if styleName < previousStyleName:
+                control.insertSeparator(control.count())
+            previousStyleName = styleName
             # Little icon to preview the colors in this style
-            chipColors = f"black={bgColor.name()};white={accent1.name()};red={accent2.name()};blue={accent3.name()}"
             chip = stockIcon("colorscheme-chip", chipColors)
-
-            control.insertItem(insertionPoint, chip, styleName, userData=styleName)
+            control.addItem(chip, styleName, userData=styleName)
 
         index = control.findData(prefValue)
         control.setCurrentIndex(index)

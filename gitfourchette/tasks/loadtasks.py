@@ -12,9 +12,9 @@ from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument
-from gitfourchette.diffview.lexercache import LexerCache
-from gitfourchette.diffview.lexjob import LexJob
-from gitfourchette.diffview.lexjobcache import LexJobCache
+from gitfourchette.syntax.lexercache import LexerCache
+from gitfourchette.syntax.lexjob import LexJob
+from gitfourchette.syntax.lexjobcache import LexJobCache
 from gitfourchette.diffview.specialdiff import (ShouldDisplayPatchAsImageDiff, SpecialDiffError, DiffImagePair)
 from gitfourchette.graph import GraphBuildLoop
 from gitfourchette.graphview.commitlogmodel import SpecialRow
@@ -367,7 +367,7 @@ class LoadPatch(RepoTask):
         if not settings.prefs.isSyntaxHighlightingEnabled():
             return None, None
 
-        lexer = LexerCache.getLexerFromPath(newFile.path)
+        lexer = LexerCache.getLexerFromPath(newFile.path, settings.prefs.pygmentsPlugins)
 
         if lexer is None:
             return None, None

@@ -9,11 +9,11 @@ from pathlib import Path
 from textwrap import dedent
 
 import pygit2
-import pygments
 
 from gitfourchette.forms.ui_aboutdialog import Ui_AboutDialog
 from gitfourchette.localization import *
 from gitfourchette.qt import *
+from gitfourchette.syntax import pygmentsVersion
 from gitfourchette.toolbox import *
 
 WEBSITE_URL = "https://gitfourchette.org"
@@ -97,7 +97,7 @@ class AboutDialog(QDialog):
             <li><b>libgit2</b> {pygit2.LIBGIT2_VERSION} <small>({', '.join(getPygit2FeatureStrings())})</small>
             <li><b>{QT_BINDING}</b> {QT_BINDING_VERSION}{qtBindingSuffix}
             <li><b>Qt</b> {qVersion()}
-            <li><b>Pygments</b> {pygments.__version__}
+            <li><b>Pygments</b> {pygmentsVersion or _('(not available)')}
             <li><b>Python</b> {'.'.join(str(i) for i in sys.version_info)}
             </ul>
         """))
