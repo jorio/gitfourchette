@@ -18,7 +18,9 @@ classifiers = [
 readme = "README.md"
 requires-python = ">= 3.10"
 dependencies = [
-    "pygit2 >= 1.15.1",
+    # pygit2 1.15.1 is strongly recommended to be able to use all features,
+    # but we're maintaining backwards compatibility with 1.14.1 for now.
+    "pygit2 >= 1.14.1",
 ]
 
 [project.urls]

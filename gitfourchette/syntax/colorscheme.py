@@ -131,6 +131,11 @@ class ColorScheme:
         if not hasPygments or cls._cachedPreviews:
             return cls._cachedPreviews
 
+        # pygments.styles.STYLES appeared in Pygments 2.17,
+        # but we're maintaining backwards compatibility with old Pygments versions for now.
+        if not hasattr(pygments.styles, 'STYLES'):  # pragma: no cover
+            withPlugins = True
+
         if withPlugins:
             allStyles = pygments.styles.get_all_styles()
         else:

@@ -10,6 +10,8 @@ from gitfourchette.toolbox import abbreviatePerson, AuthorDisplayStyle
 from gitfourchette.webhost import WebHost
 from pygit2 import Signature
 
+from .util import pygit2OlderThan
+
 EXAMPLE_REMOTE_URLS = [
     "https://example.com/user/repo",
     "https://personal!access_token-1234@example.com/user/repo",
@@ -81,6 +83,7 @@ def testWebHostRegexes(exampleUrl):
     assert web == "https://codeberg.org/user/repo/src/branch/branch"
 
 
+@pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 @pytest.mark.parametrize("fullName", AUTHOR_ABBREVIATIONS.keys())
 def testAuthorNameAbbreviation(fullName):
     initials, firstName, lastName = AUTHOR_ABBREVIATIONS[fullName]
