@@ -39,6 +39,7 @@ from .persistentfiledialog import PersistentFileDialog
 from .qbusyspinner import QBusySpinner
 from .qcomboboxwithpreview import QComboBoxWithPreview
 from .qelidedlabel import QElidedLabel
+from .qfaintseparator import QFaintSeparator
 from .qfilepickercheckbox import QFilePickerCheckBox
 from .qhintbutton import QHintButton
 from .qsignalblockercontext import QSignalBlockerContext

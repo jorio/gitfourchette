@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -32,14 +32,6 @@ FILEHEADER_HEIGHT = 24
 logger = logging.getLogger(__name__)
 
 
-class FaintSeparator(QFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setFrameStyle(QFrame.Shape.HLine)
-        self.setMaximumHeight(1)
-        self.setEnabled(False)
-
-
 def gridPadding():
     return QSpacerItem(3, 1, QSizePolicy.Policy.Fixed)
 
@@ -66,7 +58,7 @@ class DiffArea(QWidget):
         layout.setSpacing(0)
         layout.addWidget(contextHeader)
         layout.addWidget(diffBanner)
-        layout.addWidget(FaintSeparator(self))
+        layout.addWidget(QFaintSeparator(self))
         layout.addWidget(splitter, 1)
 
         splitter.addWidget(fileStack)

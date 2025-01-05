@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -369,10 +369,13 @@ class GFApplication(QApplication):
     # -------------------------------------------------------------------------
 
     def onRestyle(self):
+        from gitfourchette.toolbox.qtutils import isDarkTheme
         from gitfourchette.toolbox.iconbank import clearStockIconCache
-        styleSheetFile = QFile("assets:style.qss")
-        if styleSheetFile.open(QFile.OpenModeFlag.ReadOnly):
-            styleSheet = styleSheetFile.readAll().data().decode("utf-8")
-            self.setStyleSheet(styleSheet)
-            styleSheetFile.close()
+
+        styleSheet = Path(QFile("assets:style.qss").fileName()).read_text()
+        if isDarkTheme():  # Append dark override
+            darkSupplement = Path(QFile("assets:style-dark.qss").fileName()).read_text()
+            styleSheet += darkSupplement
+        self.setStyleSheet(styleSheet)
+
         clearStockIconCache()
