@@ -1,10 +1,10 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.1.0"
 APP_SYSTEM_NAME = "gitfourchette"
 APP_DISPLAY_NAME = "GitFourchette"
 APP_URL_SCHEME = APP_SYSTEM_NAME

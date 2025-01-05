@@ -44,4 +44,5 @@ GitFourchette is free—both as in beer and as in freedom. But if it helped you 
 
 ## License
 
-GitFourchette © 2024 Iliyas Jorio. Distributed under the terms of the [GNU General Public License v3](LICENSE).
+GitFourchette © 2025 Iliyas Jorio.
+Distributed under the terms of the [GNU General Public License v3](LICENSE).

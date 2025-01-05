@@ -60,7 +60,7 @@ app = BUNDLE(
     bundle_identifier='org.gitfourchette.gitfourchette',
     version=APP_VERSION,
     info_plist={
-        "NSReadableCopyright": "© 2024 Iliyas Jorio",
+        "NSReadableCopyright": "© 2025 Iliyas Jorio",
         "LSApplicationCategoryType": "public.app-category.developer-tools",
         "CFBundleDocumentTypes": [
             {

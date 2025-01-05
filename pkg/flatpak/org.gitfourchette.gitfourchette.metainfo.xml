@@ -62,6 +62,17 @@
   </keywords>
 
   <releases>
+    <release version="1.1.0" date="2025-01-05" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.1.0</url>
+      <description>
+        <ul>
+        <li>Syntax highlighting with Pygments (optional dependency)</li>
+        <li>Customizable ref indicator width (Settings → Commit History) (#10)</li>
+        <li>Condensed fonts can be disabled (Settings → Advanced) (#10)</li>
+        <li>Improved settings dialog UI</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.2" date="2024-12-16" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.0.2</url>
       <description>

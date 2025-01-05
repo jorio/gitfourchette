@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -68,7 +68,7 @@ class AboutDialog(QDialog):
         versionText = _("Version {0}", appVersion)
         self.ui.versionLabel.setText(dedent(f"""\
             <span style='color:{mutedTextColorHex(self)}'><b>{versionText}</b> {buildInfo}
-            <br>Copyright © 2024 Iliyas Jorio"""))
+            <br>Copyright © 2025 Iliyas Jorio"""))
 
         # ---------------------------------------------------------------------
         # About page

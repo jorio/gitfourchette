@@ -1,5 +1,12 @@
 # GitFourchette version history
 
+## 1.1.0 (2025-01-05)
+
+- Syntax highlighting with Pygments (optional dependency)
+- Customizable ref indicator width (Settings → Commit History) (#10)
+- Condensed fonts can be disabled (Settings → Advanced) (#10)
+- Improved settings dialog UI
+
 ## 1.0.2 (2024-12-16)
 
 - Support launching a Flatpak as an external diff/merge tool (#4)
