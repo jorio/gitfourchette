@@ -63,7 +63,7 @@ from .qtutils import (
     openFolder, showInFolder,
     DisableWidgetContext,
     DisableWidgetUpdatesContext,
-    QScrollBackupContext, QTabBarStyleNoRotatedText,
+    QScrollBackupContext,
     makeInternalLink,
     MultiShortcut,
     makeMultiShortcut,

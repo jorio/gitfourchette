@@ -21,18 +21,18 @@ def testPrefsDialog(tempDir, mainWindow):
 
     # Open prefs, reset to first tab to prevent spillage from any previous test
     dlg = openPrefs()
-    dlg.tabs.setCurrentIndex(0)
+    dlg.setCategory(0)
     dlg.reject()
 
     # Open prefs, navigate to some tab and reject
     dlg = openPrefs()
-    assert dlg.tabs.currentIndex() == 0
-    dlg.tabs.setCurrentIndex(2)
+    assert dlg.stackedWidget.currentIndex() == 0
+    dlg.setCategory(2)
     dlg.reject()
 
     # Open prefs again and check that the tab was restored
     dlg = openPrefs()
-    assert dlg.tabs.currentIndex() == 2
+    assert dlg.stackedWidget.currentIndex() == 2
     dlg.reject()
 
     # Change statusbar setting, and cancel

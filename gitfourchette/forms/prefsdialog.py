@@ -9,14 +9,9 @@ from typing import Any
 
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
-from gitfourchette.syntax import ColorScheme, syntaxHighlightingAvailable
+from gitfourchette.syntax import ColorScheme, PygmentsPresets, syntaxHighlightingAvailable
 from gitfourchette.qt import *
-from gitfourchette.settings import (
-    SHORT_DATE_PRESETS,
-    prefs,
-    qtIsNativeMacosStyle,
-    PygmentsPresets,
-)
+from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
 from gitfourchette.toolbox import *
 from gitfourchette.toolcommands import ToolCommands
 from gitfourchette.trtables import TrTables
@@ -46,7 +41,7 @@ def hBoxWidget(*controls):
 
 
 class PrefsDialog(QDialog):
-    lastOpenTab = 0
+    lastCategory = 0
 
     prefDiff: dict[str, Any]
     "Delta to on-disk preferences."
@@ -59,28 +54,31 @@ class PrefsDialog(QDialog):
         self.setWindowTitle(_("{app} Settings", app=qAppName()))
 
         self.prefDiff = {}
+        self.categoryNames = []
 
         # Prepare main widgets & layout
-        tabWidget = QTabWidget(self)
-        self.tabs = tabWidget
+        self.categoryList = QListWidget()
+        self.categoryList.setMaximumWidth(150)
+        self.categoryList.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.categoryList.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.categoryList.currentRowChanged.connect(self.onCategoryChanged)
+
+        self.categoryLabel = QLabel("CATEGORY")
+        tweakWidgetFont(self.categoryLabel, 130)
+
+        self.stackedWidget = QStackedWidget()
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(tabWidget)
-        layout.addWidget(buttonBox)
-
-        # Make tabs vertical if possible (macOS style: too messy)
-        if qtIsNativeMacosStyle():
-            tabWidget.setTabPosition(QTabWidget.TabPosition.North)
-        else:
-            # Pass a string to the proxy's ctor, NOT QApplication.style() as this would transfer the ownership
-            # of the style to the proxy!!!
-            proxyStyle = QTabBarStyleNoRotatedText(prefs.qtStyle)
-            tabWidget.setStyle(proxyStyle)
-            tabWidget.setTabPosition(QTabWidget.TabPosition.West if self.isLeftToRight() else QTabWidget.TabPosition.East)
+        layout = QGridLayout(self)
+        layout.addWidget(self.categoryList,     0, 0, 4, 1)
+        layout.addWidget(self.categoryLabel,    0, 1)
+        layout.addWidget(QFaintSeparator(),     1, 1)
+        layout.addWidget(self.stackedWidget,    2, 1)
+        layout.setColumnStretch(0, 0)
+        # The buttonBox will be added last so that the tab order makes sense.
 
         category = "general"
         categoryForms: dict[str, QFormLayout] = {}
@@ -117,8 +115,10 @@ class PrefsDialog(QDialog):
                 form = QFormLayout(formContainer)
                 form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
                 categoryForms[category] = form
-                tabName = TrTables.prefKey(category)
-                tabWidget.addTab(formContainer, tabName)
+                categoryName = TrTables.prefKey(category)
+                self.categoryNames.append(categoryName)
+                self.stackedWidget.addWidget(formContainer)
+                self.categoryList.addItem(categoryName)
 
                 headerText = TrTables.prefKey(f"{category}_HEADER")
                 if headerText != f"{category}_HEADER":
@@ -176,21 +176,30 @@ class PrefsDialog(QDialog):
 
             # If the current key matches the setting we want to focus on, bring this tab to the foreground
             if focusOn == prefKey:
-                tabWidget.setCurrentWidget(form.parentWidget())
+                self.setCategory(self.stackedWidget.indexOf(form.parentWidget()))
                 control.setFocus()
 
+        # Add buttonBox last so that it's comes last in the tab order
+        layout.addWidget(buttonBox, 3, 1)
+
         if not focusOn:
-            # Restore last open tab
-            tabWidget.setCurrentIndex(PrefsDialog.lastOpenTab)
+            # Restore last category
+            self.setCategory(PrefsDialog.lastCategory)
             buttonBox.button(QDialogButtonBox.StandardButton.Ok).setFocus()
         else:
-            # Save this tab if we close the dialog without changing tabs
-            self.saveLastOpenTab(tabWidget.currentIndex())
-
-        # Remember which tab we've last clicked on for next time we open the dialog
-        tabWidget.currentChanged.connect(PrefsDialog.saveLastOpenTab)
+            # Save this category if we close the dialog without changing tabs
+            PrefsDialog.lastCategory = self.stackedWidget.currentIndex()
 
         self.setModal(True)
+
+    def setCategory(self, row: int):
+        self.categoryList.setCurrentRow(row)
+
+    def onCategoryChanged(self, row: int):
+        self.stackedWidget.setCurrentIndex(row)
+        self.categoryLabel.setText(self.categoryNames[row])
+        # Remember which tab we've last clicked on for next time we open the dialog
+        PrefsDialog.lastCategory = row
 
     def assign(self, k, v):
         if prefs.__dict__[k] == v:
@@ -207,10 +216,6 @@ class PrefsDialog(QDialog):
             return prefs.__dict__[k]
         else:
             return None
-
-    @staticmethod
-    def saveLastOpenTab(i):
-        PrefsDialog.lastOpenTab = i
 
     def getHiddenSettingKeys(self) -> set[str]:
         skipKeys = {
