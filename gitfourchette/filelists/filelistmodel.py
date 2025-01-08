@@ -20,6 +20,12 @@ from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
+STATUS_ICON_LETTERS = "xadmrxxatxu"
+"""
+Table of status_*.svg icons for each enum entry
+in pygit2.enums.DeltaStatus.
+"""
+
 
 def deltaModeText(delta: DiffDelta):
     if not delta:
@@ -262,12 +268,8 @@ class FileListModel(QAbstractListModel):
             delta = entry.delta
             if not delta:
                 iconName = "status_x"
-            elif delta.status == DeltaStatus.UNTRACKED:
-                iconName = "status_a"
-            elif delta.status == DeltaStatus.CONFLICTED:
-                iconName = "status_u"
             else:
-                iconName = "status_" + delta.status_char().lower()
+                iconName = "status_" + STATUS_ICON_LETTERS[int(delta.status)]
             return stockIcon(iconName)
 
         elif role == Qt.ItemDataRole.ToolTipRole:

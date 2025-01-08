@@ -68,6 +68,7 @@ class DirtyFiles(FileList):
                 contextMenuActionIgnore,
                 ActionDef.SEPARATOR,
                 *self.contextMenuActionsDiff(patches),
+                self.contextMenuActionBlame(patches),
             ]
 
         elif onlyConflicts:

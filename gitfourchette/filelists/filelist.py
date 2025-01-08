@@ -318,6 +318,20 @@ class FileList(QListView):
                 self.openHeadRevision),
         ]
 
+    def contextMenuActionBlame(self, patches):
+        isEnabled = False
+        if len(patches) == 1:
+            patch = patches[0]
+            isEnabled = True
+            if self.navContext.isWorkdir():
+                isEnabled = patch.delta.status != DeltaStatus.ADDED
+
+        return ActionDef(
+            englishTitleCase(OpenBlame.name()),
+            self.blameFile,
+            enabled=isEnabled,
+        )
+
     # -------------------------------------------------------------------------
 
     def confirmBatch(self, callback: Callable[[Patch], None], title: str, prompt: str, threshold: int = 3):
@@ -670,3 +684,12 @@ class FileList(QListView):
             selectionModel.setCurrentIndex(currentIndex, SF.Rows | SF.Current)
 
         return True
+
+    def blameFile(self):
+        def run(patch: Patch):
+            path: str = patch.delta.new_file.path
+            seed: Oid = self.commitId
+            OpenBlame.invoke(self, path, seed)
+
+        self.confirmBatch(run, OpenBlame.name(), _("Really open <b>{n} windows</b>?"))
+

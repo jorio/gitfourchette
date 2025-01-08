@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -38,6 +38,8 @@ class CommittedFiles(FileList):
                 ),
 
                 *self.contextMenuActionsDiff(patches),
+
+                self.contextMenuActionBlame(patches),
 
                 ActionDef.SEPARATOR,
 

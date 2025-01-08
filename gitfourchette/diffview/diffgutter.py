@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -141,8 +141,8 @@ class DiffGutter(QWidget):
             if blockNumber >= len(diffView.lineData):
                 break
 
-            ld = diffView.lineData[blockNumber]
             if block.isVisible() and bottom >= paintRect.top():
+                ld = diffView.lineData[blockNumber]
                 if ld.diffLine:
                     # Draw line numbers
                     old = str(ld.diffLine.old_lineno) if ld.diffLine.old_lineno > 0 else noOldPlaceholder
