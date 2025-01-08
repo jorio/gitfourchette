@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -586,21 +586,6 @@ class PlaybackState(Frame):
 
         assert isinstance(self.row, BatchRow)
 
-    def advanceToCommit(self, commit: Oid):
-        """
-        Advances playback until a specific commit hash is found.
-        Raises StopIteration if the commit wasn't found.
-        """
-        justSeenCommits = set()
-        if self.commit == commit:
-            self.callingNextWillAdvanceFrame = True
-            justSeenCommits.add(self.commit)
-        else:
-            while self.commit != commit:
-                self.advanceToNextRow()
-                justSeenCommits.add(self.commit)
-        return justSeenCommits
-
     def __iter__(self):
         return self
 
@@ -872,7 +857,8 @@ class Graph:
         # Verify keyframes
         playback = self.startPlayback(0)
         for row, keyframe in zip(self.keyframeRows, self.keyframes, strict=True):
-            playback.advanceToCommit(keyframe.commit)
+            while playback.commit != keyframe.commit:
+                next(playback)
             frame1 = playback.sealCopy()
             frame2 = keyframe.sealCopy()
             assert frame1 == frame2, f"Keyframe at row {row} doesn't match actual graph state"

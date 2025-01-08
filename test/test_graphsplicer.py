@@ -370,7 +370,7 @@ def testGraphSplicing(scenarioKey):
 
     assert [c.id for c in spliceLoop.commitSequence] == [c.id for c in sequence2], "output commit sequence incorrect"
 
-    for trashedCommit in (spliceLoop.splicer.oldCommitsSeen - spliceLoop.splicer.newCommitsSeen):
+    for trashedCommit in (spliceLoop.splicer.oldPlayer.seenCommits - spliceLoop.splicer.newGraph.commitRows.keys()):
         assert not any(trashedCommit == c.id for c in sequence2), f"commit '{trashedCommit}' erroneously trashed"
 
     assert spliceLoop.splicer.foundEquilibrium == expectEquilibrium

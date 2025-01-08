@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class GraphSplicer:
     def __init__(self, oldGraph: Graph, oldHeads: Iterable[Oid], newHeads: Iterable[Oid]):
-        self.keepGoing = True
+        self.done = False
         self.foundEquilibrium = False
         self.equilibriumNewRow = -1
         self.equilibriumOldRow = -1
@@ -41,17 +41,12 @@ class GraphSplicer:
         # Commits that we must see before finding the equilibrium.
         newHeads = set(newHeads)
         oldHeads = set(oldHeads)
+        self.newHeads = newHeads
         self.requiredNewCommits = (newHeads - oldHeads)  # heads that appeared
         self.requiredOldCommits = (oldHeads - newHeads)  # heads that disappeared
-        self.newHeads = newHeads
-
-        self.newCommitsSeen: set[Oid] = set()
-        self.oldCommitsSeen: set[Oid] = set()
 
     def spliceNewCommit(self, newCommit: Oid, parentsOfNewCommit: list[Oid], keyframeInterval=KF_INTERVAL):
-        assert self.keepGoing
-
-        self.newCommitsSeen.add(newCommit)
+        assert not self.done
 
         # Generate arcs for new frame.
         self.weaver.newCommit(newCommit, parentsOfNewCommit)
@@ -77,44 +72,41 @@ class GraphSplicer:
         if newCommit in self.oldPlayer.seenCommits:
             return
 
-        # Alright, we know the commit is ahead in the old graph. Advance playback to it.
+        # We know the new commit is ahead in the old graph.
+        # Advance playback of the old graph to the new commit.
         try:
-            oldCommitsPassed = self.oldPlayer.advanceToCommit(newCommit)
+            while self.oldPlayer.commit != newCommit:
+                self.oldPlayer.advanceToNextRow()  # May raise StopIteration
+
+                oldCommit = self.oldPlayer.commit
+                self.requiredOldCommits.discard(oldCommit)
+
+                # Topological sort may reorder branches. If we've skipped a
+                # head that still exists, we've got to see it in the new graph.
+                if oldCommit in self.newHeads and oldCommit not in self.newGraph.commitRows:
+                    self.requiredNewCommits.add(oldCommit)
+                # Otherwise, the old commit is now unreachable. We'll purge it afterward.
+
+            self.requiredOldCommits.discard(newCommit)
+
         except StopIteration:
             # Old graph depleted.
-            self.keepGoing = False
+            self.onGraphDepleted()
             return
-
-        # We just passed by some old commits; remove them from the set of old commits we need to see.
-        if self.requiredOldCommits:
-            self.requiredOldCommits -= oldCommitsPassed
-
-        # Topological sort may reorder branches.
-        # If we've passed by any heads that still exist, we've got to see them in the new graph.
-        self.requiredNewCommits |= (oldCommitsPassed & self.newHeads) - self.newCommitsSeen
-
-        # Keep track of any commits we may have skipped in the old graph,
-        # because they are now unreachable and we want to purge them from the cache afterward.
-        self.oldCommitsSeen |= oldCommitsPassed
 
         # See if we're done: no more commits we want to see,
         # and the graph frames start being "equal" in both graphs.
-        if (len(self.requiredNewCommits) == 0 and
-                len(self.requiredOldCommits) == 0 and
+        if (not self.requiredNewCommits and
+                not self.requiredOldCommits and
                 self.isEquilibriumReached(self.weaver, self.oldPlayer)):
-            self.foundEquilibrium = True
-            self.keepGoing = False
-            return
-
-    def finish(self):
-        if self.foundEquilibrium:
             self.onEquilibriumFound()
-        else:
-            self.onOldGraphDepleted()
-        self.keepGoing = False
+            return
 
     def onEquilibriumFound(self):
         """Completion with equilibrium"""
+
+        self.done = True
+        self.foundEquilibrium = True
 
         # We'll basically concatenate newContext[eqNewRow:] and oldContext[:eqOldRow].
         equilibriumNewRow = int(self.weaver.row)
@@ -173,7 +165,7 @@ class GraphSplicer:
             self.oldGraph.deleteArcsDependingOnRowsAbove(equilibriumOldRow)
 
         with Benchmark("Delete lost rows"):
-            for lostCommit in (self.oldCommitsSeen - self.newCommitsSeen):
+            for lostCommit in (self.oldPlayer.seenCommits - self.newGraph.commitRows.keys()):
                 del self.oldGraph.commitRows[lostCommit]
 
         with Benchmark(F"Shift {len(self.oldGraph.ownBatches)} old batches by {rowShiftInOldGraph} rows"):
@@ -190,8 +182,10 @@ class GraphSplicer:
         # Invalidate volatile player, which may be referring to dead keyframes
         self.oldGraph.volatilePlayer = None
 
-    def onOldGraphDepleted(self):
+    def onGraphDepleted(self):
         """Completion without equilibrium: no more commits in oldGraph"""
+
+        self.done = True
 
         # If we exited the loop without reaching equilibrium, the whole graph has changed.
         # In that case, steal the contents of newGraph, and bail.

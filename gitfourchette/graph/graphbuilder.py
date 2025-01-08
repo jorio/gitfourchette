@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -161,10 +161,11 @@ class GraphSpliceLoop:
         hiddenTrickle = self.hiddenTrickle
         foreignTrickle = self.foreignTrickle
 
-        while splicer.keepGoing:
+        while not splicer.done:
             try:
                 commit = yield
             except GeneratorExit:
+                splicer.onGraphDepleted()
                 break
             oid = commit.id
             parents = commit.parent_ids
@@ -173,8 +174,6 @@ class GraphSpliceLoop:
             splicer.spliceNewCommit(oid, parents, self.keyframeInterval)
             hiddenTrickle.newCommit(oid, parents)
             foreignTrickle.newCommit(oid, parents)
-
-        splicer.finish()
 
         if splicer.foundEquilibrium:
             nRemoved = splicer.equilibriumOldRow
