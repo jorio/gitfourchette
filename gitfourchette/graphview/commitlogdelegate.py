@@ -353,6 +353,10 @@ class CommitLogDelegate(QStyledItemDelegate):
         bgColor = QColor(color)
         iconName = refboxDef.icon
 
+        # Omit remote name if there's a single remote
+        if refboxDef.prefix == RefPrefix.REMOTES and len(self.repoModel.remotes) == 1:
+            text = text.split('/', 1)[-1]
+
         if dark:
             color = color.lighter(300)
             bgColor.setAlphaF(.5)
