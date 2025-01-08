@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -179,13 +179,13 @@ SCENARIOS = {
     "1 to 2": (
         "b",
         "a-b",
-        False,
+        True,
     ),
 
     "1 to 2b": (
         "y-x-c",
         "a-b-c",
-        False,
+        True,
     ),
 
     "1 to 0": (
@@ -329,6 +329,12 @@ SCENARIOS = {
         "a:m f-d-e:m b-c-m-n-z",
         True,
     ),
+
+    "topo sort branch shuffle 4": (
+        "u:a i-j a-b",
+        "u-n-a-b i-j",
+        False
+    ),
 }
 
 
@@ -362,12 +368,12 @@ def testGraphSplicing(scenarioKey):
     spliceLoop.sendAll(sequence2)
     g.testConsistency()
 
-    assert [c.id for c in sequence2] == [c.id for c in spliceLoop.commitSequence], "output commit sequence incorrect"
+    assert [c.id for c in spliceLoop.commitSequence] == [c.id for c in sequence2], "output commit sequence incorrect"
 
     for trashedCommit in (spliceLoop.splicer.oldCommitsSeen - spliceLoop.splicer.newCommitsSeen):
         assert not any(trashedCommit == c.id for c in sequence2), f"commit '{trashedCommit}' erroneously trashed"
 
-    assert expectEquilibrium == spliceLoop.splicer.foundEquilibrium
+    assert spliceLoop.splicer.foundEquilibrium == expectEquilibrium
 
     # delete the splicer to ensure that any dtors don't mess up the spliced graph
     del spliceLoop

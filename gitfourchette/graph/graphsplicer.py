@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -43,6 +43,7 @@ class GraphSplicer:
         oldHeads = set(oldHeads)
         self.requiredNewCommits = (newHeads - oldHeads)  # heads that appeared
         self.requiredOldCommits = (oldHeads - newHeads)  # heads that disappeared
+        self.newHeads = newHeads
 
         self.newCommitsSeen: set[Oid] = set()
         self.oldCommitsSeen: set[Oid] = set()
@@ -88,14 +89,13 @@ class GraphSplicer:
         if self.requiredOldCommits:
             self.requiredOldCommits -= oldCommitsPassed
 
+        # Topological sort may reorder branches.
+        # If we've passed by any heads that still exist, we've got to see them in the new graph.
+        self.requiredNewCommits |= (oldCommitsPassed & self.newHeads) - self.newCommitsSeen
+
         # Keep track of any commits we may have skipped in the old graph,
         # because they are now unreachable and we want to purge them from the cache afterward.
         self.oldCommitsSeen |= oldCommitsPassed
-
-        # Topological sort may reorder branches. If that happens, we can't infer whether splicing is
-        # complete from a commit that has no parents. Examine at least one more commit.
-        if not parentsOfNewCommit:
-            return
 
         # See if we're done: no more commits we want to see,
         # and the graph frames start being "equal" in both graphs.
