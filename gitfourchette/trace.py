@@ -8,9 +8,12 @@ from __future__ import annotations as _annotations
 
 import dataclasses as _dataclasses
 import logging as _logging
+from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette.porcelain import *
 from gitfourchette.settings import DEVDEBUG
+from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL, Benchmark
 
 _logger = _logging.getLogger(__name__)
 
@@ -270,5 +273,28 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
             ll.unlink(node)
 
     _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant.")
-    # ll.dump()
     return ll
+
+
+def traceCommandLineTool():
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description="GitFourchette trace/blame tool")
+    parser.add_argument("path", help="File path")
+    parser.add_argument("--dump", action="store_true", help="Dump file history")
+    args = parser.parse_args()
+
+    _logging.basicConfig(level=BENCHMARK_LOGGING_LEVEL)
+    _logging.captureWarnings(True)
+
+    repo = Repo(args.path)
+    relPath = Path(args.path)
+    with suppress(ValueError):
+        relPath = relPath.relative_to(repo.workdir)
+    with Benchmark("Trace"):
+        trace = traceFile(str(relPath), repo.head.peel(Commit))
+    if args.dump:
+        trace.dump()
+
+
+if __name__ == '__main__':
+    traceCommandLineTool()
