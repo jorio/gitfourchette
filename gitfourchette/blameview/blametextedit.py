@@ -15,6 +15,8 @@ from gitfourchette.toolbox import *
 
 
 class BlameTextEdit(QPlainTextEdit):
+    selectIndex = Signal(int)
+
     model: BlameModel
 
     def __init__(self, model, parent=None):
@@ -82,15 +84,16 @@ class BlameTextEdit(QPlainTextEdit):
         commitId = hunk.orig_commit_id
 
         try:
-            point = next(point for point in self.model.trace if point.commitId == commitId)
-        except StopIteration:
-            point = None
+            commitIndex = self.model.trace.indexOfCommit(commitId)
+        except ValueError:
+            commitIndex = -1
 
         actions = [
-            # ActionDef(
-            #     _("Blame File at {0}").format(shortHash(commitId)),
-            #     enabled=bool(point),
-            # ),
+            ActionDef(
+                _("Blame File at {0}").format(shortHash(commitId)),
+                enabled=commitIndex >= 0,
+                callback=lambda: self.selectIndex.emit(commitIndex)
+            ),
 
             TaskBook.action(
                 self,

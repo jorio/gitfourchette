@@ -10,13 +10,13 @@ from pygit2 import Blame
 
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.trace import TraceNode
+from gitfourchette.trace import Trace
 
 
 @dataclasses.dataclass
 class BlameModel:
     repoModel: RepoModel
-    trace: list[TraceNode]
+    trace: Trace
     blame: dict[Oid, Blame]
     commitId: Oid = NULL_OID
 

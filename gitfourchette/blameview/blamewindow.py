@@ -14,7 +14,7 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import Jump
 from gitfourchette.toolbox import shortHash, messageSummary, stockIcon, Benchmark
-from gitfourchette.trace import TraceNode
+from gitfourchette.trace import TraceNode, Trace
 
 
 class BlameWindow(QWidget):
@@ -63,18 +63,22 @@ class BlameWindow(QWidget):
         self.setTabOrder(self.olderButton, self.newerButton)
         self.setTabOrder(self.newerButton, self.textEdit)
 
+        self.textEdit.selectIndex.connect(self.selectIndex)
+
         self.setWindowModality(Qt.WindowModality.NonModal)
 
-    def setTrace(self, trace: list[TraceNode], startAt: Oid):
+    def setTrace(self, trace: Trace, startAt: Oid):
         self.model.trace = trace
         self.model.blame.clear()
 
         self.scrubber.clear()
 
         startIndex = 0
+        startNode = None
         for index, node in enumerate(trace):
             if node.commitId == startAt:
                 startIndex = index
+                startNode = node
             commit = self.model.repo.peel_commit(node.commitId)
             message, _ = messageSummary(commit.message)
             commitQdt = QDateTime.fromSecsSinceEpoch(commit.author.time, Qt.TimeSpec.OffsetFromUTC, commit.author.offset * 60)
@@ -83,7 +87,7 @@ class BlameWindow(QWidget):
             self.scrubber.setItemIcon(index, stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)]))
 
         self.scrubber.setCurrentIndex(startIndex)
-        self.setTraceNode(trace[startIndex])
+        self.setTraceNode(startNode)
         self.syncNavButtons()
 
     def setTraceNode(self, node: TraceNode):
@@ -97,7 +101,7 @@ class BlameWindow(QWidget):
             with Benchmark("lg2-blame"):
                 blame = self.model.repo.blame(node.path,
                                               newest_commit=node.commitId,
-                                              oldest_commit=self.model.trace[-1].commitId)
+                                              oldest_commit=self.model.trace.tail.commitId)
             self.model.blame[node.commitId] = blame
 
         self.textEdit.gutter.syncModel()
@@ -132,6 +136,10 @@ class BlameWindow(QWidget):
             return
         self.scrubber.setCurrentIndex(index)
         # QTimer.singleShot(1, lambda: self.onScrubberActivated(index))
+        self.onScrubberActivated(index)
+
+    def selectIndex(self, index: int):
+        self.scrubber.setCurrentIndex(index)
         self.onScrubberActivated(index)
 
     def jumpToCommit(self):

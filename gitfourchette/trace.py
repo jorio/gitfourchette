@@ -141,6 +141,16 @@ class Trace:
     def reverseIter(self):
         return Trace.Iterator(self, reverse=True)
 
+    def indexOfCommit(self, oid: Oid):
+        for i, item in enumerate(self):
+            if item.commitId == oid:
+                return i
+        raise ValueError("commit is not in trace")
+
+    def dump(self):
+        for node in self:
+            print(str(node))
+
 
 def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) -> tuple[str, Oid]:
     try:
@@ -176,7 +186,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
     return path, NULL_OID
 
 
-def traceFile(topPath: str, topCommit: Commit) -> list[TraceNode]:
+def traceFile(topPath: str, topCommit: Commit) -> Trace:
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
     stop = set()
@@ -260,8 +270,5 @@ def traceFile(topPath: str, topCommit: Commit) -> list[TraceNode]:
             ll.unlink(node)
 
     _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant.")
-
-    for node in ll:
-        # assert node.status in [DeltaStatus.ADDED, DeltaStatus.RENAMED, DeltaStatus.MODIFIED]
-        _logger.debug(str(node))
-    return list(ll)
+    # ll.dump()
+    return ll
