@@ -46,6 +46,7 @@ from pygit2 import (
     Keypair,
     IndexEntry,
     InvalidSpecError,
+    Object as GitObject,
     Oid,
     Patch,
     Remote,
@@ -289,6 +290,19 @@ def libgit2_version_at_least(required_version: str, raise_error=True, feature_na
         current_version_string=LIBGIT2_VERSION,
         raise_error=raise_error,
         feature_name=feature_name)
+
+
+def id7(obj: str | Oid | GitObject, n=7):
+    """
+    Shorten oid or Object oid
+    """
+    if isinstance(obj, str):
+        sid = obj
+    elif isinstance(obj, Oid):
+        sid = str(obj)
+    else:
+        sid = str(obj.id)
+    return sid[:n]
 
 
 def split_remote_branch_shorthand(remote_branch_name: str) -> tuple[str, str]:

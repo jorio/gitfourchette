@@ -40,7 +40,7 @@ class OpenBlame(RepoTask):
 
         # Trace commit in branch
         with Benchmark("trace"):
-            trace = traceFile(repo, path, seed)
+            trace = traceFile(path, repo.peel_commit(seed))
 
         yield from self.flowEnterUiThread()
         blameWindow.setTrace(trace, showCommit)

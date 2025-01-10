@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -46,14 +46,16 @@ class Benchmark:
         self.startTime = time.perf_counter()
         self.phase = phase
 
-    def exit(self):
+    def exit(self, exc_type=None):
         ms = 1000 * (time.perf_counter() - self.startTime)
         kb = (getRSS() - self.startBytes) // 1024
 
         description = "/".join(Benchmark.nesting)
         if self.phase:
             description += f" ({self.phase})"
-        logger.log(BENCHMARK_LOGGING_LEVEL, f"{ms:8.2f} ms {kb:6,d}K {description}")
+        if exc_type:
+            description += f" (EXCEPTION RAISED! {exc_type.__name__})"
+        logger.log(BENCHMARK_LOGGING_LEVEL, f"{ms:8.1f} ms {kb:6,d}K {description}")
 
         Benchmark.nesting.pop()
         self.startTime = 0.0
@@ -64,7 +66,7 @@ class Benchmark:
         return self
 
     def __exit__(self, exc_type=None, exc_value=None, traceback=None):
-        self.exit()
+        self.exit(exc_type)
 
 
 def benchmark(func):
