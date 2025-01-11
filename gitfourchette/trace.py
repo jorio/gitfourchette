@@ -54,6 +54,12 @@ class TraceNode:
         self.sealed = True
 
 
+@_dataclasses.dataclass
+class BlameLine:
+    traceNode: TraceNode
+    text: str
+
+
 class Trace:
     head: TraceNode
     tail: TraceNode
@@ -125,15 +131,17 @@ class Trace:
             self.reverse = reverse
             if reverse:
                 self.next = ll.tail
+                self.end = ll.head
             else:
                 self.next = ll.head.llNext
+                self.end = None
 
         def __iter__(self):
             return self
 
         def __next__(self):
             node = self.next
-            if not node:
+            if node is self.end:
                 raise StopIteration()
             self.next = node.llPrev if self.reverse else node.llNext
             return node
@@ -145,8 +153,8 @@ class Trace:
         return Trace.Iterator(self, reverse=True)
 
     def indexOfCommit(self, oid: Oid):
-        for i, item in enumerate(self):
-            if item.commitId == oid:
+        for i, node in enumerate(self):
+            if node.commitId == oid:
                 return i
         raise ValueError("commit is not in trace")
 
@@ -276,15 +284,111 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
     return ll
 
 
+def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
+    def countLines(data: bytes):
+        return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
+
+    # Prime the iterator: Skip the tail
+    llIter = ll.reverseIter()
+    tail = next(llIter)
+    assert tail is ll.tail
+
+    # Get tail blob
+    blobIdA = tail.blobId
+    blobA = repo[blobIdA].peel(Blob)
+    tailText: str = blobA.data.decode("utf-8")
+
+    # Prep blameA/blameB flip-flop arrays
+    line0 = BlameLine(tail, "$$$BOGUS$$$")
+    blameA = [line0] + [BlameLine(tail, line) for line in tailText.splitlines()]
+    blameB = []
+
+    # Traverse trace from tail up
+    for node in llIter:
+        # Stop at head sentinel
+        if node is ll.head:
+            assert node.commitId == NULL_OID  # assume head sentinel isn't a real commit
+            break
+        assert node is not ll.tail
+
+        # Skip merge commits with unchanged blobs
+        blobIdB = node.blobId
+        if blobIdB == blobIdA:
+            continue
+
+        blobB: Blob = repo[blobIdB]
+        assert isinstance(blobB, Blob)
+        diff = blobA.diff(blobB)
+
+        # Prep arrays
+        assert blameA
+        assert not blameB
+        blameB.append(line0)
+        cursorA = 1
+
+        for diffHunk in diff.hunks:
+            for diffLine in diffHunk.lines:
+                lineA = diffLine.old_lineno
+                lineB = diffLine.new_lineno
+                origin = diffLine.origin
+
+                if origin == '-':
+                    # Skip deleted line
+                    assert lineA >= 1
+                    cursorA = lineA + 1
+                elif origin == '+':
+                    # This commit is to blame for this line
+                    assert lineB >= 1
+                    assert len(blameB) == lineB
+                    blameB.append(BlameLine(node, diffLine.content))
+                elif origin == ' ':
+                    # Catch up to lineA
+                    assert lineA >= 1
+                    while cursorA <= lineA:
+                        blameB.append(blameA[cursorA])
+                        cursorA += 1
+                else:
+                    # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
+                    assert origin in "=><"
+
+        # Copy rest of file
+        while cursorA < len(blameA):
+            blameB.append(blameA[cursorA])
+            cursorA += 1
+
+        if DEVDEBUG:
+            assert len(blameB) - 1 == countLines(blobB.data)
+
+        blobA = blobB
+        blobIdA = blobIdB
+
+        # Flip-flop arrays
+        blameA, blameB = blameB, blameA
+        blameB.clear()
+
+        # See if stop
+        if topCommitId == node.commitId:
+            break
+
+    return blameA
+
+
 def traceCommandLineTool():
     from argparse import ArgumentParser
+    from datetime import datetime, timezone
+
     parser = ArgumentParser(description="GitFourchette trace/blame tool")
     parser.add_argument("path", help="File path")
-    parser.add_argument("--dump", action="store_true", help="Dump file history")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable expensive assertions")
+    parser.add_argument("-t", "--trace", action="store_true", help="Trace (dump file history)")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Benchmark only")
     args = parser.parse_args()
 
     _logging.basicConfig(level=BENCHMARK_LOGGING_LEVEL)
     _logging.captureWarnings(True)
+
+    global DEVDEBUG
+    DEVDEBUG = args.debug
 
     repo = Repo(args.path)
     relPath = Path(args.path)
@@ -292,8 +396,17 @@ def traceCommandLineTool():
         relPath = relPath.relative_to(repo.workdir)
     with Benchmark("Trace"):
         trace = traceFile(str(relPath), repo.head.peel(Commit))
-    if args.dump:
+    if args.trace:
         trace.dump()
+
+    with Benchmark("Blame"):
+        blame = blameFile(repo, trace, repo.head.peel(Commit).id)
+    if not args.quiet:
+        for i, blameLine in enumerate(blame):
+            traceNode = blameLine.traceNode
+            commit = repo[traceNode.commitId].peel(Commit)
+            date = datetime.fromtimestamp(commit.author.time, timezone.utc).strftime("%Y-%m-%d")
+            print(f"{id7(traceNode.commitId)} {traceNode.path:20} ({commit.author.name:20} {date} {i}) {blameLine.text.rstrip()}")
 
 
 if __name__ == '__main__':
