@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,6 +13,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks.repotask import RepoTask
 from gitfourchette.toolbox import *
 
@@ -54,7 +55,10 @@ class GetCommitInfo(RepoTask):
         links = DocumentLinks()
 
         def commitLink(commitId):
-            commitLocator = NavLocator.inCommit(commitId)
+            if commitId == UC_FAKEID:
+                commitLocator = NavLocator.inWorkdir()
+            else:
+                commitLocator = NavLocator.inCommit(commitId)
             link = links.new(lambda invoker: self.saveLocator(commitLocator))
             html = linkify(shortHash(commitId), link)
             return html

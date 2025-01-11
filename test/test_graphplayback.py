@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -191,7 +191,10 @@ def testVisibleJunctionOnHiddenArc():
     """
     sequence, heads = GraphDiagram.parseDefinition("u:z a:e b-c:d,e d:z e-z")
 
-    gbu = GraphBuildLoop(["u", "a", "b"], hideSeeds=["a"]).sendAll(sequence)
+    heads = MockOid.encodeAll("u", "a", "b")
+    hideSeeds = MockOid.encodeAll("a")
+
+    gbu = GraphBuildLoop(heads, hideSeeds=hideSeeds).sendAll(sequence)
     g = gbu.graph
     hiddenCommits = gbu.hiddenCommits
 
@@ -208,7 +211,7 @@ def testVisibleJunctionOnHiddenArc():
         "z ┷─╯─╯",
     ]
 
-    laneRemap = {frame.commit: frame.sealCopy().flattenLanes(hiddenCommits)[0]
+    laneRemap = {str(frame.commit): frame.sealCopy().flattenLanes(hiddenCommits)[0]
                  for frame in g.startPlayback()}
     X = -1
     assert laneRemap['u'] == [(X, 0)]

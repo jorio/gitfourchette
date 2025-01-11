@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -16,7 +16,8 @@ from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
 
-UC_FAKEID = "UC_FAKEID"
+UC_FAKEID = NULL_OID
+"Fake Oid used for the Uncommitted Changes row."
 
 
 def toggleSetElement(s: set, element):

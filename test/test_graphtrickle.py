@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -291,17 +291,19 @@ allFixtures = [
 
 
 @pytest.mark.parametrize(
-    argnames=("fixture", "seeds", "expectedHidden"),
+    argnames=("fixture", "seedsAscii", "expectedHidden"),
     argvalues=itertools.chain.from_iterable(g.hiddenCommitsParametrizedArgs() for g in allFixtures),
     ids=itertools.chain.from_iterable(g.hiddenCommitsParametrizedNames() for g in allFixtures),
 )
-def testHiddenCommitMarks(fixture: ChainMarkerFixture, seeds, expectedHidden):
-    fixtureHeads = fixture.headsDef.split()
+def testHiddenCommitMarks(fixture: ChainMarkerFixture, seedsAscii, expectedHidden):
+    seeds = set(MockOid.encodeAll(seedsAscii))
+    fixtureHeads = set(MockOid.encodeAll(fixture.headsDef.split()))
+
     sequence, graphHeads = GraphDiagram.parseDefinition(fixture.graphDef)
     assert all(h in fixtureHeads for h in graphHeads)
 
-    hiddenTips = {c for c in seeds if not c.endswith("!")}
-    hiddenTaps = {c.removesuffix("!") for c in seeds if c.endswith("!")}
+    hiddenTips = set(MockOid.encodeAll(c for c in seedsAscii if not c.endswith("!")))
+    hiddenTaps = set(MockOid.encodeAll(c.removesuffix("!") for c in seedsAscii if c.endswith("!")))
     gbu = GraphBuildLoop(fixtureHeads, hideSeeds=hiddenTips, forceHide=hiddenTaps)
     gbu.sendAll(sequence)
 
@@ -322,12 +324,14 @@ def testHiddenCommitMarks(fixture: ChainMarkerFixture, seeds, expectedHidden):
 
 
 @pytest.mark.parametrize(
-    argnames=("fixture", "seeds", "expected"),
+    argnames=("fixture", "seedsAscii", "expected"),
     argvalues=itertools.chain.from_iterable(g.localCommitsParametrizedArgs() for g in allFixtures),
     ids=itertools.chain.from_iterable(g.localCommitsParametrizedNames() for g in allFixtures),
 )
-def testLocalCommitMarks(fixture: ChainMarkerFixture, seeds, expected):
-    fixtureHeads = fixture.headsDef.split()
+def testLocalCommitMarks(fixture: ChainMarkerFixture, seedsAscii, expected):
+    seeds = set(MockOid.encodeAll(seedsAscii))
+    fixtureHeads = set(MockOid.encodeAll(fixture.headsDef.split()))
+
     sequence, graphHeads = GraphDiagram.parseDefinition(fixture.graphDef)
     assert all(h in fixtureHeads for h in graphHeads)
 

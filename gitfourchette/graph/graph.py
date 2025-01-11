@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from collections.abc import Iterable, Iterator, Set
 from typing import ClassVar
 
-from gitfourchette.porcelain import Oid as _RealOidType
+from gitfourchette.porcelain import Oid
 from gitfourchette.settings import DEVDEBUG
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,7 @@ The bigger the interval...:
 - but slower random access to any point of the graph.
 """
 
-DEAD_VALUE = "!DEAD"
-
-Oid = _RealOidType | str
+DEAD_VALUE = Oid(hex="deaddeaddeaddeaddeaddeaddeaddeaddeaddead")
 
 
 @dataclass(frozen=True)
@@ -446,10 +444,11 @@ class Frame:
         self.cleanUpArcList(solvedArcsCopy, self.row, alsoTrimBack=True)
 
         # In debug mode, make sure none of the arcs are dangling
-        assert all(arc is None or arc.openedBy != DEAD_VALUE for arc in openArcsCopy)
-        assert all(arc is None or arc.openedBy != DEAD_VALUE for arc in solvedArcsCopy)
-        assert all(arc is None or arc.chain.isValid() for arc in openArcsCopy)
-        assert all(arc is None or arc.chain.isValid() for arc in solvedArcsCopy)
+        if DEVDEBUG:
+            assert all(arc is None or arc.openedBy != DEAD_VALUE for arc in openArcsCopy)
+            assert all(arc is None or arc.openedBy != DEAD_VALUE for arc in solvedArcsCopy)
+            assert all(arc is None or arc.chain.isValid() for arc in openArcsCopy)
+            assert all(arc is None or arc.chain.isValid() for arc in solvedArcsCopy)
 
         return Frame(self.row, self.commit, solvedArcsCopy, openArcsCopy, self.lastArc)
 

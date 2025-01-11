@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,7 +8,7 @@ import re
 from itertools import zip_longest
 
 from gitfourchette.graph import *
-from gitfourchette.graph.graphbuilder import GraphBuildLoop, MockCommit, Oid
+from gitfourchette.graph.graphbuilder import GraphBuildLoop, MockCommit, MockOid, Oid
 
 PADDING = 2
 ABRIDGMENT_THRESHOLD = 25
@@ -47,15 +47,15 @@ class GraphDiagram:
 
             try:
                 assert "-" not in split[1]
-                rootParents = split[1].split(",")
+                rootParents = MockOid.encodeAll(split[1].split(","))
             except IndexError:
                 rootParents = []
 
-            chain = chainStr.split("-")
+            chain = MockOid.encodeAll(chainStr.split("-"))
             parents = [[c] for c in chain[1:]] + [rootParents]
 
             for oid, commitParents in zip(chain, parents, strict=True):
-                assert oid not in sequence, f"Commit hash appears twice in sequence! {oid}"
+                assert all(c.id != oid for c in sequence), f"Commit hash appears twice in sequence! {oid}"
                 mockCommit = MockCommit(oid, commitParents)
                 sequence.append(mockCommit)
                 if mockCommit.id not in seen:

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,7 +8,7 @@ import dataclasses
 
 import pytest
 
-from gitfourchette.graph import GraphDiagram, GraphBuildLoop, GraphSpliceLoop
+from gitfourchette.graph import GraphDiagram, GraphBuildLoop, GraphSpliceLoop, MockOid
 
 
 @dataclasses.dataclass
@@ -132,12 +132,12 @@ def testGraphTrickleStabilization(scenario, reverse):
         newSequence, _dummy = GraphDiagram.parseDefinition(scenario.newSequence)
     else:
         newSequence = sequence
-    oldHeads = scenario.oldHeads.split()
-    newHeads = scenario.newHeads.split()
-    oldHideSeeds = scenario.oldHideSeeds.split()
-    newHideSeeds = scenario.newHideSeeds.split()
-    oldHiddenCommitsExpected = set(scenario.oldHiddenCommitsExpected.split())
-    newHiddenCommitsExpected = set(scenario.newHiddenCommitsExpected.split())
+    oldHeads = MockOid.encodeAll(scenario.oldHeads.split())
+    newHeads = MockOid.encodeAll(scenario.newHeads.split())
+    oldHideSeeds = MockOid.encodeAll(scenario.oldHideSeeds.split())
+    newHideSeeds = MockOid.encodeAll(scenario.newHideSeeds.split())
+    oldHiddenCommitsExpected = set(MockOid.encodeAll(scenario.oldHiddenCommitsExpected.split()))
+    newHiddenCommitsExpected = set(MockOid.encodeAll(scenario.newHiddenCommitsExpected.split()))
 
     if reverse:
         sequence, newSequence = newSequence, sequence

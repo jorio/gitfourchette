@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import functools
 import logging
 from collections.abc import Sequence, Iterable, Callable, Set
 
@@ -32,6 +33,59 @@ def _ensureSet(x) -> set:
 class MockCommit:
     id: Oid
     parent_ids: Sequence[Oid]
+
+
+# pygit2.Oid can't be subclassed.
+@functools.total_ordering  # saves me from implementing le,ne,gt,ge
+class MockOid:
+    @classmethod
+    def encode(cls, fakeOid: str) -> Oid:
+        assert isinstance(fakeOid, str)
+        return cls(fakeOid)
+
+    @classmethod
+    def encodeAll(cls, *fakeOids) -> list[Oid]:
+        if not isinstance(fakeOids[0], str):
+            assert len(fakeOids) == 1
+            assert not isinstance(fakeOids[0], str)
+            fakeOidList = fakeOids[0]
+        else:
+            fakeOidList = fakeOids
+        return [cls.encode(o) for o in fakeOidList]
+
+    def __init__(self, fakeOid: str):
+        self.oid = Oid(raw=fakeOid.encode())
+
+    @property
+    def __class__(self):
+        return Oid
+
+    @property
+    def raw(self):
+        return self.oid.raw
+
+    def __str__(self):
+        return self.oid.raw.rstrip(b'\0').decode()
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __hash__(self):
+        return hash(self.oid)
+
+    def __lt__(self, other):
+        if isinstance(other, str):
+            return str(self) < other
+        if isinstance(other, MockOid):
+            other = other.oid
+        return self.oid.__lt__(other)
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return str(self) == other
+        if isinstance(other, MockOid):
+            other = other.oid
+        return self.oid.__eq__(other)
 
 
 class GraphBuildLoop:
