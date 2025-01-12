@@ -4,6 +4,15 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+"""
+Trace the relevant commits in a file's history and annotate (blame) it.
+
+This can be faster than libgit2's blame (as of libgit2 1.8), especially if you
+need annotations at all points of the file's history.
+
+CAVEAT: Octopus merges not supported yet.
+"""
+
 from __future__ import annotations as _annotations
 
 import bisect
@@ -22,13 +31,14 @@ _logger = _logging.getLogger(__name__)
 @_dataclasses.dataclass
 class TraceNode:
     path: str
-    commitId: Oid
+    commitId: Oid  # earliest commit in the branch where this blob shows up
     blobId: Oid
     level: int  # branch ancestry level (breadth distance from root branch)
     status: DeltaStatus = DeltaStatus.MODIFIED
     llPrev: TraceNode | None = None
     llNext: TraceNode | None = None
     sealed: bool = False
+    ancestorBlobId: Oid = NULL_OID
 
     def __str__(self):
         status_char = self.status.name[0]
@@ -39,7 +49,7 @@ class TraceNode:
         status_char = self.status.name[0]
         return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.blobId)}, status={status_char}, path={self.path})"
 
-    def seal(self, commit, frontier):
+    def seal(self, commit, frontier, ancestorBlobId):
         assert not self.sealed
         assert commit
         assert commit.id == self.commitId
@@ -59,6 +69,7 @@ class TraceNode:
             self.status = DeltaStatus.ADDED
 
         self.sealed = True
+        self.ancestorBlobId = ancestorBlobId
 
 
 @_dataclasses.dataclass
@@ -207,7 +218,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
 def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFFFF) -> Trace:
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
-    visited = set()
+    visited: dict[Oid, TraceNode] = {}
     knownBlobIds = set()
     numCommits = 0
 
@@ -218,7 +229,6 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
         level = node.level + 1
 
         if commit.id in visited:
-            _logger.debug(f"won't revisit {id7(commit)} from node {node}")
             continue
 
         if level > maxLevel:
@@ -238,10 +248,11 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
 
             numCommits += 1
             tree = commit.tree
-            visited.add(commit.id)
+            visited[commit.id] = node
 
             path, blobId = _getBlob(path, tree, treeAbove, node.blobId)
             if blobId == NULL_OID:
+                # Blob added here
                 break  # bail from the branch
             if not newBranch and path != node.path:
                 node.status = DeltaStatus.RENAMED
@@ -257,9 +268,10 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                 node = TraceNode(path=path, commitId=commit.id, blobId=blobId, level=level)
                 ll.insert(nodeAbove, node)
                 if not newBranch:  # Seal node above
-                    nodeAbove.seal(commit=commitAbove, frontier=frontier)
+                    nodeAbove.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
                 newBranch = False
                 knownBlobIds.add(blobId)
+                visited[commit.id] = node
             else:
                 assert node.level == level
                 node.commitId = commit.id
@@ -281,16 +293,22 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                     treeAbove = commit.tree
 
             try:
+                # Get next commit in branch
                 commit = commit.parents[0]
             except IndexError:
+                # Initial commit
+                blobId = NULL_OID
                 break  # bail from the branch
 
             if commit.id in visited:
+                # Don't revisit
+                blobId = visited[commit.id].blobId
                 break  # bail from the branch
 
         # Seal last node in branch
         if not newBranch:
-            node.seal(commit=commitAbove, frontier=frontier)
+            assert commitAbove.id in visited
+            node.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
 
     # Scrap useless revisions: Traverse LL from the tail up;
     # Cull nodes with blobs that are known to show up at a smaller ancestry level
@@ -313,7 +331,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
     return ll
 
 
-def _skimBranch(node: TraceNode, topCommit: Commit, visited: set[Oid], interval: int):
+def _skimBranch(node: TraceNode, topCommit: Commit, visited: dict[Oid, TraceNode], interval: int):
     """
     Time spent tracing a file is dominated by looking up blobs by path in trees
     (in a lucky scenario where we never have to call Diff.find_similar()).
@@ -339,14 +357,14 @@ def _skimBranch(node: TraceNode, topCommit: Commit, visited: set[Oid], interval:
     assert commit.id == node.commitId
     assert node.level == 0
 
-    skimmed = {commit.id}
+    skimmed = {node.commitId: node}
     try:
         for _step in range(interval):
             parents = commit.parents
             if len(parents) > 1:
                 raise LookupError()
             commit = parents[0]
-            skimmed.add(commit.id)
+            skimmed[commit.id] = node
         tree = commit.tree
         blobId = tree[node.path].id
         if blobId == node.blobId:
@@ -373,10 +391,9 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
     blobA = repo[blobIdA].peel(Blob)
     tailText: str = blobA.data.decode("utf-8")
 
-    # Prep blameA/blameB flip-flop arrays
     line0 = BlameLine(tail, "$$$BOGUS$$$")
     blameA = [line0] + [BlameLine(tail, line) for line in tailText.splitlines()]
-    blameB = []
+    olderBlames = {blobIdA: blameA}
 
     # Traverse trace from tail up
     for node in llIter:
@@ -386,19 +403,24 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
             break
         assert node is not ll.tail
 
-        # Skip merge commits with unchanged blobs
+        blobIdA = node.ancestorBlobId
         blobIdB = node.blobId
-        if blobIdB == blobIdA:
+
+        # Skip merge commits with unchanged blobs
+        if blobIdB in olderBlames:
             continue
 
-        blobB: Blob = repo[blobIdB]
+        if blobA.id != blobIdA:  # Try to reuse previous blob (speedup, common case)
+            blobA = repo[blobIdA]
+        blobB = repo[blobIdB]
+
+        assert isinstance(blobA, Blob)
         assert isinstance(blobB, Blob)
         diff = blobA.diff(blobB)
 
         # Prep arrays
-        assert blameA
-        assert not blameB
-        blameB.append(line0)
+        blameA = olderBlames[blobIdA]
+        blameB = [line0]
         cursorA = 1
 
         for diffHunk in diff.hunks:
@@ -434,12 +456,12 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
         if DEVDEBUG:
             assert len(blameB) - 1 == countLines(blobB.data)
 
-        blobA = blobB
-        blobIdA = blobIdB
+        # Save this blame
+        olderBlames[blobIdB] = blameB
+        blameA = blameB
 
-        # Flip-flop arrays
-        blameA, blameB = blameB, blameA
-        blameB.clear()
+        # Save new blob for next iteration, might save us a lookup if it's the next blob's ancestor
+        blobA = blobB
 
         # See if stop
         if topCommitId == node.commitId:
