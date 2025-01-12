@@ -6,6 +6,7 @@
 
 from __future__ import annotations as _annotations
 
+import bisect
 import dataclasses as _dataclasses
 import logging as _logging
 from contextlib import suppress
@@ -38,18 +39,20 @@ class TraceNode:
         status_char = self.status.name[0]
         return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.blobId)}, status={status_char}, path={self.path})"
 
-    def seal(self, commit, stop, frontier):
+    def seal(self, commit, frontier):
         assert not self.sealed
         assert commit
         assert commit.id == self.commitId
 
-        if len(commit.parents) > 1:
-            if len(commit.parents) > 2:
+        parents = commit.parents
+        if len(parents) > 1:
+            if len(parents) > 2:
                 raise NotImplementedError(f"Octopus merge unsupported ({id7(commit)})")
-            parent1 = commit.parents[1]
-            if parent1.id not in stop:
-                stop.add(parent1.id)
-                frontier.append((self, parent1))
+            parent1 = parents[1]
+            # Push to frontier as a stack (grouped by levels)
+            # so that the commit closest to the tail gets popped first.
+            insPoint = bisect.bisect_left(frontier, self.level, key=lambda item: item[0].level)
+            frontier.insert(insPoint, (self, parent1))
 
         if not self.llNext:
             assert self.status == DeltaStatus.MODIFIED  # should not be changed from default
@@ -204,7 +207,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
 def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFFFF) -> Trace:
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
-    stop = set()
+    visited = set()
     knownBlobIds = set()
     numCommits = 0
 
@@ -213,6 +216,10 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
         node, commit = frontier.pop(0)
         path = node.path
         level = node.level + 1
+
+        if commit.id in visited:
+            _logger.debug(f"won't revisit {id7(commit)} from node {node}")
+            continue
 
         if level > maxLevel:
             continue
@@ -227,10 +234,11 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
         while True:
             assert (not newBranch) == (node.level == level)
             assert newBranch == node.sealed
+            assert commit.id not in visited, "commit already visited!"
 
             numCommits += 1
             tree = commit.tree
-            stop.add(commit.id)
+            visited.add(commit.id)
 
             path, blobId = _getBlob(path, tree, treeAbove, node.blobId)
             if blobId == NULL_OID:
@@ -249,7 +257,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                 node = TraceNode(path=path, commitId=commit.id, blobId=blobId, level=level)
                 ll.insert(nodeAbove, node)
                 if not newBranch:  # Seal node above
-                    nodeAbove.seal(commit=commitAbove, stop=stop, frontier=frontier)
+                    nodeAbove.seal(commit=commitAbove, frontier=frontier)
                 newBranch = False
                 knownBlobIds.add(blobId)
             else:
@@ -267,7 +275,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                 skipSkimming -= 1
             elif level == 0 and skimInterval:
                 # Try to skim this branch (see docstring in the function for more info)
-                commit, skipSkimming = _skimBranch(node, commit, stop, skimInterval)
+                commit, skipSkimming = _skimBranch(node, commit, visited, skimInterval)
                 if skipSkimming == 0:
                     commitAbove = commit
                     treeAbove = commit.tree
@@ -277,12 +285,12 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
             except IndexError:
                 break  # bail from the branch
 
-            if commit.id in stop:
+            if commit.id in visited:
                 break  # bail from the branch
 
         # Seal last node in branch
         if not newBranch:
-            node.seal(commit=commitAbove, stop=stop, frontier=frontier)
+            node.seal(commit=commitAbove, frontier=frontier)
 
     # Scrap useless revisions: Traverse LL from the tail up;
     # Cull nodes with blobs that are known to show up at a smaller ancestry level
@@ -305,7 +313,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
     return ll
 
 
-def _skimBranch(node: TraceNode, topCommit: Commit, stop: set[Oid], interval: int):
+def _skimBranch(node: TraceNode, topCommit: Commit, visited: set[Oid], interval: int):
     """
     Time spent tracing a file is dominated by looking up blobs by path in trees
     (in a lucky scenario where we never have to call Diff.find_similar()).
@@ -343,7 +351,7 @@ def _skimBranch(node: TraceNode, topCommit: Commit, stop: set[Oid], interval: in
         blobId = tree[node.path].id
         if blobId == node.blobId:
             node.commitId = commit.id  # Important! Bring current node to this commit
-            stop.update(skimmed)  # Mark all skimmed commits as visited
+            visited.update(skimmed)  # Mark all skimmed commits as visited
             return commit, 0
     except LookupError:
         pass
