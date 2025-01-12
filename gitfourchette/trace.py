@@ -201,7 +201,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
     return path, NULL_OID
 
 
-def traceFile(topPath: str, topCommit: Commit) -> Trace:
+def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFFFF) -> Trace:
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
     stop = set()
@@ -214,10 +214,14 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
         path = node.path
         level = node.level + 1
 
+        if level > maxLevel:
+            continue
+
         # TODO: Deleted file in seed
         treeAbove = None
         commitAbove = None
         newBranch = True
+        skipSkimming = 0
 
         # Inner loop: Walk branch
         while True:
@@ -258,6 +262,16 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
             commitAbove = commit
             treeAbove = tree
 
+            if skipSkimming > 0:
+                # Don't skim yet
+                skipSkimming -= 1
+            elif level == 0 and skimInterval:
+                # Try to skim this branch (see docstring in the function for more info)
+                commit, skipSkimming = _skimBranch(node, commit, stop, skimInterval)
+                if skipSkimming == 0:
+                    commitAbove = commit
+                    treeAbove = commit.tree
+
             try:
                 commit = commit.parents[0]
             except IndexError:
@@ -289,6 +303,52 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
 
     _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant.")
     return ll
+
+
+def _skimBranch(node: TraceNode, topCommit: Commit, stop: set[Oid], interval: int):
+    """
+    Time spent tracing a file is dominated by looking up blobs by path in trees
+    (in a lucky scenario where we never have to call Diff.find_similar()).
+
+    In a long-lived repo, it's likely that the file we're tracing doesn't
+    change blobs that often. This function attempts to skip irrelevant commits
+    so we can space out blob lookups.
+
+    We rewind the branch by `interval` commits (starting from `topCommit`)
+    without looking at the trees that are skimmed over. We then look up the
+    file's blob after rewinding.
+
+    If we land on a blob that matches the one in `topCommit`, it's reasonable
+    to assume that the file hasn't changed in the interval. Otherwise, we
+    discard the rewind operation.
+
+    Note that this technique may cause some revisions to be missing from the
+    trace if the file changes contents within the interval, but reverts to
+    identical blobs at both ends of the interval.
+    """
+
+    commit = topCommit
+    assert commit.id == node.commitId
+    assert node.level == 0
+
+    skimmed = {commit.id}
+    try:
+        for _step in range(interval):
+            parents = commit.parents
+            if len(parents) > 1:
+                raise LookupError()
+            commit = parents[0]
+            skimmed.add(commit.id)
+        tree = commit.tree
+        blobId = tree[node.path].id
+        if blobId == node.blobId:
+            node.commitId = commit.id  # Important! Bring current node to this commit
+            stop.update(skimmed)  # Mark all skimmed commits as visited
+            return commit, 0
+    except LookupError:
+        pass
+
+    return topCommit, len(skimmed)
 
 
 def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
@@ -389,6 +449,8 @@ def traceCommandLineTool():  # pragma: no cover
     parser.add_argument("-d", "--debug", action="store_true", help="Enable expensive assertions")
     parser.add_argument("-t", "--trace", action="store_true", help="Trace (dump file history)")
     parser.add_argument("-q", "--quiet", action="store_true", help="Benchmark only")
+    parser.add_argument("-s", "--skim", action="store", type=int, default=0, help="Skimming interval")
+    parser.add_argument("-m", "--max-level", action="store", type=int, default=0x3FFFFFFF, help="Max breadth level")
     args = parser.parse_args()
 
     _logging.basicConfig(level=BENCHMARK_LOGGING_LEVEL)
@@ -402,7 +464,7 @@ def traceCommandLineTool():  # pragma: no cover
     with suppress(ValueError):
         relPath = relPath.relative_to(repo.workdir)
     with Benchmark("Trace"):
-        trace = traceFile(str(relPath), repo.head.peel(Commit))
+        trace = traceFile(str(relPath), repo.head.peel(Commit), skimInterval=args.skim, maxLevel=args.max_level)
     if args.trace:
         trace.dump()
 
