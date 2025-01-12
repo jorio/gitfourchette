@@ -34,6 +34,10 @@ class TraceNode:
         indent = ' ' * 4 * self.level
         return f"({self.level},{id7(self.commitId)},{id7(self.blobId)},{status_char}) {indent}{self.path}"
 
+    def __repr__(self):
+        status_char = self.status.name[0]
+        return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.blobId)}, status={status_char}, path={self.path})"
+
     def seal(self, commit, stop, frontier):
         assert not self.sealed
         assert commit
@@ -201,6 +205,7 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
     stop = set()
+    knownBlobIds = set()
     numCommits = 0
 
     # Outer loop: Pop branch off frontier
@@ -229,10 +234,11 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
             if not newBranch and path != node.path:
                 node.status = DeltaStatus.RENAMED
 
-            if newBranch and level > 0 and blobId != node.blobId:
-                # Branch doesn't contribute the blob
-                assert node is not ll.head
-                break  # bail from the branch
+            if newBranch and blobId != node.blobId and blobId in knownBlobIds:
+                # Branch doesn't contribute the blob: prune it.
+                # Required for proper blaming of cpython/Lib/test/test_urllib.py
+                assert level > 0
+                break
 
             if newBranch or blobId != node.blobId or node.status == DeltaStatus.RENAMED:
                 nodeAbove = node
@@ -241,6 +247,7 @@ def traceFile(topPath: str, topCommit: Commit) -> Trace:
                 if not newBranch:  # Seal node above
                     nodeAbove.seal(commit=commitAbove, stop=stop, frontier=frontier)
                 newBranch = False
+                knownBlobIds.add(blobId)
             else:
                 assert node.level == level
                 node.commitId = commit.id
@@ -373,7 +380,7 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
     return blameA
 
 
-def traceCommandLineTool():
+def traceCommandLineTool():  # pragma: no cover
     from argparse import ArgumentParser
     from datetime import datetime, timezone
 

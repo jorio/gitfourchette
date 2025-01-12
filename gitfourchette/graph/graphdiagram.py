@@ -30,6 +30,7 @@ class GraphDiagram:
         sequence = []
         seen: set[Oid] = set()
         heads: set[Oid] = set()
+        commitsById: dict[Oid, MockCommit] = {}
 
         lines = re.split(r"\s+", text)
 
@@ -61,6 +62,10 @@ class GraphDiagram:
                 if mockCommit.id not in seen:
                     heads.add(mockCommit.id)
                 seen.update(mockCommit.parent_ids)
+                commitsById[oid] = mockCommit
+
+        for mockCommit in sequence:
+            mockCommit.parents = [commitsById.get(p, None) for p in mockCommit.parent_ids]
 
         return sequence, heads
 
