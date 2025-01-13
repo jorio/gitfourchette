@@ -6,25 +6,19 @@
 
 import dataclasses
 
-from pygit2 import Blame
-
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.trace import Trace
+from gitfourchette.trace import Trace, Blame, BlameCollection
 
 
 @dataclasses.dataclass
 class BlameModel:
     repoModel: RepoModel
     trace: Trace
-    blame: dict[Oid, Blame]
+    blameCollection: BlameCollection
     commitId: Oid = NULL_OID
+    currentBlame: Blame = dataclasses.field(default_factory=Blame)
 
     @property
     def repo(self) -> Repo:
         return self.repoModel.repo
-
-    @property
-    def currentBlame(self) -> Blame:
-        return self.blame[self.commitId]
-

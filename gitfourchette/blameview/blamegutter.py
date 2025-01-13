@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from pygit2 import Commit
 
+from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -60,10 +61,7 @@ class BlameGutter(QWidget):
         return False
 
     def paintEvent(self, event: QPaintEvent):
-        try:
-            blame = self.model.blame[self.model.commitId]
-        except KeyError:
-            return
+        blame = self.model.currentBlame
 
         textEdit = self.textEdit
         painter = QPainter(self)
@@ -113,7 +111,6 @@ class BlameGutter(QWidget):
         textPen = QPen(textColor)
         painter.setPen(textPen)
 
-        fsln = -1
         maxLN = textEdit.blockCount()
         maxLNWidth = QFontMetrics(monoFont).horizontalAdvance("0" * len(str(maxLN)))
         locale = QLocale()
@@ -126,44 +123,50 @@ class BlameGutter(QWidget):
             (rightEdgeText-maxLNWidth, rightEdgeText)
         ]
 
+        lastCaptionDrawnAtLine = -1
+        hunkTraceNode = blame[0]
+        hunkStartLine = 1
+
         while block.isValid() and top <= paintRect.bottom():
             if block.isVisible() and bottom >= paintRect.top():
                 lineNumber = 1 + blockNumber
 
-                try:
-                    hunk = blame.for_line(lineNumber)
-                except IndexError:
-                    break
-
                 colL, colW = cols[-1][0], cols[-1][1] - cols[-1][0]
                 painter.drawText(colL, top, colW, fontHeight, Qt.AlignmentFlag.AlignRight, str(lineNumber))
 
-                if fsln != hunk.final_start_line_number:
-                    # Don't use hunk.orig_committer - it's buggy if email is empty
-                    # (because libgit2 feeds the email through some mailmap functions even if we don't want it to)
-                    commit: Commit = self.model.repo[hunk.orig_commit_id]
+                try:
+                    blameNode = blame[lineNumber].traceNode
+                except IndexError:
+                    break
+                if blameNode is not hunkTraceNode:
+                    hunkTraceNode = blameNode
+                    hunkStartLine = lineNumber
+
+                if lastCaptionDrawnAtLine != hunkStartLine:
+                    lastCaptionDrawnAtLine = lineNumber
+
+                    commit: Commit = self.model.repo[blameNode.commitId]
                     sig = commit.author
 
                     # Date
                     commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
                     commitTimeStr = locale.toString(commitQdt, "yyyy-MM-dd")
                     colL, colW = cols[0][0], cols[0][1] - cols[0][0]
+                    painter.setFont(propFont)
                     painter.drawText(colL, top, colW, fontHeight, Qt.AlignmentFlag.AlignLeft, commitTimeStr)
 
                     # Author
                     name = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
                     colL, colW = cols[1][0], cols[1][1] - cols[1][0]
-                    painter.setFont(propFont)
                     painter.drawText(colL, top, colW, fontHeight, Qt.AlignmentFlag.AlignLeft, name)
                     painter.setFont(monoFont)
 
                     # Hunk separator line
-                    if fsln != -1:
+                    if lineNumber != 1:
                         y = top
                         painter.setPen(linePen)
                         painter.drawLine(QLine(0, y, rightEdge-1, y))
                         painter.setPen(textPen)  # restore text pen
-                    fsln = hunk.final_start_line_number
 
             block = block.next()
             top = bottom
@@ -175,10 +178,7 @@ class BlameGutter(QWidget):
     def doToolTip(self, event: QHelpEvent):
         assert isinstance(event, QHelpEvent)
 
-        try:
-            blame = self.model.currentBlame
-        except KeyError:
-            return False
+        blame = self.model.currentBlame
 
         pos = event.globalPos()
         editLocalPos = self.textEdit.mapFromGlobal(pos)
@@ -186,7 +186,7 @@ class BlameGutter(QWidget):
         lineNumber = 1 + textCursor.blockNumber()
 
         try:
-            hunk = blame.for_line(lineNumber)
+            node = blame[lineNumber].traceNode
         except IndexError:
             return False
 
@@ -195,10 +195,11 @@ class BlameGutter(QWidget):
         def newLine(heading, caption):
             return f"<tr><td style='color:{mutedToolTipColorHex()}; text-align: right;'>{heading} </td><td>{caption}</td>"
 
-        commit = self.model.repo.peel_commit(hunk.orig_commit_id)
+        commit = self.model.repo.peel_commit(node.commitId)
         text += newLine(_("commit:"), shortHash(commit.id))
         text += newLine(_("author:"), commit.author.name)
-        text += newLine(_("file name:"), hunk.orig_path)
+        text += newLine(_("date:"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat))
+        text += newLine(_("file name:"), node.path)
 
         text += "</table>"
         text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"

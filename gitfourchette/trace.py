@@ -82,6 +82,10 @@ class BlameLine:
     text: str
 
 
+Blame = list[BlameLine]
+BlameCollection = dict[Oid, Blame]
+
+
 class Trace:
     head: TraceNode
     tail: TraceNode
@@ -167,7 +171,7 @@ class Trace:
         def __iter__(self):
             return self
 
-        def __next__(self):
+        def __next__(self) -> TraceNode:
             node = self.next
             if node is self.end:
                 raise StopIteration()
@@ -393,7 +397,7 @@ def _skimBranch(node: TraceNode, topCommit: Commit, visited: dict[Oid, TraceNode
     return topCommit, len(skimmed)
 
 
-def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
+def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollection:
     def countLines(data: bytes):
         return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
 
@@ -407,7 +411,7 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
     blobA = repo[blobIdA].peel(Blob)
 
     # Prep blame
-    olderBlames = {blobIdA: _makeInitialBlame(tail, blobA)}
+    blameCollection: BlameCollection = {blobIdA: _makeInitialBlame(tail, blobA)}
 
     # Traverse trace from tail up
     for node in llIter:
@@ -427,7 +431,7 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
             assert node.likelyMerge or node.status == DeltaStatus.RENAMED
             _logger.debug(f"Not blaming node (no-op): {node}")
             continue
-        if blobIdB in olderBlames:
+        if blobIdB in blameCollection:
             _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
             continue
 
@@ -436,7 +440,7 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
 
         if blobIdA == NULL_OID:
             assert node.status == DeltaStatus.ADDED
-            olderBlames[blobIdB] = _makeInitialBlame(node, blobB)
+            blameCollection[blobIdB] = _makeInitialBlame(node, blobB)
             continue
         elif blobA.id == blobIdA:
             # Reuse previous blob (speedup, common case)
@@ -447,14 +451,14 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
         assert isinstance(blobA, Blob)
         diff = blobA.diff(blobB)
 
-        blameA = olderBlames[blobIdA]
+        blameA = blameCollection[blobIdA]
         blameB = _makeBlameFromDiff(node, diff, blameA)
 
         if DEVDEBUG:
             assert len(blameB) - 1 == countLines(blobB.data)
 
         # Save this blame
-        olderBlames[blobIdB] = blameB
+        blameCollection[blobIdB] = blameB
 
         # Save new blob for next iteration, might save us a lookup if it's the next blob's ancestor
         blobA = blobB
@@ -463,7 +467,7 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
         if topCommitId == node.commitId:
             break
 
-    return olderBlames[ll.first.blobId]
+    return blameCollection
 
 
 def _makeInitialBlame(node: TraceNode, blob: Blob) -> list[BlameLine]:
@@ -548,7 +552,7 @@ def traceCommandLineTool():  # pragma: no cover
         blame = blameFile(repo, trace, topCommit.id)
 
     if not args.quiet:
-        for i, blameLine in enumerate(blame):
+        for i, blameLine in enumerate(blame[trace.first.blobId]):
             traceNode = blameLine.traceNode
             commit = repo[traceNode.commitId].peel(Commit)
             date = datetime.fromtimestamp(commit.author.time, timezone.utc).strftime("%Y-%m-%d")

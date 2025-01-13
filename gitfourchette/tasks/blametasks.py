@@ -8,7 +8,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.tasks import RepoTask
 from gitfourchette.toolbox import Benchmark
-from gitfourchette.trace import traceFile
+from gitfourchette.trace import traceFile, blameFile
 
 
 class OpenBlame(RepoTask):
@@ -42,6 +42,9 @@ class OpenBlame(RepoTask):
         with Benchmark("trace"):
             trace = traceFile(path, repo.peel_commit(seed))
 
+        with Benchmark("blame"):
+            blame = blameFile(repo, trace, seed)
+
         yield from self.flowEnterUiThread()
-        blameWindow.setTrace(trace, showCommit)
+        blameWindow.setTrace(trace, blame, showCommit)
         blameWindow.setEnabled(True)

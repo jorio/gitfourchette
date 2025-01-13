@@ -80,8 +80,9 @@ class BlameTextEdit(QPlainTextEdit):
         lineNumber += 1
 
         blame = self.model.currentBlame
-        hunk = blame.for_line(lineNumber)
-        commitId = hunk.orig_commit_id
+        node = blame[lineNumber].traceNode
+        commitId = node.commitId
+        path = node.path
 
         try:
             commitIndex = self.model.trace.indexOfCommit(commitId)
@@ -99,7 +100,7 @@ class BlameTextEdit(QPlainTextEdit):
                 self,
                 Jump,
                 name=_("Jump to {0} in Repo").format(shortHash(commitId)),
-                taskArgs=NavLocator.inCommit(commitId, hunk.orig_path)),
+                taskArgs=NavLocator.inCommit(commitId, path)),
 
             TaskBook.action(self, GetCommitInfo, taskArgs=[
                 commitId, False, self

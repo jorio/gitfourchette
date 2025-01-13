@@ -13,8 +13,8 @@ from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import Jump
-from gitfourchette.toolbox import shortHash, messageSummary, stockIcon, Benchmark
-from gitfourchette.trace import TraceNode, Trace
+from gitfourchette.toolbox import shortHash, messageSummary, stockIcon
+from gitfourchette.trace import TraceNode, Trace, BlameCollection
 
 
 class BlameWindow(QWidget):
@@ -67,9 +67,9 @@ class BlameWindow(QWidget):
 
         self.setWindowModality(Qt.WindowModality.NonModal)
 
-    def setTrace(self, trace: Trace, startAt: Oid):
+    def setTrace(self, trace: Trace, blameCollection: BlameCollection, startAt: Oid):
         self.model.trace = trace
-        self.model.blame.clear()
+        self.model.blameCollection = blameCollection
 
         self.scrubber.clear()
 
@@ -92,17 +92,11 @@ class BlameWindow(QWidget):
 
     def setTraceNode(self, node: TraceNode):
         self.model.commitId = node.commitId
+        self.model.currentBlame = self.model.blameCollection[node.blobId]
 
         blob = self.model.repo.peel_blob(node.blobId)
         text = blob.data.decode('utf-8', errors='replace')
         self.textEdit.setPlainText(text)
-
-        if node.commitId not in self.model.blame:
-            with Benchmark("lg2-blame"):
-                blame = self.model.repo.blame(node.path,
-                                              newest_commit=node.commitId,
-                                              oldest_commit=self.model.trace.tail.commitId)
-            self.model.blame[node.commitId] = blame
 
         self.textEdit.gutter.syncModel()
         self.textEdit.syncModel()
