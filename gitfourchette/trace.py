@@ -473,14 +473,16 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
 def traceCommandLineTool():  # pragma: no cover
     from argparse import ArgumentParser
     from datetime import datetime, timezone
+    from timeit import timeit
 
     parser = ArgumentParser(description="GitFourchette trace/blame tool")
     parser.add_argument("path", help="File path")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable expensive assertions")
-    parser.add_argument("-t", "--trace", action="store_true", help="Trace (dump file history)")
-    parser.add_argument("-q", "--quiet", action="store_true", help="Benchmark only")
+    parser.add_argument("-t", "--trace", action="store_true", help="Print trace (file history)")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Don't print annotations")
     parser.add_argument("-s", "--skim", action="store", type=int, default=0, help="Skimming interval")
     parser.add_argument("-m", "--max-level", action="store", type=int, default=0x3FFFFFFF, help="Max breadth level")
+    parser.add_argument("-b", "--benchmark", action="store_true", help="Benchmark mode")
     args = parser.parse_args()
 
     _logging.basicConfig(level=BENCHMARK_LOGGING_LEVEL)
@@ -493,19 +495,33 @@ def traceCommandLineTool():  # pragma: no cover
     relPath = Path(args.path)
     with suppress(ValueError):
         relPath = relPath.relative_to(repo.workdir)
+
+    topCommit = repo.head.peel(Commit)
+
     with Benchmark("Trace"):
-        trace = traceFile(str(relPath), repo.head.peel(Commit), skimInterval=args.skim, maxLevel=args.max_level)
+        trace = traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level)
+
     if args.trace:
         trace.dump()
 
     with Benchmark("Blame"):
-        blame = blameFile(repo, trace, repo.head.peel(Commit).id)
+        blame = blameFile(repo, trace, topCommit.id)
+
     if not args.quiet:
         for i, blameLine in enumerate(blame):
             traceNode = blameLine.traceNode
             commit = repo[traceNode.commitId].peel(Commit)
             date = datetime.fromtimestamp(commit.author.time, timezone.utc).strftime("%Y-%m-%d")
             print(f"{id7(traceNode.commitId)} {traceNode.path:20} ({commit.author.name:20} {date} {i}) {blameLine.text.rstrip()}")
+
+    if args.benchmark:
+        DEVDEBUG = False
+        N = 10
+        print("Benchmarking...")
+        elapsed = timeit(lambda: traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level), number=N)
+        print(f"Trace: {elapsed*1000/N:.0f} ms avg")
+        elapsed = timeit(lambda: blameFile(repo, trace, topCommit.id), number=N)
+        print(f"Blame: {elapsed*1000/N:.0f} ms avg")
 
 
 if __name__ == '__main__':
