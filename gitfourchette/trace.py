@@ -27,6 +27,8 @@ from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL, Benchmark
 
 _logger = _logging.getLogger(__name__)
 
+PLACEHOLDER_OID = Oid(hex='E' * 40)
+
 
 @_dataclasses.dataclass
 class TraceNode:
@@ -38,7 +40,7 @@ class TraceNode:
     llPrev: TraceNode | None = None
     llNext: TraceNode | None = None
     sealed: bool = False
-    ancestorBlobId: Oid = NULL_OID
+    ancestorBlobId: Oid = PLACEHOLDER_OID
     likelyMerge: bool = False
 
     def __str__(self):
@@ -48,7 +50,7 @@ class TraceNode:
 
     def __repr__(self):
         status_char = self.status.name[0]
-        return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.blobId)}, status={status_char}, path={self.path})"
+        return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.ancestorBlobId)}→{id7(self.blobId)}, status={status_char}, path={self.path})"
 
     def seal(self, commit, frontier, ancestorBlobId):
         assert not self.sealed
@@ -66,7 +68,7 @@ class TraceNode:
             frontier.insert(insPoint, (self, parent1))
             self.likelyMerge = True
 
-        if not self.llNext:
+        if ancestorBlobId == NULL_OID:
             assert self.status == DeltaStatus.MODIFIED  # should not be changed from default
             self.status = DeltaStatus.ADDED
 
@@ -103,6 +105,12 @@ class Trace:
             if node is candidate:
                 return True
         return False
+
+    @property
+    def first(self):
+        if self.head is self.tail:
+            raise IndexError("empty trace")
+        return self.head.llNext
 
     def insert(self, after: TraceNode, node: TraceNode):
         assert after
@@ -305,7 +313,10 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
 
             if commit.id in visited:
                 # Don't revisit
-                blobId = visited[commit.id].blobId
+                visitedNode = visited[commit.id]
+                assert visitedNode.blobId != NULL_OID
+                assert visitedNode.level <= node.level
+                blobId = visitedNode.blobId
                 break  # bail from the branch
 
         # Seal last node in branch
@@ -324,6 +335,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
     # (level=1) │ ┷     blob1 - Keep - Earliest appearance of blob1
     knownLevels = {}
     for node in ll.reverseIter():
+        assert node.sealed
         if knownLevels.get(node.blobId, 0x3FFFFFFF) > node.level:
             knownLevels[node.blobId] = node.level
         elif node.status == DeltaStatus.MODIFIED:
@@ -393,14 +405,14 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
     # Get tail blob
     blobIdA = tail.blobId
     blobA = repo[blobIdA].peel(Blob)
-    tailText: str = blobA.data.decode("utf-8")
 
-    line0 = BlameLine(tail, "$$$BOGUS$$$")
-    blameA = [line0] + [BlameLine(tail, line) for line in tailText.splitlines()]
-    olderBlames = {blobIdA: blameA}
+    # Prep blame
+    olderBlames = {blobIdA: _makeInitialBlame(tail, blobA)}
 
     # Traverse trace from tail up
     for node in llIter:
+        assert node.sealed
+
         # Stop at head sentinel
         if node is ll.head:
             assert node.commitId == NULL_OID  # assume head sentinel isn't a real commit
@@ -419,55 +431,30 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
             _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
             continue
 
-        if blobA.id != blobIdA:  # Try to reuse previous blob (speedup, common case)
-            blobA = repo[blobIdA]
         blobB = repo[blobIdB]
+        assert isinstance(blobB, Blob)
+
+        if blobIdA == NULL_OID:
+            assert node.status == DeltaStatus.ADDED
+            olderBlames[blobIdB] = _makeInitialBlame(node, blobB)
+            continue
+        elif blobA.id == blobIdA:
+            # Reuse previous blob (speedup, common case)
+            pass
+        else:
+            blobA = repo[blobIdA]
 
         assert isinstance(blobA, Blob)
-        assert isinstance(blobB, Blob)
         diff = blobA.diff(blobB)
 
-        # Prep arrays
         blameA = olderBlames[blobIdA]
-        blameB = [line0]
-        cursorA = 1
-
-        for diffHunk in diff.hunks:
-            for diffLine in diffHunk.lines:
-                lineA = diffLine.old_lineno
-                lineB = diffLine.new_lineno
-                origin = diffLine.origin
-
-                if origin == '-':
-                    # Skip deleted line
-                    assert lineA >= 1
-                    cursorA = lineA + 1
-                elif origin == '+':
-                    # This commit is to blame for this line
-                    assert lineB >= 1
-                    assert len(blameB) == lineB
-                    blameB.append(BlameLine(node, diffLine.content))
-                elif origin == ' ':
-                    # Catch up to lineA
-                    assert lineA >= 1
-                    while cursorA <= lineA:
-                        blameB.append(blameA[cursorA])
-                        cursorA += 1
-                else:
-                    # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
-                    assert origin in "=><"
-
-        # Copy rest of file
-        while cursorA < len(blameA):
-            blameB.append(blameA[cursorA])
-            cursorA += 1
+        blameB = _makeBlameFromDiff(node, diff, blameA)
 
         if DEVDEBUG:
             assert len(blameB) - 1 == countLines(blobB.data)
 
         # Save this blame
         olderBlames[blobIdB] = blameB
-        blameA = blameB
 
         # Save new blob for next iteration, might save us a lookup if it's the next blob's ancestor
         blobA = blobB
@@ -476,7 +463,51 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
         if topCommitId == node.commitId:
             break
 
-    return blameA
+    return olderBlames[ll.first.blobId]
+
+
+def _makeInitialBlame(node: TraceNode, blob: Blob) -> list[BlameLine]:
+    line0 = BlameLine(node, "$$$BOGUS$$$")
+    blobText: str = blob.data.decode("utf-8", errors="replace")
+    newBlame = [line0] + [BlameLine(node, line) for line in blobText.splitlines()]
+    return newBlame
+
+
+def _makeBlameFromDiff(node: TraceNode, diff: Diff, blameA: list[BlameLine]) -> list[BlameLine]:
+    blameB = [blameA[0]]  # copy sentinel
+    cursorA = 1
+
+    for diffHunk in diff.hunks:
+        for diffLine in diffHunk.lines:
+            lineA = diffLine.old_lineno
+            lineB = diffLine.new_lineno
+            origin = diffLine.origin
+
+            if origin == '-':
+                # Skip deleted line
+                assert lineA >= 1
+                cursorA = lineA + 1
+            elif origin == '+':
+                # This commit is to blame for this line
+                assert lineB >= 1
+                assert len(blameB) == lineB
+                blameB.append(BlameLine(node, diffLine.content))
+            elif origin == ' ':
+                # Catch up to lineA
+                assert lineA >= 1
+                while cursorA <= lineA:
+                    blameB.append(blameA[cursorA])
+                    cursorA += 1
+            else:
+                # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
+                assert origin in "=><"
+
+    # Copy rest of file
+    while cursorA < len(blameA):
+        blameB.append(blameA[cursorA])
+        cursorA += 1
+
+    return blameB
 
 
 def traceCommandLineTool():  # pragma: no cover
