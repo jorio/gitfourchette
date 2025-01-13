@@ -39,6 +39,7 @@ class TraceNode:
     llNext: TraceNode | None = None
     sealed: bool = False
     ancestorBlobId: Oid = NULL_OID
+    likelyMerge: bool = False
 
     def __str__(self):
         status_char = self.status.name[0]
@@ -63,6 +64,7 @@ class TraceNode:
             # so that the commit closest to the tail gets popped first.
             insPoint = bisect.bisect_left(frontier, self.level, key=lambda item: item[0].level)
             frontier.insert(insPoint, (self, parent1))
+            self.likelyMerge = True
 
         if not self.llNext:
             assert self.status == DeltaStatus.MODIFIED  # should not be changed from default
@@ -261,6 +263,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                 # Branch doesn't contribute the blob: prune it.
                 # Required for proper blaming of cpython/Lib/test/test_urllib.py
                 assert level > 0
+                assert node.likelyMerge
                 break
 
             if newBranch or blobId != node.blobId or node.status == DeltaStatus.RENAMED:
@@ -324,8 +327,9 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
         if knownLevels.get(node.blobId, 0x3FFFFFFF) > node.level:
             knownLevels[node.blobId] = node.level
         elif node.status == DeltaStatus.MODIFIED:
-            # print("Scrapping", str(node))
             ll.unlink(node)
+        else:
+            assert not (node.status == DeltaStatus.MODIFIED and node.blobId == node.ancestorBlobId)
 
     _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant.")
     return ll
@@ -406,8 +410,13 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid):
         blobIdA = node.ancestorBlobId
         blobIdB = node.blobId
 
-        # Skip merge commits with unchanged blobs
+        # Skip nodes that don't contribute a new blob
+        if blobIdA == blobIdB:
+            assert node.likelyMerge or node.status == DeltaStatus.RENAMED
+            _logger.debug(f"Not blaming node (no-op): {node}")
+            continue
         if blobIdB in olderBlames:
+            _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
             continue
 
         if blobA.id != blobIdA:  # Try to reuse previous blob (speedup, common case)
