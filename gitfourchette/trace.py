@@ -276,6 +276,10 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                 # Required for proper blaming of cpython/Lib/test/test_urllib.py
                 assert level > 0
                 assert node.likelyMerge
+                # Allow re-visiting this commit further down the graph.
+                # We might need it if this branch is merged by another earlier commit,
+                # at a "wider" level.
+                del visited[commit.id]
                 break
 
             if newBranch or blobId != node.blobId or node.status == DeltaStatus.RENAMED:
@@ -457,6 +461,14 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollec
         if DEVDEBUG:
             assert len(blameB) - 1 == countLines(blobB.data)
 
+        if node.llNext and node.llNext.level == node.level + 1 and node.llNext.blobId != blobIdA:
+            if DEVDEBUG:  # Very expensive assertion that will slow down the blame significantly
+                assert repo.descendant_of(node.commitId, node.llNext.commitId)
+            olderBlob = repo[node.llNext.blobId]
+            olderBlame = blameCollection[node.llNext.blobId]
+            olderDiff = olderBlob.diff(blobB)
+            _overrideBlame(olderDiff, olderBlame, blameB)
+
         # Save this blame
         blameCollection[blobIdB] = blameB
 
@@ -512,6 +524,46 @@ def _makeBlameFromDiff(node: TraceNode, diff: Diff, blameA: list[BlameLine]) -> 
         cursorA += 1
 
     return blameB
+
+
+# TODO: Would be nice to factor diff traversal into a generator or something
+def _overrideBlame(diff: Diff, blameA: list[BlameLine], blameB: list[BlameLine]):
+    cursorA = 1
+    cursorB = 1
+
+    for diffHunk in diff.hunks:
+        for diffLine in diffHunk.lines:
+            lineA = diffLine.old_lineno
+            lineB = diffLine.new_lineno
+            origin = diffLine.origin
+
+            if origin == '-':
+                # Skip deleted line
+                assert lineA >= 1
+                cursorA = lineA + 1
+            elif origin == '+':
+                # This commit is to blame for this line
+                assert lineB >= 1
+                cursorB += 1
+            elif origin == ' ':
+                # Catch up to lineA
+                assert lineA >= 1
+                while cursorA <= lineA:
+                    assert blameA[cursorA].text == blameB[cursorB].text
+                    blameB[cursorB] = blameA[cursorA]
+                    cursorA += 1
+                    cursorB += 1
+                assert cursorB == lineB+1
+            else:
+                # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
+                assert origin in "=><"
+
+    # Copy rest of file
+    while cursorA < len(blameA):
+        assert blameA[cursorA].text == blameB[cursorB].text
+        blameB[cursorB] = blameA[cursorA]
+        cursorA += 1
+        cursorB += 1
 
 
 def traceCommandLineTool():  # pragma: no cover
