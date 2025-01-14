@@ -18,6 +18,7 @@ from __future__ import annotations as _annotations
 import bisect
 import dataclasses as _dataclasses
 import logging as _logging
+from collections.abc import Generator
 from contextlib import suppress
 from pathlib import Path
 
@@ -453,10 +454,10 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollec
             blobA = repo[blobIdA]
 
         assert isinstance(blobA, Blob)
-        diff = blobA.diff(blobB)
+        patch = blobA.diff(blobB)
 
         blameA = blameCollection[blobIdA]
-        blameB = _makeBlameFromDiff(node, diff, blameA)
+        blameB = _blamePatch(patch, blameA, node)
 
         if DEVDEBUG:
             assert len(blameB) - 1 == countLines(blobB.data)
@@ -466,8 +467,8 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollec
                 assert repo.descendant_of(node.commitId, node.llNext.commitId)
             olderBlob = repo[node.llNext.blobId]
             olderBlame = blameCollection[node.llNext.blobId]
-            olderDiff = olderBlob.diff(blobB)
-            _overrideBlame(olderDiff, olderBlame, blameB)
+            olderPatch = olderBlob.diff(blobB)
+            _overrideBlame(olderPatch, olderBlame, blameB)
 
         # Save this blame
         blameCollection[blobIdB] = blameB
@@ -485,54 +486,37 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollec
 def _makeInitialBlame(node: TraceNode, blob: Blob) -> list[BlameLine]:
     line0 = BlameLine(node, "$$$BOGUS$$$")
     blobText: str = blob.data.decode("utf-8", errors="replace")
-    newBlame = [line0] + [BlameLine(node, line) for line in blobText.splitlines()]
-    return newBlame
+    blame = [line0]
+    blame.extend(BlameLine(node, line) for line in blobText.splitlines(keepends=True))
+    return blame
 
 
-def _makeBlameFromDiff(node: TraceNode, diff: Diff, blameA: list[BlameLine]) -> list[BlameLine]:
+def _blamePatch(patch: Patch, blameA: list[BlameLine], nodeB: TraceNode) -> Blame:
     blameB = [blameA[0]]  # copy sentinel
-    cursorA = 1
 
-    for diffHunk in diff.hunks:
-        for diffLine in diffHunk.lines:
-            lineA = diffLine.old_lineno
-            lineB = diffLine.new_lineno
-            origin = diffLine.origin
-
-            if origin == '-':
-                # Skip deleted line
-                assert lineA >= 1
-                cursorA = lineA + 1
-            elif origin == '+':
-                # This commit is to blame for this line
-                assert lineB >= 1
-                assert len(blameB) == lineB
-                blameB.append(BlameLine(node, diffLine.content))
-            elif origin == ' ':
-                # Catch up to lineA
-                assert lineA >= 1
-                while cursorA <= lineA:
-                    blameB.append(blameA[cursorA])
-                    cursorA += 1
-            else:
-                # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
-                assert origin in "=><"
-
-    # Copy rest of file
-    while cursorA < len(blameA):
-        blameB.append(blameA[cursorA])
-        cursorA += 1
+    for lineA, lineB, diffLine in _traversePatch(patch, len(blameA)):
+        assert lineB == len(blameB)
+        if lineA:  # context line
+            blameB.append(blameA[lineA])
+        else:  # new line originating in B
+            blameB.append(BlameLine(nodeB, diffLine.content))
 
     return blameB
 
 
-# TODO: Would be nice to factor diff traversal into a generator or something
-def _overrideBlame(diff: Diff, blameA: list[BlameLine], blameB: list[BlameLine]):
+def _overrideBlame(patch: Patch, blameA: list[BlameLine], blameB: list[BlameLine]):
+    for lineA, lineB, _dummy in _traversePatch(patch, len(blameA)):
+        if lineA:  # context line
+            assert blameB[lineB].text == blameA[lineA].text
+            blameB[lineB] = blameA[lineA]
+
+
+def _traversePatch(patch: Patch, numLinesA: int) -> Generator[tuple[int, int, DiffLine | None], None, None]:
     cursorA = 1
     cursorB = 1
 
-    for diffHunk in diff.hunks:
-        for diffLine in diffHunk.lines:
+    for hunk in patch.hunks:
+        for diffLine in hunk.lines:
             lineA = diffLine.old_lineno
             lineB = diffLine.new_lineno
             origin = diffLine.origin
@@ -544,24 +528,23 @@ def _overrideBlame(diff: Diff, blameA: list[BlameLine], blameB: list[BlameLine])
             elif origin == '+':
                 # This commit is to blame for this line
                 assert lineB >= 1
+                yield 0, cursorB, diffLine
                 cursorB += 1
             elif origin == ' ':
                 # Catch up to lineA
                 assert lineA >= 1
                 while cursorA <= lineA:
-                    assert blameA[cursorA].text == blameB[cursorB].text
-                    blameB[cursorB] = blameA[cursorA]
+                    yield cursorA, cursorB, None
                     cursorA += 1
                     cursorB += 1
-                assert cursorB == lineB+1
+                assert cursorB == lineB + 1
             else:
                 # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
                 assert origin in "=><"
 
     # Copy rest of file
-    while cursorA < len(blameA):
-        assert blameA[cursorA].text == blameB[cursorB].text
-        blameB[cursorB] = blameA[cursorA]
+    while cursorA < numLinesA:
+        yield cursorA, cursorB, None
         cursorA += 1
         cursorB += 1
 
