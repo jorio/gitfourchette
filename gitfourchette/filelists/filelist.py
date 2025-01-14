@@ -330,6 +330,7 @@ class FileList(QListView):
             englishTitleCase(OpenBlame.name()),
             self.blameFile,
             enabled=isEnabled,
+            shortcuts=TaskBook.shortcuts[OpenBlame],
         )
 
     # -------------------------------------------------------------------------

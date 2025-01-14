@@ -28,7 +28,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
-from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook, AbortMerge, RepoTaskRunner
+from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook, RepoTaskRunner
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -588,6 +588,13 @@ class RepoWidget(QStackedWidget):
         layout.addWidget(diff.searchBar)
         diffWindow.resize(550, 700)
         diffWindow.show()
+
+    def blameCurrentFile(self):
+        if not self.navLocator.path:
+            showInformation(self, tasks.OpenBlame.name(), _("Please select a file before performing this action."))
+            return
+
+        tasks.OpenBlame.invoke(self, self.navLocator.path, self.navLocator.commit)
 
     def openSubmoduleRepo(self, submoduleKey: str):
         path = self.repo.get_submodule_workdir(submoduleKey)

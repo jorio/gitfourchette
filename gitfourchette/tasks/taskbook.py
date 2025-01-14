@@ -161,6 +161,7 @@ class TaskBook:
             tasks.NewBranchFromHead: makeMultiShortcut("Ctrl+B"),
             tasks.NewCommit: makeMultiShortcut(QKeySequence.StandardKey.Save),
             tasks.NewStash: makeMultiShortcut("Ctrl+Alt+S"),
+            tasks.OpenBlame: makeMultiShortcut("Ctrl+Y"),
             tasks.PullBranch: makeMultiShortcut("Ctrl+Shift+P"),
             tasks.PushBranch: makeMultiShortcut("Ctrl+P"),
         }
