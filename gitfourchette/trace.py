@@ -216,10 +216,23 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
 
     # If we're lucky, the commit has renamed the file without modifying it.
     # (This lets us bypass find_similar and save a ton of time.)
+    adds, dels = 0, 0
     for delta in diff.deltas:
-        if delta.old_file.id == knownBlobId:
-            path = delta.old_file.path
-            return path, knownBlobId
+        if delta.status == DeltaStatus.DELETED:
+            dels += 1
+            if delta.old_file.id == knownBlobId:
+                # Perfect match for the blob we're looking for
+                path = delta.old_file.path
+                return path, knownBlobId
+        elif delta.status == DeltaStatus.ADDED:
+            adds += 1
+
+    # For a rename to occur, we need at least an add and a del.
+    if adds == 0 or dels == 0:
+        if DEVDEBUG:  # Make sure we haven't missed a rename (expensive check!)
+            diff.find_similar()  # slow!
+            assert DeltaStatus.RENAMED not in (d.status for d in diff.deltas)
+        return path, NULL_OID
 
     # Fall back to find_similar. Slow!
     diff.find_similar()
