@@ -18,6 +18,7 @@ from __future__ import annotations as _annotations
 import bisect
 import dataclasses as _dataclasses
 import logging as _logging
+import time
 from collections.abc import Generator
 from contextlib import suppress
 from pathlib import Path
@@ -29,6 +30,8 @@ from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL, Benchmark
 _logger = _logging.getLogger(__name__)
 
 PLACEHOLDER_OID = Oid(hex='E' * 40)
+TRACE_PROGRESS_INTERVAL = 200
+BLAME_PROGRESS_INTERVAL = 10
 
 
 @_dataclasses.dataclass
@@ -230,12 +233,25 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
     return path, NULL_OID
 
 
-def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFFFF) -> Trace:
+def _dummyProgressCallback(n: int):
+    pass
+
+
+def traceFile(
+        topPath: str,
+        topCommit: Commit,
+        skimInterval=0,
+        maxLevel=0x3FFFFFFF,
+        progressCallback=_dummyProgressCallback,
+) -> Trace:
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
     visited: dict[Oid, TraceNode] = {}
     knownBlobIds = set()
     numCommits = 0
+
+    progressCallback(0)
+    timeStart = time.perf_counter()
 
     # Outer loop: Pop branch off frontier
     while frontier:
@@ -265,6 +281,9 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
             tree = commit.tree
             visited[commit.id] = node
 
+            if numCommits % TRACE_PROGRESS_INTERVAL == 0:
+                progressCallback(len(knownBlobIds))
+
             path, blobId = _getBlob(path, tree, treeAbove, node.blobId)
             if blobId == NULL_OID:
                 # Blob added here
@@ -291,6 +310,7 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
                     nodeAbove.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
                 newBranch = False
                 knownBlobIds.add(blobId)
+                # progressCallback(len(knownBlobIds))
                 visited[commit.id] = node
             else:
                 assert node.level == level
@@ -333,6 +353,9 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
             assert commitAbove.id in visited
             node.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
 
+    if progressCallback:
+        progressCallback(len(knownBlobIds))
+
     # Scrap useless revisions: Traverse LL from the tail up;
     # Cull nodes with blobs that are known to show up at a smaller ancestry level
     # closer to the tail. For example:
@@ -352,7 +375,8 @@ def traceFile(topPath: str, topCommit: Commit, skimInterval=0, maxLevel=0x3FFFFF
         else:
             assert not (node.status == DeltaStatus.MODIFIED and node.blobId == node.ancestorBlobId)
 
-    _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant.")
+    timeTaken = int(1000 * (time.perf_counter() - timeStart))
+    _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant. ({timeTaken} ms)")
     return ll
 
 
@@ -402,7 +426,12 @@ def _skimBranch(node: TraceNode, topCommit: Commit, visited: dict[Oid, TraceNode
     return topCommit, len(skimmed)
 
 
-def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollection:
+def blameFile(
+        repo: Repo,
+        ll: Trace,
+        topCommitId: Oid = NULL_OID,
+        progressCallback=_dummyProgressCallback
+) -> BlameCollection:
     def countLines(data: bytes):
         return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
 
@@ -419,7 +448,12 @@ def blameFile(repo: Repo, ll: Trace, topCommitId: Oid = NULL_OID) -> BlameCollec
     blameCollection: BlameCollection = {blobIdA: _makeInitialBlame(tail, blobA)}
 
     # Traverse trace from tail up
+    i = 0
     for node in llIter:
+        i += 1
+        if i % BLAME_PROGRESS_INTERVAL == 0:
+            progressCallback(i)
+
         assert node.sealed
 
         # Stop at head sentinel
@@ -553,6 +587,7 @@ def traceCommandLineTool():  # pragma: no cover
     from argparse import ArgumentParser
     from datetime import datetime, timezone
     from timeit import timeit
+    from sys import stderr
 
     parser = ArgumentParser(description="GitFourchette trace/blame tool")
     parser.add_argument("path", help="File path")
@@ -578,13 +613,15 @@ def traceCommandLineTool():  # pragma: no cover
     topCommit = repo.head.peel(Commit)
 
     with Benchmark("Trace"):
-        trace = traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level)
+        trace = traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level,
+                          progressCallback=lambda n: print(f"\rTrace {n}...", end="", file=stderr))
 
     if args.trace:
         trace.dump()
 
     with Benchmark("Blame"):
-        blame = blameFile(repo, trace, topCommit.id)
+        blame = blameFile(repo, trace, topCommit.id,
+                          progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
 
     if not args.quiet:
         for i, blameLine in enumerate(blame[trace.first.blobId]):

@@ -4,22 +4,24 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.tasks import RepoTask
-from gitfourchette.toolbox import Benchmark
+from gitfourchette.tasks.repotask import AbortTask
+from gitfourchette.toolbox import *
 from gitfourchette.trace import traceFile, blameFile
 
 
 class OpenBlame(RepoTask):
-    def flow(self, path: str, seed: Oid):
-        from gitfourchette.blameview.blamewindow import BlameWindow
+    TraceSkimInterval = 50
 
-        blameWindow = BlameWindow(self.repoModel, self.parentWidget())
-        blameWindow.setWindowFlag(Qt.WindowType.Window, True)
-        blameWindow.resize(550, 700)
-        blameWindow.setEnabled(False)
-        blameWindow.show()
+    def flow(self, path: str, seed: Oid):
+        progress = _BlameProgressDialog(self.parentWidget())
+        progress.setWindowTitle(_("Annotating {0}", tquo(path)))
+        self.progressDialog = progress
+
+        from gitfourchette.blameview.blamewindow import BlameWindow
 
         yield from self.flowEnterWorkerThread()
         repo = self.repo
@@ -40,11 +42,92 @@ class OpenBlame(RepoTask):
 
         # Trace commit in branch
         with Benchmark("trace"):
-            trace = traceFile(path, repo.peel_commit(seed))
-
-        with Benchmark("blame"):
-            blame = blameFile(repo, trace, seed)
+            trace = traceFile(path, repo.peel_commit(seed),
+                              skimInterval=self.TraceSkimInterval,
+                              progressCallback=progress.reportTraceProgress)
 
         yield from self.flowEnterUiThread()
+        progress.setRange(0, len(trace))
+        progress.setValue(0)
+
+        # Annotate file
+        yield from self.flowEnterWorkerThread()
+        with Benchmark("blame"):
+            blame = blameFile(repo, trace, seed, progressCallback=progress.reportBlameProgress)
+
+        yield from self.flowEnterUiThread()
+        progress.close()
+
+        blameWindow = BlameWindow(self.repoModel, self.parentWidget())
+        blameWindow.setWindowFlag(Qt.WindowType.Window, True)
+        blameWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        blameWindow.resize(550, 700)
         blameWindow.setTrace(trace, blame, showCommit)
-        blameWindow.setEnabled(True)
+        blameWindow.show()
+
+        self.postStatus = _n("{n} revision annotated.", "{n} revisions annotated.", n=len(trace))
+
+    def onError(self, exc: Exception):
+        # TODO: If the task emitted a finished signal, we wouldn't need to keep a reference to the progress dialog around.
+        self.progressDialog.close()
+        super().onError(exc)
+
+
+class _BlameProgressDialog(QProgressDialog):
+    traceProgress = Signal(int)
+    blameProgress = Signal(int)
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setLabelText(_("Please wait…"))
+        self.setRange(0, 0)
+        self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.setMinimumWidth(self.fontMetrics().horizontalAdvance('W' * 40))
+
+        # Delay progress popup to avoid flashing when blaming is fast enough.
+        self.delayedProgress = QTimer(self)
+        self.delayedProgress.timeout.connect(self.show)
+        self.delayedProgress.setSingleShot(True)
+        self.delayedProgress.start(200)
+
+        self.traceProgress.connect(self._showTraceProgress)
+        self.blameProgress.connect(self._showBlameProgress)
+
+    def close(self) -> bool:
+        assert onAppThread()
+        self.delayedProgress.stop()
+        didClose = super().close()
+        if didClose:
+            self.setParent(None)  # let it be garbage collected
+        return didClose
+
+    def reportTraceProgress(self, n):
+        self._reportProgressFromWorkerThread(self.traceProgress, n)
+
+    def reportBlameProgress(self, n):
+        self._reportProgressFromWorkerThread(self.blameProgress, n)
+
+    def _reportProgressFromWorkerThread(self, signal: Signal, *args):
+        # If the user has hit the cancel button from the UI thread,
+        # interrupt the worker thread.
+        if self.wasCanceled():
+            raise AbortTask()
+
+        # Pass progress message to UI thread.
+        signal.emit(*args)
+
+        # Due to the GIL, only a single piece of Python code will ever run
+        # simultaneously. This mini sleep (on the worker thread) gives some
+        # breathing room for the UI thread to keep the progress dialog
+        # responsive. This doesn't slow down the worker thread too much.
+        QThread.msleep(1)
+
+    def _showTraceProgress(self, n: int):
+        assert onAppThread()
+        if n != 0:
+            self.setLabelText(_n("Found {n} revision…", "Found {n} revisions…", n=n))
+
+    def _showBlameProgress(self, n: int):
+        assert onAppThread()
+        self.setLabelText(_("Annotating revision {0} of {1}…", n, self.maximum()))
+        self.setValue(n)
