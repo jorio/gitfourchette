@@ -15,7 +15,6 @@ CAVEAT: Octopus merges not supported yet.
 
 from __future__ import annotations as _annotations
 
-import bisect
 import dataclasses as _dataclasses
 import logging as _logging
 import time
@@ -66,10 +65,7 @@ class TraceNode:
             if len(parents) > 2:
                 raise NotImplementedError(f"Octopus merge unsupported ({id7(commit)})")
             parent1 = parents[1]
-            # Push to frontier as a stack (grouped by levels)
-            # so that the commit closest to the tail gets popped first.
-            insPoint = bisect.bisect_left(frontier, self.level, key=lambda item: item[0].level)
-            frontier.insert(insPoint, (self, parent1))
+            frontier.insert(0, (self, parent1))
             self.likelyMerge = True
 
         if ancestorBlobId == NULL_OID:
@@ -306,13 +302,8 @@ def traceFile(
 
             if newBranch and blobId != node.blobId and blobId in knownBlobIds:
                 # Branch doesn't contribute the blob: prune it.
-                # Required for proper blaming of cpython/Lib/test/test_urllib.py
                 assert level > 0
                 assert node.likelyMerge
-                # Allow re-visiting this commit further down the graph.
-                # We might need it if this branch is merged by another earlier commit,
-                # at a "wider" level.
-                del visited[commit.id]
                 break
 
             if newBranch or blobId != node.blobId or node.status == DeltaStatus.RENAMED:
@@ -357,7 +348,6 @@ def traceFile(
                 # Don't revisit
                 visitedNode = visited[commit.id]
                 assert visitedNode.blobId != NULL_OID
-                assert visitedNode.level <= node.level
                 blobId = visitedNode.blobId
                 break  # bail from the branch
 
@@ -470,8 +460,8 @@ def blameFile(
 
         # Skip nodes that don't contribute a new blob
         if blobIdA == blobIdB:
-            assert node.likelyMerge or node.status == DeltaStatus.RENAMED
             _logger.debug(f"Not blaming node (no-op): {node}")
+            assert node.likelyMerge or node.status == DeltaStatus.RENAMED
             continue
         if blobIdB in blameCollection:
             _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
