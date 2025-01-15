@@ -448,32 +448,22 @@ def blameFile(
     def countLines(data: bytes):
         return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
 
-    # Prime the iterator: Skip the tail
-    llIter = ll.reverseIter()
-    tail = next(llIter)
-    assert tail is ll.tail
-
     # Get tail blob
-    blobIdA = tail.blobId
+    blobIdA = ll.tail.blobId
     blobA = repo[blobIdA].peel(Blob)
 
     # Prep blame
-    blameCollection: BlameCollection = {blobIdA: _makeInitialBlame(tail, blobA)}
+    blameCollection: BlameCollection = {}
 
     # Traverse trace from tail up
     i = 0
-    for node in llIter:
+    for node in ll.reverseIter():
         i += 1
         if i % BLAME_PROGRESS_INTERVAL == 0:
             progressCallback(i)
 
         assert node.sealed
-
-        # Stop at head sentinel
-        if node is ll.head:
-            assert node.commitId == NULL_OID  # assume head sentinel isn't a real commit
-            break
-        assert node is not ll.tail
+        assert node is not ll.head, "head sentinel is fake"
 
         blobIdA = node.ancestorBlobId
         blobIdB = node.blobId
