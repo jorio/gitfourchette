@@ -35,16 +35,17 @@ BLAME_PROGRESS_INTERVAL = 10
 
 @_dataclasses.dataclass
 class TraceNode:
+    DefaultStatus = DeltaStatus.UNMODIFIED
+
     path: str
     commitId: Oid  # earliest commit in the branch where this blob shows up
     blobId: Oid
     level: int  # branch ancestry level (breadth distance from root branch)
-    status: DeltaStatus = DeltaStatus.MODIFIED
+    status: DeltaStatus = DefaultStatus
     llPrev: TraceNode | None = None
     llNext: TraceNode | None = None
     sealed: bool = False
     ancestorBlobId: Oid = PLACEHOLDER_OID
-    likelyMerge: bool = False
 
     def __str__(self):
         status_char = self.status.name[0]
@@ -55,25 +56,42 @@ class TraceNode:
         status_char = self.status.name[0]
         return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.ancestorBlobId)}→{id7(self.blobId)}, status={status_char}, path={self.path})"
 
-    def seal(self, commit, frontier, ancestorBlobId):
+    def seal(
+            self,
+            commit: Commit,
+            frontier: list[tuple[TraceNode, Commit]],
+            ancestorBlobId: Oid
+    ) -> bool:
         assert not self.sealed
         assert commit
         assert commit.id == self.commitId
 
-        parents = commit.parents
-        if len(parents) > 1:
-            if len(parents) > 2:
-                raise NotImplementedError(f"Octopus merge unsupported ({id7(commit)})")
-            parent1 = parents[1]
-            frontier.insert(0, (self, parent1))
-            self.likelyMerge = True
-
-        if ancestorBlobId == NULL_OID:
-            assert self.status == DeltaStatus.MODIFIED  # should not be changed from default
+        # Update status, unless we've set it manually (i.e. RENAMED)
+        if self.status != TraceNode.DefaultStatus:
+            assert self.status == DeltaStatus.RENAMED
+        elif ancestorBlobId == self.blobId:
+            self.status = DeltaStatus.UNMODIFIED
+        elif ancestorBlobId == NULL_OID:
             self.status = DeltaStatus.ADDED
+        else:
+            self.status = DeltaStatus.MODIFIED
+
+        # A significant node contributes a difference to the blob or path
+        significant = self.status != DeltaStatus.UNMODIFIED
 
         self.sealed = True
         self.ancestorBlobId = ancestorBlobId
+
+        if significant:
+            # Look at parents if we're significant
+            parents = commit.parents
+            if len(parents) > 1:
+                if len(parents) > 2:
+                    raise NotImplementedError(f"Octopus merge unsupported ({id7(commit)})")
+                parent1 = parents[1]
+                frontier.insert(0, (self, parent1))
+
+        return significant
 
 
 @_dataclasses.dataclass
@@ -92,7 +110,7 @@ class Trace:
     count: int
 
     def __init__(self, path: str):
-        self.head = TraceNode(path, NULL_OID, NULL_OID, level=-1, status=DeltaStatus.CONFLICTED, sealed=True)
+        self.head = TraceNode(path, NULL_OID, NULL_OID, level=-1, sealed=True)
         self.tail = self.head
         self.count = 0
 
@@ -158,6 +176,9 @@ class Trace:
         self.count -= 1
         assert self.count >= 0
 
+        node.llNext = None
+        node.llPrev = None
+
     class Iterator:
         def __init__(self, ll: Trace, reverse=False):
             self.reverse = reverse
@@ -203,9 +224,10 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
         # Path missing from this commit's tree.
         pass
 
-    if not treeAbove:
-        # Bail from useless branch.
-        return path, NULL_OID
+    # No treeAbove in the case of a new branch that we just popped off the frontier.
+    # If we get here in this case, then the new branch is useless.
+    if treeAbove is None:
+        return "", NULL_OID
 
     # Did the commit above rename the file?
     diff = tree.diff_to_tree(treeAbove, DiffOption.NORMAL, 0, 0)
@@ -228,7 +250,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
         if DEVDEBUG:  # Make sure we haven't missed a rename (expensive check!)
             diff.find_similar()  # slow!
             assert DeltaStatus.RENAMED not in (d.status for d in diff.deltas)
-        return path, NULL_OID
+        return "", NULL_OID
 
     # Fall back to find_similar. Slow!
     diff.find_similar()
@@ -239,7 +261,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
             return path, tree[path].id
 
     # We're past the commit that created this file. Bail from the branch.
-    return path, NULL_OID
+    return "", NULL_OID
 
 
 def _dummyProgressCallback(n: int):
@@ -256,7 +278,6 @@ def traceFile(
     ll = Trace(topPath)
     frontier = [(ll.head, topCommit)]
     visited: dict[Oid, TraceNode] = {}
-    knownBlobIds = set()
     numCommits = 0
 
     progressCallback(0)
@@ -267,6 +288,8 @@ def traceFile(
         node, commit = frontier.pop(0)
         path = node.path
         level = node.level + 1
+
+        assert node is ll.head or node.llPrev, "dangling node in frontier!"
 
         if commit.id in visited:
             continue
@@ -291,30 +314,27 @@ def traceFile(
             visited[commit.id] = node
 
             if numCommits % TRACE_PROGRESS_INTERVAL == 0:
-                progressCallback(len(knownBlobIds))
+                progressCallback(len(ll))
 
             path, blobId = _getBlob(path, tree, treeAbove, node.blobId)
+            useful = blobId != node.blobId
             if blobId == NULL_OID:
                 # Blob added here
+                assert newBranch or treeAbove is not None
                 break  # bail from the branch
             if not newBranch and path != node.path:
                 node.status = DeltaStatus.RENAMED
+                useful = True
 
-            if newBranch and blobId != node.blobId and blobId in knownBlobIds:
-                # Branch doesn't contribute the blob: prune it.
-                assert level > 0
-                assert node.likelyMerge
-                break
-
-            if newBranch or blobId != node.blobId or node.status == DeltaStatus.RENAMED:
+            if newBranch or useful:
                 nodeAbove = node
                 node = TraceNode(path=path, commitId=commit.id, blobId=blobId, level=level)
                 ll.insert(nodeAbove, node)
                 if not newBranch:  # Seal node above
-                    nodeAbove.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
+                    significant = nodeAbove.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
+                    assert significant
                 newBranch = False
-                knownBlobIds.add(blobId)
-                # progressCallback(len(knownBlobIds))
+                # progressCallback(len(ll))
                 visited[commit.id] = node
             else:
                 assert node.level == level
@@ -354,10 +374,9 @@ def traceFile(
         # Seal last node in branch
         if not newBranch:
             assert commitAbove.id in visited
-            node.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
-
-    if progressCallback:
-        progressCallback(len(knownBlobIds))
+            significant = node.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
+            if not significant:
+                ll.unlink(node)
 
     # Scrap useless revisions: Traverse LL from the tail up;
     # Cull nodes with blobs that are known to show up at a smaller ancestry level
@@ -371,12 +390,16 @@ def traceFile(
     knownLevels = {}
     for node in ll.reverseIter():
         assert node.sealed
+        assert node.status != TraceNode.DefaultStatus
         if knownLevels.get(node.blobId, 0x3FFFFFFF) > node.level:
             knownLevels[node.blobId] = node.level
         elif node.status == DeltaStatus.MODIFIED:
             ll.unlink(node)
         else:
             assert not (node.status == DeltaStatus.MODIFIED and node.blobId == node.ancestorBlobId)
+
+    if progressCallback:
+        progressCallback(len(ll))
 
     timeTaken = int(1000 * (time.perf_counter() - timeStart))
     _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant. ({timeTaken} ms)")
@@ -460,8 +483,7 @@ def blameFile(
 
         # Skip nodes that don't contribute a new blob
         if blobIdA == blobIdB:
-            _logger.debug(f"Not blaming node (no-op): {node}")
-            assert node.likelyMerge or node.status == DeltaStatus.RENAMED
+            assert node.status == DeltaStatus.RENAMED
             continue
         if blobIdB in blameCollection:
             _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
