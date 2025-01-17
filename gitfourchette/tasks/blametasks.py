@@ -16,7 +16,7 @@ from gitfourchette.trace import traceFile, blameFile
 class OpenBlame(RepoTask):
     TraceSkimInterval = 50
 
-    def flow(self, path: str, seed: Oid):
+    def flow(self, path: str, seed: Oid = NULL_OID):
         progress = _BlameProgressDialog(self.parentWidget())
         progress.setWindowTitle(_("Annotating {0}", tquo(path)))
         self.progressDialog = progress

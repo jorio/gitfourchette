@@ -74,7 +74,7 @@ class BlameWindow(QWidget):
         self.scrubber.clear()
 
         startIndex = 0
-        startNode = None
+        startNode = trace.first  # fall back to newest commit
         for index, node in enumerate(trace):
             if node.commitId == startAt:
                 startIndex = index

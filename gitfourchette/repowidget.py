@@ -589,12 +589,16 @@ class RepoWidget(QStackedWidget):
         diffWindow.resize(550, 700)
         diffWindow.show()
 
-    def blameCurrentFile(self):
-        if not self.navLocator.path:
+    def blameFile(self, path="", atCommit=NULL_OID):
+        if not path:
+            path = self.navLocator.path
+            atCommit = self.navLocator.commit
+
+        if not path:
             showInformation(self, tasks.OpenBlame.name(), _("Please select a file before performing this action."))
             return
 
-        tasks.OpenBlame.invoke(self, self.navLocator.path, self.navLocator.commit)
+        tasks.OpenBlame.invoke(self, path, atCommit)
 
     def openSubmoduleRepo(self, submoduleKey: str):
         path = self.repo.get_submodule_workdir(submoduleKey)
@@ -837,7 +841,7 @@ class RepoWidget(QStackedWidget):
         bannerCallback = None
 
         def abortMerge():
-            self.runTask(AbortMerge)
+            self.runTask(tasks.AbortMerge)
 
         if rstate == RepositoryState.MERGE:
             try:

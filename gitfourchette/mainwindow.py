@@ -12,6 +12,7 @@ import re
 import time
 from collections.abc import Sequence
 from contextlib import suppress
+from pathlib import Path
 from typing import Literal
 
 import pygit2
@@ -669,7 +670,7 @@ class MainWindow(QMainWindow):
         self.currentRepoWidget().diffArea.selectNextFile(False)
 
     def blameFile(self):
-        self.currentRepoWidget().blameCurrentFile()
+        self.currentRepoWidget().blameFile()
 
     # -------------------------------------------------------------------------
     # Help menu
@@ -1054,6 +1055,11 @@ class MainWindow(QMainWindow):
         if action == "clone":
             self.cloneDialog(data)
         elif action == "open":
+            with suppress(NoRepoWidgetError, ValueError):
+                rw = self.currentRepoWidget()
+                relPath = str(Path(data).relative_to(rw.workdir))  # May raise ValueError('X is not in the subpath of Y')
+                rw.blameFile(relPath)
+                return
             self.openRepo(data, exactMatch=False)
         elif action == "patch":
             tasks.ApplyPatchFile.invoke(self, False, data)
