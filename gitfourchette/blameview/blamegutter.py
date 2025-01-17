@@ -13,6 +13,7 @@ from pygit2 import Commit
 from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.localization import *
+from gitfourchette.porcelain import NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 
@@ -31,8 +32,12 @@ class BlameGutter(QWidget):
         setFontFeature(font, "tnum")  # Tabular numbers
         self.setFont(font)
 
+        self.boldFont = QFont(font)
+        self.boldFont.setBold(True)
+
         self.model = model
         self.textEdit = parent
+        self.topCommitId = NULL_OID
 
         self.refreshMetrics()
 
@@ -99,6 +104,7 @@ class BlameGutter(QWidget):
             gutterColor = themeBG.lighter(140)  # dark theme
         lineColor = QColor(*themeFG.getRgb()[:3], 80)
         textColor = QColor(*themeFG.getRgb()[:3], 128)
+        boldTextColor = QColor(*themeFG.getRgb()[:3], 160)
 
         # Gather some metrics
         paintRect = event.rect()
@@ -127,6 +133,7 @@ class BlameGutter(QWidget):
         lc2.setAlphaF(lc2.alphaF()/2)
         linePen = QPen(lc2)#, 1, Qt.PenStyle.DashLine)
         textPen = QPen(textColor)
+        boldTextPen = QPen(boldTextColor)
         painter.setPen(textPen)
 
         locale = QLocale()
@@ -141,16 +148,20 @@ class BlameGutter(QWidget):
             if block.isVisible() and bottom >= paintRect.top():
                 lineNumber = 1 + blockNumber
 
-                colL, colW = self.columnMetrics[-1]
-                painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
-
                 try:
                     blameNode = blame[lineNumber].traceNode
                 except IndexError:
                     break
+
                 if blameNode is not hunkTraceNode:
                     hunkTraceNode = blameNode
                     hunkStartLine = lineNumber
+                    isCurrent = blameNode.commitId == self.topCommitId
+                    painter.setFont(self.boldFont if isCurrent else self.font())
+                    painter.setPen(boldTextPen if isCurrent else textPen)
+
+                colL, colW = self.columnMetrics[-1]
+                painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
 
                 if lastCaptionDrawnAtLine != hunkStartLine:
                     drawSeparator = lastCaptionDrawnAtLine > 0
@@ -163,7 +174,7 @@ class BlameGutter(QWidget):
                     commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
                     commitTimeStr = locale.toString(commitQdt, "yyyy-MM-dd")
                     colL, colW = self.columnMetrics[0]
-                    painter.drawText(colL, top, colW, lh, alignLeft, commitTimeStr)
+                    FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, commitTimeStr, bypassSetting=True)
 
                     # Author
                     name = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
@@ -173,9 +184,10 @@ class BlameGutter(QWidget):
                     # Hunk separator line
                     if drawSeparator:
                         y = top
+                        penBackup = painter.pen()
                         painter.setPen(linePen)
                         painter.drawLine(QLine(0, y, rightEdge-1, y))
-                        painter.setPen(textPen)  # restore text pen
+                        painter.setPen(penBackup)  # restore text pen
 
             block = block.next()
             top = bottom

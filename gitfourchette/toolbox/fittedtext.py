@@ -36,6 +36,7 @@ class FittedText:
             text: str,
             mode=Qt.TextElideMode.ElideRight,
             limit=defaultStretchLimit,
+            bypassSetting=False,
     ) -> tuple[str, QFont, int]:
         metrics = QFontMetricsF(wideFont)
         width = ceil(metrics.horizontalAdvance(text))
@@ -43,7 +44,7 @@ class FittedText:
         if width < 1:
             return text, wideFont, 0
 
-        if not cls.enable:
+        if not cls.enable and not bypassSetting:
             font = wideFont
         else:
             # Figure out upper bound for the stretch factor
@@ -88,9 +89,10 @@ class FittedText:
             text: str,
             mode=Qt.TextElideMode.ElideRight,
             minStretch=defaultStretchLimit,
+            bypassSetting=False,
     ) -> tuple[str, QFont, int]:
         wideFont = painter.font()
-        text, font, width = cls.fit(wideFont, rect.width(), text, mode, minStretch)
+        text, font, width = cls.fit(wideFont, rect.width(), text, mode, minStretch, bypassSetting)
         if font is wideFont:
             painter.drawText(rect, flags, text)
         else:
