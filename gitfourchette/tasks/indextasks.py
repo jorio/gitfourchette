@@ -164,7 +164,7 @@ class DiscardFiles(_BaseStagingTask):
         textPara.append(_("This cannot be undone!"))
         text = paragraphs(textPara)
 
-        yield from self.flowConfirm(text=text, verb=verb, buttonIcon="SP_DialogDiscardButton")
+        yield from self.flowConfirm(text=text, verb=verb, buttonIcon="git-discard")
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
@@ -239,7 +239,7 @@ class DiscardModeChanges(_BaseStagingTask):
             textPara.append(_("Really discard mode changes in <b>{n} files</b>?", n=len(patches)))
         textPara.append(_("This cannot be undone!"))
 
-        yield from self.flowConfirm(text=paragraphs(textPara), verb=_("Discard mode changes"), buttonIcon="SP_DialogDiscardButton")
+        yield from self.flowConfirm(text=paragraphs(textPara), verb=_("Discard mode changes"), buttonIcon="git-discard")
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
@@ -276,11 +276,7 @@ class ApplyPatch(RepoTask):
             else:
                 textPara.append(_("Really discard the selected lines?"))
             textPara.append(_("This cannot be undone!"))
-            yield from self.flowConfirm(
-                title,
-                text=paragraphs(textPara),
-                verb=title,
-                buttonIcon="SP_DialogDiscardButton")
+            yield from self.flowConfirm(title, text=paragraphs(textPara), verb=title, buttonIcon="git-discard-lines")
 
             Trash.instance().backupPatch(self.repo.workdir, subPatch, fullPatch.delta.new_file.path)
             applyLocation = ApplyLocation.WORKDIR
