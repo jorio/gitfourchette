@@ -100,6 +100,7 @@ class BlameWindow(QWidget):
 
         self.textEdit.gutter.syncModel()
         self.textEdit.syncModel()
+        self.textEdit.syncViewportMarginsWithGutter()
         self.setWindowTitle(_("Blame: ") + node.path)
 
     def onScrubberActivated(self, index: int):

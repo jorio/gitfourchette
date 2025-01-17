@@ -22,25 +22,49 @@ if TYPE_CHECKING:
 
 class BlameGutter(QWidget):
     textEdit: BlameTextEdit
-    paddingString: str
     model: BlameModel
 
     def __init__(self, model, parent):
         super().__init__(parent)
+
+        font = QFontDatabase.systemFont(QFontDatabase.SystemFont.SmallestReadableFont)
+        setFontFeature(font, "tnum")  # Tabular numbers
+        self.setFont(font)
+
         self.model = model
         self.textEdit = parent
-        self.paddingString = "W" * 30
+
+        self.refreshMetrics()
 
         # Enable customContextMenuRequested signal
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         self.installEventFilter(self)
 
+    def refreshMetrics(self):
+        fontMetrics = self.fontMetrics()
+
+        maxLineNumber = self.textEdit.blockCount()
+
+        dateWidth = fontMetrics.horizontalAdvance("2000-00-00 ")
+        authorWidth = fontMetrics.horizontalAdvance("M" * 8)
+        lnWidth = fontMetrics.horizontalAdvance(" " + "0" * len(str(maxLineNumber)))
+
+        self.columnMetrics = []
+        x = 2
+        for w in (dateWidth, authorWidth, lnWidth):
+            self.columnMetrics.append((x, w))
+            x += w
+        x += 3
+        self.preferredWidth = x
+
+        self.lineHeight = max(fontMetrics.height(), self.textEdit.fontMetrics().height())
+
     def syncModel(self):
-        pass
+        self.refreshMetrics()
 
     def calcWidth(self) -> int:
-        return self.fontMetrics().horizontalAdvance(self.paddingString)
+        return self.preferredWidth
 
     def onParentUpdateRequest(self, rect: QRect, dy: int):
         if dy != 0:
@@ -62,14 +86,8 @@ class BlameGutter(QWidget):
 
     def paintEvent(self, event: QPaintEvent):
         blame = self.model.currentBlame
-
         textEdit = self.textEdit
         painter = QPainter(self)
-
-        monoFont: QFont = self.font()
-        propFont: QFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)
-        propFont.setPointSize(min(monoFont.pointSize(), propFont.pointSize()))
-        painter.setFont(self.font())
 
         # Set up colors
         palette = self.palette()
@@ -86,7 +104,7 @@ class BlameGutter(QWidget):
         paintRect = event.rect()
         gutterRect = self.rect()
         rightEdge = gutterRect.width() - 1
-        fontHeight = self.fontMetrics().height()
+        lh = self.lineHeight
 
         # Clip painting to QScrollArea viewport rect (don't draw beneath horizontal scroll bar)
         vpRect = textEdit.viewport().rect()
@@ -111,28 +129,20 @@ class BlameGutter(QWidget):
         textPen = QPen(textColor)
         painter.setPen(textPen)
 
-        maxLN = textEdit.blockCount()
-        maxLNWidth = QFontMetrics(monoFont).horizontalAdvance("0" * len(str(maxLN)))
         locale = QLocale()
-
-        dateWidth = QFontMetrics(monoFont).horizontalAdvance("0000-00-00 ")
-        rightEdgeText = rightEdge - 3
-        cols = [
-            (0, dateWidth),
-            (dateWidth, rightEdgeText-maxLNWidth),
-            (rightEdgeText-maxLNWidth, rightEdgeText)
-        ]
-
         lastCaptionDrawnAtLine = -1
         hunkTraceNode = blame[0]
         hunkStartLine = 1
+
+        alignLeft = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        alignRight = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
         while block.isValid() and top <= paintRect.bottom():
             if block.isVisible() and bottom >= paintRect.top():
                 lineNumber = 1 + blockNumber
 
-                colL, colW = cols[-1][0], cols[-1][1] - cols[-1][0]
-                painter.drawText(colL, top, colW, fontHeight, Qt.AlignmentFlag.AlignRight, str(lineNumber))
+                colL, colW = self.columnMetrics[-1]
+                painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
 
                 try:
                     blameNode = blame[lineNumber].traceNode
@@ -143,6 +153,7 @@ class BlameGutter(QWidget):
                     hunkStartLine = lineNumber
 
                 if lastCaptionDrawnAtLine != hunkStartLine:
+                    drawSeparator = lastCaptionDrawnAtLine > 0
                     lastCaptionDrawnAtLine = lineNumber
 
                     commit: Commit = self.model.repo[blameNode.commitId]
@@ -151,18 +162,16 @@ class BlameGutter(QWidget):
                     # Date
                     commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
                     commitTimeStr = locale.toString(commitQdt, "yyyy-MM-dd")
-                    colL, colW = cols[0][0], cols[0][1] - cols[0][0]
-                    painter.setFont(propFont)
-                    painter.drawText(colL, top, colW, fontHeight, Qt.AlignmentFlag.AlignLeft, commitTimeStr)
+                    colL, colW = self.columnMetrics[0]
+                    painter.drawText(colL, top, colW, lh, alignLeft, commitTimeStr)
 
                     # Author
                     name = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
-                    colL, colW = cols[1][0], cols[1][1] - cols[1][0]
-                    painter.drawText(colL, top, colW, fontHeight, Qt.AlignmentFlag.AlignLeft, name)
-                    painter.setFont(monoFont)
+                    colL, colW = self.columnMetrics[1]
+                    FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, name)
 
                     # Hunk separator line
-                    if lineNumber != 1:
+                    if drawSeparator:
                         y = top
                         painter.setPen(linePen)
                         painter.drawLine(QLine(0, y, rightEdge-1, y))

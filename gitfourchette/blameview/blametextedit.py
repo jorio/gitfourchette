@@ -34,9 +34,6 @@ class BlameTextEdit(QPlainTextEdit):
         # Initialize font
         self.refreshPrefs()
 
-        # self.horizontalScrollBar().setContentsMargins(50,0,0,0)
-        # self.horizontalScrollBar().setMaximumWidth(60)
-
     def refreshPrefs(self):
         monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         if settings.prefs.font:
@@ -52,7 +49,6 @@ class BlameTextEdit(QPlainTextEdit):
         self.refreshWordWrap()
         self.setCursorWidth(2)
 
-        self.gutter.setFont(monoFont)
         self.syncViewportMarginsWithGutter()
 
     def refreshWordWrap(self):
