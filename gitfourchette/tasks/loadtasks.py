@@ -6,7 +6,6 @@
 
 import logging
 from contextlib import suppress
-from pathlib import Path
 
 from gitfourchette import colors
 from gitfourchette import settings
@@ -385,14 +384,14 @@ class LoadPatch(RepoTask):
             with suppress(KeyError):
                 return LexJobCache.get(file.id)
 
-            with suppress(KeyError):
+            try:
                 data = self.repo[file.id].data
-                return LexJob(lexer, data, file.id)
+            except KeyError:
+                assert isDirty, "reading from disk should only occur for dirty files"
+                blobId = self.repo.create_blob_fromworkdir(file.path)
+                assert blobId == file.id
+                data = self.repo[file.id].data
 
-            assert isDirty, "should only read dirty files from disk"
-            logger.debug("Reading dirty file from disk for lexing...")
-            path = Path(self.repo.in_workdir(file.path))
-            data = path.read_bytes()
             return LexJob(lexer, data, file.id)
 
         oldLexJob = primeLexJob(oldFile, False)
