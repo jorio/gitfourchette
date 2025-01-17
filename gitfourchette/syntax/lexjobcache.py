@@ -8,7 +8,7 @@ import logging
 
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.porcelain import Oid
-from gitfourchette.toolbox import shortHash
+from gitfourchette.toolbox.gitutils import shortHash
 
 logger = logging.getLogger(__name__)
 

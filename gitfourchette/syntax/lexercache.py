@@ -17,7 +17,7 @@ try:
 except ImportError:  # pragma: no cover
     hasPygments = False
 
-from gitfourchette.toolbox import benchmark
+from gitfourchette.toolbox.benchmark import benchmark
 
 logger = logging.getLogger(__name__)
 

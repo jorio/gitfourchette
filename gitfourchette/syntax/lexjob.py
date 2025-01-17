@@ -15,7 +15,7 @@ except ImportError:  # pragma: no cover
 
 from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
-from gitfourchette.toolbox import benchmark
+from gitfourchette.toolbox.benchmark import benchmark
 
 
 class LexJob(QObject):

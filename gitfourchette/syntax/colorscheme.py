@@ -8,7 +8,8 @@ from __future__ import annotations
 from contextlib import suppress
 
 from gitfourchette.qt import *
-from gitfourchette.toolbox import isDarkTheme, benchmark
+from gitfourchette.toolbox.qtutils import isDarkTheme
+from gitfourchette.toolbox.benchmark import benchmark
 
 try:
     import pygments.styles
