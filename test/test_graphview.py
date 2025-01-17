@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -116,11 +116,18 @@ def testCommitSearchByHash(tempDir, mainWindow):
         searchCommits.reverse()
 
     # Search for a bogus commit hash
-    assert searchBar.property("red") == "false"
+    assert not searchBar.isRed()
     searchEdit.selectAll()
     QTest.keyClicks(searchEdit, "aaabbcc")
     QTest.qWait(0)
-    assert searchBar.property("red") == "true"  # QSS property that turns the text red
+    assert searchBar.isRed()
+    assert searchBar.searchTermBadStem == "aaabbcc"
+
+    # Don't expand on a bad stem
+    QTest.keyClicks(searchEdit, "def")
+    QTest.qWait(0)
+    assert searchBar.searchTermBadStem == "aaabbcc"
+
     # The pulse won't show an error message on its own.
     # Hit enter to bring up an error.
     QTest.keySequence(searchEdit, "Return")

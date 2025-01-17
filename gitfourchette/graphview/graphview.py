@@ -72,6 +72,7 @@ class GraphView(QListView):
         self.searchBar.detectHashes = True
         self.searchBar.setUpItemViewBuddy()
         self.searchBar.hide()
+        self.clFilter.rowsAboutToBeInserted.connect(self.searchBar.invalidateBadStem)
 
         self.refreshPrefs(invalidateMetrics=False)
 

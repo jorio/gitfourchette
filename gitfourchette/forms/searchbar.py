@@ -44,6 +44,10 @@ class SearchBar(QWidget):
     """ Sanitized search term (lowercase, stripped whitespace).
     Updated when the user edits the QLineEdit. """
 
+    searchTermBadStem: str
+    """ Substring of the current term for which we know there aren't any
+    matches. """
+
     searchTermLooksLikeHash: bool
     """ True if the search term looks like the start of a 40-character SHA-1 hash.
     Updated at the same time as searchTerm if detectHashes was enabled beforehand. """
@@ -103,6 +107,7 @@ class SearchBar(QWidget):
         appendShortcutToToolTip(self.ui.closeButton, Qt.Key.Key_Escape)
 
         self.searchTerm = ""
+        self.searchTermBadStem = ""
         self.searchTermLooksLikeHash = False
 
         self.searchPulseTimer = QTimer(self)
@@ -157,14 +162,22 @@ class SearchBar(QWidget):
         self.hide()
 
     def onSearchTextChanged(self, text: str):
-        self.turnRed(False)
-        self.searchTerm = text.strip().lower()
-        self.searchTermChanged.emit(self.searchTerm)
+        newTerm = text.strip().lower()
 
-        if self.detectHashes and 0 < len(self.searchTerm) <= 40:
+        # Don't re-trigger a search if the new search term contains a known-bad stem.
+        badStem = self.searchTermBadStem
+        stillBad = newTerm and badStem and badStem in newTerm
+
+        if not stillBad:
+            self.turnRed(False)
+
+        self.searchTerm = newTerm
+        self.searchTermChanged.emit(newTerm)
+
+        if self.detectHashes and 0 < len(newTerm) <= 40:
             self.searchTermLooksLikeHash = bool(re.match(LIKELY_HASH_PATTERN, text))
 
-        if self.searchTerm:
+        if newTerm and not stillBad:
             self.searchPulseTimer.start()
         else:
             self.searchPulseTimer.stop()
@@ -177,6 +190,10 @@ class SearchBar(QWidget):
         self.setProperty("red", "true" if red else "false")
         if wasRed ^ red:  # trigger stylesheet refresh
             self.setStyleSheet("* {}")
+            if red:
+                self.searchTermBadStem = self.searchTerm
+            else:
+                self.searchTermBadStem = ""
 
     def searchRange(self, r: range) -> QModelIndex | None:
         """ Proxy for buddy.searchRange """
@@ -186,6 +203,9 @@ class SearchBar(QWidget):
     @staticmethod
     def defaultNotFoundMessage(searchTerm: str) -> str:
         return _("{text} not found.", text=bquo(searchTerm))
+
+    def invalidateBadStem(self):
+        self.searchTermBadStem = ""
 
     # --------------------------------
     # Ready-made QAbstractItemView search flow

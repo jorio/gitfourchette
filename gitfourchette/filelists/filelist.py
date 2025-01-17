@@ -147,6 +147,7 @@ class FileList(QListView):
         self.searchBar.ui.forwardButton.hide()
         self.searchBar.ui.backwardButton.hide()
         self.searchBar.hide()
+        flModel.modelAboutToBeReset.connect(self.searchBar.invalidateBadStem)
 
         # Search result highlighter
         self.setItemDelegate(FileListDelegate(self))
