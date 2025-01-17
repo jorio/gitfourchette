@@ -201,14 +201,17 @@ class BlameGutter(QWidget):
 
         text = "<table style='white-space: pre'>"
 
+        muted = mutedToolTipColorHex()
+        colon = _(":")
         def newLine(heading, caption):
-            return f"<tr><td style='color:{mutedToolTipColorHex()}; text-align: right;'>{heading} </td><td>{caption}</td>"
+            return f"<tr><td style='color:{muted}; text-align: right;'>{heading}{colon} </td><td>{caption}</td>"
 
         commit = self.model.repo.peel_commit(node.commitId)
-        text += newLine(_("commit:"), shortHash(commit.id))
-        text += newLine(_("author:"), commit.author.name)
-        text += newLine(_("date:"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat))
-        text += newLine(_("file name:"), node.path)
+        text += newLine(_("commit"), shortHash(commit.id))
+        text += newLine(_("author"), commit.author.name)
+        text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat))
+        text += newLine(_("file name"), node.path)
+        text += newLine(_("revision"), node.revisionNumber)
 
         text += "</table>"
         text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"

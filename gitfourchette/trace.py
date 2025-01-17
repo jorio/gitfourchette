@@ -46,6 +46,7 @@ class TraceNode:
     llNext: TraceNode | None = None
     sealed: bool = False
     ancestorBlobId: Oid = PLACEHOLDER_OID
+    revisionNumber: int = 0
 
     def __str__(self):
         status_char = self.status.name[0]
@@ -470,6 +471,7 @@ def blameFile(
 
     # Traverse trace from tail up
     i = 0
+    revisionNumber = 1
     for node in ll.reverseIter():
         i += 1
         if i % BLAME_PROGRESS_INTERVAL == 0:
@@ -488,6 +490,10 @@ def blameFile(
         if blobIdB in blameCollection:
             _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
             continue
+
+        # Assign informal revision number
+        node.revisionNumber = revisionNumber
+        revisionNumber += 1
 
         blobB = repo[blobIdB]
         assert isinstance(blobB, Blob)
