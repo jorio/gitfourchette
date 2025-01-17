@@ -97,6 +97,20 @@ def isImageFormatSupported(filename: str):
     return ext in _supportedImageFormats
 
 
+def setFontFeature(font: QFont, fourCC: str, value: int = 1):
+    # Feature introduced in Qt 6.7.
+    # As of 1/2025, only PyQt6 supports it.
+    try:
+        font.setFeature(QFont.Tag(fourCC), value)
+    except TypeError:
+        # PySide6 currently cannot construct a QFont.Tag
+        pass
+    except AttributeError:
+        # Mitigation for pre-Qt 6.7 bindings
+        pass
+    return font
+
+
 def adjustedWidgetFontSize(widget: QWidget, relativeSize: int = 100):
     return round(widget.font().pointSize() * relativeSize / 100.0)
 

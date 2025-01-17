@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -11,6 +11,7 @@ import time
 import pygit2
 
 from gitfourchette.qt import *
+from gitfourchette.toolbox.qtutils import setFontFeature
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,7 @@ class MemoryIndicator(QPushButton):
 
         font: QFont = self.font()
         font.setPointSize(font.pointSize() * 85 // 100)
-        if MACOS:
-            font.setFamily("Helvetica Neue")  # fixed-width numbers
+        setFontFeature(font, "tnum")  # Tabular numbers
         self.setFont(font)
 
         width = 220

@@ -50,6 +50,7 @@ from .qtutils import (
     enforceComboBoxMaxVisibleItems,
     isImageFormatSupported,
     onAppThread,
+    setFontFeature,
     adjustedWidgetFontSize,
     tweakWidgetFont,
     formatWidgetText,

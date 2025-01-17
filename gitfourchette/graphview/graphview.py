@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -47,6 +47,9 @@ class GraphView(QListView):
 
     def __init__(self, parent):
         super().__init__(parent)
+
+        # Use tabular numbers (ISO dates look better with Inter, Cantarell, etc.)
+        self.setFont(setFontFeature(self.font(), "tnum"))
 
         self.clModel = CommitLogModel(self)
         self.clFilter = CommitLogFilter(self)
