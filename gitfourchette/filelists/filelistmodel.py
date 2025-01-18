@@ -84,15 +84,17 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
 
     # File Mode
     if sc not in 'DU':
-        legend = _("file mode")
         if sc in 'A?':
-            text += newLine(legend, TrTables.enum(nf.mode))
+            text += newLine(_("file mode"), TrTables.enum(nf.mode))
         elif of.mode != nf.mode:
-            text += newLine(legend, f"{TrTables.enum(of.mode)} &rarr; {TrTables.enum(nf.mode)}")
+            text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
 
-    # Size (if available)
-    if sc not in 'DU' and nf.size != 0 and (nf.mode & FileMode.BLOB == FileMode.BLOB):
-        text += newLine(_("size"), locale.formattedDataSize(nf.size, 1))
+    # Size (if applicable)
+    if sc not in 'DU' and (nf.mode & FileMode.BLOB == FileMode.BLOB):
+        if nf.flags & DiffFlag.VALID_SIZE:
+            text += newLine(_("size"), locale.formattedDataSize(nf.size, 1))
+        else:
+            text += newLine(_("size"), _("(not computed)"))
 
     # Modified time
     if navContext.isWorkdir() and sc not in 'DU':
@@ -103,12 +105,12 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
             timeText = locale.toString(timeQdt, settings.prefs.shortTimeFormat)
             text += newLine(_("modified"), timeText)
 
-    # Blob IDs (DEVDEBUG only)
-    if settings.DEVDEBUG:
-        nChars = settings.prefs.shortHashChars
-        oldBlobId = shortHash(of.id) if of.flags & DiffFlag.VALID_ID else "?" * nChars
-        newBlobId = shortHash(nf.id) if nf.flags & DiffFlag.VALID_ID else "?" * nChars
-        text += newLine(_("blob id"), f"{oldBlobId} &rarr; {newBlobId}")
+    # Blob/Commit IDs
+    if nf.mode != FileMode.TREE:  # untracked trees never have a valid ID
+        oldId = shortHash(of.id) if of.flags & DiffFlag.VALID_ID else _("(not computed)")
+        newId = shortHash(nf.id) if nf.flags & DiffFlag.VALID_ID else _("(not computed)")
+        idLegend = _("commit hash") if nf.mode == FileMode.COMMIT else _("blob hash")
+        text += newLine(idLegend, f"{oldId} \u2192 {newId}")
 
     if isCounterpart:
         if navContext == NavContext.UNSTAGED:
@@ -134,12 +136,30 @@ class FileListModel(QAbstractListModel):
         def patch(self) -> Patch | None:
             try:
                 patch: Patch = self.diff[self.patchNo]
+                self.delta = patch.delta  # Get a fresher delta while we have the patch
                 return patch
             except (GitError, OSError) as e:
                 # GitError may occur if patch data is outdated.
                 # OSError may rarely occur if the file happens to be recreated.
                 logger.warning(f"Failed to get patch: {type(e).__name__}", exc_info=True)
                 return None
+
+        @benchmark
+        def refreshDelta(self):
+            """
+            Entry.delta is initialized from Diff.deltas, which may not contain
+            valid file sizes, or valid blob IDs in unstaged files.
+
+            Use this function to refresh Entry.delta with Patch.delta, which
+            contains more accurate information. Note that this may prime the
+            Patch, incurring a performance hit. This function does nothing if
+            the file is known to be very large.
+            """
+            nf = self.delta.new_file
+            if (nf.size <= settings.prefs.largeFileThresholdKB * 1024 and
+                    ~nf.flags & (DiffFlag.VALID_ID | DiffFlag.VALID_SIZE)):
+                self.delta = self.patch.delta
+            return self.delta
 
     class Role:
         PatchObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
@@ -231,7 +251,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             entry = self.entries[index.row()]
-            delta = entry.delta
+            delta = entry.refreshDelta()
             isCounterpart = index.row() == self.highlightedCounterpartRow
             return fileTooltip(self.repo, delta, self.navContext, isCounterpart)
 
