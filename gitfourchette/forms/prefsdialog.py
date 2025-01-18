@@ -226,9 +226,11 @@ class PrefsDialog(QDialog):
         if MACOS:
             skipKeys.add("showMenuBar")
 
-        # If app distribution is frozen, don't expose Qt binding setting
+        # In frozen distributions, hide settings that depend on system Python
+        # packages outside our sandbox.
         if APP_FREEZE_QT:
             skipKeys.add("forceQtApi")
+            skipKeys.add("pygmentsPlugins")
 
         return skipKeys
 
