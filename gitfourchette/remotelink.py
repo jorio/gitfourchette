@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -122,6 +122,7 @@ class RemoteLink(QObject, RemoteCallbacks):
         self.keypairFiles = []
         self.usingCustomKeyFile = ""
         self.moreDetailsOnCustomKeyFileFail = True
+        self.anyKeyIsUnreadable = False
 
         self.lastAttemptKey = ""
         self.lastAttemptUrl = ""
@@ -132,8 +133,6 @@ class RemoteLink(QObject, RemoteCallbacks):
         self.downloadRateTimer.invalidate()
 
         self._sidebandProgressBuffer = ""
-
-        self.anyKeyIsUnreadable = False
 
     def forceCustomKeyFile(self, privKeyPath):
         self.usingCustomKeyFile = privKeyPath
@@ -311,8 +310,8 @@ class RemoteLink(QObject, RemoteCallbacks):
             settings.history.setRemoteWorkingKey(strippedUrl, self.lastAttemptKey)
             logger.debug(f"Remembering key '{self.lastAttemptKey}' for host '{strippedUrl}'")
 
-    def remoteContext(self, remote: Remote | str) -> RemoteLink.RemoteContext:
-        return RemoteLink.RemoteContext(self, remote)
+    def remoteContext(self, remote: Remote | str, resetParams=True) -> RemoteLink.RemoteContext:
+        return RemoteLink.RemoteContext(self, remote, resetParams)
 
     def setAsyncSecret(self, keyfile: str, secret: str):
         self._asyncSecret = secret
@@ -360,13 +359,15 @@ class RemoteLink(QObject, RemoteCallbacks):
         return " ".join(messages)
 
     class RemoteContext:
-        def __init__(self, remoteLink: RemoteLink, remote: Remote | str):
+        def __init__(self, remoteLink: RemoteLink, remote: Remote | str, resetParams=True):
             self.remoteLink = remoteLink
             self.remote = remote
+            self.resetParams = resetParams
 
         def __enter__(self):
-            # Reset login state before each remote
-            self.remoteLink.resetLoginState()
+            # Reset login state before each remote (unless caller explicitly wants to keep initial parameters)
+            if self.resetParams:
+                self.remoteLink.resetLoginState()
 
             if isinstance(self.remote, Remote):
                 self.remoteLink.beginRemote.emit(self.remote.name, self.remote.url)

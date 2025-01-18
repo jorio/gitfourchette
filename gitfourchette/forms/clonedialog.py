@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -327,12 +327,13 @@ class CloneTask(RepoTask):
         yield from self.flowEnterWorkerThread()
 
         # Set private key
+        # (This requires passing resetParams=False to remoteContext())
         if privKeyPath:
             self.remoteLink.forceCustomKeyFile(privKeyPath)
 
         # Clone the repo
         self.stickyStatus.emit(_("Cloning…"))
-        with self.remoteLink.remoteContext(url):
+        with self.remoteLink.remoteContext(url, resetParams=False):
             repo = pygit2.clone_repository(url, path, callbacks=self.remoteLink, depth=depth)
 
         # Convert to our extended Repo class

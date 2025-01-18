@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,7 @@ import pytest
 
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
+from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.nav import NavContext
 from .util import *
 
@@ -46,10 +47,20 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, qtbot):
     assert protocolButton.text() == "ssh"
     assert cloneDialog.ui.urlEdit.lineEdit().text() == "git@github.com:libgit2/TestGitRepository"
 
-    cloneDialog.ui.keyFilePicker.setPath(getTestDataPath("keys/pygit2_empty.pub"))
+    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
+    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
+    privKeyCopy = tempDir.name + "/HelloTestKey"
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+
+    # Set custom passphrase-protected key
+    cloneDialog.ui.keyFilePicker.setPath(pubKeyCopy)
     cloneDialog.cloneButton.click()
 
-    passphraseDialog = waitForQDialog(mainWindow, "passphrase")
+    passphraseDialog: TextInputDialog = waitForQDialog(mainWindow, "passphrase")
+    # Make sure we're prompted to enter the passphrase for the correct key
+    assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
+    # Enter passphrase and accept
     passphraseDialog.findChild(QLineEdit).setText("empty")
     passphraseDialog.accept()
     qtbot.waitSignal(cloneDialog.finished).wait()
@@ -59,6 +70,7 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, qtbot):
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
+    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
 
 
 @requiresNetwork
