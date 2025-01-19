@@ -131,7 +131,9 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     rw = mainWindow.openRepo(wd)
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
 
+    # -------------------------------------------
     # Add remote with passphrase-protected keyfile
+
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
     remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
     remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
@@ -142,20 +144,35 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     # Accept "add remote", kicking off a fetch
     remoteDialog.accept()
 
-    QTest.qWait(0)
-    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
-
+    # -------------------------------------------
     # Enter passphrase, don't remember it
+
     pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
-    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
     pd.lineEdit.setText("empty")
+
+    # Make sure it's for the correct key
+    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
+    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
+
+    # Don't remember the passphrase
     assert pd.rememberCheckBox.isChecked()  # ticked by default
     pd.rememberCheckBox.setChecked(False)
+
+    # Play with echo mode
+    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
+    pd.lineEdit.actions()[0].trigger()
+    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Normal
+    pd.lineEdit.actions()[0].trigger()
+    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
+
+    # Accept
     pd.accept()
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
     assert "origin/master" in rw.repo.branches.remote
 
+    # -------------------------------------------
     # Fetch, enter passphrase, remember it, but cancel
+
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
     pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
     assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
@@ -165,7 +182,9 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     pd.reject()
     waitForQMessageBox(mainWindow, "passphrase entry canceled").accept()
 
+    # -------------------------------------------
     # Fetch, enter passphrase, remember it
+
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
     pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
     assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
@@ -174,6 +193,8 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     pd.accept()
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
 
+    # -------------------------------------------
     # Fetch, shouldn't prompt for passphrase again
+
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()

@@ -6,7 +6,7 @@
 
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.qt import *
-from gitfourchette.toolbox import ValidatorMultiplexer
+from gitfourchette.toolbox import ValidatorMultiplexer, setTabOrder
 
 
 class TextInputDialog(QDialog):
@@ -64,6 +64,7 @@ class TextInputDialog(QDialog):
 
     def setExtraWidget(self, widget: QWidget):
         self.contentsLayout.addWidget(widget, 2, 0)
+        setTabOrder(self.lineEdit, widget, self.buttonBox)
 
     @property
     def okButton(self) -> QPushButton:
