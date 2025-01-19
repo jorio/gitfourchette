@@ -1,8 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
+
+"""
+PyQt6/PySide6/PyQt5 compatibility layer
+"""
 
 # GitFourchette's preferred Qt binding is PyQt6, but you can use another
 # binding via the QT_API environment variable. Values recognized by QT_API:
@@ -201,6 +205,11 @@ if QT5:
     QFontDatabase.families = lambda *a, **k: _QFontDatabase_families(QFontDatabase(), *a, **k)
     QFontDatabase.isFixedPitch = lambda *a, **k: _QFontDatabase_isFixedPitch(QFontDatabase(), *a, **k)
     QFontDatabase.isPrivateFamily = lambda *a, **k: _QFontDatabase_isPrivateFamily(QFontDatabase(), *a, **k)
+
+# Qt 6.7 replaces QCheckBox.stateChanged with checkStateChanged.
+if not hasattr(QCheckBox, 'checkStateChanged'):
+    # Note: this forwards an int, not a real CheckState, but the values are the same.
+    QCheckBox.checkStateChanged = QCheckBox.stateChanged
 
 
 # -----------------------------------------------------------------------------

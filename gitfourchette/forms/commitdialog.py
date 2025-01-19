@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -87,8 +87,8 @@ class CommitDialog(QDialog):
         self.ui.signature.installValidator(self.validator)
 
         self.ui.summaryEditor.textChanged.connect(self.updateCounterLabel)
-        self.ui.revealSignature.stateChanged.connect(self.validator.run)
-        self.ui.revealSignature.stateChanged.connect(lambda: self.refreshSignaturePreview())
+        self.ui.revealSignature.checkStateChanged.connect(lambda: self.validator.run())
+        self.ui.revealSignature.checkStateChanged.connect(lambda: self.refreshSignaturePreview())
 
         split = initialText.split('\n', 1)
         if len(split) >= 1:

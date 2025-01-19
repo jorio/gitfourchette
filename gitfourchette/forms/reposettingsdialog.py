@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ class RepoSettingsDialog(QDialog):
         validator.connectInput(ui.emailEdit, validateSigPart)
         self.validator = validator
 
-        ui.localIdentityCheckBox.stateChanged.connect(self.onLocalIdentityCheckBoxChanged)
+        ui.localIdentityCheckBox.checkStateChanged.connect(self.onLocalIdentityCheckStateChanged)
         ui.localIdentityCheckBox.setChecked(not useLocalIdentity)  # hack to trigger enablement
         ui.localIdentityCheckBox.setChecked(useLocalIdentity)
 
@@ -62,8 +62,8 @@ class RepoSettingsDialog(QDialog):
 
         convertToBrandedDialog(self, subtitleText=compactPath(repo.workdir))
 
-    def onLocalIdentityCheckBoxChanged(self, newState):
-        if newState:
+    def onLocalIdentityCheckStateChanged(self, state: Qt.CheckState):
+        if state == Qt.CheckState.Checked:
             self.ui.nameEdit.setText(self.localNameBackup)
             self.ui.emailEdit.setText(self.localEmailBackup)
         else:

@@ -292,8 +292,8 @@ class PrefsDialog(QDialog):
                 return self.boolComboBoxControl(key, value, trueName=trueText, falseName=falseText)
             else:
                 control = QCheckBox(caption, self)
-                control.setCheckState(Qt.CheckState.Checked if value else Qt.CheckState.Unchecked)
-                control.stateChanged.connect(lambda v, k=key, c=control: self.assign(k, c.isChecked()))  # PySide6: "v==Qt.CheckState.Checked" doesn't work anymore?
+                control.setChecked(value)
+                control.checkStateChanged.connect(lambda state, k=key: self.assign(k, state == Qt.CheckState.Checked))
                 return control
         else:
             raise NotImplementedError(f"Write pref widget for {key}")

@@ -79,9 +79,9 @@ class CloneDialog(QDialog):
         self.ui.statusForm.setBlurb(_("Hit {0} when ready.", tquo(self.cloneButton.text().replace("&", ""))))
 
         self.ui.shallowCloneDepthSpinBox.valueChanged.connect(self.onShallowCloneDepthChanged)
-        self.ui.shallowCloneCheckBox.stateChanged.connect(self.onShallowCloneCheckBoxStateChanged)
+        self.ui.shallowCloneCheckBox.checkStateChanged.connect(self.onShallowCloneCheckStateChanged)
         self.ui.shallowCloneCheckBox.setMinimumHeight(max(self.ui.shallowCloneCheckBox.height(), self.ui.shallowCloneDepthSpinBox.height()))  # prevent jumping around
-        self.onShallowCloneCheckBoxStateChanged(self.ui.shallowCloneCheckBox.checkState())
+        self.onShallowCloneCheckStateChanged(self.ui.shallowCloneCheckBox.checkState())
 
         convertToBrandedDialog(self)
 
@@ -198,8 +198,8 @@ class CloneDialog(QDialog):
             self.initUrlComboBox()
 
     @DisableWidgetUpdatesContext.methodDecorator
-    def onShallowCloneCheckBoxStateChanged(self, state):
-        isChecked = state not in [0, Qt.CheckState.Unchecked]
+    def onShallowCloneCheckStateChanged(self, state: Qt.CheckState):
+        isChecked = state == Qt.CheckState.Checked
         if isChecked:
             self.onShallowCloneDepthChanged(self.ui.shallowCloneDepthSpinBox.value())
         else:
