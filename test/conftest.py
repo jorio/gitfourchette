@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -61,13 +61,15 @@ def tempDir() -> tempfile.TemporaryDirectory:
 
 
 @pytest.fixture
-def mainWindow(qtbot: QtBot) -> MainWindow:
+def mainWindow(request, qtbot: QtBot) -> MainWindow:
     from gitfourchette import settings, qt, trash, porcelain, tasks
     from .util import TEST_SIGNATURE
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert settings.TEST_MODE
     assert tasks.RepoTaskRunner.ForceSerial
+
+    failCount = request.session.testsfailed
 
     # Prevent unit tests from reading actual user settings.
     # (The prefs and the trash should use a temp folder with TEST_MODE,
@@ -114,6 +116,10 @@ def mainWindow(qtbot: QtBot) -> MainWindow:
     # Clean up the app without destroying it completely.
     # This will reset the temp settings folder.
     app.endSession()
+
+    # Skip cleanup asserts if the test itself failed
+    if request.session.testsfailed > failCount:
+        return
 
     # Die here if any dialogs are still visible after the unit test
     assert not leakedDialog, f"Unit test has leaked dialog: '{leakedDialog}'"
