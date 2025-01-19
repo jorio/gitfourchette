@@ -1,5 +1,16 @@
 # GitFourchette version history
 
+## 1.1.1 (2025-01-19)
+
+- Option to remember passphrases in encrypted keyfiles (#15)
+- Omit remote name from refboxes when there's just 1 remote (#11)
+- Display blob hashes in FileList tooltips
+- Fix custom key file feature in CloneDialog and AddRemote
+- Fix remote branch context menu in a repo with an unborn head
+- GraphView tries to use the 'tnum' OpenType feature to align ISO-8601 dates if your system font has digits with uneven widths
+- GraphSplicer: Fix discrete branch may vanish from graph if moved past another branch by topological sorting
+- In commit/filename SearchBars, don't re-trigger a search if appending to a word that is known to have no occurrences
+
 ## 1.1.0 (2025-01-05)
 
 - Syntax highlighting with Pygments (optional dependency)
