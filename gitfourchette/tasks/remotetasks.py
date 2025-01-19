@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -34,12 +34,14 @@ class NewRemote(RepoTask):
 
         newRemoteName = dlg.ui.nameEdit.text()
         newRemoteUrl = dlg.ui.urlEdit.text()
+        newRemoteKeyfile = dlg.privateKeyFilePath
         fetchAfterAdd = dlg.ui.fetchAfterAddCheckBox.isChecked()
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.create_remote(newRemoteName, newRemoteUrl)
+        self.repoModel.prefs.setRemoteKeyFile(newRemoteName, newRemoteKeyfile)
 
         self.postStatus = _("Remote {0} added.", tquo(newRemoteName))
 

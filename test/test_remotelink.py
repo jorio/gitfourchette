@@ -119,20 +119,34 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
 
 @requiresNetwork
 def testSshAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
+    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
+    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
+    privKeyCopy = tempDir.name + "/HelloTestKey"
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
     rw = mainWindow.openRepo(wd)
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
 
+    # Add remote with passphrase-protected keyfile
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
     remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
     remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
     remoteDialog.ui.nameEdit.setText("origin")
-    remoteDialog.ui.keyFilePicker.setPath(getTestDataPath("keys/pygit2_empty.pub"))
+    remoteDialog.ui.keyFilePicker.setPath(pubKeyCopy)
+    assert remoteDialog.ui.fetchAfterAddCheckBox.isChecked()
+
+    # Accept "add remote", kicking off a fetch
     remoteDialog.accept()
+
+    QTest.qWait(0)
+    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
 
     passphraseDialog = waitForQDialog(mainWindow, "passphrase")
     passphraseDialog.findChild(QLineEdit).setText("empty")
+    assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
     passphraseDialog.accept()
 
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
