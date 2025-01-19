@@ -89,9 +89,15 @@ opt/python*/lib/python*/site-packages/PyQt?/QtTest*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtTextToSpeech*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtWebChannel*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtWebSockets*.so
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libavcodec.so*
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libavformat.so*
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libavutil.so*
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libswresample.so*
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libswscale.so*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?*Quick.so*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Bluetooth*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Designer*
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?FFmpeg*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Help*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Labs*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Location*
