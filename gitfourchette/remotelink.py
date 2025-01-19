@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import base64
 import logging
-import os.path
 import re
 from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.forms.textinputdialog import TextInputDialog
@@ -64,13 +64,11 @@ def collectUserKeyFiles():
     if not sshDirectory:
         return keypairFiles
 
-    for file in os.listdir(sshDirectory):
-        pubkey = os.path.join(sshDirectory, file)
-        if pubkey.endswith(".pub"):
-            privkey = pubkey.removesuffix(".pub")
-            if os.path.isfile(privkey) and os.path.isfile(pubkey):
-                logger.debug(f"Discovered key pair {privkey}")
-                keypairFiles.append((pubkey, privkey))
+    for publicKey in Path(sshDirectory).glob("*.pub"):
+        privateKey = publicKey.with_suffix("")
+        if publicKey.is_file() and privateKey.is_file():
+            logger.debug(f"Discovered key pair {privateKey}")
+            keypairFiles.append((str(publicKey), str(privateKey)))
 
     return keypairFiles
 
@@ -148,10 +146,10 @@ class RemoteLink(QObject, RemoteCallbacks):
             privkey = self.usingCustomKeyFile
             pubkey = privkey + ".pub"
 
-            if not os.path.isfile(pubkey):
+            if not Path(pubkey).is_file():
                 raise FileNotFoundError(_("Remote-specific public key file not found:") + " " + compactPath(pubkey))
 
-            if not os.path.isfile(privkey):
+            if not Path(privkey).is_file():
                 raise FileNotFoundError(_("Remote-specific private key file not found:") + " " + compactPath(privkey))
 
             logger.info(f"Using remote-specific key pair {privkey}")
