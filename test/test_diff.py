@@ -80,7 +80,7 @@ def testDiffViewStageLines(tempDir, mainWindow, method):
     assert rw.diffView.rubberBandButtonGroup.pos().y() < rw.diffView.rubberBand.pos().y()
 
     qteSelectBlocks(rw.diffView, 4, 3)
-    assert rw.diffView.rubberBandButtonGroup.pos().y() > rw.diffView.rubberBand.pos().y()
+    assert rw.diffView.rubberBandButtonGroup.pos().y() < rw.diffView.rubberBand.pos().y()
 
     if method == "key":
         QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
