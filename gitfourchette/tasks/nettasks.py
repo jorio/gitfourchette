@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -133,10 +133,8 @@ class RenameRemoteBranch(_BaseNetTask):
 
         self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchName), tquo(newBranchName))
 
-class FetchRemotes(_BaseNetTask):
-    def prereqs(self) -> TaskPrereqs:
-        return TaskPrereqs.NoUnborn | TaskPrereqs.NoDetached
 
+class FetchRemotes(_BaseNetTask):
     def flow(self, singleRemoteName: str = ""):
         remotes: list[Remote] = list(self.repo.remotes)
 
@@ -186,9 +184,6 @@ class FetchRemotes(_BaseNetTask):
 
 
 class FetchRemoteBranch(_BaseNetTask):
-    def prereqs(self) -> TaskPrereqs:
-        return TaskPrereqs.NoUnborn | TaskPrereqs.NoDetached
-
     def flow(self, remoteBranchName: str = "", debrief: bool = True):
         if not remoteBranchName:
             upstream = self._autoDetectUpstream()

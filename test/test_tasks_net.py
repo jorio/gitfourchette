@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -350,6 +350,29 @@ def testFetchRemoteBranchNoUpstream(tempDir, mainWindow):
     node = rw.sidebar.findNodeByRef("refs/heads/master")
     menu = rw.sidebar.makeNodeMenu(node)
     assert not findMenuAction(menu, "fetch").isEnabled()
+
+
+def testFetchRemoteBranchUnbornHead(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "TestEmptyRepository")
+    upstreamWd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.remotes.set_url("origin", upstreamWd)
+        repo.remotes["origin"].fetch()
+        master = repo.branches.remote["origin/master"]
+        masterTip = master.target
+        # Move origin/master back to initial commit so we have something to fetch
+        master.set_target(Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1"))
+        assert masterTip != master.target
+
+    rw = mainWindow.openRepo(wd)
+    assert masterTip != rw.repo.branches.remote["origin/master"].target
+
+    node = rw.sidebar.findNodeByRef("refs/remotes/origin/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    assert not findMenuAction(menu, "merge").isEnabled()
+    triggerMenuAction(menu, "fetch")
+    assert masterTip == rw.repo.branches.remote["origin/master"].target
 
 
 def testPullRemoteBranchNoUpstream(tempDir, mainWindow):

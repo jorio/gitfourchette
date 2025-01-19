@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -168,7 +168,7 @@ class Sidebar(QTreeView):
             assert prefix == RefPrefix.HEADS
             branch = repo.branches.local[branchName]
 
-            activeBranchName = repo.head_branch_shorthand
+            activeBranchName = model.repoModel.homeBranch
             isCurrentBranch = branch and branch.is_checked_out()
             hasUpstream = bool(branch.upstream)
             upstreamBranchName = "" if not hasUpstream else branch.upstream.shorthand
@@ -251,13 +251,12 @@ class Sidebar(QTreeView):
             actions += [TaskBook.action(self, NewBranchFromHead, _("New &Branch Here…")), ]
 
         elif item == SidebarItem.RemoteBranch:
-            activeBranchName = repo.head_branch_shorthand
+            activeBranchName = model.repoModel.homeBranch
+            activeBranchDisplay = lquoe(activeBranchName) if activeBranchName else _("(no current branch)")
 
             refName = data
             prefix, shorthand = RefPrefix.split(refName)
             assert prefix == RefPrefix.REMOTES
-            thisBranchDisplay = lquoe(shorthand)
-            activeBranchDisplay = lquoe(activeBranchName)
 
             remoteName, remoteBranchName = porcelain.split_remote_branch_shorthand(shorthand)
             remoteUrl = self.sidebarModel.repo.remotes[remoteName].url
@@ -275,29 +274,20 @@ class Sidebar(QTreeView):
                 ]
 
             actions += [
-                TaskBook.action(
-                    self,
-                    NewBranchFromRef,
-                    _("New Local &Branch Here…"),
-                    taskArgs=refName,
-                ),
+                TaskBook.action(self, NewBranchFromRef, _("New Local &Branch Here…"), taskArgs=refName),
 
                 TaskBook.action(self, FetchRemoteBranch, _("&Fetch New Commits…"), taskArgs=shorthand),
 
                 ActionDef.SEPARATOR,
 
-                TaskBook.action(
-                    self,
-                    MergeBranch,
-                    _("&Merge into {0}…", activeBranchDisplay),
-                    taskArgs=refName,
-                ),
+                TaskBook.action(self, MergeBranch, _("&Merge into {0}…", activeBranchDisplay),
+                                taskArgs=refName, enabled=bool(activeBranchName)),
 
                 ActionDef.SEPARATOR,
 
-                TaskBook.action(self, RenameRemoteBranch, _("Rename branch on remote…"), taskArgs=shorthand),
+                TaskBook.action(self, RenameRemoteBranch, taskArgs=shorthand),
 
-                TaskBook.action(self, DeleteRemoteBranch, _("Delete branch on remote…"), taskArgs=shorthand),
+                TaskBook.action(self, DeleteRemoteBranch, taskArgs=shorthand),
 
                 ActionDef.SEPARATOR,
 
