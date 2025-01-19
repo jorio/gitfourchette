@@ -1,3 +1,9 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025 Iliyas Jorio.
+# This file is part of GitFourchette, distributed under the GNU GPL v3.
+# For full terms, see the included LICENSE file.
+# -----------------------------------------------------------------------------
+
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.qt import *
 from gitfourchette.toolbox import ValidatorMultiplexer
@@ -26,7 +32,9 @@ class TextInputDialog(QDialog):
             layout.addWidget(promptLabel, 0, 0)
 
         layout.addWidget(self.lineEdit, 1, 0)
-        layout.addWidget(self.buttonBox, 2, 0, 1, -1)
+        layout.addWidget(self.buttonBox, 3, 0, 1, -1)
+        # Leave row 2 free for setExtraWidget
+        self.contentsLayout = layout
 
         convertToBrandedDialog(self, subtitleText=subtitle)
 
@@ -53,6 +61,9 @@ class TextInputDialog(QDialog):
         validator.connectInput(self.lineEdit, validate)
         validator.run()
         self.validator = validator
+
+    def setExtraWidget(self, widget: QWidget):
+        self.contentsLayout.addWidget(widget, 2, 0)
 
     @property
     def okButton(self) -> QPushButton:

@@ -13,7 +13,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.forms.passphrasedialog import PassphraseDialog
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -35,8 +35,7 @@ def getAuthNamesFromFlags(allowedTypes):
 
 
 def isPrivateKeyPassphraseProtected(path: str):
-    with open(path, encoding="utf-8") as f:
-        lines = f.read().splitlines(False)
+    lines = Path(path).read_text("utf-8").splitlines(keepends=False)
 
     while lines and not re.match("^-+END OPENSSH PRIVATE KEY-+ *$", lines.pop()):
         continue
@@ -74,13 +73,15 @@ def collectUserKeyFiles():
 
 
 class RemoteLink(QObject, RemoteCallbacks):
+    sessionPassphrases = {}
+
     userAbort = Signal()
     message = Signal(str)
     progress = Signal(int, int)
     beginRemote = Signal(str, str)
 
-    requestSecret = Signal(str)
-    secretReady = Signal(str, str)
+    # Pass messages between network thread and UI thread for passphrase prompt
+    requestPassphrase = Signal(str, object)
 
     updatedTips: dict[str, tuple[Oid, Oid]]
 
@@ -93,26 +94,26 @@ class RemoteLink(QObject, RemoteCallbacks):
             return f(*args)
         return wrapper
 
+    @classmethod
+    def clearSessionPassphrases(cls):
+        cls.sessionPassphrases.clear()
+
     def __init__(self, parent: QObject):
         QObject.__init__(self, parent)
         RemoteCallbacks.__init__(self)
 
         assert findParentWidget(self)
 
-        self.secretReady.connect(self.setAsyncSecret)
-        self._asyncSecret = ""
-        self._asyncSecretForKeyFile = ""
-        self.requestSecret.connect(self.requestSecretUi)
-
         self.setObjectName("RemoteLink")
-        self.userAbort.connect(self._onAbort)
         self.downloadRateTimer = QElapsedTimer()
-        self.resetLoginState()
 
+        self.resetLoginState()
         self._aborting = False
         self._busy = False
-
         self.updatedTips = {}
+
+        self.userAbort.connect(self._onAbort)
+        self.requestPassphrase.connect(self.showPassphraseDialog)
 
     def resetLoginState(self):
         self.attempts = 0
@@ -124,6 +125,7 @@ class RemoteLink(QObject, RemoteCallbacks):
 
         self.lastAttemptKey = ""
         self.lastAttemptUrl = ""
+        self.lastAttemptPassphrase = None
         self.usingKnownKeyFirst = False  # for informative purposes only
 
         self.downloadRate = 0
@@ -219,6 +221,7 @@ class RemoteLink(QObject, RemoteCallbacks):
     def credentials(self, url, username_from_url, allowed_types):
         self.attempts += 1
         self.lastAttemptKey = ""
+        self.lastAttemptPassphrase = None
 
         if self.attempts > 10:
             raise ConnectionRefusedError(_("Too many credential retries."))
@@ -229,17 +232,12 @@ class RemoteLink(QObject, RemoteCallbacks):
         if self.keypairFiles and (allowed_types & CredentialType.SSH_KEY):
             pubkey, privkey = self.keypairFiles.pop(0)
             logger.info(f"Logging in with: {compactPath(pubkey)}")
-
             self.message.emit(_("Logging in with key:") + " " + compactPath(pubkey))
-
-            secret = None
-            if isPrivateKeyPassphraseProtected(privkey):
-                secret = self.getAsyncSecret(privkey)
-
+            passphrase = self.getPassphraseFromNetworkThread(privkey)
             self.lastAttemptKey = privkey
             self.lastAttemptUrl = url
-            return Keypair(username_from_url, pubkey, privkey, secret)
-            # return KeypairFromAgent(username_from_url)
+            self.lastAttemptPassphrase = passphrase
+            return Keypair(username_from_url, pubkey, privkey, passphrase)
         elif self.attempts == 0:
             raise NotImplementedError(
                 _("Unsupported authentication type.") + " " +
@@ -308,35 +306,50 @@ class RemoteLink(QObject, RemoteCallbacks):
             settings.history.setRemoteWorkingKey(strippedUrl, self.lastAttemptKey)
             logger.debug(f"Remembering key '{self.lastAttemptKey}' for host '{strippedUrl}'")
 
-    def remoteContext(self, remote: Remote | str, resetParams=True) -> RemoteLink.RemoteContext:
+        if (self.lastAttemptKey
+                and self.lastAttemptUrl
+                and self.lastAttemptPassphrase is not None
+                and settings.prefs.rememberPassphrases):
+            RemoteLink.sessionPassphrases[self.lastAttemptKey] = self.lastAttemptPassphrase
+        self.lastAttemptPassphrase = None
+
+    def remoteContext(self, remote: Remote | str, resetParams=True) -> RemoteContext:
         return RemoteLink.RemoteContext(self, remote, resetParams)
 
-    def setAsyncSecret(self, keyfile: str, secret: str):
-        self._asyncSecret = secret
-        self._asyncSecretForKeyFile = keyfile
-
-    def getAsyncSecret(self, keyfile: str) -> str | None:
+    def getPassphraseFromNetworkThread(self, keyfile: str) -> str | None:
         assert not onAppThread()
-        self._asyncSecret = ""
-        self._asyncSecretForKeyFile = ""
-        self.requestSecret.emit(keyfile)
-        waitForSignal(self, self.secretReady)
-        if self._asyncSecretForKeyFile == keyfile:
-            return self._asyncSecret
-        return None
 
-    def requestSecretUi(self, keyfile: str):
+        if not isPrivateKeyPassphraseProtected(keyfile):
+            return None
+
+        try:
+            return RemoteLink.sessionPassphrases[keyfile]
+        except KeyError:
+            pass
+
+        loop = QEventLoop()
+        result = []
+
+        def onPassphraseReady(theKeyfile, thePassphrase):
+            result.append((theKeyfile, thePassphrase))
+            loop.quit()
+
+        self.requestPassphrase.emit(keyfile, onPassphraseReady)
+        loop.exec()
+
+        resultKeyfile, resultPassphrase = result.pop()
+        if resultKeyfile != keyfile:
+            assert not resultKeyfile, "passphrase entered for unexpected keyfile"
+            raise InterruptedError(_("Passphrase entry canceled."))
+
+        return resultPassphrase
+
+    def showPassphraseDialog(self, keyfile: str, callback):
         assert onAppThread()
-        dlg = TextInputDialog(
-            findParentWidget(self),
-            _("Passphrase-protected key file"),
-            _("Enter passphrase to use this key file:"),
-            subtitle=escape(compactPath(keyfile)))
-        dlg.textAccepted.connect(lambda secret: self.secretReady.emit(keyfile, secret))
-        dlg.rejected.connect(lambda: self.secretReady.emit(keyfile, None))
-        dlg.lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
-        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        dlg.show()
+        passphraseDialog = PassphraseDialog(findParentWidget(self), keyfile)
+        passphraseDialog.passphraseReady.connect(callback)
+        passphraseDialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        passphraseDialog.show()
 
     def formatUpdatedTipsMessage(self, header, noNewCommits=""):
         messages = [header]

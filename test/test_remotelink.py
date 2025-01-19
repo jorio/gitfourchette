@@ -7,6 +7,7 @@
 import pytest
 
 from gitfourchette.forms.clonedialog import CloneDialog
+from gitfourchette.forms.passphrasedialog import PassphraseDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.nav import NavContext
@@ -118,7 +119,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
 
 
 @requiresNetwork
-def testSshAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
+def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbot):
     # Copy keyfile to non-default location to make sure we're not automatically picking up another key
     pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
     privKeyCopy = tempDir.name + "/HelloTestKey"
@@ -144,10 +145,35 @@ def testSshAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
     QTest.qWait(0)
     assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
 
-    passphraseDialog = waitForQDialog(mainWindow, "passphrase")
-    passphraseDialog.findChild(QLineEdit).setText("empty")
-    assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
-    passphraseDialog.accept()
-
+    # Enter passphrase, don't remember it
+    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
+    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
+    pd.lineEdit.setText("empty")
+    assert pd.rememberCheckBox.isChecked()  # ticked by default
+    pd.rememberCheckBox.setChecked(False)
+    pd.accept()
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
     assert "origin/master" in rw.repo.branches.remote
+
+    # Fetch, enter passphrase, remember it, but cancel
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
+    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
+    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
+    pd.lineEdit.setText("empty")
+    assert not pd.rememberCheckBox.isChecked()  # we unticked it previously
+    pd.rememberCheckBox.setChecked(True)
+    pd.reject()
+    waitForQMessageBox(mainWindow, "passphrase entry canceled").accept()
+
+    # Fetch, enter passphrase, remember it
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
+    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
+    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
+    pd.lineEdit.setText("empty")
+    assert pd.rememberCheckBox.isChecked()  # we ticked it previously
+    pd.accept()
+    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+
+    # Fetch, shouldn't prompt for passphrase again
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
+    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()

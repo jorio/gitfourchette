@@ -81,6 +81,7 @@ class TrTables:
             "PermissionError": _("Permission denied"),
             "GitError": _("Git error"),
             "NotImplementedError": _("Unsupported feature"),
+            "InterruptedError": _("Operation interrupted"),
         }
 
     @staticmethod

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -290,13 +290,19 @@ def waitForQDialog(parent: QWidget, pattern: str) -> QDialog:
 
 
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
+    numBoxesFound = 0
     for qmb in parent.findChildren(QMessageBox):
         if not qmb.isVisibleTo(parent):  # skip zombie QMBs
             continue
+        numBoxesFound += 1
         haystack = "\n".join([qmb.windowTitle(), qmb.text(), qmb.informativeText()])
         if re.search(textPattern, haystack, re.IGNORECASE | re.DOTALL):
             return qmb
-    raise KeyError(f"did not find qmessagebox \"{textPattern}\"")
+    raise KeyError(f"did not find \"{textPattern}\" among {numBoxesFound} QMessageBoxes")
+
+
+def waitForQMessageBox(parent: QWidget, pattern: str) -> QDialog:
+    return waitFor(lambda: findQMessageBox(parent, pattern))
 
 
 def acceptQMessageBox(parent: QWidget, textPattern: str):

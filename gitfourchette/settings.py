@@ -139,6 +139,7 @@ class Prefs(PrefsFile):
     forceQtApi                  : QtApiNames            = QtApiNames.Automatic
 
     _category_hidden            : int                   = 0
+    rememberPassphrases         : bool                  = True
     smoothScroll                : bool                  = True
     toolBarButtonStyle          : Qt.ToolButtonStyle    = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
     toolBarIconSize             : int                   = 16
