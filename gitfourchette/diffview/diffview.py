@@ -396,11 +396,7 @@ class DiffView(QPlainTextEdit):
     # Prefs
 
     def refreshPrefs(self, changeColorScheme=True):
-        monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        if settings.prefs.font:
-            monoFont.fromString(settings.prefs.font)
-        if settings.prefs.fontSize > 0:
-            monoFont.setPointSize(settings.prefs.fontSize)
+        monoFont = settings.prefs.monoFont()
         self.setFont(monoFont)
 
         currentDocument = self.document()

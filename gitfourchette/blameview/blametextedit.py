@@ -35,9 +35,7 @@ class BlameTextEdit(QPlainTextEdit):
         self.refreshPrefs()
 
     def refreshPrefs(self):
-        monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        if settings.prefs.font:
-            monoFont.fromString(settings.prefs.font)
+        monoFont = settings.prefs.monoFont()
         self.setFont(monoFont)
 
         currentDocument = self.document()

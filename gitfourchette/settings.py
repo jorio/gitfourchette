@@ -179,6 +179,14 @@ class Prefs(PrefsFile):
             return os.path.normpath(path)
         return os.path.expanduser("~")
 
+    def monoFont(self):
+        monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        if self.font:
+            monoFont.fromString(self.font)
+        if self.fontSize > 0:
+            monoFont.setPointSize(self.fontSize)
+        return monoFont
+
     def isSyntaxHighlightingEnabled(self):
         return syntaxHighlightingAvailable and self.syntaxHighlighting != PygmentsPresets.Off
 
