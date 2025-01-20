@@ -547,7 +547,8 @@ def _makeInitialBlame(node: TraceNode, blob: Blob) -> list[BlameLine]:
 
 
 def _blamePatch(patch: Patch, blameA: list[BlameLine], nodeB: TraceNode) -> Blame:
-    blameB = [blameA[0]]  # copy sentinel
+    line0 = BlameLine(nodeB, "$$$BOGUS$$$")
+    blameB = [line0]  # sentinel
 
     for lineA, lineB, diffLine in _traversePatch(patch, len(blameA)):
         assert lineB == len(blameB)

@@ -6,11 +6,12 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 from pygit2 import Commit
 
-from gitfourchette import settings
+from gitfourchette import settings, colors
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.localization import *
 from gitfourchette.porcelain import NULL_OID
@@ -94,6 +95,10 @@ class BlameGutter(QWidget):
         textEdit = self.textEdit
         painter = QPainter(self)
 
+        topNode = blame[0].traceNode
+        assert blame[0].text == "$$$BOGUS$$$"
+        assert topNode.revisionNumber >= 1
+
         # Set up colors
         palette = self.palette()
         themeBG = palette.color(QPalette.ColorRole.Base)  # standard theme background color
@@ -103,8 +108,8 @@ class BlameGutter(QWidget):
         else:
             gutterColor = themeBG.lighter(140)  # dark theme
         lineColor = QColor(*themeFG.getRgb()[:3], 80)
-        textColor = QColor(*themeFG.getRgb()[:3], 128)
-        boldTextColor = QColor(*themeFG.getRgb()[:3], 160)
+        textColor = QColor(*themeFG.getRgb()[:3], 160)
+        boldTextColor = QColor(*themeFG.getRgb()[:3], 210)
 
         # Gather some metrics
         paintRect = event.rect()
@@ -159,6 +164,15 @@ class BlameGutter(QWidget):
                     isCurrent = blameNode.commitId == self.topCommitId
                     painter.setFont(self.boldFont if isCurrent else self.font())
                     painter.setPen(boldTextPen if isCurrent else textPen)
+                    # Compute heat color
+                    heat = blameNode.revisionNumber / topNode.revisionNumber
+                    heat = heat ** 2  # ease in cubic
+                    heatColor = QColor(colors.orange)
+                    heatColor.setAlphaF(lerp(.0, .6, heat))
+
+                # Fill heat rectangle
+                heatTop = top if lastCaptionDrawnAtLine >= 0 else 0
+                painter.fillRect(QRect(0, heatTop, rightEdge, bottom-heatTop), heatColor)
 
                 colL, colW = self.columnMetrics[-1]
                 painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
