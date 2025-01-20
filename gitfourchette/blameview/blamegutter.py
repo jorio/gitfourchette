@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
 from pygit2 import Commit
@@ -26,7 +25,7 @@ class BlameGutter(QWidget):
     textEdit: BlameTextEdit
     model: BlameModel
 
-    def __init__(self, model, parent):
+    def __init__(self, parent):
         super().__init__(parent)
 
         font = QFontDatabase.systemFont(QFontDatabase.SystemFont.SmallestReadableFont)
@@ -36,7 +35,7 @@ class BlameGutter(QWidget):
         self.boldFont = QFont(font)
         self.boldFont.setBold(True)
 
-        self.model = model
+        self.model = None
         self.textEdit = parent
         self.topCommitId = NULL_OID
 

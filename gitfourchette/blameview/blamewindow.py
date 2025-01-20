@@ -27,6 +27,8 @@ class BlameWindow(QWidget):
         self.scrubber = QComboBox()
         self.scrubber.addItem(_("Loading…"))
         self.textEdit = BlameTextEdit(self.model)
+        self.textEdit.isDetachedWindow = True
+        self.textEdit.searchBar.lineEdit.setPlaceholderText(_("Find text in revision"))
 
         self.scrubber.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.scrubber.activated.connect(self.onScrubberActivated)
@@ -59,6 +61,7 @@ class BlameWindow(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(QMargins())
         layout.addWidget(topBar)
+        layout.addWidget(self.textEdit.searchBar)
         layout.addWidget(self.textEdit)
         layout.setSpacing(0)
 

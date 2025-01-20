@@ -9,7 +9,7 @@ from gitfourchette.qt import *
 from gitfourchette.toolbox import isDarkTheme
 
 
-class DiffRubberBand(QWidget):
+class CodeRubberBand(QWidget):
     def paintEvent(self, event: QPaintEvent):
         # Don't inherit QRubberBand (pen thickness ignored on Linux!)
         RX = 12  # rounded rect x radius
@@ -29,8 +29,7 @@ class DiffRubberBand(QWidget):
         if self.parent().hasFocus():
             try:
                 penColor = palette.accent().color()
-            except AttributeError:
-                # QPalette.accent() was introduced in Qt 6.7
+            except AttributeError:  # pragma: no cover - TODO: Remove once we can drop compatibility with Qt <6.7.
                 penColor = colors.teal if isDarkTheme() else colors.blue
         else:
             penColor = palette.color(QPalette.ColorGroup.Inactive, QPalette.ColorRole.Highlight)
