@@ -104,9 +104,6 @@ class BlameWindow(QWidget):
         text = blob.data.decode('utf-8', errors='replace')
         self.textEdit.setPlainText(text)
 
-        self.textEdit.gutter.syncModel()
-        self.textEdit.gutter.topCommitId = node.commitId
-        self.textEdit.syncModel()
         self.textEdit.syncViewportMarginsWithGutter()
         self.setWindowTitle(_("Blame: ") + node.path)
 

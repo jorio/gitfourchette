@@ -18,6 +18,7 @@ class BlameTextEdit(CodeView):
     selectIndex = Signal(int)
 
     model: BlameModel
+    gutter: BlameGutter
 
     def __init__(self, model, parent=None):
         super().__init__(BlameGutter, parent)
@@ -57,6 +58,3 @@ class BlameTextEdit(CodeView):
                 commitId, False, self
             ]),
         ]
-
-    def syncModel(self):
-        pass

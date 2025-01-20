@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -19,6 +20,9 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 
+if TYPE_CHECKING:
+    from gitfourchette.codeview.codegutter import CodeGutter
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +31,7 @@ class CodeView(QPlainTextEdit):
     selectionActionable = Signal(bool)
     visibilityChanged = Signal(bool)
 
+    gutter: CodeGutter
     currentLocator: NavLocator
     isDetachedWindow: bool
 
@@ -310,6 +315,7 @@ class CodeView(QPlainTextEdit):
         self.gutter.setGeometry(cr)
 
     def syncViewportMarginsWithGutter(self):
+        self.gutter.refreshMetrics()
         gutterWidth = self.gutter.calcWidth()
 
         # Prevent Qt freeze if margin width exceeds widget width, e.g. when window is very narrow

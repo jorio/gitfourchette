@@ -58,6 +58,11 @@ class DiffView(CodeView):
 
         self._initRubberBandButtons()
 
+        self.gutter.lineClicked.connect(self.selectWholeLineAt)
+        self.gutter.lineShiftClicked.connect(self.selectWholeLinesTo)
+        self.gutter.lineDoubleClicked.connect(self.selectClumpOfLinesAt)
+        self.gutter.selectionMiddleClicked.connect(self.onMiddleClick)
+
     def _initRubberBandButtons(self):
         self.stageButton = QToolButton()
         self.stageButton.setText(_("Stage Selection"))
@@ -107,8 +112,8 @@ class DiffView(CodeView):
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         super().mouseReleaseEvent(event)
-        if settings.prefs.middleClickToStage and event.button() == Qt.MouseButton.MiddleButton:
-            self.doPrimaryApplyLinesAction()
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.onMiddleClick()
 
     # ---------------------------------------------
     # Document replacement
@@ -168,7 +173,7 @@ class DiffView(CodeView):
             maxLine = max(maxNewLine, maxOldLine)
         else:
             maxLine = 0
-        self.gutter.setMaxLineNumber(maxLine)
+        self.gutter.maxLine = maxLine
         self.syncViewportMarginsWithGutter()
 
         buttonMask = 0
@@ -425,7 +430,10 @@ class DiffView(CodeView):
         patchData = self.extractHunk(hunkID, reverse)
         ApplyPatch.invoke(self, self.currentPatch, patchData, purpose)
 
-    def doPrimaryApplyLinesAction(self):
+    def onMiddleClick(self):
+        if not settings.prefs.middleClickToStage:
+            return
+
         navContext = self.currentLocator.context
         if navContext == NavContext.UNSTAGED:
             self.stageSelection()

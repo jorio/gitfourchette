@@ -6,23 +6,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pygit2 import Commit
 
 from gitfourchette import settings, colors
 from gitfourchette.blameview.blamemodel import BlameModel
+from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.localization import *
-from gitfourchette.porcelain import NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 
-if TYPE_CHECKING:
-    from gitfourchette.blameview.blametextedit import BlameTextEdit
 
-
-class BlameGutter(QWidget):
-    textEdit: BlameTextEdit
+class BlameGutter(CodeGutter):
     model: BlameModel
 
     def __init__(self, parent):
@@ -36,20 +30,18 @@ class BlameGutter(QWidget):
         self.boldFont.setBold(True)
 
         self.model = None
-        self.textEdit = parent
-        self.topCommitId = NULL_OID
-
-        self.refreshMetrics()
-
-        # Enable customContextMenuRequested signal
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         self.installEventFilter(self)
+
+        self.columnMetrics = []
+        self.preferredWidth = 0
+        self.lineHeight = 12
+        self.refreshMetrics()
 
     def refreshMetrics(self):
         fontMetrics = self.fontMetrics()
 
-        maxLineNumber = self.textEdit.blockCount()
+        maxLineNumber = self.codeView.blockCount()
 
         dateWidth = fontMetrics.horizontalAdvance("2000-00-00 ")
         authorWidth = fontMetrics.horizontalAdvance("M" * 8)
@@ -63,26 +55,10 @@ class BlameGutter(QWidget):
         x += 3
         self.preferredWidth = x
 
-        self.lineHeight = max(fontMetrics.height(), self.textEdit.fontMetrics().height())
-
-    def syncModel(self):
-        self.refreshMetrics()
+        self.lineHeight = max(fontMetrics.height(), self.codeView.fontMetrics().height())
 
     def calcWidth(self) -> int:
         return self.preferredWidth
-
-    def onParentUpdateRequest(self, rect: QRect, dy: int):
-        if dy != 0:
-            self.scroll(0, dy)
-        else:
-            self.update(0, rect.y(), self.width(), rect.height())
-
-    def sizeHint(self) -> QSize:
-        return QSize(self.calcWidth(), 0)
-
-    def wheelEvent(self, event: QWheelEvent):
-        # Forward mouse wheel to parent widget
-        self.parentWidget().wheelEvent(event)
 
     def eventFilter(self, watched, event: QEvent):
         if event.type() == QEvent.Type.ToolTip:
@@ -91,47 +67,19 @@ class BlameGutter(QWidget):
 
     def paintEvent(self, event: QPaintEvent):
         blame = self.model.currentBlame
-        textEdit = self.textEdit
         painter = QPainter(self)
-
-        topNode = blame[0].traceNode
-        assert blame[0].text == "$$$BOGUS$$$"
-        assert topNode.revisionNumber >= 1
 
         # Set up colors
         palette = self.palette()
-        themeBG = palette.color(QPalette.ColorRole.Base)  # standard theme background color
         themeFG = palette.color(QPalette.ColorRole.Text)  # standard theme foreground color
-        if isDarkTheme(palette):
-            gutterColor = themeBG.darker(105)  # light theme
-        else:
-            gutterColor = themeBG.lighter(140)  # dark theme
         lineColor = QColor(*themeFG.getRgb()[:3], 80)
         textColor = QColor(*themeFG.getRgb()[:3], 160)
         boldTextColor = QColor(*themeFG.getRgb()[:3], 210)
+        heatColor = QColor(colors.orange)
 
         # Gather some metrics
-        paintRect = event.rect()
-        gutterRect = self.rect()
-        rightEdge = gutterRect.width() - 1
+        rightEdge = self.rect().width() - 1
         lh = self.lineHeight
-
-        # Clip painting to QScrollArea viewport rect (don't draw beneath horizontal scroll bar)
-        vpRect = textEdit.viewport().rect()
-        vpRect.setWidth(paintRect.width())  # vpRect is adjusted by gutter width, so undo this
-        paintRect = paintRect.intersected(vpRect)
-        painter.setClipRect(paintRect)
-
-        # Draw background
-        painter.fillRect(paintRect, gutterColor)
-
-        # Draw vertical separator line
-        painter.fillRect(rightEdge, paintRect.y(), 1, paintRect.height(), lineColor)
-
-        block: QTextBlock = textEdit.firstVisibleBlock()
-        blockNumber = block.blockNumber()
-        top = round(textEdit.blockBoundingGeometry(block).translated(textEdit.contentOffset()).top())
-        bottom = top + round(textEdit.blockBoundingRect(block).height())
 
         lc2 = QColor(lineColor)
         lc2.setAlphaF(lc2.alphaF()/2)
@@ -148,64 +96,59 @@ class BlameGutter(QWidget):
         alignLeft = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         alignRight = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
-        while block.isValid() and top <= paintRect.bottom():
-            if block.isVisible() and bottom >= paintRect.top():
-                lineNumber = 1 + blockNumber
+        topCommitId = self.model.commitId
+        topNode = self.model.currentBlame[0].traceNode
 
-                try:
-                    blameNode = blame[lineNumber].traceNode
-                except IndexError:
-                    break
+        for block, top, bottom in self.paintBlocks(event, painter, lineColor):
+            lineNumber = 1 + block.blockNumber()
+            try:
+                blameNode = blame[lineNumber].traceNode
+            except IndexError:
+                break
 
-                if blameNode is not hunkTraceNode:
-                    hunkTraceNode = blameNode
-                    hunkStartLine = lineNumber
-                    isCurrent = blameNode.commitId == self.topCommitId
-                    painter.setFont(self.boldFont if isCurrent else self.font())
-                    painter.setPen(boldTextPen if isCurrent else textPen)
-                    # Compute heat color
-                    heat = blameNode.revisionNumber / topNode.revisionNumber
-                    heat = heat ** 2  # ease in cubic
-                    heatColor = QColor(colors.orange)
-                    heatColor.setAlphaF(lerp(.0, .6, heat))
+            if blameNode is not hunkTraceNode:
+                hunkTraceNode = blameNode
+                hunkStartLine = lineNumber
+                isCurrent = blameNode.commitId == topCommitId
+                painter.setFont(self.boldFont if isCurrent else self.font())
+                painter.setPen(boldTextPen if isCurrent else textPen)
+                # Compute heat color
+                heat = blameNode.revisionNumber / topNode.revisionNumber
+                heat = heat ** 2  # ease in cubic
+                heatColor.setAlphaF(lerp(.0, .6, heat))
 
-                # Fill heat rectangle
-                heatTop = top if lastCaptionDrawnAtLine >= 0 else 0
-                painter.fillRect(QRect(0, heatTop, rightEdge, bottom-heatTop), heatColor)
+            # Fill heat rectangle
+            heatTop = top if lastCaptionDrawnAtLine >= 0 else 0
+            painter.fillRect(QRect(0, heatTop, rightEdge, bottom-heatTop), heatColor)
 
-                colL, colW = self.columnMetrics[-1]
-                painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
+            colL, colW = self.columnMetrics[-1]
+            painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
 
-                if lastCaptionDrawnAtLine != hunkStartLine:
-                    drawSeparator = lastCaptionDrawnAtLine > 0
-                    lastCaptionDrawnAtLine = lineNumber
+            if lastCaptionDrawnAtLine != hunkStartLine:
+                drawSeparator = lastCaptionDrawnAtLine > 0
+                lastCaptionDrawnAtLine = lineNumber
 
-                    commit: Commit = self.model.repo[blameNode.commitId]
-                    sig = commit.author
+                commit: Commit = self.model.repo[blameNode.commitId]
+                sig = commit.author
 
-                    # Date
-                    commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
-                    commitTimeStr = locale.toString(commitQdt, "yyyy-MM-dd")
-                    colL, colW = self.columnMetrics[0]
-                    FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, commitTimeStr, bypassSetting=True)
+                # Date
+                commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
+                commitTimeStr = locale.toString(commitQdt, "yyyy-MM-dd")
+                colL, colW = self.columnMetrics[0]
+                FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, commitTimeStr, bypassSetting=True)
 
-                    # Author
-                    name = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
-                    colL, colW = self.columnMetrics[1]
-                    FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, name)
+                # Author
+                name = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
+                colL, colW = self.columnMetrics[1]
+                FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, name)
 
-                    # Hunk separator line
-                    if drawSeparator:
-                        y = top
-                        penBackup = painter.pen()
-                        painter.setPen(linePen)
-                        painter.drawLine(QLine(0, y, rightEdge-1, y))
-                        painter.setPen(penBackup)  # restore text pen
-
-            block = block.next()
-            top = bottom
-            bottom = top + round(textEdit.blockBoundingRect(block).height())
-            blockNumber += 1
+                # Hunk separator line
+                if drawSeparator:
+                    y = top
+                    penBackup = painter.pen()
+                    painter.setPen(linePen)
+                    painter.drawLine(QLine(0, y, rightEdge-1, y))
+                    painter.setPen(penBackup)  # restore text pen
 
         painter.end()
 
@@ -215,8 +158,8 @@ class BlameGutter(QWidget):
         blame = self.model.currentBlame
 
         pos = event.globalPos()
-        editLocalPos = self.textEdit.mapFromGlobal(pos)
-        textCursor = self.textEdit.cursorForPosition(editLocalPos)
+        editLocalPos = self.codeView.mapFromGlobal(pos)
+        textCursor = self.codeView.cursorForPosition(editLocalPos)
         lineNumber = 1 + textCursor.blockNumber()
 
         try:
