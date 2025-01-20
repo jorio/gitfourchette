@@ -13,7 +13,7 @@ from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import Jump
-from gitfourchette.toolbox import shortHash, messageSummary, stockIcon
+from gitfourchette.toolbox import shortHash, messageSummary, stockIcon, enforceComboBoxMaxVisibleItems
 from gitfourchette.trace import TraceNode, Trace, BlameCollection
 
 
@@ -30,6 +30,9 @@ class BlameWindow(QWidget):
 
         self.scrubber.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.scrubber.activated.connect(self.onScrubberActivated)
+        self.scrubber.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
+        self.scrubber.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
+        enforceComboBoxMaxVisibleItems(self.scrubber, QApplication.primaryScreen().availableSize().height() // 18 - 1)
 
         self.jumpButton = QToolButton()
         self.jumpButton.setText(_("Jump"))

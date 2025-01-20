@@ -133,7 +133,7 @@ def formatWidgetTooltip(widget: QWidget, *args, **kwargs):
     return text
 
 
-def enforceComboBoxMaxVisibleItems(comboBox: QComboBox):
+def enforceComboBoxMaxVisibleItems(comboBox: QComboBox, maxItems=0):
     """
     Some styles, in particular Fusion and macOS, ignore QComboBox.maxVisibleItems
     (see https://doc.qt.io/qt-6/qcombobox.html#maxVisibleItems-prop).
@@ -144,6 +144,10 @@ def enforceComboBoxMaxVisibleItems(comboBox: QComboBox):
 
     This function enforces maxVisibleItems on a QComboBox if the style is bad.
     """
+
+    if maxItems > 0:
+        comboBox.setMaxVisibleItems(maxItems)
+
     isBadStyle = comboBox.style().styleHint(QStyle.StyleHint.SH_ComboBox_Popup, QStyleOptionComboBox())
     if not isBadStyle:
         return
