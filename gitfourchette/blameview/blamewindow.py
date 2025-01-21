@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
@@ -12,8 +13,9 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
+from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
-from gitfourchette.toolbox import shortHash, messageSummary, stockIcon, enforceComboBoxMaxVisibleItems
+from gitfourchette.toolbox import *
 from gitfourchette.trace import TraceNode, Trace, BlameCollection
 
 
@@ -97,6 +99,9 @@ class BlameWindow(QWidget):
         self.syncNavButtons()
 
     def setTraceNode(self, node: TraceNode):
+        # Stop lexing BEFORE changing the document!
+        self.textEdit.highlighter.stopLexJobs()
+
         self.model.commitId = node.commitId
         self.model.currentBlame = self.model.blameCollection[node.blobId]
 
@@ -105,7 +110,13 @@ class BlameWindow(QWidget):
         self.textEdit.setPlainText(text)
 
         self.textEdit.syncViewportMarginsWithGutter()
-        self.setWindowTitle(_("Blame: ") + node.path)
+        self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path), commit=shortHash(node.commitId)))
+
+        # Install lex job
+        lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
+        if lexJob is not None:
+            self.textEdit.highlighter.installLexJob(lexJob)
+            self.textEdit.highlighter.rehighlight()
 
     def onScrubberActivated(self, index: int):
         point: TraceNode = self.scrubber.itemData(index)
@@ -144,3 +155,24 @@ class BlameWindow(QWidget):
     def jumpToCommit(self):
         point: TraceNode = self.scrubber.currentData()
         Jump.invoke(self, NavLocator.inCommit(point.commitId, point.path))
+
+    @staticmethod
+    def _getLexJob(path, blobId, data):
+        if not settings.prefs.isSyntaxHighlightingEnabled():
+            return None
+
+        try:
+            return LexJobCache.get(blobId)
+        except KeyError:
+            pass
+
+        lexer = LexerCache.getLexerFromPath(path, settings.prefs.pygmentsPlugins)
+        if lexer is None:
+            return None
+
+        lexJob = LexJob(lexer, data, blobId)
+        if lexJob is None:
+            return None
+
+        LexJobCache.put(lexJob)
+        return lexJob
