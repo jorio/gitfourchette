@@ -21,7 +21,7 @@ class BlameTextEdit(CodeView):
     gutter: BlameGutter
 
     def __init__(self, model, parent=None):
-        super().__init__(BlameGutter, parent)
+        super().__init__(gutterClass=BlameGutter, parent=parent)
         self.model = model
         self.gutter.model = model
 

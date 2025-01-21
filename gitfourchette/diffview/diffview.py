@@ -15,6 +15,7 @@ from gitfourchette import settings
 from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
+from gitfourchette.diffview.diffhighlighter import DiffHighlighter
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavFlags, NavLocator
@@ -43,7 +44,7 @@ class DiffView(CodeView):
     repo: Repo | None
 
     def __init__(self, parent=None):
-        super().__init__(DiffGutter, parent)
+        super().__init__(gutterClass=DiffGutter, highlighterClass=DiffHighlighter, parent=parent)
 
         self.lineData = []
         self.lineCursorStartCache = []

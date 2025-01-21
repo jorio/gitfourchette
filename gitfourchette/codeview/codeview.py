@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.codeview.coderubberband import CodeRubberBand
-from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
@@ -31,11 +31,12 @@ class CodeView(QPlainTextEdit):
     selectionActionable = Signal(bool)
     visibilityChanged = Signal(bool)
 
+    highlighter: CodeHighlighter
     gutter: CodeGutter
     currentLocator: NavLocator
     isDetachedWindow: bool
 
-    def __init__(self, gutterClass, parent=None):
+    def __init__(self, gutterClass, highlighterClass=CodeHighlighter, parent=None):
         super().__init__(parent)
 
         self.setReadOnly(True)
@@ -45,7 +46,8 @@ class CodeView(QPlainTextEdit):
         self.isDetachedWindow = False
 
         # Highlighter for search terms
-        self.highlighter = DiffSyntaxHighlighter(self)
+        self.highlighter = highlighterClass(self)
+        self.highlighter.setDocument(self.document())
         self.visibilityChanged.connect(self.highlighter.onParentVisibilityChanged)
 
         self.gutter = gutterClass(self)
