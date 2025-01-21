@@ -24,7 +24,8 @@ class BlameWindow(QWidget):
         super().__init__(parent)
         self.setObjectName("BlameWindow")
 
-        self.model = BlameModel(repoModel, [], {})
+        self.model = BlameModel()
+        self.model.repoModel = repoModel
 
         self.scrubber = QComboBox()
         self.scrubber.addItem(_("Loading…"))
@@ -106,7 +107,13 @@ class BlameWindow(QWidget):
         self.model.currentBlame = self.model.blameCollection[node.blobId]
 
         blob = self.model.repo.peel_blob(node.blobId)
-        text = blob.data.decode('utf-8', errors='replace')
+        data = blob.data
+
+        if self.model.currentBlame.binary:
+            self.textEdit.setPlainText(_("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId))
+            return
+
+        text = data.decode('utf-8', errors='replace')
         self.textEdit.setPlainText(text)
 
         self.textEdit.syncViewportMarginsWithGutter()

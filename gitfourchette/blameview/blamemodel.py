@@ -4,20 +4,17 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import dataclasses
-
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.trace import Trace, Blame, BlameCollection
 
 
-@dataclasses.dataclass
 class BlameModel:
     repoModel: RepoModel
     trace: Trace
     blameCollection: BlameCollection
-    commitId: Oid = NULL_OID
-    currentBlame: Blame = dataclasses.field(default_factory=Blame)
+    commitId: Oid
+    currentBlame: Blame
 
     @property
     def repo(self) -> Repo:

@@ -90,19 +90,19 @@ class BlameGutter(CodeGutter):
 
         locale = QLocale()
         lastCaptionDrawnAtLine = -1
-        hunkTraceNode = blame[0]
+        hunkTraceNode = None
         hunkStartLine = 1
 
         alignLeft = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         alignRight = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
-        topCommitId = self.model.commitId
-        topNode = self.model.currentBlame[0].traceNode
+        topNode = blame.traceNode
+        topCommitId = topNode.commitId
 
         for block, top, bottom in self.paintBlocks(event, painter, lineColor):
             lineNumber = 1 + block.blockNumber()
             try:
-                blameNode = blame[lineNumber].traceNode
+                blameNode = blame.lines[lineNumber].traceNode
             except IndexError:
                 break
 
@@ -124,7 +124,7 @@ class BlameGutter(CodeGutter):
             colL, colW = self.columnMetrics[-1]
             painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
 
-            if lastCaptionDrawnAtLine != hunkStartLine:
+            if lastCaptionDrawnAtLine < hunkStartLine:
                 drawSeparator = lastCaptionDrawnAtLine > 0
                 lastCaptionDrawnAtLine = lineNumber
 
@@ -163,7 +163,7 @@ class BlameGutter(CodeGutter):
         lineNumber = 1 + textCursor.blockNumber()
 
         try:
-            node = blame[lineNumber].traceNode
+            node = blame.lines[lineNumber].traceNode
         except IndexError:
             return False
 

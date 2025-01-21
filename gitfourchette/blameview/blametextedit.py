@@ -32,7 +32,7 @@ class BlameTextEdit(CodeView):
         lineNumber = clickedCursor.blockNumber() + 1
 
         blame = self.model.currentBlame
-        node = blame[lineNumber].traceNode
+        node = blame.lines[lineNumber].traceNode
         commitId = node.commitId
         path = node.path
 

@@ -101,7 +101,20 @@ class BlameLine:
     text: str
 
 
-Blame = list[BlameLine]
+class Blame:
+    binary: bool
+    lines: list[BlameLine]
+
+    def __init__(self, node: TraceNode):
+        sentinel = BlameLine(node, "$$$BOGUS$$$")
+        self.lines = [sentinel]
+        self.binary = False
+
+    @property
+    def traceNode(self):
+        return self.lines[0].traceNode
+
+
 BlameCollection = dict[Oid, Blame]
 
 
@@ -459,9 +472,6 @@ def blameFile(
         topCommitId: Oid = NULL_OID,
         progressCallback=_dummyProgressCallback
 ) -> BlameCollection:
-    def countLines(data: bytes):
-        return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
-
     # Get tail blob
     blobIdA = ll.tail.blobId
     blobA = repo[blobIdA].peel(Blob)
@@ -514,10 +524,16 @@ def blameFile(
         blameA = blameCollection[blobIdA]
         blameB = _blamePatch(patch, blameA, node)
 
-        if DEVDEBUG:
-            assert len(blameB) - 1 == countLines(blobB.data)
+        if DEVDEBUG and not blameB.binary:
+            def countLines(data: bytes):
+                return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
+            assert len(blameB.lines) - 1 == countLines(blobB.data)
 
-        if node.llNext and node.llNext.level == node.level + 1 and node.llNext.blobId != blobIdA:
+        # Enrich blame with more precise information from a merged branch
+        if (not blameB.binary
+                and node.llNext
+                and node.llNext.level == node.level + 1
+                and node.llNext.blobId != blobIdA):
             if DEVDEBUG:  # Very expensive assertion that will slow down the blame significantly
                 assert repo.descendant_of(node.commitId, node.llNext.commitId)
             olderBlob = repo[node.llNext.blobId]
@@ -538,33 +554,39 @@ def blameFile(
     return blameCollection
 
 
-def _makeInitialBlame(node: TraceNode, blob: Blob) -> list[BlameLine]:
-    line0 = BlameLine(node, "$$$BOGUS$$$")
-    blobText: str = blob.data.decode("utf-8", errors="replace")
-    blame = [line0]
-    blame.extend(BlameLine(node, line) for line in blobText.splitlines(keepends=True))
+def _makeInitialBlame(node: TraceNode, blob: Blob) -> Blame:
+    blame = Blame(node)
+
+    data = blob.data
+    if b'\0' in data:
+        blobText = "$$$BINARY_PLACEHOLDER_LINE$$$"
+        blame.binary = True
+    else:
+        blobText = data.decode("utf-8", errors="replace")
+
+    blame.lines.extend(BlameLine(node, line) for line in blobText.splitlines(keepends=True))
     return blame
 
 
-def _blamePatch(patch: Patch, blameA: list[BlameLine], nodeB: TraceNode) -> Blame:
-    line0 = BlameLine(nodeB, "$$$BOGUS$$$")
-    blameB = [line0]  # sentinel
+def _blamePatch(patch: Patch, blameA: Blame, nodeB: TraceNode) -> Blame:
+    blameB = Blame(nodeB)
+    blameB.binary = patch.delta.is_binary
 
-    for lineA, lineB, diffLine in _traversePatch(patch, len(blameA)):
-        assert lineB == len(blameB)
+    for lineA, lineB, diffLine in _traversePatch(patch, len(blameA.lines)):
+        assert lineB == len(blameB.lines)
         if lineA:  # context line
-            blameB.append(blameA[lineA])
+            blameB.lines.append(blameA.lines[lineA])
         else:  # new line originating in B
-            blameB.append(BlameLine(nodeB, diffLine.content))
+            blameB.lines.append(BlameLine(nodeB, diffLine.content))
 
     return blameB
 
 
-def _overrideBlame(patch: Patch, blameA: list[BlameLine], blameB: list[BlameLine]):
-    for lineA, lineB, _dummy in _traversePatch(patch, len(blameA)):
+def _overrideBlame(patch: Patch, blameA: Blame, blameB: Blame):
+    for lineA, lineB, _dummy in _traversePatch(patch, len(blameA.lines)):
         if lineA:  # context line
-            assert blameB[lineB].text == blameA[lineA].text
-            blameB[lineB] = blameA[lineA]
+            assert blameB.lines[lineB].text == blameA.lines[lineA].text
+            blameB.lines[lineB] = blameA.lines[lineA]
 
 
 def _traversePatch(patch: Patch, numLinesA: int) -> Generator[tuple[int, int, DiffLine | None], None, None]:
@@ -642,11 +664,11 @@ def traceCommandLineTool():  # pragma: no cover
         trace.dump()
 
     with Benchmark("Blame"):
-        blame = blameFile(repo, trace, topCommit.id,
-                          progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
+        blameCollection = blameFile(repo, trace, topCommit.id,
+                                    progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
 
     if not args.quiet:
-        for i, blameLine in enumerate(blame[trace.first.blobId]):
+        for i, blameLine in enumerate(blameCollection[trace.first.blobId].lines):
             traceNode = blameLine.traceNode
             commit = repo[traceNode.commitId].peel(Commit)
             date = datetime.fromtimestamp(commit.author.time, timezone.utc).strftime("%Y-%m-%d")
