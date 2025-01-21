@@ -118,13 +118,10 @@ class SearchBar(QWidget):
 
         tweakWidgetFont(self.lineEdit, 85)
 
-        shortcuts = [
-            makeWidgetShortcut(self, self.onEnterShortcut, "Return", "Enter"),
-            makeWidgetShortcut(self, self.onShiftEnterShortcut, "Shift+Return", "Shift+Enter"),
-            makeWidgetShortcut(self, self.bail, "Escape"),
-        ]
-        for shortcut in shortcuts:
-            shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        withChildren = Qt.ShortcutContext.WidgetWithChildrenShortcut
+        makeWidgetShortcut(self, self.onEnterShortcut, "Return", "Enter", context=withChildren)
+        makeWidgetShortcut(self, self.onShiftEnterShortcut, "Shift+Return", "Shift+Enter", context=withChildren)
+        makeWidgetShortcut(self, self.bail, "Escape", context=withChildren)
 
     def onEnterShortcut(self):
         self.lineEdit.selectAll()

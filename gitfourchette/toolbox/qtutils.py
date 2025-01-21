@@ -356,14 +356,14 @@ def makeMultiShortcut(*args) -> MultiShortcut:
     return shortcuts
 
 
-def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys) -> QShortcut:
+def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys, context=Qt.ShortcutContext.WidgetShortcut) -> QShortcut:
     assert keys, "no shortcut keys given"
     shortcut = QShortcut(parent)
     if QT5:  # Only one key per shortcut in Qt 5
         shortcut.setKey(keys[0])
     else:
         shortcut.setKeys(keys)
-    shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+    shortcut.setContext(context)
     shortcut.activated.connect(callback)
     return shortcut
 

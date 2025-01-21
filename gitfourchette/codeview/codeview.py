@@ -84,12 +84,18 @@ class CodeView(QPlainTextEdit):
 
         makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
 
-    def addSearchShortcuts(self):
+    def setUpAsDetachedWindow(self):
         # In a detached window, we can't rely on the main window's menu bar to
         # dispatch shortcuts to us (except on macOS, which has a global main menu).
+
+        self.isDetachedWindow = True
+
         makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Start), *GlobalShortcuts.find)
         makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Next), *GlobalShortcuts.findNext)
         makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Previous), *GlobalShortcuts.findPrevious)
+
+        makeWidgetShortcut(self, lambda: self.window().close(), QKeySequence.StandardKey.Close,
+                           context=Qt.ShortcutContext.WindowShortcut)
 
     # ---------------------------------------------
     # Qt events
@@ -446,3 +452,12 @@ class CodeView(QPlainTextEdit):
             okButtonText=_("Wrap Around"),
             messageBoxIcon="information",
             callback=wrapAround)
+
+    @staticmethod
+    def currentDetachedCodeView() -> CodeView:
+        activeWindow = QApplication.activeWindow()
+        detachedCodeView: CodeView = activeWindow.findChild(CodeView)
+        if detachedCodeView is None:
+            raise KeyError("no detached code view")
+        assert detachedCodeView.isDetachedWindow
+        return detachedCodeView

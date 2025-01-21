@@ -29,8 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 class DiffView(CodeView):
-    DetachedWindowObjectName = "DiffViewDetachedWindow"
-
     contextualHelp = Signal(str)
     selectionActionable = Signal(bool)
     visibilityChanged = Signal(bool)

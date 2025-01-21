@@ -222,7 +222,8 @@ def testSubpatchNoEOL(tempDir, mainWindow):
     assert rw.repo.status() == {}
 
 
-def testDiffInNewWindow(tempDir, mainWindow):
+@pytest.mark.parametrize("closeManually", [True, False])
+def testDiffInNewWindow(tempDir, mainWindow, closeManually):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     assert mainWindow in QApplication.topLevelWidgets()
@@ -231,21 +232,29 @@ def testDiffInNewWindow(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(oid))
     qlvClickNthRow(rw.committedFiles, 0)
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inCommit(oid, "c/c2.txt"))
+    assert mainWindow.isActiveWindow()
 
     rw.committedFiles.openDiffInNewWindow.emit(rw.diffView.currentPatch, rw.navLocator)
+    QTest.qWait(0)
 
-    diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == DiffView.DetachedWindowObjectName)
+    diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == "DetachedDiffWindow")
     diffWidget: DiffView = diffWindow.findChild(DiffView)
-    assert diffWidget.window() is not mainWindow
+    assert diffWindow is not mainWindow
+    assert diffWindow is diffWidget.window()
     assert "c2.txt" in diffWindow.windowTitle()
+    assert not mainWindow.isActiveWindow()
 
     # Initiate search
-    QTest.qWait(1)
-    QTest.keySequence(diffWidget, "Ctrl+F")
+    QTest.qWait(0)
+    QTest.keySequence(diffWidget, QKeySequence.StandardKey.Find)
     assert diffWidget.searchBar.isVisibleTo(diffWidget.window())
 
     # Make sure the diff is closed when the repowidget is gone
-    mainWindow.closeAllTabs()
+    if closeManually:
+        QTest.keySequence(diffWidget, QKeySequence.StandardKey.Close)  # Note: "Ctrl+W" may not work in offscreen tests!
+    else:
+        mainWindow.closeAllTabs()
+
     QTest.qWait(0)  # doesn't get a chance to clean up windows without this...
     assert 1 == len(QGuiApplication.topLevelWindows())
 

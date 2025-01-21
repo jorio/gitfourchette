@@ -20,7 +20,7 @@ import pygit2
 from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
-from gitfourchette.diffview.diffview import DiffView
+from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
@@ -819,12 +819,6 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Tab management
 
-    def dispatchCloseCommand(self):
-        if self.isActiveWindow():
-            self.closeCurrentTab()
-        elif isinstance(QApplication.activeWindow(), DiffView):
-            QApplication.activeWindow().close()
-
     def closeCurrentTab(self):
         if self.tabs.count() == 0:  # don't attempt to close if no tabs are open
             QApplication.beep()
@@ -1194,18 +1188,30 @@ class MainWindow(QMainWindow):
         return dlg
 
     # -------------------------------------------------------------------------
-    # Find
+    # Dispatch commands to detached windows
+
+    def dispatchCloseCommand(self):
+        if self.isActiveWindow():
+            self.closeCurrentTab()
+            return
+
+        # This is for macOS. Systems without a global main menu (i.e. anything but macOS)
+        # take a different path to intercept keyboard shortcuts.
+        try:
+            CodeView.currentDetachedCodeView().window().close()
+        except KeyError:
+            QApplication.beep()
 
     def dispatchSearchCommand(self, op: SearchBar.Op = SearchBar.Op.Start):
-        activeWindow = QApplication.activeWindow()
-        if activeWindow is self and self.currentRepoWidget():
+        if self.isActiveWindow() and self.currentRepoWidget():
             self.currentRepoWidget().dispatchSearchCommand(op)
-        elif activeWindow.objectName() == DiffView.DetachedWindowObjectName:
-            # Systems without a global main menu (i.e. anything but macOS)
-            # take a different path to search a detached DiffView window.
-            detachedDiffView: DiffView = activeWindow.findChild(DiffView)
-            detachedDiffView.search(op)
-        else:
+            return
+
+        # This is for macOS. Systems without a global main menu (i.e. anything but macOS)
+        # take a different path to intercept keyboard shortcuts.
+        try:
+            CodeView.currentDetachedCodeView().search(op)
+        except KeyError:
             QApplication.beep()
 
     # -------------------------------------------------------------------------

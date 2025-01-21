@@ -572,7 +572,7 @@ class RepoWidget(QStackedWidget):
             return
 
         diffWindow = QWidget(self)
-        diffWindow.setObjectName(DiffView.DetachedWindowObjectName)
+        diffWindow.setObjectName("DetachedDiffWindow")
         diffWindow.setWindowTitle(locator.asTitle())
         diffWindow.setWindowFlag(Qt.WindowType.Window, True)
         diffWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -581,13 +581,13 @@ class RepoWidget(QStackedWidget):
         layout.setSpacing(0)
         diff = DiffView(diffWindow)
         diff.isDetachedWindow = True
-        diff.addSearchShortcuts()  # Required for detached windows
         diff.setFrameStyle(QFrame.Shape.NoFrame)
         diff.replaceDocument(self.repo, patch, locator, diffDocument)
         layout.addWidget(diff)
         layout.addWidget(diff.searchBar)
         diffWindow.resize(550, 700)
         diffWindow.show()
+        diff.setUpAsDetachedWindow()  # Required for detached windows
 
     def blameFile(self, path="", atCommit=NULL_OID):
         if not path:
