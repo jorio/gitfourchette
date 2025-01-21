@@ -179,7 +179,7 @@ class SearchBar(QWidget):
         stillBad = newTerm and badStem and badStem in newTerm
 
         if not stillBad:
-            self.turnRed(False)
+            self.setRed(False)
 
         self.searchTerm = newTerm
         self.searchTermChanged.emit(newTerm)
@@ -195,7 +195,7 @@ class SearchBar(QWidget):
     def isRed(self) -> bool:
         return "true" == self.property("red")
 
-    def turnRed(self, red=True):
+    def setRed(self, red=True):
         wasRed = self.property("red") == "true"
         self.setProperty("red", "true" if red else "false")
         if wasRed ^ red:  # trigger stylesheet refresh
@@ -323,7 +323,7 @@ class SearchBar(QWidget):
                 view.setCurrentIndex(index)
                 return index
 
-        self.turnRed()
+        self.setRed()
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,

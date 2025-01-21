@@ -30,15 +30,14 @@ class CodeHighlighter(QSyntaxHighlighter):
         self.occurrenceFormat.setFontWeight(QFont.Weight.Bold)
 
         self.searchTerm = ""
-        self.searching = False
+        self.numOccurrences = 0
 
-    def setSearchTerm(self, term: str):
-        self.searchTerm = term
-        self.rehighlight()
-
-    def setSearching(self, searching: bool):
-        self.searching = searching
-        self.rehighlight()
+    def setSearchTerm(self, term: str) -> int:
+        if self.searchTerm != term:
+            self.searchTerm = term
+            self.numOccurrences = 0
+            self.rehighlight()
+        return self.numOccurrences
 
     def installLexJob(self, job):
         job.pulse.connect(self.onLexPulse)
@@ -51,7 +50,7 @@ class CodeHighlighter(QSyntaxHighlighter):
         self.lexJobs.clear()
 
     def highlightBlock(self, text: str):
-        if self.searching and self.searchTerm:
+        if self.searchTerm:
             self.highlightSearch(text)
         elif self.scheme and self.lexJobs:
             self.highlightSyntax(text)
@@ -71,6 +70,7 @@ class CodeHighlighter(QSyntaxHighlighter):
                 break
             self.setFormat(index, termLength, self.occurrenceFormat)
             index += termLength
+            self.numOccurrences += 1
 
     def highlightSyntax(self, text: str):
         # Pygments syntax highlighting

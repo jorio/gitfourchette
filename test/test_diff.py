@@ -250,7 +250,7 @@ def testDiffInNewWindow(tempDir, mainWindow):
     assert 1 == len(QGuiApplication.topLevelWindows())
 
 
-def testSearchInDiff(tempDir, mainWindow):
+def testSearchDiff(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -309,11 +309,13 @@ def testSearchInDiff(tempDir, mainWindow):
     searchBar.lineEdit.setFocus()
     if QT5:  # Qt5 is somehow finicky here (else-branch works perfectly in Qt6) - not important enough to troubleshoot - Qt5 is on the way out
         searchBar.lineEdit.setText("MadeUpGarbage")
+        assert searchBar.isRed()
         searchBar.ui.forwardButton.click()
     else:
         assert searchBar.lineEdit.hasSelectedText()  # hitting ctrl+f should reselect text
         QTest.keyClicks(searchLine, "MadeUpGarbage")
         assert searchBar.lineEdit.text() == "MadeUpGarbage"
+        assert searchBar.isRed()
         QTest.keyPress(searchLine, Qt.Key.Key_Return)
     # Reject last message box to prevent wrapping again
     rejectQMessageBox(rw, "no.+occurrence.+of.+MadeUpGarbage.+found")

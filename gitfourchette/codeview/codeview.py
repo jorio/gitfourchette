@@ -62,8 +62,8 @@ class CodeView(QPlainTextEdit):
         self.searchBar = SearchBar(self, _("Find text"))
         self.searchBar.searchNext.connect(lambda: self.search(SearchBar.Op.Next))
         self.searchBar.searchPrevious.connect(lambda: self.search(SearchBar.Op.Previous))
-        self.searchBar.searchTermChanged.connect(self.highlighter.setSearchTerm)
-        self.searchBar.visibilityChanged.connect(self.highlighter.setSearching)
+        self.searchBar.searchTermChanged.connect(self.onSearchTermChanged)
+        self.searchBar.visibilityChanged.connect(self.onToggleSearch)
         self.searchBar.hide()
 
         self.rubberBand = CodeRubberBand(self.viewport())
@@ -391,6 +391,16 @@ class CodeView(QPlainTextEdit):
 
     # ---------------------------------------------
     # Search
+
+    def onSearchTermChanged(self, term: str):
+        numOccurrences = self.highlighter.setSearchTerm(term)
+        self.searchBar.setRed(bool(term) and numOccurrences == 0)
+
+    def onToggleSearch(self, searching: bool):
+        if not searching:
+            self.highlighter.setSearchTerm("")
+        else:
+            self.onSearchTermChanged(self.searchBar.searchTerm)
 
     def search(self, op: SearchBar.Op):
         assert isinstance(op, SearchBar.Op)
