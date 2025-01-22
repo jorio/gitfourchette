@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -259,6 +259,7 @@ class ToolCommands:
         # - Run external tool outside flatpak sandbox.
         # - Set workdir via flatpak-spawn because QProcess.setWorkingDirectory won't work.
         # - Run command through `env` to get return code 127 if the command is missing.
+        #   (note that running ANOTHER flatpak via 'flatpak run' won't return 127).
         if FLATPAK:
             spawner = [
                 "flatpak-spawn", "--watch-bus", "--host", f"--directory={workingDirectory}",
@@ -267,6 +268,18 @@ class ToolCommands:
             tokens = spawner + tokens
 
         return tokens, workingDirectory
+
+    @classmethod
+    def isFlatpakInstalled(cls, flatpakRef, parent) -> bool:
+        tokens = ["flatpak", "info", "--show-ref", flatpakRef]
+        if FLATPAK:
+            tokens = ["flatpak-spawn", "--host", "--"] + tokens
+        process = QProcess(parent)
+        process.setProgram(tokens.pop(0))
+        process.setArguments(tokens)
+        process.start(mode=QProcess.OpenModeFlag.Unbuffered)
+        process.waitForFinished()
+        return process.exitCode() == 0
 
 
 ToolCommands._filterToolPresets()

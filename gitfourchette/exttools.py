@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -38,17 +38,22 @@ def onLocateTool(prefKey: str, newPath: str):
     prefs.write()
 
 
-def onExternalToolProcessError(parent: QWidget, prefKey: str):
+def onExternalToolProcessError(parent: QWidget, prefKey: str, isKnownFlatpak=False):
     assert isinstance(parent, QWidget)
 
-    programName = ToolCommands.getCommandName(getattr(prefs, prefKey), "", {})
+    commandString = getattr(prefs, prefKey)
+    programName = ToolCommands.getCommandName(commandString, "", {})
 
     translatedPrefKey = TrTables.prefKey(prefKey)
 
     title = _("Failed to start {tool}", tool=translatedPrefKey)
 
-    message = _("Couldn’t start {command} ({tool}). It might not be installed on your machine.",
-                tool=translatedPrefKey, command=bquo(programName))
+    if isKnownFlatpak:
+        message = _("Couldn’t start Flatpak {command} ({tool}).")
+    else:
+        message = _("Couldn’t start {command} ({tool}).")
+    message = message.format(tool=translatedPrefKey, command=bquo(programName))
+    message += " " + _("It might not be installed on your machine.")
 
     configureButtonID = QMessageBox.StandardButton.Ok
     browseButtonID = QMessageBox.StandardButton.Open
@@ -62,6 +67,11 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str):
 
     browseButton = qmb.button(browseButtonID)
     browseButton.setText(_("Locate {tool}…", tool=lquo(programName)))
+
+    if FREEDESKTOP:
+        tokens = shlex.split(commandString, posix=True)
+        if ToolCommands.isFlatpakRunCommand(tokens):
+            qmb.removeButton(browseButton)
 
     def onQMBFinished(result):
         if result == configureButtonID:
@@ -121,6 +131,13 @@ def openInExternalTool(
         return None
 
     tokens, workingDirectory = ToolCommands.compileCommand(command, replacements, positional)
+
+    # Check if the Flatpak is installed
+    if FREEDESKTOP:
+        flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(tokens)
+        if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(tokens[flatpakRefTokenIndex], parent):
+            onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
+            return None
 
     process = QProcess(parent)
     process.setProgram(tokens[0])
