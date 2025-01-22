@@ -1090,16 +1090,13 @@ class MainWindow(QMainWindow):
 
         self.mainToolBar.setVisible(settings.prefs.showToolBar)
 
-        self.tabs.refreshPrefs()
-        self.autoHideMenuBar.refreshPrefs()
-        for rw in self.tabs.widgets():
-            rw.refreshPrefs(*prefDiff)
-
         self.showStatusBarAction.setCheckable(True)
         self.showStatusBarAction.setChecked(settings.prefs.showStatusBar)
 
         self.showMenuBarAction.setCheckable(True)
         self.showMenuBarAction.setChecked(settings.prefs.showMenuBar)
+
+        app.prefsChanged.emit()
 
     def onAcceptPrefsDialog(self, prefDiff: dict):
         # Early out if the prefs didn't change

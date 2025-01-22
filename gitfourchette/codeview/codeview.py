@@ -79,8 +79,9 @@ class CodeView(QPlainTextEdit):
         self.horizontalScrollBar().valueChanged.connect(self.updateRubberBand)
 
         # Initialize font & styling
-        self.refreshPrefs()
         GFApplication.instance().restyle.connect(self.refreshPrefs)
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
+        self.refreshPrefs()
 
         makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
 

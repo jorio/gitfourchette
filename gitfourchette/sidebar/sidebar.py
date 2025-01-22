@@ -73,6 +73,7 @@ class Sidebar(QTreeView):
         # is kept until mouseReleaseEvent.
         self.mousePressCache = INVALID_MOUSEPRESS
 
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
 
         makeWidgetShortcut(self, self.onReturnShortcut, "Return", "Enter")

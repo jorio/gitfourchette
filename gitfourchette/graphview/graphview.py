@@ -75,6 +75,7 @@ class GraphView(QListView):
         self.searchBar.hide()
         self.clFilter.rowsAboutToBeInserted.connect(self.searchBar.invalidateBadStem)
 
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs(invalidateMetrics=False)
 
         # Shortcut keys

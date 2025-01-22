@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import stockIcon
@@ -195,6 +196,7 @@ class QTabWidget2(QWidget):
         self.overflowMenu.setObjectName("QTW2OverflowMenu")
         self.overflowMenu.setToolTipsVisible(True)
 
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
 
     def __len__(self):

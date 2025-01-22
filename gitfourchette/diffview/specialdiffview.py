@@ -23,8 +23,9 @@ class SpecialDiffView(QTextBrowser):
         super().__init__(*args, **kwargs)
         self.documentLinks = None
         self.anchorClicked.connect(self.onAnchorClicked)
-        self.refreshPrefs()
         GFApplication.instance().restyle.connect(self.refreshPrefs)
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
+        self.refreshPrefs()
 
     def refreshPrefs(self):
         scheme = settings.prefs.syntaxHighlightingScheme()

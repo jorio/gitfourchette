@@ -153,6 +153,7 @@ class FileList(QListView):
         # Search result highlighter
         self.setItemDelegate(FileListDelegate(self))
 
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
 
         makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")

@@ -10,6 +10,7 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette import tasks
+from gitfourchette.application import GFApplication
 from gitfourchette.diffarea import DiffArea
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.diffview import DiffView
@@ -210,6 +211,8 @@ class RepoWidget(QStackedWidget):
 
         # ----------------------------------
         # Connect signals
+
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
 
         # save splitter state in splitterMoved signal
         for splitter in self.splittersToSave:
@@ -958,7 +961,7 @@ class RepoWidget(QStackedWidget):
         self.committedFiles.refreshPrefs()
 
         # Reflect any change in titlebar prefs
-        if self.isVisible():
+        if self.uiReady and self.isVisible():
             self.refreshWindowChrome()
 
     # -------------------------------------------------------------------------

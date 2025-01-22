@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from gitfourchette import settings, colors
+from gitfourchette.application import GFApplication
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
 from gitfourchette.localization import *
 from gitfourchette.exttools.mergedriver import MergeDriver
@@ -74,6 +75,8 @@ class ConflictView(QWidget):
         self.ui.discardMergeButton.setIcon(stockIcon("SP_DialogDiscardButton"))
         self.ui.reworkMergeButton.setIcon(stockIcon("SP_DialogRetryButton"))
         self.ui.cancelMergeInProgress.setIcon(stockIcon("SP_DialogCancelButton"))
+
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
 
     def execute(self, version: Literal["ours", "theirs", "merge", "remerge", "ancestor"]):
         conflict = self.currentConflict

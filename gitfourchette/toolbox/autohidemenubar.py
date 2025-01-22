@@ -1,10 +1,11 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.qt import *
 
 
@@ -25,6 +26,7 @@ class AutoHideMenuBar(QObject):
 
         self.menusConnected: list[QMenu] = []
 
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
 
     def refreshPrefs(self):

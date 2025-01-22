@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class GFApplication(QApplication):
     restyle = Signal()
+    prefsChanged = Signal()
 
     mainWindow: MainWindow | None
     initialSession: Session | None
