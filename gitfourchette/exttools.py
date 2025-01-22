@@ -112,7 +112,8 @@ def openInExternalTool(
         prefKey: str,
         replacements: dict[str, str],
         positional: list[str],
-        allowQDesktopFallback: bool = False
+        allowQDesktopFallback: bool = False,
+        cwd: str = "",
 ) -> QProcess | None:
 
     assert isinstance(parent, QWidget)
@@ -138,6 +139,10 @@ def openInExternalTool(
         if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(tokens[flatpakRefTokenIndex], parent):
             onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
             return None
+
+    # Enforce working directory
+    if cwd:
+        workingDirectory = cwd
 
     process = QProcess(parent)
     process.setProgram(tokens[0])

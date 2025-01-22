@@ -14,7 +14,7 @@ from gitfourchette.diffarea import DiffArea
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
-from gitfourchette.exttools import PREFKEY_MERGETOOL, openInTextEditor
+from gitfourchette.exttools import PREFKEY_MERGETOOL, openInTextEditor, openInExternalTool
 from gitfourchette.forms.banner import Banner
 from gitfourchette.forms.openrepoprogress import OpenRepoProgress
 from gitfourchette.forms.searchbar import SearchBar
@@ -596,6 +596,16 @@ class RepoWidget(QStackedWidget):
     def openRepoFolder(self):
         openFolder(self.workdir)
 
+    def openTerminal(self):
+        openInExternalTool(
+            self,
+            "terminal",
+            {"$P?": self.workdir},
+            [],
+            False,
+            cwd=self.workdir,
+        )
+
     def openSuperproject(self):
         superproject = self.superproject
         if superproject:
@@ -1018,8 +1028,17 @@ class RepoWidget(QStackedWidget):
             ActionDef(
                 _("&Open Repo Folder"),
                 lambda: proxy().openRepoFolder(),
+                icon="reveal",
                 shortcuts=GlobalShortcuts.openRepoFolder,
                 tip=_("Open this repo’s working directory in the system’s file manager"),
+            ),
+
+            ActionDef(
+                _("Open &Terminal"),
+                lambda: proxy().openTerminal(),
+                icon="terminal",
+                shortcuts=GlobalShortcuts.openTerminal,
+                tip=_("Open a terminal in the repo’s working directory"),
             ),
 
             ActionDef(

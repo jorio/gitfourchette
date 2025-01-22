@@ -424,4 +424,9 @@ class TrTables:
                 "\n<code>$R</code> - Theirs / Remote / Right"
                 "\n<code>$M</code> - Merged / Output / Result"
             ),
+            "terminal": _("Terminal"),
+            "terminal_help": "<p>" + _(
+                "The terminal will be started in an adequate working directory. "
+                "If your terminal doesn’t honor this, use {token} to inject a path in the command.",
+                token="<code>$P</code>"),
         }

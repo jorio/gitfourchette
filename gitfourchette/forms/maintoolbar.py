@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -20,6 +20,7 @@ class MainToolBar(QToolBar):
     openDialog = Signal()
     openPrefs = Signal()
     reveal = Signal()
+    openTerminal = Signal()
     pull = Signal()
     push = Signal()
 
@@ -71,11 +72,18 @@ class MainToolBar(QToolBar):
             TaskBook.toolbarAction(self, tasks.PushBranch),
             ActionDef.SPACER,
 
+            ActionDef(_("Terminal"), self.openTerminal, icon="terminal",
+                      shortcuts=GlobalShortcuts.openTerminal,
+                      tip=_("Open a terminal in the repo")),
+
             ActionDef(_("Reveal"), self.reveal, icon="reveal",
                       shortcuts=GlobalShortcuts.openRepoFolder,
                       tip=_("Open repo folder in file manager")),
+
             self.recentAction,
+
             ActionDef.SEPARATOR,
+
             ActionDef(_("Settings"), self.openPrefs, icon="git-settings",
                       shortcuts=QKeySequence.StandardKey.Preferences,
                       tip=_("Configure {app}", app=qAppName())),

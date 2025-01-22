@@ -101,6 +101,7 @@ class MainWindow(QMainWindow):
         self.mainToolBar.openDialog.connect(self.openDialog)
         self.mainToolBar.openPrefs.connect(self.openPrefsDialog)
         self.mainToolBar.reveal.connect(lambda: self.currentRepoWidget().openRepoFolder())
+        self.mainToolBar.openTerminal.connect(lambda: self.currentRepoWidget().openTerminal())
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
 
         self.fillGlobalMenuBar()

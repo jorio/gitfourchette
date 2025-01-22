@@ -115,6 +115,7 @@ class Prefs(PrefsFile):
     externalEditor              : str                   = ""
     externalDiff                : str                   = ToolCommands.DiffPresets[ToolCommands.DefaultDiffPreset]
     externalMerge               : str                   = ToolCommands.MergePresets[ToolCommands.DefaultMergePreset]
+    terminal                    : str                   = ToolCommands.TerminalPresets[ToolCommands.DefaultTerminalPreset]
 
     _category_tabs              : int                   = 0
     tabCloseButton              : bool                  = True

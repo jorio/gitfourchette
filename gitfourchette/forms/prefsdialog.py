@@ -277,6 +277,8 @@ class PrefsDialog(QDialog):
             return self.strControlWithPresets(
                 key, value, ToolCommands.MergePresets,
                 validate=lambda cmd: ToolCommands.checkCommand(cmd, "$L", "$R", "$B", "$M"))
+        elif key == "terminal":
+            return self.strControlWithPresets(key, value, ToolCommands.TerminalPresets)
         elif key in ["largeFileThresholdKB", "imageFileThresholdKB", "maxTrashFileKB"]:
             control = self.boundedIntControl(key, value, 0, 999_999)
             control.setSpecialValueText("\u221E")  # infinity

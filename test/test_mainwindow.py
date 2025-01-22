@@ -206,6 +206,10 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
     (No worries if you're running the tests offscreen.)
     """
 
+    editorPath = getTestDataPath("editor-shim.sh")
+    scratchPath = f"{tempDir.name}/scratch file.txt"
+    mainWindow.onAcceptPrefsDialog({"terminal": f'"{editorPath}" "{scratchPath}" $P'})
+
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")
@@ -228,5 +232,8 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
 
         triggerMenuAction(menu, "open repo folder")
         assert mockDesktopServices.urls[-1] == QUrl.fromLocalFile(wd)
+
+        triggerMenuAction(menu, "open terminal")
+        assert wd == readFile(scratchPath, timeout=1000, unlink=True).decode().strip()
 
         menu.close()

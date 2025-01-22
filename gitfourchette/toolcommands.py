@@ -7,6 +7,7 @@
 import itertools
 import os
 import shlex
+import shutil
 from collections.abc import Sequence
 
 from gitfourchette.localization import *
@@ -16,6 +17,7 @@ from gitfourchette.qt import *
 class ToolCommands:
     DefaultDiffPreset = ""
     DefaultMergePreset = ""
+    DefaultTerminalPreset = ""
     FlatpakNamePrefix = "Flatpak: "
 
     EditorPresets = {
@@ -64,6 +66,26 @@ class ToolCommands:
         "WinMerge"      : "winmergeu /u /wl /wm /wr /am $B $L $R /o $M",
     }
 
+    MacTerminalPresets = {
+        "Terminal.app"  : "/System/Applications/Utilities/Terminal.app $P",
+    }
+
+    WindowsTerminalPresets = {
+        "Command Prompt": "cmd /c start cmd",
+        "Git Bash"      : "cmd /c start bash",
+        "PowerShell"    : "cmd /c start powershell",
+    }
+
+    LinuxTerminalPresets = {
+        "Debian default terminal": "x-terminal-emulator",  # only on Debian and derivatives
+        "GNOME Terminal": "gnome-terminal",
+        "Konsole"       : "konsole",
+    }
+
+    # Filled in depending on platform
+    TerminalPresets = {
+    }
+
     FlatpakIDs = {
         "CLion"             : ("CLion",         "com.jetbrains.CLion"),
         "GVim"              : ("GVim",          "org.vim.Vim"),
@@ -75,6 +97,8 @@ class ToolCommands:
         "Meld"              : ("Meld",          "org.gnome.meld"),
         "VS Code"           : ("VS Code",       "com.visualstudio.code"),
         "VS Code OSS"       : ("VS Code",       "com.visualstudio.code-oss"),
+        # Terminals
+        "Konsole"           : ("Konsole",       "org.kde.konsole"),
     }
 
     @classmethod
@@ -82,25 +106,35 @@ class ToolCommands:
         freedesktopTools = ["Kate", "KWrite"]
         macTools = ["FileMerge", "MacVim", "BBEdit"]
         winTools = ["WinMerge"]
-        allPresetDicts = [cls.EditorPresets, cls.DiffPresets, cls.MergePresets]
+        allPresetDicts = [cls.EditorPresets, cls.DiffPresets, cls.MergePresets, cls.TerminalPresets]
 
         if MACOS:
             excludeTools = winTools + freedesktopTools
+            cls.TerminalPresets.update(cls.MacTerminalPresets)
             cls.DefaultDiffPreset = "FileMerge"
             cls.DefaultMergePreset = "FileMerge"
+            cls.DefaultTerminalPreset = "Terminal.app"
         elif WINDOWS:
             excludeTools = macTools + freedesktopTools
+            cls.TerminalPresets.update(cls.WindowsTerminalPresets)
             cls.DefaultDiffPreset = "WinMerge"
             cls.DefaultMergePreset = "WinMerge"
+            cls.DefaultTerminalPreset = "PowerShell"
         else:
             excludeTools = macTools + winTools
+            cls.TerminalPresets.update(cls.LinuxTerminalPresets)
             cls.DefaultDiffPreset = "Meld"
             cls.DefaultMergePreset = "Meld"
+            cls.DefaultTerminalPreset = "Konsole"
 
-        # If we're running as a Flatpak, use Flatpak as default tool as well
-        if FLATPAK:
-            cls.DefaultDiffPreset = cls.FlatpakNamePrefix + cls.DefaultDiffPreset
-            cls.DefaultMergePreset = cls.FlatpakNamePrefix + cls.DefaultMergePreset
+            # Default to 'x-terminal-emulator' on Debian derivatives
+            debianPreset = "Debian default terminal"
+            if shutil.which(cls.LinuxTerminalPresets[debianPreset]):  # do we have this command?
+                cls.DefaultTerminalPreset = debianPreset
+            else:
+                excludeTools.append(debianPreset)
+                if "GNOME" in os.environ.get("XDG_CURRENT_DESKTOP", ""):
+                    cls.DefaultTerminalPreset = "GNOME Terminal"
 
         for key in excludeTools:
             for presets in allPresetDicts:
@@ -121,6 +155,22 @@ class ToolCommands:
                         continue
                     newCommand = cls.replaceProgramTokenInCommand(originalCommand, "flatpak", "run", flatpakId)
                     presets[k2] = newCommand
+
+        cls.DefaultDiffPreset = cls._postProcessDefault(cls.DefaultDiffPreset, cls.DiffPresets)
+        cls.DefaultMergePreset = cls._postProcessDefault(cls.DefaultMergePreset, cls.MergePresets)
+        cls.DefaultTerminalPreset = cls._postProcessDefault(cls.DefaultTerminalPreset, cls.TerminalPresets)
+
+    @classmethod
+    def _postProcessDefault(cls, baseKey, presets):
+        assert baseKey in presets
+
+        # If we're running as a Flatpak, use Flatpak as default tool as well
+        if FLATPAK:
+            flatpakKey = cls.FlatpakNamePrefix + baseKey
+            if flatpakKey in presets:
+                return flatpakKey
+
+        return baseKey
 
     @classmethod
     def isFlatpakRunCommand(cls, tokens: Sequence[str]):
@@ -206,7 +256,7 @@ class ToolCommands:
         return newCommand
 
     @classmethod
-    def checkCommand(cls, command: str, *placeholders: str):
+    def checkCommand(cls, command: str, *placeholders: str) -> str:
         try:
             cls.compileCommand(command, {k: "PLACEHOLDER" for k in placeholders}, [])
             return ""
@@ -214,16 +264,21 @@ class ToolCommands:
             return str(e)
 
     @classmethod
-    def compileCommand(cls, command: str, replacements: dict[str, str], positional: list[str]):
+    def compileCommand(cls, command: str, replacements: dict[str, str], positional: list[str]) -> tuple[list[str], str]:
         tokens = shlex.split(command, posix=not WINDOWS)
 
         for placeholder, replacement in replacements.items():
+            mandatory = not placeholder.endswith("?")
+            placeholder = placeholder.removesuffix("?")
             for i, tok in enumerate(tokens):  # noqa: B007
                 if tok.endswith(placeholder):
                     prefix = tok.removesuffix(placeholder)
                     break
             else:
-                raise ValueError(_("Placeholder token {0} missing.", placeholder))
+                if mandatory:
+                    raise ValueError(_("Placeholder token {0} missing.", placeholder))
+                else:
+                    continue
             if replacement:
                 tokens[i] = prefix + replacement
             else:
