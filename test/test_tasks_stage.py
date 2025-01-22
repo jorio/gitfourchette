@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -26,7 +26,7 @@ def doDiscard(rw, method):
     if method == "key":
         QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Delete)
     elif method == "menu":
-        triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "discard")
+        triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "(discard|delete)")
     elif method == "button":
         rw.diffArea.discardButton.click()
     else:
@@ -146,7 +146,7 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
     assert qlvGetRowData(rw.dirtyFiles) == ["[tree] inner"]
     qlvClickNthRow(rw.dirtyFiles, 0)
     contextMenu = rw.dirtyFiles.makeContextMenu()
-    findMenuAction(contextMenu, "discard").trigger()
+    findMenuAction(contextMenu, "delete").trigger()
     acceptQMessageBox(rw, "really delete.+inner")
 
     assert not os.path.exists(innerWd)

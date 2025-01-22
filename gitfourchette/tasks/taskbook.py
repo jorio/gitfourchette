@@ -45,7 +45,7 @@ class TaskBook:
             tasks.DeleteRemote: _("Remove remote"),
             tasks.DeleteRemoteBranch: _("Delete branch on remote"),
             tasks.DeleteTag: _("Delete tag"),
-            tasks.DiscardFiles: _("Discard files"),
+            tasks.DiscardFiles: _("Discard changes"),
             tasks.DiscardModeChanges: _("Discard mode changes"),
             tasks.DropStash: _("Delete stash"),
             tasks.EditRemote: _("Edit remote"),

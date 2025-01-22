@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -33,6 +33,7 @@ class DirtyFiles(FileList):
         anySubmodules = FileMode.COMMIT in modeSet
         onlyConflicts = anyConflicts and len(statusSet) == 1
         onlySubmodules = anySubmodules and len(modeSet) == 1
+        onlyUntracked = statusSet == {DeltaStatus.UNTRACKED}
 
         if not anyConflicts and not anySubmodules:
             contextMenuActionStage = ActionDef(
@@ -41,8 +42,12 @@ class DirtyFiles(FileList):
                 icon="git-stage",
                 shortcuts=GlobalShortcuts.stageHotkeys[0])
 
+            if onlyUntracked:
+                discardText = _n("&Delete File…", "&Delete {n} Files…", n)
+            else:
+                discardText = _n("&Discard Changes in File…", "&Discard Changes in {n} Files…", n)
             contextMenuActionDiscard = ActionDef(
-                _n("&Discard Changes", "&Discard Changes", n),
+                discardText,
                 self.discard,
                 icon="git-discard",
                 shortcuts=GlobalShortcuts.discardHotkeys[0])
