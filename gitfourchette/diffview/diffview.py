@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from bisect import bisect_left, bisect_right
+from bisect import bisect_left
 
 from gitfourchette import settings
 from gitfourchette.codeview.codeview import CodeView
@@ -34,8 +34,6 @@ class DiffView(CodeView):
     visibilityChanged = Signal(bool)
 
     lineData: list[LineData]
-    lineCursorStartCache: list[int]
-    lineHunkIDCache: list[int]
     currentLocator: NavLocator
     currentPatch: Patch | None
     currentWorkdirFileStat: os.stat_result | None
@@ -45,7 +43,6 @@ class DiffView(CodeView):
         super().__init__(gutterClass=DiffGutter, highlighterClass=DiffHighlighter, parent=parent)
 
         self.lineData = []
-        self.lineCursorStartCache = []
         self.lineHunkIDCache = []
         self.repo = None
 
@@ -159,8 +156,6 @@ class DiffView(CodeView):
         self.highlighter.setDiffDocument(newDoc)
 
         self.lineData = newDoc.lineData
-        self.lineCursorStartCache = [ld.cursorStart for ld in self.lineData]
-        self.lineHunkIDCache = [ld.hunkPos.hunkID for ld in self.lineData]
 
         # now reset defaults that are lost when changing documents
         self.refreshPrefs(changeColorScheme=False)
@@ -334,46 +329,30 @@ class DiffView(CodeView):
     # ---------------------------------------------
     # Patch
 
-    def findLineDataIndexAt(self, cursorPosition: int, firstLineDataIndex: int = 0):
-        if not self.lineData:
-            return -1
-        index = bisect_right(self.lineCursorStartCache, cursorPosition, firstLineDataIndex)
-        return index - 1
-
     def findHunkIDAt(self, cursorPosition: int):
-        clickLineDataIndex = self.findLineDataIndexAt(cursorPosition)
+        block = self.document().findBlock(cursorPosition)
+        blockNumber = block.blockNumber()
         try:
-            return self.lineData[clickLineDataIndex].hunkPos.hunkID
+            return self.lineData[blockNumber].hunkPos.hunkID
         except IndexError:
             return -1
-
-    def getSelectedLineExtents(self):
-        cursor: QTextCursor = self.textCursor()
-        posStart = cursor.selectionStart()
-        posEnd = cursor.selectionEnd()
-
-        if posStart < 0 or posEnd < 0:
-            return -1, -1
-
-        # Find indices of first and last LineData objects given the current selection
-        biStart = self.findLineDataIndexAt(posStart)
-        biEnd = self.findLineDataIndexAt(posEnd, biStart)
-
-        return biStart, biEnd
 
     def isSelectionActionable(self):
         start, end = self.getSelectedLineExtents()
         numAdds = 0
         numDels = 0
-        if start >= 0:
-            for i in range(start, end+1):
+        for i in range(start, end+1):
+            try:
                 ld = self.lineData[i]
-                if not ld.diffLine:
-                    pass
-                elif ld.diffLine.origin == "+":
-                    numAdds += 1
-                elif ld.diffLine.origin == "-":
-                    numDels += 1
+            except IndexError:
+                assert (numAdds, numDels) == (0, 0)
+                break
+            if not ld.diffLine:
+                pass
+            elif ld.diffLine.origin == "+":
+                numAdds += 1
+            elif ld.diffLine.origin == "-":
+                numDels += 1
         return numAdds, numDels
 
     def extractSelection(self, reverse=False) -> bytes:
@@ -390,9 +369,12 @@ class DiffView(CodeView):
     def extractHunk(self, hunkID: int, reverse=False) -> bytes:
         assert self.currentPatch is not None
 
+        def hunkIDKey(lineData: LineData):
+            return lineData.hunkPos.hunkID
+
         # Find indices of first and last LineData objects given the current hunk
-        hunkFirstLineIndex = bisect_left(self.lineHunkIDCache, hunkID, 0)
-        hunkLastLineIndex = bisect_left(self.lineHunkIDCache, hunkID+1, hunkFirstLineIndex) - 1
+        hunkFirstLineIndex = bisect_left(self.lineData, hunkID, 0, key=hunkIDKey)
+        hunkLastLineIndex = bisect_left(self.lineData, hunkID+1, hunkFirstLineIndex, key=hunkIDKey) - 1
 
         return extractSubpatch(
             self.currentPatch,
@@ -539,7 +521,7 @@ class DiffView(CodeView):
             textCursorPosition = self.getStartOfLineAt(clickPoint)
 
         ldList = self.lineData
-        i = self.findLineDataIndexAt(textCursorPosition)
+        i = self.document().findBlock(textCursorPosition).blockNumber()
         ld = ldList[i]
 
         if ld.hunkPos.hunkLineNum < 0:

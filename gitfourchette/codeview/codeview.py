@@ -166,23 +166,14 @@ class CodeView(QPlainTextEdit):
     # Restore position
 
     def restorePosition(self, locator: NavLocator):
-        pos = locator.diffCursor
-        lineNo = locator.diffLineNo
-
-        # Get position at start of line
-        try:
-            sol = self.lineCursorStartCache[lineNo]
-        except IndexError:
-            sol = self.lineCursorStartCache[-1]
-
-        # Get position at end of line
-        try:
-            eol = self.lineCursorStartCache[lineNo+1]
-        except IndexError:
-            eol = self.getMaxPosition()
+        # Get position at start/end of line
+        block: QTextBlock = self.document().findBlockByNumber(locator.diffLineNo)
+        sol = block.position()
+        eol = block.position() + block.length()
 
         # If cursor position still falls within the same line, keep that position.
         # Otherwise, snap cursor position to start of line.
+        pos = locator.diffCursor
         if not (sol <= pos < eol):
             pos = sol
 
@@ -216,20 +207,19 @@ class CodeView(QPlainTextEdit):
 
     def getPreciseLocator(self):
         corner = self.getStableTopLeftCorner()
-        cfp: QTextCursor = self.cursorForPosition(corner)
+        cornerCursor = self.cursorForPosition(corner)
 
-        diffCursor = self.textCursor().position()
-        diffLineNo = self.findLineDataIndexAt(diffCursor)
-        diffScroll = self.verticalScrollBar().value()
-        diffScrollTop = cfp.position()
-        locator = self.currentLocator.coarse().replace(
-            diffCursor=diffCursor,
-            diffLineNo=diffLineNo,
-            diffScroll=diffScroll,
-            diffScrollTop=diffScrollTop)
+        textCursor = self.textCursor()
 
-        # log.info("DiffView", f"getPreciseLocator: {diffScrollTop} - {cfp.positionInBlock()}"
-        #                      f" - {cfp.block().text()[cfp.positionInBlock():]}")
+        locator = self.currentLocator.coarse()
+        locator = locator.replace(
+            diffCursor=textCursor.position(),
+            diffLineNo=textCursor.blockNumber(),
+            diffScroll=self.verticalScrollBar().value(),
+            diffScrollTop=cornerCursor.position())
+
+        # logger.info(f"getPreciseLocator: {diffScrollTop} - {cornerCursor.positionInBlock()}"
+        #             f" - {cornerCursor.block().text()[cornerCursor.positionInBlock():]}")
         return locator
 
     # ---------------------------------------------
@@ -341,6 +331,22 @@ class CodeView(QPlainTextEdit):
 
     # ---------------------------------------------
     # Cursor/selection
+
+    def getSelectedLineExtents(self):
+        """ Return block numbers of the first and last blocks encompassing the current selection """
+
+        cursor: QTextCursor = self.textCursor()
+        posStart = cursor.selectionStart()
+        posEnd = cursor.selectionEnd()
+
+        assert posStart >= 0
+        assert posEnd >= 0
+
+        document: QTextDocument = self.document()
+        startBlock = document.findBlock(posStart).blockNumber()
+        endBlock = document.findBlock(posEnd).blockNumber()
+
+        return startBlock, endBlock
 
     def getMaxPosition(self):
         lastBlock = self.document().lastBlock()
