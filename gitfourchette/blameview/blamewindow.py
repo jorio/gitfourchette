@@ -9,7 +9,7 @@ from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator
+from gitfourchette.nav import NavLocator, NavHistory
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
@@ -35,6 +35,8 @@ class BlameWindow(QWidget):
         self.model = BlameModel()
         self.model.taskInvoker = taskInvoker
         self.model.repoModel = repoModel
+
+        self.navHistory = NavHistory()
 
         # Die in tandem with RepoWidget
         taskInvoker.destroyed.connect(self.close)
@@ -122,18 +124,27 @@ class BlameWindow(QWidget):
         # Stop lexing BEFORE changing the document!
         self.textEdit.highlighter.stopLexJobs()
 
-        self.model.commitId = node.commitId
+        # Update current locator
+        currentLocator = self.textEdit.getPreciseLocator()
+        self.navHistory.push(currentLocator)
+
+        self.model.currentTraceNode = node
         self.model.currentBlame = self.model.blameCollection[node.blobId]
 
         blob = self.model.repo.peel_blob(node.blobId)
         data = blob.data
 
         if self.model.currentBlame.binary:
-            self.textEdit.setPlainText(_("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId))
-            return
+            text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
+        else:
+            text = data.decode('utf-8', errors='replace')
 
-        text = data.decode('utf-8', errors='replace')
+        newLocator = NavLocator.inCommit(node.commitId, node.path)
+        newLocator = self.navHistory.refine(newLocator)
+
         self.textEdit.setPlainText(text)
+        self.textEdit.currentLocator = newLocator
+        self.textEdit.restorePosition(newLocator)
 
         self.textEdit.syncViewportMarginsWithGutter()
         self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path), commit=shortHash(node.commitId)))

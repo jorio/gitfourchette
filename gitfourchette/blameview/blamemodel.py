@@ -6,7 +6,7 @@
 
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.trace import Trace, Blame, BlameCollection
+from gitfourchette.trace import Trace, TraceNode, Blame, BlameCollection
 from gitfourchette.qt import *
 
 
@@ -15,7 +15,7 @@ class BlameModel:
     repoModel: RepoModel
     trace: Trace
     blameCollection: BlameCollection
-    commitId: Oid
+    currentTraceNode: TraceNode
     currentBlame: Blame
 
     @property
