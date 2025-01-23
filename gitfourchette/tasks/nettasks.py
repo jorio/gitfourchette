@@ -344,6 +344,8 @@ class PushBranch(RepoTask):
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs
+        if resetTrackingReference:
+            self.effects |= TaskEffects.Upstreams
 
         error = None
         try:

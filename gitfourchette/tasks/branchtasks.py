@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -320,7 +320,7 @@ class _NewBranchBaseTask(RepoTask):
 
         # Create local branch
         repo.create_branch_from_commit(localName, tip)
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
+        self.effects |= TaskEffects.Refs | TaskEffects.Head | TaskEffects.Upstreams
         self.postStatus = _("Branch {0} created on commit {1}.", tquo(localName), tquo(shortHash(tip)))
 
         # Optionally make it track a remote branch
@@ -401,7 +401,7 @@ class EditUpstreamBranch(RepoTask):
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.effects |= TaskEffects.Upstreams
         self.repo.edit_upstream_branch(localBranchName, remoteBranchName)
 
         if remoteBranchName:

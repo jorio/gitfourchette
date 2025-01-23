@@ -84,7 +84,14 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
+    def isUpstreamItalic():
+        upstreamNode = rw.sidebar.findNodeByRef(f"refs/remotes/{upstreamName}")
+        upstreamIndex = upstreamNode.createIndex(rw.sidebar.sidebarModel)
+        upstreamFont: QFont = upstreamIndex.data(Qt.ItemDataRole.FontRole)
+        return upstreamFont is not None and upstreamFont.italic()
+
     branchName, upstreamName = branchSettings
+    isCurrentBranch = branchName == "master"
     upstreamMenuRegex = upstreamName.replace('/', '.')
 
     assert repo.branches.local[branchName].upstream_name == f"refs/remotes/{upstreamName}"
@@ -95,6 +102,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert re.search(rf"{branchName}.+local branch", toolTip, re.I)
     assert (branchName == "master") == bool(re.search(r"checked.out", toolTip, re.I))
     assert re.search(rf"upstream.+{upstreamName}", toolTip, re.I)
+    assert not isCurrentBranch or isUpstreamItalic()
 
     # Clear tracking reference
     menu = rw.sidebar.makeNodeMenu(node)
@@ -103,6 +111,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert originMasterAction.isChecked()
     stopTrackingAction.trigger()
     assert repo.branches.local[branchName].upstream is None
+    assert not isUpstreamItalic()
 
     # Change tracking back to original upstream branch
     menu = rw.sidebar.makeNodeMenu(node)
@@ -112,6 +121,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert notTrackingAction.isChecked()
     originMasterAction.trigger()
     assert repo.branches.local[branchName].upstream == repo.branches.remote[upstreamName]
+    assert not isCurrentBranch or isUpstreamItalic()
 
     # Do that again to cover no-op case
     menu = rw.sidebar.makeNodeMenu(node)
@@ -119,6 +129,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert originMasterAction.isChecked()
     originMasterAction.trigger()
     assert repo.branches.local[branchName].upstream == repo.branches.remote[upstreamName]
+    assert not isCurrentBranch or isUpstreamItalic()
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])

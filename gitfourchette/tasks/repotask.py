@@ -80,6 +80,9 @@ class TaskEffects(enum.IntFlag):
     Head = enum.auto()
     "The task moves HEAD to a different commit."
 
+    Upstreams = enum.auto()
+    "The task affects the upstream of a local branch."
+
     Index = enum.auto()
     "Reload the index."
 
