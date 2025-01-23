@@ -548,8 +548,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         """Last-resort row drawing routine used if _paint raises an exception."""
 
         # We want this to fail in unit tests.
-        from gitfourchette.settings import TEST_MODE
-        if TEST_MODE:
+        if APP_TESTMODE:
             raise exc
 
         text = "?" * 7

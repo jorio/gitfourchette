@@ -227,10 +227,10 @@ class SidebarModel(QAbstractItemModel):
 
         self.clear()
 
-        if settings.DEVDEBUG and HAS_QTEST:
+        if APP_DEBUG and HAS_QTEST:
             self.modelTester = QAbstractItemModelTester(self)
-            if not settings.TEST_MODE:
-                logger.warning("Sidebar model tester enabled. This will SIGNIFICANTLY slow down SidebarModel.rebuild!")
+            if not APP_TESTMODE:
+                warnings.warn("Sidebar model tester enabled. This will SIGNIFICANTLY slow down SidebarModel.rebuild!")
 
     def clear(self, emitSignals=True):
         # IMPORTANT: Do not clear collapseCache in this function!

@@ -87,11 +87,6 @@ class GFApplication(QApplication):
         parser.setApplicationDescription(qAppName() + " - " + _("The comfortable Git UI for Linux."))
         parser.addHelpOption()
         parser.addVersionOption()
-        parser.addOptions([
-            QCommandLineOption(["no-threads", "n"], _("Turn off multithreading (run all tasks on UI thread).")),
-            QCommandLineOption(["debug", "d"], _("Enable expensive assertions and development features.")),
-            QCommandLineOption(["test-mode"], _("Prevent loading/saving user settings. (implies --no-threads)")),
-        ])
         parser.addPositionalArgument("repos", _("Repository paths to open on launch."), "[repos...]")
         parser.process(argv)
 
@@ -101,18 +96,7 @@ class GFApplication(QApplication):
         self.restyle.connect(self.onRestyle)
 
         from gitfourchette.globalshortcuts import GlobalShortcuts
-        from gitfourchette.tasks import TaskBook, TaskInvoker, RepoTaskRunner
-        from gitfourchette import settings
-
-        # Set up global flags from command line
-        if parser.isSet("debug"):
-            settings.DEVDEBUG = True
-        if parser.isSet("no-threads"):
-            RepoTaskRunner.ForceSerial = True
-        if parser.isSet("test-mode"):
-            settings.TEST_MODE = True
-            RepoTaskRunner.ForceSerial = True
-            self.setApplicationName(APP_SYSTEM_NAME + "_TESTMODE")
+        from gitfourchette.tasks import TaskBook, TaskInvoker
 
         # Prepare session-wide temporary directory
         if FLATPAK:
@@ -290,11 +274,9 @@ class GFApplication(QApplication):
     # -------------------------------------------------------------------------
 
     def installTranslators(self, preferredLanguage: str = ""):
-        from gitfourchette import settings
-
         if preferredLanguage:
             locale = QLocale(preferredLanguage)
-        elif settings.TEST_MODE:
+        elif APP_TESTMODE:
             # Fall back to English in unit tests regardless of the host machine's locale
             # because many unit tests look for pieces of text in dialogs.
             locale = QLocale(QLocale.Language.English)

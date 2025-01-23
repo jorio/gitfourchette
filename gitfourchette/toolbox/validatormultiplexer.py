@@ -52,12 +52,11 @@ class ValidatorMultiplexer(QObject):
 
     def __init__(self, parent):
         super().__init__(parent)
-        from gitfourchette.settings import TEST_MODE
         self.gatedWidgets = []
         self.inputs = []
         self.toolTipDelay = QTimer(self)
         self.toolTipDelay.setSingleShot(True)
-        self.toolTipDelay.setInterval(500 if not TEST_MODE else 0)
+        self.toolTipDelay.setInterval(500 if not APP_TESTMODE else 0)
 
     def setGatedWidgets(self, *args: QWidget):
         self.gatedWidgets = list(args)

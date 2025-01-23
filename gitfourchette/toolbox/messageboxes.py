@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -98,8 +98,7 @@ def excMessageBox(
         qmb.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         if isCritical:
-            from gitfourchette.settings import DEVDEBUG
-            if DEVDEBUG:
+            if APP_DEBUG:
                 quitButton = qmb.addButton(QMessageBox.StandardButton.Reset)  # Reset button is leftmost in KDE
                 quitButton.setText(_("Quit application"))
 
@@ -124,8 +123,7 @@ def excMessageBox(
         traceback.print_exception(excMessageBoxError)
 
     if abortUnitTest:
-        from gitfourchette.settings import TEST_MODE
-        if TEST_MODE:
+        if APP_TESTMODE:
             raise exc
 
 

@@ -18,7 +18,6 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
-from gitfourchette.settings import TEST_MODE
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -52,7 +51,7 @@ def isPrivateKeyPassphraseProtected(path: str):
 
 
 def collectUserKeyFiles():
-    if TEST_MODE:
+    if APP_TESTMODE:
         from test.util import getTestDataPath
         sshDirectory = getTestDataPath("keys")
     else:  # pragma: no cover

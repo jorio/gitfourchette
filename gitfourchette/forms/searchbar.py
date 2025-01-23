@@ -13,7 +13,6 @@ from gitfourchette.forms.ui_searchbar import Ui_SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.settings import TEST_MODE
 from gitfourchette.toolbox import *
 
 SEARCH_PULSE_DELAY = 250
@@ -113,7 +112,7 @@ class SearchBar(QWidget):
 
         self.searchPulseTimer = QTimer(self)
         self.searchPulseTimer.setSingleShot(True)
-        self.searchPulseTimer.setInterval(SEARCH_PULSE_DELAY if not TEST_MODE else 0)
+        self.searchPulseTimer.setInterval(SEARCH_PULSE_DELAY if not APP_TESTMODE else 0)
         self.searchPulseTimer.timeout.connect(self.searchPulse)
 
         tweakWidgetFont(self.lineEdit, 85)

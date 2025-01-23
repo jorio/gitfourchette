@@ -22,8 +22,8 @@ from collections.abc import Generator
 from contextlib import suppress
 from pathlib import Path
 
+from gitfourchette.appconsts import *
 from gitfourchette.porcelain import *
-from gitfourchette.settings import DEVDEBUG
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL, Benchmark
 
 _logger = _logging.getLogger(__name__)
@@ -154,7 +154,7 @@ class Trace:
         assert not node.llPrev
         assert not node.llNext
 
-        if DEVDEBUG:  # expensive!
+        if APP_DEBUG:  # expensive!
             assert after in self
             assert node not in self
 
@@ -174,7 +174,7 @@ class Trace:
         assert self.count >= 0
 
     def unlink(self, node: TraceNode):
-        if DEVDEBUG:  # expensive!
+        if APP_DEBUG:  # expensive!
             assert node in self
 
         assert node is not self.head, "can't remove head sentinel"
@@ -261,7 +261,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
 
     # For a rename to occur, we need at least an add and a del.
     if adds == 0 or dels == 0:
-        if DEVDEBUG:  # Make sure we haven't missed a rename (expensive check!)
+        if APP_DEBUG:  # Make sure we haven't missed a rename (expensive check!)
             diff.find_similar()  # slow!
             assert DeltaStatus.RENAMED not in (d.status for d in diff.deltas)
         return "", NULL_OID
@@ -524,7 +524,7 @@ def blameFile(
         blameA = blameCollection[blobIdA]
         blameB = _blamePatch(patch, blameA, node)
 
-        if DEVDEBUG and not blameB.binary:
+        if APP_DEBUG and not blameB.binary:
             def countLines(data: bytes):
                 return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
             assert len(blameB.lines) - 1 == countLines(blobB.data)
@@ -534,7 +534,7 @@ def blameFile(
                 and node.llNext
                 and node.llNext.level == node.level + 1
                 and node.llNext.blobId != blobIdA):
-            if DEVDEBUG:  # Very expensive assertion that will slow down the blame significantly
+            if APP_DEBUG:  # Very expensive assertion that will slow down the blame significantly
                 assert repo.descendant_of(node.commitId, node.llNext.commitId)
             olderBlob = repo[node.llNext.blobId]
             olderBlame = blameCollection[node.llNext.blobId]
@@ -635,7 +635,6 @@ def traceCommandLineTool():  # pragma: no cover
 
     parser = ArgumentParser(description="GitFourchette trace/blame tool")
     parser.add_argument("path", help="File path")
-    parser.add_argument("-d", "--debug", action="store_true", help="Enable expensive assertions")
     parser.add_argument("-t", "--trace", action="store_true", help="Print trace (file history)")
     parser.add_argument("-q", "--quiet", action="store_true", help="Don't print annotations")
     parser.add_argument("-s", "--skim", action="store", type=int, default=0, help="Skimming interval")
@@ -645,9 +644,6 @@ def traceCommandLineTool():  # pragma: no cover
 
     _logging.basicConfig(level=BENCHMARK_LOGGING_LEVEL)
     _logging.captureWarnings(True)
-
-    global DEVDEBUG
-    DEVDEBUG = args.debug
 
     repo = Repo(args.path)
     relPath = Path(args.path)
@@ -675,7 +671,8 @@ def traceCommandLineTool():  # pragma: no cover
             print(f"{id7(traceNode.commitId)} {traceNode.path:20} ({commit.author.name:20} {date} {i}) {blameLine.text.rstrip()}")
 
     if args.benchmark:
-        DEVDEBUG = False
+        global APP_DEBUG
+        APP_DEBUG = False
         N = 10
         print("Benchmarking...")
         elapsed = timeit(lambda: traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level), number=N)

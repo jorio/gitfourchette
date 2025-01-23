@@ -16,7 +16,7 @@ from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.settings import prefs, TEST_MODE
+from gitfourchette.settings import prefs
 from gitfourchette.toolbox import *
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.trtables import TrTables
@@ -84,7 +84,7 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
             qfd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
             qfd.setFileMode(QFileDialog.FileMode.AnyFile)
             qfd.setWindowModality(Qt.WindowModality.WindowModal)
-            qfd.setOption(QFileDialog.Option.DontUseNativeDialog, TEST_MODE)
+            qfd.setOption(QFileDialog.Option.DontUseNativeDialog, APP_TESTMODE)
             qfd.show()
             qfd.fileSelected.connect(lambda newPath: onLocateTool(prefKey, newPath))
             return qfd

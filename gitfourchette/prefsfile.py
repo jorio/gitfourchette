@@ -30,8 +30,7 @@ class PrefsFile:
     _fileVersion = ""
 
     def getParentDir(self) -> str:
-        from gitfourchette.settings import TEST_MODE
-        if TEST_MODE:
+        if APP_TESTMODE:
             return os.path.join(qTempDir(), "testmode-config")
         return QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppConfigLocation)
 

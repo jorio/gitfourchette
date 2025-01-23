@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from collections.abc import Iterable, Iterator, Set
 from typing import ClassVar
 
+from gitfourchette.appconsts import *
 from gitfourchette.porcelain import Oid
-from gitfourchette.settings import DEVDEBUG
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +189,7 @@ class ChainHandle:
                 frontier.append(root)
             for ch in frontier:
                 ch.alias = root
-            if DEVDEBUG:
+            if APP_DEBUG:
                 assert root.alias is None
                 assert root not in frontier
                 assert root is self.alias
@@ -350,7 +350,7 @@ class Frame:
     lastArc: Arc
 
     def arcsClosedByCommit(self, hiddenCommits: Set[Oid] | None = None):
-        if DEVDEBUG:
+        if APP_DEBUG:
             # Assume that all the arcs in solvedArcs are either None, or are closed by this commit.
             assert all(arc is None or arc.closedAt == self.row for arc in self.solvedArcs)
             assert all(arc is None or arc.closedBy == self.commit for arc in self.solvedArcs)
@@ -444,7 +444,7 @@ class Frame:
         self.cleanUpArcList(solvedArcsCopy, self.row, alsoTrimBack=True)
 
         # In debug mode, make sure none of the arcs are dangling
-        if DEVDEBUG:
+        if APP_DEBUG:
             assert all(arc is None or arc.openedBy != DEAD_VALUE for arc in openArcsCopy)
             assert all(arc is None or arc.openedBy != DEAD_VALUE for arc in solvedArcsCopy)
             assert all(arc is None or arc.chain.isValid() for arc in openArcsCopy)
@@ -799,7 +799,7 @@ class Graph:
             return
 
         # In debug mode, bulldoze opening commits in dead arcs so they stand out in the debugger (make them dangling)
-        if DEVDEBUG and self.startArc.nextArc:
+        if APP_DEBUG and self.startArc.nextArc:
             for deadArc in self.startArc.nextArc:
                 if deadArc.openedAt >= row:
                     break

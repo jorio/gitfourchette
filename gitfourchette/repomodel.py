@@ -8,6 +8,7 @@ import logging
 from collections.abc import Generator, Iterable
 
 from gitfourchette import settings
+from gitfourchette.appconsts import *
 from gitfourchette.graph import Graph, GraphSpliceLoop, MockCommit
 from gitfourchette.porcelain import *
 from gitfourchette.repoprefs import RepoPrefs
@@ -187,7 +188,7 @@ class RepoModel:
 
         if refs == self.refs:
             # Make sure it's sorted in the exact same order...
-            if settings.DEVDEBUG:
+            if APP_DEBUG:
                 assert list(refs) == list(self.refs), "refs key order changed! how did that happen?"
 
             # Nothing to do!

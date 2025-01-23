@@ -11,7 +11,8 @@
             "type": "debugpy",
             "request": "launch",
             "module": "gitfourchette",
-            "args": ["--debug", "--no-threads"],
+            "args": [],
+            "env": {"APP_DEBUG": "1", "APP_NOTHREADS": "1"}
         },
 
         {
@@ -19,7 +20,8 @@
             "type": "debugpy",
             "request": "launch",
             "module": "gitfourchette",
-            "args": ["--debug"],
+            "args": [],
+            "env": {"APP_DEBUG": "1"}
         },
 
         // In VSCode's testing tab, click Debug Tests to run the tests offscreen.

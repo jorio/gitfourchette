@@ -45,7 +45,7 @@ def maskHostGitConfig():
 def qapp_args():
     mainPyPath = os.path.join(os.path.dirname(__file__), "..", "gitfourchette", "__main__.py")
     mainPyPath = os.path.normpath(mainPyPath)
-    return [mainPyPath, "--test-mode", "--no-threads", "--debug"]
+    return [mainPyPath]
 
 
 @pytest.fixture(scope="session")
@@ -62,17 +62,18 @@ def tempDir() -> tempfile.TemporaryDirectory:
 
 @pytest.fixture
 def mainWindow(request, qtbot: QtBot) -> MainWindow:
-    from gitfourchette import settings, qt, trash, porcelain, tasks
+    from gitfourchette import qt, trash, porcelain, tasks
+    from gitfourchette.appconsts import APP_TESTMODE
     from .util import TEST_SIGNATURE, waitUntilTrue
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
-    assert settings.TEST_MODE
+    assert APP_TESTMODE
     assert tasks.RepoTaskRunner.ForceSerial
 
     failCount = request.session.testsfailed
 
     # Prevent unit tests from reading actual user settings.
-    # (The prefs and the trash should use a temp folder with TEST_MODE,
+    # (The prefs and the trash should use a temp folder with APP_TESTMODE,
     # so this is just an extra safety precaution.)
     qt.QStandardPaths.setTestModeEnabled(True)
 

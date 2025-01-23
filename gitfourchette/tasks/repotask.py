@@ -18,7 +18,6 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import ConflictError, GitError, MultiFileError, Repo, RepositoryState
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.settings import DEVDEBUG
 from gitfourchette.toolbox import *
 
 if TYPE_CHECKING:
@@ -249,7 +248,7 @@ class RepoTask(QObject):
     @property
     def rw(self) -> RepoWidget:  # hack for now - assume parent is a RepoWidget
         parentWidget = self.parentWidget()
-        if DEVDEBUG:
+        if APP_DEBUG:
             from gitfourchette.repowidget import RepoWidget
             assert isinstance(parentWidget, RepoWidget)
         return parentWidget
@@ -606,7 +605,7 @@ class RepoTask(QObject):
 
 
 class RepoTaskRunner(QObject):
-    ForceSerial = False
+    ForceSerial = APP_NOTHREADS
     """
     Force tasks to run synchronously on the UI thread.
     Useful for debugging.

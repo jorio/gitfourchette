@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -14,7 +14,6 @@ from typing import ClassVar
 from gitfourchette.localization import *
 from gitfourchette.porcelain import NULL_OID, Oid
 from gitfourchette.qt import *
-from gitfourchette.settings import DEVDEBUG
 from gitfourchette.toolbox import *
 
 PUSH_INTERVAL = 0.5
@@ -94,7 +93,7 @@ class NavLocator:
 
     URL_AUTHORITY: ClassVar[str] = "jump"
 
-    if DEVDEBUG:
+    if APP_DEBUG:
         def __post_init__(self):
             assert not self.path.endswith("/")
             assert isinstance(self.context, NavContext)
@@ -283,8 +282,7 @@ class NavHistory:
         # GraphView, for instance. However, in unit tests, navigation occurs
         # blazingly quickly, but we want each location to be recorded in the
         # history.
-        from gitfourchette.settings import TEST_MODE
-        self.ignoreDelay |= TEST_MODE
+        self.ignoreDelay |= APP_TESTMODE
 
     def isWriteLocked(self):
         return self.writeLock.locked

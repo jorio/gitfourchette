@@ -29,7 +29,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
-from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook, RepoTaskRunner
+from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -808,12 +808,12 @@ class RepoWidget(QStackedWidget):
             with suppress(GitError):
                 inBrackets = repo.head_branch_shorthand
 
-        if settings.DEVDEBUG:
-            chain = []
-            if settings.TEST_MODE:
-                chain.append("TEST_MODE")
-            if RepoTaskRunner.ForceSerial:
-                chain.append("SYNC_TASKS")
+        if APP_DEBUG:
+            chain = ["APP_DEBUG"]
+            if APP_TESTMODE:
+                chain.append("APP_TESTMODE")
+            if APP_NOTHREADS:
+                chain.append("APP_NOTHREADS")
             chain.append(f"PID {os.getpid()}")
             chain.append(QT_BINDING)
             suffix += " - " + ", ".join(chain)

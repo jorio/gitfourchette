@@ -8,7 +8,6 @@ import dataclasses
 import enum
 import logging
 import os
-import sys
 from contextlib import suppress
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
@@ -24,17 +23,6 @@ from gitfourchette.toolbox.textutils import englishTitleCase
 
 logger = logging.getLogger(__name__)
 
-TEST_MODE = "pytest" in sys.modules
-"""
-Unit testing mode (don't touch real user prefs, etc.).
-Can be forced with command-line switch "--test-mode".
-"""
-
-DEVDEBUG = TEST_MODE
-"""
-Enable expensive assertions and debugging features.
-Can be forced with command-line switch "--debug".
-"""
 
 SHORT_DATE_PRESETS = {
     "ISO": "yyyy-MM-dd HH:mm",

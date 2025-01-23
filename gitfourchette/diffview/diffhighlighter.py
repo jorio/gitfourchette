@@ -6,7 +6,7 @@
 
 import logging
 
-from gitfourchette import settings
+from gitfourchette.appconsts import *
 from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.syntax import LexJob
@@ -72,7 +72,7 @@ class DiffHighlighter(CodeHighlighter):
             if column >= boundary:
                 break
 
-        if settings.DEVDEBUG and lexJob.lexingComplete and column != boundary:  # pragma: no cover
+        if APP_DEBUG and lexJob.lexingComplete and column != boundary:  # pragma: no cover
             # Overstep may occur in low-quality lexing (not a big deal, so
             # we ignore that case) or when the file isn't decoded properly.
             logger.warning(f"Syntax highlighting overstep on line -{diffLine.old_lineno}+{diffLine.new_lineno} {column} != {boundary}")

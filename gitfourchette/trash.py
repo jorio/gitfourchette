@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ class Trash:
     _instance = None
 
     def __init__(self):
-        if not settings.TEST_MODE:
+        if not APP_TESTMODE:
             cacheDir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation)
         else:
             cacheDir = qTempDir()

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -26,8 +26,7 @@ class PersistentFileDialog:
     def install(qfd: QFileDialog, key: str):
         # Don't use native dialog in unit tests
         # (macOS native file dialog cannot be controlled from unit tests)
-        from gitfourchette.settings import TEST_MODE
-        qfd.setOption(QFileDialog.Option.DontUseNativeDialog, TEST_MODE)
+        qfd.setOption(QFileDialog.Option.DontUseNativeDialog, APP_TESTMODE)
 
         # Restore saved path
         savedPath = PersistentFileDialog.getPath(key)

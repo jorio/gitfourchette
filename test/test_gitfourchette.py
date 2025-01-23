@@ -69,7 +69,7 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow):
 
     rw.repoModel.prefs.draftCommitMessage = "some bogus change to prevent prefs to be written"
     rw.repoModel.prefs.write(force=True)
-    assert os.path.isfile(f"{wd}/.git/gitfourchette.json")
+    assert os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
 
     os.rename(wd, os.path.normpath(wd) + "-2")
 
@@ -83,7 +83,7 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow):
     assert re.search(r"folder.+missing", urp.ui.label.text(), re.I)
 
     # Make sure we're not writing the prefs to a ghost directory structure upon exiting
-    assert not os.path.isfile(f"{wd}/.git/gitfourchette.json")
+    assert not os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
 
 
 def testSkipRenameDetection(tempDir, mainWindow):

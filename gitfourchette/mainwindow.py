@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
             # Called if dragging something to dock icon on macOS.
             # Ignore in test mode - the test runner may send a bogus FileOpen before we're ready to process it.
             assert isinstance(event, QFileOpenEvent)
-            if not settings.TEST_MODE:
+            if not APP_TESTMODE:
                 outcome = self.getDropOutcomeFromLocalFilePath(event.file())
                 self.handleDrop(*outcome)
 
@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
             TaskBook.action(self, tasks.JumpForward),
         )
 
-        if settings.DEVDEBUG:
+        if APP_DEBUG:
             a = viewMenu.addAction(_("Navigation Log"), lambda: logger.info(self.currentRepoWidget().navHistory.getTextLog()))
             a.setShortcut("Alt+Down")
 
@@ -1086,7 +1086,7 @@ class MainWindow(QMainWindow):
             self.fillRecentMenu()
 
         self.statusBar2.setVisible(settings.prefs.showStatusBar)
-        self.statusBar2.enableMemoryIndicator(settings.DEVDEBUG)
+        self.statusBar2.enableMemoryIndicator(APP_DEBUG)
 
         self.mainToolBar.setVisible(settings.prefs.showToolBar)
 
