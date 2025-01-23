@@ -59,10 +59,12 @@ class OpenBlame(RepoTask):
         progress.close()
 
         blameWindow = BlameWindow(self.repoModel, self.parentWidget())
-        blameWindow.setWindowFlag(Qt.WindowType.Window, True)
-        blameWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        blameWindow.resize(550, 700)
         blameWindow.setTrace(trace, blame, showCommit)
+
+        windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
+        windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
+        blameWindow.resize(windowWidth, windowHeight)
+
         blameWindow.show()
 
         self.postStatus = _n("{n} revision annotated.", "{n} revisions annotated.", n=len(trace))

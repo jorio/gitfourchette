@@ -20,12 +20,24 @@ from gitfourchette.trace import TraceNode, Trace, BlameCollection
 
 
 class BlameWindow(QWidget):
-    def __init__(self, repoModel: RepoModel, parent):
-        super().__init__(parent)
+    _currentBlameWindows = []
+    "Currently open BlameWindows"
+
+    def __init__(self, repoModel: RepoModel, taskInvoker: QWidget):
+        # DON'T parent the window so it doesn't sit on top of MainWindow on Wayland
+        super().__init__(None)
+
+        # Keep reference around to avoid being GC'd instantly
+        BlameWindow._currentBlameWindows.append(self)
+
         self.setObjectName("BlameWindow")
 
         self.model = BlameModel()
+        self.model.taskInvoker = taskInvoker
         self.model.repoModel = repoModel
+
+        # Die in tandem with RepoWidget
+        taskInvoker.destroyed.connect(self.close)
 
         self.scrubber = QComboBox()
         self.scrubber.addItem(_("Loading…"))
@@ -43,7 +55,7 @@ class BlameWindow(QWidget):
         self.jumpButton.setText(_("Jump"))
         self.jumpButton.setToolTip(_("Jump to this commit in the repo"))
         self.jumpButton.setIcon(stockIcon("go"))
-        self.jumpButton.clicked.connect(self.jumpToCommit)
+        self.jumpButton.clicked.connect(lambda: self.jumpToCommit())
         self.olderButton = QToolButton()
         self.olderButton.setText(_("Older"))
         self.olderButton.clicked.connect(self.goOlder)
@@ -73,8 +85,15 @@ class BlameWindow(QWidget):
         self.setTabOrder(self.newerButton, self.textEdit)
 
         self.textEdit.selectIndex.connect(self.selectIndex)
+        self.textEdit.jumpToCommit.connect(self.jumpToCommit)
 
         self.setWindowModality(Qt.WindowModality.NonModal)
+        self.setWindowFlags(Qt.WindowType.Window)
+
+    def closeEvent(self, event: QCloseEvent):
+        assert self in self._currentBlameWindows
+        self._currentBlameWindows.remove(self)
+        super().closeEvent(event)
 
     def setTrace(self, trace: Trace, blameCollection: BlameCollection, startAt: Oid):
         self.model.trace = trace
@@ -159,9 +178,12 @@ class BlameWindow(QWidget):
         self.scrubber.setCurrentIndex(index)
         self.onScrubberActivated(index)
 
-    def jumpToCommit(self):
-        point: TraceNode = self.scrubber.currentData()
-        Jump.invoke(self, NavLocator.inCommit(point.commitId, point.path))
+    def jumpToCommit(self, locator: NavLocator = NavLocator.Empty):
+        if locator == NavLocator.Empty:
+            point: TraceNode = self.scrubber.currentData()
+            locator = NavLocator.inCommit(point.commitId, point.path)
+        Jump.invoke(self.model.taskInvoker, locator)
+        self.model.taskInvoker.activateWindow()
 
     @staticmethod
     def _getLexJob(path, blobId, data):

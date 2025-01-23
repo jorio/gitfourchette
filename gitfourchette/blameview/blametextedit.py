@@ -10,12 +10,13 @@ from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.qt import *
-from gitfourchette.tasks import TaskBook, GetCommitInfo, Jump
+from gitfourchette.tasks import TaskBook, GetCommitInfo
 from gitfourchette.toolbox import *
 
 
 class BlameTextEdit(CodeView):
     selectIndex = Signal(int)
+    jumpToCommit = Signal(NavLocator)
 
     model: BlameModel
     gutter: BlameGutter
@@ -35,6 +36,7 @@ class BlameTextEdit(CodeView):
         node = blame.lines[lineNumber].traceNode
         commitId = node.commitId
         path = node.path
+        locator = NavLocator.inCommit(commitId, path)
 
         try:
             commitIndex = self.model.trace.indexOfCommit(commitId)
@@ -48,13 +50,16 @@ class BlameTextEdit(CodeView):
                 callback=lambda: self.selectIndex.emit(commitIndex)
             ),
 
-            TaskBook.action(
-                self,
-                Jump,
-                name=_("Jump to {0} in Repo").format(shortHash(commitId)),
-                taskArgs=NavLocator.inCommit(commitId, path)),
+            ActionDef(
+                _("Go to {0} in Repo").format(shortHash(commitId)),
+                enabled=bool(self.model.taskInvoker),
+                callback=lambda: self.jumpToCommit.emit(locator),
+            ),
 
-            TaskBook.action(self, GetCommitInfo, taskArgs=[
-                commitId, False, self
-            ]),
+            TaskBook.action(
+                self.model.taskInvoker,
+                GetCommitInfo,
+                taskArgs=[commitId, False],
+                enabled=bool(self.model.taskInvoker),
+            ),
         ]

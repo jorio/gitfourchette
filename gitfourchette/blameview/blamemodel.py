@@ -7,9 +7,11 @@
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.trace import Trace, Blame, BlameCollection
+from gitfourchette.qt import *
 
 
 class BlameModel:
+    taskInvoker: QWidget
     repoModel: RepoModel
     trace: Trace
     blameCollection: BlameCollection
