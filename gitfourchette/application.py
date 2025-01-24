@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 class GFApplication(QApplication):
     restyle = Signal()
     prefsChanged = Signal()
+    regainForeground = Signal()
+    fileDraggedToDockIcon = Signal(str)
+    mouseSideButtonPressed = Signal(bool)
 
     mainWindow: MainWindow | None
     initialSession: Session | None
@@ -93,6 +96,7 @@ class GFApplication(QApplication):
         # Schedule cleanup on quit
         self.aboutToQuit.connect(self.endSession)
 
+        # Listen for palette change events
         self.restyle.connect(self.onRestyle)
 
         from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -226,6 +230,8 @@ class GFApplication(QApplication):
             QMessageBox.information(self.mainWindow, _("Qt binding unavailable"), text)
 
         DonatePrompt.onBoot(self.mainWindow)
+
+        self.installEventFilter(self)
 
     def onMainWindowDestroyed(self):
         logger.debug("Main window destroyed")
@@ -371,6 +377,47 @@ class GFApplication(QApplication):
 
     def processEventsNoInput(self):
         self.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+
+    def eventFilter(self, watched, event: QEvent):
+        eventType = event.type()
+        isPress = eventType == QEvent.Type.MouseButtonPress
+
+        if eventType == QEvent.Type.FileOpen:
+            # Called if dragging something to dock icon on macOS.
+            # Ignore in test mode - the test runner may send a bogus FileOpen before we're ready to process it.
+            assert isinstance(event, QFileOpenEvent)
+            path = event.file()
+            if not APP_TESTMODE:
+                self.fileDraggedToDockIcon.emit(path)
+
+        elif eventType == QEvent.Type.ApplicationStateChange:
+            # Refresh current RepoWidget when the app regains the active state (foreground)
+            if QGuiApplication.applicationState() == Qt.ApplicationState.ApplicationActive:
+                QTimer.singleShot(0, self.regainForeground)
+
+        elif isPress or eventType == QEvent.Type.MouseButtonDblClick:
+            # As of PyQt6 6.8, QContextMenuEvent sometimes pretends that its event type is a MouseButtonDblClick
+            if PYQT6 and not isinstance(event, QMouseEvent):
+                logger.warning(f"QContextMenuEvent pretends it's a double click: {event}")
+                return False
+
+            # Intercept back/forward mouse clicks
+            assert isinstance(event, QMouseEvent)
+            button = event.button()
+            isBack = button == Qt.MouseButton.BackButton
+            isForward = button == Qt.MouseButton.ForwardButton
+            if isBack or isForward:
+                if isPress:
+                    self.mouseSideButtonPressed.emit(isForward)
+                # Eat clicks or double-clicks of back and forward mouse buttons
+                return True
+
+        elif eventType == QEvent.Type.PaletteChange and watched is self.mainWindow:
+            # Recolor some widgets when palette changes (light to dark or vice-versa).
+            # Tested in KDE Plasma 6 and macOS 15.
+            self.restyle.emit()
+
+        return False
 
     # -------------------------------------------------------------------------
 

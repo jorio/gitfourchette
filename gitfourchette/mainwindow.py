@@ -110,53 +110,30 @@ class MainWindow(QMainWindow):
         self.fillGlobalMenuBar()
 
         self.setAcceptDrops(True)
-        GFApplication.instance().installEventFilter(self)
+
+        app = GFApplication.instance()
+        app.mouseSideButtonPressed.connect(self.onMouseSideButtonPressed)
+        app.fileDraggedToDockIcon.connect(self.onFileDraggedToDockIcon)
+        app.regainForeground.connect(self.onRegainForeground)
 
         self.refreshPrefs()
 
     # -------------------------------------------------------------------------
-    # Event filters & handlers
+    # Event handlers
 
-    def eventFilter(self, watched, event: QEvent):
-        isPress = event.type() == QEvent.Type.MouseButtonPress
-        isDblClick = event.type() == QEvent.Type.MouseButtonDblClick
+    def onMouseSideButtonPressed(self, forward: bool):
+        if not self.isActiveWindow():
+            return
+        with suppress(NoRepoWidgetError):
+            repoWidget = self.currentRepoWidget()
+            if forward:
+                repoWidget.navigateForward()
+            else:
+                repoWidget.navigateBack()
 
-        if event.type() == QEvent.Type.FileOpen:
-            # Called if dragging something to dock icon on macOS.
-            # Ignore in test mode - the test runner may send a bogus FileOpen before we're ready to process it.
-            assert isinstance(event, QFileOpenEvent)
-            if not APP_TESTMODE:
-                outcome = self.getDropOutcomeFromLocalFilePath(event.file())
-                self.handleDrop(*outcome)
-
-        elif event.type() == QEvent.Type.ApplicationStateChange:
-            # Refresh current RepoWidget when the app regains the active state (foreground)
-            if QGuiApplication.applicationState() == Qt.ApplicationState.ApplicationActive:
-                QTimer.singleShot(0, self.onRegainForeground)
-
-        elif (isPress or isDblClick) and self.isActiveWindow():
-            # Intercept back/forward mouse clicks
-
-            # As of PyQt6 6.5.1, QContextMenuEvent sometimes pretends that its event type is a MouseButtonDblClick
-            if PYQT6 and not isinstance(event, QMouseEvent):
-                return False
-
-            assert isinstance(event, QMouseEvent)
-            isBack = event.button() == Qt.MouseButton.BackButton
-            isForward = event.button() == Qt.MouseButton.ForwardButton
-
-            if isBack or isForward:
-                if isPress:
-                    with suppress(NoRepoWidgetError):
-                        if isForward:
-                            self.currentRepoWidget().navigateForward()
-                        else:
-                            self.currentRepoWidget().navigateBack()
-
-                # Eat clicks or double-clicks of back and forward mouse buttons
-                return True
-
-        return False
+    def onFileDraggedToDockIcon(self, path: str):
+        outcome = self.getDropOutcomeFromLocalFilePath(path)
+        self.handleDrop(*outcome)
 
     def keyReleaseEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key.Key_Alt and self.autoHideMenuBar.enabled:
@@ -173,13 +150,6 @@ class MainWindow(QMainWindow):
         action, data = self.getDropOutcomeFromMimeData(event.mimeData())
         event.setAccepted(True)  # keep dragged item from coming back to cursor on macOS
         self.handleDrop(action, data)
-
-    def changeEvent(self, event: QEvent):
-        if event.type() == QEvent.Type.PaletteChange:
-            # Recolor some widgets when palette changes (light to dark or vice-versa).
-            # Tested in KDE Plasma 6 and macOS 14.5.
-            logger.debug("Dispatching restyle signal")
-            GFApplication.instance().restyle.emit()
 
     # -------------------------------------------------------------------------
     # Menu bar
@@ -995,8 +965,6 @@ class MainWindow(QMainWindow):
             session.write()
 
     def closeEvent(self, event: QCloseEvent):
-        QApplication.instance().removeEventFilter(self)
-
         # Save session before closing all tabs.
         self.saveSession(writeNow=True)
 
