@@ -130,8 +130,7 @@ class CodeView(QPlainTextEdit):
             return
         font.setPointSizeF(newSize)
         self.setFont(font)
-        self.gutter.setFont(font)
-        self.resizeGutter()
+        self.gutter.syncFont(font)
         self.syncViewportMarginsWithGutter()
         self.updateRubberBand()
 
@@ -238,7 +237,7 @@ class CodeView(QPlainTextEdit):
         self.refreshWordWrap()
         self.setCursorWidth(2)
 
-        self.gutter.setFont(monoFont)
+        self.gutter.syncFont(monoFont)
         self.syncViewportMarginsWithGutter()
 
         if changeColorScheme:

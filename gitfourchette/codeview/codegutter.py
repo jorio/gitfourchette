@@ -41,6 +41,9 @@ class CodeGutter(QWidget):
         # Enable customContextMenuRequested signal
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
+    def syncFont(self, codeFont: QFont):
+        self.setFont(codeFont)
+
     def refreshMetrics(self):
         raise NotImplementedError("override this")
 

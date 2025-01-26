@@ -38,6 +38,13 @@ class BlameGutter(CodeGutter):
         self.lineHeight = 12
         self.refreshMetrics()
 
+    def syncFont(self, codeFont: QFont):
+        pointSize = codeFont.pointSizeF()
+        defaultFont = self.font()
+        defaultFont.setPointSizeF(pointSize)
+        self.boldFont.setPointSizeF(pointSize)
+        self.setFont(defaultFont)
+
     def refreshMetrics(self):
         fontMetrics = self.fontMetrics()
 
