@@ -202,7 +202,7 @@ class CommitLogDelegate(QStyledItemDelegate):
                 summaryText = _("Uncommitted changes")
                 # Append change count if available
                 numChanges = self.repoModel.numUncommittedChanges
-                if numChanges > 0:
+                if numChanges >= 0:
                     summaryText += f" ({numChanges})"
                 # Append draft message if any
                 draftMessage = self.repoModel.prefs.draftCommitMessage

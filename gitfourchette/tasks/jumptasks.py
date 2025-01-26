@@ -537,7 +537,7 @@ class RefreshRepo(RepoTask):
 
         if effectFlags & TaskEffects.Workdir and not jumpToWorkdir:
             # Clear uncommitted change count if we know the workdir is stale
-            repoModel.numUncommittedChanges = 0
+            repoModel.numUncommittedChanges = -1
             repoModel.workdirStale = True
 
         if jumpToWorkdir:

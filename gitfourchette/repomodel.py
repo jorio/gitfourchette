@@ -83,7 +83,7 @@ class RepoModel:
     "Flag indicating that the workdir should be refreshed before use."
 
     numUncommittedChanges: int
-    "Number of unstaged+staged files. Zero means unknown count, not zero files."
+    "Number of unstaged+staged files. Negative means unknown count."
 
     headIsDetached: bool
     homeBranch: str
@@ -104,7 +104,7 @@ class RepoModel:
 
         self.superproject = ""
         self.workdirStale = True
-        self.numUncommittedChanges = 0
+        self.numUncommittedChanges = -1
 
         self.refs = {}
         self.refsAt = {}

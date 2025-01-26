@@ -710,7 +710,7 @@ class SidebarModel(QAbstractItemModel):
             if displayRole:
                 changesText = TrTables.enum(SidebarItem.UncommittedChanges)
                 numUncommittedChanges = self.repoModel.numUncommittedChanges
-                if numUncommittedChanges != 0:
+                if numUncommittedChanges >= 0:
                     ucSuffix = f" ({numUncommittedChanges})"
                     changesText = changesText.replace("\x9C", ucSuffix + "\x9C") + ucSuffix
                 return changesText
