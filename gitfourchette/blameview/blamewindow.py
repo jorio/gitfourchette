@@ -47,7 +47,8 @@ class BlameWindow(QWidget):
         self.textEdit.setUpAsDetachedWindow()
         self.textEdit.searchBar.lineEdit.setPlaceholderText(_("Find text in revision"))
 
-        self.scrubber.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.scrubber.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
+        self.scrubber.setMinimumWidth(128)
         self.scrubber.activated.connect(self.onScrubberActivated)
         self.scrubber.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
         self.scrubber.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
@@ -69,12 +70,11 @@ class BlameWindow(QWidget):
         self.newerButton.setToolTip(_("Go to newer revision"))
         self.newerButton.setIcon(stockIcon("go-up-search"))
 
-        topBar = QWidget()
-        barLayout = QHBoxLayout(topBar)
-        barLayout.addWidget(self.scrubber)
-        barLayout.addWidget(self.jumpButton)
-        barLayout.addWidget(self.olderButton)
-        barLayout.addWidget(self.newerButton)
+        topBar = QToolBar()
+        topBar.addWidget(self.scrubber)
+        topBar.addWidget(self.newerButton)
+        topBar.addWidget(self.olderButton)
+        topBar.addWidget(self.jumpButton)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(QMargins())
         layout.addWidget(topBar)
