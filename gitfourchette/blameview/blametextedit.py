@@ -12,10 +12,11 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.qt import *
 from gitfourchette.tasks import TaskBook, GetCommitInfo
 from gitfourchette.toolbox import *
+from gitfourchette.trace import TraceNode
 
 
 class BlameTextEdit(CodeView):
-    selectIndex = Signal(int)
+    selectNode = Signal(TraceNode)
     jumpToCommit = Signal(NavLocator)
 
     model: BlameModel
@@ -38,16 +39,10 @@ class BlameTextEdit(CodeView):
         path = node.path
         locator = NavLocator.inCommit(commitId, path)
 
-        try:
-            commitIndex = self.model.trace.indexOfCommit(commitId)
-        except ValueError:
-            commitIndex = -1
-
         return [
             ActionDef(
                 _("Blame File at {0}").format(shortHash(commitId)),
-                enabled=commitIndex >= 0,
-                callback=lambda: self.selectIndex.emit(commitIndex)
+                callback=lambda: self.selectNode.emit(node)
             ),
 
             ActionDef(

@@ -219,11 +219,11 @@ class Trace:
     def reverseIter(self):
         return Trace.Iterator(self, reverse=True)
 
-    def indexOfCommit(self, oid: Oid):
-        for i, node in enumerate(self):
+    def nodeForCommit(self, oid: Oid):
+        for node in self:
             if node.commitId == oid:
-                return i
-        raise ValueError("commit is not in trace")
+                return node
+        raise KeyError("commit is not in trace")
 
     def dump(self):
         for node in self:

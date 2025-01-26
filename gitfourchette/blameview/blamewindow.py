@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
@@ -59,21 +60,39 @@ class BlameWindow(QWidget):
         self.jumpButton.setToolTip(_("Jump to this commit in the repo"))
         self.jumpButton.setIcon(stockIcon("go"))
         self.jumpButton.clicked.connect(lambda: self.jumpToCommit())
+
         self.olderButton = QToolButton()
         self.olderButton.setText(_("Older"))
         self.olderButton.clicked.connect(self.goOlder)
         self.olderButton.setToolTip(_("Go to older revision"))
         self.olderButton.setIcon(stockIcon("go-down-search"))
+
         self.newerButton = QToolButton()
         self.newerButton.setText(_("Newer"))
         self.newerButton.clicked.connect(self.goNewer)
         self.newerButton.setToolTip(_("Go to newer revision"))
         self.newerButton.setIcon(stockIcon("go-up-search"))
 
+        self.backButton = QToolButton()
+        self.backButton.setText(_("Back"))
+        self.backButton.clicked.connect(self.goBack)
+        self.backButton.setToolTip(_("Navigate back"))
+        self.backButton.setIcon(stockIcon("back"))
+
+        self.forwardButton = QToolButton()
+        self.forwardButton.setText(_("Forward"))
+        self.forwardButton.clicked.connect(self.goForward)
+        self.forwardButton.setToolTip(_("Navigate forward"))
+        self.forwardButton.setIcon(stockIcon("forward"))
+
         topBar = QToolBar()
-        topBar.addWidget(self.scrubber)
+        topBar.setIconSize(QSize(20, 20))
+        topBar.addWidget(self.backButton)
+        topBar.addWidget(self.forwardButton)
+        topBar.addSeparator()
         topBar.addWidget(self.newerButton)
         topBar.addWidget(self.olderButton)
+        topBar.addWidget(self.scrubber)
         topBar.addWidget(self.jumpButton)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(QMargins())
@@ -86,16 +105,30 @@ class BlameWindow(QWidget):
         self.setTabOrder(self.olderButton, self.newerButton)
         self.setTabOrder(self.newerButton, self.textEdit)
 
-        self.textEdit.selectIndex.connect(self.selectIndex)
+        self.textEdit.selectNode.connect(self.setTraceNode)
         self.textEdit.jumpToCommit.connect(self.jumpToCommit)
 
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(Qt.WindowType.Window)
 
+        app = GFApplication.instance()
+        app.mouseSideButtonPressed.connect(self.onMouseSideButtonPressed)
+
+    # -------------------------------------------------------------------------
+    # Event filters & handlers
+
+    def onMouseSideButtonPressed(self, forward: bool):
+        if not self.isActiveWindow():
+            return
+        delta = [-1, 1][forward]
+        self.goBackOrForwardDelta(delta)
+
     def closeEvent(self, event: QCloseEvent):
         assert self in self._currentBlameWindows
         self._currentBlameWindows.remove(self)
         super().closeEvent(event)
+
+    # -------------------------------------------------------------------------
 
     def setTrace(self, trace: Trace, blameCollection: BlameCollection, startAt: Oid):
         self.model.trace = trace
@@ -103,11 +136,9 @@ class BlameWindow(QWidget):
 
         self.scrubber.clear()
 
-        startIndex = 0
         startNode = trace.first  # fall back to newest commit
         for index, node in enumerate(trace):
             if node.commitId == startAt:
-                startIndex = index
                 startNode = node
             commit = self.model.repo.peel_commit(node.commitId)
             message, _ = messageSummary(commit.message)
@@ -116,20 +147,26 @@ class BlameWindow(QWidget):
             self.scrubber.addItem(f"{commitTimeStr} {shortHash(node.commitId)} {message}", userData=node)
             self.scrubber.setItemIcon(index, stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)]))
 
-        self.scrubber.setCurrentIndex(startIndex)
-        self.setTraceNode(startNode)
-        self.syncNavButtons()
+        self.setTraceNode(startNode, True)
 
-    def setTraceNode(self, node: TraceNode):
+    def saveFilePosition(self):
+        currentLocator = self.textEdit.getPreciseLocator()
+        self.navHistory.push(currentLocator)
+
+    def setTraceNode(self, node: TraceNode, saveFilePositionFirst=True):
         # Stop lexing BEFORE changing the document!
         self.textEdit.highlighter.stopLexJobs()
 
         # Update current locator
-        currentLocator = self.textEdit.getPreciseLocator()
-        self.navHistory.push(currentLocator)
+        if saveFilePositionFirst:
+            self.saveFilePosition()
 
         self.model.currentTraceNode = node
         self.model.currentBlame = self.model.blameCollection[node.blobId]
+
+        with QSignalBlockerContext(self.scrubber):
+            scrubberIndex = self.scrubber.findData(node)
+            self.scrubber.setCurrentIndex(scrubberIndex)
 
         blob = self.model.repo.peel_blob(node.blobId)
         data = blob.data
@@ -141,6 +178,7 @@ class BlameWindow(QWidget):
 
         newLocator = NavLocator.inCommit(node.commitId, node.path)
         newLocator = self.navHistory.refine(newLocator)
+        self.navHistory.push(newLocator)  # this should update in place
 
         self.textEdit.setPlainText(text)
         self.textEdit.currentLocator = newLocator
@@ -155,10 +193,8 @@ class BlameWindow(QWidget):
             self.textEdit.highlighter.installLexJob(lexJob)
             self.textEdit.highlighter.rehighlight()
 
-    def onScrubberActivated(self, index: int):
-        point: TraceNode = self.scrubber.itemData(index)
-        self.setTraceNode(point)
         self.syncNavButtons()
+        print(self.navHistory.getTextLog())
 
     def syncNavButtons(self):
         index = self.scrubber.currentIndex()
@@ -167,27 +203,40 @@ class BlameWindow(QWidget):
         self.newerButton.setEnabled(index != 0 and count >= 2)
         self.olderButton.setEnabled(index != count - 1)
 
+        self.backButton.setEnabled(self.navHistory.canGoBack())
+        self.forwardButton.setEnabled(self.navHistory.canGoForward())
+
     def goNewer(self):
-        index = self.scrubber.currentIndex()
-        index -= 1
-        if index < 0:
-            return
-        self.scrubber.setCurrentIndex(index)
-        # QTimer.singleShot(1, lambda: self.onScrubberActivated(index))
-        self.onScrubberActivated(index)
+        self.goNewerOrOlder(-1)
 
     def goOlder(self):
-        index = self.scrubber.currentIndex()
-        index += 1
-        if index >= self.scrubber.count():
-            return
-        self.scrubber.setCurrentIndex(index)
-        # QTimer.singleShot(1, lambda: self.onScrubberActivated(index))
-        self.onScrubberActivated(index)
+        self.goNewerOrOlder(1)
 
-    def selectIndex(self, index: int):
-        self.scrubber.setCurrentIndex(index)
-        self.onScrubberActivated(index)
+    def goBack(self):
+        self.goBackOrForwardDelta(-1)
+
+    def goForward(self):
+        self.goBackOrForwardDelta(1)
+
+    def goNewerOrOlder(self, delta: int):
+        index = self.scrubber.currentIndex()
+        index += delta
+        if index < 0 or index >= self.scrubber.count():
+            return
+        node = self.scrubber.itemData(index)
+        self.setTraceNode(node, True)
+
+    def goBackOrForwardDelta(self, delta: int):
+        self.saveFilePosition()
+        locator = self.navHistory.navigateDelta(delta)
+        if not locator:
+            return
+        node = self.model.trace.nodeForCommit(locator.commit)
+        self.setTraceNode(node, saveFilePositionFirst=False)
+
+    def onScrubberActivated(self, index: int):
+        node: TraceNode = self.scrubber.itemData(index)
+        self.setTraceNode(node, True)
 
     def jumpToCommit(self, locator: NavLocator = NavLocator.Empty):
         if locator == NavLocator.Empty:
