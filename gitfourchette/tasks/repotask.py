@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -83,11 +83,8 @@ class TaskEffects(enum.IntFlag):
     Upstreams = enum.auto()
     "The task affects the upstream of a local branch."
 
-    Index = enum.auto()
-    "Reload the index."
-
-    DefaultRefresh = Workdir | Refs | Remotes | Index
-    "Default flags for RepoWidget.refreshRepo()"
+    DefaultRefresh = Workdir | Refs | Remotes
+    "Default flags for RefreshRepo"
     # Index is included so the banner can warn about conflicts
     # regardless of what part of the repo is being viewed.
 

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -230,6 +230,7 @@ class PrimeRepo(RepoTask):
         # Jump to workdir (or pending locator, if any)
         if not rw.pendingLocator:
             initialLocator = NavLocator(NavContext.WORKDIR)
+            initialLocator = initialLocator.withExtraFlags(NavFlags.AllowWriteIndex)
         else:
             # Consume pending locator
             initialLocator = rw.pendingLocator
@@ -243,6 +244,10 @@ class PrimeRepo(RepoTask):
 
 
 class LoadWorkdir(RepoTask):
+    """
+    Refresh stage/dirty diffs in the RepoModel.
+    """
+
     def canKill(self, task: RepoTask):
         if isinstance(task, LoadWorkdir):
             warnings.warn("LoadWorkdir is killing another LoadWorkdir. This is inefficient!")
@@ -256,11 +261,17 @@ class LoadWorkdir(RepoTask):
             self.repo.refresh_index()
 
         with Benchmark("LoadWorkdir/Staged"):
-            self.stageDiff = self.repo.get_staged_changes(context_lines=contextLines())
+            stageDiff = self.repo.get_staged_changes(context_lines=contextLines())
 
         # yield from self.flowEnterWorkerThread()  # let task thread be interrupted here
         with Benchmark("LoadWorkdir/Unstaged"):
-            self.dirtyDiff = self.repo.get_unstaged_changes(allowWriteIndex, context_lines=contextLines())
+            dirtyDiff = self.repo.get_unstaged_changes(allowWriteIndex, context_lines=contextLines())
+
+        yield from self.flowEnterUiThread()
+        self.repoModel.stageDiff = stageDiff
+        self.repoModel.dirtyDiff = dirtyDiff
+        self.repoModel.workdirDiffsReady = True
+        self.repoModel.numUncommittedChanges = len(stageDiff) + len(dirtyDiff)
 
 
 class LoadCommit(RepoTask):

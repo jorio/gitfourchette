@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -53,7 +53,6 @@ from gitfourchette.tasks.jumptasks import (
     RefreshRepo,
 )
 from gitfourchette.tasks.loadtasks import PrimeRepo
-from gitfourchette.tasks.loadtasks import LoadWorkdir, LoadCommit, LoadPatch
 from gitfourchette.tasks.nettasks import (
     DeleteRemoteBranch,
     RenameRemoteBranch,

@@ -82,6 +82,12 @@ class RepoModel:
     workdirStale: bool
     "Flag indicating that the workdir should be refreshed before use."
 
+    workdirDiffsReady: bool
+    "Flag indicating that stageDiff and dirtyDiff are available."
+
+    stageDiff: Diff
+    dirtyDiff: Diff
+
     numUncommittedChanges: int
     "Number of unstaged+staged files. Negative means unknown count."
 
@@ -104,6 +110,7 @@ class RepoModel:
 
         self.superproject = ""
         self.workdirStale = True
+        self.workdirDiffsReady = False
         self.numUncommittedChanges = -1
 
         self.refs = {}

@@ -106,7 +106,6 @@ class Jump(RepoTask):
     def showWorkdir(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
         rw = self.rw
         repoModel = self.repoModel
-        previousLocator = rw.navLocator
 
         # Save selected row number for the end of the function
         previousRowStaged = rw.stagedFiles.earliestSelectedRow()
@@ -124,21 +123,17 @@ class Jump(RepoTask):
         rw.diffArea.contextHeader.setContext(locator)
 
         # Stale workdir model - force load workdir
-        if (previousLocator.context == NavContext.EMPTY
-                or locator.hasFlags(NavFlags.ForceDiff)
-                or repoModel.workdirStale):
-            # Don't clear stale flag until AFTER we're done reloading the workdir
-            # so that it stays stale if this task gets interrupted.
-            repoModel.workdirStale = True
-
+        forceDiff = locator.hasFlags(NavFlags.ForceDiff)
+        writeIndex = locator.hasFlags(NavFlags.AllowWriteIndex)
+        if forceDiff or repoModel.workdirStale:
             # Load workdir (async)
-            workdirTask = yield from self.flowSubtask(
-                LoadWorkdir, allowWriteIndex=locator.hasFlags(NavFlags.AllowWriteIndex))
+            if forceDiff or not repoModel.workdirDiffsReady:
+                yield from self.flowSubtask(LoadWorkdir, allowWriteIndex=writeIndex)
 
             # Fill FileListViews
             with QSignalBlockerContext(rw.dirtyFiles, rw.stagedFiles):  # Don't emit jump signals
-                rw.dirtyFiles.setContents([workdirTask.dirtyDiff], False)
-                rw.stagedFiles.setContents([workdirTask.stageDiff], False)
+                rw.dirtyFiles.setContents([repoModel.dirtyDiff], False)
+                rw.stagedFiles.setContents([repoModel.stageDiff], False)
 
             nDirty = rw.dirtyFiles.model().rowCount()
             nStaged = rw.stagedFiles.model().rowCount()
@@ -152,16 +147,9 @@ class Jump(RepoTask):
                 commitButtonFont.setBold(commitButtonBold)
                 rw.diffArea.commitButton.setFont(commitButtonFont)
 
-            newNumChanges = nDirty + nStaged
-            numChangesDifferent = repoModel.numUncommittedChanges != newNumChanges
-            repoModel.numUncommittedChanges = newNumChanges
-
+            # Consume workdir freshness
             repoModel.workdirStale = False
-
-            # Show number of staged changes in sidebar and graph
-            if numChangesDifferent:
-                rw.sidebar.repaint()
-                rw.graphView.repaintCommit(UC_FAKEID)
+            repoModel.workdirDiffsReady = False
 
         # If jumping to generic workdir context, find a concrete context
         if locator.context == NavContext.WORKDIR:
@@ -481,6 +469,9 @@ class RefreshRepo(RepoTask):
         restoringInitialLocator = jumpTo.context == NavContext.EMPTY
         wasExploringDetachedCommit = initialLocator.commit and initialLocator.commit not in repoModel.graph.commitRows
 
+        jumpTo = jumpTo or initialLocator
+        pNumUncommittedChanges = repoModel.numUncommittedChanges
+
         try:
             previousFileList = rw.diffArea.fileListByContext(initialLocator.context)
             previousFileList.backUpSelection()
@@ -493,10 +484,6 @@ class RefreshRepo(RepoTask):
         remotesChanged = False
         homeBranchChanged = False
         upstreamsChanged = effectFlags & TaskEffects.Upstreams
-
-        # Refresh the index
-        if effectFlags & TaskEffects.Index:
-            repoModel.repo.refresh_index()
 
         if effectFlags & (TaskEffects.Head | TaskEffects.Workdir):
             submodulesChanged = repoModel.syncSubmodules()
@@ -531,14 +518,7 @@ class RefreshRepo(RepoTask):
         # Now jump to where we should be after the refresh
         assert rw.navLocator == initialLocator, "locator has changed"
 
-        jumpTo = jumpTo or initialLocator
-
         jumpToWorkdir = jumpTo.context.isWorkdir() or (jumpTo.context == NavContext.EMPTY and initialLocator.context.isWorkdir())
-
-        if effectFlags & TaskEffects.Workdir and not jumpToWorkdir:
-            # Clear uncommitted change count if we know the workdir is stale
-            repoModel.numUncommittedChanges = -1
-            repoModel.workdirStale = True
 
         if jumpToWorkdir:
             # Refresh workdir view on separate thread AFTER all the processing above
@@ -578,8 +558,19 @@ class RefreshRepo(RepoTask):
         else:
             previousFileList.clearSelectionBackup()
 
+        # If workdir is still stale (refreshing without explicitly looking at the workdir), refresh it after everything else.
+        # This is done last so that it doesn't impede on responsivity when the user isn't explicitly looking at the workdir.
+        if repoModel.workdirStale:
+            assert not jumpToWorkdir, "jumping to workdir should have refreshed the workdir!"
+            yield from self.flowSubtask(LoadWorkdir, jumpTo.hasFlags(NavFlags.AllowWriteIndex))
+
+        # Update number of staged changes in sidebar and graph
+        if repoModel.numUncommittedChanges != pNumUncommittedChanges:
+            rw.sidebar.repaint()
+            rw.graphView.repaintCommit(UC_FAKEID)
+
         # Refresh window title and state banner.
-        # Do this last because it requires the index to be fresh (updated by the Jump subtask)
+        # Do this last because it requires the index to be fresh (updated by LoadWorkdir)
         rw.refreshWindowChrome()
 
         logger.debug(f"Changes detected on refresh: "

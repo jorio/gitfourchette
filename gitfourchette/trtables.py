@@ -397,6 +397,13 @@ class TrTables:
 
             "verbosity": _("Logging verbosity"),
             "autoRefresh": _("Auto-refresh when app regains focus"),
+            "autoRefresh_help": paragraphs(
+                _("When you return to {app} from another application, it automatically "
+                  "scans for changes in the working directory and local branches. "
+                  "This keeps the interface in sync with the state of your repo on disk."),
+                _("If you turn this off, you will need to hit {key} to "
+                  "perform this refresh manually.", key="F5"),
+                "<b>" + _("We strongly recommend to keep this setting enabled.") + "</b>"),
             "animations": _("Animation effects in sidebar"),
             "smoothScroll": _("Smooth scrolling (where applicable)"),
             "forceQtApi": _("Preferred Qt binding"),
