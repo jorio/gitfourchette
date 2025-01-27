@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -151,7 +151,7 @@ def testMainWindowMenuItems(tempDir, mainWindow):
     assert rw1.graphView.hasFocus()
     assert rw1.navLocator.commit == Oid(hex='c9ed7bf12c73de26422b7c5a44d74cfce5a8993b')
 
-    triggerMenuAction(mainWindow.menuBar(), "view/uncommitted changes")
+    triggerMenuAction(mainWindow.menuBar(), "view/working directory")
     assert rw1.graphView.hasFocus()
     assert rw1.navLocator.context == NavContext.UNSTAGED
 

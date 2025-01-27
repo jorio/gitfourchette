@@ -720,7 +720,12 @@ class SidebarModel(QAbstractItemModel):
             elif iconKeyRole:
                 return "git-workdir"
             elif toolTipRole:
-                return appendShortcutToToolTipText(_("Go to Uncommitted Changes"), QKeySequence("Ctrl+U"))
+                tip = _("Go to Working Directory")
+                tip = appendShortcutToToolTipText(tip, QKeySequence("Ctrl+G"))
+                if self.repoModel.numUncommittedChanges >= 0:
+                    tip += "\n" + _n("({n} uncommitted change)", "({n} uncommitted changes)",
+                                     self.repoModel.numUncommittedChanges)
+                return tip
 
         else:
             if displayRole:

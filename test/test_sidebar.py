@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ def testSidebarSelectionSync(tempDir, mainWindow):
     assert sb.selectedIndexes()[0].data() == "master"
 
     rw.jump(NavLocator.inWorkdir())
-    assert "uncommitted" in sb.selectedIndexes()[0].data().lower()
+    assert "workdir" in sb.selectedIndexes()[0].data().lower()
 
     rw.jump(NavLocator.inRef("refs/remotes/origin/first-merge"))
     assert sb.selectedIndexes()[0].data() == "first-merge"
@@ -223,7 +223,8 @@ def testSidebarToolTips(tempDir, mainWindow):
          r"origin/master", r"remote-tracking branch", r"upstream for.+checked.out.+\bmaster\b")
 
     test(SidebarItem.Tag, "refs/tags/annotated_tag", r"\btag\b")
-    test(SidebarItem.UncommittedChanges, "", r"go to uncommitted changes.+(ctrl|⌘)")
+    test(SidebarItem.UncommittedChanges, "", r"go to working directory.+(ctrl|⌘)")
+    test(SidebarItem.UncommittedChanges, "", r"0 uncommitted changes")
     test(SidebarItem.Remote, "origin", r"https://github.com/libgit2/TestGitRepository")
     test(SidebarItem.RefFolder, "refs/heads/folder", r"local branch folder")
     test(SidebarItem.RefFolder, "refs/remotes/origin/folder", r"remote branch folder")

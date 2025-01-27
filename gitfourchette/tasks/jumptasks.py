@@ -162,7 +162,7 @@ class Jump(RepoTask):
         # Early out if workdir is clean
         if rw.dirtyFiles.isEmpty() and rw.stagedFiles.isEmpty():
             locator = locator.replace(path="")
-            header = toLengthVariants(_("Working directory clean|Workdir clean"))
+            header = ""
             sde = SpecialDiffError(
                 _("The working directory is clean."),
                 _("There aren’t any changes to commit."))

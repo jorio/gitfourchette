@@ -199,11 +199,13 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             if specialRowKind == SpecialRow.UncommittedChanges:
                 oid = UC_FAKEID
-                summaryText = _("Uncommitted changes")
+                summaryText = _("Working Directory")
                 # Append change count if available
                 numChanges = self.repoModel.numUncommittedChanges
-                if numChanges >= 0:
-                    summaryText += f" ({numChanges})"
+                if numChanges == 0:
+                    summaryText += " " + _("(Clean)")
+                elif numChanges > 0:
+                    summaryText += " " + _n("({n} change)", "({n} changes)", numChanges)
                 # Append draft message if any
                 draftMessage = self.repoModel.prefs.draftCommitMessage
                 if draftMessage:

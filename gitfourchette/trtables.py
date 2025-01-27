@@ -157,7 +157,7 @@ class TrTables:
             },
 
             SidebarItem: {
-                SidebarItem.UncommittedChanges  : toLengthVariants(_p("SidebarModel", "Uncommitted Changes|Changes")),
+                SidebarItem.UncommittedChanges  : toLengthVariants(_p("SidebarModel", "Working Directory|Workdir")),
                 SidebarItem.LocalBranchesHeader : toLengthVariants(_p("SidebarModel", "Local Branches|Branches")),
                 SidebarItem.StashesHeader       : _p("SidebarModel", "Stashes"),
                 SidebarItem.RemotesHeader       : _p("SidebarModel", "Remotes"),

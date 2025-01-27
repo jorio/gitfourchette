@@ -57,6 +57,12 @@ class MainToolBar(QToolBar):
             tip=_("Open a Git repo on your machine")
         ).toQAction(self)
 
+        self.settingsAction = ActionDef(
+            _("Settings"), self.openPrefs, icon="git-settings",
+            shortcuts=QKeySequence.StandardKey.Preferences,
+            tip=_("Configure {app}", app=qAppName())
+        ).toQAction(self)
+
         defs = [
             self.backAction,
             self.forwardAction,
@@ -83,10 +89,7 @@ class MainToolBar(QToolBar):
             self.recentAction,
 
             ActionDef.SEPARATOR,
-
-            ActionDef(_("Settings"), self.openPrefs, icon="git-settings",
-                      shortcuts=QKeySequence.StandardKey.Preferences,
-                      tip=_("Configure {app}", app=qAppName())),
+            self.settingsAction,
         ]
         ActionDef.addToQToolBar(self, *defs)
 
@@ -111,6 +114,11 @@ class MainToolBar(QToolBar):
         # Hide back/forward button text with ToolButtonTextBesideIcon
         if style != Qt.ToolButtonStyle.ToolButtonTextOnly:
             for navAction in (self.backAction, self.forwardAction):
+                navButton: QToolButton = self.widgetForAction(navAction)
+                navButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+        if style == Qt.ToolButtonStyle.ToolButtonTextBesideIcon:
+            for navAction in (self.headAction, self.workdirAction, self.settingsAction):
                 navButton: QToolButton = self.widgetForAction(navAction)
                 navButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
 

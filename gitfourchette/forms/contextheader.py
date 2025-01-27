@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ class ContextHeader(QFrame):
                 applyButton.setToolTip(_("Apply this stash"))
 
         elif locator.context.isWorkdir():
-            self.mainLabel.setText(_("Uncommitted changes"))
+            self.mainLabel.setText(_("Working Directory"))
         else:
             # Special context (e.g. history truncated)
             self.mainLabel.setText(" ")
