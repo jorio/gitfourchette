@@ -4,9 +4,11 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.graph import MockCommit
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks import RepoTask
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
@@ -40,9 +42,23 @@ class OpenBlame(RepoTask):
             else:
                 pass
 
+        seedCommit = repo.peel_commit(seed)
+
+        if seed == head:
+            try:
+                workdirBlobId = repo.create_blob_fromworkdir(path)
+                workdirBlob = repo[workdirBlobId]
+                workdirMock = MockCommit(UC_FAKEID, [seed])
+                workdirMock.parents = [seedCommit]
+                workdirMock.tree = {path: workdirBlob}
+                seedCommit = workdirMock
+                seed = UC_FAKEID
+            except KeyError:
+                pass
+
         # Trace commit in branch
         with Benchmark("trace"):
-            trace = traceFile(path, repo.peel_commit(seed),
+            trace = traceFile(path, seedCommit,
                               skimInterval=self.TraceSkimInterval,
                               progressCallback=progress.reportTraceProgress)
 

@@ -13,7 +13,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel
+from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
 from gitfourchette.toolbox import *
@@ -140,14 +140,20 @@ class BlameWindow(QWidget):
         for index, node in enumerate(trace):
             if node.commitId == startAt:
                 startNode = node
-            commit = self.model.repo.peel_commit(node.commitId)
-            message, _ = messageSummary(commit.message)
-            commitQdt = QDateTime.fromSecsSinceEpoch(commit.author.time, Qt.TimeSpec.OffsetFromUTC, commit.author.offset * 60)
-            commitTimeStr = QLocale().toString(commitQdt, "yyyy-MM-dd")  # settings.prefs.shortTimeFormat)
-            self.scrubber.addItem(f"{commitTimeStr} {shortHash(node.commitId)} {message}", userData=node)
+
+            if node.commitId == UC_FAKEID:
+                caption = _("Uncommitted changes in working directory")
+            else:
+                commit = self.model.repo.peel_commit(node.commitId)
+                message, _dummy = messageSummary(commit.message)
+                commitQdt = QDateTime.fromSecsSinceEpoch(commit.author.time, Qt.TimeSpec.OffsetFromUTC, commit.author.offset * 60)
+                dateText = QLocale().toString(commitQdt, "yyyy-MM-dd")  # settings.prefs.shortTimeFormat)
+                caption = f"{dateText} {shortHash(node.commitId)} {message}"
+
+            self.scrubber.addItem(caption, userData=node)
             self.scrubber.setItemIcon(index, stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)]))
 
-        self.setTraceNode(startNode, True)
+        self.setTraceNode(startNode)
 
     def saveFilePosition(self):
         currentLocator = self.textEdit.getPreciseLocator()
@@ -176,7 +182,7 @@ class BlameWindow(QWidget):
         else:
             text = data.decode('utf-8', errors='replace')
 
-        newLocator = NavLocator.inCommit(node.commitId, node.path)
+        newLocator = self.model.currentLocator
         newLocator = self.navHistory.refine(newLocator)
         self.navHistory.push(newLocator)  # this should update in place
 
@@ -224,7 +230,7 @@ class BlameWindow(QWidget):
         if index < 0 or index >= self.scrubber.count():
             return
         node = self.scrubber.itemData(index)
-        self.setTraceNode(node, True)
+        self.setTraceNode(node)
 
     def goBackOrForwardDelta(self, delta: int):
         self.saveFilePosition()
@@ -236,12 +242,11 @@ class BlameWindow(QWidget):
 
     def onScrubberActivated(self, index: int):
         node: TraceNode = self.scrubber.itemData(index)
-        self.setTraceNode(node, True)
+        self.setTraceNode(node)
 
     def jumpToCommit(self, locator: NavLocator = NavLocator.Empty):
         if locator == NavLocator.Empty:
-            point: TraceNode = self.scrubber.currentData()
-            locator = NavLocator.inCommit(point.commitId, point.path)
+            locator = self.model.currentLocator
         Jump.invoke(self.model.taskInvoker, locator)
         self.model.taskInvoker.activateWindow()
 

@@ -36,25 +36,34 @@ class BlameTextEdit(CodeView):
         blame = self.model.currentBlame
         node = blame.lines[lineNumber].traceNode
         commitId = node.commitId
-        path = node.path
-        locator = NavLocator.inCommit(commitId, path)
+        locator = BlameModel.locatorFromTraceNode(node)
+        isWorkdir = locator.context.isWorkdir()
+        canInvoke = bool(self.model.taskInvoker)
+
+        if isWorkdir:
+            blameLabel = _("Blame File at Uncommitted Revision")
+            gotoLabel = _("Show Diff in Working Directory")
+        else:
+            blameLabel = _("Blame File at {0}", tquo(shortHash(commitId)))
+            gotoLabel = _("Show {0} in Repo", tquo(shortHash(commitId)))
+
 
         return [
             ActionDef(
-                _("Blame File at {0}").format(shortHash(commitId)),
+                blameLabel,
                 callback=lambda: self.selectNode.emit(node)
             ),
 
             ActionDef(
-                _("Go to {0} in Repo").format(shortHash(commitId)),
-                enabled=bool(self.model.taskInvoker),
-                callback=lambda: self.jumpToCommit.emit(locator),
+                gotoLabel,
+                enabled=canInvoke,
+                callback=lambda: self.jumpToCommit.emit(locator)
             ),
 
             TaskBook.action(
                 self.model.taskInvoker,
                 GetCommitInfo,
                 taskArgs=[commitId, False],
-                enabled=bool(self.model.taskInvoker),
+                enabled=canInvoke and not isWorkdir,
             ),
         ]

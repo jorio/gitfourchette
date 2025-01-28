@@ -13,7 +13,9 @@ from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.localization import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.toolbox import *
+from gitfourchette.trace import TraceNode
 
 
 class BlameGutter(CodeGutter):
@@ -95,12 +97,10 @@ class BlameGutter(CodeGutter):
         boldTextPen = QPen(boldTextColor)
         painter.setPen(textPen)
 
-        locale = QLocale()
         lastCaptionDrawnAtLine = -1
         hunkTraceNode = None
         hunkStartLine = 1
 
-        alignLeft = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         alignRight = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
         topNode = blame.traceNode
@@ -128,41 +128,48 @@ class BlameGutter(CodeGutter):
             heatTop = top if lastCaptionDrawnAtLine >= 0 else 0
             painter.fillRect(QRect(0, heatTop, rightEdge, bottom-heatTop), heatColor)
 
-            colL, colW = self.columnMetrics[-1]
-            painter.drawText(colL, top, colW, lh, alignRight, str(lineNumber))
+            # Draw line number
+            lineNumL, lineNumW = self.columnMetrics[-1]
+            painter.drawText(lineNumL, top, lineNumW, lh, alignRight, str(lineNumber))
 
+            # Draw caption + separator line
             if lastCaptionDrawnAtLine < hunkStartLine:
-                drawSeparator = lastCaptionDrawnAtLine > 0
-                lastCaptionDrawnAtLine = lineNumber
-
-                commit: Commit = self.model.repo[blameNode.commitId]
-                sig = commit.author
-
-                # Date
-                commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
-                commitTimeStr = locale.toString(commitQdt, "yyyy-MM-dd")
-                colL, colW = self.columnMetrics[0]
-                FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, commitTimeStr, bypassSetting=True)
-
-                # Author
-                name = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
-                colL, colW = self.columnMetrics[1]
-                FittedText.draw(painter, QRect(colL, top, colW, lh), alignLeft, name)
+                self.drawBlameCaption(blameNode, painter, top, lh)
 
                 # Hunk separator line
-                if drawSeparator:
-                    y = top
+                if lastCaptionDrawnAtLine > 0:
                     penBackup = painter.pen()
                     painter.setPen(linePen)
-                    painter.drawLine(QLine(0, y, rightEdge-1, y))
+                    painter.drawLine(QLine(0, top, rightEdge-1, top))
                     painter.setPen(penBackup)  # restore text pen
+
+                lastCaptionDrawnAtLine = lineNumber
 
         painter.end()
 
+    def drawBlameCaption(self, node: TraceNode, painter: QPainter, top: int, lh: int):
+        alignLeft = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        dateL, dateW = self.columnMetrics[0]
+        nameL, nameW = self.columnMetrics[1]
+
+        if node.commitId == UC_FAKEID:
+            dateText = self.locale().toString(QDateTime.currentDateTime(), "yyyy-MM-dd")
+            nameText = _("(Uncommitted)")
+        else:
+            commit: Commit = self.model.repo[node.commitId]
+            sig = commit.author
+            commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
+            dateText = self.locale().toString(commitQdt, "yyyy-MM-dd")
+            nameText = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
+
+        # Date
+        FittedText.draw(painter, QRect(dateL, top, dateW, lh), alignLeft, dateText, bypassSetting=True)
+
+        # Author
+        FittedText.draw(painter, QRect(nameL, top, nameW, lh), alignLeft, nameText)
+
     def doToolTip(self, event: QHelpEvent):
         assert isinstance(event, QHelpEvent)
-
-        blame = self.model.currentBlame
 
         pos = event.globalPos()
         editLocalPos = self.codeView.mapFromGlobal(pos)
@@ -170,6 +177,7 @@ class BlameGutter(CodeGutter):
         lineNumber = 1 + textCursor.blockNumber()
 
         try:
+            blame = self.model.currentBlame
             node = blame.lines[lineNumber].traceNode
         except IndexError:
             return False
@@ -181,15 +189,19 @@ class BlameGutter(CodeGutter):
         def newLine(heading, caption):
             return f"<tr><td style='color:{muted}; text-align: right;'>{heading}{colon} </td><td>{caption}</td>"
 
-        commit = self.model.repo.peel_commit(node.commitId)
-        text += newLine(_("commit"), shortHash(commit.id))
-        text += newLine(_("author"), commit.author.name)
-        text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat))
+        isWorkdir = node.commitId == UC_FAKEID
+        if isWorkdir:
+            text += newLine(_("commit"), _("Not Committed Yet"))
+        else:
+            commit = self.model.repo.peel_commit(node.commitId)
+            text += newLine(_("commit"), shortHash(commit.id))
+            text += newLine(_("author"), commit.author.name)
+            text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat))
         text += newLine(_("file name"), node.path)
         text += newLine(_("revision"), node.revisionNumber)
-
         text += "</table>"
-        text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"
+        if not isWorkdir:
+            text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"
 
         QToolTip.showText(event.globalPos(), text, self)
         event.accept()

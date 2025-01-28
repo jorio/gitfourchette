@@ -18,7 +18,7 @@ from __future__ import annotations as _annotations
 import dataclasses as _dataclasses
 import logging as _logging
 import time
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from contextlib import suppress
 from pathlib import Path
 
@@ -193,7 +193,7 @@ class Trace:
         node.llNext = None
         node.llPrev = None
 
-    class Iterator:
+    class TraceNodeIterator:
         def __init__(self, ll: Trace, reverse=False):
             self.reverse = reverse
             if reverse:
@@ -203,7 +203,7 @@ class Trace:
                 self.next = ll.head.llNext
                 self.end = None
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator[TraceNode]:
             return self
 
         def __next__(self) -> TraceNode:
@@ -213,11 +213,11 @@ class Trace:
             self.next = node.llPrev if self.reverse else node.llNext
             return node
 
-    def __iter__(self):
-        return Trace.Iterator(self)
+    def __iter__(self) -> Iterator[TraceNode]:
+        return Trace.TraceNodeIterator(self)
 
     def reverseIter(self):
-        return Trace.Iterator(self, reverse=True)
+        return Trace.TraceNodeIterator(self, reverse=True)
 
     def nodeForCommit(self, oid: Oid):
         for node in self:
