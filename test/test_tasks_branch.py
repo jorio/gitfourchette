@@ -13,6 +13,7 @@ from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.toolbox import QHintButton
 from . import reposcenario
 from .util import *
 
@@ -784,7 +785,16 @@ def testMergeFastForward(tempDir, mainWindow):
     node = rw.sidebar.findNodeByRef("refs/heads/master")
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "merge")
-    acceptQMessageBox(rw, "can .*fast.forward")
+
+    qmb = findQMessageBox(rw, "can .*fast.forward")
+
+    # Clicking the help button should not close the message box
+    helpButton = next(b for b in qmb.buttons() if isinstance(b, QHintButton))
+    helpButton.click()
+    assert qmb.isVisible()
+
+    # Accept fast-forwarding
+    qmb.accept()
 
     assert rw.repo.head.target == rw.repo.branches.local['master'].target
 

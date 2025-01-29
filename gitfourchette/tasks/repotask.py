@@ -526,6 +526,8 @@ class RepoTask(QObject):
             hintButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
             hintButton.setAutoRaise(False)
             qmb.addButton(hintButton, QMessageBox.ButtonRole.HelpRole)
+            hintButton.clicked.disconnect()  # Qt internally wires the button to close the dialog; undo that.
+            hintButton.connectClicked()
 
         if detailList:
             addULToMessageBox(qmb, detailList)

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -18,4 +18,7 @@ class QHintButton(QToolButton):
         self.setIcon(stockIcon(iconKey))
         self.setToolTip(toolTip)
         self.setCursor(Qt.CursorShape.WhatsThisCursor)
+        self.connectClicked()
+
+    def connectClicked(self):
         self.clicked[bool].connect(lambda _: QToolTip.showText(QCursor.pos(), self.toolTip(), self))  # [bool]: for PySide <6.7.0 (PYSIDE-2524)
