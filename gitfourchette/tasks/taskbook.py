@@ -55,7 +55,7 @@ class TaskBook:
             tasks.ExportStashAsPatch: _("Export stash as patch file"),
             tasks.ExportWorkdirAsPatch: _("Export changes as patch file"),
             tasks.FastForwardBranch: _("Fast-forward branch"),
-            tasks.FetchRemotes: _("Fetch remotes"),
+            tasks.FetchRemotes: _("Fetch remote branches"),
             tasks.FetchRemoteBranch: _("Fetch remote branch"),
             tasks.GetCommitInfo: _("Get commit information"),
             tasks.HardSolveConflicts: _("Accept/reject incoming changes"),
@@ -196,11 +196,14 @@ class TaskBook:
 
         cls.noEllipsis = {
             tasks.FastForwardBranch,
+            tasks.FetchRemotes,
             tasks.FetchRemoteBranch,
             tasks.JumpBack,
             tasks.JumpForward,
             tasks.JumpToHEAD,
             tasks.JumpToUncommittedChanges,
+            tasks.UpdateSubmodule,
+            tasks.UpdateSubmodulesRecursive,
         }
 
         cls.retranslate()

@@ -181,7 +181,7 @@ class Sidebar(QTreeView):
                 TaskBook.action(
                     self,
                     SwitchBranch,
-                    _("&Switch to {0}", thisBranchDisplay),
+                    _("&Switch to {0}…", thisBranchDisplay),
                     taskArgs=branchName,
                 ).replace(enabled=not isCurrentBranch),
 
@@ -199,7 +199,7 @@ class Sidebar(QTreeView):
                 TaskBook.action(
                     self,
                     FetchRemoteBranch,
-                    _("&Fetch {0}…", upstreamBranchDisplay) if hasUpstream else _("Fetch…"),
+                    _("&Fetch {0}", upstreamBranchDisplay) if hasUpstream else _("Fetch"),
                     taskArgs=branch.upstream.shorthand if hasUpstream else None,
                 ).replace(enabled=hasUpstream),
 
@@ -265,7 +265,7 @@ class Sidebar(QTreeView):
             if webUrl:
                 webActions = [
                     ActionDef(
-                        _("Visit Web Page on {0}…", escamp(webHost)),
+                        _("Visit Web Page on {0}", escamp(webHost)),
                         lambda: QDesktopServices.openUrl(QUrl(webUrl)),
                         icon="internet-web-browser",
                         tip=f"<p style='white-space: pre'>{escape(webUrl)}</p>",
@@ -276,7 +276,7 @@ class Sidebar(QTreeView):
             actions += [
                 TaskBook.action(self, NewBranchFromRef, _("New Local &Branch Here…"), taskArgs=refName),
 
-                TaskBook.action(self, FetchRemoteBranch, _("&Fetch New Commits…"), taskArgs=shorthand),
+                TaskBook.action(self, FetchRemoteBranch, _("&Fetch New Commits"), taskArgs=shorthand),
 
                 ActionDef.SEPARATOR,
 
@@ -321,7 +321,7 @@ class Sidebar(QTreeView):
             if webUrl:
                 webActions = [
                     ActionDef(
-                        _("Visit Web Page on {0}…", escamp(webHost)),
+                        _("Visit Web Page on {0}", escamp(webHost)),
                         lambda: QDesktopServices.openUrl(QUrl(webUrl)),
                         icon="internet-web-browser",
                         tip=f"<p style='white-space: pre'>{escape(webUrl)}</p>",
@@ -329,13 +329,13 @@ class Sidebar(QTreeView):
                 ]
 
             actions += [
-                TaskBook.action(self, EditRemote, _("&Edit Remote…"), taskArgs=data),
+                TaskBook.action(self, EditRemote, accel="E", taskArgs=data),
 
-                TaskBook.action(self, FetchRemotes, _("&Fetch Remote Branches…"), taskArgs=data),
+                TaskBook.action(self, FetchRemotes, accel="F", taskArgs=data),
 
                 ActionDef.SEPARATOR,
 
-                TaskBook.action(self, DeleteRemote, _("&Remove Remote…"), taskArgs=data),
+                TaskBook.action(self, DeleteRemote, accel="R", taskArgs=data),
 
                 ActionDef.SEPARATOR,
 
@@ -384,13 +384,13 @@ class Sidebar(QTreeView):
             oid = Oid(hex=data)
 
             actions += [
-                TaskBook.action(self, ApplyStash, _p("apply stash", "&Apply"), taskArgs=oid),
+                TaskBook.action(self, ApplyStash, accel="A", taskArgs=oid),
 
-                TaskBook.action(self, ExportStashAsPatch, _("E&xport As Patch…"), taskArgs=oid),
+                TaskBook.action(self, ExportStashAsPatch, accel="X", taskArgs=oid),
 
                 ActionDef.SEPARATOR,
 
-                TaskBook.action(self, DropStash, _("&Delete"), taskArgs=oid),
+                TaskBook.action(self, DropStash, accel="D", taskArgs=oid),
 
                 ActionDef.SEPARATOR,
 
@@ -417,7 +417,7 @@ class Sidebar(QTreeView):
 
             actions += [
                 TaskBook.action(self, CheckoutCommit, _("&Check Out Tagged Commit…"), taskArgs=target),
-                TaskBook.action(self, DeleteTag, _("&Delete Tag"), taskArgs=shorthand),
+                TaskBook.action(self, DeleteTag, _("&Delete Tag…"), taskArgs=shorthand),
                 ActionDef.SEPARATOR,
                 ActionDef(_("Push To"), submenu=self.pushRefspecMenu(refspecs)),
             ]

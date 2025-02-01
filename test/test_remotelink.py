@@ -173,7 +173,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     # -------------------------------------------
     # Fetch, enter passphrase, remember it, but cancel
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
     pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
     assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
     pd.lineEdit.setText("empty")
@@ -185,7 +185,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     # -------------------------------------------
     # Fetch, enter passphrase, remember it
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
     pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
     assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
     pd.lineEdit.setText("empty")
@@ -196,5 +196,5 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     # -------------------------------------------
     # Fetch, shouldn't prompt for passphrase again
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remotes")
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
     qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
