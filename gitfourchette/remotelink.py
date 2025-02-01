@@ -105,7 +105,7 @@ class RemoteLink(QObject, RemoteCallbacks):
         assert findParentWidget(self)
 
         self.setObjectName("RemoteLink")
-        self.downloadRateTimer = QElapsedTimer()
+        self.transferRateTimer = QElapsedTimer()
 
         self.resetLoginState()
         self._aborting = False
@@ -128,9 +128,9 @@ class RemoteLink(QObject, RemoteCallbacks):
         self.lastAttemptPassphrase = None
         self.usingKnownKeyFirst = False  # for informative purposes only
 
-        self.downloadRate = 0
-        self.receivedBytesOnTimerStart = 0
-        self.downloadRateTimer.invalidate()
+        self.transferRate = 0
+        self.transferredBytesAtTimerStart = 0
+        self.transferRateTimer.invalidate()
 
         self._sidebandProgressBuffer = ""
 
@@ -258,36 +258,55 @@ class RemoteLink(QObject, RemoteCallbacks):
 
     @mayAbortNetworkOperation
     def transfer_progress(self, stats: TransferProgress):
-        if not self.downloadRateTimer.isValid():
-            self.downloadRateTimer.start()
-            self.receivedBytesOnTimerStart = stats.received_bytes
-        elif self.downloadRateTimer.elapsed() > DLRATE_REFRESH_INTERVAL:
-            intervalBytes = stats.received_bytes - self.receivedBytesOnTimerStart
-            self.downloadRate = int(intervalBytes * 1000 / self.downloadRateTimer.elapsed())
-            self.downloadRateTimer.restart()
-            self.receivedBytesOnTimerStart = stats.received_bytes
+        self._genericTransferProgress(
+            stats.received_objects,
+            stats.total_objects,
+            stats.received_bytes,
+            _("Downloading: {0}…"),
+            _("Downloading complete ({0})."))
+
+    @mayAbortNetworkOperation
+    def push_transfer_progress(self, objects_pushed: int, total_objects: int, bytes_pushed: int):
+        self._genericTransferProgress(
+            objects_pushed,
+            total_objects,
+            bytes_pushed,
+            _("Uploading: {0}…"),
+            _("Upload complete ({0})."))
+
+    def _genericTransferProgress(self, objectsTransferred: int, totalObjects: int, bytesTransferred: int,
+                                 transferingMessage: str, transferCompleteMessage: str):
+        if not self.transferRateTimer.isValid():
+            self.transferRateTimer.start()
+            self.transferredBytesAtTimerStart = bytesTransferred
+        elif self.transferRateTimer.elapsed() > DLRATE_REFRESH_INTERVAL:
+            intervalBytes = bytesTransferred - self.transferredBytesAtTimerStart
+            self.transferRate = int(intervalBytes * 1000 / self.transferRateTimer.elapsed())
+            self.transferRateTimer.restart()
+            self.transferredBytesAtTimerStart = bytesTransferred
         else:
             # Don't update UI too frequently (ease CPU load)
             return
 
-        obj = min(stats.received_objects, stats.total_objects)
-        if obj == stats.total_objects:
+        obj = min(objectsTransferred, totalObjects)
+        if obj == totalObjects:
             self.progress.emit(0, 0)
         else:
-            self.progress.emit(obj, stats.total_objects)
+            self.progress.emit(obj, totalObjects)
 
         locale = QLocale()
-        sizeText = locale.formattedDataSize(stats.received_bytes, 1)
+        sizeText = locale.formattedDataSize(bytesTransferred, 1)
 
         message = ""
-        if stats.received_objects != stats.total_objects:
-            message += _("Downloading: {0}…", sizeText)
-            if self.downloadRate != 0:
-                rateText = locale.formattedDataSize(self.downloadRate, 0 if self.downloadRate < 1e6 else 1)
-                message += "\n" + _p("download speed", "({0}/s)", rateText)
+        if objectsTransferred != totalObjects:
+            message += transferingMessage.format(sizeText)
+            message += "\n"
+            if self.transferRate != 0:
+                rateText = locale.formattedDataSize(self.transferRate, 0 if self.transferRate < 1e6 else 1)
+                message += _p("download speed", "({0}/s)", rateText)
         else:
-            message += _("Download complete ({0}).", sizeText)
-            message += "\n" + _("Indexing {0} of {1} objects…", locale.toString(obj), locale.toString(stats.total_objects))
+            message += transferCompleteMessage.format(sizeText)
+            message += _("Indexing {0} of {1} objects…", locale.toString(obj), locale.toString(totalObjects))
 
         self.message.emit(message)
 
