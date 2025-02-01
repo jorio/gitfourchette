@@ -553,7 +553,6 @@ class AbortMerge(RepoTask):
         if not (isMerging or isCherryPicking or isReverting or anyConflicts):
             raise AbortTask(_("No abortable state is in progress."), icon='information')
 
-        verb = _("Abort")
         if isCherryPicking:
             clause = _("abort the ongoing cherry-pick")
             title = _("Abort cherry-pick")
@@ -569,7 +568,6 @@ class AbortMerge(RepoTask):
         else:
             clause = _("reset the index")
             title = _("Reset index")
-            verb = _("Reset")
             postStatus = _("Index reset.")
 
         try:
@@ -592,7 +590,7 @@ class AbortMerge(RepoTask):
                 lines.append(_("All <b>staged</b> changes will be lost."))
             lines.append(_n("This file will be reset:", "{n} files will be reset:", len(abortList)))
 
-        yield from self.flowConfirm(title=title, text=paragraphs(lines), verb=verb,
+        yield from self.flowConfirm(title=title, text=paragraphs(lines), verb=englishTitleCase(title),
                                     detailList=[escape(f) for f in abortList])
 
         self.effects |= TaskEffects.DefaultRefresh
