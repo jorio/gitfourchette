@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -17,6 +17,7 @@ from gitfourchette.forms.unloadedrepoplaceholder import UnloadedRepoPlaceholder
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.mainwindow import MainWindow
 from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.settings import Session
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from .util import *
 
@@ -355,6 +356,25 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({"autoHideTabs": True})
     QTest.qWait(1)
     assert not mainWindow.tabs.overflowButton.isVisible()
+
+
+def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread):
+    # Simulate user holding down Ctrl+W with a fast key repeat rate.
+    # PrimeRepo should be interrupted without crashing!
+    # TODO: For exhaustiveness we should make a large repo with tens of thousands of commits
+    #       to simulate interrupting the walker loop in PrimeRepo.
+
+    numTabs = 15
+    sesh = Session()
+    for i in range(numTabs):
+        wd = unpackRepo(tempDir, renameTo=f"RepoCopy{i:04}")
+        sesh.tabs.append(wd)
+
+    mainWindow.restoreSession(sesh)
+
+    for _dummy in range(numTabs):
+        mainWindow.closeTab(0)
+        QTest.qWait(1)  # Simulate some delay as if key-repeating Ctrl+W
 
 
 @pytest.mark.skipif(MACOS, reason="this feature is disabled on macOS")

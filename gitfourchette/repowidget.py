@@ -495,6 +495,10 @@ class RepoWidget(QStackedWidget):
     def cleanup(self, message: str = "", allowAutoReload: bool = True, installPlaceholder: bool = True):
         assert onAppThread()
 
+        # Kill any ongoing task then block UI thread until the task dies cleanly
+        self.repoTaskRunner.killCurrentTask()
+        self.repoTaskRunner.joinZombieTask()
+
         # Don't bother with the placeholder widget if we've been lazy-initialized
         installPlaceholder &= self.uiReady
         hasRepo = self.repoModel is not None and self.repoModel.repo is not None
@@ -523,10 +527,6 @@ class RepoWidget(QStackedWidget):
             # Save path if we want to reload the repo later
             self.pendingPath = os.path.normpath(self.repoModel.repo.workdir)
             self.allowAutoLoad = allowAutoReload
-
-            # Kill any ongoing task then block UI thread until the task dies cleanly
-            self.repoTaskRunner.killCurrentTask()
-            self.repoTaskRunner.joinZombieTask()
 
             # Free the repository
             self.repoModel.repo.free()

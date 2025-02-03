@@ -129,6 +129,8 @@ class PrimeRepo(RepoTask):
                 self.progressMessage.emit(message)
                 if numCommitsBallpark > 0 and i <= numCommitsBallpark:
                     self.progressValue.emit(i)
+                    # Let RepoTaskRunner kill us here (e.g. if closing the RepoWidget tab while we're loading)
+                    yield from self.flowEnterWorkerThread()
 
         # Can't abort anymore
         self.progressAbortable.emit(False)
