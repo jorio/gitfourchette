@@ -26,7 +26,7 @@ class PygmentsPresets:
 
 
 class ColorScheme:
-    _nullScheme: ColorScheme = None
+    fallbackScheme: ColorScheme = None
     _cachedScheme: ColorScheme = None
     _cachedPreviews: dict[str, str] = {}
 
@@ -38,19 +38,18 @@ class ColorScheme:
 
     def __init__(self):
         self.name = ""
-        self.backgroundColor = QColor(Qt.GlobalColor.black)
-        self.foregroundColor = QColor(Qt.GlobalColor.white)
         self.scheme = {}
         self.highContrastScheme = {}
+
+        palette = QApplication.palette()
+        self.backgroundColor = palette.color(QPalette.ColorRole.Base)
+        self.foregroundColor = palette.color(QPalette.ColorRole.Text)
 
     def __bool__(self):
         return bool(self.scheme)
 
     def isDark(self):
-        if bool(self):
-            return self.backgroundColor.lightnessF() < .5
-        else:
-            return isDarkTheme()
+        return self.backgroundColor.lightnessF() < .5
 
     def primeHighContrastVersion(self):
         """
@@ -87,13 +86,13 @@ class ColorScheme:
     @classmethod
     def resolve(cls, name: str) -> ColorScheme:
         if not hasPygments:  # pragma: no cover
-            return cls._nullScheme
+            return cls.fallbackScheme
 
         # Resolve style alias
         if name == PygmentsPresets.Automatic:
             name = PygmentsPresets.Dark if isDarkTheme() else PygmentsPresets.Light
         if name == PygmentsPresets.Off:
-            return cls._nullScheme
+            return cls.fallbackScheme
 
         if cls._cachedScheme.name == name:
             return cls._cachedScheme
@@ -170,6 +169,11 @@ class ColorScheme:
         cls._cachedPreviews = primary
         return primary
 
+    @classmethod
+    def refreshFallbackScheme(cls):
+        fallbackScheme = cls()
+        cls.fallbackScheme = fallbackScheme
+        cls._cachedScheme = fallbackScheme
 
-ColorScheme._nullScheme = ColorScheme()
-ColorScheme._cachedScheme = ColorScheme._nullScheme
+
+ColorScheme.refreshFallbackScheme()

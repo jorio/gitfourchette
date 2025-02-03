@@ -52,6 +52,7 @@ class LineData:
 class DiffStyle:
     def __init__(self):
         colorblind = settings.prefs.colorblind
+        syntaxScheme = settings.prefs.syntaxHighlightingScheme()
 
         if colorblind:
             delColor1 = QColor(colors.orange)
@@ -78,6 +79,13 @@ class DiffStyle:
             delColor2.setAlphaF(.25)
             addColor2.setAlphaF(.25)
 
+        if syntaxScheme.isDark():
+            warningColor = colors.red
+            hunkColor = colors.blue.lighter(125)
+        else:
+            warningColor = colors.red.darker(125)
+            hunkColor = QColor(0x0050f0)
+
         self.addBF1 = QTextBlockFormat()
         self.delBF1 = QTextBlockFormat()
         self.addBF1.setBackground(addColor1)
@@ -91,12 +99,13 @@ class DiffStyle:
         self.hunkBF = QTextBlockFormat()
         self.hunkCF = QTextCharFormat()
         self.hunkCF.setFontItalic(True)
-        self.hunkCF.setForeground(QColor(0x0050f0))
+        self.hunkCF.setForeground(hunkColor)
 
         self.warningCF = QTextCharFormat()
         self.warningCF.setFontUnderline(True)
         self.warningCF.setFontWeight(QFont.Weight.Bold)
-        self.warningCF.setForeground(QColor(0xc81e00))
+        self.warningCF.setBackground(syntaxScheme.backgroundColor)
+        self.warningCF.setForeground(warningColor)
 
 
 @dataclass

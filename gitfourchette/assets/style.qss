@@ -21,6 +21,6 @@ Banner QToolButton, ContextHeader QToolButton { text-decoration: underline; }
 
 /* Don't move dark override to style-dark.qss because DiffView can be dark independently from Qt theme */
 DiffView[dark="false"] { selection-background-color: rgba(0, 0, 0, 20%); selection-color: black; }
-DiffView[dark="true"] { selection-background-color: rgba(255, 255, 255, 31%); }
+DiffView[dark="true"] { selection-background-color: rgba(255, 255, 255, 26%); }
 
 QFaintSeparator { border: none; background: rgba(0, 0, 0, 15%); }

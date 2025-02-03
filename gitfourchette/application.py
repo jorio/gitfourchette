@@ -373,6 +373,7 @@ class GFApplication(QApplication):
     def onRestyle(self):
         from gitfourchette.toolbox.qtutils import isDarkTheme
         from gitfourchette.toolbox.iconbank import clearStockIconCache
+        from gitfourchette.syntax.colorscheme import ColorScheme
 
         styleSheet = Path(QFile("assets:style.qss").fileName()).read_text()
         if isDarkTheme():  # Append dark override
@@ -381,3 +382,4 @@ class GFApplication(QApplication):
         self.setStyleSheet(styleSheet)
 
         clearStockIconCache()
+        ColorScheme.refreshFallbackScheme()
