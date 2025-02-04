@@ -17,7 +17,7 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.repoprefs import RefSort
 from gitfourchette.sidebar.sidebardelegate import SidebarDelegate, SidebarClickZone
-from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem
+from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem, UC_FAKEREF
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.webhost import WebHost
@@ -494,6 +494,11 @@ class Sidebar(QTreeView):
     def refreshPrefs(self):
         self.setVerticalScrollMode(settings.prefs.listViewScrollMode)
         self.setAnimated(settings.prefs.animations)
+
+    def repaintUncommittedChanges(self):
+        model = self.sidebarModel
+        index = model.nodesByRef[UC_FAKEREF].createIndex(model)
+        self.update(index)
 
     def wantSelectNode(self, node: SidebarNode):
         if self.signalsBlocked():  # Don't bother with the jump if our signals are blocked

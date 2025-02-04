@@ -212,6 +212,9 @@ class PrimeRepo(RepoTask):
                 rw.sidebar.sidebarModel.collapseCacheValid = True
             rw.sidebar.refresh(repoModel)
 
+        # Focus on some interesting widget within the RepoWidget after loading the repo.
+        rw.setInitialFocus()
+
         # Restore main UI
         rw.removePlaceholderWidget()
 
@@ -225,10 +228,6 @@ class PrimeRepo(RepoTask):
         # if newState.activeCommitId:
         #     rw.graphView.scrollToCommit(newState.activeCommitId, QAbstractItemView.ScrollHint.PositionAtCenter)
 
-        # Focus on some interesting widget within the RepoWidget after loading the repo.
-        # (delay to next event loop so Qt has time to show the widget first)
-        QTimer.singleShot(0, rw.setInitialFocus)
-
         # Jump to workdir (or pending locator, if any)
         if not rw.pendingLocator:
             initialLocator = NavLocator(NavContext.WORKDIR)
@@ -238,6 +237,8 @@ class PrimeRepo(RepoTask):
             initialLocator = rw.pendingLocator
             rw.pendingLocator = NavLocator()
         yield from self.flowSubtask(Jump, initialLocator)
+
+        rw.refreshNumUncommittedChanges()
         rw.graphView.scrollToRowForLocator(initialLocator, QAbstractItemView.ScrollHint.PositionAtCenter)
 
     def onError(self, exc: Exception):

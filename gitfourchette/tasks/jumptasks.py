@@ -21,7 +21,6 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import DeltaStatus, NULL_OID, Oid, Patch
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.sidebar.sidebarmodel import UC_FAKEREF
 from gitfourchette.tasks import TaskPrereqs
 from gitfourchette.tasks.loadtasks import LoadCommit, LoadPatch, LoadWorkdir
@@ -566,8 +565,7 @@ class RefreshRepo(RepoTask):
 
         # Update number of staged changes in sidebar and graph
         if repoModel.numUncommittedChanges != pNumUncommittedChanges:
-            rw.sidebar.repaint()
-            rw.graphView.repaintCommit(UC_FAKEID)
+            rw.refreshNumUncommittedChanges()
 
         # Refresh window title and state banner.
         # Do this last because it requires the index to be fresh (updated by LoadWorkdir)

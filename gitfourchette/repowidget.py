@@ -25,7 +25,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavHistory, NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel
+from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook, AbortMerge, RepoTaskRunner
 from gitfourchette.toolbox import *
@@ -866,6 +866,10 @@ class RepoWidget(QStackedWidget):
                 self.mergeBanner.addButton(bannerAction, bannerCallback)
         else:
             self.mergeBanner.setVisible(False)
+
+    def refreshNumUncommittedChanges(self):
+        self.sidebar.repaintUncommittedChanges()
+        self.graphView.repaintCommit(UC_FAKEID)
 
     # -------------------------------------------------------------------------
 
