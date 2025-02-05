@@ -89,7 +89,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
 
         NVERule = NameValidationError.Rule
@@ -209,6 +209,14 @@ class TrTables:
                 GraphRefBoxWidth.Standard       : _("Truncate long ref names"),
                 GraphRefBoxWidth.Wide           : _("Show full ref names"),
             },
+
+            RefSort: {
+                RefSort.TimeDesc                : _p("sort refs by date of latest commit, descending", "Date, Newest First"),
+                RefSort.TimeAsc                 : _p("sort refs by date of latest commit, ascending", "Date, Oldest First"),
+                RefSort.AlphaAsc                : _p("sort refs alphabetically, ascending", "Name, A-Z"),
+                RefSort.AlphaDesc               : _p("sort refs alphabetically, descending", "Name, Z-A"),
+                RefSort.UseGlobalPref           : "",
+            }
         }
 
     @staticmethod
@@ -339,6 +347,11 @@ class TrTables:
             "pygmentsPlugins_help": "<p>" + _("Let {app} load third-party Pygments plugins installed on your system. "
                                               "These plugins extend syntax highlighting with new languages "
                                               "and color schemes. <b>May incur significant slowdowns.</b>"),
+            "refSort": _("Sort branches && tags by"),
+            "refSort_help": paragraphs(
+                _("The default sorting mode for local branches, remote branches, and tags in the sidebar."),
+                _("You can fine-tune this setting in each repo by right-clicking Branches, Remotes, or Tags "
+                  "in the sidebar. (Note that changing the default setting here will clear per-repo tweaks.)")),
 
             "font": _("Font"),
             "tabSpaces": _("One tab is # spaces"),

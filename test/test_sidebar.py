@@ -139,17 +139,19 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
     def getNodeDatas():
         return [node.data for node in sb.findNodesByKind(leafKind)]
 
-    sortedByTime = getNodeDatas()
-    sortedAlpha = sorted(getNodeDatas(), key=naturalSort)
+    sortedByTimeDesc = getNodeDatas()
+    sortedByTimeAsc = list(reversed(sortedByTimeDesc))
+    sortedByNameAsc = sorted(getNodeDatas(), key=naturalSort)
+    sortedByNameDesc = list(reversed(sortedByNameAsc))
 
     triggerMenuAction(sb.makeNodeMenu(headerNode), "sort.+by/newest first")
-    assert getNodeDatas() == sortedByTime
+    assert getNodeDatas() == sortedByTimeDesc
 
     triggerMenuAction(sb.makeNodeMenu(headerNode), "sort.+by/oldest first")
-    assert getNodeDatas() == list(reversed(sortedByTime))
+    assert getNodeDatas() == sortedByTimeAsc
 
     triggerMenuAction(sb.makeNodeMenu(headerNode), "sort.+by/name.+a-z")
-    assert getNodeDatas() == sortedAlpha
+    assert getNodeDatas() == sortedByNameAsc
 
     # Special case for tags - test natural sorting
     if leafKind == SidebarItem.Tag:
@@ -157,7 +159,16 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
                 ] == ["annotated_tag", "version2", "VERSION3", "version10"]
 
     triggerMenuAction(sb.makeNodeMenu(headerNode), "sort.+by/name.+z-a")
-    assert getNodeDatas() == list(reversed(sortedAlpha))
+    assert getNodeDatas() == sortedByNameDesc
+
+    # Test clearing via prefs
+    pause(1)  # Let a full second roll over so that refSortResetDate (timestamp) changes
+    dlg = mainWindow.openPrefsDialog("refSort")
+    comboBox: QComboBox = dlg.findChild(QWidget, "prefctl_refSort")
+    qcbSetIndex(comboBox, "name.+a-z")
+    dlg.accept()
+    acceptQMessageBox(mainWindow, "take effect.+until you reload")
+    assert getNodeDatas() == sortedByNameAsc
 
 
 @pytest.mark.parametrize("explicit,implicit", [

@@ -132,6 +132,9 @@ class RepoModel:
         self.prefs._parentDir = repo.path
         self.prefs.load()
 
+        if settings.prefs.refSortClearTimestamp > self.prefs.refSortClearTimestamp:
+            self.prefs.clearRefSort()
+
         # Prime ref cache after loading prefs (prefs contain hidden ref patterns)
         self.syncRefs()
         self.syncMergeheads()

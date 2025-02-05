@@ -435,8 +435,19 @@ class SidebarModel(QAbstractItemModel):
         # -----------------------------
         self.endResetModel()
 
-    def populateRefNodeTree(self, shorthands: list[str], containerNode: SidebarNode, kind: SidebarItem, refNamePrefix: str, sortMode: RefSort = RefSort.Default):
+    def populateRefNodeTree(
+            self,
+            shorthands: list[str],
+            containerNode: SidebarNode,
+            kind: SidebarItem,
+            refNamePrefix: str,
+            sortMode: RefSort = RefSort.UseGlobalPref
+    ):
         pendingFolders: dict[str, SidebarNode] = {}
+
+        if sortMode == RefSort.UseGlobalPref:
+            sortMode = settings.prefs.refSort
+        assert sortMode != RefSort.UseGlobalPref
 
         shIter: Iterable[str]
         if sortMode == RefSort.TimeAsc:

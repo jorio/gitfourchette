@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import time
 import warnings
 from collections.abc import Callable, Iterable
 from contextlib import suppress
@@ -20,6 +21,7 @@ from gitfourchette.sidebar.sidebardelegate import SidebarDelegate, SidebarClickZ
 from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem, UC_FAKEREF
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
+from gitfourchette.trtables import TrTables
 from gitfourchette.webhost import WebHost
 
 INVALID_MOUSEPRESS = (-1, SidebarClickZone.Invalid)
@@ -96,37 +98,34 @@ class Sidebar(QTreeView):
     def refSortMenu(self, prefKey: str) -> list[ActionDef]:
         repoModel = self.sidebarModel.repoModel
         repoPrefs = repoModel.prefs
+
+        defaultMode = settings.prefs.refSort
         currentMode = getattr(repoPrefs, prefKey)
         assert isinstance(currentMode, RefSort)
-
-        names = {
-            RefSort.TimeDesc: _p("sort branches by date of latest commit, descending", "Branch Tips (Newest First)"),
-            RefSort.TimeAsc: _p("sort branches by date of latest commit, ascending", "Branch Tips (Oldest First)"),
-            RefSort.AlphaAsc: _p("sort branches by name (alphabetically), ascending", "Name (A-Z)"),
-            RefSort.AlphaDesc: _p("sort branches by name (alphabetically), descending", "Name (Z-A)"),
-        }
-
-        if prefKey == "sortTags":
-            names[RefSort.TimeDesc] = _p("sort tags by date, descending", "Date (Newest First)")
-            names[RefSort.TimeAsc] = _p("sort tags by date, ascending", "Date (Oldest First)")
+        if currentMode == RefSort.UseGlobalPref:
+            currentMode = defaultMode
 
         def setSortMode(newMode: RefSort):
             if currentMode == newMode:
                 return
             setattr(repoPrefs, prefKey, newMode)
+            repoPrefs.refSortClearTimestamp = int(time.time())
             repoPrefs.setDirty()
             self.backUpSelection()
             self.refresh(repoModel)
             self.restoreSelectionBackup()
 
         submenu = []
-        for sortMode, caption in names.items():
+        for sortMode, caption in TrTables._enums[RefSort].items():
+            if not caption:  # Skip UseGlobalPref
+                continue
             action = ActionDef(
                 caption,
                 lambda m=sortMode: setSortMode(m),
                 radioGroup=f"sortBy-{prefKey}",
                 checkState=1 if currentMode == sortMode else -1)
             submenu.append(action)
+
         return submenu
 
     def makeNodeMenu(self, node: SidebarNode, menu: QMenu | None = None):

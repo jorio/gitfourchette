@@ -46,6 +46,14 @@ SHORT_DATE_PRESETS = {
 }
 
 
+class RefSort(enum.IntEnum):
+    TimeDesc = 0
+    TimeAsc = 1
+    AlphaAsc = 2
+    AlphaDesc = 3
+    UseGlobalPref = -1
+
+
 class GraphRowHeight(enum.IntEnum):
     Cramped = 80
     Tight = 100
@@ -82,6 +90,7 @@ class Prefs(PrefsFile):
     language                    : str                   = ""
     qtStyle                     : str                   = ""
     pathDisplayStyle            : PathDisplayStyle      = PathDisplayStyle.FullPaths
+    refSort                     : RefSort               = RefSort.TimeDesc
     showToolBar                 : bool                  = True
     showStatusBar               : bool                  = True
     showMenuBar                 : bool                  = True
@@ -148,6 +157,7 @@ class Prefs(PrefsFile):
     dontShowAgain               : list[str]             = dataclasses.field(default_factory=list)
     resetDontShowAgain          : bool                  = False
     donatePrompt                : int                   = 0
+    refSortClearTimestamp       : int                   = 0
 
     @property
     def listViewScrollMode(self) -> QAbstractItemView.ScrollMode:

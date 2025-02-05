@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,17 +13,10 @@ from dataclasses import dataclass, field
 from gitfourchette.appconsts import *
 from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.porcelain import *
+from gitfourchette.settings import RefSort
 from gitfourchette.prefsfile import PrefsFile
 
 KEY_PREFIX = "gitfourchette-"
-
-
-class RefSort(enum.IntEnum):
-    TimeDesc = 0
-    TimeAsc = 1
-    AlphaAsc = 2
-    AlphaDesc = 3
-    Default = TimeDesc
 
 
 @dataclass
@@ -39,9 +32,10 @@ class RepoPrefs(PrefsFile):
     draftAmendMessage: str = ""
     hiddenRefPatterns: set = field(default_factory=set)
     collapseCache: set = field(default_factory=set)
-    sortBranches: RefSort = RefSort.Default
-    sortRemoteBranches: RefSort = RefSort.Default
-    sortTags: RefSort = RefSort.Default
+    sortBranches: RefSort = RefSort.UseGlobalPref
+    sortRemoteBranches: RefSort = RefSort.UseGlobalPref
+    sortTags: RefSort = RefSort.UseGlobalPref
+    refSortClearTimestamp: int = 0
 
     def getParentDir(self):
         return self._parentDir
@@ -69,3 +63,10 @@ class RepoPrefs(PrefsFile):
     @staticmethod
     def setRemoteKeyFileForRepo(repo: Repo, remote: str, path: str):
         repo.set_config_value(("remote", remote, KEY_PREFIX+"keyfile"),  path)
+
+    def clearRefSort(self):
+        self.sortBranches = RefSort.UseGlobalPref
+        self.sortRemoteBranches = RefSort.UseGlobalPref
+        self.sortTags = RefSort.UseGlobalPref
+        self.refSortClearTimestamp = 0
+        self.setDirty()

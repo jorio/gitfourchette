@@ -410,6 +410,9 @@ class PrefsDialog(QDialog):
             data = (enumMember,)
             name = TrTables.enum(enumMember)
 
+            if name == "":
+                continue
+
             if previewCallback:
                 control.addItemWithPreview(name, data, previewCallback(enumMember))
             else:

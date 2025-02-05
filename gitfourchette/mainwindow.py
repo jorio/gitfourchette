@@ -9,6 +9,7 @@ import gc
 import logging
 import os
 import re
+import time
 from collections.abc import Sequence
 from contextlib import suppress
 from typing import Literal
@@ -1062,6 +1063,10 @@ class MainWindow(QMainWindow):
             settings.prefs.dontShowAgain = []
             settings.prefs.resetDontShowAgain = False
 
+        if "refSort" in prefDiff:
+            settings.prefs.refSortClearTimestamp = int(time.time())
+            settings.prefs.setDirty()
+
         # Write prefs to disk
         settings.prefs.write()
 
@@ -1088,6 +1093,7 @@ class MainWindow(QMainWindow):
         warnIfChanged = [
             "chronologicalOrder",  # need to reload entire commit sequence
             "maxCommits",
+            "refSort",
         ]
 
         warnIfNeedRestart = [
@@ -1110,8 +1116,8 @@ class MainWindow(QMainWindow):
                 buttons=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
             reloadButton = qmb.button(QMessageBox.StandardButton.Ok)
             reloadButton.setText(_("&Reload"))
-            reloadButton.clicked.connect(lambda: self.unloadOtherTabs(self.tabs.currentIndex()))
-            reloadButton.clicked.connect(lambda: self.currentRepoWidget().primeRepo(force=True))
+            qmb.accepted.connect(lambda: self.unloadOtherTabs(self.tabs.currentIndex()))
+            qmb.accepted.connect(lambda: self.currentRepoWidget().primeRepo(force=True))
             cancelButton = qmb.button(QMessageBox.StandardButton.Cancel)
             cancelButton.setText(_("&Not Now"))
             qmb.show()
