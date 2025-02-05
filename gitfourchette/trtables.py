@@ -330,7 +330,7 @@ class TrTables:
             "advanced": _p("Prefs", "Advanced"),
 
             "language": _("Language"),
-            "qtStyle": _("Theme"),
+            "qtStyle": _("Qt style"),
             "shortHashChars": _("Shorten hashes to # characters"),
             "shortTimeFormat": _("Date/time format"),
             "shortTimeFormat_help": TrTables._timeFormatTable(),
@@ -383,7 +383,7 @@ class TrTables:
                   "mode, you may have to do more scrolling to see the latest changes in various branches."),
             ),
             "graphRowHeight": _("Row spacing"),
-            "flattenLanes": _("Squeeze branch lanes in graph"),
+            "flattenLanes": _("Avoid gaps between branches in the graph"),
             "authorDiffAsterisk": _("Mark author/committer signature differences"),
             "authorDiffAsterisk_help": paragraphs(
                 _("The commit history displays information about a commit’s <b>author</b>—"
