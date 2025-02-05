@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -216,6 +216,15 @@ def testEmptyCommitRaisesWarning(tempDir, mainWindow):
     assert commitDialog.ui.infoText.isVisible()
     assert "empty commit" in commitDialog.ui.infoText.text().lower()
     commitDialog.reject()
+
+    # Look for additional hint text when there are unstaged changes
+    writeFile(f"{wd}/toto.txt", "toto")
+    writeFile(f"{wd}/titi.txt", "titi")
+    rw.refreshRepo()
+    rw.diffArea.commitButton.click()
+    qmb = findQMessageBox(rw, "create.+empty commit")
+    assert re.search("2 unstaged files.+you should.+stage.+them first", qmb.text(), re.I)
+    qmb.reject()
 
 
 def testCommitWithoutUserIdentity(tempDir, mainWindow):

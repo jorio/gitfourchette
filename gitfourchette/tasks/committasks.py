@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -39,12 +39,20 @@ class NewCommit(RepoTask):
 
         emptyCommit = not self.repo.any_staged_changes
         if emptyCommit:
+            text = [_("No files are staged for commit."), _("Do you want to create an empty commit anyway?")]
+
+            if self.repoModel.numUncommittedChanges != 0:
+                text.append("<small>" + _n(
+                    "Note: Your working directory contains {n} unstaged file. "
+                    "If you want to commit it, you should <b>stage</b> it first.",
+                    "Note: Your working directory contains {n} unstaged files. "
+                    "If you want to commit them, you should <b>stage</b> them first.",
+                    self.repoModel.numUncommittedChanges) + "</small>")
+
             yield from self.flowConfirm(
                 title=_("Create empty commit"),
                 verb=_("Empty commit"),
-                text=paragraphs(
-                    _("No files are staged for commit."),
-                    _("Do you want to create an empty commit anyway?")))
+                text=paragraphs(text))
 
         yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Commit"))
 
