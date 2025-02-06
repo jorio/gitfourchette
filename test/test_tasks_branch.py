@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -797,6 +797,37 @@ def testMergeFastForward(tempDir, mainWindow):
     qmb.accept()
 
     assert rw.repo.head.target == rw.repo.branches.local['master'].target
+
+
+def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.checkout_local_branch('no-parent')
+    rw = mainWindow.openRepo(wd)
+
+    assert rw.repo.head.target != rw.repo.branches.local['master'].target
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "merge")
+
+    qmb = findQMessageBox(rw, "can .*fast.forward")
+    mergeCommitButton = next(b for b in qmb.buttons() if b.text().lower() == "create merge commit")
+    mergeCommitButton.click()
+    assert not qmb.isVisible()
+
+    assert rw.mergeBanner.isVisibleTo(rw)
+    assert rw.repo.state() == RepositoryState.MERGE
+    assert rw.repo.status() == {
+        "a/a1": FileStatus.INDEX_NEW,
+        "a/a1.txt": FileStatus.INDEX_NEW,
+        "a/a2.txt": FileStatus.INDEX_NEW,
+        "b/b1.txt": FileStatus.INDEX_NEW,
+        "b/b2.txt": FileStatus.INDEX_NEW,
+        "c/c1.txt": FileStatus.INDEX_MODIFIED,
+        "master.txt": FileStatus.INDEX_NEW,
+    }
+    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
 
 
 def testMergeAborted(tempDir, mainWindow):

@@ -432,23 +432,24 @@ class RepoTask(QObject):
 
         waitToken = FlowControlToken(FlowControlToken.Kind.WaitReady)
         didReject = False
-        proceedSignal = proceedSignal or dialog.accepted
 
         def onReject():
             nonlocal didReject
             didReject = True
 
         dialog.rejected.connect(onReject)
-        dialog.rejected.connect(self.uiReady)
-        proceedSignal.connect(self.uiReady)
+        dialog.finished.connect(self.uiReady)
+        if proceedSignal:
+            proceedSignal.connect(self.uiReady)
 
         dialog.show()
 
         yield waitToken
 
         dialog.rejected.disconnect(onReject)
-        dialog.rejected.disconnect(self.uiReady)
-        proceedSignal.disconnect(self.uiReady)
+        dialog.finished.disconnect(self.uiReady)
+        if proceedSignal:
+            proceedSignal.disconnect(self.uiReady)
 
         if abortTaskIfRejected and didReject:
             dialog.deleteLater()
@@ -467,6 +468,7 @@ class RepoTask(QObject):
             canCancel: bool = True,
             icon: MessageBoxIconName | Literal[""] = "",
             checkbox: QCheckBox | None = None,
+            actionButton: QPushButton | None = None,
     ):
         """
         Ask the user to confirm the operation via a message box.
@@ -521,6 +523,9 @@ class RepoTask(QObject):
             assert canCancel, "don't set cancelText when canCancel is False!"
             qmb.button(QMessageBox.StandardButton.Cancel).setText(cancelText)
 
+        if actionButton:
+            qmb.addButton(actionButton, QMessageBox.ButtonRole.ApplyRole)
+
         if helpText:
             hintButton = QHintButton(qmb, helpText)
             hintButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
@@ -539,6 +544,8 @@ class RepoTask(QObject):
             from gitfourchette import settings
             settings.prefs.dontShowAgain.append(dontShowAgainKey)
             settings.prefs.setDirty()
+
+        return qmb.result()
 
     def checkPrereqs(self, prereqs=TaskPrereqs.Nothing):
         if prereqs == TaskPrereqs.Nothing:

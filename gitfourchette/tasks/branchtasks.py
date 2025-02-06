@@ -517,6 +517,7 @@ class MergeBranch(RepoTask):
         assert theirBranch.type == ReferenceType.DIRECT
         assert isinstance(target, Oid), "branch isn't a direct reference!"
         analysis, pref = self.repo.merge_analysis(target)
+        wantMergeCommit = True
 
         yield from self.flowEnterUiThread()
         logger.info(f"Merge analysis: {repr(analysis)} {repr(pref)}")
@@ -546,15 +547,19 @@ class MergeBranch(RepoTask):
         elif analysis == MergeAnalysis.FASTFORWARD | MergeAnalysis.NORMAL:
             title = _("Fast-forwarding possible")
             message = _("Your branch {0} can simply be fast-forwarded to {1}.", bquo(myShorthand), bquo(theirShorthand))
+
             hint = paragraphs(
                 _("<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more "
                   "recent commit in a linear path, without the need to create a merge commit."),
                 _("In this case, {0} will be fast-forwarded to {1}.", bquo(myShorthand), bquo(shortHash(target))))
-            yield from self.flowConfirm(title=title, text=message, verb=_("Fast-Forward"),
-                                        helpText=hint, dontShowAgainKey="MergeCanFF")
-            yield from self.flowEnterWorkerThread()
-            self.effects |= TaskEffects.Refs
-            self.repo.fast_forward_branch(myShorthand, theirBranch.name)
+
+            actionButton = QPushButton(_("Create Merge Commit"))
+            result = yield from self.flowConfirm(title=title, text=message, verb=_("Fast-Forward"),
+                                                 actionButton=actionButton, helpText=hint)
+
+            # OK button is Fast-Forward; Merge is the other one. (Cancel would have aborted early.)
+            # Also checking for Accepted so that unit tests can do qmb.accept().
+            wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
 
         elif analysis == MergeAnalysis.NORMAL:
             title = _("Merging may cause conflicts")
@@ -564,14 +569,25 @@ class MergeBranch(RepoTask):
             yield from self.flowConfirm(title=title, text=message, verb=_("Merge"),
                                         dontShowAgainKey="MergeMayCauseConflicts")
 
-            yield from self.flowEnterWorkerThread()
-            self.effects |= TaskEffects.Refs | TaskEffects.Workdir
-            self.jumpTo = NavLocator.inWorkdir()
-
-            self.repo.merge(target)
-
         else:
             raise NotImplementedError(f"Unsupported MergeAnalysis! ma={repr(analysis)} mp={repr(pref)}")
+
+        # -----------------------------------------------------------
+        # Actually perform the fast-forward or the merge
+
+        yield from self.flowEnterWorkerThread()
+
+        self.effects |= TaskEffects.Refs
+        if wantMergeCommit:
+            # Create merge commit
+            self.effects |= TaskEffects.Workdir
+            self.jumpTo = NavLocator.inWorkdir()
+            self.repo.merge(target)
+            self.postStatus = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))
+        else:
+            # Fast-forward
+            self.repo.fast_forward_branch(myShorthand, theirBranch.name)
+            self.postStatus = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
 
 
 class RecallCommit(RepoTask):
