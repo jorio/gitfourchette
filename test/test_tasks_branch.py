@@ -916,7 +916,10 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    assert re.match(r"Merge commit.+1b2bae55", preparedMessage)
+    if pygit2_version_at_least("1.17.1", raise_error=False, feature_name="git_annotated_commit_from_ref"):
+        assert re.match(r"Merge branch.+branch-conflicts", commitDialog.getFullMessage())
+    else:
+        assert re.match(r"Merge commit.+1b2bae55", preparedMessage)
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 
