@@ -262,8 +262,8 @@ class RemoteLink(QObject, RemoteCallbacks):
             stats.received_objects,
             stats.total_objects,
             stats.received_bytes,
-            _("Downloading: {0}…"),
-            _("Downloading complete ({0})."))
+            _("Downloading…"),
+            _("Download complete ({0})."))
 
     @mayAbortNetworkOperation
     def push_transfer_progress(self, objects_pushed: int, total_objects: int, bytes_pushed: int):
@@ -271,11 +271,12 @@ class RemoteLink(QObject, RemoteCallbacks):
             objects_pushed,
             total_objects,
             bytes_pushed,
-            _("Uploading: {0}…"),
-            _("Upload complete ({0})."))
+            _("Uploading…"),
+            _("Upload complete ({0})."),
+            showIndexingProgress=False)
 
     def _genericTransferProgress(self, objectsTransferred: int, totalObjects: int, bytesTransferred: int,
-                                 transferingMessage: str, transferCompleteMessage: str):
+                                 transferingMessage: str, completeMessage: str, showIndexingProgress=True):
         if not self.transferRateTimer.isValid():
             self.transferRateTimer.start()
             self.transferredBytesAtTimerStart = bytesTransferred
@@ -299,14 +300,18 @@ class RemoteLink(QObject, RemoteCallbacks):
 
         message = ""
         if objectsTransferred != totalObjects:
-            message += transferingMessage.format(sizeText)
-            message += "\n"
+            message += transferingMessage + " "
+            # Hide transfer size until it's large enough, so we don't flash an
+            # irrelevant number for small transfers (e.g. "Uploading 12 bytes").
+            if bytesTransferred >= 1024:
+                message += sizeText + " "
             if self.transferRate != 0:
                 rateText = locale.formattedDataSize(self.transferRate, 0 if self.transferRate < 1e6 else 1)
                 message += _p("download speed", "({0}/s)", rateText)
         else:
-            message += transferCompleteMessage.format(sizeText)
-            message += _("Indexing {0} of {1} objects…", locale.toString(obj), locale.toString(totalObjects))
+            message += completeMessage.format(sizeText)
+            if showIndexingProgress:
+                message += "\n" + _("Indexing {0} of {1} objects…", locale.toString(obj), locale.toString(totalObjects))
 
         self.message.emit(message)
 
