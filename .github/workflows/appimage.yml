@@ -3,20 +3,28 @@ name: AppImage
 on: [workflow_dispatch]
 
 env:
-  PYVER: "3.12"
+  PYVER: "3.13"
   QT_API: "pyqt6"
 
 jobs:
   appimage:
-    runs-on: ubuntu-20.04  # Use oldest available Ubuntu for maximum glibc compatibility
-    timeout-minutes: 15
+    runs-on: ${{ matrix.platform.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:  # Use oldest available Ubuntu for maximum glibc compatibility
+          - { name: x86_64, os: ubuntu-20.04 }
+          - { name: aarch64, os: ubuntu-24.04-arm }  # pyqt6's prebuilt aarch64 wheel requires glibc 2.39+ (too new for 22.04)
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "${{ env.PYVER }}" }
       - run: python -m pip install --upgrade pip setuptools wheel
       - run: python -m pip install --upgrade -e .[$QT_API,pygments]  # install dependencies (installing GF itself isn't necessary)
-      - run: python -m pip install --upgrade git+https://github.com/niess/python-appimage
+      - run: python -m pip install --upgrade git+https://github.com/jorio/python-appimage
       - name: Build AppImage
         run: |
           PYVER=$PYVER QT_API=$QT_API ./pkg/appimage/build-appimage.sh
