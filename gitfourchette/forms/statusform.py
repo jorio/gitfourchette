@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -7,6 +7,7 @@
 import logging
 
 from gitfourchette.qt import *
+from gitfourchette.toolbox import setFontFeature
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,10 @@ class StatusForm(QStackedWidget):
         progressLayout = QVBoxLayout(progressPage)
         progressLayout.addWidget(self.progressMessage)
         progressLayout.addWidget(self.progressBar)
+
+        progressFont = self.progressMessage.font()
+        setFontFeature(progressFont, "tnum")
+        self.progressMessage.setFont(progressFont)
 
         self.blurbLabel.setContentsMargins(4, 4, 4, 4)
         progressLayout.setContentsMargins(4, 4, 4, 4)

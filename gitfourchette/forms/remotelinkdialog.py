@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -19,6 +19,10 @@ class RemoteLinkDialog(QDialog):
 
         self.ui = Ui_RemoteLinkDialog()
         self.ui.setupUi(self)
+
+        statusFont = self.ui.statusLabel.font()
+        setFontFeature(statusFont, "tnum")
+        self.ui.statusLabel.setFont(statusFont)
 
         self.setMinimumWidth(self.fontMetrics().horizontalAdvance("W" * 40))
         self.setWindowTitle(title)
