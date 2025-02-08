@@ -22,6 +22,7 @@ EXCLUDES = [
     'PyQt5.QtTest',
     'PyQt5.QtMultimedia',
     'PyQt6',
+    'PyQt6.QtPdf',
     'PyQt6.QtTest',
     'PyQt6.QtMultimedia',
     'PySide6.QtMultimedia',

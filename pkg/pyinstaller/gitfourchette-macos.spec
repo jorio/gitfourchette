@@ -8,6 +8,7 @@ spec_helper.writeBuildConstants(QT_API)
 
 MAC_EXCLUDES = [
     'PyQt6.QtDBus',
+    'PyQt6.QtPdf',
 ]
 
 a = Analysis(

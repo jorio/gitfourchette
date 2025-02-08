@@ -36,3 +36,16 @@ do
         else echo -n "Delete: " && rm -v "$i"
     fi
 done
+
+rm -v "$APP/Contents/Resources/assets/lang/"*.po*
+rm -v "$APP/Contents/Resources/assets/lang/README.md"
+
+# Remove framework bloat
+# Note: QtDBus.framework is included but somehow the app won't start without it.
+rm -v "$APP/Contents/Frameworks/QtNetwork"
+rm -v "$APP/Contents/Frameworks/QtPdf"
+rm -v "$APP/Contents/Resources/QtNetwork"
+rm -v "$APP/Contents/Resources/QtPdf"
+rm -rv "$APP/Contents/Frameworks/PyQt6/Qt6/lib/QtPdf.framework"
+rm -rv "$APP/Contents/Frameworks/PyQt6/Qt6/lib/QtNetwork.framework"
+rm -rv "$APP/Contents/Frameworks/PyQt6/Qt6/plugins/imageformats/libqpdf.dylib"
