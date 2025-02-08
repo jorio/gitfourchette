@@ -405,7 +405,7 @@ class RevertCommit(RepoTask):
 
         yield from self.flowEnterUiThread()
 
-        repoModel.prefs.draftCommitMessage = self.repo.message
+        repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
         repoModel.prefs.setDirty()
 
         self.jumpTo = NavLocator.inWorkdir()
@@ -446,7 +446,7 @@ class CherrypickCommit(RepoTask):
                      "that the current branch doesn’t already have.", bquo(shortHash(oid)))
             raise AbortTask(info, "information")
 
-        self.repoModel.prefs.draftCommitMessage = self.repo.message
+        self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
         self.repoModel.prefs.draftCommitSignature = commit.author
         self.repoModel.prefs.draftCommitSignatureOverride = SignatureOverride.Author
         self.repoModel.prefs.setDirty()

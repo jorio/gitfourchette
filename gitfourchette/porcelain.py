@@ -1848,6 +1848,15 @@ class Repo(_VanillaRepository):
         ancestor, ours, theirs = self.index.conflicts[path]
         return DiffConflict(ancestor, ours, theirs)
 
+    @property
+    def message_without_conflict_comments(self) -> str:
+        message = self.message
+        clean_message = ""
+        for line in message.splitlines(keepends=True):
+            if not line.startswith('#'):
+                clean_message += line
+        return clean_message.strip()
+
 
 class RepoContext:
     def __init__(self, repo_or_path: Repo | str | _Path, flags=RepositoryOpenFlag.DEFAULT, write_index=False):

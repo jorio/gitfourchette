@@ -912,6 +912,17 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     assert not rw.conflictView.isVisible()
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
 
+    rw.diffArea.commitButton.click()
+    acceptQMessageBox(rw, "empty commit")
+    commitDialog: CommitDialog = findQDialog(rw, "commit")
+    preparedMessage = commitDialog.getFullMessage()
+    assert re.match(r"Merge commit.+1b2bae55", preparedMessage)
+    assert "Conflicts" not in preparedMessage
+    assert "#" not in preparedMessage
+
+    commitDialog.accept()
+    assert rw.repo.state() == RepositoryState.NONE
+
 
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
 def testMightLoseDetachedHead(tempDir, mainWindow, method):
