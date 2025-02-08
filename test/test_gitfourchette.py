@@ -637,3 +637,30 @@ def testConfigFileScrubbing(tempDir, mainWindow):
 
     assert b'[branch "master"]' not in readFile(configPath)
     assert b'[branch "scrubme"]' not in readFile(configPath)
+
+
+# This used to fail in multithread mode only, hence taskThread
+def testHideSelectedBranch(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        masterId = repo.branches.local['master'].target
+        detachedId = Oid(hex='ce112d052bcf42442aa8563f1e2b7a8aabbf4d17')
+        repo.checkout_commit(detachedId)
+
+    rw = mainWindow.openRepo(wd)
+    rw.repoTaskRunner.waitUntilReady()
+
+    # Select branch 'master'...
+    rw.selectRef('refs/heads/master')
+    rw.repoTaskRunner.waitUntilReady()
+    assert rw.diffView.currentLocator.commit == masterId
+
+    # ...and hide it. DiffView shouldn't show master anymore.
+    rw.toggleHideRefPattern('refs/heads/master')
+    rw.repoTaskRunner.waitUntilReady()
+    assert masterId in rw.repoModel.hiddenCommits
+
+    assert rw.navLocator.commit != masterId
+    assert rw.navLocator.commit == rw.diffArea.contextHeader.locator.commit
+    assert str(masterId)[:7] not in rw.diffArea.diffHeader.text()
+    assert str(rw.navLocator.commit)[:7] in rw.diffArea.diffHeader.text()

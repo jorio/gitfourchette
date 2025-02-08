@@ -394,8 +394,11 @@ def writeTempFile(namePattern: str, data: bytes | str) -> QTemporaryFile:
 
 def waitForSignal(parent: QObject | QWidget, signal: SignalInstance):
     loop = QEventLoop(parent)
-    signal.connect(lambda: loop.quit())
+    def quitProxy():
+        loop.quit()
+    signal.connect(quitProxy)
     loop.exec()
+    signal.disconnect(quitProxy)
     loop.deleteLater()
 
 

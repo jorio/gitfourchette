@@ -667,6 +667,13 @@ class RepoTaskRunner(QObject):
         assert not self._workerThread.isRunning()
         assert not self._workerThread.flow
 
+    def waitUntilReady(self):
+        """ For threaded unit tests. """
+        if not self.isBusy():
+            return
+        waitForSignal(self, self.ready)
+        assert not self.isBusy()
+
     def put(self, task: RepoTask, *args, **kwargs):
         assert onAppThread()
 

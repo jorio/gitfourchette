@@ -157,7 +157,6 @@ class GraphView(QListView):
 
     def clear(self):
         self.clModel.clear()
-        self.onSetCurrent()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         currentIndex = self.currentIndex()
@@ -215,6 +214,7 @@ class GraphView(QListView):
     def currentCommitId(self) -> Oid | None:
         # TODO: If pygit2 had Oid.__bool__() which returned True if the hash isn't NULL_OID,
         #       we wouldn't have to return None for compatibility with existing code
+        #       (pygit2 1.17.1+ has this now)
         currentIndex = self.currentIndex()
         if not currentIndex.isValid():
             return None
@@ -243,25 +243,26 @@ class GraphView(QListView):
         super().selectionChanged(selected, deselected)
 
         if selected.count() == 0:
-            self.onSetCurrent()
-        else:
-            self.onSetCurrent(selected.indexes()[0])
+            return
 
-    def onSetCurrent(self, current: QModelIndex = QModelIndex_default):
+        index = selected.indexes()[0]
+        self.onSetCurrent(index)
+
+    def onSetCurrent(self, current: QModelIndex):
         if self.signalsBlocked():  # Don't bother with the jump if our signals are blocked
             return
 
-        if not current.isValid():
-            locator = NavLocator(NavContext.EMPTY)
+        assert current.isValid()
+
+        special = current.data(CommitLogModel.Role.SpecialRow)
+        if special == SpecialRow.UncommittedChanges:
+            locator = NavLocator(NavContext.WORKDIR)
+        elif special == SpecialRow.Commit:
+            oid = current.data(CommitLogModel.Role.Oid)
+            locator = NavLocator(NavContext.COMMITTED, commit=oid)
         else:
-            special = current.data(CommitLogModel.Role.SpecialRow)
-            if special == SpecialRow.UncommittedChanges:
-                locator = NavLocator(NavContext.WORKDIR)
-            elif special == SpecialRow.Commit:
-                oid = current.data(CommitLogModel.Role.Oid)
-                locator = NavLocator(NavContext.COMMITTED, commit=oid)
-            else:
-                locator = NavLocator(NavContext.SPECIAL, path=str(special))
+            locator = NavLocator(NavContext.SPECIAL, path=str(special))
+
         Jump.invoke(self, locator)
 
     def selectRowForLocator(self, locator: NavLocator, force=False):
