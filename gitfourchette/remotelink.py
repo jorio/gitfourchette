@@ -130,6 +130,7 @@ class RemoteLink(QObject, RemoteCallbacks):
 
         self.transferRate = 0
         self.transferredBytesAtTimerStart = 0
+        self.transferCompleteAtTimerStart = False
         self.transferRateTimer.invalidate()
 
         self._sidebandProgressBuffer = ""
@@ -277,30 +278,34 @@ class RemoteLink(QObject, RemoteCallbacks):
 
     def _genericTransferProgress(self, objectsTransferred: int, totalObjects: int, bytesTransferred: int,
                                  transferingMessage: str, completeMessage: str, showIndexingProgress=True):
+        obj = min(objectsTransferred, totalObjects)
+        transferComplete = obj == totalObjects
+
         if not self.transferRateTimer.isValid():
+            # Prime timer
             self.transferRateTimer.start()
             self.transferredBytesAtTimerStart = bytesTransferred
         elif self.transferRateTimer.elapsed() > DLRATE_REFRESH_INTERVAL:
+            # Schedule next timer tick
             intervalBytes = bytesTransferred - self.transferredBytesAtTimerStart
             self.transferRate = int(intervalBytes * 1000 / self.transferRateTimer.elapsed())
             self.transferRateTimer.restart()
             self.transferredBytesAtTimerStart = bytesTransferred
+        elif transferComplete != self.transferCompleteAtTimerStart:
+            # When the transfer completes, force UI update regardless of timer
+            pass
         else:
             # Don't update UI too frequently (ease CPU load)
             return
 
-        obj = min(objectsTransferred, totalObjects)
-        if obj == totalObjects:
-            self.progress.emit(0, 0)
-        else:
-            self.progress.emit(obj, totalObjects)
+        self.transferCompleteAtTimerStart = transferComplete
 
         locale = QLocale()
         sizeText = locale.formattedDataSize(bytesTransferred, 1)
 
-        message = ""
-        if objectsTransferred != totalObjects:
-            message += transferingMessage + " "
+        if not transferComplete:
+            self.progress.emit(obj, totalObjects)
+            message = transferingMessage + " "
             # Hide transfer size until it's large enough, so we don't flash an
             # irrelevant number for small transfers (e.g. "Uploading 12 bytes").
             if bytesTransferred >= 1024:
@@ -309,9 +314,10 @@ class RemoteLink(QObject, RemoteCallbacks):
                 rateText = locale.formattedDataSize(self.transferRate, 0 if self.transferRate < 1e6 else 1)
                 message += _p("download speed", "({0}/s)", rateText)
         else:
-            message += completeMessage.format(sizeText)
+            self.progress.emit(0, 0)
+            message = completeMessage.format(sizeText) + " "
             if showIndexingProgress:
-                message += "\n" + _("Indexing {0} of {1} objects…", locale.toString(obj), locale.toString(totalObjects))
+                message += _("Indexing {0} objects…", locale.toString(totalObjects))
 
         self.message.emit(message)
 
