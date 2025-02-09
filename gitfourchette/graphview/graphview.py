@@ -96,6 +96,12 @@ class GraphView(QListView):
                 TaskBook.action(self, ExportWorkdirAsPatch, accel="X"),
             ]
 
+            if self.repoModel.prefs.hasDraftCommit():
+                actions.extend([
+                    ActionDef.SEPARATOR,
+                    ActionDef(_("Clear Draft Message"), self.repoModel.prefs.clearDraftCommit),
+                ])
+
         elif kind == SpecialRow.EndOfShallowHistory:
             actions = []
 

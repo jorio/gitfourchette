@@ -40,6 +40,9 @@ class RepoPrefs(PrefsFile):
     def getParentDir(self):
         return self._parentDir
 
+    def hasDraftCommit(self):
+        return self.draftCommitMessage or self.draftCommitSignatureOverride != SignatureOverride.Nothing
+
     def clearDraftCommit(self):
         self.draftCommitMessage = ""
         self.draftCommitSignature = None

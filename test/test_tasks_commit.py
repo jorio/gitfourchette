@@ -93,6 +93,7 @@ def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow):
     assert dialog.getOverriddenSignatureKind() == SignatureOverride.Nothing
     QTest.keyClicks(dialog.ui.summaryEditor, "hoping to save this message")
     dialog.reject()
+    assert rw.repoModel.prefs.hasDraftCommit()
     assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
 
@@ -102,12 +103,14 @@ def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow):
     dialog.ui.revealSignature.click()
     dialog.ui.signature.ui.replaceComboBox.setCurrentIndex(2)
     dialog.reject()
+    assert rw.repoModel.prefs.hasDraftCommit()
     assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Both
     assert rw.repoModel.prefs.draftCommitSignature is not None
 
     rw.diffArea.commitButton.click()
     dialog: CommitDialog = findQDialog(rw, "commit")
+    assert rw.repoModel.prefs.hasDraftCommit()
     assert dialog.ui.summaryEditor.text() == "hoping to save this message"
     assert dialog.getOverriddenSignatureKind() == SignatureOverride.Both
     dialog.accept()  # Go through with the commit this time
@@ -116,9 +119,34 @@ def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow):
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "empty commit")
     dialog: CommitDialog = findQDialog(rw, "commit")
+    assert not rw.repoModel.prefs.hasDraftCommit()
     assert dialog.ui.summaryEditor.text() == ""
     assert dialog.getOverriddenSignatureKind() == SignatureOverride.Nothing
     dialog.reject()
+
+
+def testClearCommitMessageDraft(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    rw.diffArea.commitButton.click()
+    acceptQMessageBox(rw, "empty commit")
+    dialog: CommitDialog = findQDialog(rw, "commit")
+    assert dialog.ui.summaryEditor.text() == ""
+    assert dialog.getOverriddenSignatureKind() == SignatureOverride.Nothing
+    QTest.keyClicks(dialog.ui.summaryEditor, "hoping to save this message")
+    dialog.reject()
+
+    assert rw.repoModel.prefs.hasDraftCommit()
+    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
+    assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
+
+    assert rw.navLocator.context.isWorkdir()
+    graphCM = rw.graphView.makeContextMenu()
+    triggerMenuAction(graphCM, "clear draft")
+
+    assert not rw.repoModel.prefs.hasDraftCommit()
+    assert not rw.repoModel.prefs.draftCommitMessage
 
 
 def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow):
@@ -138,6 +166,7 @@ def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow)
     assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
     assert rw.repoModel.prefs.draftCommitSignature is None
+    assert rw.repoModel.prefs.hasDraftCommit()
 
     rw.diffArea.commitButton.click()
     dialog: CommitDialog = findQDialog(rw, "commit")
