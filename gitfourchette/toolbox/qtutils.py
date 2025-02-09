@@ -137,16 +137,6 @@ def formatWidgetTooltip(widget: QWidget, *args, **kwargs):
     return text
 
 
-def addComboBoxItem(comboBox: QComboBox, caption: str, userData=None, isCurrent=False):
-    if isCurrent:
-        caption = "• " + caption
-    index = comboBox.count()
-    comboBox.addItem(caption, userData=userData)
-    if isCurrent:
-        comboBox.setCurrentIndex(index)
-    return index
-
-
 def enforceComboBoxMaxVisibleItems(comboBox: QComboBox):
     """
     Some styles, in particular Fusion and macOS, ignore QComboBox.maxVisibleItems

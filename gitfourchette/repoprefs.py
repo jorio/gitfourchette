@@ -73,3 +73,9 @@ class RepoPrefs(PrefsFile):
         self.sortTags = RefSort.UseGlobalPref
         self.refSortClearTimestamp = 0
         self.setDirty()
+
+    def getShadowUpstream(self, localBranchName: str):
+        return self._repo.get_config_value(("branch", localBranchName, KEY_PREFIX+"shadow-remote"))
+
+    def setShadowUpstream(self, localBranchName: str, upstreamName: str):
+        self._repo.set_config_value(("branch", localBranchName, KEY_PREFIX+"shadow-remote"), upstreamName)

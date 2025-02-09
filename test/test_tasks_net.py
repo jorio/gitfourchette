@@ -431,24 +431,29 @@ def testPush(tempDir, mainWindow, asNewBranch):
     i = dlg.ui.remoteBranchEdit.currentIndex()
     assert dlg.ui.remoteBranchEdit.itemText(i).startswith("origin/master")
     assert dlg.ui.trackCheckBox.isChecked()
+    assert not dlg.willPushToNewBranch
+    assert dlg.currentRemoteBranchFullName == "origin/master"
     assert re.search(r"already tracks.+origin/master", dlg.ui.trackingLabel.text(), re.I)
 
     if not asNewBranch:
-        i = dlg.ui.remoteBranchEdit.findText("localfs/master")
-    else:
-        i = dlg.ui.remoteBranchEdit.findText(r"new.+branch on.+localfs", Qt.MatchFlag.MatchRegularExpression)
-    assert i >= 0
-    dlg.ui.remoteBranchEdit.setCurrentIndex(i)
-    dlg.ui.remoteBranchEdit.activated.emit(i)  # this signal is normally only emitted on user interaction, so fake it
-
-    if not asNewBranch:
+        qcbSetIndex(dlg.ui.remoteBranchEdit, "localfs/master")
         assert not dlg.ui.trackCheckBox.isChecked()
+        assert not dlg.willPushToNewBranch
+        assert dlg.currentRemoteBranchFullName == "localfs/master"
     else:
+        qcbSetIndex(dlg.ui.remoteBranchEdit, "new.+branch on .+localfs")
         assert dlg.ui.trackCheckBox.isChecked()
         assert dlg.ui.newRemoteBranchNameEdit.text() == "master-2"
+        assert dlg.currentRemoteBranchFullName == "localfs/master-2"
+        assert dlg.willPushToNewBranch
+
         dlg.ui.newRemoteBranchNameEdit.clear()
+        assert dlg.willPushToNewBranch
+
         QTest.keyClicks(dlg.ui.newRemoteBranchNameEdit, "new")  # keyClicks ensures the correct signal is emitted
         assert re.search(r"will track.+localfs/new.+instead of.+origin/master", dlg.ui.trackingLabel.text(), re.I)
+        assert dlg.currentRemoteBranchFullName == "localfs/new"
+        assert dlg.willPushToNewBranch
 
     dlg.startOperationButton.click()
 
@@ -457,6 +462,59 @@ def testPush(tempDir, mainWindow, asNewBranch):
     else:
         assert rw.repo.branches.remote["localfs/new"].target == newHead
         assert rw.repo.branches["master"].upstream_name == "refs/remotes/localfs/new"
+
+
+def testShadowUpstream(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True, keepOldUpstream=True)
+
+    # Make local branch 'master' track no upstream
+    with RepoContext(wd) as repo:
+        repo.branches.local['master'].upstream = None
+
+    rw = mainWindow.openRepo(wd)
+    pushDialog: PushDialog
+
+    # Push master to remote2/master-2 without tracking it.
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog = findQDialog(rw, "push.+branch")
+    assert pushDialog.currentRemoteBranchFullName == "origin/master-2"
+    qcbSetIndex(pushDialog.ui.remoteBranchEdit, r"new remote branch on.+remote2")
+    assert pushDialog.currentRemoteBranchFullName == "remote2/master-2"
+    pushDialog.ui.trackCheckBox.setChecked(False)
+    pushDialog.accept()
+
+    # Open PushDialog on master again, remote2/master-2 should be automatically selected.
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog = findQDialog(rw, "push.+branch")
+    assert pushDialog.currentRemoteBranchFullName == "remote2/master-2"
+    pushDialog.ui.trackCheckBox.setChecked(False)
+
+    # Push master to remote2/no-parent, still without tracking it.
+    qcbSetIndex(pushDialog.ui.remoteBranchEdit, r"remote2/no-parent")
+    assert pushDialog.currentRemoteBranchFullName == "remote2/no-parent"
+    pushDialog.ui.forcePushCheckBox.setChecked(True)
+    pushDialog.ui.trackCheckBox.setChecked(False)
+    pushDialog.accept()
+
+    # Open PushDialog on master again, remote2/no-parent should be automatically selected.
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog = findQDialog(rw, "push.+branch")
+    assert pushDialog.currentRemoteBranchFullName == "remote2/no-parent"
+    pushDialog.reject()
+
+    # Clear shadow upstream reference by setting an upstream manually.
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "upstream branch/origin.master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "upstream branch/stop tracking upstream")
+
+    # Open PushDialog; the shadow upstream reference should be lost (it used to be remote2/no-parent).
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog = findQDialog(rw, "push.+branch")
+    assert pushDialog.currentRemoteBranchFullName == "origin/master-2"
+    pushDialog.reject()
 
 
 def testPushNoBranch(tempDir, mainWindow):

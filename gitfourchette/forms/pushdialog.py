@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -12,14 +12,10 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.remotelink import RemoteLink
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
-
-
-class ERemoteItem(enum.Enum):
-    ExistingRef = enum.auto()
-    NewRef = enum.auto()
 
 
 class PushDialog(QDialog):
@@ -31,7 +27,7 @@ class PushDialog(QDialog):
     Call `setRemoteLink()` to set.
     """
 
-    def onPickLocalBranch(self, index: int):
+    def onPickLocalBranch(self):
         localBranch = self.currentLocalBranch
 
         if localBranch.upstream:
@@ -39,23 +35,21 @@ class PushDialog(QDialog):
         else:
             self.ui.trackingLabel.setText(_("non-tracking"))
 
-        remoteIndex = self.trackedBranchIndex
-        if self.trackedBranchIndex < 0:
-            remoteIndex = self.fallbackAutoNewIndex
+        remoteIndex = self.getUpstreamIndex(localBranch.upstream.shorthand if localBranch.upstream else "")
         self.ui.remoteBranchEdit.setCurrentIndex(remoteIndex)
         self.onPickRemoteBranch(remoteIndex)
-
         self.updateTrackCheckBox()
 
         self.remoteBranchNameValidator.run()
 
     def onPickRemoteBranch(self, index: int):
-        remoteItem, remoteName = self.ui.remoteBranchEdit.currentData()
+        remoteName = self.currentRemoteName
         remoteTooltip = self.ui.remoteBranchEdit.itemData(index, Qt.ItemDataRole.ToolTipRole)
 
-        if remoteItem != ERemoteItem.ExistingRef:
-            remoteBranchName = withUniqueSuffix(self.currentLocalBranchName, self.reservedRemoteBranchNames[remoteName])
-            self.ui.remoteNameLabel.setText("\u21AA " + remoteName + "/")
+        if self.willPushToNewBranch:
+            reservedNames = self.reservedRemoteBranchNames[remoteName]
+            remoteBranchName = withUniqueSuffix(self.currentLocalBranchName, reservedNames)
+            self.ui.remoteNameLabel.setText(f"\u21AA {remoteName}/")
             self.ui.remoteNameLabel.setToolTip(remoteTooltip)
             self.ui.newRemoteBranchStackedWidget.setCurrentIndex(0)
             self.ui.newRemoteBranchNameEdit.setText(remoteBranchName)
@@ -110,6 +104,10 @@ class PushDialog(QDialog):
                 self.ui.trackCheckBox.setChecked(willTrack)
 
     @property
+    def repo(self) -> Repo:
+        return self.repoModel.repo
+
+    @property
     def currentLocalBranchName(self) -> str:
         return self.ui.localBranchEdit.currentData()
 
@@ -123,111 +121,99 @@ class PushDialog(QDialog):
 
     @property
     def willPushToNewBranch(self) -> bool:
-        remoteItem, _dummy = self.ui.remoteBranchEdit.currentData()
-        return remoteItem == ERemoteItem.NewRef
+        data = self.ui.remoteBranchEdit.currentData()
+        assert isinstance(data, str)
+        return data.endswith("/")
 
     @property
     def currentRemoteName(self):
-        remoteItem, remoteData = self.ui.remoteBranchEdit.currentData()
-
-        if remoteItem == ERemoteItem.ExistingRef:
-            rbr: Branch = remoteData
-            return rbr.remote_name
-        elif remoteItem == ERemoteItem.NewRef:
-            return remoteData
-        else:
-            raise NotImplementedError()
+        data = self.ui.remoteBranchEdit.currentData()
+        assert isinstance(data, str)
+        remoteName, _branchName = split_remote_branch_shorthand(data)
+        return remoteName
 
     @property
     def currentRemoteBranchName(self) -> str:
-        data = self.ui.remoteBranchEdit.currentData()
-        if data is None:
-            return ""
-        remoteItem, remoteData = self.ui.remoteBranchEdit.currentData()
-
-        if remoteItem == ERemoteItem.ExistingRef:
-            rbr: Branch = remoteData
-            return rbr.shorthand.removeprefix(rbr.remote_name + "/")
-        elif remoteItem == ERemoteItem.NewRef:
+        if self.willPushToNewBranch:
             return self.ui.newRemoteBranchNameEdit.text()
         else:
-            raise NotImplementedError()
+            data = self.ui.remoteBranchEdit.currentData()
+            assert isinstance(data, str)
+            _remoteName, branchName = split_remote_branch_shorthand(data)
+            return branchName
 
     @property
     def currentRemoteBranchFullName(self) -> str:
-        data = self.ui.remoteBranchEdit.currentData()
-        if data is None:
-            return ""
-        remoteItem, remoteData = self.ui.remoteBranchEdit.currentData()
-
-        if remoteItem == ERemoteItem.ExistingRef:
-            rbr: Branch = remoteData
-            return rbr.shorthand
-        elif remoteItem == ERemoteItem.NewRef:
-            return remoteData + "/" + self.ui.newRemoteBranchNameEdit.text()
-        else:
-            raise NotImplementedError()
+        return self.currentRemoteName + "/" + self.currentRemoteBranchName
 
     @property
     def refspec(self):
         prefix = "+" if self.willForcePush else ""
-        return F"{prefix}refs/heads/{self.currentLocalBranchName}:refs/heads/{self.currentRemoteBranchName}"
+        lbn = self.currentLocalBranchName
+        rbn = self.currentRemoteBranchName
+        return f"{prefix}refs/heads/{lbn}:refs/heads/{rbn}"
+
+    def getUpstreamIndex(self, upstream: str):
+        comboBox = self.ui.remoteBranchEdit
+
+        # Find the upstream as-is
+        index = comboBox.findData(upstream)
+        if index >= 0:
+            return index
+
+        # Fall back to "New branch" item for last used remote in this repo
+        fallbackRemote = self.repoModel.prefs.getShadowUpstream(self.currentLocalBranchName)
+        index = comboBox.findData(fallbackRemote)
+        if index >= 0:
+            return index
+
+        # Just find the first "New branch" item
+        for index in range(comboBox.count()):
+            data = comboBox.itemData(index)
+            if data.endswith("/"):
+                return index
+
+        return -1
 
     def fillRemoteComboBox(self):
-        self.fallbackAutoNewIndex = 0
-        self.trackedBranchIndex = -1
         comboBox = self.ui.remoteBranchEdit
+        currentLocalBranch = self.currentLocalBranch
+        currentUpstream = currentLocalBranch.upstream.shorthand if currentLocalBranch.upstream else ""
+
+        branchIcon = stockIcon("vcs-branch")
+        newBranchIcon = stockIcon("SP_FileDialogNewFolder")
+        boldFont = QFont(comboBox.font())
+        boldFont.setBold(True)
 
         with QSignalBlockerContext(comboBox):
             comboBox.clear()
-            firstRemote = True
 
-            for remoteName, remoteBranches in self.repo.listall_remote_branches().items():
-                remoteUrl = self.repo.remotes[remoteName].url
-
-                if not firstRemote:
+            for remoteName, branchNames in self.repo.listall_remote_branches(value_style="shorthand").items():
+                if comboBox.count() != 0:
                     comboBox.insertSeparator(comboBox.count())
 
-                for remoteBranch in remoteBranches:
-                    identifier = F"{remoteName}/{remoteBranch}"
-                    br = self.repo.branches.remote[identifier]
-                    font = None
+                remoteUrl = self.repo.remotes[remoteName].url
+                for shorthand in branchNames:
+                    isTracked = shorthand == currentUpstream
+                    caption = shorthand
+                    if isTracked:
+                        caption += " " + _("[tracked]")
+                    index = comboBox.count()
+                    comboBox.addItem(branchIcon, caption, shorthand)
+                    comboBox.setItemData(index, boldFont if isTracked else None, Qt.ItemDataRole.FontRole)
+                    comboBox.setItemData(index, remoteUrl, Qt.ItemDataRole.ToolTipRole)
 
-                    if br == self.currentLocalBranch.upstream:
-                        caption = F"{identifier} " + _("[tracked]")
-                        self.trackedBranchIndex = comboBox.count()
-                        icon = stockIcon("vcs-branch")
-                        font = QFont()
-                        font.setBold(True)
-                    else:
-                        icon = stockIcon("vcs-branch")
-                        caption = identifier
-
-                    payload = (ERemoteItem.ExistingRef, br)
-
-                    comboBox.addItem(icon, caption, payload)
-
-                    if font:
-                        comboBox.setItemData(comboBox.count()-1, font, Qt.ItemDataRole.FontRole)
-                    comboBox.setItemData(comboBox.count()-1, remoteUrl, Qt.ItemDataRole.ToolTipRole)
-
-                if firstRemote:
-                    self.fallbackAutoNewIndex = comboBox.count()
-                comboBox.addItem(
-                    stockIcon("SP_FileDialogNewFolder"),
-                    _("New remote branch on {0}", lquo(remoteName)),
-                    (ERemoteItem.NewRef, remoteName))
+                newBranchPayload = remoteName + "/"
+                newBranchCaption = _("New remote branch on {0}", lquo(remoteName))
+                comboBox.addItem(newBranchIcon, newBranchCaption, newBranchPayload)
                 comboBox.setItemData(comboBox.count()-1, remoteUrl, Qt.ItemDataRole.ToolTipRole)
 
-                firstRemote = False
-
-    def __init__(self, repo: Repo, branch: Branch, parent: QWidget):
+    def __init__(self, repoModel: RepoModel, branch: Branch, parent: QWidget):
         super().__init__(parent)
-        self.repo = repo
-        self.reservedRemoteBranchNames = self.repo.listall_remote_branches()
+        repo = repoModel.repo
+        self.repoModel = repoModel
+        self.reservedRemoteBranchNames = repo.listall_remote_branches()
 
-        self.fallbackAutoNewIndex = 0
-        self.trackedBranchIndex = -1
         self.remoteLink = None  # Set by PushBranch task while a push is in progress
 
         self.ui = Ui_PushDialog()
@@ -239,13 +225,10 @@ class PushDialog(QDialog):
         self.startOperationButton.setText(_("&Push"))
         self.startOperationButton.setIcon(stockIcon("git-push"))
 
-        pickBranchIndex = 0
-
-        for lbName in repo.branches.local:
-            i = addComboBoxItem(self.ui.localBranchEdit, lbName, lbName)
-            if branch.shorthand == lbName:
-                pickBranchIndex = i
-        self.ui.localBranchEdit.setCurrentIndex(pickBranchIndex)
+        lbComboBox = self.ui.localBranchEdit
+        for lbName in sorted(repo.branches.local, key=naturalSort):
+            lbComboBox.addItem(lbName, lbName)
+        lbComboBox.setCurrentIndex(lbComboBox.findData(branch.shorthand))
 
         self.ui.localBranchEdit.activated.connect(self.fillRemoteComboBox)
         self.ui.localBranchEdit.activated.connect(self.onPickLocalBranch)
@@ -258,8 +241,9 @@ class PushDialog(QDialog):
         self.remoteBranchNameValidator.connectInput(self.ui.newRemoteBranchNameEdit, self.validateCustomRemoteBranchName)
         # don't prime the validator!
 
-        # Fire initial activated signal to set up comboboxes
-        self.ui.localBranchEdit.activated.emit(pickBranchIndex)
+        # Set up comboboxes (act as if we picked the current branch in localBranchEdit)
+        self.fillRemoteComboBox()
+        self.onPickLocalBranch()
 
         self.ui.forcePushCheckBox.clicked.connect(self.setOkButtonText)
         self.setOkButtonText()
@@ -322,3 +306,10 @@ class PushDialog(QDialog):
         pushInProgress = link is not None
         self.remoteLink = link
         self.enableInputs(not pushInProgress)
+
+    def saveShadowUpstream(self):
+        branch = self.currentLocalBranch
+        if branch.upstream:
+            self.repoModel.prefs.setShadowUpstream(branch.branch_name, "")
+        else:
+            self.repoModel.prefs.setShadowUpstream(branch.branch_name, self.currentRemoteBranchFullName)

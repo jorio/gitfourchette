@@ -403,6 +403,7 @@ class EditUpstreamBranch(RepoTask):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Upstreams
         self.repo.edit_upstream_branch(localBranchName, remoteBranchName)
+        self.repoModel.prefs.setShadowUpstream(localBranchName, "")  # Clear any shadow upstream
 
         if remoteBranchName:
             self.postStatus = _("Branch {0} now tracks {1}.", tquo(localBranchName), tquo(remoteBranchName))

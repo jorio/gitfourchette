@@ -308,7 +308,7 @@ class PushBranch(RepoTask):
         except (GitError, KeyError) as exc:
             raise AbortTask(_("Please switch to a local branch before performing this action.")) from exc
 
-        dialog = PushDialog(self.repo, branch, self.parentWidget())
+        dialog = PushDialog(self.repoModel, branch, self.parentWidget())
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         tryAgain = True
@@ -361,6 +361,7 @@ class PushBranch(RepoTask):
 
         yield from self.flowEnterUiThread()
         dialog.setRemoteLink(None)
+        dialog.saveShadowUpstream()
         link.deleteLater()
 
         if error:
