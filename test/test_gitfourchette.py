@@ -582,6 +582,38 @@ def testRestoreSession(tempDir, mainWindow):
     mainWindow2.deleteLater()
 
 
+def testCommandLinePaths(tempDir, mainWindow):
+    wd1 = unpackRepo(tempDir, renameTo="wd1")
+    wd2 = unpackRepo(tempDir, renameTo="wd2")
+    app = GFApplication.instance()
+
+    # End default unit test session so we can start a new one with fake command line paths
+    mainWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)  # Let fixture delete original MainWindow
+    mainWindow.close()
+    app.endSession(clearTempDir=False)
+    app.mainWindow = None
+
+    # Begin new session
+    app.commandLinePaths = [
+        wd1 + "/c/c1.txt",  # Any file within the repo should work
+        wd2,
+        wd1,  # Should count as duplicate of the first tab
+    ]
+    app.beginSession()
+    QTest.qWait(1)
+    mainWindow = app.mainWindow
+
+    # Check that we opened the correct repos
+    assert mainWindow.tabs.count() == 2  # Two distinct repos were opened
+    assert mainWindow.tabs.currentIndex() == 0  # The last path that was passed was within the first repo
+    assert mainWindow.tabs.widget(0).workdir == os.path.realpath(wd1)
+    assert mainWindow.tabs.widget(1).workdir == os.path.realpath(wd2)
+
+    # Clean up
+    mainWindow.close()
+    mainWindow.deleteLater()
+
+
 def testMaximizeDiffArea(tempDir, mainWindow):
     wd1 = unpackRepo(tempDir, renameTo="Repo1")
     wd2 = unpackRepo(tempDir, renameTo="Repo2")

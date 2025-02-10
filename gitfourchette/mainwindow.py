@@ -874,7 +874,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Session management
 
-    def restoreSession(self, session: settings.Session):
+    def restoreSession(self, session: settings.Session, sloppyPaths: list[str] | None = None):
         # Note: window geometry, despite being part of the session file, is
         # restored in application.py to avoid flashing a window with incorrect
         # dimensions on boot
@@ -893,8 +893,10 @@ class MainWindow(QMainWindow):
 
         # Lazy-loading: prepare all tabs, but don't load the repos (foreground=False).
         for i, path in enumerate(session.tabs):
+            sloppy = sloppyPaths is not None and path in sloppyPaths
+
             try:
-                newRepoWidget = self._openRepo(path, exactMatch=True, foreground=False)
+                newRepoWidget = self._openRepo(path, exactMatch=not sloppy, foreground=False)
             except (GitError, OSError, NotImplementedError) as exc:
                 # GitError: most errors thrown by pygit2
                 # OSError: e.g. permission denied
@@ -906,10 +908,17 @@ class MainWindow(QMainWindow):
             if newRepoWidget is None:
                 continue
 
+            # If we were passed a "sloppy" path from the command line, remember the root path.
+            if sloppy:
+                path = newRepoWidget.workdir
+
             successfulRepos.append(path)
 
             if i == session.activeTabIndex:
-                activeTab = self.tabs.count()-1
+                # Heads up: MainWindow._openRepo may return an existing RepoWidget that matches the
+                # given path. So, we're not necessarily the last tab, e.g. if the user passes
+                # duplicate paths on the CLI.
+                activeTab = self.tabs.indexOf(newRepoWidget)
 
         # If we failed to load anything, tell the user about it
         if errors:

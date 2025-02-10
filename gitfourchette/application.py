@@ -32,6 +32,7 @@ class GFApplication(QApplication):
 
     mainWindow: MainWindow | None
     initialSession: Session | None
+    commandLinePaths: list
     installedLocale: QLocale | None
     qtbaseTranslator: QTranslator | None
     tempDir: QTemporaryDir
@@ -53,6 +54,7 @@ class GFApplication(QApplication):
 
         self.mainWindow = None
         self.initialSession = None
+        self.commandLinePaths = []
         self.installedLocale = None
         self.qtbaseTranslator = QTranslator(self)
 
@@ -131,7 +133,9 @@ class GFApplication(QApplication):
         TaskInvoker.instance().invokeSignal.connect(self.onInvokeTask)
 
         # Get initial session tabs
-        self.commandLinePaths = parser.positionalArguments()
+        commandLinePaths = parser.positionalArguments()
+        commandLinePaths = [str(Path(p).resolve()) for p in commandLinePaths]
+        self.commandLinePaths = commandLinePaths
 
     def beginSession(self, bootUi=True):
         from gitfourchette.toolbox.messageboxes import NonCriticalOperation
@@ -178,7 +182,7 @@ class GFApplication(QApplication):
         with NonCriticalOperation("Loading session"):
             session.load()
         if self.commandLinePaths:
-            session.tabs += [str(Path(p).resolve()) for p in self.commandLinePaths]
+            session.tabs += self.commandLinePaths
             session.activeTabIndex = len(session.tabs) - 1
 
         # Boot main window first thing when event loop starts
@@ -208,23 +212,24 @@ class GFApplication(QApplication):
         from gitfourchette.forms.donateprompt import DonatePrompt
 
         assert self.mainWindow is None, "already have a MainWindow"
+        assert self.initialSession is not None, "initial session should have been prepared before bootUi"
 
         self.applyQtStylePref(forceApplyDefault=False)
         self.onRestyle()
         self.mainWindow = MainWindow()
         self.mainWindow.destroyed.connect(self.onMainWindowDestroyed)
 
-        if self.initialSession is None:
-            self.mainWindow.show()
-        else:
-            # To prevent flashing a window with incorrect dimensions,
-            # restore the geometry BEFORE calling show()
-            self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
-            self.mainWindow.show()
+        # To prevent flashing a window with incorrect dimensions,
+        # restore the geometry BEFORE calling show()
+        self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
+        self.mainWindow.show()
 
-            self.mainWindow.restoreSession(self.initialSession)
-            self.initialSession = None
+        # Restore session then consume it
+        self.mainWindow.restoreSession(self.initialSession, self.commandLinePaths)
+        self.initialSession = None
+        self.commandLinePaths = []
 
+        # Warn about incorrect Qt bindings
         if QT_BINDING_BOOTPREF and QT_BINDING_BOOTPREF.lower() != QT_BINDING.lower():  # pragma: no cover
             try:
                 QtApiNames(QT_BINDING_BOOTPREF.lower())  # raises ValueError if not recognized
