@@ -70,6 +70,7 @@ from .qtutils import (
     keyEventMatchesMultiShortcut,
     CallbackAccumulator,
     lerp,
+    mixColors,
     DocumentLinks,
     writeTempFile,
     waitForSignal,

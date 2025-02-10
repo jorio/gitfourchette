@@ -53,31 +53,28 @@ class DiffStyle:
     def __init__(self):
         colorblind = settings.prefs.colorblind
         syntaxScheme = settings.prefs.syntaxHighlightingScheme()
+        bgColor = syntaxScheme.backgroundColor
 
+        # Base del/add backgrounds.
+        # Instead of using an alpha value, blend with the background color.
+        # This way, we avoid overlapping alpha artifacts at the edges of QCharFormat runs.
         if colorblind:
-            delColor1 = QColor(colors.orange)
-            addColor1 = QColor(colors.teal)
+            delColor1 = mixColors(bgColor, colors.orange, .35)
+            addColor1 = mixColors(bgColor, colors.teal, .35)
         else:
-            delColor1 = QColor(0xff5555)   # Lower-saturation alternative for e.g. foreground text: 0x993333
-            addColor1 = QColor(0x55ff55)   # Lower-saturation alternative for e.g. foreground text: 0x339933
-        delColor1.setAlphaF(.35)
-        addColor1.setAlphaF(.35)
+            delColor1 = mixColors(bgColor, QColor(0xff5555), .35)
+            addColor1 = mixColors(bgColor, QColor(0x55ff55), .35)
 
+        # Starker contrast for per-character highlights
         if colorblind:
-            delColor2 = QColor(colors.orange)
-            addColor2 = QColor(colors.teal)
-            delColor2.setAlphaF(.6)
-            addColor2.setAlphaF(.6)
+            delColor2 = mixColors(delColor1, colors.orange, .6)
+            addColor2 = mixColors(addColor1, colors.teal, .6)
         elif settings.prefs.syntaxHighlightingScheme().isDark():
-            delColor2 = QColor(0x993333)
-            addColor2 = QColor(0x339933)
-            delColor2.setAlphaF(.6)
-            addColor2.setAlphaF(.6)
+            delColor2 = mixColors(delColor1, QColor(0x993333), .6)
+            addColor2 = mixColors(addColor1, QColor(0x339933), .6)
         else:
-            delColor2 = QColor(0x993333)
-            addColor2 = QColor(0x339933)
-            delColor2.setAlphaF(.25)
-            addColor2.setAlphaF(.25)
+            delColor2 = mixColors(delColor1, QColor(0x993333), .25)
+            addColor2 = mixColors(addColor1, QColor(0x339933), .25)
 
         if syntaxScheme.isDark():
             warningColor = colors.red

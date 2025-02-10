@@ -362,12 +362,20 @@ def keyEventMatchesMultiShortcut(event: QKeyEvent, shortcuts: MultiShortcut) -> 
     return eventKS in shortcuts
 
 
-def lerp(v1, v2, c=.5, cmin=0, cmax=1):
+def lerp(v1, v2, c=.5, cmin=0.0, cmax=1.0):
     p = (c-cmin) / (cmax-cmin)
     p = max(p, 0)
     p = min(p, 1)
     v = v2*p + v1*(1-p)
     return v
+
+
+def mixColors(c1: QColor, c2: QColor, ratio=.5, rmin=0.0, rmax=1.0):
+    return QColor.fromRgbF(
+        lerp(c1.redF(),   c2.redF(),   ratio, rmin, rmax),
+        lerp(c1.greenF(), c2.greenF(), ratio, rmin, rmax),
+        lerp(c1.blueF(),  c2.blueF(),  ratio, rmin, rmax),
+        lerp(c1.alphaF(), c2.alphaF(), ratio, rmin, rmax))
 
 
 def writeTempFile(namePattern: str, data: bytes | str) -> QTemporaryFile:
