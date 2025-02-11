@@ -81,6 +81,11 @@ class DiffGutter(QWidget):
             pos = event.position().toPoint()
             self.diffView.selectWholeLinesTo(pos)
 
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        super().mouseReleaseEvent(event)
+        if settings.prefs.middleClickToStage and event.button() == Qt.MouseButton.MiddleButton:
+            self.diffView.doPrimaryApplyLinesAction()
+
     def paintEvent(self, event: QPaintEvent):
         diffView = self.diffView
         painter = QPainter(self)

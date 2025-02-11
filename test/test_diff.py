@@ -56,8 +56,10 @@ def testDiffDeletedFile(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
-@pytest.mark.parametrize("method", ["key", "button"])
+@pytest.mark.parametrize("method", ["key", "button", "mmbviewport", "mmbgutter"])
 def testDiffViewStageLines(tempDir, mainWindow, method):
+    mainWindow.onAcceptPrefsDialog({"middleClickToStage": True})
+
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/NewFile.txt", "line A\nline B\nline C\nline D\nline E")
     rw = mainWindow.openRepo(wd)
@@ -86,6 +88,10 @@ def testDiffViewStageLines(tempDir, mainWindow, method):
         QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
     elif method == "button":
         rw.diffView.stageButton.click()
+    elif method == "mmbviewport":
+        QTest.mouseClick(rw.diffView.viewport(), Qt.MouseButton.MiddleButton)
+    elif method == "mmbgutter":
+        QTest.mouseClick(rw.diffView.gutter, Qt.MouseButton.MiddleButton)
     else:
         raise NotImplementedError(f"Unknown method {method}")
 

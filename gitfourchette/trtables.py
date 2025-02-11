@@ -342,7 +342,12 @@ class TrTables:
             "showMenuBar": _("Show menu bar"),
             "showMenuBar_help": _("When the menu bar is hidden, press the Alt key to show it again."),
             "resetDontShowAgain": _("Restore all “don’t show this again” messages"),
-            "middleClickToStage": _("Middle-click a file name to stage/unstage the file"),
+            "middleClickToStage": _("Middle-click to stage/unstage a file or the selected lines"),
+            "middleClickToStage_help": paragraphs(
+                _("This option lets you:"),
+                "\u25aa " + _("Middle-click a file name in the Unstaged/Staged boxes to stage/unstage this file;"),
+                "\u25aa " + _("Select lines in the diff, then middle-click to stage/unstage your selection."),
+            ),
             "pygmentsPlugins": _("Allow third-party Pygments plugins"),
             "pygmentsPlugins_help": "<p>" + _("Let {app} load third-party Pygments plugins installed on your system. "
                                               "These plugins extend syntax highlighting with new languages "

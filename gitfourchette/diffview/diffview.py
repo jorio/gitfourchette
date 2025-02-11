@@ -204,6 +204,11 @@ class DiffView(QPlainTextEdit):
         self.syncViewportMarginsWithGutter()
         self.updateRubberBand()
 
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        super().mouseReleaseEvent(event)
+        if settings.prefs.middleClickToStage and event.button() == Qt.MouseButton.MiddleButton:
+            self.doPrimaryApplyLinesAction()
+
     def focusInEvent(self, event: QFocusEvent):
         self.rubberBand.repaint()
         super().focusInEvent(event)
@@ -616,13 +621,18 @@ class DiffView(QPlainTextEdit):
 
     def isSelectionActionable(self):
         start, end = self.getSelectedLineExtents()
-        if start < 0:
-            return False
-        for i in range(start, end+1):
-            ld = self.lineData[i]
-            if ld.diffLine and ld.diffLine.origin in "+-":
-                return True
-        return False
+        numAdds = 0
+        numDels = 0
+        if start >= 0:
+            for i in range(start, end+1):
+                ld = self.lineData[i]
+                if not ld.diffLine:
+                    pass
+                elif ld.diffLine.origin == "+":
+                    numAdds += 1
+                elif ld.diffLine.origin == "-":
+                    numDels += 1
+        return numAdds, numDels
 
     def extractSelection(self, reverse=False) -> bytes:
         assert self.currentPatch is not None
@@ -676,6 +686,15 @@ class DiffView(QPlainTextEdit):
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractHunk(hunkID, reverse)
         ApplyPatch.invoke(self, self.currentPatch, patchData, purpose)
+
+    def doPrimaryApplyLinesAction(self):
+        navContext = self.currentLocator.context
+        if navContext == NavContext.UNSTAGED:
+            self.stageSelection()
+        elif navContext == NavContext.STAGED:
+            self.unstageSelection()
+        else:
+            QApplication.beep()
 
     def stageSelection(self):
         self.fireApplyLines(PatchPurpose.Stage)
@@ -737,8 +756,9 @@ class DiffView(QPlainTextEdit):
         end = textCursor.selectionEnd()
         assert start <= end
 
-        actionable = self.isSelectionActionable()
         startLine, endLine = self.getSelectedLineExtents()
+        numAdds, numDels = self.isSelectionActionable()
+        actionable = numAdds + numDels > 0
 
         if startLine < 0 or endLine < 0 or (not actionable and start == end):
             self.rubberBand.hide()
@@ -780,15 +800,6 @@ class DiffView(QPlainTextEdit):
             rbbTop = max(rbbTop, 0)  # keep it visible
             self.rubberBandButtonGroup.move(viewportWidth - rbbWidth, rbbTop)
             self.rubberBandButtonGroup.setEnabled(actionable)
-
-    def rubberBandButtonClicked(self):
-        navContext = self.currentLocator.context
-        if navContext == NavContext.UNSTAGED:
-            self.stageSelection()
-        elif navContext == NavContext.STAGED:
-            self.unstageSelection()
-        else:
-            raise NotImplementedError(f"Rubberband button not clickable in context {navContext}")
 
     # ---------------------------------------------
     # Cursor/selection
@@ -891,31 +902,32 @@ class DiffView(QPlainTextEdit):
         if self.currentLocator.context in [NavContext.COMMITTED, NavContext.EMPTY]:
             return
 
-        if not self.isSelectionActionable():
+        numAdds, numDels = self.isSelectionActionable()
+
+        if numAdds + numDels == 0:
             self.contextualHelp.emit("")
             self.selectionActionable.emit(False)
             return
 
-        start, end = self.getSelectedLineExtents()
-        numLines = end - start + 1
+        stageKey = QKeySequence(GlobalShortcuts.stageHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
+        discardKey = QKeySequence(GlobalShortcuts.discardHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
+        unstageKey = discardKey
+        if settings.prefs.middleClickToStage:
+            stageKey += " " + _("or Middle-Click")
+            unstageKey += " " + _("or Middle-Click")
 
-        if self.currentLocator.context == NavContext.UNSTAGED:
-            if numLines <= 1:
-                help = _("Hit {stagekey} to stage the current line, or {discardkey} to discard it.")
-            else:
-                help = _("Hit {stagekey} to stage the selected lines, or {discardkey} to discard them.")
-        elif self.currentLocator.context == NavContext.STAGED:
-            if numLines <= 1:
-                help = _("Hit {unstagekey} to unstage the current line.")
-            else:
-                help = _("Hit {unstagekey} to unstage the selected lines.")
+        if numAdds and numDels:
+            nl = f"+{numAdds} -{numDels}"
         else:
-            return
-
-        help = help.format(
-            stagekey=QKeySequence(GlobalShortcuts.stageHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText),
-            unstagekey=QKeySequence(GlobalShortcuts.discardHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText),
-            discardkey=QKeySequence(GlobalShortcuts.discardHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText))
+            nl = f"+{numAdds}" if numAdds else f"-{numDels}"
+        if self.currentLocator.context == NavContext.UNSTAGED:
+            help = _n("Hit {sk} to stage {nl} line. Hit {dk} to discard it.",
+                      "Hit {sk} to stage {nl} lines. Hit {dk} to discard them.",
+                      n=numAdds+numDels, nl=nl, sk=stageKey, dk=discardKey)
+        elif self.currentLocator.context == NavContext.STAGED:
+            help = _n("Hit {uk} to unstage {nl} line.",
+                      "Hit {uk} to unstage {nl} lines.",
+                      n=numAdds+numDels, nl=nl, uk=unstageKey)
 
         self.contextualHelp.emit(help)
         self.selectionActionable.emit(True)
