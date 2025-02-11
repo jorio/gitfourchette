@@ -3,7 +3,7 @@ name: AppImage
 on: [workflow_dispatch]
 
 env:
-  PYVER: "3.12"
+  PYVER: "3.13"
   QT_API: "pyqt6"
 
 jobs:
