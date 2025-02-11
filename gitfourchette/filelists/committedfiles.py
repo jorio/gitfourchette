@@ -59,9 +59,9 @@ class CommittedFiles(FileList):
                 ActionDef(
                     _n("&Open File in {0}", "&Open {n} Files in {0}", n, settings.getExternalEditorName()),
                     icon="SP_FileIcon", submenu=[
+                        ActionDef(_("&Current Revision (Working Copy)"), self.openWorkingCopyRevision),
                         ActionDef(_("&As Of This Commit"), self.openNewRevision),
                         ActionDef(_("&Before This Commit"), self.openOldRevision),
-                        ActionDef(_("&Current Revision (Working Copy)"), self.openWorkingCopyRevision),
                     ]
                 ),
 
