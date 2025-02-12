@@ -504,7 +504,7 @@ class MergeBranch(RepoTask):
     def flow(self, them: str):
         assert them.startswith('refs/')
 
-        theirBranch, theirBranchIsLocal = self.repo.get_branch_from_refname(them)
+        theirBranch, theirBranchIsRemote = self.repo.get_branch_from_refname(them)
         assert isinstance(theirBranch, Branch)
         _theirPrefix, theirShorthand = RefPrefix.split(them)
 
@@ -588,6 +588,11 @@ class MergeBranch(RepoTask):
                 self.repo.merge(theirBranch)
             else:  # pragma: no cover
                 self.repo.merge(target)
+
+            # Set a better message than libgit2 (it uses the longform ref name when merging remote branches)
+            # TODO: If we ever add the ability to merge tags, add mergeWhat="tag"
+            mergeWhat = "remote-tracking branch" if theirBranchIsRemote else "branch"
+            self.repo.set_message(f"Merge {mergeWhat} '{theirBranch.shorthand}'")
             self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
 
             self.postStatus = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))

@@ -1857,6 +1857,10 @@ class Repo(_VanillaRepository):
                 clean_message += line
         return clean_message.strip()
 
+    def set_message(self, message: str):
+        with open(_joinpath(self.path, "MERGE_MSG"), "w") as mergemsg:
+            mergemsg.write(message)
+
 
 class RepoContext:
     def __init__(self, repo_or_path: Repo | str | _Path, flags=RepositoryOpenFlag.DEFAULT, write_index=False):

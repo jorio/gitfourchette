@@ -600,6 +600,6 @@ class AbortMerge(RepoTask):
 
         self.postStatus = postStatus
 
-        # If cherrypicking, clear draft commit message that was set in CherrypickCommit
-        if isCherryPicking or isReverting:
+        # Clear draft commit message that was set in CherrypickCommit/RevertCommit/MergeBranch
+        if isCherryPicking or isReverting or isMerging:
             self.repoModel.prefs.clearDraftCommit()

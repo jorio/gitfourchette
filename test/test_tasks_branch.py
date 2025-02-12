@@ -830,7 +830,7 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
 
 
-def testMergeAborted(tempDir, mainWindow):
+def testAbortMerge(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     assert rw.repo.state() == RepositoryState.NONE
@@ -844,6 +844,7 @@ def testMergeAborted(tempDir, mainWindow):
     assert rw.repo.status() == {"bye.txt": FileStatus.INDEX_NEW}
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
     assert re.search(r"abort", rw.mergeBanner.buttons[-1].text(), re.I)
+    assert rw.repoModel.prefs.draftCommitMessage.startswith("Merge branch 'pep8-fixes'")
 
     # Abort the merge
     rw.mergeBanner.buttons[-1].click()
@@ -851,6 +852,7 @@ def testMergeAborted(tempDir, mainWindow):
     assert not rw.mergeBanner.isVisible()
     assert rw.repo.state() == RepositoryState.NONE
     assert rw.repo.status() == {}
+    assert not rw.repoModel.prefs.draftCommitMessage
 
 
 def testMergeConcludedByCommit(tempDir, mainWindow):
@@ -916,10 +918,7 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    if pygit2_version_at_least("1.17.1", raise_error=False, feature_name="git_annotated_commit_from_ref"):
-        assert re.match(r"Merge branch.+branch-conflicts", commitDialog.getFullMessage())
-    else:
-        assert re.match(r"Merge commit.+1b2bae55", preparedMessage)
+    assert re.match(r"Merge branch.+branch-conflicts", commitDialog.getFullMessage())
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 
