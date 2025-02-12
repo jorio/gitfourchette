@@ -388,6 +388,10 @@ class PrefsDialog(QDialog):
         control.setAlignment(Qt.AlignmentFlag.AlignRight)
         control.setStepType(QSpinBox.StepType.AdaptiveDecimalStepType)
         control.valueChanged.connect(lambda v, k=prefKey: self.assign(k, v))
+
+        # Qt 6.8.2 inexplicably makes QSpinBoxes super tall with Breeze/Oxygen styles
+        control.setMaximumHeight(32)
+
         return control
 
     def boolComboBoxControl(self, prefKey: str, prefValue: bool, falseName: str, trueName: str) -> QComboBox:
