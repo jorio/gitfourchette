@@ -20,7 +20,7 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.remotelink import RemoteLink
-from gitfourchette.tasks import TaskPrereqs
+from gitfourchette.tasks import TaskPrereqs, RefreshRepo
 from gitfourchette.tasks.branchtasks import MergeBranch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
@@ -230,11 +230,35 @@ class PullBranch(_BaseNetTask):
         return TaskPrereqs.NoUnborn | TaskPrereqs.NoDetached
 
     def flow(self):
+        # Auto-detect the upstream now so we can bail early
+        # with a helpful message if there's no upstream.
         noUpstreamMessage = _("Can’t pull new commits into {0} because this branch isn’t tracking an upstream branch.")
-        upstreamBranch = self._autoDetectUpstream(noUpstreamMessage)
+        self._autoDetectUpstream(noUpstreamMessage)
 
+        # First, fetch the remote branch.
+        # By default, FetchRemoteBranch will fetch the upstream for the current branch.
         yield from self.flowSubtask(FetchRemoteBranch, debrief=False)
-        yield from self.flowSubtask(MergeBranch, upstreamBranch.name)
+
+        # If we're already up to date, bail now.
+        # Note that we're re-resolving the upstream branch after fetching so we have a fresh target.
+        upstreamBranch = self._autoDetectUpstream(noUpstreamMessage)
+        newUpstreamTarget = upstreamBranch.target
+        if self.repo.head_commit_id == newUpstreamTarget:
+            self.postStatus = (
+                    _p("toolbar", "Pull") + _(":") + " " +
+                    _("Your local branch {0} is already up to date with {1}.",
+                      tquo(self.repo.head_branch_shorthand),
+                      tquo(upstreamBranch.shorthand)))
+            return
+
+        # Let user look at the new state of the graph beneath any dialog boxes.
+        yield from self.flowSubtask(RefreshRepo, effectFlags=TaskEffects.Refs, jumpTo=self.jumpTo)
+
+        # Consume jumpTo (which bubbled up from fetchSubtask) so the next subtask can override it
+        self.jumpTo = NavLocator.Empty
+
+        # Fast-forward, or merge.
+        yield from self.flowSubtask(MergeBranch, upstreamBranch.name, silentFastForward=True)
 
 
 class UpdateSubmodule(_BaseNetTask):

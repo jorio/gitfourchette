@@ -501,7 +501,7 @@ class FastForwardBranch(RepoTask):
 
 
 class MergeBranch(RepoTask):
-    def flow(self, them: str):
+    def flow(self, them: str, silentFastForward=False):
         assert them.startswith('refs/')
 
         theirBranch, theirBranchIsRemote = self.repo.get_branch_from_refname(them)
@@ -546,21 +546,10 @@ class MergeBranch(RepoTask):
             raise AbortTask(message)
 
         elif analysis == MergeAnalysis.FASTFORWARD | MergeAnalysis.NORMAL:
-            title = _("Fast-forwarding possible")
-            message = _("Your branch {0} can simply be fast-forwarded to {1}.", bquo(myShorthand), bquo(theirShorthand))
-
-            hint = paragraphs(
-                _("<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more "
-                  "recent commit in a linear path, without the need to create a merge commit."),
-                _("In this case, {0} will be fast-forwarded to {1}.", bquo(myShorthand), bquo(shortHash(target))))
-
-            actionButton = QPushButton(_("Create Merge Commit"))
-            result = yield from self.flowConfirm(title=title, text=message, verb=_("Fast-Forward"),
-                                                 actionButton=actionButton, helpText=hint)
-
-            # OK button is Fast-Forward; Merge is the other one. (Cancel would have aborted early.)
-            # Also checking for Accepted so that unit tests can do qmb.accept().
-            wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
+            if silentFastForward:
+                wantMergeCommit = False
+            else:
+                wantMergeCommit = yield from self.confirmFastForward(myShorthand, theirShorthand, target)
 
         elif analysis == MergeAnalysis.NORMAL:
             title = _("Merging may cause conflicts")
@@ -600,6 +589,24 @@ class MergeBranch(RepoTask):
             # Fast-forward
             self.repo.fast_forward_branch(myShorthand, theirBranch.name)
             self.postStatus = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
+
+    def confirmFastForward(self, myShorthand: str, theirShorthand: str, target: Oid):
+        title = _("Fast-forwarding possible")
+        message = _("Your branch {0} can simply be fast-forwarded to {1}.", bquo(myShorthand), bquo(theirShorthand))
+
+        hint = paragraphs(
+            _("<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more "
+              "recent commit in a linear path, without the need to create a merge commit."),
+            _("In this case, {0} will be fast-forwarded to {1}.", bquo(myShorthand), bquo(shortHash(target))))
+
+        actionButton = QPushButton(_("Create Merge Commit"))
+        result = yield from self.flowConfirm(title=title, text=message, verb=_("Fast-Forward"),
+                                             actionButton=actionButton, helpText=hint)
+
+        # OK button is Fast-Forward; Merge is the other one. (Cancel would have aborted early.)
+        # Also checking for Accepted so that unit tests can do qmb.accept().
+        wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
+        return wantMergeCommit
 
 
 class RecallCommit(RepoTask):

@@ -299,27 +299,33 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
         rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
 
 
-@pytest.mark.parametrize("pull", [False, True])
-def testFetchRemoteBranchNoChange(tempDir, mainWindow, pull):
+def testFetchRemoteBranchNoChange(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
-
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
-    rw = mainWindow.openRepo(wd)
 
+    rw = mainWindow.openRepo(wd)
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
-    if not pull:
-        node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
-        menu = rw.sidebar.makeNodeMenu(node)
-        triggerMenuAction(menu, "fetch")
-        assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
-    else:
-        node = rw.sidebar.findNodeByRef("refs/heads/master")
-        menu = rw.sidebar.makeNodeMenu(node)
-        triggerMenuAction(menu, "pull")
-        acceptQMessageBox(rw, "up.to.date")
+    node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "fetch")
+    assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
+
+def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow):
+    oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, "localfs", preFetch=True)
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead
+    assert rw.navLocator.context.isWorkdir()
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+    assert rw.navLocator.context.isWorkdir()
+    assert "already up to date" in mainWindow.statusBar2.currentMessage().lower()
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
@@ -378,24 +384,78 @@ def testFetchRemoteBranchUnbornHead(tempDir, mainWindow):
 def testPullRemoteBranchNoUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
+        tip = repo.head_commit_id
         repo.edit_upstream_branch("master", "")
 
     rw = mainWindow.openRepo(wd)
     triggerMenuAction(mainWindow.menuBar(), "repo/pull")
     acceptQMessageBox(rw, "n.t tracking.+upstream")
+    assert tip == rw.repo.head_commit_id
+
+
+@pytest.mark.parametrize("remoteNeedsFetching", [True, False])
+def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching):
+    newTip = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+    oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
+
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, "localfs", preFetch=True)
+
+    with RepoContext(wd) as repo:
+        assert newTip == repo.head_commit_id
+        repo.reset(oldTip, ResetMode.HARD)
+        repo.delete_remote("origin")
+        if remoteNeedsFetching:
+            # "Forget" top of graph
+            writeFile(f"{repo.path}/refs/remotes/localfs/master", str(oldTip))
+
+    rw = mainWindow.openRepo(wd)
+    assert oldTip == rw.repo.head_commit_id
+
+    try:
+        rw.repoModel.graph.getCommitRow(newTip)
+        assert not remoteNeedsFetching
+    except KeyError:
+        assert remoteNeedsFetching
+    rw.repoModel.graph.getCommitRow(oldTip)  # must not raise
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+
+    assert newTip == rw.repo.head_commit_id
+    rw.repoModel.graph.getCommitRow(newTip)  # must not raise
 
 
 def testPullRemoteBranchCausesConflict(tempDir, mainWindow):
     wd = unpackRepo(tempDir, testRepoName="testrepoformerging")
     makeBareCopy(wd, "localfs", True)
+
     with RepoContext(wd) as repo:
         repo.edit_upstream_branch("master", "localfs/branch-conflicts")
 
+        # "Forget" top of graph
+        repo.delete_local_branch("branch-conflicts")
+        newTip = repo.branches.remote["localfs/branch-conflicts"].target
+        writeFile(f"{repo.path}/refs/remotes/localfs/branch-conflicts", str(repo[newTip].peel(Commit).parent_ids[0]))
+
     rw = mainWindow.openRepo(wd)
+    assert not rw.repo.any_conflicts
+
+    # "New" tip of branch-conflicts must not be visible in graph prior to pulling
+    with pytest.raises(KeyError):
+        rw.repoModel.graph.getCommitRow(newTip)
+
+    # Pull, and detect a conflict.
     masterNode = rw.sidebar.findNodeByRef("refs/heads/master")
     triggerMenuAction(rw.sidebar.makeNodeMenu(masterNode), "pull")
-    acceptQMessageBox(rw, "fix the conflicts")
+    confirmMergeMessage = findQMessageBox(rw, "fix the conflicts")
 
+    # After the fetch part of the pull is complete, the new tip must be visible
+    # beneath the message box asking whether we want to merge.
+    rw.repoModel.graph.getCommitRow(newTip)  # must not raise
+
+    # Go ahead with the merge.
+    confirmMergeMessage.accept()
+    assert rw.repo.any_conflicts
     assert rw.navLocator.context.isWorkdir()
 
 
