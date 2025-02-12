@@ -114,6 +114,7 @@ def openInExternalTool(
         positional: list[str],
         allowQDesktopFallback: bool = False,
         cwd: str = "",
+        detached: bool = False,
 ) -> QProcess | None:
 
     assert isinstance(parent, QWidget)
@@ -161,7 +162,10 @@ def openInExternalTool(
     process.errorOccurred.connect(lambda processError: onExternalToolProcessError(parent, prefKey))
 
     logger.info("Starting process: " + shlex.join(tokens))
-    process.start(mode=QProcess.OpenModeFlag.Unbuffered)
+    if detached:
+        process.startDetached()
+    else:
+        process.start()
 
     return process
 

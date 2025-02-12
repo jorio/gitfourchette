@@ -598,13 +598,9 @@ class RepoWidget(QStackedWidget):
 
     def openTerminal(self):
         openInExternalTool(
-            self,
-            "terminal",
-            {"$P?": self.workdir},
-            [],
-            False,
-            cwd=self.workdir,
-        )
+            parent=self, prefKey="terminal",
+            replacements={"$P?": self.workdir}, positional=[],
+            cwd=self.workdir, detached=True)
 
     def openSuperproject(self):
         superproject = self.superproject
