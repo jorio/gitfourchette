@@ -259,7 +259,7 @@ def testFetchRemoteBranch(tempDir, mainWindow):
         mainWindow.statusBar().currentMessage(),
         re.I)
 
-    # The position of the remote's master branch should be up-to-date now
+    # The position of the remote's master branch should be up to date now
     assert rw.repo.branches.remote["localfs/master"].target == newHead
 
 

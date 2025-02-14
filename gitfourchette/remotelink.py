@@ -387,7 +387,7 @@ class RemoteLink(QObject, RemoteCallbacks):
             rb = RefPrefix.split(ref)[1]
             oldTip, newTip = self.updatedTips[ref]
             if oldTip == newTip:  # for pushing
-                ps = _("{0} is already up-to-date with {1}.", tquo(rb), tquo(shortHash(oldTip)))
+                ps = _("{0} is already up to date with {1}.", tquo(rb), tquo(shortHash(oldTip)))
             elif oldTip == NULL_OID:
                 ps = _("{0} created: {1}.", tquo(rb), shortHash(newTip))
             elif newTip == NULL_OID:

@@ -1544,7 +1544,7 @@ class Repo(_VanillaRepository):
     def fast_forward_branch(self, local_branch_name: str, target_branch_name: str = ""):
         """
         Fast-forward a local branch to another branch (local or remote).
-        Return True if the local branch was up-to-date.
+        Return True if the local branch was up to date.
         Raise DivergentBranchesError if fast-forwarding is impossible.
 
         If target_branch_name is omitted, attempt to fast-forward to the
@@ -1571,7 +1571,7 @@ class Repo(_VanillaRepository):
         _logger.debug(f"Merge analysis: {repr(merge_analysis)}. Merge preference: {repr(merge_pref)}.")
 
         if merge_analysis & MergeAnalysis.UP_TO_DATE:
-            # Local branch is up-to-date with remote branch, nothing to do.
+            # Local branch is up to date with remote branch, nothing to do.
             return True
 
         elif merge_analysis == (MergeAnalysis.NORMAL | MergeAnalysis.FASTFORWARD):

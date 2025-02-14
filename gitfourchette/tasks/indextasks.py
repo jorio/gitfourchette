@@ -574,9 +574,10 @@ class AbortMerge(RepoTask):
             abortList = self.repo.get_reset_merge_file_list()
         except MultiFileError as exc:
             exc.message = _n(
-                "Cannot {verb} right now, because a file contain both staged and unstaged changes.",
+                "Cannot {verb} right now, because a file contains both staged and unstaged changes.",
                 "Cannot {verb} right now, because {n} files contain both staged and unstaged changes.",
                 n=len(exc.file_exceptions), verb=clause)
+            exc.message += " " + _("Please unstage the changes and try again.")
             raise exc
 
         lines = [_("Do you want to {0}?", clause)]

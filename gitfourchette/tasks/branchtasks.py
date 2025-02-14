@@ -434,6 +434,8 @@ class ResetHead(RepoTask):
         self.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
         self.repo.reset(onto, resetMode)
+        self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
+                            tquo(branchName), tquo(shortHash(onto)), mode=resetMode.name.lower())
 
         if hasSubmodules and recurseSubmodules:
             for submodule in self.repo.recurse_submodules():
@@ -475,7 +477,7 @@ class FastForwardBranch(RepoTask):
             if ahead:
                 lines.append(_("Your local branch {0} is ahead of {1}."))
             else:
-                lines.append(_("Your local branch {0} is already up-to-date with {1}."))
+                lines.append(_("Your local branch {0} is already up to date with {1}."))
             message = paragraphs(lines).format(bquo(localBranchName), bquo(remoteBranchName))
             self.postStatus = stripHtml(message)
             yield from self.flowConfirm(text=message, canCancel=False, dontShowAgainKey="NoFastForwardingNecessary")
@@ -538,7 +540,7 @@ class MergeBranch(RepoTask):
         elif analysis == MergeAnalysis.UP_TO_DATE:
             message = paragraphs(
                 _("No merge is necessary."),
-                _("Your branch {0} is already up-to-date with {1}.", bquo(myShorthand), bquo(theirShorthand)))
+                _("Your branch {0} is already up to date with {1}.", bquo(myShorthand), bquo(theirShorthand)))
             raise AbortTask(message, icon="information")
 
         elif analysis == MergeAnalysis.UNBORN:
