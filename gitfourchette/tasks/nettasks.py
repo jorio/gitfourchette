@@ -258,7 +258,12 @@ class PullBranch(_BaseNetTask):
         self.jumpTo = NavLocator.Empty
 
         # Fast-forward, or merge.
-        yield from self.flowSubtask(MergeBranch, upstreamBranch.name, silentFastForward=True)
+        try:
+            silentFastForward = self.repo.config.get_bool("pull.ff")
+        except (KeyError, GitError):
+            silentFastForward = True
+        yield from self.flowSubtask(MergeBranch, upstreamBranch.name,
+                                    silentFastForward=silentFastForward, autoFastForwardOptionName="pull.ff")
 
 
 class UpdateSubmodule(_BaseNetTask):

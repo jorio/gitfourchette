@@ -503,7 +503,7 @@ class FastForwardBranch(RepoTask):
 
 
 class MergeBranch(RepoTask):
-    def flow(self, them: str, silentFastForward=False):
+    def flow(self, them: str, silentFastForward=False, autoFastForwardOptionName=""):
         assert them.startswith('refs/')
 
         theirBranch, theirBranchIsRemote = self.repo.get_branch_from_refname(them)
@@ -551,7 +551,7 @@ class MergeBranch(RepoTask):
             if silentFastForward:
                 wantMergeCommit = False
             else:
-                wantMergeCommit = yield from self.confirmFastForward(myShorthand, theirShorthand, target)
+                wantMergeCommit = yield from self.confirmFastForward(myShorthand, theirShorthand, target, autoFastForwardOptionName)
 
         elif analysis == MergeAnalysis.NORMAL:
             title = _("Merging may cause conflicts")
@@ -592,9 +592,13 @@ class MergeBranch(RepoTask):
             self.repo.fast_forward_branch(myShorthand, theirBranch.name)
             self.postStatus = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
 
-    def confirmFastForward(self, myShorthand: str, theirShorthand: str, target: Oid):
+    def confirmFastForward(self, myShorthand: str, theirShorthand: str, target: Oid, autoFastForwardOptionName: str):
         title = _("Fast-forwarding possible")
         message = _("Your branch {0} can simply be fast-forwarded to {1}.", bquo(myShorthand), bquo(theirShorthand))
+
+        if autoFastForwardOptionName:
+            notice = _("Automatic fast-forwarding is blocked by the {0} option in your Git config.", tquo("pull.ff"))
+            message += f"<p><small>{notice}</small></p>"
 
         hint = paragraphs(
             _("<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more "

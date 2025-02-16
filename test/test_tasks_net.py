@@ -425,6 +425,33 @@ def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching
     rw.repoModel.graph.getCommitRow(newTip)  # must not raise
 
 
+def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow):
+    newTip = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+    oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
+
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, "localfs", preFetch=True)
+
+    with RepoContext(wd) as repo:
+        assert newTip == repo.head_commit_id
+        repo.reset(oldTip, ResetMode.HARD)
+        repo.delete_remote("origin")
+        repo.config["pull.ff"] = "false"
+
+    rw = mainWindow.openRepo(wd)
+    assert oldTip == rw.repo.head_commit_id
+
+    rw.repoModel.graph.getCommitRow(newTip)
+    rw.repoModel.graph.getCommitRow(oldTip)  # must not raise
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+
+    acceptQMessageBox(rw, r"can simply be fast-forwarded to .*localfs/master.+automatic fast-forward.+blocked by.+pull\.ff")
+
+    assert newTip == rw.repo.head_commit_id
+    rw.repoModel.graph.getCommitRow(newTip)  # must not raise
+
+
 def testPullRemoteBranchCausesConflict(tempDir, mainWindow):
     wd = unpackRepo(tempDir, testRepoName="testrepoformerging")
     makeBareCopy(wd, "localfs", True)
