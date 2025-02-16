@@ -102,7 +102,7 @@ class ToolCommands:
     }
 
     @classmethod
-    def _filterToolPresets(cls):  # pragma: no cover
+    def _filterToolPresets(cls):
         freedesktopTools = ["Kate", "KWrite"]
         macTools = ["FileMerge", "MacVim", "BBEdit"]
         winTools = ["WinMerge"]
@@ -129,11 +129,11 @@ class ToolCommands:
 
             # Default to 'x-terminal-emulator' on Debian derivatives
             debianPreset = "Debian default terminal"
-            if shutil.which(cls.LinuxTerminalPresets[debianPreset]):  # do we have this command?
+            if shutil.which(cls.LinuxTerminalPresets[debianPreset]):  # pragma: no cover
                 cls.DefaultTerminalPreset = debianPreset
             else:
                 excludeTools.append(debianPreset)
-                if "GNOME" in os.environ.get("XDG_CURRENT_DESKTOP", ""):
+                if "GNOME" in os.environ.get("XDG_CURRENT_DESKTOP", ""):  # pragma: no cover
                     cls.DefaultTerminalPreset = "GNOME Terminal"
 
         for key in excludeTools:

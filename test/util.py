@@ -11,12 +11,21 @@ import tempfile
 from pathlib import Path
 
 import pygit2
+import pytest
 
 from gitfourchette.porcelain import *
 from gitfourchette.toolbox import QPoint_zero
 from . import *
 
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
+
+requiresNetwork = pytest.mark.skipif(
+    os.environ.get("TESTNET", "0").lower() in {"0", ""},
+    reason="Requires network - rerun with TESTNET=1 environment variable")
+
+requiresFlatpak = pytest.mark.skipif(
+    os.environ.get("TESTFLATPAK", "0").lower() in {"0", ""},
+    reason="Requires flatpak - rerun with TESTFLATPAK=1 environment variable")
 
 
 def pause(seconds: int = 3):

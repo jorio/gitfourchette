@@ -6,8 +6,6 @@
 
 import os.path
 
-import pytest
-
 from .util import *
 from . import reposcenario
 from gitfourchette.nav import NavLocator, NavContext
@@ -285,6 +283,19 @@ def testEditFileInExternalDiffTool(tempDir, mainWindow):
     scratchText = readFile(scratchPath, 1000, unlink=True).decode("utf-8")
     assert "[OLD]b2.txt" in scratchText
     assert "[NEW]b2.txt" in scratchText
+
+
+@requiresFlatpak
+def testEditFileInMissingFlatpak(tempDir, mainWindow):
+    mainWindow.onAcceptPrefsDialog({"externalDiff": "flatpak run org.gitfourchette.BogusEditorName $L $R"})
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
+
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in org.gitfourchette.BogusEditorName")
+    QTest.qWait(250)
+    acceptQMessageBox(rw, "couldn.t start flatpak .*org.gitfourchette.BogusEditorName")
 
 
 def testFileListToolTip(tempDir, mainWindow):

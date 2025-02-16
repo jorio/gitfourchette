@@ -22,8 +22,8 @@ jobs:
         - {os: ubuntu-latest, python-version: '3.11', qt-binding: pyqt6}
         - {os: ubuntu-latest, python-version: '3.12', qt-binding: pyqt6}
         # Up-to-date configs
-        - {os: ubuntu-latest, python-version: '3.13', qt-binding: pyqt6}
-        - {os: ubuntu-latest, python-version: '3.13', qt-binding: pyside6}
+        - {os: ubuntu-latest, python-version: '3.13', qt-binding: pyqt6, testenv: 'TESTFLATPAK=1'}
+        - {os: ubuntu-latest, python-version: '3.13', qt-binding: pyside6, testenv: 'TESTFLATPAK=1'}
         - {os: macos-latest, python-version: '3.13', qt-binding: pyqt6}
 
     steps:
@@ -52,4 +52,4 @@ jobs:
     - run: ruff check
 
     - name: Unit tests
-      run: TESTNET=1 PYTEST_QT_API=${{ matrix.qt-binding }} ./test.sh
+      run: TESTNET=1 ${{ matrix.testenv }} PYTEST_QT_API=${{ matrix.qt-binding }} ./test.sh

@@ -4,17 +4,12 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import pytest
-
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.passphrasedialog import PassphraseDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.nav import NavContext
 from .util import *
-
-hasNetwork = os.environ.get("TESTNET", "0").lower() not in ["0", ""]
-requiresNetwork = pytest.mark.skipif(not hasNetwork, reason="Requires network - rerun with TESTNET=1 environment variable")
 
 
 @requiresNetwork
