@@ -62,6 +62,7 @@ class PrefsDialog(QDialog):
         self.categoryList.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.categoryList.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.categoryList.currentRowChanged.connect(self.onCategoryChanged)
+        self.categoryList.setIconSize(QSize(24, 24))
 
         self.categoryLabel = QLabel("CATEGORY")
         tweakWidgetFont(self.categoryLabel, 130)
@@ -118,7 +119,7 @@ class PrefsDialog(QDialog):
                 categoryName = TrTables.prefKey(category)
                 self.categoryNames.append(categoryName)
                 self.stackedWidget.addWidget(formContainer)
-                self.categoryList.addItem(categoryName)
+                self.categoryList.addItem(QListWidgetItem(stockIcon(f"prefs-{category.lower()}"), categoryName))
 
                 headerText = TrTables.prefKey(f"{category}_HEADER")
                 if headerText != f"{category}_HEADER":

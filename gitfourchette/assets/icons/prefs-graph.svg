@@ -1,0 +1,15 @@
+<svg fill="none" stroke="gray" version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<path d="m4.5 9.5v-3"/>
+<path d="m4.5 3.5v-3"/>
+<path d="m4.5 15.5v-3"/>
+<circle cx="4.5" cy="5" r="1.5"/>
+<circle cx="4.5" cy="11" r="1.5"/>
+<g fill="gray" stroke="none">
+<ellipse cx="9.5" cy="5.25" rx=".5" ry=".75"/>
+<ellipse cx="11.5" cy="5.25" rx=".5" ry=".75"/>
+<ellipse cx="13.5" cy="5.25" rx=".5" ry=".75"/>
+<ellipse cx="9.5" cy="11.25" rx=".5" ry=".75"/>
+<ellipse cx="11.5" cy="11.25" rx=".5" ry=".75"/>
+<ellipse cx="13.5" cy="11.25" rx=".5" ry=".75"/>
+</g>
+</svg>
