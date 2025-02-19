@@ -62,26 +62,85 @@
   </keywords>
 
   <releases>
+    <release version="1.2.0" date="2025-02-19" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.2.0</url>
+      <description>
+        <p>New features:</p>
+        <ul>
+        <li>Open terminal in workdir (#18)</li>
+        </ul>
+        <p>User-suggested quality of life improvements:</p>
+        <ul>
+        <li>Reword "Uncommitted changes" to "Working directory" to clear up any confusion when there are no changes (#13)</li>
+        <li>Always display the number of uncommitted changes in the sidebar and in the graph; update this whenever the app returns to the foreground (#13)</li>
+        <li>Reword "Discard Changes" context menu entry for untracked files to "Delete File" (#17)</li>
+        <li>Global ref sorting setting (#20)</li>
+        <li>Allow creating a merge commit without fast-forwarding (#21)</li>
+        <li>Dark mode readability tweaks (#24)</li>
+        <li>Command line: Open arbitrary nested paths in a repo (#25)</li>
+        </ul>
+        <p>Other quality of life improvements:</p>
+        <ul>
+        <li>Improve consistency of ellipses in menus to signify that an action can be canceled</li>
+        <li>Warn user if an external Flatpak isn't installed when attempting to run it (merge tool, terminals, etc.)</li>
+        <li>Remind user about any unstaged files when about to create an empty commit</li>
+        <li>Allow middle-clicking to quickly stage/unstage selected lines in DiffView (enable in Settings → Advanced → Middle-click)</li>
+        <li>Allow clearing draft commit messages by right-clicking the top row in GraphView</li>
+        <li>After pushing a branch that doesn't track an upstream, PushDialog will suggest the remote branch you used previously (instead of defaulting to the first one in the repo)</li>
+        <li>Pulling will automatically fast-forward if possible without an extra confirmation step, unless your git config contains "pull.ff=false" (behavior aligned to vanilla git). If fast-forwarding isn't possible, you will still be prompted to merge.</li>
+        <li>Push/fetch status text uses the 'tnum' OpenType feature to avoid transfer rate numbers jumping around if your system font has digits with uneven widths</li>
+        <li>AppImage distribution now compatible with fuse3</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix crash when closing several repos in quick succession, e.g. by holding down Ctrl+W</li>
+        <li>Fix clicking the help button used to close the fast-forward dialog</li>
+        <li>Fix DiffView out of sync with rest of RepoWidget after hiding a the currently-selected branch tip</li>
+        <li>Fix italics in sidebar didn't update after changing the current branch's upstream (a remote-tracking branch in italics means it's the upstream for the current branch)</li>
+        <li>Fix visual artifacts around character-level diffs in DiffView</li>
+        </ul>
+        <p>Bug fixes that will take effect as soon as pygit2 1.17.1 is released:</p>
+        <ul>
+        <li>Fix push progress wasn't reported properly during transfer - requires pygit2 1.17.1 (#22)</li>
+        <li>Fix push couldn't be canceled once the transfer starts - requires pygit2 1.17.1 (#22)</li>
+        </ul>
+        <p>Breaking changes:</p>
+        <ul>
+        <li>The keyboard shortcut for "Go to Working Directory" is now Ctrl+G (formerly Ctrl+U, for "Uncommitted Changes"). On most keyboard layouts, Ctrl+G pairs nicely with Ctrl+H for "Go to HEAD".</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.1.1" date="2025-01-19" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.1.1</url>
       <description>
+        <p>New features:</p>
         <ul>
         <li>Option to remember passphrases in encrypted keyfiles (#15)</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
         <li>Omit remote name from refboxes when there's just 1 remote (#11)</li>
         <li>Display blob hashes in FileList tooltips</li>
+        <li>GraphView tries to use the 'tnum' OpenType feature to align ISO-8601 dates if your system font has digits with uneven widths</li>
+        <li>In commit/filename SearchBars, don't re-trigger a search if appending to a word that is known to have no occurrences</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
         <li>Fix custom key file feature in CloneDialog and AddRemote</li>
         <li>Fix remote branch context menu in a repo with an unborn head</li>
-        <li>GraphView tries to use the 'tnum' OpenType feature to align ISO-8601 dates if your system font has digits with uneven widths</li>
         <li>GraphSplicer: Fix discrete branch may vanish from graph if moved past another branch by topological sorting</li>
-        <li>In commit/filename SearchBars, don't re-trigger a search if appending to a word that is known to have no occurrences</li>
         </ul>
       </description>
     </release>
     <release version="1.1.0" date="2025-01-05" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.1.0</url>
       <description>
+        <p>New features:</p>
         <ul>
         <li>Syntax highlighting with Pygments (optional dependency)</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
         <li>Customizable ref indicator width (Settings → Commit History) (#10)</li>
         <li>Condensed fonts can be disabled (Settings → Advanced) (#10)</li>
         <li>Improved settings dialog UI</li>
@@ -91,8 +150,12 @@
     <release version="1.0.2" date="2024-12-16" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.0.2</url>
       <description>
+        <p>Usability improvements:</p>
         <ul>
         <li>Support launching a Flatpak as an external diff/merge tool (#4)</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
         <li>Fix web URLs in remote-tracking branch context menus (e.g. visit a branch on github.com)</li>
         </ul>
       </description>
@@ -100,10 +163,14 @@
     <release version="1.0.1" date="2024-12-03" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.0.1</url>
       <description>
+        <p>Quality of life improvements:</p>
         <ul>
         <li>Friendlier ConflictView UI</li>
         <li>Improve 3-way merging with external merge tools when there's no ancestor in the conflict</li>
         <li>Distinguish submodules and subtrees in SpecialDiff verbiage</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
         <li>Fix discarding untracked non-submodule subtrees (#1)</li>
         </ul>
       </description>
