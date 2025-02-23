@@ -444,6 +444,26 @@ def testDiffLargeFile(tempDir, mainWindow):
     assert rw.diffView.toPlainText().rstrip() == "@@ -0,0 +1,100000 @@\n" + contents.rstrip()
 
 
+def testDiffLargeFilesWithVeryLongLines(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    numLines = 50
+    longLine = " ".join(f"foo{i}" for i in range(5_000)) + "\n"
+    contents = longLine * numLines
+    assert len(contents) > 1_000_000
+    writeFile(f"{wd}/longlines.txt", contents)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="longlines.txt"))
+    assert not rw.diffView.isVisibleTo(rw)
+    assert rw.specialDiffView.isVisibleTo(rw)
+    assert "diff is very large" in rw.specialDiffView.toPlainText().lower()
+
+    qteClickLink(rw.specialDiffView, "load.+anyway")
+    assert rw.diffView.isVisibleTo(rw)
+    assert rw.diffView.toPlainText().rstrip() == f"@@ -0,0 +1,{numLines} @@\n{contents.rstrip()}"
+
+
 def testDiffImage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shutil.copyfile(getTestDataPath("image1.png"), f"{wd}/image.png")

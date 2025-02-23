@@ -185,8 +185,8 @@ class DiffDocument:
                 if origin in "=><":
                     continue
 
-                if len(content) > MAX_LINE_LENGTH and not locator.hasFlags(NavFlags.AllowLongLines):
-                    loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLongLines)
+                if len(content) > MAX_LINE_LENGTH and not locator.hasFlags(NavFlags.AllowLargeFiles):
+                    loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
                     raise SpecialDiffError(
                         _("This file contains very long lines."),
                         linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),

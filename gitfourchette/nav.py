@@ -30,11 +30,8 @@ class NavFlags(enum.IntFlag):
     AllowWriteIndex = enum.auto()
     "Allow writing to the index while loading the diff at this location."
 
-    AllowLongLines = enum.auto()
-    "Bypass long line limit to display the diff at this location."
-
     AllowLargeFiles = enum.auto()
-    "Bypass large file limit to display the diff at this location."
+    "Bypass file size and line length limits to display the diff at this location."
 
     AllowLargeCommits = enum.auto()
     "Bypass rename detection limit to display the commit at this location."
