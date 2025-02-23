@@ -437,7 +437,7 @@ def testDiffLargeFile(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged(path="bigfile.txt"))
     assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
-    assert "too large to be previewed" in rw.specialDiffView.toPlainText().lower()
+    assert "diff is very large" in rw.specialDiffView.toPlainText().lower()
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
     assert rw.diffView.isVisible()
@@ -480,11 +480,11 @@ def testDiffLargeImage(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged("image.png"))
     assert rw.specialDiffView.isVisible()
-    assert "too large to be previewed" in rw.specialDiffView.toPlainText().lower()
+    assert "image is very large" in rw.specialDiffView.toPlainText().lower()
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
     assert rw.specialDiffView.isVisible()
-    assert "too large" not in rw.specialDiffView.toPlainText().lower()
+    assert "image is very large" not in rw.specialDiffView.toPlainText().lower()
 
 
 def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):

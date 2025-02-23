@@ -111,7 +111,7 @@ class SpecialDiffError(Exception):
             linkify(_("[Configure diff preview limit] (currently: {0})", humanThreshold), configure),
         ])
         return SpecialDiffError(
-            _("This diff is too large to be previewed."),
+            _("This diff is very large."),
             _("Diff size: {0}", humanSize),
             "SP_MessageBoxWarning",
             longform=longform)
@@ -128,7 +128,7 @@ class SpecialDiffError(Exception):
             linkify(_("[Configure image preview limit] (currently: {0})", humanThreshold), configure),
         ])
         return SpecialDiffError(
-            _("This image is too large to be previewed."),
+            _("This image is very large."),
             _("Image size: {0}", humanSize),
             "SP_MessageBoxWarning",
             longform=longform)
