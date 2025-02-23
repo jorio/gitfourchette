@@ -160,7 +160,7 @@ def openInExternalTool(
     process.errorOccurred.connect(lambda processError: onExternalToolProcessError(parent, prefKey))
 
     logger.info("Starting process: " + shlex.join(tokens))
-    if detached:
+    if detached and not FLATPAK:  # Flatpaks detach from process via ToolCommands.compileCommand
         process.startDetached()
     else:
         process.start()

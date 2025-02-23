@@ -270,6 +270,7 @@ class ToolCommands:
             replacements: dict[str, str],
             positional: list[str],
             directory: str = "",
+            detached: bool = True,
     ) -> tuple[list[str], str]:
         tokens = shlex.split(command, posix=not WINDOWS)
 
@@ -321,11 +322,15 @@ class ToolCommands:
         # - Set workdir via flatpak-spawn because QProcess.setWorkingDirectory won't work.
         # - Run command through `env` to get return code 127 if the command is missing.
         #   (note that running ANOTHER flatpak via 'flatpak run' won't return 127).
+        # - If detaching, don't set --watch-bus, and don't use QProcess.startDetached!
+        #   (Can't get return code otherwise.)
         if FLATPAK:
             spawner = [
-                "flatpak-spawn", "--watch-bus", "--host", f"--directory={directory}",
+                "flatpak-spawn", "--host", f"--directory={directory}",
                 "/usr/bin/env", "--"
             ]
+            if not detached:
+                spawner.insert(1, "--watch-bus")
             tokens = spawner + tokens
 
         return tokens, directory
