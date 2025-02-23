@@ -136,8 +136,10 @@ def openInExternalTool(
 
     # Check if the Flatpak is installed
     if FREEDESKTOP:
-        flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(tokens)
-        if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(tokens[flatpakRefTokenIndex], parent):
+        # Check 'isFlatpakRunCommand' on unfiltered tokens (compileCommand may have added a wrapper)
+        unfilteredTokens = shlex.split(command, posix=True)
+        flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(unfilteredTokens)
+        if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex], parent):
             onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
             return None
 
