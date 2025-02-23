@@ -113,7 +113,7 @@ def openInExternalTool(
         replacements: dict[str, str],
         positional: list[str],
         allowQDesktopFallback: bool = False,
-        cwd: str = "",
+        directory: str = "",
         detached: bool = False,
 ) -> QProcess | None:
 
@@ -132,7 +132,7 @@ def openInExternalTool(
         setUpToolCommand(parent, prefKey)
         return None
 
-    tokens, workingDirectory = ToolCommands.compileCommand(command, replacements, positional)
+    tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory)
 
     # Check if the Flatpak is installed
     if FREEDESKTOP:
@@ -141,15 +141,11 @@ def openInExternalTool(
             onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
             return None
 
-    # Enforce working directory
-    if cwd:
-        workingDirectory = cwd
-
     process = QProcess(parent)
     process.setProgram(tokens[0])
     process.setArguments(tokens[1:])
     if not FLATPAK:  # In Flatpaks, set workdir via flatpak-spawn
-        process.setWorkingDirectory(workingDirectory)
+        process.setWorkingDirectory(directory)
     process.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
 
     def wrap127(code, status):

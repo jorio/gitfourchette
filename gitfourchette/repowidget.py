@@ -600,7 +600,7 @@ class RepoWidget(QStackedWidget):
         openInExternalTool(
             parent=self, prefKey="terminal",
             replacements={"$P?": self.workdir}, positional=[],
-            cwd=self.workdir, detached=True)
+            directory=self.workdir, detached=True)
 
     def openSuperproject(self):
         superproject = self.superproject

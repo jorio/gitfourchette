@@ -264,7 +264,13 @@ class ToolCommands:
             return str(e)
 
     @classmethod
-    def compileCommand(cls, command: str, replacements: dict[str, str], positional: list[str]) -> tuple[list[str], str]:
+    def compileCommand(
+            cls,
+            command: str,
+            replacements: dict[str, str],
+            positional: list[str],
+            directory: str = "",
+    ) -> tuple[list[str], str]:
         tokens = shlex.split(command, posix=not WINDOWS)
 
         for placeholder, replacement in replacements.items():
@@ -288,19 +294,19 @@ class ToolCommands:
         tokens.extend(positional)
 
         # Find appropriate workdir
-        workingDirectory = ""
-        for argument in itertools.chain(replacements.values(), positional):
-            if not argument:
-                continue
-            workingDirectory = os.path.dirname(argument)
-            if os.path.isdir(workingDirectory):
-                break
+        if not directory:
+            for argument in itertools.chain(replacements.values(), positional):
+                if not argument:
+                    continue
+                directory = os.path.dirname(argument)
+                if os.path.isdir(directory):
+                    break
 
         # If we're running a Flatpak, expose the working directory to its sandbox.
         # (Inject '--filesystem=...' argument after 'flatpak run')
-        indexAfterFlatpakRun = cls.isFlatpakRunCommand(tokens)
-        if indexAfterFlatpakRun > 0:
-            tokens.insert(indexAfterFlatpakRun, "--filesystem=" + workingDirectory)
+        flatpakRefTokenIndex = cls.isFlatpakRunCommand(tokens)
+        if flatpakRefTokenIndex > 0:
+            tokens.insert(flatpakRefTokenIndex, f"--filesystem={directory}")
 
         # macOS-specific wrapper:
         # - Launch ".app" bundles properly.
@@ -317,12 +323,12 @@ class ToolCommands:
         #   (note that running ANOTHER flatpak via 'flatpak run' won't return 127).
         if FLATPAK:
             spawner = [
-                "flatpak-spawn", "--watch-bus", "--host", f"--directory={workingDirectory}",
+                "flatpak-spawn", "--watch-bus", "--host", f"--directory={directory}",
                 "/usr/bin/env", "--"
             ]
             tokens = spawner + tokens
 
-        return tokens, workingDirectory
+        return tokens, directory
 
     @classmethod
     def isFlatpakInstalled(cls, flatpakRef, parent) -> bool:
