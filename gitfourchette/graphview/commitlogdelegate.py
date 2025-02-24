@@ -287,9 +287,11 @@ class CommitLogDelegate(QStyledItemDelegate):
         if oid == UC_FAKEID:
             r = QRect(rect)
             r.setWidth(min(16, r.height()))
-            remap = "" if not isSelected else f"gray={painter.pen().color().name()}"
-            icon = stockIcon("git-workdir", remap)
-            icon.paint(painter, r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            icon = stockIcon("git-workdir")
+            iconMode = QIcon.Mode.Normal
+            if isSelected:
+                iconMode = QIcon.Mode.Selected if hasFocus else QIcon.Mode.SelectedInactive
+            icon.paint(painter, r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, mode=iconMode)
             rect.setLeft(r.right() + 4)
 
         # ------ Message

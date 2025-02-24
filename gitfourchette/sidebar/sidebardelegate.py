@@ -124,10 +124,10 @@ class SidebarDelegate(QStyledItemDelegate):
         option.rect.adjust(PADDING, 0, -PADDING, 0)
 
         # Set highlighted text color if this item is selected
-        iconColorRemapTable = ""
+        iconMode = QIcon.Mode.Normal
         if isSelected:
             penColor = option.palette.color(colorGroup, QPalette.ColorRole.HighlightedText)
-            iconColorRemapTable = f"gray={penColor.name()}"
+            iconMode = QIcon.Mode.Selected if hasFocus else QIcon.Mode.SelectedInactive
         elif not node.parent.parent and node.kind != SidebarItem.UncommittedChanges:
             penColor = option.palette.color(colorGroup, QPalette.ColorRole.WindowText)
             penColor.setAlphaF(.66)
@@ -141,8 +141,8 @@ class SidebarDelegate(QStyledItemDelegate):
         if iconKey:
             r = QRect(option.rect)
             r.setWidth(iconWidth)
-            icon = stockIcon(iconKey, iconColorRemapTable)
-            icon.paint(painter, r, option.decorationAlignment)
+            icon = stockIcon(iconKey)
+            icon.paint(painter, r, option.decorationAlignment, mode=iconMode)
             option.rect.adjust(r.width() + PADDING*150//100, 0, 0, 0)
 
         # Draw text
@@ -170,7 +170,7 @@ class SidebarDelegate(QStyledItemDelegate):
                 eyeIconName = "view-hidden-indirect"
             else:
                 eyeIconName = "view-visible"
-            eyeIcon = stockIcon(eyeIconName, iconColorRemapTable)
-            eyeIcon.paint(painter, r)
+            eyeIcon = stockIcon(eyeIconName)
+            eyeIcon.paint(painter, r, mode=iconMode)
 
         painter.restore()

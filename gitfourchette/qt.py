@@ -211,6 +211,9 @@ if not hasattr(QCheckBox, 'checkStateChanged'):
     # Note: this forwards an int, not a real CheckState, but the values are the same.
     QCheckBox.checkStateChanged = QCheckBox.stateChanged
 
+# Custom "selected, no focus" icon mode.
+QIcon.Mode.SelectedInactive = QIcon.Mode(4)
+
 
 # -----------------------------------------------------------------------------
 # Utility functions

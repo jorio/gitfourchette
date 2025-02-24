@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,9 +9,9 @@ If SVG icons don't show up, you may need to install the 'qt6-svg' package.
 """
 
 from gitfourchette.qt import *
-from gitfourchette.toolbox.qtutils import isDarkTheme, writeTempFile
+from gitfourchette.toolbox.qtutils import isDarkTheme, writeTempFile, mixColors
 
-_stockIconCache: dict[str, QIcon] = {}
+_stockIconCache: dict[int, QIcon] = {}
 _tempSvgFiles: list[QTemporaryFile] = []
 
 
@@ -49,25 +49,43 @@ def lookUpNamedIcon(name: str) -> QIcon:
     return QIcon.fromTheme(name)
 
 
-def remapSvgColors(name: str, colorRemapTable: str) -> QIcon:
-    path = getBestIconFile(name)
+def remapSvgColors(path: str, forcedRemapTable: str) -> QIcon:
     with open(path, encoding="utf-8") as f:
-        originalData = f.read()
+        originalSvg = f.read().strip()
 
-    data = originalData
-    for pair in colorRemapTable.split(";"):
-        oldColor, newColor = pair.split("=")
-        data = data.replace(oldColor, newColor)
+    def remapFile(replaceGray: QColor | None, opacity=1.0) -> str:
+        remapTable = forcedRemapTable.split()
+        if replaceGray is not None:
+            remapTable.append(f"gray={replaceGray.name()}")
 
-    if data == originalData:
-        # No changes, return original icon
-        return QIcon(path)
+        data = originalSvg
+        for pair in remapTable:
+            oldColor, newColor = pair.split("=")
+            data = data.replace(oldColor, newColor)
+        if opacity != 1.0:
+            dataLines = data.splitlines()
+            dataLines[0] += f"<g opacity='{opacity}'>"
+            dataLines[-1] = "</g>" + dataLines[-1]
+            data = "\n".join(dataLines)
+        if data == originalSvg:  # No changes, return original icon
+            return path
 
-    # Keep the temp file object around so that QIcon can read off it as needed
-    tempFile = writeTempFile("icon-XXXXXX.svg", data)
-    _tempSvgFiles.append(tempFile)
+        # Keep temp file object around so that QIcon can read off it as needed
+        tempFile = writeTempFile("icon-XXXXXX.svg", data)
+        _tempSvgFiles.append(tempFile)
+        return tempFile.fileName()
 
-    icon = QIcon(tempFile.fileName())
+    palette = QApplication.palette()
+    bgColor = palette.color(QPalette.ColorRole.Window)
+    fgColor = palette.color(QPalette.ColorRole.WindowText)
+    hlColor = palette.color(QPalette.ColorRole.HighlightedText)
+    mainColor = None if forcedRemapTable else mixColors(bgColor, fgColor, .62)
+
+    icon = QIcon()
+    icon.addFile(remapFile(mainColor),      mode=QIcon.Mode.Normal)
+    icon.addFile(remapFile(mainColor, .33), mode=QIcon.Mode.Disabled)
+    icon.addFile(remapFile(hlColor),        mode=QIcon.Mode.Selected)
+    icon.addFile(remapFile(fgColor),        mode=QIcon.Mode.SelectedInactive)
     return icon
 
 
@@ -76,24 +94,30 @@ def stockIcon(iconId: str, colorRemapTable="") -> QIcon:
     if (MACOS or WINDOWS) and iconId == "achtung":
         iconId = "SP_MessageBoxWarning"
 
-    if colorRemapTable:
-        key = f"{iconId}?{colorRemapTable}"
-    else:
-        key = iconId
+    # Compute key
+    key = hash(iconId) ^ hash(colorRemapTable)
 
     # Attempt to get cached icon
-    if key in _stockIconCache:
+    try:
         return _stockIconCache[key]
+    except KeyError:
+        pass
 
-    if colorRemapTable:
-        try:
-            icon = remapSvgColors(iconId, colorRemapTable)
-        except KeyError:
-            icon = lookUpNamedIcon(iconId)
+    # Determine if it's an SVG
+    try:
+        iconPath = getBestIconFile(iconId)
+        isSvg = iconPath.endswith(".svg")
+    except KeyError:
+        isSvg = False
+
+    # Create QIcon
+    if isSvg:
+        icon = remapSvgColors(iconPath, colorRemapTable)
     else:
+        assert not colorRemapTable, f"can't remap colors in non-SVG icon! {iconId}"
         icon = lookUpNamedIcon(iconId)
 
-    # Save icon in cache
+    # Cache icon
     _stockIconCache[key] = icon
     return icon
 

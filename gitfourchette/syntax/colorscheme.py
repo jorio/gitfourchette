@@ -158,7 +158,7 @@ class ColorScheme:
             accent3 = extractColor(style, pygments.token.Keyword, pygments.token.Comment)
 
             # Little icon to preview the colors in this style (colorscheme-chip.svg)
-            chipColors = f"black={bgColor.name()};white={accent1.name()};red={accent2.name()};blue={accent3.name()}"
+            chipColors = f"black={bgColor.name()} white={accent1.name()} red={accent2.name()} blue={accent3.name()}"
 
             # Sort light and dark themes in separate tables
             dark = bgColor.lightnessF() < .5
