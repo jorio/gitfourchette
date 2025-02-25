@@ -191,7 +191,6 @@ class GFApplication(QApplication):
 
     def endSession(self, clearTempDir=True):
         from gitfourchette import settings
-        from gitfourchette.toolbox.iconbank import clearStockIconCache
         from gitfourchette.syntax import LexJobCache
         from gitfourchette.remotelink import RemoteLink
         if settings.prefs.isDirty():
@@ -200,7 +199,6 @@ class GFApplication(QApplication):
             settings.history.write()
         LexJobCache.clear()  # don't cache lexed files across sessions (for unit testing)
         RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
-        clearStockIconCache()  # release icon temp files
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
         if clearTempDir:
             self.tempDir.remove()
@@ -377,8 +375,9 @@ class GFApplication(QApplication):
 
     def onRestyle(self):
         from gitfourchette.toolbox.qtutils import isDarkTheme
-        from gitfourchette.toolbox.iconbank import clearStockIconCache
         from gitfourchette.syntax.colorscheme import ColorScheme
+
+        QPixmapCache.clear()
 
         styleSheet = Path(QFile("assets:style.qss").fileName()).read_text()
         if isDarkTheme():  # Append dark override
@@ -386,5 +385,4 @@ class GFApplication(QApplication):
             styleSheet += darkSupplement
         self.setStyleSheet(styleSheet)
 
-        clearStockIconCache()
         ColorScheme.refreshFallbackScheme()

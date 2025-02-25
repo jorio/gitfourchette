@@ -33,7 +33,7 @@ from .messageboxes import (
     showWarning, showInformation, askConfirmation,
     addULToMessageBox,
     NonCriticalOperation)
-from .iconbank import stockIcon, clearStockIconCache
+from .iconbank import stockIcon
 from .pathutils import PathDisplayStyle, abbreviatePath, compactPath
 from .persistentfiledialog import PersistentFileDialog
 from .qbusyspinner import QBusySpinner
@@ -72,7 +72,6 @@ from .qtutils import (
     lerp,
     mixColors,
     DocumentLinks,
-    writeTempFile,
     waitForSignal,
     findParentWidget,
     setTabOrder,

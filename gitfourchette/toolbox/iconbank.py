@@ -4,98 +4,23 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-"""
-If SVG icons don't show up, you may need to install the 'qt6-svg' package.
-"""
-
 from gitfourchette.qt import *
-from gitfourchette.toolbox.qtutils import isDarkTheme, writeTempFile, mixColors
+from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
 _stockIconCache: dict[int, QIcon] = {}
-_tempSvgFiles: list[QTemporaryFile] = []
+
+# Override some icon IDs depending on desktop environment
+_overrideIconIds = {}
+if MACOS or WINDOWS:
+    _overrideIconIds["achtung"] = "SP_MessageBoxWarning"
 
 
-def assetCandidates(name: str):
-    prefix = "assets:icons/"
-    dark = isDarkTheme()
-    for ext in ".svg", ".png":
-        if dark:  # attempt to get dark mode variant first
-            yield QFile(f"{prefix}{name}@dark{ext}")
-        yield QFile(f"{prefix}{name}{ext}")
-
-
-def getBestIconFile(name: str) -> str:
-    try:
-        f = next(f for f in assetCandidates(name) if f.exists())
-        return f.fileName()
-    except StopIteration as exc:
-        raise KeyError(f"no built-in icon asset '{name}'") from exc
-
-
-def lookUpNamedIcon(name: str) -> QIcon:
-    try:
-        # First, attempt to get a matching icon from the assets
-        path = getBestIconFile(name)
-        return QIcon(path)
-    except KeyError:
-        pass
-
-    # Fall back to Qt standard icons (with "SP_" prefix)
-    if name.startswith("SP_"):
-        entry = getattr(QStyle.StandardPixmap, name)
-        return QApplication.style().standardIcon(entry)
-
-    # Fall back to theme icon
-    return QIcon.fromTheme(name)
-
-
-def remapSvgColors(path: str, forcedRemapTable: str) -> QIcon:
-    with open(path, encoding="utf-8") as f:
-        originalSvg = f.read().strip()
-
-    def remapFile(replaceGray: QColor | None, opacity=1.0) -> str:
-        remapTable = forcedRemapTable.split()
-        if replaceGray is not None:
-            remapTable.append(f"gray={replaceGray.name()}")
-
-        data = originalSvg
-        for pair in remapTable:
-            oldColor, newColor = pair.split("=")
-            data = data.replace(oldColor, newColor)
-        if opacity != 1.0:
-            dataLines = data.splitlines()
-            dataLines[0] += f"<g opacity='{opacity}'>"
-            dataLines[-1] = "</g>" + dataLines[-1]
-            data = "\n".join(dataLines)
-        if data == originalSvg:  # No changes, return original icon
-            return path
-
-        # Keep temp file object around so that QIcon can read off it as needed
-        tempFile = writeTempFile("icon-XXXXXX.svg", data)
-        _tempSvgFiles.append(tempFile)
-        return tempFile.fileName()
-
-    palette = QApplication.palette()
-    bgColor = palette.color(QPalette.ColorRole.Window)
-    fgColor = palette.color(QPalette.ColorRole.WindowText)
-    hlColor = palette.color(QPalette.ColorRole.HighlightedText)
-    mainColor = None if forcedRemapTable else mixColors(bgColor, fgColor, .62)
-
-    icon = QIcon()
-    icon.addFile(remapFile(mainColor),      mode=QIcon.Mode.Normal)
-    icon.addFile(remapFile(mainColor, .33), mode=QIcon.Mode.Disabled)
-    icon.addFile(remapFile(hlColor),        mode=QIcon.Mode.Selected)
-    icon.addFile(remapFile(fgColor),        mode=QIcon.Mode.SelectedInactive)
-    return icon
-
-
-def stockIcon(iconId: str, colorRemapTable="") -> QIcon:
+def stockIcon(iconId: str, colorTable="") -> QIcon:
     # Special cases
-    if (MACOS or WINDOWS) and iconId == "achtung":
-        iconId = "SP_MessageBoxWarning"
+    iconId = _overrideIconIds.get(iconId, iconId)
 
-    # Compute key
-    key = hash(iconId) ^ hash(colorRemapTable)
+    # Compute cache key
+    key = hash(iconId) ^ hash(colorTable)
 
     # Attempt to get cached icon
     try:
@@ -103,25 +28,32 @@ def stockIcon(iconId: str, colorRemapTable="") -> QIcon:
     except KeyError:
         pass
 
-    # Determine if it's an SVG
-    try:
-        iconPath = getBestIconFile(iconId)
-        isSvg = iconPath.endswith(".svg")
-    except KeyError:
-        isSvg = False
+    # Find path to icon file (if any)
+    iconPath = ""
+    for ext in ".svg", ".png":
+        file = QFile(f"assets:icons/{iconId}{ext}")
+        if file.exists():
+            iconPath = file.fileName()
+            break
 
     # Create QIcon
-    if isSvg:
-        icon = remapSvgColors(iconPath, colorRemapTable)
+    if iconPath.endswith(".svg"):
+        # Dynamic SVG icon
+        engine = RecolorSvgIconEngine(iconPath, colorTable)
+        icon = QIcon(engine)
+    elif iconPath:
+        # Bitmap file
+        icon = QIcon(iconPath)
+    elif iconId.startswith("SP_"):
+        # Qt standard pixmaps (with "SP_" prefix)
+        entry = getattr(QStyle.StandardPixmap, iconId)
+        icon = QApplication.style().standardIcon(entry)
     else:
-        assert not colorRemapTable, f"can't remap colors in non-SVG icon! {iconId}"
-        icon = lookUpNamedIcon(iconId)
+        # Fall back to theme icon
+        icon = QIcon.fromTheme(iconId)
+
+    assert iconPath.endswith(".svg") or not colorTable, f"can't remap colors in non-SVG icon! {iconId}"
 
     # Cache icon
     _stockIconCache[key] = icon
     return icon
-
-
-def clearStockIconCache():
-    _stockIconCache.clear()
-    _tempSvgFiles.clear()

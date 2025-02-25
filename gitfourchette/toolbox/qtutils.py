@@ -378,18 +378,6 @@ def mixColors(c1: QColor, c2: QColor, ratio=.5, rmin=0.0, rmax=1.0):
         lerp(c1.alphaF(), c2.alphaF(), ratio, rmin, rmax))
 
 
-def writeTempFile(namePattern: str, data: bytes | str) -> QTemporaryFile:
-    assert "XXX" in namePattern
-    tempFile = QTemporaryFile(os.path.join(qTempDir(), namePattern))
-    tempFile.open(QFile.OpenModeFlag.WriteOnly)
-    if isinstance(data, str):
-        data = data.encode('utf-8')
-    tempFile.write(data)
-    tempFile.close()
-    tempFile.setAutoRemove(True)
-    return tempFile
-
-
 def waitForSignal(parent: QObject | QWidget, signal: SignalInstance):
     loop = QEventLoop(parent)
     def quitProxy():
