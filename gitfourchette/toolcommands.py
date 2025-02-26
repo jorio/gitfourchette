@@ -124,18 +124,19 @@ class ToolCommands:
         else:
             excludeTools = macTools + winTools
             cls.TerminalPresets.update(cls.LinuxTerminalPresets)
+
+            debianTerminal = "Debian default terminal"
+            terminalScores = {k: 0 for k in cls.LinuxTerminalPresets}
+            terminalScores[debianTerminal]   = 1000
+            terminalScores["Ptyxis"]         = [-2, 2][GNOME]
+            terminalScores["GNOME Terminal"] = [-1, 1][GNOME]
+
             cls.DefaultDiffPreset = "Meld"
             cls.DefaultMergePreset = "Meld"
-            cls.DefaultTerminalPreset = "Konsole"
+            cls.DefaultTerminalPreset = cls._findBestCommand(cls.LinuxTerminalPresets, terminalScores, "Konsole")
 
-            # Default to 'x-terminal-emulator' on Debian derivatives
-            debianPreset = "Debian default terminal"
-            if shutil.which(cls.LinuxTerminalPresets[debianPreset]):  # pragma: no cover
-                cls.DefaultTerminalPreset = debianPreset
-            else:
-                excludeTools.append(debianPreset)
-                if "GNOME" in os.environ.get("XDG_CURRENT_DESKTOP", ""):  # pragma: no cover
-                    cls.DefaultTerminalPreset = "GNOME Terminal"
+            if cls.DefaultTerminalPreset != debianTerminal:  # Hide x-terminal-emulator on non-Debian distros
+                excludeTools.append(debianTerminal)
 
         for key in excludeTools:
             for presets in allPresetDicts:
@@ -172,6 +173,18 @@ class ToolCommands:
                 return flatpakKey
 
         return baseKey
+
+    @classmethod
+    def _findBestCommand(cls, presets, scores, fallback):
+        assert set(scores.keys()) == set(presets.keys())
+
+        sortedScores = sorted(scores.items(), key=lambda pair: pair[1], reverse=True)
+
+        for candidate, _dummyScore in sortedScores:
+            if shutil.which(presets[candidate]):
+                return candidate
+
+        return fallback
 
     @classmethod
     def isFlatpakRunCommand(cls, tokens: Sequence[str]):

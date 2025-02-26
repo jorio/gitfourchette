@@ -125,6 +125,7 @@ MACOS = KERNEL == "darwin"
 WINDOWS = KERNEL == "winnt"
 FREEDESKTOP = not MACOS and not WINDOWS
 FLATPAK = FREEDESKTOP and _os.path.exists("/.flatpak-info")
+GNOME = "GNOME" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")[0]
 
 # -----------------------------------------------------------------------------
 # Try to import optional modules
