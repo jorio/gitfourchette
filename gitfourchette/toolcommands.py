@@ -80,6 +80,7 @@ class ToolCommands:
         "Debian default terminal": "x-terminal-emulator",  # only on Debian and derivatives
         "GNOME Terminal": "gnome-terminal",
         "Konsole"       : "konsole",
+        "Ptyxis"        : "ptyxis",
     }
 
     # Filled in depending on platform
