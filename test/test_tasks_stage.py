@@ -169,3 +169,22 @@ def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method):
     assert qlvGetRowData(rw.stagedFiles) == []
 
     assert rw.repo.status() == {"SomeNewFile.txt": FileStatus.WT_NEW}
+
+
+def testStagingBlockedBySafeCrlf(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.config["core.autocrlf"] = "input"
+        repo.config["core.safecrlf"] = True
+    writeFile(f"{wd}/hello0.txt", "hello\r\ndos\r\n")
+    writeFile(f"{wd}/hello1.txt", "hello\nunix\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.dirtyFiles.selectAll()
+    rw.diffArea.stageButton.click()
+
+    # Note: Two lookups for a single qmb here because we're looking for parts of the message in different QLabels.
+    findQMessageBox(rw, "hello0.+contains CRLF.+will not be replaced by LF.+safecrlf")
+    acceptQMessageBox(rw, "stage files.+ran into an issue with 1 file.+1 other file was successful")
+
+    assert rw.repo.status() == {'hello1.txt': FileStatus.INDEX_NEW, 'hello0.txt': FileStatus.WT_NEW}

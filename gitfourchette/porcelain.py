@@ -191,9 +191,13 @@ class MultiFileError(Exception):
     def __init__(self, message: str = ""):
         self.file_exceptions = {}
         self.message = message
+        self.file_successes = 0
 
     def add_file_error(self, path: str, exc: Exception | None):
         self.file_exceptions[path] = exc
+
+    def add_file_success(self):
+        self.file_successes += 1
 
     def __bool__(self):
         return bool(self.file_exceptions)
@@ -1221,15 +1225,26 @@ class Repo(_VanillaRepository):
 
     def stage_files(self, patches: list[Patch]):
         index = self.index
+        error = MultiFileError()
+
         for patch in patches:
             path = patch.delta.new_file.path
             if patch.delta.new_file.mode == FileMode.TREE and path.endswith("/"):
                 path = path.removesuffix("/")
-            if patch.delta.status == DeltaStatus.DELETED:
-                index.remove(path)
+            try:
+                if patch.delta.status == DeltaStatus.DELETED:
+                    index.remove(path)
+                else:
+                    index.add(path)
+            except GitError as gitError:
+                error.add_file_error(path, gitError)
             else:
-                index.add(path)
+                error.add_file_success()
+
         index.write()
+
+        if error:
+            raise error
 
     def restore_files_from_head(self, paths: list[str], restore_all=False):
         """
@@ -1385,6 +1400,8 @@ class Repo(_VanillaRepository):
                 self.applies(patch_diff, location, raise_error=True)
             except (GitError, OSError) as exc:
                 error.add_file_error(patch.delta.old_file.path, exc)
+            else:
+                error.add_file_success()
 
         if error:
             raise error

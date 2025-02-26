@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import enum
 import logging
+import re
 import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
-from gitfourchette.porcelain import ConflictError, MultiFileError, RepositoryState, Repo
+from gitfourchette.porcelain import ConflictError, GitError, MultiFileError, Repo, RepositoryState
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.settings import DEVDEBUG
@@ -22,6 +23,8 @@ from gitfourchette.toolbox import *
 
 if TYPE_CHECKING:
     from gitfourchette.repowidget import RepoWidget
+
+_lineEndingReplacementPattern = re.compile("(LF|CRLF) would be replaced by (LF|CRLF) in '.+'")
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,44 @@ def showConflictErrorMessage(parent: QWidget, exc: ConflictError, opName="Operat
         dt = qmb.detailedText()
         dt += _("Before you try again, you should either commit, stash, or discard your changes.")
         qmb.setDetailedText(dt)
+
+
+def showMultiFileErrorMessage(parent: QWidget, exc: MultiFileError, opName="Operation"):
+    details = []
+
+    if exc.message:
+        message = exc.message
+    else:
+        message = _n("Operation {op} ran into an issue with {n} file.",
+                     "Operation {op} ran into issues with {n} files.",
+                     n=len(exc.file_exceptions), op=hquo(opName))
+        if exc.file_successes > 0:
+            message += " " + _n("({n} other file was successful.)",
+                                "({n} other files were successful.)", n=exc.file_successes)
+
+    for path, error in exc.file_exceptions.items():
+        if not error:
+            details.append(escape(path))
+            continue
+
+        m = ""
+
+        # Reword some libgit2 messages
+        if type(error) is GitError:
+            lineEndings = _lineEndingReplacementPattern.match(str(error))
+            if lineEndings:
+                m = _("This file contains {a} line endings. "
+                      "They will not be replaced by {b} because {opt} is enabled.",
+                      a=lineEndings.group(1), b=lineEndings.group(2), opt=hquo("core.safecrlf"))
+
+        if not m:
+            m = escape(str(error))
+
+        details.append(f"<b>{escape(path)}</b>: {m}")
+
+    qmb = asyncMessageBox(parent, 'warning', opName, message)
+    addULToMessageBox(qmb, details)
+    qmb.show()
 
 
 class TaskPrereqs(enum.IntFlag):
@@ -287,19 +328,7 @@ class RepoTask(QObject):
         if isinstance(exc, ConflictError):
             showConflictErrorMessage(self.parentWidget(), exc, self.name())
         elif isinstance(exc, MultiFileError):
-            details = []
-            if exc.message:
-                message = exc.message
-            else:
-                message = _("Operation failed: {0}.", escape(self.name()))
-            for filePath, fileException in exc.file_exceptions.items():
-                if fileException:
-                    details.append(f"<b>{escape(filePath)}</b>: {escape(str(fileException))}")
-                else:
-                    details.append(escape(filePath))
-            qmb = asyncMessageBox(self.parentWidget(), 'warning', self.name(), message)
-            addULToMessageBox(qmb, details)
-            qmb.show()
+            showMultiFileErrorMessage(self.parentWidget(), exc, self.name())
         else:
             message = _("Operation failed: {0}.", escape(self.name()))
             excMessageBox(exc, title=self.name(), message=message, parent=self.parentWidget())
