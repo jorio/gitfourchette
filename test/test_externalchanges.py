@@ -124,3 +124,17 @@ def testExternalChangeWhileTaskIsBusyThenAborts(tempDir, mainWindow):
 
     # Even though the task aborts, the repo should auto-refresh
     assert qlvGetRowData(rw.dirtyFiles) == ["sneaky.txt"]
+
+
+def testLineEndingsChangedWithAutocrlfInputCauseDiffReload(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.config["core.autocrlf"] = "input"
+
+    writeFile(f"{wd}/hello.txt", "hello\r\ndos\r\n")
+    rw = mainWindow.openRepo(wd)
+    oldPatch = rw.diffView.currentPatch
+
+    writeFile(f"{wd}/hello.txt", "hello\ndos\n")
+    rw.refreshRepo()  # Must not fail (no failed assertions, etc)
+    assert oldPatch is not rw.diffView.currentPatch
