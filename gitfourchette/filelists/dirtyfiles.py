@@ -21,6 +21,9 @@ class DirtyFiles(FileList):
 
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
+        makeWidgetShortcut(self, self.stage, *GlobalShortcuts.stageHotkeys)
+        makeWidgetShortcut(self, self.discard, *GlobalShortcuts.discardHotkeys)
+
     def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
         actions = []
 
@@ -118,15 +121,6 @@ class DirtyFiles(FileList):
 
         actions += super().contextMenuActions(patches)
         return actions
-
-    def keyPressEvent(self, event: QKeyEvent):
-        k = event.key()
-        if k in GlobalShortcuts.stageHotkeys:
-            self.stage()
-        elif k in GlobalShortcuts.discardHotkeys:
-            self.discard()
-        else:
-            super().keyPressEvent(event)
 
     def stage(self):
         patches = list(self.selectedPatches())

@@ -229,6 +229,8 @@ def qteFind(qte: QTextEdit, pattern: str, plainText=False):
 def qteClickLink(qte: QTextEdit, pattern: str):
     foundLink = qteFind(qte, pattern)
     assert foundLink
+    # TODO: Generate an actual click event, not a key press
+    qte.setFocus()
     QTest.keyPress(qte, Qt.Key.Key_Enter)
 
 

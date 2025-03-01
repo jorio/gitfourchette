@@ -598,6 +598,7 @@ def testDeleteTag(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "delete")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     else:
@@ -619,6 +620,7 @@ def testCheckoutTag(tempDir, mainWindow, method):
         menu = sb.makeNodeMenu(node)
         triggerMenuAction(menu, "check out")
     elif method == "sidebarkey":
+        sb.setFocus()
         sb.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "sidebardclick":

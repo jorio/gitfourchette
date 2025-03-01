@@ -128,6 +128,10 @@ class DiffView(QPlainTextEdit):
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             rubberBandButtonLayout.addWidget(button)
 
+        makeWidgetShortcut(self, self.onStageShortcut, *GlobalShortcuts.stageHotkeys)
+        makeWidgetShortcut(self, self.onDiscardShortcut, *GlobalShortcuts.discardHotkeys)
+        makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
+
     # ---------------------------------------------
     # Qt events
 
@@ -139,44 +143,28 @@ class DiffView(QPlainTextEdit):
         self.resizeGutter()
         self.updateRubberBand()
 
-    def keyPressEvent(self, event: QKeyEvent):
+    def onStageShortcut(self):
+        navContext = self.currentLocator.context
+        if navContext == NavContext.UNSTAGED:
+            self.stageSelection()
+        else:
+            QApplication.beep()
+
+    def onDiscardShortcut(self):
+        navContext = self.currentLocator.context
+        if navContext == NavContext.STAGED:
+            self.unstageSelection()
+        elif navContext == NavContext.UNSTAGED:
+            self.discardSelection()
+        else:
+            QApplication.beep()
+
+    def addSearchShortcuts(self):
         # In a detached window, we can't rely on the main window's menu bar to
         # dispatch shortcuts to us (except on macOS, which has a global main menu).
-        if self.isDetachedWindow and self.processSearchKeys(event):
-            return
-
-        k = event.key()
-        navContext = self.currentLocator.context
-        if k in GlobalShortcuts.stageHotkeys:
-            if navContext == NavContext.UNSTAGED:
-                self.stageSelection()
-            else:
-                QApplication.beep()
-        elif k in GlobalShortcuts.discardHotkeys:
-            if navContext == NavContext.STAGED:
-                self.unstageSelection()
-            elif navContext == NavContext.UNSTAGED:
-                self.discardSelection()
-            else:
-                QApplication.beep()
-        elif k == Qt.Key.Key_Escape:
-            if self.searchBar.isVisible():  # close search bar if it doesn't have focus
-                self.searchBar.hide()
-            else:
-                QApplication.beep()
-        else:
-            super().keyPressEvent(event)
-
-    def processSearchKeys(self, event: QKeyEvent):
-        if keyEventMatchesMultiShortcut(event, GlobalShortcuts.find):
-            self.search(SearchBar.Op.Start)
-        elif event.matches(QKeySequence.StandardKey.FindPrevious):
-            self.search(SearchBar.Op.Previous)
-        elif event.matches(QKeySequence.StandardKey.FindNext):
-            self.search(SearchBar.Op.Next)
-        else:
-            return False
-        return True
+        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Start), *GlobalShortcuts.find)
+        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Previous), QKeySequence.StandardKey.FindPrevious)
+        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Next), QKeySequence.StandardKey.FindNext)
 
     def wheelEvent(self, event: QWheelEvent):
         # Drop-in replacement for QPlainTextEdit::wheelEvent which scales text

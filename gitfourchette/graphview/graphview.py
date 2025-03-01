@@ -8,7 +8,6 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.graph import MockCommit
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogfilter import CommitLogFilter
@@ -76,6 +75,12 @@ class GraphView(QListView):
 
         self.refreshPrefs(invalidateMetrics=False)
 
+        # Shortcut keys
+        makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
+        self.checkoutShortcut = makeWidgetShortcut(self, self.onReturnKey, "Return", "Enter")
+        self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
+        self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
+
     @property
     def repoModel(self):
         return self.repoWidget.repoModel
@@ -130,7 +135,7 @@ class GraphView(QListView):
                     ]
 
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
-            checkoutAction.shortcuts = makeMultiShortcut(QKeySequence("Return"))
+            checkoutAction.shortcuts = self.checkoutShortcut.key()
 
             actions = [
                 *mergeActions,
@@ -145,8 +150,8 @@ class GraphView(QListView):
                 TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),
                 TaskBook.action(self, ExportCommitAsPatch, _("E&xport As Patch…"), taskArgs=oid),
                 ActionDef.SEPARATOR,
-                ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=GlobalShortcuts.copy),
-                ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=QKeySequence("Space")),
+                ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
+                ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
             ]
 
         menu = ActionDef.makeQMenu(self, actions)
@@ -179,35 +184,13 @@ class GraphView(QListView):
             oid = self.currentCommitId
             CheckoutCommit.invoke(self, oid)
 
-    def keyPressEvent(self, event: QKeyEvent):
-        if event.matches(QKeySequence.StandardKey.Copy):
-            self.copyCommitHashToClipboard()
-            return
-
-        k = event.key()
+    def onReturnKey(self):
         oid = self.currentCommitId
         isValidCommit = oid and oid != UC_FAKEID
-
-        if k in GlobalShortcuts.getCommitInfoHotkeys:
-            if isValidCommit:
-                self.getInfoOnCurrentCommit()
-            else:
-                QApplication.beep()
-
-        elif k in GlobalShortcuts.checkoutCommitFromGraphHotkeys:
-            if isValidCommit:
-                CheckoutCommit.invoke(self, oid)
-            else:
-                NewCommit.invoke(self)
-
-        elif k == Qt.Key.Key_Escape:
-            if self.searchBar.isVisible():  # close search bar if it doesn't have focus
-                self.searchBar.hide()
-            else:
-                QApplication.beep()
-
+        if isValidCommit:
+            CheckoutCommit.invoke(self, oid)
         else:
-            super().keyPressEvent(event)
+            NewCommit.invoke(self)
 
     @property
     def currentRowKind(self) -> SpecialRow:

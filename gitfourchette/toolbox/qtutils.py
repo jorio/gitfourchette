@@ -16,6 +16,7 @@ _supportedImageFormats = None
 QModelIndex_default = QModelIndex()
 QPoint_zero = QPoint()
 
+ShortcutKeys = QKeySequence | QKeySequence.StandardKey | Qt.Key | str
 MultiShortcut = list[QKeySequence]
 
 
@@ -179,8 +180,8 @@ def mutedToolTipColorHex() -> str:
     return mutedColor.name(QColor.NameFormat.HexArgb)
 
 
-def appendShortcutToToolTipText(tip: str, shortcut: QKeySequence | QKeySequence.StandardKey | Qt.Key | str, singleLine=True):
-    if isinstance(shortcut, QKeySequence.StandardKey | Qt.Key | str):
+def appendShortcutToToolTipText(tip: str, shortcut: ShortcutKeys, singleLine=True):
+    if not isinstance(shortcut, QKeySequence):
         shortcut = QKeySequence(shortcut)
 
     hint = shortcut.toString(QKeySequence.SequenceFormat.NativeText)
@@ -191,7 +192,7 @@ def appendShortcutToToolTipText(tip: str, shortcut: QKeySequence | QKeySequence.
     return f"{prefix}{tip} {hint}"
 
 
-def appendShortcutToToolTip(widget: QWidget, shortcut: QKeySequence | QKeySequence.StandardKey | Qt.Key, singleLine=True):
+def appendShortcutToToolTip(widget: QWidget, shortcut: ShortcutKeys, singleLine=True):
     tip = widget.toolTip()
     tip = appendShortcutToToolTipText(tip, shortcut, singleLine)
     widget.setToolTip(tip)
@@ -356,10 +357,16 @@ def makeMultiShortcut(*args) -> MultiShortcut:
     return shortcuts
 
 
-def keyEventMatchesMultiShortcut(event: QKeyEvent, shortcuts: MultiShortcut) -> bool:
-    modifiers = event.modifiers() if PYQT5 else event.modifiers().value
-    eventKS = QKeySequence(modifiers | event.key())
-    return eventKS in shortcuts
+def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys) -> QShortcut:
+    assert keys, "no shortcut keys given"
+    shortcut = QShortcut(parent)
+    if QT5:  # Only one key per shortcut in Qt 5
+        shortcut.setKey(keys[0])
+    else:
+        shortcut.setKeys(keys)
+    shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+    shortcut.activated.connect(callback)
+    return shortcut
 
 
 def lerp(v1, v2, c=.5, cmin=0.0, cmax=1.0):

@@ -67,7 +67,7 @@ from .qtutils import (
     makeInternalLink,
     MultiShortcut,
     makeMultiShortcut,
-    keyEventMatchesMultiShortcut,
+    makeWidgetShortcut,
     CallbackAccumulator,
     lerp,
     mixColors,

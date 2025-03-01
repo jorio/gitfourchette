@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,7 +13,7 @@ from typing import ClassVar
 
 from gitfourchette.qt import *
 from gitfourchette.toolbox.iconbank import stockIcon
-from gitfourchette.toolbox.qtutils import MultiShortcut, appendShortcutToToolTipText
+from gitfourchette.toolbox.qtutils import MultiShortcut, ShortcutKeys, appendShortcutToToolTipText
 
 
 @dataclasses.dataclass
@@ -38,7 +38,7 @@ class ActionDef:
     radioGroup: str = ""
     enabled: bool = True
     submenu: list[ActionDef] = dataclasses.field(default_factory=list)
-    shortcuts: MultiShortcut | QKeySequence | QKeySequence.StandardKey | Qt.Key | str = ""
+    shortcuts: MultiShortcut | ShortcutKeys = ""
     tip: str = ""
     objectName: str = ""
     menuRole: QAction.MenuRole = QAction.MenuRole.NoRole

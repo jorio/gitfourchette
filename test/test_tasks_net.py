@@ -159,6 +159,7 @@ def testDeleteRemoteBranch(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "delete")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     else:

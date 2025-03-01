@@ -12,7 +12,6 @@ from gitfourchette import settings
 from gitfourchette.exttools import openInTextEditor, openInDiffTool
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -154,6 +153,9 @@ class FileList(QListView):
 
         self.refreshPrefs()
 
+        makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
+        makeWidgetShortcut(self, self.copyPaths, QKeySequence.StandardKey.Copy)
+
     def refreshPrefs(self):
         self.setVerticalScrollMode(settings.prefs.listViewScrollMode)
 
@@ -240,7 +242,7 @@ class FileList(QListView):
             ActionDef(
                 _n("&Copy Path", "&Copy {n} Paths", n),
                 self.copyPaths,
-                shortcuts=GlobalShortcuts.copy,
+                shortcuts=QKeySequence.StandardKey.Copy,
             ),
 
             ActionDef(
@@ -391,19 +393,6 @@ class FileList(QListView):
 
         self.confirmBatch(run, _("Open paths"),
                           _("Really open <b>{n} folders</b>?"))
-
-    def keyPressEvent(self, event: QKeyEvent):
-        # The default keyPressEvent copies the displayed label of the selected items.
-        # We want to copy the full path of the selected items instead.
-        if event.matches(QKeySequence.StandardKey.Copy):
-            self.copyPaths()
-        elif event.key() == Qt.Key.Key_Escape:
-            if self.searchBar.isVisible():  # close search bar if it doesn't have focus
-                self.searchBar.hide()
-            else:
-                QApplication.beep()
-        else:
-            super().keyPressEvent(event)
 
     def copyPaths(self):
         text = '\n'.join(self.repo.in_workdir(path) for path in self.selectedPaths())

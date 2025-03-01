@@ -578,6 +578,7 @@ class RepoWidget(QStackedWidget):
         layout.setSpacing(0)
         diff = DiffView(diffWindow)
         diff.isDetachedWindow = True
+        diff.addSearchShortcuts()  # Required for detached windows
         diff.setFrameStyle(QFrame.Shape.NoFrame)
         diff.replaceDocument(self.repo, patch, locator, diffDocument)
         layout.addWidget(diff)

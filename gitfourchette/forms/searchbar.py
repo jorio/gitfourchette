@@ -117,24 +117,27 @@ class SearchBar(QWidget):
 
         tweakWidgetFont(self.lineEdit, 85)
 
-    def keyPressEvent(self, event: QKeyEvent):
-        if not self.lineEdit.hasFocus():
-            super().keyPressEvent(event)
+        shortcuts = [
+            makeWidgetShortcut(self, self.onEnterShortcut, "Return", "Enter"),
+            makeWidgetShortcut(self, self.onShiftEnterShortcut, "Shift+Return", "Shift+Enter"),
+            makeWidgetShortcut(self, self.bail, "Escape"),
+        ]
+        for shortcut in shortcuts:
+            shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
 
-        elif event.key() in [Qt.Key.Key_Return, Qt.Key.Key_Enter]:
-            self.lineEdit.selectAll()
-            if not self.searchTerm:
-                QApplication.beep()
-            elif event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
-                self.searchPrevious.emit()
-            else:
-                self.searchNext.emit()
-
-        elif event.key() == Qt.Key.Key_Escape:
-            self.bail()
-
+    def onEnterShortcut(self):
+        self.lineEdit.selectAll()
+        if not self.searchTerm:
+            QApplication.beep()
         else:
-            super().keyPressEvent(event)
+            self.searchNext.emit()
+
+    def onShiftEnterShortcut(self):
+        self.lineEdit.selectAll()
+        if not self.searchTerm:
+            QApplication.beep()
+        else:
+            self.searchPrevious.emit()
 
     def showEvent(self, event: QShowEvent):
         super().showEvent(event)
@@ -143,6 +146,12 @@ class SearchBar(QWidget):
     def hideEvent(self, event: QHideEvent):
         super().hideEvent(event)
         self.visibilityChanged.emit(False)
+
+    def hideOrBeep(self):
+        if self.isVisible():  # close search bar if it doesn't have focus
+            self.hide()
+        else:
+            QApplication.beep()
 
     def popUp(self, forceSelectAll=False):
         wasHidden = self.isHidden()

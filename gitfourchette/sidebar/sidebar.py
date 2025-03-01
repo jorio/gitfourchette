@@ -72,6 +72,10 @@ class Sidebar(QTreeView):
 
         self.refreshPrefs()
 
+        makeWidgetShortcut(self, self.onReturnShortcut, "Return", "Enter")
+        makeWidgetShortcut(self, self.onDeleteShortcut, "Delete")
+        makeWidgetShortcut(self, self.onRenameShortcut, "F2")
+
     def drawBranches(self, painter, rect, index):
         """
         (overridden function)
@@ -678,27 +682,21 @@ class Sidebar(QTreeView):
         else:
             QApplication.beep()
 
-    def keyPressEvent(self, event: QKeyEvent):
-        k = event.key()
+    def getValidNode(self):
+        try:
+            index: QModelIndex = self.selectedIndexes()[0]
+            return SidebarNode.fromIndex(index)
+        except IndexError:
+            return None
 
-        def getValidNode():
-            try:
-                index: QModelIndex = self.selectedIndexes()[0]
-                return SidebarNode.fromIndex(index)
-            except IndexError:
-                return None
+    def onReturnShortcut(self):
+        self.wantEnterNode(self.getValidNode())
 
-        if k in [Qt.Key.Key_Return, Qt.Key.Key_Enter]:
-            self.wantEnterNode(getValidNode())
+    def onDeleteShortcut(self):
+        self.wantDeleteNode(self.getValidNode())
 
-        elif k in [Qt.Key.Key_Delete]:
-            self.wantDeleteNode(getValidNode())
-
-        elif k in [Qt.Key.Key_F2]:
-            self.wantRenameNode(getValidNode())
-
-        else:
-            super().keyPressEvent(event)
+    def onRenameShortcut(self):
+        self.wantRenameNode(self.getValidNode())
 
     def selectionChanged(self, selected: QItemSelection, deselected: QItemSelection):
         super().selectionChanged(selected, deselected)

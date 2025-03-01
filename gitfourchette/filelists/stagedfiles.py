@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -20,6 +20,8 @@ class StagedFiles(FileList):
         super().__init__(parent, NavContext.STAGED)
 
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        makeWidgetShortcut(self, self.unstage, *(GlobalShortcuts.discardHotkeys + GlobalShortcuts.stageHotkeys))
 
     def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
         actions = []
@@ -72,13 +74,6 @@ class StagedFiles(FileList):
 
         actions += super().contextMenuActions(patches)
         return actions
-
-    def keyPressEvent(self, event: QKeyEvent):
-        k = event.key()
-        if k in GlobalShortcuts.stageHotkeys + GlobalShortcuts.discardHotkeys:
-            self.unstage()
-        else:
-            super().keyPressEvent(event)
 
     def unstage(self):
         patches = list(self.selectedPatches())

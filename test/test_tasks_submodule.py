@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -36,6 +36,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
         triggerMenuAction(menu, r"open submodule.+tab")
 
     elif method == "sidebarKey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(submoNode)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
 

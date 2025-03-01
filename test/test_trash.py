@@ -58,6 +58,7 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
     trash.refreshFiles()
     assert len(trash.trashFiles) == 0
 
+    rw.dirtyFiles.setFocus()
     QTest.keySequence(rw.dirtyFiles, QKeySequence("Ctrl+A,Del"))
     acceptQMessageBox(rw, "really discard changes")
 

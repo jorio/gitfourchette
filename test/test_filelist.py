@@ -158,7 +158,7 @@ def testSearchFileList(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(oid))
     assert rw.committedFiles.isVisibleTo(rw)
     rw.committedFiles.setFocus()
-    QTest.keySequence(rw, QKeySequence.StandardKey.Find)
+    QTest.keySequence(rw.committedFiles, QKeySequence.StandardKey.Find)
 
     fileList = rw.committedFiles
     searchBar = fileList.searchBar
@@ -199,6 +199,7 @@ def testSearchFileList(tempDir, mainWindow):
         # TODO: Can't get Qt 5 unit tests to hide the searchbar this way, but it does work manually.
         # Qt 5 is on the way out so it's not worth troubleshooting this.
         return
+    fileList.setFocus()
     QTest.keyClick(fileList, Qt.Key.Key_Escape)
     assert not searchBar.isVisible()
 
@@ -353,6 +354,7 @@ def testFileListCopyPath(tempDir, mainWindow):
     assert not clipboard.text()
 
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"))
+    rw.committedFiles.setFocus()
     QTest.keySequence(rw.committedFiles, "Ctrl+C")
     clipped = clipboard.text()
     assert clipped == os.path.normpath(f"{wd}/c/c2-2.txt")

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -36,8 +36,9 @@ def testNewRemote(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "add remote")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
-        QTest.keyPress(rw.sidebar, Qt.Key.Key_Enter)
+        QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -75,11 +76,13 @@ def testEditRemote(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "edit remote")
     elif method == "sidebarkey1":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_F2)
     elif method == "sidebarkey2":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
-        QTest.keyPress(rw.sidebar, Qt.Key.Key_Enter)
+        QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -111,6 +114,7 @@ def testDeleteRemote(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "remove remote")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     else:

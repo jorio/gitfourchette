@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -37,6 +37,7 @@ def testNewStash(tempDir, mainWindow, method):
         menu = sb.makeNodeMenu(node)
         triggerMenuAction(menu, "stash changes")
     elif method == "sidebarkey":
+        sb.setFocus()
         sb.selectNode(node)
         QTest.keyPress(sb, Qt.Key.Key_Return)
     elif method == "sidebardclick":
@@ -226,6 +227,7 @@ def testApplyStash(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, r"^apply")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "sidebardclick":
@@ -287,6 +289,7 @@ def testDropStash(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "delete")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     elif method == "contextheader":

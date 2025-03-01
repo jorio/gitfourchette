@@ -32,8 +32,9 @@ def testNewBranch(tempDir, mainWindow, method, switch):
         menu = sb.makeNodeMenu(node)
         triggerMenuAction(menu, "new branch")
     elif method == "sidebarkey":
+        sb.setFocus()
         sb.selectNode(node)
-        QTest.keyPress(sb, Qt.Key.Key_Enter)
+        QTest.keyPress(sb, Qt.Key.Key_Return)
     elif method == "sidebardclick":
         rect = sb.visualRect(node.createIndex(sb.sidebarModel))
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
@@ -151,6 +152,7 @@ def testRenameBranch(tempDir, mainWindow, method):
     if method == "sidebarmenu":
         triggerMenuAction(menu, "rename")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_F2)
     else:
@@ -230,6 +232,7 @@ def testRenameBranchFolder(tempDir, mainWindow, method, newName):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "name")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_F2)
     else:
@@ -284,6 +287,7 @@ def testDeleteBranch(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "delete")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     else:
@@ -311,6 +315,7 @@ def testDeleteBranchFolder(tempDir, mainWindow, method):
     if method == "sidebarmenu":
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "delete folder")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     else:
@@ -339,6 +344,7 @@ def testDeleteCurrentBranch(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "delete")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Delete)
     else:
@@ -454,8 +460,9 @@ def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
     if method == "sidebarmenu":
         triggerMenuAction(rw.sidebar.makeNodeMenu(sidebarNode), r"(start|new) branch")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectNode(sidebarNode)
-        QTest.keyPress(rw.sidebar, Qt.Key.Key_Enter)
+        QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "graphstart":
         triggerMenuAction(rw.graphView.makeContextMenu(), r"(start|new) branch")
     elif method == "graphcheckout":
@@ -542,6 +549,7 @@ def testSwitchBranch(tempDir, mainWindow, method):
         triggerMenuAction(menu, "switch to")
         acceptQMessageBox(rw, "switch to")
     elif method == "sidebarkey":
+        rw.sidebar.setFocus()
         rw.sidebar.selectAnyRef("refs/heads/no-parent")
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
         acceptQMessageBox(rw, "switch to")
@@ -550,6 +558,7 @@ def testSwitchBranch(tempDir, mainWindow, method):
         if method == "graphmenu":
             triggerMenuAction(rw.graphView.makeContextMenu(), "check out")
         else:
+            rw.graphView.setFocus()
             QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
         qd = findQDialog(rw, "check out")
         assert qd.findChild(QRadioButton, "switchToLocalBranchRadioButton").isChecked()
@@ -570,6 +579,7 @@ def testSwitchBranch(tempDir, mainWindow, method):
 def testSwitchToCurrentBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
+    rw.sidebar.setFocus()
     rw.sidebar.selectAnyRef("refs/heads/master")
     QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     acceptQMessageBox(rw, "already checked.out")

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -645,12 +645,12 @@ def testDiffViewStageBlankLines(tempDir, mainWindow):
     # Stage "Hello1\n\n"
     QTest.mouseClick(dv.gutter, LMB, pos=line1)
     QTest.mouseClick(dv.gutter, LMB, Qt.KeyboardModifier.ShiftModifier, pos=line2)
-    QTest.keyPress(dv, Qt.Key.Key_Enter)
+    QTest.keyPress(dv, Qt.Key.Key_Return)
     assert b"Hello1\n\n" == rw.repo.peel_blob(rw.repo.index["hello.txt"].id).data
 
     # Stage blank line before Hello2
     QTest.mouseClick(dv.gutter, LMB, pos=line4)
-    QTest.keyPress(dv, Qt.Key.Key_Enter)
+    QTest.keyPress(dv, Qt.Key.Key_Return)
     assert b"Hello1\n\n\n" == rw.repo.peel_blob(rw.repo.index["hello.txt"].id).data
 
 

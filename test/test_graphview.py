@@ -168,11 +168,13 @@ def testCommitInfo(tempDir, mainWindow, method):
     rw.jump(NavLocator.inCommit(oid1))
 
     if method == "hotkey":
-        QTest.qWait(1)
-        # Use Alt modifier to bring up debug info (for coverage)
-        QTest.keyClick(rw.graphView, Qt.Key.Key_Space, Qt.KeyboardModifier.AltModifier)
+        rw.graphView.setFocus()
+        QTest.keyClick(rw.graphView, Qt.Key.Key_Space)
     elif method == "contextmenu":
+        # Use Alt modifier to bring up debug info (for coverage)
+        QTest.keyPress(rw.graphView, Qt.Key.Key_Alt)
         triggerMenuAction(rw.graphView.makeContextMenu(), "get info")
+        QTest.keyRelease(rw.graphView, Qt.Key.Key_Alt)
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -214,7 +216,7 @@ def testCopyCommitHash(tempDir, mainWindow, method):
     rw.jump(NavLocator.inCommit(oid1))
 
     if method == "hotkey":
-        QTest.qWait(1)
+        rw.graphView.setFocus()
         QTest.keySequence(rw.graphView, "Ctrl+C")
     elif method == "contextmenu":
         triggerMenuAction(rw.graphView.makeContextMenu(), "copy.+hash")
