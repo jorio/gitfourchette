@@ -21,7 +21,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import RepoTask
+from gitfourchette.tasks.repotask import RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -240,6 +240,10 @@ class PrimeRepo(RepoTask):
 
         rw.refreshNumUncommittedChanges()
         rw.graphView.scrollToRowForLocator(initialLocator, QAbstractItemView.ScrollHint.PositionAtCenter)
+
+        # It's not necessary to refresh everything again (including workdir patches)
+        # after priming the repo.
+        self.effects = TaskEffects.Nothing
 
     def onError(self, exc: Exception):
         self.rw.cleanup(str(exc), allowAutoReload=False)
