@@ -6,6 +6,7 @@
 
 import pytest
 
+from gitfourchette.nav import NavLocator
 from .util import *
 
 
@@ -138,3 +139,38 @@ def testLineEndingsChangedWithAutocrlfInputCauseDiffReload(tempDir, mainWindow):
     writeFile(f"{wd}/hello.txt", "hello\ndos\n")
     rw.refreshRepo()  # Must not fail (no failed assertions, etc)
     assert oldPatch is not rw.diffView.currentPatch
+
+
+def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    # Convert these files to CRLF
+    crlfFiles = [ "a/a1.txt", "a/a2.txt", "b/b1.txt", "b/b2.txt" ]
+    for filePath in crlfFiles:
+        contents = readFile(f"{wd}/{filePath}")
+        contents = contents.replace(b'\n', b'\r\n')
+        writeFile(f"{wd}/{filePath}", contents.decode('utf-8'))
+
+    with RepoContext(wd) as repo:
+        repo.config["core.autocrlf"] = "input"
+
+    rw = mainWindow.openRepo(wd)
+
+    assert rw.repo.status() == { name: FileStatus.WT_MODIFIED for name in crlfFiles }
+
+    # Look at each file 3 times.
+    # There seems to be a bug in libgit2 where patch.delta is unstable (returning erroneous
+    # status, or returning no delta altogether) if the patch has been re-generated several times from
+    # the same diff while a CRLF filter applies. To work around this, we should cache the patch.
+    for _i in range(3):
+        for filePath in crlfFiles:
+            rw.jump(NavLocator.inUnstaged(filePath), check=True)
+            assert rw.specialDiffView.isVisible()
+            assert "canonical file contents unchanged" in rw.specialDiffView.toPlainText().lower()
+
+    # Stage them to dismiss the messages
+    for filePath in crlfFiles:
+        rw.jump(NavLocator.inUnstaged(filePath), check=True)
+        rw.diffArea.stageButton.click()
+
+    assert rw.repo.status() == {}

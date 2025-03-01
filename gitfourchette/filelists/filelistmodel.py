@@ -131,18 +131,39 @@ class FileListModel(QAbstractListModel):
         diff: Diff
         patchNo: int
         canonicalPath: str
+        _cachedPatch: Patch | None = None
 
         @property
         def patch(self) -> Patch | None:
             try:
+                # Even if we already have a cached patch, call libgit2's git_patch_from_diff()
+                # to ensure that the backing data hasn't changed on disk (mmapped file?).
                 patch: Patch = self.diff[self.patchNo]
-                self.delta = patch.delta  # Get a fresher delta while we have the patch
-                return patch
+
             except (GitError, OSError) as e:
-                # GitError may occur if patch data is outdated.
+                # GitError may occur if patch data is outdated (e.g. an unstaged file
+                # has changed on disk since the diff object was created).
                 # OSError may rarely occur if the file happens to be recreated.
                 logger.warning(f"Failed to get patch: {type(e).__name__}", exc_info=True)
-                return None
+
+                # When the file that backs the cached patch is modified, the patch object
+                # becomes unreliable in libgit2 land. Invalidate it; the UI will tell
+                # the user to refresh the repo.
+                self._cachedPatch = None
+
+            else:
+                # Cache the patch - only if we haven't done so yet!
+                # This is to work around a libgit2 quirk where patch.delta is unstable
+                # (returning erroneous status, or returning no delta altogether) if the
+                # patch has been re-generated several times from the same diff while a
+                # CRLF filter applies.
+                # For this specific case, we want to keep using the first cached patch
+                # and discard the one we've just re-generated.
+                if self._cachedPatch is None:
+                    self._cachedPatch = patch
+                    self.delta = patch.delta  # Cache a fresher delta while we're here.
+
+            return self._cachedPatch
 
         @benchmark
         def refreshDelta(self):
@@ -158,7 +179,7 @@ class FileListModel(QAbstractListModel):
             nf = self.delta.new_file
             if (nf.size <= settings.prefs.largeFileThresholdKB * 1024 and
                     ~nf.flags & (DiffFlag.VALID_ID | DiffFlag.VALID_SIZE)):
-                self.delta = self.patch.delta
+                _dummy = self.patch  # Prime the patch (and delta)
             return self.delta
 
     class Role:

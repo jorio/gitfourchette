@@ -97,6 +97,15 @@ class SpecialDiffError(Exception):
             intro = _("Mode change:")
             details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
+        if oldFile.id == newFile.id and oldFile.size != newFile.size:
+            message = _("Canonical file contents unchanged.")
+            longform.append(toRoomyUL([
+                _("Due to filters such as {filter}, your working copy is not bit-for-bit identical to the file’s "
+                  "canonical state. However, the contents tracked by Git are equivalent after filtering.",
+                  filter=hquo("core.autocrlf")),
+                _("You can stage the file to dismiss this message; no changes will be recorded.")
+            ]))
+
         return SpecialDiffError(message, "\n".join(details), longform="\n".join(longform))
 
     @staticmethod
