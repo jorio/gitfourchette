@@ -227,6 +227,34 @@ def testCopyCommitHash(tempDir, mainWindow, method):
     assert QApplication.clipboard().text() == str(oid1)
 
 
+@pytest.mark.parametrize("method", ["hotkey", "contextmenu"])
+def testCopyCommitMessage(tempDir, mainWindow, method):
+    """
+    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
+    (No worries if you're running the tests offscreen.)
+    """
+
+    # Make sure the clipboard is clean before we begin
+    QApplication.clipboard().clear()
+    assert not QApplication.clipboard().text()
+
+    oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid1))
+
+    if method == "hotkey":
+        rw.graphView.setFocus()
+        QTest.keySequence(rw.graphView, "Ctrl+Shift+C")
+    elif method == "contextmenu":
+        triggerMenuAction(rw.graphView.makeContextMenu(), "copy.+message")
+    else:
+        raise NotImplementedError(f"unknown method {method}")
+
+    QTest.qWait(1)
+    assert QApplication.clipboard().text() == "Merge branch 'a' into c"
+
+
 def testRefSortFavorsHeadBranch(tempDir, mainWindow):
     masterId = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
 

@@ -79,6 +79,7 @@ class GraphView(QListView):
         makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
         self.checkoutShortcut = makeWidgetShortcut(self, self.onReturnKey, "Return", "Enter")
         self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
+        self.copyMessageShortcut = makeWidgetShortcut(self, self.copyCommitMessageToClipboard, "Ctrl+Shift+C")
         self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
 
     @property
@@ -151,6 +152,7 @@ class GraphView(QListView):
                 TaskBook.action(self, ExportCommitAsPatch, _("E&xport As Patch…"), taskArgs=oid),
                 ActionDef.SEPARATOR,
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
+                ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
             ]
 
@@ -224,6 +226,15 @@ class GraphView(QListView):
         if not oid:  # uncommitted changes
             return
         text = str(oid)
+        QApplication.clipboard().setText(text)
+        self.statusMessage.emit(clipboardStatusMessage(text))
+
+    def copyCommitMessageToClipboard(self):
+        oid = self.currentCommitId
+        if not oid:  # uncommitted changes
+            return
+        commit = self.repoModel.repo[oid].peel(Commit)
+        text = commit.message.rstrip()
         QApplication.clipboard().setText(text)
         self.statusMessage.emit(clipboardStatusMessage(text))
 
