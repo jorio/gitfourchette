@@ -18,6 +18,7 @@ class RecolorSvgIconEngine(QIconEngine):
 
         lightPath = Path(iconPath)
         self.lightSvg = lightPath.read_text("utf-8").strip()
+        self.informalIconName = lightPath.name
 
         try:
             darkPath = lightPath.with_stem(lightPath.stem + "@dark")
@@ -46,6 +47,22 @@ class RecolorSvgIconEngine(QIconEngine):
             QIcon.Mode.Selected: self._recolor(hlColor),
             QIcon.Mode.SelectedInactive: self._recolor(fgColor)
         }
+        self.referenceSize = self.renderers[QIcon.Mode.Normal].defaultSize()
+
+    def iconName(self):
+        return self.informalIconName
+
+    def actualSize(self, size: QSize, mode: QIcon.Mode, state: QIcon.State):
+        # Crispness hack: Tweak width/height so that centered X/Y coordinates
+        # snap to integers. This fixes blurriness at 1x scaling when rendering,
+        # for example, a 16x16 SVG into a 16x19 rectangle.
+        rw, rh = self.referenceSize.width(), self.referenceSize.height()
+        sw, sh = size.width(), size.height()
+        if sw > rw and (sw ^ rw) & 1 != 0:
+            sw -= 1
+        if sh > rh and (sh ^ rh) & 1 != 0:
+            sh -= 1
+        return QSize(sw, sh)
 
     def paint(self, painter: QPainter, rect: QRect, mode: QIcon.Mode, state: QIcon.State):
         try:
