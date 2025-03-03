@@ -175,6 +175,38 @@ def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow)
     dialog.accept()  # Go through with the commit this time
 
 
+def testPasteMultilineCommitMessage(tempDir, mainWindow):
+    """
+    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
+    (No worries if you're running the tests offscreen.)
+    """
+
+    wd = unpackRepo(tempDir)
+    reposcenario.stagedNewEmptyFile(wd)
+    rw = mainWindow.openRepo(wd)
+
+    rw.diffArea.commitButton.click()
+    dialog: CommitDialog = findQDialog(rw, "commit")
+    QTest.keyClicks(dialog.ui.summaryEditor, "aaa")
+    QTest.keyClicks(dialog.ui.descriptionEditor, "bbb")
+
+    QApplication.clipboard().setText("summary\ndetails1\ndetails2")
+
+    dialog.ui.summaryEditor.setFocus()
+    QTest.keySequence(dialog.ui.summaryEditor, "Ctrl+V")
+    assert dialog.ui.summaryEditor.text() == "aaasummary"
+    assert dialog.ui.counterLabel.text() == str(len("aaasummary"))
+    assert dialog.ui.descriptionEditor.toPlainText() == "details1\ndetails2"
+
+    # TODO: Ctrl+Zing in both fields isn't ideal
+    QTest.keySequence(dialog.ui.summaryEditor, "Ctrl+Z")
+    assert dialog.ui.summaryEditor.text() == "aaa"
+    QTest.keySequence(dialog.ui.descriptionEditor, "Ctrl+Z")
+    assert dialog.ui.descriptionEditor.toPlainText() == "bbb"
+
+    dialog.reject()
+
+
 def testAmendCommit(qtbot, tempDir, mainWindow):
     oldMessage = "Delete c/c2-2.txt"
     newMessage = "amended commit message"

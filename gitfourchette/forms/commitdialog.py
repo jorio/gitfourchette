@@ -11,10 +11,10 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 
-INFO_ICON_SIZE = 16
-
 
 class CommitDialog(QDialog):
+    InfoIconSize = 16
+
     @property
     def acceptButton(self) -> QPushButton:
         return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
@@ -71,8 +71,8 @@ class CommitDialog(QDialog):
 
         self.ui.infoBox.setVisible(bool(warning))
         self.ui.infoText.setText(warning)
-        self.ui.infoIcon.setPixmap(stockIcon("SP_MessageBoxInformation").pixmap(INFO_ICON_SIZE))
-        self.ui.infoIcon.setMaximumWidth(INFO_ICON_SIZE)
+        self.ui.infoIcon.setPixmap(stockIcon("SP_MessageBoxInformation").pixmap(self.InfoIconSize))
+        self.ui.infoIcon.setMaximumWidth(self.InfoIconSize)
 
         self.acceptButton.setText(buttonCaption)
         self.ui.summaryEditor.setPlaceholderText(prompt)
@@ -86,6 +86,7 @@ class CommitDialog(QDialog):
         self.validator.connectInput(self.ui.summaryEditor, self.hasNonBlankSummary, showError=False)
         self.ui.signature.installValidator(self.validator)
 
+        self.ui.summaryEditor.textEdited.connect(self.sanitizeLineBreaksInSummary)
         self.ui.summaryEditor.textChanged.connect(self.updateCounterLabel)
         self.ui.revealSignature.checkStateChanged.connect(lambda: self.validator.run())
         self.ui.revealSignature.checkStateChanged.connect(lambda: self.refreshSignaturePreview())
@@ -105,6 +106,26 @@ class CommitDialog(QDialog):
 
         # Focus on summary editor before showing
         self.ui.summaryEditor.setFocus()
+
+    def sanitizeLineBreaksInSummary(self, text: str):
+        if '\n' not in text:
+            return
+
+        # Walk back undo stack to get rid of the operation that inserted linebreaks.
+        # This way, this callback won't run again when the user presses Ctrl+Z.
+        with QSignalBlockerContext(self.ui.summaryEditor):
+            self.ui.summaryEditor.undo()
+
+        summary, details = text.split('\n', 1)
+        summary = summary.rstrip()
+        details = details.lstrip()
+
+        # This pushes the new text to the QLineEdit's undo stack
+        # (whereas setText clears the undo stack).
+        self.ui.summaryEditor.selectAll()
+        self.ui.summaryEditor.insert(summary)
+        self.ui.descriptionEditor.selectAll()
+        self.ui.descriptionEditor.insertPlainText(details)
 
     def updateCounterLabel(self):
         text = self.ui.summaryEditor.text()
