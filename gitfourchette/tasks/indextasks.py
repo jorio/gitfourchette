@@ -137,7 +137,7 @@ class DiscardFiles(_BaseStagingTask):
             bpath = bquo(patch.delta.new_file.path)
             if patch.delta.status == DeltaStatus.UNTRACKED:
                 really = _("Really delete {0}?", bpath)
-                really += " " + _("(This file is untracked – it’s never been committed yet.)")
+                really += " " + _("Git isn’t tracking this file, so you may not be able to recover it from older commits.")
                 verb = _("Delete")
             elif patch.delta.new_file.mode == FileMode.COMMIT:
                 really = _("Really discard changes in submodule {0}?", bpath)
