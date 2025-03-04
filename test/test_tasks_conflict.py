@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -202,8 +202,8 @@ def testResetIndexWithConflicts(tempDir, mainWindow):
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testMergeTool(tempDir, mainWindow):
-    noopMergeToolPath = getTestDataPath("editor-shim.sh")
-    mergeToolPath = getTestDataPath("merge-shim.sh")
+    noopMergeToolPath = getTestDataPath("editor-shim.py")
+    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
     wd = unpackRepo(tempDir, "testrepoformerging")
@@ -310,7 +310,7 @@ def testMergeTool(tempDir, mainWindow):
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testFake3WayMerge(tempDir, mainWindow):
-    mergeToolPath = getTestDataPath("merge-shim.sh")
+    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
     wd = unpackRepo(tempDir, "testrepoformerging")
@@ -354,7 +354,7 @@ def testFake3WayMerge(tempDir, mainWindow):
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testMergeToolInBackground(tempDir, mainWindow):
-    mergeToolPath = getTestDataPath("merge-shim.sh")
+    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
 

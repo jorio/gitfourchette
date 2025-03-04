@@ -206,7 +206,7 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
     (No worries if you're running the tests offscreen.)
     """
 
-    editorPath = getTestDataPath("editor-shim.sh")
+    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"terminal": f'"{editorPath}" "{scratchPath}" $P'})
 

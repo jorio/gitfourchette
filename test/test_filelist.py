@@ -238,7 +238,7 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"))
 
-    editorPath = getTestDataPath("editor-shim.sh")
+    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
     # First, set the editor to an incorrect command to go through the "locate" code path
@@ -252,15 +252,15 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
 
     # Now open the file in our shim
     # HEAD revision
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim\.sh$/current")
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim/current")
     assert b"a/a1" in readFile(scratchPath, timeout=1000, unlink=True)
 
     # New revision
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim\.sh$/before.+commit")
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim/before.+commit")
     acceptQMessageBox(mainWindow, "file did.?n.t exist")
 
     # Old revision
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim\.sh$/as of.+commit")
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim/as of.+commit")
     assert b"a1@49322bb" in readFile(scratchPath, timeout=1000, unlink=True)
 
 
@@ -270,7 +270,7 @@ def testEditFileInExternalDiffTool(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
 
-    editorPath = getTestDataPath("editor-shim.sh")
+    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
     # First, set the diff tool to an empty command to go through the "set up" code path
