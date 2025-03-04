@@ -5,7 +5,10 @@
 # -----------------------------------------------------------------------------
 
 import logging
+import os
 import shlex
+from contextlib import suppress
+from signal import SIGINT
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -107,6 +110,73 @@ def setUpToolCommand(parent: QWidget, prefKey: str):
     qmb.show()
 
 
+class ExternalToolProcess(QProcess):
+    def __init__(self, parent: QWidget, tokens: list[str], directory: str, detached: bool, prefKey: str):
+        super().__init__(parent)
+
+        self.detached = detached
+        self.prefKey = prefKey
+
+        self.setProgram(tokens[0])
+        self.setArguments(tokens[1:])
+        if not FLATPAK:  # In Flatpaks, workdir was set via flatpak-spawn
+            self.setWorkingDirectory(directory)
+        self.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
+
+        # Listen for process completion.
+        self.finished.connect(self.onFinished)
+        # Listen for errors (typically FailedToStart).
+        self.errorOccurred.connect(self.onErrorOccurred)
+        # When the parent dies, don't let callbacks hit zombie objects.
+        parent.destroyed.connect(self.onParentDestroyedWhileProcessRunning)
+
+        logger.info("Process starting: " + shlex.join(tokens))
+        if detached and not FLATPAK:  # Flatpaks detach from process via ToolCommands.compileCommand
+            self.startDetached()
+        else:
+            self.start()
+            logger.info(f"(PID {self.processId()})")
+
+    def onFinished(self, code, status):
+        logger.info(f"Process done: {code} {status}")
+        self.disconnectFromParent()
+        if not WINDOWS and code == 127:
+            # The Flatpak distribution runs non-Flatpak commands through `env`,
+            # which returns 127 if the command isn't found.
+            onExternalToolProcessError(self.parent(), self.prefKey)
+
+    def onErrorOccurred(self, processError):
+        logger.info(f"Process error: {processError}")
+        self.disconnectFromParent()
+        onExternalToolProcessError(self.parent(), self.prefKey)
+
+    def onParentDestroyedWhileProcessRunning(self):
+        # Disconnect signals
+        self.disconnectFromParent()
+        self.finished.disconnect(self.onFinished)
+        self.errorOccurred.disconnect(self.onErrorOccurred)
+
+        if not self.detached:
+            pid = self.processId()
+            if pid > 0:
+                # SIGINT works better with non-Flatpak Meld
+                os.kill(pid, SIGINT)
+            else:
+                self.terminate()
+
+        self.setParent(None)
+        self.deleteLater()
+
+    def disconnectFromParent(self):
+        # Disconnect from the parent so that future signals won't touch a parent
+        # that might have been destroyed.
+        # Ignore TypeError, raised by PyQt6 if the connection has already been
+        # undone (may occur when SIGKILLing the process - both onFinished and
+        # onErrorOccurred will fire).
+        with suppress(TypeError):
+            self.parent().destroyed.disconnect(self.onParentDestroyedWhileProcessRunning)
+
+
 def openInExternalTool(
         parent: QWidget,
         prefKey: str,
@@ -143,28 +213,7 @@ def openInExternalTool(
             onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
             return None
 
-    process = QProcess(parent)
-    process.setProgram(tokens[0])
-    process.setArguments(tokens[1:])
-    if not FLATPAK:  # In Flatpaks, set workdir via flatpak-spawn
-        process.setWorkingDirectory(directory)
-    process.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
-
-    def wrap127(code, status):
-        logger.info(f"Process done: {code} {status}")
-        if not WINDOWS and code == 127:
-            onExternalToolProcessError(parent, prefKey)
-
-    process.finished.connect(wrap127)
-    process.errorOccurred.connect(lambda processError: logger.info(f"Process error: {processError}"))
-    process.errorOccurred.connect(lambda processError: onExternalToolProcessError(parent, prefKey))
-
-    logger.info("Starting process: " + shlex.join(tokens))
-    if detached and not FLATPAK:  # Flatpaks detach from process via ToolCommands.compileCommand
-        process.startDetached()
-    else:
-        process.start()
-
+    process = ExternalToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey)
     return process
 
 

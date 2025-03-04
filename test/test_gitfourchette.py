@@ -696,3 +696,20 @@ def testHideSelectedBranch(tempDir, mainWindow, taskThread):
     assert rw.navLocator.commit == rw.diffArea.contextHeader.locator.commit
     assert str(masterId)[:7] not in rw.diffArea.diffHeader.text()
     assert str(rw.navLocator.commit)[:7] in rw.diffArea.diffHeader.text()
+
+
+@pytest.mark.skipif(MACOS, reason="TODO: look into this on macOS")
+def testCloseParentOfExternalProcess(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
+
+    editorPath = getTestDataPath("pause.py")
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in pause")
+    assert readFile(scratchPath, 1000).decode().strip() == "about to sleep"
+    mainWindow.closeAllTabs()
+    pause(3)
+    assert readFile(scratchPath).decode().strip() == "about to sleep"
