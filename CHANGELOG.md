@@ -1,5 +1,27 @@
 # GitFourchette version history
 
+## 1.2.1 (2025-03-05)
+
+User-suggested quality of life improvements:
+
+- GraphView: Copy commit message from context menu (#33)
+- Rephrase some messages (diff too large, delete untracked file) (#27, #28)
+- Add Ptyxis terminal preset (#18)
+
+Other quality of life improvements:
+
+- Friendlier messages related to 'autocrlf' and 'safecrlf' options (#30)
+- Flatpak distribution: Detach terminal process from application
+- Improve contrast between enabled/disabled SVG icons throughout the UI
+- Pasting a multiline commit message into CommitDialog's summary input box will correctly split the message across the summary and description boxes
+
+Bug fixes:
+
+- Fix error when an external program converts line endings in the workdir with 'autocrlf' (#30)
+- Flatpak distribution: Fix terminal spawned in incorrect working directory (#18)
+- Flatpak distribution: Fix Flatpak tool existence check
+- Gracefully handle destruction of parent widget of external tool processes
+
 ## 1.2.0 (2025-02-19)
 
 New features:

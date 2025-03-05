@@ -62,6 +62,31 @@
   </keywords>
 
   <releases>
+    <release version="1.2.1" date="2025-03-05" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.2.1</url>
+      <description>
+        <p>User-suggested quality of life improvements:</p>
+        <ul>
+        <li>GraphView: Copy commit message from context menu (#33)</li>
+        <li>Rephrase some messages (diff too large, delete untracked file) (#27, #28)</li>
+        <li>Add Ptyxis terminal preset (#18)</li>
+        </ul>
+        <p>Other quality of life improvements:</p>
+        <ul>
+        <li>Friendlier messages related to 'autocrlf' and 'safecrlf' options (#30)</li>
+        <li>Flatpak distribution: Detach terminal process from application</li>
+        <li>Improve contrast between enabled/disabled SVG icons throughout the UI</li>
+        <li>Pasting a multiline commit message into CommitDialog's summary input box will correctly split the message across the summary and description boxes</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix error when an external program converts line endings in the workdir with 'autocrlf' (#30)</li>
+        <li>Flatpak distribution: Fix terminal spawned in incorrect working directory (#18)</li>
+        <li>Flatpak distribution: Fix Flatpak tool existence check</li>
+        <li>Gracefully handle destruction of parent widget of external tool processes</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.0" date="2025-02-19" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.2.0</url>
       <description>
