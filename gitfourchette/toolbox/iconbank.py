@@ -7,16 +7,37 @@
 from gitfourchette.qt import *
 from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
+
 _stockIconCache: dict[int, QIcon] = {}
 
 # Override some icon IDs depending on desktop environment
 _overrideIconIds = {}
-if MACOS or WINDOWS:
-    _overrideIconIds["achtung"] = "SP_MessageBoxWarning"
+_overrideIconIdsReady = False
+
+
+def _iconOverrideTable():
+    overrides = {}
+
+    assert QApplication.instance(), "need app instance for QIcon.themeName()"
+    iconTheme = QIcon.themeName().casefold()
+
+    # Use native warning icon in all contexts on Mac & Windows
+    if MACOS or WINDOWS:
+        overrides["achtung"] = "SP_MessageBoxWarning"
+
+    # Override Ubuntu default theme's scary red icon for warnings
+    if FREEDESKTOP and iconTheme.startswith("yaru"):
+        overrides["SP_MessageBoxWarning"] = "warning-small-symbolic"
+
+    return overrides
 
 
 def stockIcon(iconId: str, colorTable="") -> QIcon:
     # Special cases
+    global _overrideIconIdsReady
+    if not _overrideIconIdsReady:
+        _overrideIconIds.clear()
+        _overrideIconIds.update(_iconOverrideTable())
     iconId = _overrideIconIds.get(iconId, iconId)
 
     # Compute cache key
