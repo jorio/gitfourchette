@@ -163,8 +163,8 @@ class DiffView(QPlainTextEdit):
         # In a detached window, we can't rely on the main window's menu bar to
         # dispatch shortcuts to us (except on macOS, which has a global main menu).
         makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Start), *GlobalShortcuts.find)
-        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Previous), QKeySequence.StandardKey.FindPrevious)
-        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Next), QKeySequence.StandardKey.FindNext)
+        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Previous), *GlobalShortcuts.findPrevious)
+        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Next), *GlobalShortcuts.findNext)
 
     def wheelEvent(self, event: QWheelEvent):
         # Drop-in replacement for QPlainTextEdit::wheelEvent which scales text

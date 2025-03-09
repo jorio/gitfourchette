@@ -264,11 +264,11 @@ class MainWindow(QMainWindow):
                       tip=_("Search for a piece of text in commit messages, the current diff, or the name of a file")),
 
             ActionDef(_("Find Next"), lambda: self.dispatchSearchCommand(SearchBar.Op.Next),
-                      shortcuts=QKeySequence.StandardKey.FindNext,
+                      shortcuts=GlobalShortcuts.findNext,
                       tip=_("Find next occurrence")),
 
             ActionDef(_("Find Previous"), lambda: self.dispatchSearchCommand(SearchBar.Op.Previous),
-                      shortcuts=QKeySequence.StandardKey.FindPrevious,
+                      shortcuts=GlobalShortcuts.findPrevious,
                       tip=_("Find previous occurrence"))
         )
 

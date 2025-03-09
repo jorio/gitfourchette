@@ -10,6 +10,7 @@ from collections.abc import Callable
 
 from gitfourchette import colors
 from gitfourchette.forms.ui_searchbar import Ui_SearchBar
+from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.settings import TEST_MODE
@@ -102,8 +103,8 @@ class SearchBar(QWidget):
         for button in self.buttons:
             button.setMaximumHeight(1)
 
-        appendShortcutToToolTip(self.ui.backwardButton, QKeySequence.StandardKey.FindPrevious)
-        appendShortcutToToolTip(self.ui.forwardButton, QKeySequence.StandardKey.FindNext)
+        appendShortcutToToolTip(self.ui.backwardButton, GlobalShortcuts.findPrevious[0])
+        appendShortcutToToolTip(self.ui.forwardButton, GlobalShortcuts.findNext[0])
         appendShortcutToToolTip(self.ui.closeButton, Qt.Key.Key_Escape)
 
         self.searchTerm = ""
