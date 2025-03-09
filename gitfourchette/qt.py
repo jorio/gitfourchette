@@ -72,6 +72,13 @@ _logger.debug(f"Qt binding order is: {_qtBindingOrder}")
 QT_BINDING = ""
 QT_BINDING_VERSION = ""
 
+def _bail(message: str):
+    _sys.stderr.write(message + "\n")
+    if QT_BINDING:
+        _app = QApplication([])
+        QMessageBox.critical(None, APP_DISPLAY_NAME, message)
+    _sys.exit(1)
+
 for _tentative in _qtBindingOrder:
     assert _tentative.islower()
 
@@ -80,7 +87,6 @@ for _tentative in _qtBindingOrder:
             from PySide6.QtCore import *
             from PySide6.QtWidgets import *
             from PySide6.QtGui import *
-            from PySide6.QtSvg import QSvgRenderer
             from PySide6 import __version__ as QT_BINDING_VERSION
             QT_BINDING = "PySide6"
             QT6 = PYSIDE6 = True
@@ -89,7 +95,6 @@ for _tentative in _qtBindingOrder:
             from PyQt6.QtCore import *
             from PyQt6.QtWidgets import *
             from PyQt6.QtGui import *
-            from PyQt6.QtSvg import QSvgRenderer
             QT_BINDING_VERSION = PYQT_VERSION_STR
             QT_BINDING = "PyQt6"
             QT6 = PYQT6 = True
@@ -98,7 +103,6 @@ for _tentative in _qtBindingOrder:
             from PyQt5.QtCore import *
             from PyQt5.QtWidgets import *
             from PyQt5.QtGui import *
-            from PyQt5.QtSvg import QSvgRenderer
             QT_BINDING_VERSION = PYQT_VERSION_STR
             QT_BINDING = "PyQt5"
             QT5 = PYQT5 = True
@@ -113,8 +117,7 @@ for _tentative in _qtBindingOrder:
         continue
 
 if not QT_BINDING:
-    _sys.stderr.write("No Qt binding found. Please install either PyQt6, PySide6, or PyQt5.\n")
-    _sys.exit(1)
+    _bail("No Qt binding found. Please install PyQt6 or PySide6.")
 
 # -----------------------------------------------------------------------------
 # Set up platform constants
@@ -155,6 +158,18 @@ if FREEDESKTOP:
             raise ImportError("QtDBus")
         HAS_QTDBUS = True
 
+try:
+    if PYQT6:
+        from PyQt6.QtSvg import QSvgRenderer
+    elif PYSIDE6:
+        from PySide6.QtSvg import QSvgRenderer
+    elif PYQT5:
+        from PyQt5.QtSvg import QSvgRenderer
+    else:
+        raise ImportError("QtSvg")
+except ImportError:
+    _bail(f"{QT_BINDING} was found, but {QT_BINDING}'s bindings for QtSvg are missing.\n\nYour Linux distribution probably provides them as a separate package. Please install it and try again.")
+
 # -----------------------------------------------------------------------------
 # Exclude some known bad PySide6 versions
 
@@ -165,9 +180,7 @@ if PYSIDE6:
         "6.5.1",  # PYSIDE-2346
     ]
     if any(v == QT_BINDING_VERSION for v in _badPyside6Versions):
-        QApplication()
-        QMessageBox.critical(None, "", f"PySide6 version {QT_BINDING_VERSION} isn't supported.\nPlease upgrade to the latest version of PySide6.")
-        _sys.exit(1)
+        _bail(f"PySide6 version {QT_BINDING_VERSION} isn't supported.\nPlease upgrade to the latest version of PySide6.")
 
 # -----------------------------------------------------------------------------
 # Patch some holes and incompatibilities in Qt bindings
