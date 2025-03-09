@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -122,7 +122,8 @@ class MergeDriver(QObject):
         if error == QProcess.ProcessError.FailedToStart:
             self.debrief = _("{0} failed to start.", tquo(self.processName))
         else:
-            self.debrief = _("{0} ran into error {1}.", tquo(self.processName), error.name)
+            errorName = str(error) if PYQT5 else error.name
+            self.debrief = _("{0} ran into error {1}.", tquo(self.processName), errorName)
 
         self.flush()
 
@@ -130,7 +131,8 @@ class MergeDriver(QObject):
         if (exitCode != 0
                 or exitStatus == QProcess.ExitStatus.CrashExit
                 or filecmp.cmp(self.scratchPath, self.targetPath)):
-            logger.warning(f"Merge tool PID {self.process.processId()} finished with code {exitCode}, {exitStatus}")
+            informalPid = self.process.processId() if self.process else '???'
+            logger.warning(f"Merge tool PID {informalPid} finished with code {exitCode}, {exitStatus}")
             self.state = MergeDriver.State.Fail
             self.debrief = _("{0} didn’t complete the merge.", tquo(self.processName))
             self.debrief += "\n" + _("Exit code: {0}.", exitCode)
@@ -141,8 +143,9 @@ class MergeDriver(QObject):
         self.flush()
 
     def flush(self):
-        self.process.deleteLater()
-        self.process = None
+        if self.process is not None:
+            self.process.deleteLater()
+            self.process = None
         self.statusChange.emit()
 
     def copyScratchToTarget(self):

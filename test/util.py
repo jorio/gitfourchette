@@ -125,14 +125,15 @@ def writeFile(path, text):
 
 
 def readFile(path, timeout=0, unlink=False):
-    while timeout > 0 and not os.path.exists(path):
-        wait = 10
-        QTest.qWait(wait)
-        timeout -= wait
+    if timeout:
+        waitUntilTrue(lambda: os.path.exists(path), timeout=timeout)
+
     with open(path, "rb") as f:
         data = f.read()
+
     if unlink:
         os.unlink(path)
+
     return data
 
 
@@ -284,20 +285,24 @@ def findQDialog(parent: QWidget, pattern: str) -> QDialog:
     raise KeyError(f"did not find qdialog matching \"{pattern}\"")
 
 
-def waitFor(callable, timeout=5000, interval=100):
+def waitUntilTrue(callback, timeout=5000):
     interval = 100
-    timeout = 5000
     assert timeout >= interval
     for _ in range(0, timeout, interval):
-        try:
-            return callable()
-        except KeyError:
-            QTest.qWait(interval)
+        result = callback()
+        if result:
+            return result
+        QTest.qWait(interval)
     raise TimeoutError(f"retry failed after {timeout} ms timeout")
 
 
 def waitForQDialog(parent: QWidget, pattern: str) -> QDialog:
-    return waitFor(lambda: findQDialog(parent, pattern))
+    def tryFind():
+        try:
+            return findQDialog(parent, pattern)
+        except KeyError:
+            return None
+    return waitUntilTrue(tryFind)
 
 
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
@@ -312,8 +317,13 @@ def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
     raise KeyError(f"did not find \"{textPattern}\" among {numBoxesFound} QMessageBoxes")
 
 
-def waitForQMessageBox(parent: QWidget, pattern: str) -> QDialog:
-    return waitFor(lambda: findQMessageBox(parent, pattern))
+def waitForQMessageBox(parent: QWidget, pattern: str) -> QMessageBox:
+    def tryFind():
+        try:
+            return findQMessageBox(parent, pattern)
+        except KeyError:
+            return None
+    return waitUntilTrue(tryFind)
 
 
 def acceptQMessageBox(parent: QWidget, textPattern: str):

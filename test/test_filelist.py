@@ -244,8 +244,7 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
     # First, set the editor to an incorrect command to go through the "locate" code path
     mainWindow.onAcceptPrefsDialog({"externalEditor": f'"{editorPath}-BOGUSCOMMAND" "{scratchPath}"'})
     triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim.+BOGUSCOMMAND$/current")
-    QTest.qWait(100 if not MACOS else 500)
-    qmb = findQMessageBox(mainWindow, "couldn.t start.+editor-shim.+text editor")
+    qmb = waitForQMessageBox(mainWindow, "couldn.t start.+editor-shim.+text editor")
     qmb.button(QMessageBox.StandardButton.Open).click()  # click "locate" button
     # Set correct command; this must retain the arguments from the incorrect command
     acceptQFileDialog(mainWindow, "where is.+editor-shim", editorPath)
@@ -295,8 +294,8 @@ def testEditFileInMissingFlatpak(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
 
     triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in org.gitfourchette.BogusEditorName")
-    QTest.qWait(250)
-    acceptQMessageBox(rw, "couldn.t start flatpak .*org.gitfourchette.BogusEditorName")
+    qmb = waitForQMessageBox(rw, "couldn.t start flatpak .*org.gitfourchette.BogusEditorName")
+    qmb.accept()
 
 
 def testFileListToolTip(tempDir, mainWindow):

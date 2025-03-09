@@ -221,6 +221,7 @@ def testMergeTool(tempDir, mainWindow):
 
     # ------------------------------
     # Try merging with a tool that doesn't touch the output file
+
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B'})
 
     assert "editor-shim" in conflictUI.mergeButton.text()
@@ -231,75 +232,85 @@ def testMergeTool(tempDir, mainWindow):
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
-    QTest.qWait(1000)
-    assert conflictUI.mergeToolStatus.isVisible()
-    assert re.search("didn.t complete", conflictUI.mergeToolStatus.text(), re.I)
+
+    waitUntilTrue(lambda: conflictUI.mergeToolStatus.isVisible())
+    waitUntilTrue(lambda: re.search("didn.t complete", conflictUI.mergeToolStatus.text(), re.I))
+
+    rw.conflictView.cancelMergeInProgress()
 
     # ------------------------------
     # Try merging with a missing command
+
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}-BOGUSCOMMAND" "{scratchPath}" $M $L $R $B'})
     assert "editor-shim" in conflictUI.mergeButton.text()
     conflictUI.mergeButton.click()
 
-    QTest.qWait(100)
-    rejectQMessageBox(rw, "not.+installed on your machine")
+    notInstalledMessage = waitForQMessageBox(rw, "not.+installed on your machine")
+    notInstalledMessage.reject()
+
+    rw.conflictView.cancelMergeInProgress()
 
     # ------------------------------
-    # Try merging with a tool that errors out
+    # Try merging with a tool that errors out (e.g. locked file)
+
     writeFile(scratchPath, "oops, file locked!")
     os.chmod(scratchPath, 0o400)
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "${scratchPath}" $M $L $R $B'})
+    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo'})
     assert "merge-shim" in conflictUI.mergeButton.text()
+    assert "exit code" not in conflictUI.mergeToolStatus.text().lower()
     conflictUI.mergeButton.click()
 
-    QTest.qWait(100)
-    assert "exit code" in conflictUI.mergeToolStatus.text().lower()
+    waitUntilTrue(lambda: "exit code" in conflictUI.mergeToolStatus.text().lower())
     os.unlink(scratchPath)
+
+    rw.conflictView.cancelMergeInProgress()
 
     # ------------------------------
     # Now try merging with a good tool
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+
+    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar'})
     assert "merge-shim" in conflictUI.mergeButton.text()
     conflictUI.mergeButton.click()
 
     assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeInProgressPage
 
-    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
+    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8").strip()
     scratchLines = scratchText.strip().splitlines()
-    QTest.qWait(100)
 
     mergedPath = scratchLines[0]
     oursPath = scratchLines[1]
     theirsPath = scratchLines[2]
+
     assert "[MERGED]" in mergedPath
     assert "[OURS]" in oursPath
     assert "[THEIRS]" in theirsPath
-    assert "merge complete!" == readFile(mergedPath).decode("utf-8").strip()
+    assert "CookieBar" == scratchLines[-1]
+    assert "merge complete!" == readFile(mergedPath, timeout=1000).decode("utf-8").strip()
+
+    waitUntilTrue(lambda: conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage)
 
     # ------------------------------
     # Hit "Merge Again"
 
     assert not os.path.exists(scratchPath)  # should have been unlinked above
 
-    assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage
     conflictUI.reworkMergeButton.click()
-
     assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeInProgressPage
 
     scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
     scratchLines = scratchText.strip().splitlines()
-    QTest.qWait(100)
 
     # Make sure the same command was run
     assert scratchLines[0] == mergedPath
     assert scratchLines[1] == oursPath
     assert scratchLines[2] == theirsPath
-    assert "merge complete!" == readFile(mergedPath).decode("utf-8").strip()
+    assert "merge complete!" == readFile(mergedPath, timeout=1000).decode("utf-8").strip()
 
     # ------------------------------
     # Accept merge resolution
-    assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage
+
+    waitUntilTrue(lambda: conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage)
     conflictUI.confirmMergeButton.click()
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inStaged(".gitignore"))
 
@@ -336,7 +347,6 @@ def testFake3WayMerge(tempDir, mainWindow):
 
     scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
     scratchLines = scratchText.strip().splitlines()
-    QTest.qWait(1000)
 
     mergedPath = scratchLines[0]
     oursPath = scratchLines[1]
@@ -346,10 +356,11 @@ def testFake3WayMerge(tempDir, mainWindow):
     assert "[OURS]" in oursPath
     assert "[THEIRS]" in theirsPath
     assert "[NO-ANCESTOR]" in fakeAncestorPath
-    assert "merge complete!" == readFile(mergedPath).decode("utf-8").strip()
+    mergedContents = readFile(mergedPath, timeout=1000).decode("utf-8").strip()
+    assert "merge complete!" == mergedContents
     assert readFile(fakeAncestorPath) == readFile(rw.repo.in_workdir("bye.txt"))
 
-    assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage
+    waitUntilTrue(lambda: conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage)
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
@@ -385,11 +396,10 @@ def testMergeToolInBackground(tempDir, mainWindow):
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
     assert "merge complete!" == readFile(scratchLines[0]).decode("utf-8").strip()
-    QTest.qWait(1000)
 
     # Switch back to the merge conflict
     rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
-    assert rw.conflictView.ui.mergeCompletePage.isVisible()
+    waitUntilTrue(lambda: rw.conflictView.ui.mergeCompletePage.isVisible())
 
     # Confirm the merge
     rw.conflictView.ui.confirmMergeButton.click()
