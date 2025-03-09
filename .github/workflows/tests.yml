@@ -16,8 +16,8 @@ jobs:
       matrix:
         include:
         # Legacy configs
-        - {os: ubuntu-20.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12'}
-        - {os: ubuntu-20.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip uninstall -y pygments'}
+        - {os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12'}
+        - {os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip uninstall -y pygments'}
         # Semi-legacy configs
         - {os: ubuntu-latest, python-version: '3.11', qt-binding: pyqt6}
         - {os: ubuntu-latest, python-version: '3.12', qt-binding: pyqt6}
