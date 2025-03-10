@@ -379,8 +379,11 @@ def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow):
     triggerMenuAction(menu, "(start|new).+local branch")
 
     dlg: NewBranchDialog = findQDialog(rw, "new.+branch")
+    assert dlg.ui.upstreamCheckBox.isChecked()  # auto-track upstreams from remote branches
+    assert dlg.ui.upstreamComboBox.isEnabled()
+    assert dlg.ui.upstreamComboBox.currentText() == "origin/master"
+
     dlg.ui.nameEdit.setText("newmaster")
-    dlg.ui.upstreamCheckBox.setChecked(True)
     dlg.accept()
 
     assert repo.branches.local["newmaster"].upstream == repo.branches.remote["origin/master"]
@@ -397,9 +400,10 @@ def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow):
 
     dlg: NewBranchDialog = findQDialog(rw, "new.+branch")
     assert dlg.ui.nameEdit.text() == "first-merge"
+    assert dlg.ui.upstreamCheckBox.isChecked()  # auto-track upstreams from remote branches
+    assert dlg.ui.upstreamComboBox.isEnabled()
     assert dlg.ui.upstreamComboBox.currentText() == "origin/first-merge"
-    assert not dlg.ui.upstreamCheckBox.isChecked()
-    dlg.ui.upstreamCheckBox.setChecked(True)
+
     dlg.accept()
 
     localBranch = repo.branches.local['first-merge']
@@ -433,6 +437,10 @@ def testNewBranchFromCommit(tempDir, mainWindow, method):
 
     dlg: NewBranchDialog = findQDialog(rw, "new branch")
     assert dlg.ui.nameEdit.text() == "first-merge"  # nameEdit should be pre-filled with name of a (remote) branch pointing to this commit
+    assert not dlg.ui.upstreamCheckBox.isChecked()  # don't auto-track upstream from commits
+    assert not dlg.ui.upstreamComboBox.isEnabled()
+    assert dlg.ui.upstreamComboBox.currentText() == "origin/first-merge"  # do suggest an upstream
+
     dlg.ui.switchToBranchCheckBox.setChecked(True)
     dlg.accept()
 
@@ -474,6 +482,9 @@ def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
         raise NotImplementedError("unknown method")
 
     dlg: NewBranchDialog = findQDialog(rw, "new branch")
+    assert not dlg.ui.upstreamCheckBox.isChecked()  # don't auto-track upstream
+    assert not dlg.ui.upstreamComboBox.isEnabled()
+
     dlg.ui.nameEdit.setText("coucou")
     dlg.ui.switchToBranchCheckBox.setChecked(True)
     dlg.accept()
@@ -509,6 +520,8 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
     dlg: NewBranchDialog = findQDialog(rw, "new.+branch")
     assert dlg.ui.nameEdit.text() == "no-parent-2"
     assert dlg.acceptButton.isEnabled()  # "no-parent-2" isn't taken
+    assert not dlg.ui.upstreamCheckBox.isChecked()  # don't auto-track upstreams from local branches
+    assert not dlg.ui.upstreamComboBox.isEnabled()
 
     dlg.ui.nameEdit.setText("no-parent")  # try to set a name that's taken
     assert not dlg.acceptButton.isEnabled()  # can't accept because branch name "no-parent" is taken

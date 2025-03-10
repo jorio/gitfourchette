@@ -237,10 +237,8 @@ class DeleteBranchFolder(RepoTask):
                              n=len(folderBranches), name=tquo(folderName))
 
 
-class _NewBranchBaseTask(RepoTask):
-    TRACK_ANY_UPSTREAM = ".ANY"
-
-    def _internalFlow(self, tip: Oid, localName: str = "", trackUpstream: str = TRACK_ANY_UPSTREAM):
+class NewBranchFromCommit(RepoTask):
+    def flow(self, tip: Oid, localName: str = "", suggestUpstream: str = "", checkUpstream: bool = False):
         repo = self.repo
 
         tipHashText = shortHash(tip)
@@ -295,13 +293,11 @@ class _NewBranchBaseTask(RepoTask):
             dlg.ui.recurseSubmodulesCheckBox.setChecked(False)
             dlg.ui.recurseSubmodulesCheckBox.setVisible(False)
 
-        if trackUpstream == self.TRACK_ANY_UPSTREAM:
-            trackUpstream = ""
-        elif trackUpstream:
-            i = dlg.ui.upstreamComboBox.findText(trackUpstream)
-            found = i >= 0
-            if found:
-                dlg.ui.upstreamComboBox.setCurrentIndex(i)
+        if suggestUpstream:
+            upstreamIndex = dlg.ui.upstreamComboBox.findText(suggestUpstream)
+            if upstreamIndex >= 0:
+                dlg.ui.upstreamCheckBox.setChecked(checkUpstream)
+                dlg.ui.upstreamComboBox.setCurrentIndex(upstreamIndex)
 
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.setFixedHeight(dlg.sizeHint().height())
@@ -310,9 +306,9 @@ class _NewBranchBaseTask(RepoTask):
         dlg.deleteLater()
 
         localName = dlg.ui.nameEdit.text()
-        trackUpstream = ""
         switchTo = dlg.ui.switchToBranchCheckBox.isChecked()
         recurseSubmodules = dlg.ui.recurseSubmodulesCheckBox.isChecked()
+        trackUpstream = ""
         if dlg.ui.upstreamCheckBox.isChecked():
             trackUpstream = dlg.ui.upstreamComboBox.currentText()
 
@@ -350,46 +346,37 @@ class _NewBranchBaseTask(RepoTask):
                 yield from self.flowSubtask(UpdateSubmodulesRecursive)
 
 
-class NewBranchFromHead(_NewBranchBaseTask):
+class NewBranchFromHead(RepoTask):
     def prereqs(self):
         return TaskPrereqs.NoUnborn
 
     def flow(self):
-        tip = self.repo.head_commit.id
-
-        # Initialize upstream to the current branch's upstream, if any
-        try:
-            headBranchName = self.repo.head.shorthand
-            branch = self.repo.branches.local[headBranchName]
-            upstream = branch.upstream.shorthand if branch.upstream else ""
-            yield from self._internalFlow(tip, trackUpstream=upstream)
-        except KeyError:  # e.g. detached HEAD
-            # Pick any upstream
-            yield from self._internalFlow(tip)
+        if self.repo.head_is_detached:
+            yield from self.flowSubtask(NewBranchFromCommit, self.repo.head_commit_id)
+        else:
+            yield from self.flowSubtask(NewBranchFromRef, self.repo.head_branch_fullname)
 
 
-class NewBranchFromCommit(_NewBranchBaseTask):
-    def flow(self, tip: Oid):
-        yield from self._internalFlow(tip)
-
-
-class NewBranchFromRef(_NewBranchBaseTask):
+class NewBranchFromRef(RepoTask):
     def flow(self, refname: str):
         prefix, name = RefPrefix.split(refname)
 
         if prefix == RefPrefix.HEADS:
             branch = self.repo.branches.local[name]
             upstream = branch.upstream.shorthand if branch.upstream else ""
+            tickUpstream = False
 
         elif prefix == RefPrefix.REMOTES:
             branch = self.repo.branches.remote[name]
             upstream = branch.shorthand
             name = name.removeprefix(branch.remote_name + "/")
+            tickUpstream = True
 
         else:
             raise NotImplementedError(f"Unsupported prefix for refname '{refname}'")
 
-        yield from self._internalFlow(branch.target, name, trackUpstream=upstream)
+        yield from self.flowSubtask(NewBranchFromCommit, branch.target, name,
+                                    suggestUpstream=upstream, checkUpstream=tickUpstream)
 
 
 class EditUpstreamBranch(RepoTask):
