@@ -20,11 +20,12 @@ class ContextHeader(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.setObjectName("ContextHeader")
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
+
         self.locator = NavLocator()
         self.buttons = []
 
         layout = QHBoxLayout(self)
-        self.setMinimumHeight(24)
 
         self.mainLabel = QElidedLabel(self)
 
@@ -58,7 +59,7 @@ class ContextHeader(QFrame):
         layout: QHBoxLayout = self.layout()
         layout.insertWidget(1, button)
 
-        button.setMaximumHeight(24)
+        button.setMaximumHeight(20)
 
         return button
 
