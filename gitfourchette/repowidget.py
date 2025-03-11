@@ -160,6 +160,7 @@ class RepoWidget(QStackedWidget):
 
         sideSplitter = QSplitter(Qt.Orientation.Horizontal, self)
         sideSplitter.setObjectName("Split_Side")
+        self.sideSplitter = sideSplitter
 
         centralSplitter = QSplitter(Qt.Orientation.Vertical, self)
         centralSplitter.setObjectName("Split_Central")
@@ -304,6 +305,7 @@ class RepoWidget(QStackedWidget):
 
         banner = Banner(self, orientation=Qt.Orientation.Vertical)
         banner.setProperty("class", "merge")
+        banner.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -857,12 +859,13 @@ class RepoWidget(QStackedWidget):
                 "Use <code>git</code> on the command line to continue.",
                 app=qAppName(), state=bquo(TrTables.enum(rstate)))
 
-        if bannerText or bannerTitle:
-            self.mergeBanner.popUp(bannerTitle, bannerText, heeded=bannerHeeded, canDismiss=False)
-            if bannerAction:
-                self.mergeBanner.addButton(bannerAction, bannerCallback)
-        else:
-            self.mergeBanner.setVisible(False)
+        with DisableWidgetUpdatesContext(self.sideSplitter):
+            if bannerText or bannerTitle:
+                self.mergeBanner.popUp(bannerTitle, bannerText, heeded=bannerHeeded, canDismiss=False)
+                if bannerAction:
+                    self.mergeBanner.addButton(bannerAction, bannerCallback)
+            else:
+                self.mergeBanner.setVisible(False)
 
     def refreshNumUncommittedChanges(self):
         self.sidebar.repaintUncommittedChanges()

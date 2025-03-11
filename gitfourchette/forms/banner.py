@@ -60,14 +60,13 @@ class Banner(QFrame):
         if callback is not None:
             button.clicked.connect(callback)
 
-        layout = self.layout()
-        assert isinstance(layout, QBoxLayout)
-        layout.insertWidget(2, button)
-
         if self.orientation == Qt.Orientation.Horizontal:
             tweakWidgetFont(button, FONT_POINT_PERCENT)
             button.setMaximumHeight(HORIZONTAL_CONTENT_HEIGHT)
 
+        layout = self.layout()
+        assert isinstance(layout, QBoxLayout)
+        layout.insertWidget(2, button)
         return button
 
     def clearButtons(self):
