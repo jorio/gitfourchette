@@ -29,8 +29,8 @@ from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL, Benchmark
 _logger = _logging.getLogger(__name__)
 
 PLACEHOLDER_OID = Oid(hex='E' * 40)
-TRACE_PROGRESS_INTERVAL = 200
-BLAME_PROGRESS_INTERVAL = 10
+TRACE_PROGRESS_INTERVAL = 200 if not APP_TESTMODE else 1
+BLAME_PROGRESS_INTERVAL = 10 if not APP_TESTMODE else 1
 
 
 @_dataclasses.dataclass

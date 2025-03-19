@@ -227,8 +227,7 @@ class BlameWindow(QWidget):
     def goNewerOrOlder(self, delta: int):
         index = self.scrubber.currentIndex()
         index += delta
-        if index < 0 or index >= self.scrubber.count():
-            return
+        assert 0 <= index < self.scrubber.count()
         node = self.scrubber.itemData(index)
         self.setTraceNode(node)
 

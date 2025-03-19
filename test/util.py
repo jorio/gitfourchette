@@ -285,12 +285,30 @@ def qteSelectBlocks(qte: QTextEdit, block1: int, block2: int):
     QTest.mouseRelease(qte.viewport(), Qt.MouseButton.LeftButton, pos=point2)
 
 
+def qteSyntaxColor(textEdit: QTextEdit, line: int):
+    document = textEdit.document()
+    block = document.findBlockByLineNumber(line)
+    formatRange = block.layout().formats()[0]
+    return formatRange.format.foreground().color()
+
+
 def qcbSetIndex(qcb: QComboBox, pattern: str):
     i = qcb.findText(pattern, Qt.MatchFlag.MatchRegularExpression)
     assert i >= 0
     qcb.setCurrentIndex(i)
     qcb.activated.emit(i)
     return i
+
+
+def findWindow(pattern: str) -> QWidget:
+    widget: QWidget
+    for widget in QApplication.topLevelWidgets():
+        if not widget.isEnabled() or widget.isHidden():
+            continue
+        if re.search(pattern, widget.windowTitle(), re.IGNORECASE):
+            return widget
+
+    raise KeyError(f"did not find widget window matching \"{pattern}\"")
 
 
 def findQDialog(parent: QWidget, pattern: str) -> QDialog:
@@ -409,3 +427,16 @@ def summonContextMenu(target: QWidget, localPoint=QPoint_zero):
     event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, localPoint, target.mapToGlobal(localPoint))
     QApplication.instance().postEvent(target, event)
     return waitUntilTrue(getVisibleContextMenu)
+
+
+def summonToolTip(target: QWidget, localPoint=QPoint_zero):
+    # QTest.mouseMove doesn't trigger the tooltip in offscreen tests,
+    # so post a QHelpEvent instead.
+    assert not QToolTip.isVisible()
+    helpEvent = QHelpEvent(QEvent.Type.ToolTip, localPoint, target.mapToGlobal(localPoint))
+    QApplication.instance().postEvent(target, helpEvent)
+    waitUntilTrue(QToolTip.isVisible, 300)
+    text = QToolTip.text()
+    QToolTip.hideText()
+    waitUntilTrue(lambda: not QToolTip.isVisible())  # may need some time to fade out
+    return text

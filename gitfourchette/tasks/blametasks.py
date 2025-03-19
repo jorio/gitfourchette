@@ -103,10 +103,11 @@ class _BlameProgressDialog(QProgressDialog):
         self.setMinimumWidth(self.fontMetrics().horizontalAdvance('W' * 40))
 
         # Delay progress popup to avoid flashing when blaming is fast enough.
+        # (In unit tests, show it immediately for code coverage.)
         self.delayedProgress = QTimer(self)
         self.delayedProgress.timeout.connect(self.show)
         self.delayedProgress.setSingleShot(True)
-        self.delayedProgress.start(200)
+        self.delayedProgress.start(200 if not APP_TESTMODE else 0)
 
         self.traceProgress.connect(self._showTraceProgress)
         self.blameProgress.connect(self._showBlameProgress)
