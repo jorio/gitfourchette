@@ -126,7 +126,7 @@ class ToolCommands:
             cls.TerminalPresets.update(cls.LinuxTerminalPresets)
 
             debianTerminal = "Debian default terminal"
-            terminalScores = {k: 0 for k in cls.LinuxTerminalPresets}
+            terminalScores = dict.fromkeys(cls.LinuxTerminalPresets, 0)
             terminalScores[debianTerminal]   = 1000
             terminalScores["Ptyxis"]         = [-2, 2][GNOME]
             terminalScores["GNOME Terminal"] = [-1, 1][GNOME]
@@ -272,7 +272,7 @@ class ToolCommands:
     @classmethod
     def checkCommand(cls, command: str, *placeholders: str) -> str:
         try:
-            cls.compileCommand(command, {k: "PLACEHOLDER" for k in placeholders}, [])
+            cls.compileCommand(command, dict.fromkeys(placeholders, "PLACEHOLDER"), [])
             return ""
         except ValueError as e:
             return str(e)

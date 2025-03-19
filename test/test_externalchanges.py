@@ -156,7 +156,7 @@ def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow
 
     rw = mainWindow.openRepo(wd)
 
-    assert rw.repo.status() == { name: FileStatus.WT_MODIFIED for name in crlfFiles }
+    assert rw.repo.status() == dict.fromkeys(crlfFiles, FileStatus.WT_MODIFIED)
 
     # Look at each file 3 times.
     # There seems to be a bug in libgit2 where patch.delta is unstable (returning erroneous
