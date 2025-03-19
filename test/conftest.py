@@ -63,7 +63,7 @@ def tempDir() -> tempfile.TemporaryDirectory:
 @pytest.fixture
 def mainWindow(request, qtbot: QtBot) -> MainWindow:
     from gitfourchette import settings, qt, trash, porcelain, tasks
-    from .util import TEST_SIGNATURE
+    from .util import TEST_SIGNATURE, waitUntilTrue
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert settings.TEST_MODE
@@ -102,13 +102,11 @@ def mainWindow(request, qtbot: QtBot) -> MainWindow:
             break
 
     # Kill the main window
+    app.mainWindow.close()
     app.mainWindow.deleteLater()
 
-    # Qt 5 may need a breather to collect the window
-    qt.QTest.qWait(0)
-
-    # The main window must be gone after this test
-    assert app.mainWindow is None
+    # Wait for main window to die
+    waitUntilTrue(lambda: not app.mainWindow)
 
     # Clear temp trash after this test
     trash.Trash.instance().clear()

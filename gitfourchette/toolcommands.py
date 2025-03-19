@@ -102,6 +102,11 @@ class ToolCommands:
         "Konsole"           : ("Konsole",       "org.kde.konsole"),
     }
 
+    @staticmethod
+    def splitCommandTokens(command: str) -> list[str]:
+        # Treat command as POSIX even on Windows!
+        return shlex.split(command, posix=True)
+
     @classmethod
     def _filterToolPresets(cls):
         freedesktopTools = ["Kate", "KWrite"]
@@ -233,7 +238,7 @@ class ToolCommands:
                     presetName += " (Flatpak)"
                 return presetName
 
-        tokens = shlex.split(command, posix=not WINDOWS)
+        tokens = ToolCommands.splitCommandTokens(command)
         interestingToken = 0
 
         if FREEDESKTOP:
@@ -256,7 +261,7 @@ class ToolCommands:
 
     @classmethod
     def replaceProgramTokenInCommand(cls, command: str, *newProgramTokens: str):
-        tokens = shlex.split(command, posix=not WINDOWS)
+        tokens = ToolCommands.splitCommandTokens(command)
         tokens = list(newProgramTokens) + tokens[1:]
 
         newCommand = shlex.join(tokens)
@@ -286,7 +291,7 @@ class ToolCommands:
             directory: str = "",
             detached: bool = True,
     ) -> tuple[list[str], str]:
-        tokens = shlex.split(command, posix=not WINDOWS)
+        tokens = ToolCommands.splitCommandTokens(command)
 
         for placeholder, replacement in replacements.items():
             mandatory = not placeholder.endswith("?")

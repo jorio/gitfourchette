@@ -84,8 +84,11 @@ def testPrefsFontControl(tempDir, mainWindow):
 
     rw.jump(NavLocator.inCommit(rw.repo.head_commit_id))
     defaultFamily = rw.diffView.document().defaultFont().family()
-    randomFamily = next(family for family in QFontDatabase.families(QFontDatabase.WritingSystem.Latin)
-                        if not QFontDatabase.isPrivateFamily(family))
+    if WINDOWS:
+        randomFamily = "Sans Serif"
+    else:
+        randomFamily = next(family for family in QFontDatabase.families(QFontDatabase.WritingSystem.Latin)
+                            if not QFontDatabase.isPrivateFamily(family))
     assert defaultFamily != randomFamily
 
     # Change font setting, and accept
@@ -124,6 +127,11 @@ def testPrefsLanguageControl(tempDir, mainWindow):
 
 def testPrefsRecreateDiffDocument(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+
+    if WINDOWS:
+        with RepoContext(wd) as repo:
+            repo.config["core.autocrlf"] = "false"
+
     writeFile(f"{wd}/crlf.txt", "hello\r\nthat's it")
     rw = mainWindow.openRepo(wd)
 

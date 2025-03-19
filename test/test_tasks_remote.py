@@ -158,6 +158,8 @@ def testRemoteCustomKeyUI(tempDir, mainWindow):
         else:
             picker.browseButton.click()
         acceptQFileDialog(picker, "key file", getTestDataPath(path))
+        if WINDOWS:
+            path = path.replace("/", "\\")
         assert picker.pathLabel.text().endswith(path)
         assert bool(warning) == picker.warningButton.isVisible()
         if warning:
@@ -171,7 +173,7 @@ def testRemoteCustomKeyUI(tempDir, mainWindow):
     dialog, picker = openRemoteDialog()
     assert picker.checkBox.isChecked()
     assert picker.pathLabel.isVisible()
-    assert picker.pathLabel.text().endswith("keys/simple")
+    assert picker.pathLabel.text().endswith("keys/simple" if not WINDOWS else "keys\\simple")
     assert picker.browseButton.isVisible()
     assert not picker.warningButton.isVisible()
     dialog.accept()

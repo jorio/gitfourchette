@@ -114,7 +114,7 @@ def testRevertCommittedFile(tempDir, mainWindow):
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("master.txt"))
 
     # Make sure revert actually worked
-    assert b"On master\n" == readFile(f"{wd}/master.txt")
+    assert "On master\n" == readTextFile(f"{wd}/master.txt")
 
 
 def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):
@@ -230,7 +230,7 @@ def testSearchEmptyFileList(tempDir, mainWindow):
     acceptQMessageBox(rw, "not found")
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
+@pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
 @pytest.mark.skipif(MACOS and os.environ.get("QT_QPA_PLATFORM", "") != "offscreen",
                     reason="flaky on macOS unless executed offscreen")
 def testEditFileInExternalEditor(tempDir, mainWindow):
@@ -263,7 +263,6 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
     assert b"a1@49322bb" in readFile(scratchPath, timeout=1000, unlink=True)
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testEditFileInExternalDiffTool(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -278,8 +277,8 @@ def testEditFileInExternalDiffTool(tempDir, mainWindow):
     acceptQMessageBox(mainWindow, "diff tool.+n.t (set up|configured)")
     findQDialog(mainWindow, "settings").reject()
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in editor-shim")
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in python3")
     scratchText = readFile(scratchPath, 1000, unlink=True).decode("utf-8")
     assert "[OLD]b2.txt" in scratchText
     assert "[NEW]b2.txt" in scratchText

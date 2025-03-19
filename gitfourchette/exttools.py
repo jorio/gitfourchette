@@ -72,7 +72,7 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str, isKnownFlatpak=Fal
     browseButton.setText(_("Locate {tool}…", tool=lquo(programName)))
 
     if FREEDESKTOP:
-        tokens = shlex.split(commandString, posix=True)
+        tokens = ToolCommands.splitCommandTokens(commandString)
         if ToolCommands.isFlatpakRunCommand(tokens):
             qmb.removeButton(browseButton)
 
@@ -207,7 +207,7 @@ def openInExternalTool(
     # Check if the Flatpak is installed
     if FREEDESKTOP:
         # Check 'isFlatpakRunCommand' on unfiltered tokens (compileCommand may have added a wrapper)
-        unfilteredTokens = shlex.split(command, posix=True)
+        unfilteredTokens = ToolCommands.splitCommandTokens(command)
         flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(unfilteredTokens)
         if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex], parent):
             onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)

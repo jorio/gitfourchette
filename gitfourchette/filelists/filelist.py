@@ -399,6 +399,11 @@ class FileList(QListView):
         if not text:
             return
 
+        if WINDOWS:  # Ensure backslash directory separators
+            from pathlib import Path
+            path = Path(text)
+            text = str(path)
+
         QApplication.clipboard().setText(text)
         self.statusMessage.emit(clipboardStatusMessage(text))
 

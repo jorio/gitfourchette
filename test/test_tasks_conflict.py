@@ -134,6 +134,9 @@ def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
+        if WINDOWS:
+            repo.config["core.autocrlf"] = "input"
+
         # Prepare "their" modification (modify a1.txt)
         writeFile(f"{wd}/a/a1.txt", "they modified")
         repo.index.add_all(["a/a1.txt"])

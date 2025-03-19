@@ -704,7 +704,7 @@ def testExportPatchFromHunk(tempDir, mainWindow):
     triggerMenuAction(menu, "export hunk.+as patch")
     exportedPath = acceptQFileDialog(rw, "export", f"{tempDir.name}", useSuggestedName=True)
     assert exportedPath.endswith("c1.txt[partial].patch")
-    assert readFile(exportedPath).decode("utf-8").endswith(
+    assert readTextFile(exportedPath).endswith(
         "--- a/c/c1.txt\n"
         "+++ b/c/c1.txt\n"
         "@@ -1,1 +1,2 @@\n"
@@ -717,7 +717,7 @@ def testRevertHunk(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
 
-    assert readFile(f"{wd}/c/c1.txt") == b"c1\nc1\n"
+    assert readTextFile(f"{wd}/c/c1.txt") == "c1\nc1\n"
 
     oid = Oid(hex="bab66b48f836ed950c99134ef666436fb07a09a0")
     rw.jump(NavLocator.inCommit(oid, "c/c1.txt"))
@@ -727,4 +727,4 @@ def testRevertHunk(tempDir, mainWindow):
     triggerMenuAction(menu, "revert hunk")
 
     assert NavLocator.inUnstaged("c/c1.txt").isSimilarEnoughTo(rw.navLocator)
-    assert readFile(f"{wd}/c/c1.txt") == b"c1\n"
+    assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"

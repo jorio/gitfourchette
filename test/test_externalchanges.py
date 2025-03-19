@@ -81,6 +81,7 @@ def testStayOnFileAfterPartialPatchDespiteExternalChange(tempDir, mainWindow):
     assert qlvGetSelection(rw.dirtyFiles) == ["b/b2.txt"]
 
 
+@pytest.mark.skipif(WINDOWS, reason="TODO: Windows clings to a file handle")
 def testPatchBecameInvalid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

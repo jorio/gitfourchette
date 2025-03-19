@@ -1795,7 +1795,8 @@ class Repo(_VanillaRepository):
 
             # The worktree that's configured for this submodule
             # has to match the path we're given.
-            return sub_wd == wd2
+            # (Normalize path separators for Windows.)
+            return _normpath(sub_wd) == wd2
 
         if not can_restore():
             return False

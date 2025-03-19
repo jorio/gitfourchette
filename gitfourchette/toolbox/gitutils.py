@@ -14,6 +14,7 @@ from gitfourchette.trtables import TrTables
 
 INITIALS_PATTERN = re.compile(r"(?:^|[\s\-.'‘’\"“”])+([^\s\-.'‘’\"“”])[^\s\-.]*")
 FIRST_NAME_PATTERN = re.compile(r"(\S(\.?-|\.\s?|\s))*\S+")
+WINDOWS_PATH_PATTERN = re.compile(r"^[A-Za-z]:[/\\]")
 
 REMOTE_URL_PATTERNS = [
     # HTTP/HTTPS
@@ -143,6 +144,10 @@ def simplifyOctalFileMode(m: int):
 
 
 def remoteUrlProtocol(url: str):
+    # Bail early on Windows-style absolute paths (C:\Whatever) to avoid looking like an ssh url
+    if WINDOWS_PATH_PATTERN.match(url):
+        return ""
+
     for pattern in REMOTE_URL_PATTERNS:
         m = pattern.match(url)
         if m:

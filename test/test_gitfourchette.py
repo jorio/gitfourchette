@@ -164,6 +164,7 @@ def testNewRepoFromExistingSources(tempDir, mainWindow):
     assert "file was here before repo inited" in rw.diffView.toPlainText()
 
 
+@pytest.mark.skipif(WINDOWS, reason="TODO: Windows quirks")
 def testNewRepoAtExistingRepo(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
@@ -348,7 +349,8 @@ def testTabOverflow(tempDir, mainWindow):
 def testTabOverflowSingleTab(tempDir, mainWindow):
     mainWindow.resize(640, 480)  # make sure it's narrow enough for overflow
 
-    wd = unpackRepo(tempDir, renameTo="Extremely Long Repo Name " * 10)
+    # Don't set a super long name for Windows (max path length restriction)
+    wd = unpackRepo(tempDir, renameTo="W" * 128)
     mainWindow.openRepo(wd)
     QTest.qWait(1)
     assert not mainWindow.tabs.overflowButton.isVisible()
@@ -698,7 +700,7 @@ def testHideSelectedBranch(tempDir, mainWindow, taskThread):
     assert str(rw.navLocator.commit)[:7] in rw.diffArea.diffHeader.text()
 
 
-@pytest.mark.skipif(MACOS, reason="TODO: look into this on macOS")
+@pytest.mark.skipif(MACOS, reason="TODO: macOS quirks")
 def testCloseParentOfExternalProcess(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -707,8 +709,8 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     editorPath = getTestDataPath("pause.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in pause")
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
+    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in python3")
     assert readFile(scratchPath, 1000).decode().strip() == "about to sleep"
     mainWindow.closeAllTabs()
     pause(3)

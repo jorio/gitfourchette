@@ -137,6 +137,19 @@ def readFile(path, timeout=0, unlink=False):
     return data
 
 
+def readTextFile(path, timeout=0, unlink=False):
+    if timeout:
+        waitUntilTrue(lambda: os.path.exists(path), timeout=timeout)
+
+    with open(path, encoding="utf-8") as f:
+        data = f.read()
+
+    if unlink:
+        os.unlink(path)
+
+    return data
+
+
 def qlvGetRowData(view: QListView, role=Qt.ItemDataRole.DisplayRole):
     model = view.model()
     data = []
