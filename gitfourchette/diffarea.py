@@ -80,6 +80,10 @@ class DiffArea(QWidget):
         ):
             passiveWidget.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
 
+        # Ignore height in size policy to keep DiffArea from jumping around when we're showing a banner.
+        self.setSizePolicy(self.sizePolicy().horizontalPolicy(), QSizePolicy.Policy.Ignored)
+        self.setMinimumHeight(175)
+
     # -------------------------------------------------------------------------
     # Constructor helpers
 
