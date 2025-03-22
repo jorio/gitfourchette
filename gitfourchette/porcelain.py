@@ -112,8 +112,6 @@ DIFF_HEADER_PATTERN = _re.compile(r"^diff --git (\"?\w/[^\"]+\"?) (\"?\w/[^\"]+\
 SUBPROJECT_COMMIT_MINUS_PATTERN = _re.compile(r"^-Subproject commit (.+)$", _re.M)
 SUBPROJECT_COMMIT_PLUS_PATTERN = _re.compile(r"^\+Subproject commit (.+)$", _re.M)
 
-SUBMODULE_CONFIG_SECTION_PATTERN = _re.compile(r'^submodule "(.+)"$')
-
 FileStatus_INDEX_MASK = (
         FileStatus.INDEX_NEW
         | FileStatus.INDEX_MODIFIED
@@ -201,6 +199,10 @@ class MultiFileError(Exception):
 
     def __bool__(self):
         return bool(self.file_exceptions)
+
+
+class _UnchangedConfigFile(Exception):
+    pass
 
 
 class CheckoutBreakdown(CheckoutCallbacks):
@@ -460,6 +462,10 @@ def parse_submodule_patch(text: str) -> tuple[Oid, Oid, bool]:
 
 
 class GitConfigHelper:
+    class SectionPatterns:
+        SUBMODULE = _re.compile(r'^submodule "(.+)"$')
+        REMOTE = _re.compile(r'^remote "(.+)"$')
+
     @staticmethod
     def path_for_level(level: GitConfigLevel, missing_dir_ok=False):
         if not (GitConfigLevel.PROGRAMDATA <= level <= GitConfigLevel.GLOBAL):
@@ -627,11 +633,30 @@ class GitConfigHelper:
     def unescape(s: str):
         return s.encode('raw_unicode_escape').decode('unicode_escape')
 
+    @staticmethod
+    def walk_sections(config: _configparser.ConfigParser, section_pattern: _re.Pattern):
+        for section_name in config.sections():
+            match = section_pattern.fullmatch(section_name)
+            if not match:
+                continue
+
+            section = config[section_name]
+            name = GitConfigHelper.unescape(match.group(1))
+            yield name, section
+
 
 class Repo(_VanillaRepository):
     """
     Drop-in replacement for pygit2.Repository with convenient front-ends to common git operations.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cached_config_stats = {}
+        self._cached_config_stats_for_key = {}
+        self._cached_config_parsers = {}
+        self._cached_remote_list = []
+        self._cached_submodule_table = {}
 
     def __del__(self):
         _logger.debug("__del__ Repo")
@@ -680,6 +705,14 @@ class Repo(_VanillaRepository):
 
     def is_in_workdir(self, path: str) -> bool:
         return _Path(path).resolve().is_relative_to(self.workdir)
+
+    def in_gitdir(self, path: str) -> str:
+        """Return an absolutized version of `path` within this repo's .git directory."""
+        assert not _isabs(path)
+        p = _joinpath(self.path, path)
+        if not p.startswith(self.path):
+            raise ValueError("Won't create absolute path outside gitdir")
+        return p
 
     def refresh_index(self, force: bool = False):
         """
@@ -1428,68 +1461,6 @@ class Repo(_VanillaRepository):
         submo = self.submodules[submo_key]
         return self.in_workdir(submo.path)
 
-    def listall_submodules(self):  # pragma: no cover
-        """
-        Don't use listall_submodules, it's slow and it omits critical
-        information about submodule names.
-        Note that if a submodule's name is different from its path,
-        SubmoduleCollection[path].name will NOT return the correct name!
-        """
-        warnings.warn("Don't use this", DeprecationWarning)
-        raise DeprecationWarning("Don't use listall_submodules")
-
-    def listall_submodules_fast(self) -> list[str]:
-        """
-        Faster drop-in replacement for pygit2's Repository.listall_submodules (which can be very slow).
-        Return a list of submodule workdir paths within the root repo's workdir.
-        """
-        return list(self.listall_submodules_dict().values())
-
-    def listall_submodules_dict(self, absolute_paths=False, config_text="") -> dict[str, str]:
-        """
-        Return a dict of submodule names to paths.
-        Information is sourced from .gitmodules (or config_text if given).
-
-        You should use this instead of pygit2's Repository.listall_submodules,
-        because the latter doesn't give you information about submodule names.
-        It is also faster.
-        """
-        # We use ConfigParser instead of pygit2.Config so that we can load the
-        # config from a blob in memory.
-
-        submos: dict[str, str] = {}
-
-        if config_text:
-            config = _configparser.ConfigParser()
-            config.read_string(config_text)
-        else:
-            config_path = self.in_workdir(DOT_GITMODULES)
-            if not _isfile(config_path):
-                return submos
-            config = _configparser.ConfigParser()
-            config.read(config_path)
-
-        for section in config.sections():
-            match = SUBMODULE_CONFIG_SECTION_PATTERN.fullmatch(section)
-            if not match:
-                continue
-
-            try:
-                path = config[section]["path"]
-            except KeyError:
-                continue
-
-            path = GitConfigHelper.unescape(path)
-            if absolute_paths:
-                path = self.in_workdir(path)
-
-            name = match.group(1)
-            name = GitConfigHelper.unescape(name)
-
-            submos[name] = path
-
-        return submos
-
     def submodule_dotgit_present(self, submo_path: str) -> bool:
         path = self.in_workdir(submo_path)
         path = _joinpath(path, ".git")
@@ -1879,6 +1850,117 @@ class Repo(_VanillaRepository):
     def set_message(self, message: str):
         with open(_joinpath(self.path, "MERGE_MSG"), "w") as mergemsg:
             mergemsg.write(message)
+
+    # -------------------------------------------------------------------------
+    # Config parsers ("listall" APIs)
+
+    def listall_remotes_fast(self):
+        """
+        Faster alternative to `list(repo.remotes.names())`.
+        """
+        try:
+            # strict=False to bypass DuplicateSectionError
+            config = self._get_cached_config("listall_remotes_fast", self.in_gitdir("config"), strict=False)
+        except OSError:
+            self._cached_remote_list = []
+        except _UnchangedConfigFile:
+            pass
+        else:
+            self._cached_remote_list = Repo._listall_remotes_from_config(config)
+
+        return self._cached_remote_list
+
+    def listall_submodules(self):  # pragma: no cover
+        """
+        Don't use listall_submodules, it's slow and it omits critical
+        information about submodule names.
+        Note that if a submodule's name is different from its path,
+        SubmoduleCollection[path].name will NOT return the correct name!
+        """
+        warnings.warn("Don't use this", DeprecationWarning)
+        raise DeprecationWarning("Don't use listall_submodules")
+
+    def listall_submodules_fast(self) -> list[str]:
+        """
+        Faster drop-in replacement for pygit2's Repository.listall_submodules (which can be very slow).
+        Return a list of submodule workdir paths within the root repo's workdir.
+        """
+        return list(self.listall_submodules_dict().values())
+
+    def listall_submodules_dict(self, config_text="") -> dict[str, str]:
+        """
+        Return a dict of submodule names to paths.
+        Information is sourced from .gitmodules (or config_text if given).
+
+        You should use this instead of pygit2's Repository.listall_submodules,
+        because the latter doesn't give you information about submodule names.
+        It is also faster.
+        """
+        # We use ConfigParser instead of pygit2.Config so that we can load the
+        # config from a blob in memory.
+
+        if config_text:
+            config = _configparser.ConfigParser()
+            config.read_string(config_text)
+            return Repo._listall_submodules_from_config(config)
+
+        config_path = self.in_workdir(DOT_GITMODULES)
+        try:
+            config = self._get_cached_config("listall_submodules_dict", config_path, strict=True)
+        except OSError:
+            self._cached_submodule_table = {}
+        except _UnchangedConfigFile:
+            pass
+        else:
+            self._cached_submodule_table = Repo._listall_submodules_from_config(config)
+        return self._cached_submodule_table
+
+    def _get_cached_config(self, cache_key: str, path: str, strict: bool) -> _configparser.ConfigParser:
+        new_stat = _os.stat(path)
+
+        with _suppress(KeyError):
+            key_stat = self._cached_config_stats_for_key[cache_key]
+            if key_stat == new_stat:
+                raise _UnchangedConfigFile()
+
+        self._cached_config_stats_for_key[cache_key] = new_stat
+
+        with _suppress(KeyError):
+            known_stat = self._cached_config_stats[path]
+            if new_stat == known_stat:
+                return self._cached_config_parsers[path]
+
+        config = _configparser.ConfigParser(strict=strict)
+        config.read(path)
+        self._cached_config_stats[path] = new_stat
+        self._cached_config_parsers[path] = config
+        return config
+
+    @staticmethod
+    def _listall_remotes_from_config(config: _configparser.ConfigParser):
+        remotes = []
+
+        for remote_name, section in GitConfigHelper.walk_sections(config, GitConfigHelper.SectionPatterns.REMOTE):
+            if not section.items():  # Skip empty sections
+                continue
+            remotes.append(remote_name)
+
+        return remotes
+
+    @staticmethod
+    def _listall_submodules_from_config(config: _configparser.ConfigParser):
+        submodules = {}
+
+        for submodule_name, section in GitConfigHelper.walk_sections(config, GitConfigHelper.SectionPatterns.SUBMODULE):
+            try:
+                path = section["path"]
+            except KeyError:
+                continue
+
+            path = GitConfigHelper.unescape(path)
+            submodules[submodule_name] = path
+
+        return submodules
 
 
 class RepoContext:

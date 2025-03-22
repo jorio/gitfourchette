@@ -238,7 +238,7 @@ class RepoModel:
         # We could infer remote names from refCache, but we don't want
         # to miss any "blank" remotes that don't have any branches yet.
         # RemoteCollection.names() is much faster than iterating on RemoteCollection itself
-        remotes = list(self.repo.remotes.names())
+        remotes = self.repo.listall_remotes_fast()
         if remotes != self.remotes:
             self.remotes = remotes
             return True

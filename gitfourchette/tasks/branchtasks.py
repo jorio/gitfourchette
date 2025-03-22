@@ -405,7 +405,7 @@ class ResetHead(RepoTask):
     def flow(self, onto: Oid):
         branchName = self.repo.head_branch_shorthand
         commitMessage = self.repo.get_commit_message(onto)
-        submoduleDict = self.repo.listall_submodules_dict(absolute_paths=True)
+        submoduleDict = self.repo.listall_submodules_dict()
         hasSubmodules = bool(submoduleDict)
 
         dlg = ResetHeadDialog(onto, branchName, commitMessage, hasSubmodules, parent=self.parentWidget())
