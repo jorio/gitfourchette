@@ -354,12 +354,13 @@ class SidebarModel(QAbstractItemModel):
                 checkedOut = checkedOut.removeprefix(RefPrefix.HEADS)
                 self._checkedOut = checkedOut
 
-                # Try to get the upstream (.upstream_name raises KeyError if there isn't one)
-                with suppress(KeyError):
-                    branch = repo.branches.local[checkedOut]
-                    upstream = branch.upstream_name  # This can be a bit expensive
+                # Try to get the upstream
+                try:
+                    upstream = self.repo.listall_upstreams_fast()[checkedOut]  # Faster than repo.branches.local[name].upstream_name
                     upstream = upstream.removeprefix(RefPrefix.REMOTES)  # Convert to shorthand
-                    self._checkedOutUpstream = upstream
+                except KeyError:
+                    upstream = ""
+                self._checkedOutUpstream = upstream
 
         # -----------------------------
         # Remotes
@@ -578,11 +579,10 @@ class SidebarModel(QAbstractItemModel):
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (local branch)", btag(branchName))
-                # Try to get the upstream (branch.upstream_name raises KeyError if there isn't one)
-                # Warning: branch.upstream_name can be a bit expensive
+                # Try to get the upstream
                 with suppress(KeyError):
-                    branch = self.repo.branches.local[branchName]
-                    upstream = branch.upstream_name.removeprefix(RefPrefix.REMOTES)
+                    upstream = self.repo.listall_upstreams_fast()[branchName]  # Faster than repo.branches.local[name].upstream_name
+                    upstream = upstream.removeprefix(RefPrefix.REMOTES)  # Convert to shorthand
                     text += "\n" + _("Upstream: {0}", escape(upstream))
                 if branchName == self._checkedOut:
                     text += "\n<img src='assets:icons/git-head' style='vertical-align: bottom;'/> "

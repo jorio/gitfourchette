@@ -465,6 +465,7 @@ class GitConfigHelper:
     class SectionPatterns:
         SUBMODULE = _re.compile(r'^submodule "(.+)"$')
         REMOTE = _re.compile(r'^remote "(.+)"$')
+        BRANCH = _re.compile(r'^branch "(.+)"$')
 
     @staticmethod
     def path_for_level(level: GitConfigLevel, missing_dir_ok=False):
@@ -656,6 +657,7 @@ class Repo(_VanillaRepository):
         self._cached_config_stats_for_key = {}
         self._cached_config_parsers = {}
         self._cached_remote_list = []
+        self._cached_upstream_table = {}
         self._cached_submodule_table = {}
 
     def __del__(self):
@@ -1870,6 +1872,22 @@ class Repo(_VanillaRepository):
 
         return self._cached_remote_list
 
+    def listall_upstreams_fast(self) -> dict[str, str]:
+        """
+        Much faster alternative to looking up `Branch.upstream_name` in every branch.
+        """
+        try:
+            # strict=False to bypass DuplicateSectionError
+            config = self._get_cached_config("listall_upstreams", self.in_gitdir("config"), strict=False)
+        except OSError:
+            self._cached_upstream_table = {}
+        except _UnchangedConfigFile:
+            pass
+        else:
+            self._cached_upstream_table = Repo._listall_upstreams_from_config(config)
+
+        return self._cached_upstream_table
+
     def listall_submodules(self):  # pragma: no cover
         """
         Don't use listall_submodules, it's slow and it omits critical
@@ -1946,6 +1964,29 @@ class Repo(_VanillaRepository):
             remotes.append(remote_name)
 
         return remotes
+
+    @staticmethod
+    def _listall_upstreams_from_config(config: _configparser.ConfigParser):
+        upstreams = {}
+
+        for branch_name, section in GitConfigHelper.walk_sections(config, GitConfigHelper.SectionPatterns.BRANCH):
+            try:
+                remote_name = section["remote"]
+                remote_ref = section["merge"]
+            except KeyError:
+                continue
+
+            remote_ref_prefix, remote_branch = RefPrefix.split(remote_ref)
+            if remote_ref_prefix != RefPrefix.HEADS:
+                _logger.warning(f"unexpected prefix in config value {section}.merge: '{remote_branch}'")
+                continue
+
+            remote_branch = GitConfigHelper.unescape(remote_branch)
+            remote_name = GitConfigHelper.unescape(remote_name)
+
+            upstreams[branch_name] = f"{RefPrefix.REMOTES}{remote_name}/{remote_branch}"
+
+        return upstreams
 
     @staticmethod
     def _listall_submodules_from_config(config: _configparser.ConfigParser):
