@@ -157,6 +157,10 @@ class RepoModel:
         """ Oid of the currently checked-out commit. """
         return self.refs.get("HEAD", NULL_OID)
 
+    @property
+    def singleRemote(self) -> bool:
+        return len(self.remotes) == 1
+
     @benchmark
     def syncRefs(self):
         """ Refresh cached refs (`refs` and `refsAt`).

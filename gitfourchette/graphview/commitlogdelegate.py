@@ -267,20 +267,9 @@ class CommitLogDelegate(QStyledItemDelegate):
         # ------ Refboxes
         refsHere = self.repoModel.refsAt.get(oid, None)
         if refsHere:
-            homeBranch = RefPrefix.HEADS + self.repoModel.homeBranch
             painter.save()
             painter.setClipRect(rect)
-            maxRefboxX = painter.clipBoundingRect().right()
-            darkRefbox = painter.pen().color().lightnessF() > .5
-            for refName in refsHere:
-                if refName in self.repoModel.hiddenRefs:  # skip refboxes for hidden refs
-                    continue
-                x1 = rect.left()
-                self._paintRefbox(painter, rect, refName, refName == homeBranch, darkRefbox)
-                x2 = rect.left()
-                toolTips.append(CommitToolTipZone(x1, x2, "ref", refName))
-                if x2 >= maxRefboxX:
-                    break
+            self._paintRefboxes(painter, rect, refsHere, toolTips)
             painter.restore()
 
         # ------ Icons
@@ -343,13 +332,106 @@ class CommitLogDelegate(QStyledItemDelegate):
         model.setData(index, leftBoundName if authorWidth != 0 else -1, CommitLogModel.Role.AuthorColumnX)
         model.setData(index, toolTips, CommitLogModel.Role.ToolTipZones)
 
-    def _paintRefbox(self, painter: QPainter, rect: QRect, refName: str, isHome: bool, dark: bool):
+    def _paintRefboxes(self, painter: QPainter, rect: QRect, refs: list[str], toolTips: list[CommitToolTipZone]):
+        repoModel = self.repoModel
+        homeBranch = RefPrefix.HEADS + repoModel.homeBranch
+        xMax = painter.clipBoundingRect().right()
+
+        # Group refs in clusters (branches with same upstream)
+        clusters = {}
+        nonLooseRefs = set()
+        for refName in refs:
+            # Skip refboxes for hidden refs
+            if refName in repoModel.hiddenRefs:
+                continue
+
+            # Look for local branches
+            if not refName.startswith(RefPrefix.HEADS):
+                continue
+            localName = refName.removeprefix(RefPrefix.HEADS)
+
+            # Find the upstream for this local branch
+            try:
+                upstreamShorthand = repoModel.upstreams[localName]
+                assert not upstreamShorthand.startswith(RefPrefix.REMOTES)
+                upstreamRef = RefPrefix.REMOTES + upstreamShorthand
+            except KeyError:
+                continue
+
+            # Don't create a cluster if the upstream isn't on the same row
+            if upstreamRef not in refs:
+                continue
+
+            # Don't create a cluster if the upstream is hidden
+            if upstreamRef in repoModel.hiddenRefs:
+                continue
+
+            # Append to the cluster
+            try:
+                clusters[upstreamRef].append(refName)
+            except KeyError:
+                clusters[upstreamRef] = [refName]
+
+            nonLooseRefs.add(upstreamRef)
+            nonLooseRefs.add(refName)
+
+        # Draw clusters first
+        for upstreamRef, localRefList in clusters.items():
+            # See if we can omit the name of the remote branch
+            if repoModel.singleRemote and len(localRefList) == 1:
+                assert upstreamRef.startswith(RefPrefix.REMOTES)
+                upstreamShorthand = upstreamRef.removeprefix(RefPrefix.REMOTES)
+                remoteName, remoteBranchName = split_remote_branch_shorthand(upstreamShorthand)
+                _localBranchPrefix, localBranchName = RefPrefix.split(localRefList[0])
+                omitRemoteName = remoteBranchName == localBranchName
+            else:
+                omitRemoteName = False
+
+            # Draw local branches
+            for i, localRef in enumerate(localRefList):
+                self._paintRefbox(painter, rect, toolTips, localRef,
+                                  clipLeft=i != 0, clipRight=True, isHome=localRef == homeBranch)
+
+            # Draw upstream at end of cluster
+            self._paintRefbox(painter, rect, toolTips, upstreamRef, clipLeft=True, forceOmitName=omitRemoteName)
+
+            if rect.left() >= xMax:
+                return
+
+        # Draw loose refs
+        for refName in refs:
+            # Skip refboxes for hidden refs
+            if refName in repoModel.hiddenRefs:
+                continue
+
+            # Skip clustered refs we've drawn above
+            if refName in nonLooseRefs:
+                continue
+
+            self._paintRefbox(painter, rect, toolTips, refName, isHome=refName == homeBranch)
+
+            if rect.left() >= xMax:
+                return
+
+    def _paintRefbox(
+            self,
+            painter: QPainter,
+            rect: QRect,
+            toolTips: list[CommitToolTipZone],
+            refName: str,
+            isHome: bool = False,
+            clipLeft: bool = False,
+            clipRight: bool = False,
+            forceOmitName: bool = False,
+    ):
         if refName == 'HEAD' and not self.repoModel.headIsDetached:
             return
 
         refboxDef = next(d for d in REFBOXES if refName.startswith(d.prefix))
 
-        if not refboxDef.keepPrefix:
+        if forceOmitName:
+            text = ""
+        elif not refboxDef.keepPrefix:
             text = refName.removeprefix(refboxDef.prefix)
         else:
             text = refName
@@ -358,9 +440,10 @@ class CommitLogDelegate(QStyledItemDelegate):
         iconName = refboxDef.icon
 
         # Omit remote name if there's a single remote
-        if refboxDef.prefix == RefPrefix.REMOTES and len(self.repoModel.remotes) == 1:
+        if refboxDef.prefix == RefPrefix.REMOTES and self.repoModel.singleRemote:
             text = text.split('/', 1)[-1]
 
+        dark = painter.pen().color().lightnessF() > .5
         if dark:
             color = color.lighter(300)
             bgColor.setAlphaF(.5)
@@ -379,48 +462,91 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.setFont(font)
         painter.setPen(color)
 
-        hPadding = 3
-        vMargin = max(0, math.ceil((rect.height() - 16) / 4))
-
-        if iconName:
-            iconRect = QRect(rect)
-            iconRect.adjust(hPadding, vMargin, 0, -vMargin)
-            iconSize = min(16, iconRect.height())
-            iconRect.setWidth(iconSize)
-        else:
-            iconSize = 0
+        rrRadius = 4  # Rounded Rectangle radius
+        lPadding = 3  # Left padding
+        rPadding = 4  # Right padding
+        vMargin = max(0, math.ceil((rect.height() - 16) / 4))  # Vertical margin
 
         maxWidth = settings.prefs.refBoxMaxWidth
-        if maxWidth != 0:
+        if text and maxWidth != 0:
             text, fittedFont, textWidth = FittedText.fit(
                 font, maxWidth, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.Condensed)
         else:
-            textWidth = -hPadding
+            textWidth = -rPadding  # Negate rPadding
+
+        lClip = 0
+        rClip = 0
+        if clipLeft:
+            lPadding = 2 * lPadding
+            lClip = rrRadius
+        if clipRight:
+            rPadding = 2 * rPadding + 2
+            rClip = rrRadius
+
+        if iconName:
+            iconRect = QRect(rect)
+            iconRect.adjust(lPadding, vMargin, 0, -vMargin)
+            iconSize = min(16, iconRect.height())
+            iconRect.setWidth(iconSize)
+            iconPadding = 2
+        else:
+            iconSize = 0
+            iconPadding = 0
 
         boxRect = QRect(rect)
-        boxRect.setWidth(hPadding + iconSize + 2 + textWidth + hPadding)
+        boxRect.setWidth(lPadding + iconSize + iconPadding + textWidth + rPadding)
 
         frameRect = QRectF(boxRect)
-        frameRect.adjust(.5, vMargin + .5, .5, -(vMargin + .5))
+        frameRect.adjust(0, vMargin, 0, -vMargin)
+        frameRect.adjust(-lClip, 0, 0, 0)
+        clipBox = frameRect.adjusted(lClip, 0, -rClip+1, 0)
+
+        if lClip or rClip:
+            painter.save()
+            painter.setClipRect(clipBox)
 
         framePath = QPainterPath()
-        framePath.addRoundedRect(frameRect, 4, 4)
-        painter.fillPath(framePath, bgColor)
+        framePath.addRoundedRect(frameRect.adjusted(.5, .5, .5, -.5),  # Snap to pixel grid
+                                 rrRadius, rrRadius)
+
         painter.drawPath(framePath)
+        painter.fillPath(framePath, bgColor)
 
         if iconName:
             icon = stockIcon(iconName, f"gray={color.name()}")
             icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        if textWidth > 0:
+        if text and textWidth > 0:
             textRect = QRect(boxRect)
-            textRect.adjust(0, 0, -hPadding, 0)
+            textRect.adjust(0, 0, -rPadding, 0)
             painter.setFont(fittedFont)
             painter.drawText(textRect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, text)
             painter.setFont(font)
 
+        # Reset clip rect
+        if lClip or rClip:
+            painter.restore()
+
+        # Draw divider line
+        if lClip:
+            x  =  .5 + clipBox.left()
+            yt =  .5 + frameRect.top()
+            yb = -.5 + frameRect.bottom()
+            ym =  .5 + int((yt+yb)/2)
+            if rClip:
+                painter.drawLine(QLineF(x, yt, x, yb))
+            else:
+                painter.drawLines([QLineF(x, yt, x, ym-3),
+                                   QLineF(x, ym+3, x, yb),
+                                   QLineF(x-2, ym-1, x+2, ym-1),
+                                   QLineF(x-2, ym+1, x+2, ym+1)])
+
+        # Append tooltip
+        refToolTip = CommitToolTipZone(rect.left(), boxRect.right(), "ref", refName)
+        toolTips.append(refToolTip)
+
         # Advance caller rectangle
-        rect.setLeft(boxRect.right() + 6)
+        rect.setLeft(round(clipBox.right()) + (6 if not rClip else 0))
 
     def _paintError(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, exc: BaseException):  # pragma: no cover
         """Last-resort row drawing routine used if _paint raises an exception."""
