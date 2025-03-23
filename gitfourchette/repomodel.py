@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import logging
-from collections import defaultdict
 from collections.abc import Generator, Iterable
 
 from gitfourchette import settings
@@ -185,18 +184,24 @@ class RepoModel:
             # Still, signal a change if HEAD just detached/reattached.
             return headWasDetached != self.headIsDetached
 
-        # Build reverse ref cache
-        refsAt = defaultdict(list)
+        # Build reverse ref cache.
+        refsAt = {}
         for k, v in refs.items():
-            refsAt[v].append(k)
+            try:
+                refsAt[v].append(k)
+            except KeyError:
+                # Not using defaultdict because we don't want to create a
+                # million empty lists when the UI code consults this dict.
+                refsAt[v] = [k]
 
         # Special case for HEAD: Make it appear first in reverse ref cache
         try:
             headId = refs["HEAD"]
-            refsAt[headId].remove("HEAD")
-            refsAt[headId].insert(0, "HEAD")
         except KeyError:
             pass
+        else:
+            refsAt[headId].remove("HEAD")
+            refsAt[headId].insert(0, "HEAD")
 
         # Store new cache
         self.refs = refs
