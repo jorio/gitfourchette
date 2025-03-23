@@ -481,14 +481,17 @@ class RefreshRepo(RepoTask):
         stashesChanged = False
         submodulesChanged = False
         remotesChanged = False
+        upstreamsChanged = False
         homeBranchChanged = False
-        upstreamsChanged = effectFlags & TaskEffects.Upstreams
 
         if effectFlags & (TaskEffects.Head | TaskEffects.Workdir):
             submodulesChanged = repoModel.syncSubmodules()
 
         if effectFlags & (TaskEffects.Refs | TaskEffects.Remotes):
             remotesChanged = repoModel.syncRemotes()
+
+        if effectFlags & (TaskEffects.Refs | TaskEffects.Upstreams):
+            upstreamsChanged = repoModel.syncUpstreams()
 
         if effectFlags & (TaskEffects.Refs | TaskEffects.Remotes | TaskEffects.Head):
             # Refresh ref cache
@@ -571,8 +574,8 @@ class RefreshRepo(RepoTask):
         # Do this last because it requires the index to be fresh (updated by LoadWorkdir)
         rw.refreshWindowChrome()
 
-        logger.debug(f"Changes detected on refresh: "
-                     f"Ref={refsChanged} Stash={stashesChanged} Submo={submodulesChanged} Remote={remotesChanged}")
+        logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "
+                     f"Sub={int(submodulesChanged)} Rem={int(remotesChanged)} Ups={int(upstreamsChanged)}")
 
     def syncTopOfGraph(self, oldRefs: dict[str, Oid]):
         repoModel = self.repoModel

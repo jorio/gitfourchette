@@ -1984,7 +1984,7 @@ class Repo(_VanillaRepository):
             remote_branch = GitConfigHelper.unescape(remote_branch)
             remote_name = GitConfigHelper.unescape(remote_name)
 
-            upstreams[branch_name] = f"{RefPrefix.REMOTES}{remote_name}/{remote_branch}"
+            upstreams[branch_name] = f"{remote_name}/{remote_branch}"
 
         return upstreams
 

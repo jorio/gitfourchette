@@ -124,7 +124,7 @@ class TaskEffects(enum.IntFlag):
     Upstreams = enum.auto()
     "The task affects the upstream of a local branch."
 
-    DefaultRefresh = Workdir | Refs | Remotes
+    DefaultRefresh = Workdir | Refs | Remotes | Upstreams
     "Default flags for RefreshRepo"
     # Index is included so the banner can warn about conflicts
     # regardless of what part of the repo is being viewed.

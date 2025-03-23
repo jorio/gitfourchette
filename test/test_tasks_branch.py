@@ -212,6 +212,24 @@ def testRenameBranchIdenticalName(tempDir, mainWindow):
     assert 'master' in repo.branches.local
 
 
+def testRenameBranchKeepsUpstreamStable(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    repo = rw.repo
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "rename")
+
+    dlg = findQDialog(rw, "rename.+branch")
+    dlg.findChild(QLineEdit).setText("master2")
+    dlg.accept()
+    assert repo.branches.local["master2"].upstream_name == "refs/remotes/origin/master"
+
+    toolTip = rw.sidebar.indexForRef("refs/heads/master2").data(Qt.ItemDataRole.ToolTipRole)
+    assert "origin/master" in toolTip
+
+
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 @pytest.mark.parametrize("newName", ["newfolder", "folder4", "", "folder1/folder2"])
 def testRenameBranchFolder(tempDir, mainWindow, method, newName):

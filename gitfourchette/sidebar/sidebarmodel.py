@@ -356,8 +356,7 @@ class SidebarModel(QAbstractItemModel):
 
                 # Try to get the upstream
                 try:
-                    upstream = self.repo.listall_upstreams_fast()[checkedOut]  # Faster than repo.branches.local[name].upstream_name
-                    upstream = upstream.removeprefix(RefPrefix.REMOTES)  # Convert to shorthand
+                    upstream = self.repoModel.upstreams[checkedOut]
                 except KeyError:
                     upstream = ""
                 self._checkedOutUpstream = upstream
@@ -581,8 +580,7 @@ class SidebarModel(QAbstractItemModel):
                 text += _("{0} (local branch)", btag(branchName))
                 # Try to get the upstream
                 with suppress(KeyError):
-                    upstream = self.repo.listall_upstreams_fast()[branchName]  # Faster than repo.branches.local[name].upstream_name
-                    upstream = upstream.removeprefix(RefPrefix.REMOTES)  # Convert to shorthand
+                    upstream = self.repoModel.upstreams[branchName]
                     text += "\n" + _("Upstream: {0}", escape(upstream))
                 if branchName == self._checkedOut:
                     text += "\n<img src='assets:icons/git-head' style='vertical-align: bottom;'/> "

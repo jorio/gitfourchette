@@ -63,6 +63,9 @@ class RepoModel:
     remotes: list[str]
     "List of remote names."
 
+    upstreams: dict[str, str]
+    "Table of local branch names to upstream shorthand names."
+
     superproject: str
     "Path of the superproject. Empty string if this isn't a submodule."
 
@@ -120,6 +123,7 @@ class RepoModel:
         self.submodules = {}
         self.initializedSubmodules = set()
         self.remotes = []
+        self.upstreams = {}
 
         self.hiddenRefs = set()
         self.hiddenCommits = set()
@@ -141,6 +145,7 @@ class RepoModel:
         self.syncStashes()
         self.syncSubmodules()
         self.syncRemotes()
+        self.syncUpstreams()
         self.superproject = repo.get_superproject()
 
     @property
@@ -241,6 +246,14 @@ class RepoModel:
         remotes = self.repo.listall_remotes_fast()
         if remotes != self.remotes:
             self.remotes = remotes
+            return True
+        return False
+
+    @benchmark
+    def syncUpstreams(self):
+        upstreams = self.repo.listall_upstreams_fast()
+        if upstreams != self.upstreams:
+            self.upstreams = upstreams
             return True
         return False
 
