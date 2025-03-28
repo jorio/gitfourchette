@@ -225,3 +225,14 @@ def openInTextEditor(parent: QWidget, path: str):
 def openInDiffTool(parent: QWidget, a: str, b: str):
     return openInExternalTool(parent, PREFKEY_DIFFTOOL, positional=[],
                               replacements={"$L": a, "$R": b})
+
+
+def openTerminal(parent: QWidget, workdir: str, command: str = ""):
+    launcherScriptPath = ToolCommands.makeTerminalScript(workdir, command)
+
+    return openInExternalTool(
+        parent=parent,
+        prefKey="terminal",
+        replacements={"$COMMAND": launcherScriptPath},
+        positional=[],
+        directory=workdir, detached=True)

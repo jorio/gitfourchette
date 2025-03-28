@@ -9,9 +9,19 @@ import os
 import shlex
 import shutil
 from collections.abc import Sequence
+from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
+
+
+_terminalScriptTemplate = """\
+#!/usr/bin/env sh
+set -x
+cd {workdir}
+{command}
+exec {shell}
+"""
 
 
 class ToolCommands:
@@ -67,7 +77,9 @@ class ToolCommands:
     }
 
     MacTerminalPresets = {
-        "Terminal.app"  : "/System/Applications/Utilities/Terminal.app $P",
+        "macOS Terminal": "assets:mac/terminal.scpt $COMMAND",
+        "kitty"         : "kitty --single-instance $COMMAND",  # single instance looks better in dock
+        "WezTerm"       : "wezterm start $COMMAND",  # 'start' instead of '-e' to reuse app instance
     }
 
     WindowsTerminalPresets = {
@@ -77,10 +89,17 @@ class ToolCommands:
     }
 
     LinuxTerminalPresets = {
-        "Debian default terminal": "x-terminal-emulator",  # only on Debian and derivatives
-        "GNOME Terminal": "gnome-terminal",
-        "Konsole"       : "konsole",
-        "Ptyxis"        : "ptyxis --new-window",
+        "Alacritty"     : "alacritty -e $COMMAND",
+        "Contour"       : "contour $COMMAND",
+        "foot"          : "foot $COMMAND",
+        "GNOME Terminal": "gnome-terminal -- $COMMAND",
+        "kitty"         : "kitty $COMMAND",
+        "Konsole"       : "konsole -e $COMMAND",
+        "Ptyxis"        : "ptyxis -x $COMMAND",
+        "st"            : "st -e $COMMAND",
+        "urxvt"         : "urxvt -e $COMMAND",
+        "WezTerm"       : "wezterm -e $COMMAND",
+        "xterm"         : "xterm -e $COMMAND",
     }
 
     # Filled in depending on platform
@@ -119,7 +138,7 @@ class ToolCommands:
             cls.TerminalPresets.update(cls.MacTerminalPresets)
             cls.DefaultDiffPreset = "FileMerge"
             cls.DefaultMergePreset = "FileMerge"
-            cls.DefaultTerminalPreset = "Terminal.app"
+            cls.DefaultTerminalPreset = "macOS Terminal"
         elif WINDOWS:
             excludeTools = macTools + freedesktopTools
             cls.TerminalPresets.update(cls.WindowsTerminalPresets)
@@ -130,18 +149,13 @@ class ToolCommands:
             excludeTools = macTools + winTools
             cls.TerminalPresets.update(cls.LinuxTerminalPresets)
 
-            debianTerminal = "Debian default terminal"
             terminalScores = dict.fromkeys(cls.LinuxTerminalPresets, 0)
-            terminalScores[debianTerminal]   = 1000
             terminalScores["Ptyxis"]         = [-2, 2][GNOME]
             terminalScores["GNOME Terminal"] = [-1, 1][GNOME]
 
             cls.DefaultDiffPreset = "Meld"
             cls.DefaultMergePreset = "Meld"
             cls.DefaultTerminalPreset = cls._findBestCommand(cls.LinuxTerminalPresets, terminalScores, "Konsole")
-
-            if cls.DefaultTerminalPreset != debianTerminal:  # Hide x-terminal-emulator on non-Debian distros
-                excludeTools.append(debianTerminal)
 
         for key in excludeTools:
             for presets in allPresetDicts:
@@ -250,8 +264,6 @@ class ToolCommands:
         except IndexError:
             return fallback
 
-        name = name.removeprefix('"').removeprefix("'")
-        name = name.removesuffix('"').removesuffix("'")
         name = os.path.basename(name)
 
         if MACOS:
@@ -268,9 +280,8 @@ class ToolCommands:
 
         # Remove single quotes added around our placeholders by shlex.join()
         # (e.g. '$L' --> $L, '--output=$M' --> $M)
-        import re
-        newCommand = re.sub(r" '(\$[0-9A-Z])'", r" \1", newCommand, flags=re.I | re.A)
-        newCommand = re.sub(r" '(--?[a-z]+=\$[0-9A-Z])'", r" \1", newCommand, flags=re.I | re.A)
+        newCommand = re.sub(r" '(\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.I | re.A)
+        newCommand = re.sub(r" '(--?[a-z0-9\-_]+=\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.I | re.A)
 
         return newCommand
 
@@ -283,19 +294,13 @@ class ToolCommands:
             return str(e)
 
     @classmethod
-    def compileCommand(
-            cls,
-            command: str,
-            replacements: dict[str, str],
-            positional: list[str],
-            directory: str = "",
-            detached: bool = True,
-    ) -> tuple[list[str], str]:
-        tokens = ToolCommands.splitCommandTokens(command)
+    def injectReplacements(cls, originalTokens: list[str], replacements: dict[str, str]) -> list[str]:
+        tokens = originalTokens[:]
 
         for placeholder, replacement in replacements.items():
             mandatory = not placeholder.endswith("?")
             placeholder = placeholder.removesuffix("?")
+
             for i, tok in enumerate(tokens):  # noqa: B007
                 if tok.endswith(placeholder):
                     prefix = tok.removesuffix(placeholder)
@@ -310,8 +315,24 @@ class ToolCommands:
             else:
                 del tokens[i]
 
-        # Just append other paths to end of command line...
-        tokens.extend(positional)
+        return tokens
+
+    @classmethod
+    def compileCommand(
+            cls,
+            command: str,
+            replacements: dict[str, str],
+            positional: list[str],
+            directory: str = "",
+            detached: bool = True,
+    ) -> tuple[list[str], str]:
+        tokens = ToolCommands.splitCommandTokens(command)
+        tokens = ToolCommands.injectReplacements(tokens, replacements)
+        tokens.extend(positional)  # Append other paths to end of command line
+
+        if tokens and tokens[0].startswith("assets:"):
+            internalAssetFile = QFile(tokens[0])
+            tokens[0] = internalAssetFile.fileName()
 
         # Find appropriate workdir
         if not directory:
@@ -332,7 +353,7 @@ class ToolCommands:
         # - Launch ".app" bundles properly.
         # - Wait on opendiff (Xcode FileMerge).
         if MACOS:
-            launcherScript = QFile("assets:mactool.sh")
+            launcherScript = QFile("assets:mac/wrapper.sh")
             assert launcherScript.exists()
             tokens.insert(0, launcherScript.fileName())
 
@@ -365,6 +386,25 @@ class ToolCommands:
         process.start(mode=QProcess.OpenModeFlag.Unbuffered)
         process.waitForFinished()
         return process.exitCode() == 0
+
+    @classmethod
+    def makeTerminalScript(cls, workdir: str, command: str, shell: str = ""):
+        cacheKey = workdir + "\0" + command
+        cacheKey = f"{hash(cacheKey):x}"
+        path = Path(qTempDir()) / f"terminal_{cacheKey}.sh"
+        if path.exists():
+            return str(path)
+
+        shell = shell or cls.defaultShell()
+        script = _terminalScriptTemplate.format(workdir=shlex.quote(workdir), command=command, shell=shell)
+        path.write_text(script, "utf-8")
+        path.chmod(0o755)
+        return str(path)
+
+    @classmethod
+    def defaultShell(cls) -> str:
+        return os.environ.get("SHELL", "/usr/bin/sh")
+
 
 
 ToolCommands._filterToolPresets()

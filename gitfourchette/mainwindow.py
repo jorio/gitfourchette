@@ -37,6 +37,7 @@ from gitfourchette.tasks import TaskBook
 from gitfourchette.toolbox import *
 from gitfourchette.toolbox.fittedtext import FittedText
 from gitfourchette.trash import Trash
+from gitfourchette.usercommand import UserCommand
 
 logger = logging.getLogger(__name__)
 
@@ -190,15 +191,17 @@ class MainWindow(QMainWindow):
         editMenu = menubar.addMenu(_("&Edit"))
         viewMenu = menubar.addMenu(_("&View"))
         repoMenu = menubar.addMenu(_("&Repo"))
+        runMenu = menubar.addMenu(_("&Commands"))
         helpMenu = menubar.addMenu(_("&Help"))
 
         fileMenu.setObjectName("MWFileMenu")
         editMenu.setObjectName("MWEditMenu")
         viewMenu.setObjectName("MWViewMenu")
         repoMenu.setObjectName("MWRepoMenu")
+        runMenu.setObjectName("MWRunMenu")
         helpMenu.setObjectName("MWHelpMenu")
 
-        for menu in fileMenu, editMenu, viewMenu, repoMenu, helpMenu:
+        for menu in fileMenu, editMenu, viewMenu, repoMenu, runMenu, helpMenu:
             menu.setToolTipsVisible(True)
 
         self.repoMenu = repoMenu
@@ -333,6 +336,30 @@ class MainWindow(QMainWindow):
         self.showStatusBarAction = viewMenu.findChild(QAction, "ShowStatusBarAction")
         self.showMenuBarAction = viewMenu.findChild(QAction, "ShowMenuBarAction")
         self.showMenuBarAction.setVisible(not MACOS)
+
+        # -------------------------------------------------------------
+
+        commandActions = []
+        for command, comment in UserCommand.parseCommandBlock(settings.prefs.commands):
+            fKey = len(commandActions) + 6
+            commandActions.append(ActionDef(
+                escamp(comment),
+                lambda c=command: self.currentRepoWidget().executeCommandInTerminal(c),
+                tip=command if command != comment else "",
+                shortcuts=f"F{fKey}"))
+
+        if commandActions:
+            commandActions.extend([
+                ActionDef.SEPARATOR,
+                ActionDef(
+                    _("Edit Commands…"),
+                    lambda: self.openPrefsDialog("commands"),
+                    icon="document-edit",
+                ),
+            ])
+            ActionDef.addToQMenu(runMenu, *commandActions)
+        else:
+            runMenu.deleteLater()
 
         # -------------------------------------------------------------
 
@@ -1034,6 +1061,9 @@ class MainWindow(QMainWindow):
 
         if "language" in prefDiff:
             app.applyLanguagePref()
+            self.fillGlobalMenuBar()
+
+        if "commands" in prefDiff:
             self.fillGlobalMenuBar()
 
         if "maxRecentRepos" in prefDiff:

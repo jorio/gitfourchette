@@ -279,7 +279,10 @@ class PrefsDialog(QDialog):
                 key, value, ToolCommands.MergePresets,
                 validate=lambda cmd: ToolCommands.checkCommand(cmd, "$L", "$R", "$B", "$M"))
         elif key == "terminal":
-            return self.strControlWithPresets(key, value, ToolCommands.TerminalPresets)
+            return self.strControlWithPresets(key, value, ToolCommands.TerminalPresets,
+                                              validate=lambda cmd: ToolCommands.checkCommand(cmd, "$COMMAND"))
+        elif key == "commands":
+            return self.textEditControl(key, value)
         elif key in ["largeFileThresholdKB", "imageFileThresholdKB", "maxTrashFileKB"]:
             control = self.boundedIntControl(key, value, 0, 999_999)
             control.setSpecialValueText("\u221E")  # infinity
@@ -370,6 +373,14 @@ class PrefsDialog(QDialog):
             validator.connectInput(control.lineEdit(), validate, mustBeValid=False)
             validator.run()
 
+        return control
+
+    def textEditControl(self, prefKey, prefValue):
+        control = QPlainTextEdit(self)
+        monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        control.setFont(monoFont)
+        control.setPlainText(prefValue)
+        control.textChanged.connect(lambda: self.assign(prefKey, control.toPlainText()))
         return control
 
     def intControl(self, prefKey, prefValue):

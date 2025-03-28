@@ -208,7 +208,7 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
 
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"terminal": f'python3 "{editorPath}" "{scratchPath}" $P'})
+    mainWindow.onAcceptPrefsDialog({"terminal": f'python3 "{editorPath}" "{scratchPath}" "hello world" $COMMAND'})
 
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")
@@ -234,6 +234,8 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
         assert mockDesktopServices.urls[-1] == QUrl.fromLocalFile(wd)
 
         triggerMenuAction(menu, "open terminal")
-        assert wd == readTextFile(scratchPath, timeout=1000, unlink=True).strip()
+        terminalShimResult = readTextFile(scratchPath, timeout=1000).splitlines()
+        assert terminalShimResult[0] == "hello world"
+        assert terminalShimResult[1].endswith(".sh")  # path to launcher script
 
         menu.close()

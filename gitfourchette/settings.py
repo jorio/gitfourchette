@@ -45,6 +45,19 @@ SHORT_DATE_PRESETS = {
     "American": "M/d/yy h:mm ap",
 }
 
+STOCK_COMMANDS = """\
+# You can define custom terminal commands to supplement
+# GitFourchette's missing features. Feel free to uncomment
+# some of the sample commands below; then, click OK, and a
+# 'Commands' menu will appear in the menu bar.
+
+# git status              # Simple Status
+# git rebase -i $COMMIT   # Rebase: Start
+# git rebase --continue   # Rebase: Continue
+# git rebase --abort      # Rebase: Abort
+"""
+# TODO: Add link to guide
+
 
 class RefSort(enum.IntEnum):
     TimeDesc = 0
@@ -125,6 +138,9 @@ class Prefs(PrefsFile):
     externalDiff                : str                   = ToolCommands.DiffPresets[ToolCommands.DefaultDiffPreset]
     externalMerge               : str                   = ToolCommands.MergePresets[ToolCommands.DefaultMergePreset]
     terminal                    : str                   = ToolCommands.TerminalPresets[ToolCommands.DefaultTerminalPreset]
+
+    _category_userCommands      : int                   = 0
+    commands                    : str                   = STOCK_COMMANDS
 
     _category_tabs              : int                   = 0
     tabCloseButton              : bool                  = True

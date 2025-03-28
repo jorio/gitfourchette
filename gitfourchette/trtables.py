@@ -318,7 +318,27 @@ class TrTables:
 
     @staticmethod
     def _init_prefKeys():
-        from gitfourchette.toolbox.textutils import paragraphs
+        from gitfourchette.toolbox.textutils import paragraphs, hquo
+        from gitfourchette.usercommand import UserCommand
+
+        userCommandHelp = paragraphs(
+            _("You can define custom commands to run in a terminal (one command per line). "
+              "Invoke them from the {menu} menu that appears once you’ve defined at least one command."),
+            _("The {comment} character starts a comment until the end of the line. "
+              "If you add a comment after a command (on the same line), then the comment will "
+              "serve as the title of the command in the menu."),
+            _("Argument placeholders:"),
+            "{argtable}",
+            _("Tip: Hot keys {key1} through {key2} are automatically assigned to the first {nkeys} commands."),
+        )
+        userCommandTokenTable = "<table>"
+        for token, caption in UserCommand.tokenHelpTable().items():
+            userCommandTokenTable += f"<tr><td><code>${token} </code></td><td>{caption}</td></tr>\n"
+        userCommandTokenTable += "</table>"
+        userCommandHelp = userCommandHelp.format(
+            menu=hquo(_("Commands")), comment="<code>#</code>", key1="F6", key2="F12", nkeys=12-6+1,
+            argtable=userCommandTokenTable)
+
         return {
             "general": _p("Prefs", "General"),
             "diff": _p("Prefs", "Code"),
@@ -328,6 +348,7 @@ class TrTables:
             "trash": _p("Prefs", "Trash"),
             "external": _p("Prefs", "External Tools"),
             "advanced": _p("Prefs", "Advanced"),
+            "userCommands": _p("Prefs", "User Commands"),
 
             "language": _("Language"),
             "qtStyle": _("Qt style"),
@@ -436,22 +457,19 @@ class TrTables:
 
             "externalEditor": _("Text editor"),
             "externalDiff": _("Diff tool"),
-            "externalDiff_help": "<p style='white-space: pre'>" + _(
-                "Argument placeholders:"
-                "\n<code>$L</code> - Old/Left"
+            "externalDiff_help": "<p style='white-space: pre'>" + _("Argument placeholders:") + "\n" + _(
+                "<code>$L</code> - Old/Left"
                 "\n<code>$R</code> - New/Right"
             ),
             "externalMerge": _("Merge tool"),
-            "externalMerge_help": "<p style='white-space: pre'>" + _(
-                "Argument placeholders:"
-                "\n<code>$B</code> - Ancestor / Base / Center"
+            "externalMerge_help": "<p style='white-space: pre'>" + _("Argument placeholders:") + "\n" + _(
+                "<code>$B</code> - Ancestor / Base / Center"
                 "\n<code>$L</code> - Ours / Local / Left"
                 "\n<code>$R</code> - Theirs / Remote / Right"
                 "\n<code>$M</code> - Merged / Output / Result"
             ),
             "terminal": _("Terminal"),
-            "terminal_help": "<p>" + _(
-                "The terminal will be started in an adequate working directory. "
-                "If your terminal doesn’t honor this, use {token} to inject a path in the command.",
-                token="<code>$P</code>"),
+
+            "commands": "",
+            "commands_help": userCommandHelp,
         }

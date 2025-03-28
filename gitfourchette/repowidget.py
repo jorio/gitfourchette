@@ -14,7 +14,7 @@ from gitfourchette.diffarea import DiffArea
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
-from gitfourchette.exttools import PREFKEY_MERGETOOL, openInTextEditor, openInExternalTool
+from gitfourchette.exttools import PREFKEY_MERGETOOL, openInTextEditor, openTerminal
 from gitfourchette.forms.banner import Banner
 from gitfourchette.forms.openrepoprogress import OpenRepoProgress
 from gitfourchette.forms.searchbar import SearchBar
@@ -30,6 +30,7 @@ from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook, AbortMerge, RepoTaskRunner
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
+from gitfourchette.usercommand import UserCommand
 
 logger = logging.getLogger(__name__)
 
@@ -599,12 +600,6 @@ class RepoWidget(QStackedWidget):
     def openRepoFolder(self):
         openFolder(self.workdir)
 
-    def openTerminal(self):
-        openInExternalTool(
-            parent=self, prefKey="terminal",
-            replacements={"$P?": self.workdir}, positional=[],
-            directory=self.workdir, detached=True)
-
     def openSuperproject(self):
         superproject = self.superproject
         if superproject:
@@ -643,6 +638,12 @@ class RepoWidget(QStackedWidget):
                 callback=createAndOpen)
         else:
             openInTextEditor(self, fullPath)
+
+    def openTerminal(self):
+        openTerminal(self, self.workdir)
+
+    def executeCommandInTerminal(self, command: str):
+        UserCommand(self, command)
 
     # -------------------------------------------------------------------------
     # Entry point for generic "Find" command
