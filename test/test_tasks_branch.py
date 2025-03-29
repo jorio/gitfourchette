@@ -959,7 +959,7 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    assert re.match(r"Merge branch.+branch-conflicts", commitDialog.getFullMessage())
+    assert "Merge branch 'branch-conflicts' into 'master'" == commitDialog.getFullMessage()
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 

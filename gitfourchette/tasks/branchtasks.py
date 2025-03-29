@@ -570,7 +570,7 @@ class MergeBranch(RepoTask):
             # Set a better message than libgit2 (it uses the longform ref name when merging remote branches)
             # TODO: If we ever add the ability to merge tags, add mergeWhat="tag"
             mergeWhat = "remote-tracking branch" if theirBranchIsRemote else "branch"
-            self.repo.set_message(f"Merge {mergeWhat} '{theirBranch.shorthand}'")
+            self.repo.set_message(f"Merge {mergeWhat} '{theirShorthand}' into '{myShorthand}'")
             self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
 
             self.postStatus = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))
