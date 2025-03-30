@@ -28,6 +28,7 @@ def commandsScratchFile(tempDir, mainWindow):
             {wrapper} $CURBRANCH    # Print Current Branch
             {wrapper} $FILE         # Print File Path
             {wrapper} $FILEDIR      # Print File Directory
+            {wrapper} $COMMIT..$HEAD    # Diff Commit With HEAD
         """})
 
     QTest.qWait(0)
@@ -70,16 +71,18 @@ def testUserCommand(tempDir, mainWindow, commandsScratchFile):
 
 locOriginMaster = NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1")
 locNoParent = NavLocator.inCommit(Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1"), "c/c1.txt")
+locHead = NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt")
 
 @pytest.mark.parametrize("params",
     [
         TokenParams("Print Selected Commit", str(locOriginMaster.commit), locOriginMaster),
         TokenParams("Print Workdir", "/TestGitRepository"),
-        TokenParams("Print HEAD", "c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"),
+        TokenParams("Print HEAD", str(locHead.commit)),
         TokenParams("Print Current Branch", "refs/heads/master"),
         TokenParams("Print Selected Branch", "refs/heads/no-parent", locNoParent),
         TokenParams("Print File Path", "/TestGitRepository/a/a1$", locOriginMaster),
         TokenParams("Print File Directory", "/TestGitRepository/a$", locOriginMaster),
+        TokenParams("Diff Commit With HEAD", f"{locOriginMaster.commit}..{locHead.commit}", locOriginMaster),
     ])
 def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     wd = unpackRepo(tempDir)

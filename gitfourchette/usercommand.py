@@ -30,11 +30,11 @@ class UserCommand:
         title = _("Run Command")
         tokens = ToolCommands.splitCommandTokens(command)
 
+        placeholders = set(ToolCommands.findPlaceholderTokens(tokens))
         replacements = {}
         errors = []
-        for token in tokens:
-            if not token.startswith("$"):
-                continue
+        for token in placeholders:
+            assert token.startswith("$")
             try:
                 callback = getattr(self, f"_token_{token[1:]}", None)
                 if callback is None:

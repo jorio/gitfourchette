@@ -6,6 +6,7 @@
 
 import itertools
 import os
+import re
 import shlex
 import shutil
 from collections.abc import Sequence
@@ -22,6 +23,8 @@ cd {workdir}
 {command}
 exec {shell}
 """
+
+_placeholderPattern = re.compile(r"\$[_a-zA-Z0-9]+")
 
 
 class ToolCommands:
@@ -294,28 +297,30 @@ class ToolCommands:
             return str(e)
 
     @classmethod
-    def injectReplacements(cls, originalTokens: list[str], replacements: dict[str, str]) -> list[str]:
-        tokens = originalTokens[:]
+    def findPlaceholderTokens(cls, originalTokens: list[str]):
+        for token in originalTokens:
+            yield from _placeholderPattern.findall(token)
 
-        for placeholder, replacement in replacements.items():
-            mandatory = not placeholder.endswith("?")
-            placeholder = placeholder.removesuffix("?")
+    @classmethod
+    def injectReplacements(cls, tokens: list[str], replacements: dict[str, str]) -> list[str]:
+        newTokens = []
 
-            for i, tok in enumerate(tokens):  # noqa: B007
-                if tok.endswith(placeholder):
-                    prefix = tok.removesuffix(placeholder)
-                    break
-            else:
-                if mandatory:
-                    raise ValueError(_("Placeholder token {0} missing.", placeholder))
-                else:
-                    continue
-            if replacement:
-                tokens[i] = prefix + replacement
-            else:
-                del tokens[i]
+        for token in tokens:
+            matches = list(_placeholderPattern.finditer(token))
 
-        return tokens
+            for match in reversed(matches):
+                placeholder = match.group()
+                try:
+                    replacement = replacements[placeholder]
+                except KeyError as replacementNotFoundError:
+                    raise ValueError(_("Placeholder token {0} isn’t supported here.", placeholder)
+                                     ) from replacementNotFoundError
+                token = token[:match.start()] + replacement + token[match.end():]
+
+            if token:
+                newTokens.append(token)
+
+        return newTokens
 
     @classmethod
     def compileCommand(
