@@ -76,13 +76,14 @@ class UserCommand:
         locator = self.locator
         if locator.context != NavContext.COMMITTED:
             raise ValueError(_("A commit must be selected in the history"))
-        return str(locator.commit)
+        commit = self.repo[locator.commit]
+        return str(commit.short_id)
 
     def _token_HEAD(self) -> str:
-        repo = self.repo
-        if repo.head_is_unborn:
+        if self.repo.head_is_unborn:
             raise ValueError(_("HEAD cannot be unborn"))
-        return str(repo.head_commit_id)
+        commit = self.repo.head_commit
+        return str(commit.short_id)
 
     def _token_SELBRANCH(self) -> str:
         sidebarNode = self.sidebarNode

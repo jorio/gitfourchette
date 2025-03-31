@@ -75,14 +75,14 @@ locHead = NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"
 
 @pytest.mark.parametrize("params",
     [
-        TokenParams("Print Selected Commit", str(locOriginMaster.commit), locOriginMaster),
+        TokenParams("Print Selected Commit", str(locOriginMaster.commit)[:7], locOriginMaster),
         TokenParams("Print Workdir", "/TestGitRepository"),
-        TokenParams("Print HEAD", str(locHead.commit)),
+        TokenParams("Print HEAD", str(locHead.commit)[:7]),
         TokenParams("Print Current Branch", "refs/heads/master"),
         TokenParams("Print Selected Branch", "refs/heads/no-parent", locNoParent),
         TokenParams("Print File Path", "/TestGitRepository/a/a1$", locOriginMaster),
         TokenParams("Print File Directory", "/TestGitRepository/a$", locOriginMaster),
-        TokenParams("Diff Commit With HEAD", f"{locOriginMaster.commit}..{locHead.commit}", locOriginMaster),
+        TokenParams("Diff Commit With HEAD", f"{str(locOriginMaster.commit)[:7]}..{str(locHead.commit)[:7]}", locOriginMaster),
     ])
 def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     wd = unpackRepo(tempDir)
