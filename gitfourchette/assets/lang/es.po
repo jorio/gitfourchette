@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2024-12-28 09:35+0000\n"
+"PO-Revision-Date: 2025-04-10 22:01+0000\n"
 "Last-Translator: Dani Rodríguez <dani@danirod.es>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.10-dev\n"
+"X-Generator: Weblate 5.11-dev\n"
 
 #: application.py:84 forms/aboutdialog.py:52
 msgid "The comfortable Git UI for Linux."
@@ -62,14 +62,16 @@ msgstr "Por favor abre un repositorio antes de realizar esta operación."
 #: diffarea.py:113
 msgid "Unstaged files: will not be included in the commit unless you stage them."
 msgstr ""
+"Archivos fuera del área de stage: no serán incluidos en el commit salvo que "
+"los añadas al stage."
 
 #: diffarea.py:121
 msgid "Stage"
-msgstr ""
+msgstr "Mover a stage"
 
 #: diffarea.py:123
 msgid "Stage selected files"
-msgstr ""
+msgstr "Mover los archivos seleccionados al stage"
 
 #: diffarea.py:128 diffview/diffview.py:148
 msgid "Discard"
@@ -85,11 +87,11 @@ msgstr "Archivos en el stage: serán incluidos con el commit."
 
 #: diffarea.py:173
 msgid "Unstage"
-msgstr ""
+msgstr "Sacar del stage"
 
 #: diffarea.py:175
 msgid "Unstage selected files"
-msgstr ""
+msgstr "Sacar archivos seleccionados del área de stage"
 
 #: diffarea.py:179 forms/commitdialog.py:55 tasks/committasks.py:409
 #: tasks/committasks.py:454
@@ -115,83 +117,83 @@ msgstr "Buscar texto en el diff|Buscar en el diff"
 
 #: diffview/diffview.py:136
 msgid "Stage Selection"
-msgstr ""
+msgstr "Mover selección a stage"
 
 #: diffview/diffview.py:138
 msgid "Stage selected lines"
-msgstr ""
+msgstr "Mover líneas seleccionadas a stage"
 
 #: diffview/diffview.py:142
 msgid "Unstage Selection"
-msgstr ""
+msgstr "Sacar selección del stage"
 
 #: diffview/diffview.py:145
 msgid "Unstage selected lines"
-msgstr ""
+msgstr "Sacar líneas seleccionadas del stage"
 
 #: diffview/diffview.py:151
 msgid "Discard selected lines"
-msgstr ""
+msgstr "Descartar líneas seleccionadas"
 
 #: diffview/diffview.py:490 diffview/diffview.py:502 diffview/diffview.py:525
 #: diffview/diffview.py:554
 msgid "Export Lines as Patch…"
-msgstr ""
+msgstr "Exportar líneas como parche…"
 
 #: diffview/diffview.py:491
 msgid "Revert Lines…"
-msgstr ""
+msgstr "Revertir líneas…"
 
 #: diffview/diffview.py:495
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr ""
+msgstr "Exportar fragmento {0} como parche…"
 
 #: diffview/diffview.py:496
 msgid "Revert Hunk…"
-msgstr ""
+msgstr "Revertir fragmento…"
 
 #: diffview/diffview.py:506 diffview/diffview.py:541 diffview/diffview.py:566
 msgid "Export Hunk as Patch…"
-msgstr ""
+msgstr "Exportar fragmento como parche…"
 
 #: diffview/diffview.py:513
 msgid "Stage Lines"
-msgstr ""
+msgstr "Mover líneas a stage"
 
 #: diffview/diffview.py:519
 msgid "Discard Lines"
-msgstr ""
+msgstr "Descartar líneas"
 
 #: diffview/diffview.py:532
 #, python-brace-format
 msgid "Stage Hunk {0}"
-msgstr ""
+msgstr "Mover fragmento {0} al stage"
 
 #: diffview/diffview.py:537
 msgid "Discard Hunk"
-msgstr ""
+msgstr "Descartar fragmento"
 
 #: diffview/diffview.py:548
 msgid "Unstage Lines"
-msgstr ""
+msgstr "Sacar líneas del stage"
 
 #: diffview/diffview.py:561
 #, python-brace-format
 msgid "Unstage Hunk {0}"
-msgstr ""
+msgstr "Sacar fragmento {0} del stage"
 
 #: diffview/diffview.py:573
 msgid "&Word Wrap"
-msgstr ""
+msgstr "&Ajustar palabras"
 
 #: diffview/diffview.py:574
 msgid "Configure Appearance…"
-msgstr ""
+msgstr "Configurar apariencia…"
 
 #: diffview/diffview.py:668
 msgid "Export selected lines"
-msgstr ""
+msgstr "Exportar líneas seleccionadas"
 
 #: diffview/diffview.py:919
 #, python-brace-format
@@ -215,20 +217,20 @@ msgstr ""
 
 #: diffview/diffview.py:974
 msgid "End of diff reached."
-msgstr ""
+msgstr "Final del diff alcanzado."
 
 #: diffview/diffview.py:975
 msgid "Top of diff reached."
-msgstr ""
+msgstr "Principio del diff alcanzado."
 
 #: diffview/diffview.py:976
 #, python-brace-format
 msgid "No more occurrences of {0} found."
-msgstr ""
+msgstr "No se encontraron más ocurrencias de {0}."
 
 #: diffview/diffview.py:978
 msgid "Find in Diff"
-msgstr ""
+msgstr "Buscar en el Diff"
 
 #: diffview/diffview.py:978
 msgid "Wrap Around"
