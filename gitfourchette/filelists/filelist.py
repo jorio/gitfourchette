@@ -9,6 +9,7 @@ from collections.abc import Callable, Generator
 from contextlib import suppress
 
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.exttools import openInTextEditor, openInDiffTool
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
@@ -19,6 +20,7 @@ from gitfourchette.qt import *
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
+from gitfourchette.usercommand import UserCommand
 
 
 class SelectedFileBatchError(Exception):
@@ -230,7 +232,7 @@ class FileList(QListView):
 
         n = len(patches)
 
-        return [
+        actions = [
             ActionDef.SEPARATOR,
 
             ActionDef(
@@ -250,6 +252,15 @@ class FileList(QListView):
                 submenu=[pathDisplayStyleAction(style) for style in PathDisplayStyle],
             ),
         ]
+
+        actions.extend(GFApplication.instance().mainWindow.contextualUserCommands(
+            UserCommand.Token.File,
+            UserCommand.Token.FileDir,
+            UserCommand.Token.FileAbs,
+            UserCommand.Token.FileDirAbs,
+        ))
+
+        return actions
 
     def contextMenuActionStash(self):
         return ActionDef(

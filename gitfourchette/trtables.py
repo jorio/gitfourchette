@@ -333,7 +333,7 @@ class TrTables:
         )
         userCommandTokenTable = "<table>"
         for token, caption in UserCommand.tokenHelpTable().items():
-            userCommandTokenTable += f"<tr><td><code>${token} </code></td><td>{caption}</td></tr>\n"
+            userCommandTokenTable += f"<tr><td><code>{token} </code></td><td>{caption}</td></tr>\n"
         userCommandTokenTable += "</table>"
         userCommandHelp = userCommandHelp.format(
             menu=hquo(_("Commands")), comment="<code>#</code>", key1="F6", key2="F12", nkeys=12-6+1,

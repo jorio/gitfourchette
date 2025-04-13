@@ -228,6 +228,11 @@ class NavLocator:
         """ For NavHistory.recallFileInContext(). """
         return f"{self.contextKey}:{self.path}"
 
+    @property
+    def hash7(self):
+        """ Return the first seven hex digits of the commit hash (unit testing helper) """
+        return str(self.commit)[:7]
+
 NavLocator.Empty = NavLocator()
 
 

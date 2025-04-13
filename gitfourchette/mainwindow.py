@@ -57,6 +57,7 @@ class MainWindow(QMainWindow):
     repoMenu: QMenu
     showStatusBarAction: QAction
     showMenuBarAction: QAction
+    userCommandActions: list[QAction]
 
     sharedSplitterSizes: dict[str, list[int]]
 
@@ -339,25 +340,18 @@ class MainWindow(QMainWindow):
 
         # -------------------------------------------------------------
 
-        commandActions = []
-        for command, comment in UserCommand.parseCommandBlock(settings.prefs.commands):
-            fKey = len(commandActions) + 6
-            commandActions.append(ActionDef(
-                escamp(comment),
-                lambda c=command: self.currentRepoWidget().executeCommandInTerminal(c),
-                tip=command if command != comment else "",
-                shortcuts=f"F{fKey}"))
-
-        if commandActions:
-            commandActions.extend([
+        self.userCommandActions = self.makeUserCommandActions()
+        if self.userCommandActions:
+            ActionDef.addToQMenu(
+                runMenu,
+                *self.userCommandActions,
                 ActionDef.SEPARATOR,
                 ActionDef(
                     _("Edit Commands…"),
                     lambda: self.openPrefsDialog("commands"),
                     icon="document-edit",
                 ),
-            ])
-            ActionDef.addToQMenu(runMenu, *commandActions)
+            )
         else:
             runMenu.deleteLater()
 
@@ -1185,3 +1179,37 @@ class MainWindow(QMainWindow):
             detachedDiffView.search(op)
         else:
             QApplication.beep()
+
+    # -------------------------------------------------------------------------
+    # User commands
+
+    def makeUserCommandActions(self):
+        userCommandActions = []
+        for command, comment, placeholders in UserCommand.parseCommandBlock(settings.prefs.commands):
+            fKey = len(userCommandActions) + 6
+            actionDef = ActionDef(
+                escamp(comment),
+                lambda c=command: self.currentRepoWidget().executeCommandInTerminal(c),
+                tip=command if command != comment else "",
+                shortcuts=f"F{fKey}" if fKey <= 12 else "")
+            action = actionDef.toQAction(self)
+            action._placeholderTokens = placeholders
+            userCommandActions.append(action)
+        return userCommandActions
+
+    def contextualUserCommands(self, *placeholderTokens: UserCommand.Token):
+        tokenSet = set(placeholderTokens)
+        filteredList = []
+        for userCommand in self.userCommandActions:
+            if not any(t in tokenSet for t in userCommand._placeholderTokens):
+                continue
+            if not filteredList:
+                filteredList.append(ActionDef.SEPARATOR)
+            filteredList.append(ActionDef(
+                _("Command: {0}", userCommand.text()),
+                userCommand.trigger,
+                "prefs-usercommands",
+                shortcuts=userCommand.shortcut(),
+                tip=userCommand.toolTip()
+            ))
+        return filteredList

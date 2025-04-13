@@ -11,6 +11,7 @@ from contextlib import suppress
 
 from gitfourchette import porcelain
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, RefPrefix
@@ -22,6 +23,7 @@ from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, Sideba
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
+from gitfourchette.usercommand import UserCommand
 from gitfourchette.webhost import WebHost
 
 INVALID_MOUSEPRESS = (-1, SidebarClickZone.Invalid)
@@ -145,6 +147,7 @@ class Sidebar(QTreeView):
         item = node.kind
         data = node.data
         isHidden = model.isExplicitlyHidden(node)
+        mainWindow = GFApplication.instance().mainWindow
 
         if item == SidebarItem.WorkdirHeader:
             actions += self.repoWidget.contextMenuItems()
@@ -156,6 +159,7 @@ class Sidebar(QTreeView):
                 ActionDef.SEPARATOR,
                 TaskBook.action(self, NewStash, accel="S"),
                 TaskBook.action(self, ExportWorkdirAsPatch, accel="X"),
+                *mainWindow.contextualUserCommands(UserCommand.Token.Workdir),
             ]
 
         elif item == SidebarItem.LocalBranchesHeader:
@@ -179,6 +183,14 @@ class Sidebar(QTreeView):
             thisBranchDisplay = lquoe(branchName)
             activeBranchDisplay = lquoe(activeBranchName)
             upstreamBranchDisplay = lquoe(upstreamBranchName)
+
+            userCommandTokens = [UserCommand.Token.Commit, UserCommand.Token.Ref]
+            if isCurrentBranch:
+                userCommandTokens.extend([
+                    UserCommand.Token.Head,
+                    UserCommand.Token.HeadBranch,
+                    UserCommand.Token.HeadUpstream
+                ])
 
             actions += [
                 TaskBook.action(
@@ -248,6 +260,8 @@ class Sidebar(QTreeView):
                     checkState=[-1, 1][isHidden],
                     tip=_("Hide this branch from the graph (effective if no other branches/tags point here)"),
                 ),
+
+                *mainWindow.contextualUserCommands(*userCommandTokens),
             ]
 
         elif item == SidebarItem.DetachedHead:
@@ -301,6 +315,8 @@ class Sidebar(QTreeView):
                     lambda: self.wantHideNode(node),
                     checkState=[-1, 1][isHidden]
                 ),
+
+                *mainWindow.contextualUserCommands(UserCommand.Token.Commit, UserCommand.Token.Ref, UserCommand.Token.Remote),
             ]
 
         elif item == SidebarItem.Remote:
@@ -354,6 +370,8 @@ class Sidebar(QTreeView):
                 ActionDef(_("&Hide Remote in Graph"),
                           lambda: self.wantHideNode(node),
                           checkState=[-1, 1][isHidden]),
+
+                *mainWindow.contextualUserCommands(UserCommand.Token.Remote),
             ]
 
         elif item == SidebarItem.RemotesHeader:

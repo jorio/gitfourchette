@@ -7,6 +7,7 @@
 from contextlib import suppress
 
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graph import MockCommit
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
@@ -19,6 +20,7 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
+from gitfourchette.usercommand import UserCommand
 
 
 class GraphView(QListView):
@@ -90,6 +92,7 @@ class GraphView(QListView):
         kind = self.currentRowKind
         oid = self.currentCommitId
         repoModel = self.repoModel
+        mainWindow = GFApplication.instance().mainWindow
 
         mergeActions = []
 
@@ -107,6 +110,8 @@ class GraphView(QListView):
                     ActionDef.SEPARATOR,
                     ActionDef(_("Clear Draft Message"), self.repoModel.prefs.clearDraftCommit),
                 ])
+
+            actions.extend(mainWindow.contextualUserCommands(UserCommand.Token.Workdir))
 
         elif kind == SpecialRow.EndOfShallowHistory:
             actions = []
@@ -154,6 +159,7 @@ class GraphView(QListView):
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
+                *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
             ]
 
         menu = ActionDef.makeQMenu(self, actions)
