@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
+from gitfourchette import settings
 from gitfourchette.exttools import openTerminal
 from gitfourchette.localization import _, _p
 from gitfourchette.nav import NavContext, NavLocator
@@ -71,9 +72,14 @@ class UserCommand:
         tokens = ToolCommands.injectReplacements(tokens, replacements)
         command = shlex.join(tokens)
 
-        question = _("Do you want to run this command in a terminal?") + f"<p><tt>{escape(command)}</tt></p>"
-        askConfirmation(rw, title, question,
-                        callback=lambda: openTerminal(rw, self.repo.workdir, command))
+        def run():
+            openTerminal(rw, self.repo.workdir, command)
+
+        if settings.prefs.confirmRunCommand:
+            question = _("Do you want to run this command in a terminal?") + f"<p><tt>{escape(command)}</tt></p>"
+            askConfirmation(rw, title, question, callback=run)
+        else:
+            run()
 
     @property
     def repo(self) -> Repo:

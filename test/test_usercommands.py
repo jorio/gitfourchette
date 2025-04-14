@@ -207,3 +207,12 @@ def testUserCommandTokenPrerequisitesNotMet(tempDir, mainWindow, commandsScratch
     action = findMenuAction(mainWindow.menuBar(), "commands/" + menuName)
     action.trigger()
     rejectQMessageBox(rw, "prerequisites for your command are not met.+" + error)
+
+
+def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile):
+    mainWindow.openRepo(unpackRepo(tempDir))
+    mainWindow.onAcceptPrefsDialog({"confirmRunCommand": False})
+
+    triggerMenuAction(mainWindow.menuBar(), "commands/hello world")
+    output = readTextFile(commandsScratchFile, 5000).strip()
+    assert re.search(r"hello world", output)

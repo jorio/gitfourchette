@@ -472,4 +472,5 @@ class TrTables:
 
             "commands": "",
             "commands_help": userCommandHelp,
+            "confirmRunCommand": _("Ask for confirmation before running any command"),
         }

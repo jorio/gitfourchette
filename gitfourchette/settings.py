@@ -141,6 +141,7 @@ class Prefs(PrefsFile):
 
     _category_userCommands      : int                   = 0
     commands                    : str                   = STOCK_COMMANDS
+    confirmRunCommand           : bool                  = True
 
     _category_tabs              : int                   = 0
     tabCloseButton              : bool                  = True
