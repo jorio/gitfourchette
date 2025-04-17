@@ -192,17 +192,17 @@ class MainWindow(QMainWindow):
         editMenu = menubar.addMenu(_("&Edit"))
         viewMenu = menubar.addMenu(_("&View"))
         repoMenu = menubar.addMenu(_("&Repo"))
-        runMenu = menubar.addMenu(_("&Commands"))
+        commandsMenu = menubar.addMenu(_("&Commands"))
         helpMenu = menubar.addMenu(_("&Help"))
 
         fileMenu.setObjectName("MWFileMenu")
         editMenu.setObjectName("MWEditMenu")
         viewMenu.setObjectName("MWViewMenu")
         repoMenu.setObjectName("MWRepoMenu")
-        runMenu.setObjectName("MWRunMenu")
+        commandsMenu.setObjectName("MWCommandsMenu")
         helpMenu.setObjectName("MWHelpMenu")
 
-        for menu in fileMenu, editMenu, viewMenu, repoMenu, runMenu, helpMenu:
+        for menu in fileMenu, editMenu, viewMenu, repoMenu, commandsMenu, helpMenu:
             menu.setToolTipsVisible(True)
 
         self.repoMenu = repoMenu
@@ -343,7 +343,7 @@ class MainWindow(QMainWindow):
         self.userCommandActions = self.makeUserCommandActions()
         if self.userCommandActions:
             ActionDef.addToQMenu(
-                runMenu,
+                commandsMenu,
                 *self.userCommandActions,
                 ActionDef.SEPARATOR,
                 ActionDef(
@@ -353,7 +353,7 @@ class MainWindow(QMainWindow):
                 ),
             )
         else:
-            runMenu.deleteLater()
+            commandsMenu.deleteLater()
 
         # -------------------------------------------------------------
 
@@ -1187,10 +1187,12 @@ class MainWindow(QMainWindow):
         userCommandActions = []
         for command, comment, placeholders in UserCommand.parseCommandBlock(settings.prefs.commands):
             fKey = len(userCommandActions) + 6
+            # Don't escamp the comment! Let user define their own accelerator keys
+            title = comment or escamp(command)
             actionDef = ActionDef(
-                escamp(comment),
+                title,
                 lambda c=command: self.currentRepoWidget().executeCommandInTerminal(c),
-                tip=command if command != comment else "",
+                tip=command if not comment else "",
                 shortcuts=f"F{fKey}" if fKey <= 12 else "")
             action = actionDef.toQAction(self)
             action._placeholderTokens = placeholders

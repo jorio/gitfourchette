@@ -196,7 +196,7 @@ class UserCommand:
                 command, comment = split
 
             command = command.strip()
-            comment = comment.strip() or command
+            comment = comment.strip()
 
             if not command:
                 continue

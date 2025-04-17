@@ -31,7 +31,7 @@ def commandsScratchFile(tempDir, mainWindow):
             {wrapper} $FILEDIR          # File Dir
             {wrapper} $FILEABS          # Abs File Path
             {wrapper} $FILEDIRABS       # Abs File Dir
-            {wrapper} $HEAD             # HEAD Commit
+            {wrapper} $HEAD             # HEA&D Commit
             {wrapper} $HEADBRANCH       # HEAD Branch
             {wrapper} $HEADUPSTREAM     # HEAD Upstream
             {wrapper} $REF              # Sel Ref
@@ -216,3 +216,20 @@ def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile)
     triggerMenuAction(mainWindow.menuBar(), "commands/hello world")
     output = readTextFile(commandsScratchFile, 5000).strip()
     assert re.search(r"hello world", output)
+
+
+@pytest.mark.skipif(MACOS, reason="no menu accelerator keys on macOS")
+def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
+    wd = unpackRepo(tempDir)
+    mainWindow.openRepo(wd)
+    QTest.qWait(0)
+
+    QTest.keySequence(mainWindow, "Alt+C")
+    commandsMenu: QMenu = mainWindow.findChild(QMenu, "MWCommandsMenu")
+    assert commandsMenu.isVisible()
+    QTest.keySequence(commandsMenu, "Alt+D")  # For some reason, Alt+H doesn't work in offscreen tests
+
+    acceptQMessageBox(mainWindow, "do you want to run this command in a terminal")
+
+    output = readTextFile(commandsScratchFile, 5000).strip()
+    assert re.search(locHead.hash7, output)
