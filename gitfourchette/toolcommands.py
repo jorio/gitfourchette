@@ -16,11 +16,27 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 
 
-_terminalScriptTemplate = """\
-#!/usr/bin/env sh
-set -x
+_terminalScriptTemplate = r"""#!/usr/bin/env bash
+
+brand="\e[0;1;34m[{app}]\e[0m"
+
+function shellchoice() {{
+    exitcode=$?
+    if [ $exitcode -eq 0 ]; then exitcolor=32 ; else exitcolor=31 ; fi
+    printf "\n$brand {exitcodemessage} \e[${{exitcolor}}m$exitcode\e[0m\n"
+    printf "$brand {keyprompt} "
+    read -n1 -r
+    [ "$REPLY" != $'\0a' ] && exit
+}}
+
 cd {workdir}
-{command}
+
+if [[ ! -z "{command}" ]]; then
+    printf "$brand \e[4m{command}\e[0m \e[2m({workdir})\e[0m\n"
+    {command}
+    shellchoice
+fi
+
 exec {shell}
 """
 
@@ -394,14 +410,24 @@ class ToolCommands:
 
     @classmethod
     def makeTerminalScript(cls, workdir: str, command: str, shell: str = ""):
-        cacheKey = workdir + "\0" + command
+        cacheKey = workdir + "\0" + command + "\0" + shell
         cacheKey = f"{hash(cacheKey):x}"
         path = Path(qTempDir()) / f"terminal_{cacheKey}.sh"
         if path.exists():
             return str(path)
 
         shell = shell or cls.defaultShell()
-        script = _terminalScriptTemplate.format(workdir=shlex.quote(workdir), command=command, shell=shell)
+        keyName = QKeySequence("ENTER").toString(QKeySequence.SequenceFormat.NativeText)
+
+        script = _terminalScriptTemplate.format(
+            app=qAppName(),
+            workdir=shlex.quote(workdir),
+            command=command,
+            shell=shell,
+            exitcodemessage=_("Command exited with code:"),
+            keyprompt=_("Press {0} to continue in a shell, any other key to exit:").format(keyName),
+        )
+
         path.write_text(script, "utf-8")
         path.chmod(0o755)
         return str(path)
