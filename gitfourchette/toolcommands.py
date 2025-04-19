@@ -9,36 +9,12 @@ import os
 import re
 import shlex
 import shutil
+import textwrap
 from collections.abc import Sequence
 from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-
-
-_terminalScriptTemplate = r"""#!/usr/bin/env bash
-
-brand="\e[0;1;34m[{app}]\e[0m"
-
-function shellchoice() {{
-    exitcode=$?
-    if [ $exitcode -eq 0 ]; then exitcolor=32 ; else exitcolor=31 ; fi
-    printf "\n$brand {exitcodemessage} \e[${{exitcolor}}m$exitcode\e[0m\n"
-    printf "$brand {keyprompt} "
-    read -n1 -r
-    [ "$REPLY" != $'\0a' ] && exit
-}}
-
-cd {workdir}
-
-if [[ ! -z "{command}" ]]; then
-    printf "$brand \e[4m{command}\e[0m \e[2m({workdir})\e[0m\n"
-    {command}
-    shellchoice
-fi
-
-exec {shell}
-"""
 
 _placeholderPattern = re.compile(r"\$[_a-zA-Z0-9]+")
 
@@ -410,32 +386,40 @@ class ToolCommands:
 
     @classmethod
     def makeTerminalScript(cls, workdir: str, command: str, shell: str = ""):
-        cacheKey = workdir + "\0" + command + "\0" + shell
-        cacheKey = f"{hash(cacheKey):x}"
-        path = Path(qTempDir()) / f"terminal_{cacheKey}.sh"
-        if path.exists():
-            return str(path)
+        # While we could simply export the parameters as environment variables
+        # then run termcmd.sh from the static assets, this approach fails if
+        # the terminal is a Flatpak (custom env vars always seem to be erased).
+        # That's why we generate a bespoke launcher script on the fly.
 
         shell = shell or cls.defaultShell()
-        keyName = QKeySequence("ENTER").toString(QKeySequence.SequenceFormat.NativeText)
+        shellKey = " "
+        wrapperPath = QFile("assets:termcmd.sh").fileName()
+        exitMessage = _("Command exited with code:")
+        keyPrompt = _("Hit {0} to continue in a shell, or any other key to exit:"
+                      ).format(QKeySequence(shellKey).toString(QKeySequence.SequenceFormat.NativeText))
 
-        script = _terminalScriptTemplate.format(
-            app=qAppName(),
-            workdir=shlex.quote(workdir),
-            command=command,
-            shell=shell,
-            exitcodemessage=_("Command exited with code:"),
-            keyprompt=_("Press {0} to continue in a shell, any other key to exit:").format(keyName),
-        )
+        script = textwrap.dedent(f"""\
+            #!/usr/bin/env bash
+            _GF_COMMAND="{command}"
+            _GF_APPNAME={shlex.quote(qAppName())}
+            _GF_SHELL={shlex.quote(shell)}
+            _GF_SHELLKEY={shlex.quote(shellKey)}
+            _GF_EXITMESSAGE={shlex.quote(exitMessage)}
+            _GF_KEYPROMPT={shlex.quote(keyPrompt)}
+            _GF_WORKDIR={shlex.quote(workdir)}
+            source {shlex.quote(wrapperPath)}
+        """)
 
-        path.write_text(script, "utf-8")
-        path.chmod(0o755)
+        cacheKey = f"{hash(script):x}"
+        path = Path(qTempDir()) / f"terminal_{cacheKey}.sh"
+        if not path.exists():
+            path.write_text(script, "utf-8")
+            path.chmod(0o755)
         return str(path)
 
     @classmethod
     def defaultShell(cls) -> str:
         return os.environ.get("SHELL", "/usr/bin/sh")
-
 
 
 ToolCommands._filterToolPresets()

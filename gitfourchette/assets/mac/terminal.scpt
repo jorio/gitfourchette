@@ -1,10 +1,8 @@
-#!/usr/bin/osascript
+#!/usr/bin/env osascript -l JavaScript
 
-on run argv
-	set AppleScript's text item delimiters to " "
-	tell application "Terminal"
-		do script # Open a new window
-		activate
-		do script "exec " & (argv as string) in window 1
-	end tell
-end run
+function run(argv) {
+	var terminal = Application("Terminal");
+	terminal.activate();
+	var tab = terminal.doScript();  // Open new tab
+	terminal.doScript("exec " + argv.join(" "), { in: tab });
+}
