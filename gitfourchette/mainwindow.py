@@ -345,7 +345,7 @@ class MainWindow(QMainWindow):
                 ActionDef.SEPARATOR if command.isSeparator
                 else ActionDef(
                     command.menuTitle(),
-                    lambda c=command: self.executeUserCommand(c),
+                    lambda c=command: self.currentRepoWidget().executeUserCommand(c),
                     tip=command.menuToolTip(),
                     shortcuts=command.shortcut
                 )
@@ -1196,9 +1196,6 @@ class MainWindow(QMainWindow):
     def parseUserCommands(self):
         self.userCommands = list(UserCommand.parseCommandBlock(settings.prefs.commands))
 
-    def executeUserCommand(self, command: UserCommand.Definition):
-        self.currentRepoWidget().executeCommandInTerminal(command.command)
-
     def contextualUserCommands(self, *placeholderTokens: UserCommand.Token):
         tokenSet = set(placeholderTokens)
         actions = []
@@ -1209,7 +1206,7 @@ class MainWindow(QMainWindow):
                 actions.append(ActionDef.SEPARATOR)
             actions.append(ActionDef(
                 _("(Command) {0}", command.menuTitle()),
-                lambda c=command: self.executeUserCommand(c),
+                lambda c=command: self.currentRepoWidget().executeUserCommand(c),
                 "prefs-usercommands",
                 tip=command.menuToolTip(),
                 shortcuts=command.shortcut,

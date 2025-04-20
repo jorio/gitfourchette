@@ -642,8 +642,29 @@ class RepoWidget(QStackedWidget):
     def openTerminal(self):
         openTerminal(self, self.workdir)
 
-    def executeCommandInTerminal(self, command: str):
-        UserCommand(self, command)
+    def executeUserCommand(self, command: UserCommand):
+        title = _("Run Command")
+
+        try:
+            compiledCommand = command.compile(self)
+        except UserCommand.MultiTokenError as mte:
+            errorText = (
+                    _("The prerequisites for your command are not met:")
+                    + f"<p><tt>{escape(command.command)}</tt></p>"
+                    + toTightUL(f"{escape(str(error))} (<b>{escape(token)}</b>)"
+                                for token, error in mte.tokenErrors.items()))
+            showWarning(self, title, errorText)
+            return
+
+        def run():
+            openTerminal(self, self.workdir, compiledCommand)
+
+        if settings.prefs.confirmRunCommand:
+            question = _("Do you want to run this command in a terminal?"
+                         ) + f"<p><tt>{escape(compiledCommand)}</tt></p>"
+            askConfirmation(self, title, question, callback=run)
+        else:
+            run()
 
     # -------------------------------------------------------------------------
     # Entry point for generic "Find" command
