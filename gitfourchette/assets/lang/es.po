@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-04-16 23:01+0000\n"
-"Last-Translator: Dani Rodríguez <dani@danirod.es>\n"
+"PO-Revision-Date: 2025-04-20 20:46+0000\n"
+"Last-Translator: Alejandro Marin <jumarurex@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
 "Language: es\n"
@@ -2195,206 +2195,212 @@ msgstr ""
 #: forms/ui_resetheaddialog.py:79
 msgctxt "ResetHeadDialog"
 msgid "&Reset submodules recursively"
-msgstr ""
+msgstr "&Restablecer submódulos recursivamente"
 
 #: forms/ui_searchbar.py:46
 msgctxt "SearchBar"
 msgid "Search"
-msgstr ""
+msgstr "Buscar"
 
 #: forms/ui_searchbar.py:47
 msgctxt "SearchBar"
 msgid "Search…"
-msgstr ""
+msgstr "Buscar…"
 
 #: forms/ui_searchbar.py:48
 msgctxt "SearchBar"
 msgid "Next Occurrence"
-msgstr ""
+msgstr "Siguiente coincidencia"
 
 #: forms/ui_searchbar.py:49
 msgctxt "SearchBar"
 msgid "Previous Occurrence"
-msgstr ""
+msgstr "Coincidencia anterior"
 
 #: forms/ui_searchbar.py:50
 msgctxt "SearchBar"
 msgid "Close Search Bar"
-msgstr ""
+msgstr "Cerrar barra de búsqueda"
 
 #: forms/ui_searchbar.py:51
 msgctxt "SearchBar"
 msgid "Done"
-msgstr ""
+msgstr "Hecho"
 
 #: forms/ui_signatureform.py:73
 msgctxt "SignatureForm"
 msgid "Signature"
-msgstr ""
+msgstr "Firma"
 
 #: forms/ui_signatureform.py:74
 msgctxt "SignatureForm"
 msgid "&Override:"
-msgstr ""
+msgstr "&Sobreescribir:"
 
 #: forms/ui_signatureform.py:75
 msgctxt "SignatureForm"
 msgid "&Identity:"
-msgstr ""
+msgstr "&Identidad:"
 
 #: forms/ui_signatureform.py:76 forms/ui_signatureform.py:77
 msgctxt "SignatureForm"
 msgid "Name"
-msgstr ""
+msgstr "Nombre"
 
 #: forms/ui_signatureform.py:78 forms/ui_signatureform.py:79
 msgctxt "SignatureForm"
 msgid "Email"
-msgstr ""
+msgstr "Email"
 
 #: forms/ui_signatureform.py:80
 msgctxt "SignatureForm"
 msgid "&Time:"
-msgstr ""
+msgstr "&Hora:"
 
 #: forms/ui_signatureform.py:81
 msgctxt "SignatureForm"
 msgid "Offset from UTC"
-msgstr ""
+msgstr "Diferencia sobre UTC"
 
 #: forms/ui_signatureform.py:82
 msgctxt "SignatureForm"
 msgid "Set to current local time"
-msgstr ""
+msgstr "Establecer a la hora local"
 
 #: forms/ui_signatureform.py:83
 msgctxt "SignatureForm"
 msgid "Now"
-msgstr ""
+msgstr "Ahora"
 
 #: forms/ui_signatureform.py:84
 msgctxt "SignatureForm"
 msgid "<p>Two signatures are recorded in every commit – one for the author, and one for the committer. Select which signature you want to customize."
 msgstr ""
+"<p> Dos firmas se guardan en cada commit - una para el autor, y otra para "
+"quien crea el commit. Selecciona que firma quieres personalizar."
 
 #: forms/ui_signatureform.py:85
 msgctxt "SignatureForm"
 msgid "Author’s Signature"
-msgstr ""
+msgstr "Firma del autor"
 
 #: forms/ui_signatureform.py:86
 msgctxt "SignatureForm"
 msgid "Committer’s Signature"
-msgstr ""
+msgstr "Firma del creador del commit"
 
 #: forms/ui_signatureform.py:87
 msgctxt "SignatureForm"
 msgid "Both Signatures"
-msgstr ""
+msgstr "Ambas firmas"
 
 #: forms/ui_stashdialog.py:65
 msgctxt "StashDialog"
 msgid "New stash"
-msgstr ""
+msgstr "Nuevo stash"
 
 #: forms/ui_stashdialog.py:66
 msgctxt "StashDialog"
 msgid "Optional stash message"
-msgstr ""
+msgstr "Mensaje opcional del stash"
 
 #: forms/ui_stashdialog.py:67
 msgctxt "StashDialog"
 msgid "Normally, stashed changes are removed from the working directory. Tick this to leave the stashed changes intact instead."
 msgstr ""
+"Normalmente, los cambios movidos a un stash son eliminados del directorio de "
+"trabajo. Selecciona esta opción si quieres dejar intactos esos cambios."
 
 #: forms/ui_stashdialog.py:68
 msgctxt "StashDialog"
 msgid "&Retain stashed changes in working directory"
-msgstr ""
+msgstr "&Mantener cambios movidos a un stash en el directorio de trabajo"
 
 #: forms/ui_stashdialog.py:69
 msgctxt "StashDialog"
 msgid "Warning: Some of the files have both staged and unstaged changes. Those changes will be combined in the stash."
 msgstr ""
+"Advertencia: Algunos archivos tienen cambios staged y no staged. Esos "
+"cambios se van a combinar en el stash."
 
 #: forms/ui_unloadedrepoplaceholder.py:57
 msgctxt "UnloadedRepoPlaceholder"
 msgid "Unloaded repository"
-msgstr ""
+msgstr "Repositorio sin cargar"
 
 #: forms/ui_unloadedrepoplaceholder.py:58
 msgctxt "UnloadedRepoPlaceholder"
 msgid "Ready to load this repository."
-msgstr ""
+msgstr "Listo para cargar este repositorio."
 
 #: forms/ui_unloadedrepoplaceholder.py:59
 msgctxt "UnloadedRepoPlaceholder"
 msgid "Load"
-msgstr ""
+msgstr "Cargar"
 
 #: forms/ui_welcomewidget.py:68
 msgctxt "WelcomeWidget"
 msgid "Welcome"
-msgstr ""
+msgstr "Bienvenido"
 
 #: forms/ui_welcomewidget.py:69
 msgctxt "WelcomeWidget"
 msgid "Clone remote repository"
-msgstr ""
+msgstr "Clonar repositorio remoto"
 
 #: forms/ui_welcomewidget.py:70
 msgctxt "WelcomeWidget"
 msgid "New empty repository"
-msgstr ""
+msgstr "Nuevo repositorio vacío"
 
 #: forms/ui_welcomewidget.py:71
 msgctxt "WelcomeWidget"
 msgid "Open local repository"
-msgstr ""
+msgstr "Abrir repositorio local"
 
 #: forms/ui_welcomewidget.py:72
 msgctxt "WelcomeWidget"
 msgid "Recent repositories"
-msgstr ""
+msgstr "Repositorios recientes"
 
 #: forms/ui_welcomewidget.py:73
 #, python-brace-format
 msgctxt "WelcomeWidget"
 msgid "Welcome to<br>{app}"
-msgstr ""
+msgstr "Bienvenido a<br>{app}"
 
 #: graphview/commitlogdelegate.py:211
 msgid "Commit draft:"
-msgstr ""
+msgstr "Borrador del commit:"
 
 #: graphview/commitlogdelegate.py:216
 #, python-brace-format
 msgid "History truncated to {0} commits (including hidden branches)"
-msgstr ""
+msgstr "Historial truncado a {0} commits (incluyendo ramas ocultas)"
 
 #: graphview/commitlogdelegate.py:218
 #, python-brace-format
 msgid "History truncated to {0} commits"
-msgstr ""
+msgstr "Historial truncado a {0} commits"
 
 #: graphview/commitlogdelegate.py:222 tasks/jumptasks.py:215
 msgid "Shallow clone – End of commit history"
-msgstr ""
+msgstr "Clonación superficial - Final del historial de commits"
 
 #: graphview/commitlogdelegate.py:366 repowidget.py:758
 #: sidebar/sidebarmodel.py:598 sidebar/sidebarmodel.py:601
 msgid "Detached HEAD"
-msgstr ""
+msgstr "HEAD separado"
 
 #: graphview/commitlogmodel.py:192
 msgctxt "CommitTooltip"
 msgid "(authored)"
-msgstr ""
+msgstr "(creador por)"
 
 #: graphview/commitlogmodel.py:193
 msgctxt "CommitTooltip"
 msgid "(committed)"
-msgstr ""
+msgstr "(commit guardado por)"
 
 #: graphview/commitlogmodel.py:197
 #, python-brace-format
@@ -5558,7 +5564,7 @@ msgstr ""
 
 #: trtables.py:271
 msgid "Date/time format"
-msgstr ""
+msgstr "Focha de fecha y hora"
 
 #: trtables.py:272
 msgid "Path display style"
@@ -5655,6 +5661,10 @@ msgstr ""
 #: trtables.py:305
 msgid "<b>Chronological mode</b> lets you stay on top of the latest activity in the repository. The most recent commits always show up at the top of the graph. However, the graph can get messy when multiple branches receive commits in the same timeframe."
 msgstr ""
+"El <b>modo cronológico</b> te permite mantener arriba los últimos cambios en "
+"el repositorio. Los commits más recientes siempre se muestran arriba en el "
+"grafo. Aunque, el grafo puede volverse difícil de leer cuando múltiples "
+"ramas reciben commits en el mismo marco de tiempo."
 
 #: trtables.py:308
 msgid "<b>Topological mode</b> makes the graph easier to read. It attempts to present sequences of commits within a branch in a linear fashion. Since this is not a strictly chronological mode, you may have to do more scrolling to see the latest changes in various branches."
