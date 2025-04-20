@@ -659,9 +659,12 @@ class RepoWidget(QStackedWidget):
         def run():
             openTerminal(self, self.workdir, compiledCommand)
 
-        if settings.prefs.confirmRunCommand:
-            question = _("Do you want to run this command in a terminal?"
-                         ) + f"<p><tt>{escape(compiledCommand)}</tt></p>"
+        if command.alwaysConfirm or settings.prefs.confirmCommands:
+            if not command.userTitle:
+                question = _("Do you want to run this command in a terminal?")
+            else:
+                question = _("Do you want to run {0} in a terminal?").format(hquo(stripAccelerators(command.userTitle)))
+            question += f"<p><tt>{escape(compiledCommand)}</tt></p>"
             askConfirmation(self, title, question, callback=run)
         else:
             run()

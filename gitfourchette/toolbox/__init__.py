@@ -89,6 +89,7 @@ from .textutils import (
     hquo, hquoe, bquo, bquoe, lquo, lquoe, tquo, tquoe,
     btag,
     stripHtml,
+    stripAccelerators,
     withUniqueSuffix,
     englishTitleCase,
     naturalSort,

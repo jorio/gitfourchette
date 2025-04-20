@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -16,6 +16,8 @@ from gitfourchette.qt import *
 _elideMetrics: QFontMetrics | None = None
 
 _naturalSortSplit = re.compile(r"(\d+)")
+
+_stripAccelerators = re.compile(r"&(?!&)")
 
 _titleLowercaseWords = {"a", "an", "and", "as", "but", "by", "in", "of", "on", "or", "the", "to"}
 
@@ -155,6 +157,10 @@ def btag(text):
 
 def stripHtml(markup: str):
     return QTextDocumentFragment.fromHtml(markup).toPlainText()
+
+
+def stripAccelerators(text: str):
+    return _stripAccelerators.sub("", text)
 
 
 def elide(text: str, mode: Qt.TextElideMode = Qt.TextElideMode.ElideMiddle, ems: int = 20):

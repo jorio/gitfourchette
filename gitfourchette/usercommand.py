@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
+from gitfourchette import settings
 from gitfourchette.localization import _, _p
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import RefPrefix, split_remote_branch_shorthand
@@ -27,6 +28,9 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass
 class UserCommand:
+    SeparatorDash = "-"
+    AlwaysConfirmPrefix = "?"
+
     class Token(enum.StrEnum):
         Commit          = "$COMMIT"
         File            = "$FILE"
@@ -47,20 +51,31 @@ class UserCommand:
             self.tokenErrors = errors
 
     command: str
-    title: str = ""
+    userTitle: str = ""
     placeholderTokens: set[str] = dataclasses.field(default_factory=set)
     isSeparator: bool = False
     shortcut: str = ""
+    alwaysConfirm: bool = False
 
     def menuTitle(self) -> str:
-        if not self.title:
-            return escamp(self.command)
+        if not self.userTitle:
+            title = escamp(self.command)
         else:
-            # Don't escamp the comment! Let user define their own accelerator keys
-            return self.title
+            # Don't escamp the user-defined title!
+            # Let them define their own accelerator keys.
+            title = self.userTitle
+
+        # Qt interprets tabs as separators for keyboard shortcuts.
+        # QTextEdit may insert tabs in commands, so override those.
+        title = title.replace('\t', ' ')
+
+        if self.alwaysConfirm or settings.prefs.confirmCommands:
+            title += "\u2026"  # Add ellipsis character
+
+        return title
 
     def menuToolTip(self) -> str:
-        return self.command if not self.title else ""
+        return self.command if not self.userTitle else ""
 
     def matchesContext(self, tokenSet: set[str]):
         if self.isSeparator:
@@ -201,17 +216,16 @@ class UserCommand:
             Token.Workdir       : _("Path to the repository’s working directory") + absSuffix,
         }
 
-    @staticmethod
-    def parseCommandBlock(commands: str):
-        dash = "-"
+    @classmethod
+    def parseCommandBlock(cls, commandBlock: str):
         fKey = 6
 
-        for line in commands.splitlines(keepends=False):
+        for line in commandBlock.splitlines(keepends=False):
             split = line.split("#", 1)
 
             if len(split) == 1:
                 command = line
-                comment = command
+                comment = ""
             else:
                 command, comment = split
 
@@ -220,15 +234,26 @@ class UserCommand:
 
             if not command:
                 # If the comment is all dashes, that's a separator
-                if comment.startswith(dash) and comment == len(comment) * dash:
+                if comment and comment == cls.SeparatorDash * len(comment):
                     yield UserCommand("", isSeparator=True)
                 continue
+
+            # Force confirmation prompt?
+            alwaysConfirm = command.startswith(cls.AlwaysConfirmPrefix)
+            if alwaysConfirm:
+                command = command.removeprefix(cls.AlwaysConfirmPrefix).strip()
 
             # Find placeholder tokens
             tokens = ToolCommands.splitCommandTokens(command)
             placeholders = set(ToolCommands.findPlaceholderTokens(tokens))
 
+            # Find shortcut
             shortcut = f"F{fKey}" if fKey <= 12 else ""
             fKey += 1
 
-            yield UserCommand(command, comment, placeholderTokens=placeholders, shortcut=shortcut)
+            yield UserCommand(
+                command=command,
+                userTitle=comment,
+                placeholderTokens=placeholders,
+                shortcut=shortcut,
+                alwaysConfirm=alwaysConfirm)

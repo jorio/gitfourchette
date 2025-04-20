@@ -1067,7 +1067,7 @@ class MainWindow(QMainWindow):
             app.applyLanguagePref()
             self.fillGlobalMenuBar()
 
-        if "commands" in prefDiff:
+        if "commands" in prefDiff or "confirmCommands" in prefDiff:
             self.fillGlobalMenuBar()
 
         if "maxRecentRepos" in prefDiff:

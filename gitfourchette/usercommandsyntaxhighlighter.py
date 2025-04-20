@@ -52,13 +52,13 @@ class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
         for tokenType, token in tokens:
             tokenLength = len(token)
 
-            if tokenType == Token.Text:
-                isCommandLine = True
-
             if token.startswith("$"):
                 isValid = token in UserCommand.Token._value2member_map_
                 self.setFormat(start, tokenLength,
                                self.goodTokenFormat if isValid else self.badTokenFormat)
+
+            elif token.startswith(UserCommand.AlwaysConfirmPrefix) and not isCommandLine:
+                self.setFormat(start, len(UserCommand.AlwaysConfirmPrefix), self.goodTokenFormat)
 
             elif tokenType == Token.Comment.Single:
                 self.setFormat(start, tokenLength,
@@ -69,5 +69,9 @@ class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
                     accelStart = start + accelMatch.span()[0]
                     accelLength = accelMatch.span()[1] - accelMatch.span()[0]
                     self.setFormat(accelStart, accelLength, self.acceleratorFormat)
+
+            # Once we've seen at least one text token, we know that's a command line
+            if tokenType == Token.Text:
+                isCommandLine = True
 
             start += tokenLength

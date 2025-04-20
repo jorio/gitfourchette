@@ -318,7 +318,7 @@ class TrTables:
 
     @staticmethod
     def _init_prefKeys():
-        from gitfourchette.toolbox.textutils import paragraphs, hquo
+        from gitfourchette.toolbox.textutils import paragraphs, hquo, tquo
         from gitfourchette.usercommand import UserCommand
 
         userCommandHelp = paragraphs(
@@ -472,5 +472,10 @@ class TrTables:
 
             "commands": "",
             "commands_help": userCommandHelp,
-            "confirmRunCommand": _("Ask for confirmation before running any command"),
+            "confirmCommands": _("Ask for confirmation before running any command"),
+            "confirmCommands_help": _(
+                "If you untick this, you can still force a prompt to appear for "
+                "specific commands by prepending them with {0}. For example: {1}",
+                tquo(f"<tt>{UserCommand.AlwaysConfirmPrefix}</tt>"),
+                "<pre>?git stash</pre>"),
         }

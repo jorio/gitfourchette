@@ -41,6 +41,10 @@ def commandsScratchFile(tempDir, mainWindow):
             {wrapper} $REMOTE           # Sel Remote
             {wrapper} $WORKDIR          # Workdir
             {wrapper} $COMMIT..$HEAD    # Diff Commit With HEAD
+            #---
+            ?{wrapper} confirm1
+            ? {wrapper} confirm2
+            ?\t{wrapper} confirm3
         """})
 
     QTest.qWait(0)
@@ -139,6 +143,8 @@ locHead = NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"
 
     TokenParams("diff commit with head", f"{locOriginMaster.hash7}..{locHead.hash7}", locOriginMaster),
     TokenParams("diff commit with head", f"{locOriginMaster.hash7}..{locHead.hash7}", locOriginMaster, actionSource="graphview"),
+
+    TokenParams("confirm1", "confirm1"),
 )
 def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     wd = unpackRepo(tempDir)
@@ -170,7 +176,7 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
         raise NotImplementedError(f"unknown action source {params.actionSource}")
 
     action.trigger()
-    acceptQMessageBox(rw, "run this command in a terminal.+shim.+")
+    acceptQMessageBox(rw, "do you want to run.+in a terminal.+shim.+")
 
     output = readTextFile(commandsScratchFile, 5000).strip()
     assert re.search(params.output, output)
@@ -214,11 +220,24 @@ def testUserCommandTokenPrerequisitesNotMet(tempDir, mainWindow, commandsScratch
 
 def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile):
     mainWindow.openRepo(unpackRepo(tempDir))
-    mainWindow.onAcceptPrefsDialog({"confirmRunCommand": False})
+    mainWindow.onAcceptPrefsDialog({"confirmCommands": False})
+    QTest.qWait(0)
 
     triggerMenuAction(mainWindow.menuBar(), "commands/hello world")
     output = readTextFile(commandsScratchFile, 5000).strip()
     assert re.search(r"hello world", output)
+
+
+def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
+    mainWindow.openRepo(unpackRepo(tempDir))
+    mainWindow.onAcceptPrefsDialog({"confirmCommands": False})
+    QTest.qWait(0)
+
+    for name in ["confirm1", "confirm2", "confirm3"]:
+        triggerMenuAction(mainWindow.menuBar(), "commands/" + name)
+        acceptQMessageBox(mainWindow, "do you want to run")
+        output = readTextFile(commandsScratchFile, 5000, unlink=True).strip()
+        assert re.search(name, output)
 
 
 @pytest.mark.skipif(MACOS, reason="no menu accelerator keys on macOS")
@@ -232,7 +251,8 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
     assert commandsMenu.isVisible()
     QTest.keySequence(commandsMenu, "Alt+D")  # For some reason, Alt+H doesn't work in offscreen tests
 
-    acceptQMessageBox(mainWindow, "do you want to run this command in a terminal")
+    acceptQMessageBox(mainWindow, "do you want to run")
 
     output = readTextFile(commandsScratchFile, 5000).strip()
     assert re.search(locHead.hash7, output)
+
