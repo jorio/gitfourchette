@@ -57,7 +57,6 @@ class MainWindow(QMainWindow):
     repoMenu: QMenu
     showStatusBarAction: QAction
     showMenuBarAction: QAction
-    userCommandActions: list[QAction]
 
     sharedSplitterSizes: dict[str, list[int]]
 
@@ -340,11 +339,22 @@ class MainWindow(QMainWindow):
 
         # -------------------------------------------------------------
 
-        self.userCommandActions = self.makeUserCommandActions()
-        if self.userCommandActions:
+        self.parseUserCommands()
+        if self.userCommands:
+            commandActions = [
+                ActionDef.SEPARATOR if command.isSeparator
+                else ActionDef(
+                    command.menuTitle(),
+                    lambda c=command: self.executeUserCommand(c),
+                    tip=command.menuToolTip(),
+                    shortcuts=command.shortcut
+                )
+                for command in self.userCommands
+            ]
+
             ActionDef.addToQMenu(
                 commandsMenu,
-                *self.userCommandActions,
+                *commandActions,
                 ActionDef.SEPARATOR,
                 ActionDef(
                     _("Edit Commands…"),
@@ -1183,35 +1193,25 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # User commands
 
-    def makeUserCommandActions(self):
-        userCommandActions = []
-        for command, comment, placeholders in UserCommand.parseCommandBlock(settings.prefs.commands):
-            fKey = len(userCommandActions) + 6
-            # Don't escamp the comment! Let user define their own accelerator keys
-            title = comment or escamp(command)
-            actionDef = ActionDef(
-                title,
-                lambda c=command: self.currentRepoWidget().executeCommandInTerminal(c),
-                tip=command if not comment else "",
-                shortcuts=f"F{fKey}" if fKey <= 12 else "")
-            action = actionDef.toQAction(self)
-            action._placeholderTokens = placeholders
-            userCommandActions.append(action)
-        return userCommandActions
+    def parseUserCommands(self):
+        self.userCommands = list(UserCommand.parseCommandBlock(settings.prefs.commands))
+
+    def executeUserCommand(self, command: UserCommand.Definition):
+        self.currentRepoWidget().executeCommandInTerminal(command.command)
 
     def contextualUserCommands(self, *placeholderTokens: UserCommand.Token):
         tokenSet = set(placeholderTokens)
-        filteredList = []
-        for userCommand in self.userCommandActions:
-            if not any(t in tokenSet for t in userCommand._placeholderTokens):
+        actions = []
+        for command in self.userCommands:
+            if not command.matchesContext(tokenSet):
                 continue
-            if not filteredList:
-                filteredList.append(ActionDef.SEPARATOR)
-            filteredList.append(ActionDef(
-                _("Command: {0}", userCommand.text()),
-                userCommand.trigger,
+            if not actions:
+                actions.append(ActionDef.SEPARATOR)
+            actions.append(ActionDef(
+                _("(Command) {0}", command.menuTitle()),
+                lambda c=command: self.executeUserCommand(c),
                 "prefs-usercommands",
-                shortcuts=userCommand.shortcut(),
-                tip=userCommand.toolTip()
+                tip=command.menuToolTip(),
+                shortcuts=command.shortcut,
             ))
-        return filteredList
+        return actions

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import enum
 import shlex
 import traceback
@@ -20,7 +21,7 @@ from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import Repo, RefPrefix, split_remote_branch_shorthand
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem
 from gitfourchette.toolbox import askConfirmation, escape, showWarning
-from gitfourchette.toolbox.textutils import ulify
+from gitfourchette.toolbox.textutils import escamp, ulify
 from gitfourchette.toolcommands import ToolCommands
 
 if TYPE_CHECKING:
@@ -40,6 +41,29 @@ class UserCommand:
         Ref             = "$REF"
         Remote          = "$REMOTE"
         Workdir         = "$WORKDIR"
+
+    @dataclasses.dataclass
+    class Definition:
+        command: str
+        title: str = ""
+        placeholderTokens: set[str] = dataclasses.field(default_factory=set)
+        isSeparator: bool = False
+        shortcut: str = ""
+
+        def menuTitle(self) -> str:
+            if not self.title:
+                return escamp(self.command)
+            else:
+                # Don't escamp the comment! Let user define their own accelerator keys
+                return self.title
+
+        def menuToolTip(self) -> str:
+            return self.command if not self.title else ""
+
+        def matchesContext(self, tokenSet: set[str]):
+            if self.isSeparator:
+                return False
+            return any(t in tokenSet for t in self.placeholderTokens)
 
     def __init__(self, rw: RepoWidget, command: str):
         self.rw = rw
@@ -186,6 +210,9 @@ class UserCommand:
 
     @staticmethod
     def parseCommandBlock(commands: str):
+        dash = "-"
+        fKey = 6
+
         for line in commands.splitlines(keepends=False):
             split = line.split("#", 1)
 
@@ -199,10 +226,16 @@ class UserCommand:
             comment = comment.strip()
 
             if not command:
+                # If the comment is all dashes, that's a separator
+                if comment.startswith(dash) and comment == len(comment) * dash:
+                    yield UserCommand.Definition("", isSeparator=True)
                 continue
 
             # Find placeholder tokens
             tokens = ToolCommands.splitCommandTokens(command)
             placeholders = set(ToolCommands.findPlaceholderTokens(tokens))
 
-            yield command, comment, placeholders
+            shortcut = f"F{fKey}" if fKey <= 12 else ""
+            fKey += 1
+
+            yield UserCommand.Definition(command, comment, placeholderTokens=placeholders, shortcut=shortcut)

@@ -24,16 +24,19 @@ def commandsScratchFile(tempDir, mainWindow):
         "terminal": "/bin/sh -c $COMMAND",
         "commands": f"""
             {wrapper} 'hello world'
-
+            # ------
             {wrapper} $BADTOKEN         # Bad Token
             {wrapper} $COMMIT           # Sel Commit
+            #-
             {wrapper} $FILE             # File Path
             {wrapper} $FILEDIR          # File Dir
             {wrapper} $FILEABS          # Abs File Path
             {wrapper} $FILEDIRABS       # Abs File Dir
+            #---------
             {wrapper} $HEAD             # HEA&D Commit
             {wrapper} $HEADBRANCH       # HEAD Branch
             {wrapper} $HEADUPSTREAM     # HEAD Upstream
+            # -
             {wrapper} $REF              # Sel Ref
             {wrapper} $REMOTE           # Sel Remote
             {wrapper} $WORKDIR          # Workdir
@@ -155,14 +158,14 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
         action = findMenuAction(menu, "commands/" + params.menuName)
     elif params.actionSource == "graphview":
         menu = rw.graphView.makeContextMenu()
-        action = findMenuAction(menu, "command: " + params.menuName)
+        action = findMenuAction(menu, r"\(command\) " + params.menuName)
     elif params.actionSource == "filelist":
         menu = rw.committedFiles.makeContextMenu()
-        action = findMenuAction(menu, "command: " + params.menuName)
+        action = findMenuAction(menu, r"\(command\) " + params.menuName)
     elif params.actionSource == "sidebar":
         node = SidebarNode.fromIndex(rw.sidebar.selectedIndexes()[0])
         menu = rw.sidebar.makeNodeMenu(node)
-        action = findMenuAction(menu, "command: " + params.menuName)
+        action = findMenuAction(menu, r"\(command\) " + params.menuName)
     else:
         raise NotImplementedError(f"unknown action source {params.actionSource}")
 
