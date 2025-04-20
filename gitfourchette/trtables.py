@@ -16,6 +16,14 @@ if TYPE_CHECKING:
     from gitfourchette.toolbox.gitutils import PatchPurpose
 
 
+def _tokenReferenceTable(table):
+    markup = "<table>"
+    for token, caption in table.items():
+        markup += f"<tr><td><b>{token} </b></td><td> {caption}</td></tr>\n"
+    markup += "</table>"
+    return markup
+
+
 class TrTables:
     _enums                      : dict[type[Enum], dict[Enum, str]] = {}
     _exceptionNames             : dict[str, str] = {}
@@ -328,16 +336,9 @@ class TrTables:
               "If you add a comment after a command (on the same line), then the comment will "
               "serve as the title of the command in the menu."),
             _("Argument placeholders:"),
-            "{argtable}",
+            _tokenReferenceTable(UserCommand.tokenHelpTable()),
             _("Tip: Hot keys {key1} through {key2} are automatically assigned to the first {nkeys} commands."),
-        )
-        userCommandTokenTable = "<table>"
-        for token, caption in UserCommand.tokenHelpTable().items():
-            userCommandTokenTable += f"<tr><td><code>{token} </code></td><td>{caption}</td></tr>\n"
-        userCommandTokenTable += "</table>"
-        userCommandHelp = userCommandHelp.format(
-            menu=hquo(_("Commands")), comment="<code>#</code>", key1="F6", key2="F12", nkeys=12-6+1,
-            argtable=userCommandTokenTable)
+        ).format(menu=hquo(_("Commands")), comment="<code>#</code>", key1="F6", key2="F12", nkeys=12-6+1)
 
         return {
             "general": _p("Prefs", "General"),
@@ -457,18 +458,26 @@ class TrTables:
 
             "externalEditor": _("Text editor"),
             "externalDiff": _("Diff tool"),
-            "externalDiff_help": "<p style='white-space: pre'>" + _("Argument placeholders:") + "\n" + _(
-                "<code>$L</code> - Old/Left"
-                "\n<code>$R</code> - New/Right"
-            ),
+            "externalDiff_help":
+                "<p style='white-space: pre'>" + _("Argument placeholders:") + "\n" + _tokenReferenceTable({
+                    "$L": _("Old / Left"),
+                    "$R": _("New / Right"),
+                }),
             "externalMerge": _("Merge tool"),
-            "externalMerge_help": "<p style='white-space: pre'>" + _("Argument placeholders:") + "\n" + _(
-                "<code>$B</code> - Ancestor / Base / Center"
-                "\n<code>$L</code> - Ours / Local / Left"
-                "\n<code>$R</code> - Theirs / Remote / Right"
-                "\n<code>$M</code> - Merged / Output / Result"
-            ),
+            "externalMerge_help":
+                "<p style='white-space: pre'>" + _("Argument placeholders:") + "\n" + _tokenReferenceTable({
+                    "$B": _("Ancestor / Base / Center"),
+                    "$L": _("Ours / Local / Left"),
+                    "$R": _("Theirs / Remote / Right"),
+                    "$M": _("Merged / Output / Result"),
+                }),
             "terminal": _("Terminal"),
+            "terminal_help": paragraphs(
+                _("Argument placeholders:"),
+                _tokenReferenceTable({"$COMMAND": _("Command to execute after launching the terminal")}),
+                _("The {0} placeholder is mandatory. It is automatically substituted for a wrapper script that "
+                  "enters your working directory and optionally starts one of your Custom Commands.",
+                  "$COMMAND")),
 
             "commands": "",
             "commands_help": userCommandHelp,
