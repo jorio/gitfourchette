@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import textwrap
+
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.toolbox.fontpicker import FontPicker
@@ -146,3 +148,16 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
 
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("crlf.txt"))
     assert "<CRLF>" not in rw.diffView.toPlainText()
+
+
+def testPrefsUserCommandsSyntaxHighlighter(mainWindow):
+    # This is just for code coverage for now.
+    dlg = mainWindow.openPrefsDialog("commands")
+    editor: QPlainTextEdit = dlg.findChild(QPlainTextEdit, "prefctl_commands")
+    editor.setPlainText(textwrap.dedent("""\
+    # this is a standalone comment (not a command title)
+    # -----
+    ? hello $COMMIT $KOMMIT # Command &Title
+    """))
+    QTest.qWait(0)
+    dlg.reject()

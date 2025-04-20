@@ -15,6 +15,7 @@ from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
 from gitfourchette.toolbox import *
 from gitfourchette.toolcommands import ToolCommands
 from gitfourchette.trtables import TrTables
+from gitfourchette.usercommandsyntaxhighlighter import UserCommandSyntaxHighlighter
 
 logger = logging.getLogger(__name__)
 
@@ -282,7 +283,7 @@ class PrefsDialog(QDialog):
             return self.strControlWithPresets(key, value, ToolCommands.TerminalPresets,
                                               validate=lambda cmd: ToolCommands.checkCommand(cmd, "$COMMAND"))
         elif key == "commands":
-            return self.textEditControl(key, value)
+            return self.userCommandTextEditControl(key, value)
         elif key in ["largeFileThresholdKB", "imageFileThresholdKB", "maxTrashFileKB"]:
             control = self.boundedIntControl(key, value, 0, 999_999)
             control.setSpecialValueText("\u221E")  # infinity
@@ -375,10 +376,19 @@ class PrefsDialog(QDialog):
 
         return control
 
-    def textEditControl(self, prefKey, prefValue):
-        control = QPlainTextEdit(self)
+    def userCommandTextEditControl(self, prefKey, prefValue):
         monoFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        fontMetrics = QFontMetricsF(monoFont)
+
+        control = QPlainTextEdit(self)
         control.setFont(monoFont)
+        control.setMinimumWidth(round(fontMetrics.horizontalAdvance("x" * 72)))
+        control.setTabStopDistance(fontMetrics.horizontalAdvance(" " * 4))
+
+        if syntaxHighlightingAvailable:
+            highlighter = UserCommandSyntaxHighlighter(control)
+            highlighter.setDocument(control.document())
+
         control.setPlainText(prefValue)
         control.textChanged.connect(lambda: self.assign(prefKey, control.toPlainText()))
         return control
