@@ -246,6 +246,7 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
 
     QTest.keySequence(mainWindow, "Alt+C")
     commandsMenu: QMenu = mainWindow.findChild(QMenu, "MWCommandsMenu")
+    assert commandsMenu.title() == "&Commands"
     assert commandsMenu.isVisible()
     QTest.keySequence(commandsMenu, "Alt+D")  # For some reason, Alt+H doesn't work in offscreen tests
 

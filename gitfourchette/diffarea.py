@@ -172,6 +172,7 @@ class DiffArea(QWidget):
         appendShortcutToToolTip(unstageButton, GlobalShortcuts.discardHotkeys[0])
 
         commitButton = QToolButton()
+        commitButton.setObjectName("commitButton")
         commitButton.setText(_p("verb", "Commit"))
         commitButton.setIcon(stockIcon("git-commit", "gray=#599E5E"))
         commitButton.setToolTip(appendShortcutToToolTipText(TaskBook.tips[NewCommit], TaskBook.shortcuts[NewCommit][0]))

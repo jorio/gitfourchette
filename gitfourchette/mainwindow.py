@@ -52,8 +52,8 @@ class MainWindow(QMainWindow):
     welcomeWidget: WelcomeWidget
     tabs: QTabWidget2
 
+    globalMenus: list[QMenu]
     recentMenu: QMenu
-    repoMenu: QMenu
     showStatusBarAction: QAction
     showMenuBarAction: QAction
 
@@ -105,6 +105,7 @@ class MainWindow(QMainWindow):
         self.mainToolBar.openTerminal.connect(lambda: self.currentRepoWidget().openTerminal())
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
 
+        self.globalMenus = []
         self.fillGlobalMenuBar()
 
         self.setAcceptDrops(True)
@@ -183,6 +184,11 @@ class MainWindow(QMainWindow):
     # Menu bar
 
     def fillGlobalMenuBar(self):
+        # Delete old menus
+        for m in self.globalMenus:
+            m.deleteLater()
+        self.globalMenus.clear()
+
         menubar = self.globalMenuBar
         menubar.clear()
 
@@ -190,20 +196,13 @@ class MainWindow(QMainWindow):
         editMenu = menubar.addMenu(_("&Edit"))
         viewMenu = menubar.addMenu(_("&View"))
         repoMenu = menubar.addMenu(_("&Repo"))
-        commandsMenu = menubar.addMenu(_("&Commands"))
         helpMenu = menubar.addMenu(_("&Help"))
 
-        fileMenu.setObjectName("MWFileMenu")
-        editMenu.setObjectName("MWEditMenu")
-        viewMenu.setObjectName("MWViewMenu")
-        repoMenu.setObjectName("MWRepoMenu")
-        commandsMenu.setObjectName("MWCommandsMenu")
-        helpMenu.setObjectName("MWHelpMenu")
+        self.globalMenus = [fileMenu, editMenu, viewMenu, repoMenu, helpMenu]
 
-        for menu in fileMenu, editMenu, viewMenu, repoMenu, commandsMenu, helpMenu:
+        for i, menu in enumerate(self.globalMenus):
+            menu.setObjectName(f"MWMainMenu{i}")
             menu.setToolTipsVisible(True)
-
-        self.repoMenu = repoMenu
 
         # -------------------------------------------------------------
 
@@ -350,19 +349,20 @@ class MainWindow(QMainWindow):
                 )
                 for command in self.userCommands
             ]
-
-            ActionDef.addToQMenu(
-                commandsMenu,
-                *commandActions,
+            commandActions += [
                 ActionDef.SEPARATOR,
                 ActionDef(
                     _("Edit Commands…"),
                     lambda: self.openPrefsDialog("commands"),
                     icon="document-edit",
                 ),
-            )
-        else:
-            commandsMenu.deleteLater()
+            ]
+
+            commandsMenu = ActionDef.makeQMenu(menubar, commandActions)
+            commandsMenu.setObjectName("MWCommandsMenu")
+            commandsMenu.setTitle(_("&Commands"))
+            menubar.insertMenu(helpMenu.menuAction(), commandsMenu)
+            self.globalMenus.append(commandsMenu)
 
         # -------------------------------------------------------------
 
@@ -390,6 +390,7 @@ class MainWindow(QMainWindow):
         recentAction.setMenu(self.recentMenu)
         self.recentMenu.setObjectName("RecentMenu")
         self.recentMenu.setToolTipsVisible(True)
+        self.globalMenus.append(self.recentMenu)
         self.fillRecentMenu()
 
         self.autoHideMenuBar.reconnectToMenus()

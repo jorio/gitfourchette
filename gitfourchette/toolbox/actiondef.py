@@ -101,6 +101,7 @@ class ActionDef:
             return None
 
         submenu = ActionDef.makeQMenu(parent=parent, actionDefs=self.submenu)
+        submenu.setObjectName(f"{parent.objectName()}_ActionDefSubmenu" if parent else "ActionDefSubmenu")
         submenu.setTitle(self.caption)
         submenu.setEnabled(self.enabled)
         if self.icon:
@@ -174,7 +175,7 @@ class ActionDef:
     ) -> QMenu:
 
         menu = QMenu(parent)
-        menu.setObjectName("ActionDefMenu")
+        menu.setObjectName(f"{parent.objectName()}_ActionDefMenu" if parent else "ActionDefMenu")
 
         ActionDef.addToQMenu(menu, *actionDefs)
 
