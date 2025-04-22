@@ -8,7 +8,7 @@ import re
 
 from gitfourchette import colors
 from gitfourchette.qt import *
-from gitfourchette.usercommand import UserCommand
+from gitfourchette.exttools.usercommand import UserCommand
 
 try:
     from pygments.token import Token

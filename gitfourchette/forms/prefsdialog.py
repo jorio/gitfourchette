@@ -7,15 +7,15 @@
 import logging
 from typing import Any
 
+from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.exttools.usercommandsyntaxhighlighter import UserCommandSyntaxHighlighter
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
-from gitfourchette.syntax import ColorScheme, PygmentsPresets, syntaxHighlightingAvailable
 from gitfourchette.qt import *
 from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
+from gitfourchette.syntax import ColorScheme, PygmentsPresets, syntaxHighlightingAvailable
 from gitfourchette.toolbox import *
-from gitfourchette.toolcommands import ToolCommands
 from gitfourchette.trtables import TrTables
-from gitfourchette.usercommandsyntaxhighlighter import UserCommandSyntaxHighlighter
 
 logger = logging.getLogger(__name__)
 

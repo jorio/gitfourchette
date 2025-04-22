@@ -122,7 +122,7 @@ def mainWindow(request, qtbot: QtBot) -> MainWindow:
     # Die here if any dialogs are still visible after the unit test
     assert not leakedDialog, f"Unit test has leaked dialog: '{leakedDialog}'"
 
-    from gitfourchette.mergedriver import MergeDriver
+    from gitfourchette.exttools.mergedriver import MergeDriver
     assert not MergeDriver._ongoingMerges, "Unit test has leaked MergeDriver objects"
 
 

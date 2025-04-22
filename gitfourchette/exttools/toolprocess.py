@@ -4,34 +4,23 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import logging
 import os
 import shlex
 from contextlib import suppress
 from signal import SIGINT
 
+from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.settings import prefs, TEST_MODE
 from gitfourchette.toolbox import *
-from gitfourchette.toolcommands import ToolCommands
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
-
-PREFKEY_EDITOR = "externalEditor"
-PREFKEY_DIFFTOOL = "externalDiff"
-PREFKEY_MERGETOOL = "externalMerge"
-
-
-def openPrefsDialog(parent: QWidget, prefKey: str):
-    from gitfourchette.mainwindow import MainWindow
-    while parent:
-        if isinstance(parent, MainWindow):
-            parent.openPrefsDialog(prefKey)
-            break
-        else:
-            parent = parent.parentWidget()
 
 
 def onLocateTool(prefKey: str, newPath: str):
@@ -88,7 +77,7 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
 
     def onQMBFinished(result):
         if result == configureButtonID:
-            openPrefsDialog(parent, prefKey)
+            GFApplication.instance().openPrefsDialog(prefKey)
         elif result == browseButtonID:
             qfd = QFileDialog(parent, _("Where is {tool}?", tool=lquo(programName)))
             qfd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
@@ -116,11 +105,15 @@ def setUpToolCommand(parent: QWidget, prefKey: str):
     configureButton = qmb.button(QMessageBox.StandardButton.Ok)
     configureButton.setText(_("Set up {tool}", tool=lquo(translatedPrefKey)))
 
-    qmb.accepted.connect(lambda: openPrefsDialog(parent, prefKey))
+    qmb.accepted.connect(lambda: GFApplication.instance().openPrefsDialog(prefKey))
     qmb.show()
 
 
-class ExternalToolProcess(QProcess):
+class ToolProcess(QProcess):
+    PrefKeyEditor = "externalEditor"
+    PrefKeyDiffTool = "externalDiff"
+    PrefKeyMergeTool = "externalMerge"
+
     def __init__(self, parent: QWidget, tokens: list[str], directory: str, detached: bool, prefKey: str):
         super().__init__(parent)
 
@@ -186,65 +179,73 @@ class ExternalToolProcess(QProcess):
         with suppress(TypeError):
             self.parent().destroyed.disconnect(self.onParentDestroyedWhileProcessRunning)
 
+    @classmethod
+    def startProcess(
+            cls,
+            parent: QWidget,
+            prefKey: str,
+            replacements: dict[str, str],
+            positional: list[str],
+            allowQDesktopFallback: bool = False,
+            directory: str = "",
+            detached: bool = False,
+    ) -> ToolProcess | None:
+        assert isinstance(parent, QWidget)
 
-def openInExternalTool(
-        parent: QWidget,
-        prefKey: str,
-        replacements: dict[str, str],
-        positional: list[str],
-        allowQDesktopFallback: bool = False,
-        directory: str = "",
-        detached: bool = False,
-) -> QProcess | None:
+        command = getattr(prefs, prefKey, "").strip()
 
-    assert isinstance(parent, QWidget)
-
-    command = getattr(prefs, prefKey, "").strip()
-
-    if not command and allowQDesktopFallback:
-        for argument in positional:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(argument))
-        return None
-
-    if not command:
-        setUpToolCommand(parent, prefKey)
-        return None
-
-    try:
-        tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory)
-    except ValueError as exc:
-        onExternalToolProcessError(parent, prefKey, compileError=exc)
-        return None
-
-    # Check if the Flatpak is installed
-    if FREEDESKTOP:
-        # Check 'isFlatpakRunCommand' on unfiltered tokens (compileCommand may have added a wrapper)
-        unfilteredTokens = ToolCommands.splitCommandTokens(command)
-        flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(unfilteredTokens)
-        if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex], parent):
-            onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
+        if not command and allowQDesktopFallback:
+            for argument in positional:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(argument))
             return None
 
-    process = ExternalToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey)
-    return process
+        if not command:
+            setUpToolCommand(parent, prefKey)
+            return None
 
+        try:
+            tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory)
+        except ValueError as exc:
+            onExternalToolProcessError(parent, prefKey, compileError=exc)
+            return None
 
-def openInTextEditor(parent: QWidget, path: str):
-    return openInExternalTool(parent, PREFKEY_EDITOR, positional=[path], replacements={},
-                              allowQDesktopFallback=True)
+        # Check if the Flatpak is installed
+        if FREEDESKTOP:
+            # Check 'isFlatpakRunCommand' on unfiltered tokens (compileCommand may have added a wrapper)
+            unfilteredTokens = ToolCommands.splitCommandTokens(command)
+            flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(unfilteredTokens)
+            if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex], parent):
+                onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
+                return None
 
+        process = ToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey)
+        return process
 
-def openInDiffTool(parent: QWidget, a: str, b: str):
-    return openInExternalTool(parent, PREFKEY_DIFFTOOL, positional=[],
-                              replacements={"$L": a, "$R": b})
+    @classmethod
+    def startTextEditor(cls, parent: QWidget, path: str):
+        return cls.startProcess(
+            parent,
+            cls.PrefKeyEditor,
+            positional=[path],
+            replacements={},
+            allowQDesktopFallback=True)
 
+    @classmethod
+    def startDiffTool(cls, parent: QWidget, a: str, b: str):
+        return cls.startProcess(
+            parent,
+            cls.PrefKeyDiffTool,
+            positional=[],
+            replacements={"$L": a, "$R": b})
 
-def openTerminal(parent: QWidget, workdir: str, command: str = ""):
-    launcherScriptPath = ToolCommands.makeTerminalScript(workdir, command)
+    @classmethod
+    def startTerminal(cls, parent: QWidget, workdir: str, command: str = ""):
+        launcherScriptPath = ToolCommands.makeTerminalScript(workdir, command)
 
-    return openInExternalTool(
-        parent=parent,
-        prefKey="terminal",
-        replacements={"$COMMAND": launcherScriptPath},
-        positional=[],
-        directory=workdir, detached=True)
+        return cls.startProcess(
+            parent=parent,
+            prefKey="terminal",
+            replacements={"$COMMAND": launcherScriptPath},
+            positional=[],
+            directory=workdir,
+            detached=True)

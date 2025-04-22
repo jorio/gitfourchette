@@ -6,11 +6,9 @@
 
 import dataclasses
 
-import pytest
-
+from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarNode
-from gitfourchette.usercommand import UserCommand
 from .util import *
 
 

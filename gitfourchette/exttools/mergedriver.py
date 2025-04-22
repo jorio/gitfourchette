@@ -13,11 +13,11 @@ import os
 import shutil
 
 from gitfourchette import settings
-from gitfourchette.exttools import openInExternalTool, PREFKEY_MERGETOOL
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo, DiffConflict
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
+from gitfourchette.exttools.toolprocess import ToolProcess
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class MergeDriver(QObject):
             "$M": self.scratchPath
         }
         parentWidget = findParentWidget(self)
-        self.process = openInExternalTool(parentWidget, PREFKEY_MERGETOOL, replacements=tokens, positional=[])
+        self.process = ToolProcess.startProcess(parentWidget, ToolProcess.PrefKeyMergeTool, replacements=tokens, positional=[])
         if not self.process:
             return
         self.processName = settings.getMergeToolName()

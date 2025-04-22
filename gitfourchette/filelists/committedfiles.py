@@ -8,7 +8,7 @@ import errno
 import os
 
 from gitfourchette import settings
-from gitfourchette.exttools import openInTextEditor
+from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList, SelectedFileBatchError
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
@@ -138,7 +138,7 @@ class CommittedFiles(FileList):
     def openRevision(self, beforeCommit: bool = False):
         def run(patch: Patch):
             tempPath = self.saveRevisionAsTempFile(patch, beforeCommit)
-            openInTextEditor(self, tempPath)
+            ToolProcess.startTextEditor(self, tempPath)
 
         if beforeCommit:
             title = _("Open revision before commit")
@@ -197,7 +197,7 @@ class CommittedFiles(FileList):
             diffFile = patch.delta.new_file
             path = self.repo.in_workdir(diffFile.path)
             if os.path.isfile(path):
-                openInTextEditor(self, path)
+                ToolProcess.startTextEditor(self, path)
             else:
                 raise SelectedFileBatchError(_("{0}: There’s no file at this path in the working copy.", diffFile.path))
 

@@ -327,7 +327,7 @@ class TrTables:
     @staticmethod
     def _init_prefKeys():
         from gitfourchette.toolbox.textutils import paragraphs, hquo, tquo
-        from gitfourchette.usercommand import UserCommand
+        from gitfourchette.exttools.usercommand import UserCommand
 
         userCommandHelp = paragraphs(
             _("You can define custom commands to run in a terminal (one command per line). "

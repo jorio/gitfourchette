@@ -10,8 +10,8 @@ import shutil
 from contextlib import suppress
 
 from gitfourchette import reverseunidiff
+from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.localization import *
-from gitfourchette.mergedriver import MergeDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *

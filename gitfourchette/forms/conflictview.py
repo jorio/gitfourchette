@@ -3,20 +3,21 @@
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
+
 import logging
 import os
 from dataclasses import dataclass
 from typing import Literal
 
 from gitfourchette import settings, colors
-from gitfourchette.exttools import PREFKEY_MERGETOOL
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
 from gitfourchette.localization import *
-from gitfourchette.mergedriver import MergeDriver
+from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.porcelain import NULL_OID, DiffConflict, ConflictSides, Repo
 from gitfourchette.qt import *
 from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution
 from gitfourchette.toolbox import *
+from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ class ConflictView(QWidget):
         tweakWidgetFont(self.ui.titleLabel, 130)
         tweakWidgetFont(self.ui.mergeToolButton, 88)
 
-        self.ui.mergeToolButton.clicked.connect(lambda: self.openPrefs.emit(PREFKEY_MERGETOOL))
+        self.ui.mergeToolButton.clicked.connect(lambda: self.openPrefs.emit(ToolProcess.PrefKeyMergeTool))
         self.ui.oursButton.clicked.connect(lambda: self.execute("ours"))
         self.ui.theirsButton.clicked.connect(lambda: self.execute("theirs"))
         self.ui.confirmDeletionButton.clicked.connect(lambda: self.execute("ancestor"))

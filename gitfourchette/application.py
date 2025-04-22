@@ -386,3 +386,9 @@ class GFApplication(QApplication):
         self.setStyleSheet(styleSheet)
 
         ColorScheme.refreshFallbackScheme()
+
+    # -------------------------------------------------------------------------
+    # Utilities
+
+    def openPrefsDialog(self, prefKey: str):
+        self.mainWindow.openPrefsDialog(prefKey)

@@ -20,7 +20,7 @@ from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffview import DiffView
-from gitfourchette.exttools import openPrefsDialog
+from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.maintoolbar import MainToolBar
@@ -37,7 +37,6 @@ from gitfourchette.tasks import TaskBook
 from gitfourchette.toolbox import *
 from gitfourchette.toolbox.fittedtext import FittedText
 from gitfourchette.trash import Trash
-from gitfourchette.usercommand import UserCommand
 
 logger = logging.getLogger(__name__)
 
@@ -489,7 +488,7 @@ class MainWindow(QMainWindow):
             ActionDef.SEPARATOR,
             *rw.pathsMenuItems(),
             ActionDef.SEPARATOR,
-            ActionDef(_("Configure Tabs…"), lambda: openPrefsDialog(self, "tabCloseButton")),
+            ActionDef(_("Configure Tabs…"), lambda: self.openPrefsDialog("tabCloseButton")),
         )
 
         return menu

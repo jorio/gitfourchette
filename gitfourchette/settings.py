@@ -12,6 +12,7 @@ import sys
 from contextlib import suppress
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
 from gitfourchette.qt import *
@@ -20,7 +21,6 @@ from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL
 from gitfourchette.toolbox.gitutils import AuthorDisplayStyle
 from gitfourchette.toolbox.pathutils import PathDisplayStyle
 from gitfourchette.toolbox.textutils import englishTitleCase
-from gitfourchette.toolcommands import ToolCommands
 
 logger = logging.getLogger(__name__)
 

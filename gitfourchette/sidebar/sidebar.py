@@ -12,6 +12,7 @@ from contextlib import suppress
 from gitfourchette import porcelain
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, RefPrefix
@@ -23,7 +24,6 @@ from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, Sideba
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
-from gitfourchette.usercommand import UserCommand
 from gitfourchette.webhost import WebHost
 
 INVALID_MOUSEPRESS = (-1, SidebarClickZone.Invalid)

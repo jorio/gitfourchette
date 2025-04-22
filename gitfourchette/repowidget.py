@@ -14,7 +14,8 @@ from gitfourchette.diffarea import DiffArea
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
-from gitfourchette.exttools import PREFKEY_MERGETOOL, openInTextEditor, openTerminal
+from gitfourchette.exttools.toolprocess import ToolProcess
+from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
 from gitfourchette.forms.openrepoprogress import OpenRepoProgress
 from gitfourchette.forms.searchbar import SearchBar
@@ -30,7 +31,6 @@ from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook, AbortMerge, RepoTaskRunner
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
-from gitfourchette.usercommand import UserCommand
 
 logger = logging.getLogger(__name__)
 
@@ -624,7 +624,7 @@ class RepoWidget(QStackedWidget):
     def _openLocalConfigFile(self, fullPath: str):
         def createAndOpen():
             open(fullPath, "ab").close()
-            openInTextEditor(self, fullPath)
+            ToolProcess.startTextEditor(self, fullPath)
 
         if not os.path.exists(fullPath):
             basename = os.path.basename(fullPath)
@@ -637,10 +637,10 @@ class RepoWidget(QStackedWidget):
                 okButtonText=_("Create {0}", lquo(basename)),
                 callback=createAndOpen)
         else:
-            openInTextEditor(self, fullPath)
+            ToolProcess.startTextEditor(self, fullPath)
 
     def openTerminal(self):
-        openTerminal(self, self.workdir)
+        ToolProcess.startTerminal(self, self.workdir)
 
     def executeUserCommand(self, command: UserCommand):
         title = _("Run Command")
@@ -657,7 +657,7 @@ class RepoWidget(QStackedWidget):
             return
 
         def run():
-            openTerminal(self, self.workdir, compiledCommand)
+            ToolProcess.startTerminal(self, self.workdir, compiledCommand)
 
         if command.alwaysConfirm or settings.prefs.confirmCommands:
             if not command.userTitle:
@@ -939,7 +939,7 @@ class RepoWidget(QStackedWidget):
         self.diffView.refreshPrefs()
         self.specialDiffView.refreshPrefs()
         self.graphView.refreshPrefs()
-        if PREFKEY_MERGETOOL in prefDiff:
+        if ToolProcess.PrefKeyMergeTool in prefDiff:
             self.conflictView.refreshPrefs()
         self.sidebar.refreshPrefs()
         self.dirtyFiles.refreshPrefs()

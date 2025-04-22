@@ -20,7 +20,7 @@ from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import RefPrefix, split_remote_branch_shorthand
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from gitfourchette.toolbox import escamp
-from gitfourchette.toolcommands import ToolCommands
+from gitfourchette.exttools.toolcommands import ToolCommands
 
 if TYPE_CHECKING:
     from gitfourchette.repowidget import RepoWidget

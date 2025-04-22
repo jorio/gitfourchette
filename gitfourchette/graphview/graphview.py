@@ -8,6 +8,7 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graph import MockCommit
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
@@ -20,7 +21,6 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
-from gitfourchette.usercommand import UserCommand
 
 
 class GraphView(QListView):

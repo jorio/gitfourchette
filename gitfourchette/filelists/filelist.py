@@ -10,7 +10,8 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
-from gitfourchette.exttools import openInTextEditor, openInDiffTool
+from gitfourchette.exttools.toolprocess import ToolProcess
+from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.localization import *
@@ -20,7 +21,6 @@ from gitfourchette.qt import *
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
-from gitfourchette.usercommand import UserCommand
 
 
 class SelectedFileBatchError(Exception):
@@ -356,7 +356,7 @@ class FileList(QListView):
     def openWorkdirFile(self):
         def run(patch: Patch):
             entryPath = self.repo.in_workdir(patch.delta.new_file.path)
-            openInTextEditor(self, entryPath)
+            ToolProcess.startTextEditor(self, entryPath)
 
         self.confirmBatch(run, _("Open in external editor"),
                           _("Really open <b>{n} files</b> in external editor?"))
@@ -392,7 +392,7 @@ class FileList(QListView):
             oldPath = dumpTempBlob(self.repo, diffDir, oldDiffFile, "OLD")
             newPath = dumpTempBlob(self.repo, diffDir, newDiffFile, "NEW")
 
-        openInDiffTool(self, oldPath, newPath)
+        return ToolProcess.startDiffTool(self, oldPath, newPath)
 
     def showInFolder(self):
         def run(entry: Patch):
@@ -592,7 +592,7 @@ class FileList(QListView):
     def openHeadRevision(self):
         def run(patch: Patch):
             tempPath = dumpTempBlob(self.repo, qTempDir(), patch.delta.old_file, "HEAD")
-            openInTextEditor(self, tempPath)
+            ToolProcess.startTextEditor(self, tempPath)
 
         self.confirmBatch(run, _("Open HEAD version of file"),
                           _("Really open <b>{n} files</b> in external editor?"))

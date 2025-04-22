@@ -17,7 +17,6 @@ from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffrubberband import DiffRubberBand
 from gitfourchette.diffview.diffsyntaxhighlighter import DiffSyntaxHighlighter
-from gitfourchette.exttools import openPrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
@@ -557,7 +556,7 @@ class DiffView(QPlainTextEdit):
         actions += [
             ActionDef.SEPARATOR,
             ActionDef(_("&Word Wrap"), self.toggleWordWrap, checkState=1 if settings.prefs.wordWrap else -1),
-            ActionDef(_("Configure Appearance…"), lambda: openPrefsDialog(self, "font"), icon="configure"),
+            ActionDef(_("Configure Appearance…"), lambda: GFApplication.instance().openPrefsDialog("font"), icon="configure"),
         ]
 
         bottom: QMenu = self.createStandardContextMenu()
