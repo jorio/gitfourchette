@@ -12,7 +12,7 @@ import sys
 from contextlib import suppress
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
-from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
 from gitfourchette.qt import *
@@ -135,9 +135,9 @@ class Prefs(PrefsFile):
 
     _category_external          : int                   = 0
     externalEditor              : str                   = ""
-    externalDiff                : str                   = ToolCommands.DiffPresets[ToolCommands.DefaultDiffPreset]
-    externalMerge               : str                   = ToolCommands.MergePresets[ToolCommands.DefaultMergePreset]
-    terminal                    : str                   = ToolCommands.TerminalPresets[ToolCommands.DefaultTerminalPreset]
+    externalDiff                : str                   = ToolPresets.DefaultDiffCommand
+    externalMerge               : str                   = ToolPresets.DefaultMergeCommand
+    terminal                    : str                   = ToolPresets.DefaultTerminalCommand
 
     _category_userCommands      : int                   = 0
     commands                    : str                   = STOCK_COMMANDS
@@ -359,14 +359,14 @@ def qtIsNativeMacosStyle():  # pragma: no cover
 
 def getExternalEditorName():
     genericName = englishTitleCase(_("External editor"))
-    return ToolCommands.getCommandName(prefs.externalEditor, genericName, ToolCommands.EditorPresets)
+    return ToolPresets.getCommandName(prefs.externalEditor, genericName, ToolPresets.Editors)
 
 
 def getDiffToolName():
     genericName = englishTitleCase(_("Diff tool"))
-    return ToolCommands.getCommandName(prefs.externalDiff, genericName, ToolCommands.DiffPresets)
+    return ToolPresets.getCommandName(prefs.externalDiff, genericName, ToolPresets.DiffTools)
 
 
 def getMergeToolName():
     genericName = englishTitleCase(_("Merge tool"))
-    return ToolCommands.getCommandName(prefs.externalMerge, genericName, ToolCommands.MergePresets)
+    return ToolPresets.getCommandName(prefs.externalMerge, genericName, ToolPresets.MergeTools)

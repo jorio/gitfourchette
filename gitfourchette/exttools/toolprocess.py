@@ -13,6 +13,7 @@ from contextlib import suppress
 from signal import SIGINT
 
 from gitfourchette.application import GFApplication
+from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.settings import prefs, TEST_MODE
@@ -36,7 +37,7 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
     assert isinstance(parent, QWidget)
 
     commandString = getattr(prefs, prefKey)
-    programName = ToolCommands.getCommandName(commandString, "", {})
+    programName = ToolPresets.getCommandName(commandString)
 
     translatedPrefKey = TrTables.prefKey(prefKey)
 

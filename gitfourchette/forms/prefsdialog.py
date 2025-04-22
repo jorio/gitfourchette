@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.exttools.usercommandsyntaxhighlighter import UserCommandSyntaxHighlighter
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -270,18 +271,19 @@ class PrefsDialog(QDialog):
         elif key == "renderSvg":
             return self.boolComboBoxControl(key, value, falseName=_("Text"), trueName=_("Image"))
         elif key == "externalEditor":
-            return self.strControlWithPresets(key, value, ToolCommands.EditorPresets, leaveBlankHint=True)
+            return self.strControlWithPresets(key, value, ToolPresets.Editors, leaveBlankHint=True)
         elif key == "externalDiff":
             return self.strControlWithPresets(
-                key, value, ToolCommands.DiffPresets,
+                key, value, ToolPresets.DiffTools,
                 validate=lambda cmd: ToolCommands.checkCommand(cmd, "$L", "$R"))
         elif key == "externalMerge":
             return self.strControlWithPresets(
-                key, value, ToolCommands.MergePresets,
+                key, value, ToolPresets.MergeTools,
                 validate=lambda cmd: ToolCommands.checkCommand(cmd, "$L", "$R", "$B", "$M"))
         elif key == "terminal":
-            return self.strControlWithPresets(key, value, ToolCommands.TerminalPresets,
-                                              validate=lambda cmd: ToolCommands.checkCommand(cmd, "$COMMAND"))
+            return self.strControlWithPresets(
+                key, value, ToolPresets.Terminals,
+                validate=lambda cmd: ToolCommands.checkCommand(cmd, "$COMMAND"))
         elif key == "commands":
             return self.userCommandTextEditControl(key, value)
         elif key in ["largeFileThresholdKB", "imageFileThresholdKB", "maxTrashFileKB"]:
