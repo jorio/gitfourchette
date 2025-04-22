@@ -11,6 +11,7 @@ import shlex
 import shutil
 import textwrap
 from collections.abc import Sequence
+from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette.localization import *
@@ -297,6 +298,8 @@ class ToolCommands:
     def injectReplacements(cls, tokens: list[str], replacements: dict[str, str]) -> list[str]:
         newTokens = []
 
+        mandatoryTokensRemaining = list(replacements.keys())
+
         for token in tokens:
             matches = list(_placeholderPattern.finditer(token))
 
@@ -305,12 +308,18 @@ class ToolCommands:
                 try:
                     replacement = replacements[placeholder]
                 except KeyError as replacementNotFoundError:
-                    raise ValueError(_("Placeholder token {0} isn’t supported here.", placeholder)
+                    raise ValueError(_("Unknown placeholder: {0}", placeholder)
                                      ) from replacementNotFoundError
+                with suppress(ValueError):
+                    mandatoryTokensRemaining.remove(placeholder)
                 token = token[:match.start()] + replacement + token[match.end():]
 
             if token:
                 newTokens.append(token)
+
+        if mandatoryTokensRemaining:
+            raise ValueError(_n("Missing placeholder:", "Missing placeholders:", len(mandatoryTokensRemaining))
+                             + " " + ", ".join(mandatoryTokensRemaining))
 
         return newTokens
 

@@ -41,7 +41,9 @@ def onLocateTool(prefKey: str, newPath: str):
     prefs.write()
 
 
-def onExternalToolProcessError(parent: QWidget, prefKey: str, isKnownFlatpak=False):
+def onExternalToolProcessError(parent: QWidget, prefKey: str,
+                               isKnownFlatpak=False,
+                               compileError: Exception | None = None):
     assert isinstance(parent, QWidget)
 
     commandString = getattr(prefs, prefKey)
@@ -51,12 +53,17 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str, isKnownFlatpak=Fal
 
     title = _("Failed to start {tool}", tool=translatedPrefKey)
 
-    if isKnownFlatpak:
-        message = _("Couldn’t start Flatpak {command} ({tool}).")
+    if compileError:
+        message = _("There is an issue with the {tool} command template in your settings:").format(tool=tquo(translatedPrefKey))
+        message += f"<pre>{escape(commandString)}</pre>"
+        message += "&rarr; " + str(compileError)
     else:
-        message = _("Couldn’t start {command} ({tool}).")
-    message = message.format(tool=translatedPrefKey, command=bquo(programName))
-    message += " " + _("It might not be installed on your machine.")
+        if isKnownFlatpak:
+            message = _("Couldn’t start Flatpak {command} ({tool}).")
+        else:
+            message = _("Couldn’t start {command} ({tool}).")
+        message = message.format(tool=translatedPrefKey, command=bquo(programName))
+        message += " " + _("It might not be installed on your machine.")
 
     configureButtonID = QMessageBox.StandardButton.Ok
     browseButtonID = QMessageBox.StandardButton.Open
@@ -65,16 +72,19 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str, isKnownFlatpak=Fal
                           configureButtonID | browseButtonID | QMessageBox.StandardButton.Cancel)
 
     configureButton = qmb.button(configureButtonID)
-    configureButton.setText(_("Change tool…"))
+    configureButton.setText(_("Edit Command…"))
     configureButton.setIcon(stockIcon("configure"))
 
     browseButton = qmb.button(browseButtonID)
     browseButton.setText(_("Locate {tool}…", tool=lquo(programName)))
 
+    removeBrowseButton = bool(compileError)
     if FREEDESKTOP:
         tokens = ToolCommands.splitCommandTokens(commandString)
         if ToolCommands.isFlatpakRunCommand(tokens):
-            qmb.removeButton(browseButton)
+            removeBrowseButton = True
+    if removeBrowseButton:
+        qmb.removeButton(browseButton)
 
     def onQMBFinished(result):
         if result == configureButtonID:
@@ -189,9 +199,7 @@ def openInExternalTool(
 
     assert isinstance(parent, QWidget)
 
-    from gitfourchette import settings
-
-    command = getattr(settings.prefs, prefKey, "").strip()
+    command = getattr(prefs, prefKey, "").strip()
 
     if not command and allowQDesktopFallback:
         for argument in positional:
@@ -202,7 +210,11 @@ def openInExternalTool(
         setUpToolCommand(parent, prefKey)
         return None
 
-    tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory)
+    try:
+        tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory)
+    except ValueError as exc:
+        onExternalToolProcessError(parent, prefKey, compileError=exc)
+        return None
 
     # Check if the Flatpak is installed
     if FREEDESKTOP:

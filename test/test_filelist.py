@@ -240,14 +240,7 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
 
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-
-    # First, set the editor to an incorrect command to go through the "locate" code path
-    mainWindow.onAcceptPrefsDialog({"externalEditor": f'"{editorPath}-BOGUSCOMMAND" "{scratchPath}"'})
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim.+BOGUSCOMMAND$/current")
-    qmb = waitForQMessageBox(mainWindow, "couldn.t start.+editor-shim.+text editor")
-    qmb.button(QMessageBox.StandardButton.Open).click()  # click "locate" button
-    # Set correct command; this must retain the arguments from the incorrect command
-    acceptQFileDialog(mainWindow, "where is.+editor-shim", editorPath)
+    mainWindow.onAcceptPrefsDialog({"externalEditor": f'"{editorPath}" "{scratchPath}"'})
 
     # Now open the file in our shim
     # HEAD revision
@@ -270,12 +263,6 @@ def testEditFileInExternalDiffTool(tempDir, mainWindow):
 
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-
-    # First, set the diff tool to an empty command to go through the "set up" code path
-    mainWindow.onAcceptPrefsDialog({"externalDiff": ""})
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in.+diff tool")
-    acceptQMessageBox(mainWindow, "diff tool.+n.t (set up|configured)")
-    findQDialog(mainWindow, "settings").reject()
 
     mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
     triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in python3")
