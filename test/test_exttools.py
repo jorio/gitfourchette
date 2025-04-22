@@ -69,7 +69,6 @@ def testTerminalPlaceholderTokenMissing(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
-@pytest.mark.skipif(MACOS, reason="TODO: rc 127 ignored in conjunction when starting mac/wrapper.sh detached")
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 def testTerminalCommandNotFound(tempDir, mainWindow):
     shim = getTestDataPath("editor-shim.py")

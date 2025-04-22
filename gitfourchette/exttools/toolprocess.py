@@ -133,8 +133,17 @@ class ToolProcess(QProcess):
         # When the parent dies, don't let callbacks hit zombie objects.
         parent.destroyed.connect(self.onParentDestroyedWhileProcessRunning)
 
+        # Decide whether to actually start detached
+        if FLATPAK:
+            # Flatpaks detach from process via ToolCommands.compileCommand
+            startDetached = False
+        elif MACOS:
+            startDetached = detached and tokens[0] != "/usr/bin/open"
+        else:
+            startDetached = detached
+
         logger.info("Process starting: " + shlex.join(tokens))
-        if detached and not FLATPAK:  # Flatpaks detach from process via ToolCommands.compileCommand
+        if startDetached:
             self.startDetached()
         else:
             self.start()

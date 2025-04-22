@@ -40,7 +40,7 @@ class ToolCommands:
         "Beyond Compare": "bcompare $L $R",
         "CLion"         : "clion diff $L $R",
         "DiffMerge"     : "diffmerge $L $R",
-        "FileMerge"     : "opendiff $L $R",
+        "FileMerge"     : "assets:mac/opendiff.sh $L $R",
         "GVim"          : "gvim -f -d $L $R",
         "IntelliJ IDEA" : "idea diff $L $R",
         "KDiff3"        : "kdiff3 $L $R",
@@ -60,7 +60,7 @@ class ToolCommands:
         "Beyond Compare": "bcompare $L $R $B $M",
         "CLion"         : "clion merge $L $R $B $M",
         "DiffMerge"     : "diffmerge --merge --result=$M $L $B $R",
-        "FileMerge"     : "opendiff -ancestor $B $L $R -merge $M",
+        "FileMerge"     : "assets:mac/opendiff.sh -ancestor $B $L $R -merge $M",
         "GVim"          : "gvim -f -d -c 'wincmd J' $M $L $B $R",
         "IntelliJ IDEA" : "idea merge $L $R $B $M",
         "KDiff3"        : "kdiff3 --merge $B $L $R --output $M",
@@ -355,13 +355,12 @@ class ToolCommands:
         if flatpakRefTokenIndex > 0:
             tokens.insert(flatpakRefTokenIndex, f"--filesystem={directory}")
 
-        # macOS-specific wrapper:
-        # - Launch ".app" bundles properly.
-        # - Wait on opendiff (Xcode FileMerge).
-        if MACOS:
-            launcherScript = QFile("assets:mac/wrapper.sh")
-            assert launcherScript.exists()
-            tokens.insert(0, launcherScript.fileName())
+        # Launch macOS app bundle
+        if MACOS and tokens and tokens[0].endswith(".app"):
+            flags = "-nF"
+            if not detached:
+                flags += "W"
+            tokens = ["/usr/bin/open", flags, tokens[0], "--args"] + tokens[1:]
 
         # Flatpak-specific wrapper:
         # - Run external tool outside flatpak sandbox.
