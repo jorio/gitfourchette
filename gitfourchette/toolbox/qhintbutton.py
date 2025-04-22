@@ -21,4 +21,4 @@ class QHintButton(QToolButton):
         self.connectClicked()
 
     def connectClicked(self):
-        self.clicked[bool].connect(lambda _: QToolTip.showText(QCursor.pos(), self.toolTip(), self))  # [bool]: for PySide <6.7.0 (PYSIDE-2524)
+        self.clicked.connect(lambda _: QToolTip.showText(QCursor.pos(), self.toolTip(), self))

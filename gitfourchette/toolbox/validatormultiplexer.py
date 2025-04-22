@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -80,7 +80,7 @@ class ValidatorMultiplexer(QObject):
         edit.textChanged.connect(self.run)
 
         self.toolTipDelay.timeout.connect(lambda: self.showToolTip(newInput, False))
-        errorButton.triggered[bool].connect(lambda _: self.showToolTip(newInput, True))  # [bool]: for PySide <6.7.0 (PYSIDE-2524)
+        errorButton.triggered.connect(lambda _: self.showToolTip(newInput, True))
 
     def run(self, silenceEmptyWarnings=False):
         self.toolTipDelay.stop()

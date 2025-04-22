@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -339,7 +339,7 @@ class QTabWidget2(QWidget):
             action = QAction(self.overflowMenu)
             action.setText(self.tabs.tabText(i))
             action.setToolTip(self.tabs.tabToolTip(i))
-            action.triggered[bool].connect(lambda _dummy, j=i: self.setCurrentIndex(j))  # [bool] for PySide6 <6.7.0 (PYSIDE-2524)
+            action.triggered.connect(lambda _dummy, j=i: self.setCurrentIndex(j))
             self.overflowMenu.addAction(action)
 
         pos = self.mapToGlobal(self.overflowButton.pos() + self.overflowButton.rect().bottomLeft())

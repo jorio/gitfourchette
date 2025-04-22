@@ -99,14 +99,9 @@ def isImageFormatSupported(filename: str):
 
 
 def setFontFeature(font: QFont, fourCC: str, value: int = 1):
-    # Feature introduced in Qt 6.7.
-    # As of 1/2025, only PyQt6 supports it.
     try:
         font.setFeature(QFont.Tag(fourCC), value)
-    except TypeError:
-        # PySide6 currently cannot construct a QFont.Tag
-        pass
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         # Mitigation for pre-Qt 6.7 bindings
         pass
     return font
@@ -345,7 +340,7 @@ def makeMultiShortcut(*args) -> MultiShortcut:
             shortcuts.append(QKeySequence(alt))
         elif t is QKeySequence.StandardKey:
             shortcuts.extend(QKeySequence.keyBindings(alt))
-        elif t is Qt.Key:  # for PySide2 compat
+        elif t is Qt.Key:
             shortcuts.append(QKeySequence(alt))
         else:
             assert t is QKeySequence

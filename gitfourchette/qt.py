@@ -82,7 +82,7 @@ def _bail(message: str):
 for _tentative in _qtBindingOrder:
     assert _tentative.islower()
 
-    try:
+    with _suppress(ImportError):
         if _tentative == "pyside6":
             from PySide6.QtCore import *
             from PySide6.QtWidgets import *
@@ -90,7 +90,6 @@ for _tentative in _qtBindingOrder:
             from PySide6 import __version__ as QT_BINDING_VERSION
             QT_BINDING = "PySide6"
             QT6 = PYSIDE6 = True
-
         elif _tentative == "pyqt6":
             from PyQt6.QtCore import *
             from PyQt6.QtWidgets import *
@@ -98,7 +97,6 @@ for _tentative in _qtBindingOrder:
             QT_BINDING_VERSION = PYQT_VERSION_STR
             QT_BINDING = "PyQt6"
             QT6 = PYQT6 = True
-
         elif _tentative == "pyqt5":
             from PyQt5.QtCore import *
             from PyQt5.QtWidgets import *
@@ -106,17 +104,12 @@ for _tentative in _qtBindingOrder:
             QT_BINDING_VERSION = PYQT_VERSION_STR
             QT_BINDING = "PyQt5"
             QT5 = PYQT5 = True
-
         else:
             _logger.warning(f"Unsupported Qt binding {_tentative}")
-            continue
 
-        break
-
-    except ImportError:
-        continue
-
-if not QT_BINDING:
+    if QT_BINDING:
+        break  # We've successfully imported a binding, stop looking at candidates
+else:
     _bail("No Qt binding found. Please install PyQt6 or PySide6.")
 
 # -----------------------------------------------------------------------------
@@ -169,18 +162,6 @@ try:
         raise ImportError("QtSvg")
 except ImportError:
     _bail(f"{QT_BINDING} was found, but {QT_BINDING}'s bindings for QtSvg are missing.\n\nYour Linux distribution probably provides them as a separate package. Please install it and try again.")
-
-# -----------------------------------------------------------------------------
-# Exclude some known bad PySide6 versions
-
-if PYSIDE6:
-    _badPyside6Versions = [
-        "6.4.0",  # PYSIDE-2104
-        "6.4.0.1",  # PYSIDE-2104
-        "6.5.1",  # PYSIDE-2346
-    ]
-    if any(v == QT_BINDING_VERSION for v in _badPyside6Versions):
-        _bail(f"PySide6 version {QT_BINDING_VERSION} isn't supported.\nPlease upgrade to the latest version of PySide6.")
 
 # -----------------------------------------------------------------------------
 # Patch some holes and incompatibilities in Qt bindings
