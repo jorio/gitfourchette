@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from collections.abc import Iterable
 from contextlib import suppress
 
 from gitfourchette import settings
@@ -28,6 +29,7 @@ class MainToolBar(QToolBar):
 
     backAction: QAction
     forwardAction: QAction
+    terminalAction: QAction
     recentAction: QAction
 
     def __init__(self, parent: QWidget):
@@ -50,6 +52,12 @@ class MainToolBar(QToolBar):
 
         self.workdirAction = TaskBook.toolbarAction(self, tasks.JumpToUncommittedChanges).toQAction(self)
         self.headAction = TaskBook.toolbarAction(self, tasks.JumpToHEAD).toQAction(self)
+
+        self.terminalAction = ActionDef(
+            _("Terminal"), self.openTerminal, icon="terminal",
+            shortcuts=GlobalShortcuts.openTerminal,
+            tip=_("Open a terminal in the repo")
+        ).toQAction(self)
 
         self.recentAction = ActionDef(
             _("Open…"), self.openDialog, icon="git-folder",
@@ -78,10 +86,7 @@ class MainToolBar(QToolBar):
             TaskBook.toolbarAction(self, tasks.PushBranch),
             ActionDef.SPACER,
 
-            ActionDef(_("Terminal"), self.openTerminal, icon="terminal",
-                      shortcuts=GlobalShortcuts.openTerminal,
-                      tip=_("Open a terminal in the repo")),
-
+            self.terminalAction,
             ActionDef(_("Reveal"), self.reveal, icon="reveal",
                       shortcuts=GlobalShortcuts.openRepoFolder,
                       tip=_("Open repo folder in file manager")),
@@ -208,3 +213,24 @@ class MainToolBar(QToolBar):
         else:
             self.backAction.setEnabled(rw.navHistory.canGoBack())
             self.forwardAction.setEnabled(rw.navHistory.canGoForward())
+
+    def setTerminalActions(self, newActions: Iterable[QAction]):
+        terminalAction = self.terminalAction
+        terminalButton = self.widgetForAction(terminalAction)
+        terminalMenu = terminalAction.menu()
+
+        assert isinstance(terminalButton, QToolButton)
+
+        if newActions:
+            if not terminalMenu:
+                terminalMenu = QMenu(terminalButton)
+                terminalMenu.setObjectName("MainToolBarTerminalMenu")
+                terminalAction.setMenu(terminalMenu)
+                terminalButton.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+            terminalMenu.clear()
+            terminalMenu.addActions(newActions)
+        elif terminalMenu:
+            # The QToolButton will show an arrow as long as there's a menu, even if it's empty
+            terminalMenu.deleteLater()
+            terminalAction.setMenu(None)
+            terminalButton.setPopupMode(QToolButton.ToolButtonPopupMode.DelayedPopup)

@@ -103,6 +103,7 @@ locHead = NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"
     "params",
 
     TokenParams("hello world", "hello world"),
+    TokenParams("hello world", "hello world", actionSource="toolbar"),
 
     TokenParams("sel commit", locOriginMaster.hash7, locOriginMaster),
     TokenParams("sel commit", locOriginMaster.hash7, locOriginMaster, actionSource="graphview"),
@@ -160,6 +161,9 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     if params.actionSource == "menu":
         menu = mainWindow.menuBar()
         action = findMenuAction(menu, "commands/" + params.menuName)
+    elif params.actionSource == "toolbar":
+        menu = mainWindow.mainToolBar.terminalAction.menu()
+        action = findMenuAction(menu, params.menuName)
     elif params.actionSource == "graphview":
         menu = rw.graphView.makeContextMenu()
         action = findMenuAction(menu, r"\(command\) " + params.menuName)

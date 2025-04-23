@@ -364,6 +364,14 @@ class MainWindow(QMainWindow):
             menubar.insertMenu(helpMenu.menuAction(), commandsMenu)
             self.globalMenus.append(commandsMenu)
 
+            # Don't share commandsMenu with the terminal button: commandsMenu.aboutToShow
+            # would fire via the terminal button's popup routine, causing AutoHideMenuBar to
+            # show the entire menu bar.
+            # Do share the actions themselves so that the keyboard shortcuts work.
+            self.mainToolBar.setTerminalActions(commandsMenu.actions())
+        else:
+            self.mainToolBar.setTerminalActions([])
+
         # -------------------------------------------------------------
 
         a = helpMenu.addAction(_("&About {0}", qAppName()), lambda: AboutDialog.popUp(self))
