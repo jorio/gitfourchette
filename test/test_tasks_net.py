@@ -552,6 +552,8 @@ def testPush(tempDir, mainWindow, asNewBranch):
         assert rw.repo.branches["master"].upstream_name == "refs/remotes/localfs/new"
 
 
+@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
+                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testShadowUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, keepOldUpstream=True)
