@@ -192,18 +192,19 @@ class ToolCommands:
         # That's why we generate a bespoke launcher script on the fly.
 
         shell = shell or cls.defaultShell()
-        shellKey = " "
+        yKey = "y"
+        nKey = "n"
         wrapperPath = QFile("assets:termcmd.sh").fileName()
         exitMessage = _("Command exited with code:")
-        keyPrompt = _("Hit {0} to continue in a shell, or any other key to exit:"
-                      ).format(QKeySequence(shellKey).toString(QKeySequence.SequenceFormat.NativeText))
+        keyPrompt = _("Continue in a shell?") + f" [{yKey.upper()}/{nKey}]"
 
         script = textwrap.dedent(f"""\
             #!/usr/bin/env bash
             _GF_COMMAND="{command}"
             _GF_APPNAME={shlex.quote(qAppName())}
             _GF_SHELL={shlex.quote(shell)}
-            _GF_SHELLKEY={shlex.quote(shellKey)}
+            _GF_YKEY={shlex.quote(yKey)}
+            _GF_NKEY={shlex.quote(nKey)}
             _GF_EXITMESSAGE={shlex.quote(exitMessage)}
             _GF_KEYPROMPT={shlex.quote(keyPrompt)}
             _GF_WORKDIR={shlex.quote(workdir)}

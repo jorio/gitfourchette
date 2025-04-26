@@ -11,12 +11,18 @@ debrief()
     # Report command exit code
     exitcolor=32  # green
     [ $exitcode -ne 0 ] && exitcolor=31  # red
-    printf "\n%b %s \e[${exitcolor}m$exitcode\e[0m\n" "$brand" "$_GF_EXITMESSAGE"
+    printf "\n%b %s \e[${exitcolor}m$exitcode\e[0m" "$brand" "$_GF_EXITMESSAGE"
 
-    # Ask user whether to start a shell or exit
-    printf "%b %s " "$brand" "$_GF_KEYPROMPT"
-    IFS='' read -rn1 reply
-    [[ "$reply" != ' ' ]] && exit
+
+    while true; do
+      # Ask user whether to start a shell or exit
+      printf "\n%b %s " "$brand" "$_GF_KEYPROMPT"
+
+      IFS='' read -rn1 reply
+      reply="$(echo "$reply" | tr '[:upper:]' '[:lower:]')"  # make lowercase
+      [[ "$reply" == $'\033' || "$reply" == $_GF_NKEY ]] && exit  # ESC or 'n'
+      [[ "$reply" == ''      || "$reply" == $_GF_YKEY ]] && break  # ENTER or 'y'
+    done
     printf "\n\n"
 }
 
