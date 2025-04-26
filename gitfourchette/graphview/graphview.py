@@ -211,7 +211,7 @@ class GraphView(QListView):
     def currentCommitId(self) -> Oid | None:
         # TODO: If pygit2 had Oid.__bool__() which returned True if the hash isn't NULL_OID,
         #       we wouldn't have to return None for compatibility with existing code
-        #       (pygit2 1.17.1+ has this now)
+        #       (pygit2 1.18.0+ has this now)
         currentIndex = self.currentIndex()
         if not currentIndex.isValid():
             return None

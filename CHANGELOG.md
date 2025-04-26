@@ -57,11 +57,8 @@ Bug fixes:
 - Fix DiffView out of sync with rest of RepoWidget after hiding a the currently-selected branch tip
 - Fix italics in sidebar didn't update after changing the current branch's upstream (a remote-tracking branch in italics means it's the upstream for the current branch)
 - Fix visual artifacts around character-level diffs in DiffView
-
-Bug fixes that will take effect as soon as pygit2 1.17.1 is released:
-
-- Fix push progress wasn't reported properly during transfer - requires pygit2 1.17.1 (#22)
-- Fix push couldn't be canceled once the transfer starts - requires pygit2 1.17.1 (#22)
+- Fix push progress wasn't reported properly during transfer (requires pygit2 1.18.0) (#22)
+- Fix push couldn't be canceled once the transfer starts (requires pygit2 1.18.0) (#22)
 
 Breaking changes:
 

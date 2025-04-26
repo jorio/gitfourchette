@@ -562,7 +562,7 @@ class MergeBranch(RepoTask):
             self.effects |= TaskEffects.Workdir
             self.jumpTo = NavLocator.inWorkdir()
 
-            if pygit2_version_at_least("1.17.1", raise_error=False, feature_name="git_annotated_commit_from_ref"):
+            if pygit2_version_at_least("1.18.0", raise_error=False, feature_name="git_annotated_commit_from_ref"):
                 self.repo.merge(theirBranch)
             else:  # pragma: no cover
                 self.repo.merge(target)
