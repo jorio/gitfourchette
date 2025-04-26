@@ -484,11 +484,12 @@ class SidebarModel(QAbstractItemModel):
                 parentFolder = "/".join(parts)
                 try:
                     parentNode = pendingFolders[parentFolder]
-                    parentNode.appendChild(folderNode)
-                    folderNode.displayName = folderNode.data.removeprefix(parentNode.data)
-                    break
                 except KeyError:
                     parts.pop()
+                else:
+                    parentNode.appendChild(folderNode)
+                    folderNode.displayName = folderNode.data.removeprefix(parentNode.data + "/")
+                    break
             else:
                 folderNode.displayName = folderNode.data.removeprefix(refNamePrefix)
                 containerNode.appendChild(folderNode)

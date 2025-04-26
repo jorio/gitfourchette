@@ -171,6 +171,27 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
     assert getNodeDatas() == sortedByNameAsc
 
 
+def testRefFolderSidebarDisplayNames(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("1/2A/3A")
+        repo.create_branch_on_head("1/2A/3B")
+        repo.create_branch_on_head("1/2B")
+        repo.create_branch_on_head("4/5/6/7A")
+        repo.create_branch_on_head("4/5/6/7B")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    def getRefFolderDisplayName(explicit):
+        node = sb.findNode(lambda n: n.data == explicit and n.kind == SidebarItem.RefFolder)
+        return node.displayName
+
+    assert getRefFolderDisplayName("refs/heads/1") == "1"
+    assert getRefFolderDisplayName("refs/heads/1/2A") == "2A"
+    assert getRefFolderDisplayName("refs/heads/4/5/6") == "4/5/6"
+
+
 @pytest.mark.parametrize("explicit,implicit", [
     ("refs/heads/1/2A/3B", []),
     ("refs/heads/1/2A", ["refs/heads/1/2A/3A", "refs/heads/1/2A/3B"]),
