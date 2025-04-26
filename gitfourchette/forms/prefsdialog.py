@@ -58,9 +58,11 @@ class PrefsDialog(QDialog):
         self.prefDiff = {}
         self.categoryNames = []
 
-        # Prepare main widgets & layout
         self.categoryList = QListWidget()
-        self.categoryList.setMaximumWidth(150)
+        self.categoryList.setWordWrap(True)
+        self.categoryList.setUniformItemSizes(True)
+        self.categoryList.setMinimumWidth(200)
+        self.categoryList.setMaximumWidth(200)
         self.categoryList.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.categoryList.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.categoryList.currentRowChanged.connect(self.onCategoryChanged)
