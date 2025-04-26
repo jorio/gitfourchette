@@ -161,3 +161,26 @@ def testPrefsUserCommandsSyntaxHighlighter(mainWindow):
     """))
     QTest.qWait(0)
     dlg.reject()
+
+
+def testPrefsUserCommandsGuide(mainWindow):
+    dlg = mainWindow.openPrefsDialog("language")
+    if not QT5:  # Qt 5 doesn't want to hide the guide button initially, but I don't care about Qt 5
+        assert not dlg.guideButton.isVisible()
+    dlg.reject()
+
+    dlg = mainWindow.openPrefsDialog("commands")
+    guideBrowser = dlg.guideBrowser
+    guideButton = dlg.guideButton
+    assert guideButton.isVisible()
+    assert not guideBrowser.isVisible()
+
+    # Click button to show, click button again to hide
+    guideButton.click()
+    assert guideBrowser.isVisible()
+    assert guideButton.isChecked()
+    guideButton.click()
+    assert not guideBrowser.isVisible()
+    assert not guideButton.isChecked()
+
+    dlg.reject()

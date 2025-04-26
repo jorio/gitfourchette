@@ -56,7 +56,7 @@ class PrefsDialog(QDialog):
         self.setWindowTitle(_("{app} Settings", app=qAppName()))
 
         self.prefDiff = {}
-        self.categoryNames = []
+        self.categoryKeys = []
 
         self.categoryList = QListWidget()
         self.categoryList.setWordWrap(True)
@@ -73,18 +73,42 @@ class PrefsDialog(QDialog):
 
         self.stackedWidget = QStackedWidget()
 
-        buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Help)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
+        self.guideButton = buttonBox.button(QDialogButtonBox.StandardButton.Help)
+        self.guideButton.setCheckable(True)
+        self.guideButton.clicked.connect(self.toggleGuideBrowser)
+
+        self.guideBrowser = QTextBrowser(self)
+        self.guideBrowser.setMinimumWidth(400)
+        self.guideBrowser.setOpenExternalLinks(True)
+        self.guideBrowser.setVisible(False)
+        tweakWidgetFont(self.guideBrowser, 90)
 
         layout = QGridLayout(self)
         layout.addWidget(self.categoryList,     0, 0, 4, 1)
         layout.addWidget(self.categoryLabel,    0, 1)
         layout.addWidget(QFaintSeparator(),     1, 1)
         layout.addWidget(self.stackedWidget,    2, 1)
-        layout.setColumnStretch(0, 0)
-        # The buttonBox will be added last so that the tab order makes sense.
+        layout.addWidget(self.guideBrowser,     0, 2, 4, 1)
+        self._fillControls(focusOn)
+        layout.addWidget(buttonBox, 3, 1)  # Add buttonBox last so it comes last in tab order
 
+        layout.setColumnStretch(0, 0)
+        layout.setColumnStretch(1, 2)
+
+        if not focusOn:
+            # Restore last category
+            self.setCategory(PrefsDialog.lastCategory)
+            buttonBox.button(QDialogButtonBox.StandardButton.Ok).setFocus()
+        else:
+            # Save this category if we close the dialog without changing tabs
+            PrefsDialog.lastCategory = self.stackedWidget.currentIndex()
+
+        self.setModal(True)
+
+    def _fillControls(self, focusOn):
         category = "general"
         categoryForms: dict[str, QFormLayout] = {}
         skipKeys = self.getHiddenSettingKeys()
@@ -121,7 +145,7 @@ class PrefsDialog(QDialog):
                 form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
                 categoryForms[category] = form
                 categoryName = TrTables.prefKey(category)
-                self.categoryNames.append(categoryName)
+                self.categoryKeys.append(category)
                 self.stackedWidget.addWidget(formContainer)
                 self.categoryList.addItem(QListWidgetItem(stockIcon(f"prefs-{category.lower()}"), categoryName))
 
@@ -184,27 +208,38 @@ class PrefsDialog(QDialog):
                 self.setCategory(self.stackedWidget.indexOf(form.parentWidget()))
                 control.setFocus()
 
-        # Add buttonBox last so that it's comes last in the tab order
-        layout.addWidget(buttonBox, 3, 1)
-
-        if not focusOn:
-            # Restore last category
-            self.setCategory(PrefsDialog.lastCategory)
-            buttonBox.button(QDialogButtonBox.StandardButton.Ok).setFocus()
-        else:
-            # Save this category if we close the dialog without changing tabs
-            PrefsDialog.lastCategory = self.stackedWidget.currentIndex()
-
-        self.setModal(True)
-
     def setCategory(self, row: int):
         self.categoryList.setCurrentRow(row)
 
     def onCategoryChanged(self, row: int):
+        categoryKey = self.categoryKeys[row]
+        categoryName = TrTables.prefKey(categoryKey)
+        categoryGuide = TrTables.prefKeyNoDefault(f"{categoryKey}_GUIDE")
+
         self.stackedWidget.setCurrentIndex(row)
-        self.categoryLabel.setText(self.categoryNames[row])
+        self.categoryLabel.setText(categoryName)
+
+        self.toggleGuideBrowser(False)
+        if categoryGuide:
+            self.guideButton.setText(_("{0} Handy Reference").format(categoryName))
+            self.guideButton.setVisible(True)
+            self.guideBrowser.setHtml(categoryGuide)
+        else:
+            self.guideButton.setVisible(False)
+
         # Remember which tab we've last clicked on for next time we open the dialog
         PrefsDialog.lastCategory = row
+
+    def toggleGuideBrowser(self, show: bool):
+        if show == self.guideBrowser.isVisible():
+            pass
+        elif show:
+            self._widthBeforeGuide = self.width()
+            self.guideBrowser.show()
+        else:
+            self.guideBrowser.hide()
+            QTimer.singleShot(0, lambda: self.resize(self._widthBeforeGuide, self.height()))
+        self.guideButton.setChecked(show)
 
     def assign(self, k, v):
         if prefs.__dict__[k] == v:

@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import re
+import textwrap
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -14,6 +16,9 @@ from gitfourchette.porcelain import *
 
 if TYPE_CHECKING:
     from gitfourchette.toolbox.gitutils import PatchPurpose
+
+
+_userCommandsGuideUrl = "https://gitfourchette.org/guide/commands"
 
 
 def _tokenReferenceTable(table):
@@ -313,11 +318,7 @@ class TrTables:
             + "</p><p>"
             + row("h", _("hour") + ", 0–23/1–12", None)
             + row("hh", _("hour") + ", 00–23/01–12", None)
-            + "</p><p>"
-            + row("m", _("minute"))
             + row("mm", _("minute"))
-            + "</p><p>"
-            + row("s", _("second"))
             + row("ss", _("second"))
             + "</p><p>"
             + row("a")
@@ -326,19 +327,8 @@ class TrTables:
 
     @staticmethod
     def _init_prefKeys():
-        from gitfourchette.toolbox.textutils import paragraphs, hquo, tquo
+        from gitfourchette.toolbox.textutils import paragraphs, tquo
         from gitfourchette.exttools.usercommand import UserCommand
-
-        userCommandHelp = paragraphs(
-            _("You can define custom commands to run in a terminal (one command per line). "
-              "Invoke them from the {menu} menu that appears once you’ve defined at least one command."),
-            _("The {comment} character starts a comment until the end of the line. "
-              "If you add a comment after a command (on the same line), then the comment will "
-              "serve as the title of the command in the menu."),
-            _("Argument placeholders:"),
-            _tokenReferenceTable(UserCommand.tokenHelpTable()),
-            _("Tip: Hot keys {key1} through {key2} are automatically assigned to the first {nkeys} commands."),
-        ).format(menu=hquo(_("Commands")), comment="<code>#</code>", key1="F6", key2="F12", nkeys=12-6+1)
 
         return {
             "general": _p("Prefs", "General"),
@@ -349,7 +339,7 @@ class TrTables:
             "trash": _p("Prefs", "Trash"),
             "external": _p("Prefs", "External Tools"),
             "advanced": _p("Prefs", "Advanced"),
-            "userCommands": _p("Prefs", "User Commands"),
+            "userCommands": _p("Prefs", "Custom Commands"),
 
             "language": _("Language"),
             "qtStyle": _("Qt style"),
@@ -479,8 +469,8 @@ class TrTables:
                   "enters your working directory and optionally starts one of your Custom Commands.",
                   "$COMMAND")),
 
+            "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",
-            "commands_help": userCommandHelp,
             "confirmCommands": _("Ask for confirmation before running any command"),
             "confirmCommands_help": _(
                 "If you untick this, you can still force a prompt to appear for "
@@ -488,3 +478,35 @@ class TrTables:
                 tquo(f"<tt>{UserCommand.AlwaysConfirmPrefix}</tt>"),
                 "<pre>?git stash</pre>"),
         }
+
+    @staticmethod
+    def userCommandsGuide():
+        from gitfourchette.toolbox.textutils import paragraphs, linkify, stripAccelerators
+        from gitfourchette.exttools.usercommand import UserCommand
+
+        def cmdName(s: str):
+            s = re.sub(r"&(.)", r"<u>&amp;\1</u>", s)
+            return f"<com># {s}</com>"
+
+        markup = textwrap.dedent("""\
+        <style>
+        body {background-color: palette(window); }
+        pre { font-size: small; white-space: pre-wrap; margin-left: 16px; }
+        com { color: gray; font-style: italic; }
+        tok { font-weight: bold; }
+        </style><body>""")
+        markup += _("Enter custom terminal commands here. You can then launch them from the {0} menu.",
+                    stripAccelerators(_("&Commands")))
+        markup += textwrap.dedent(f"""\
+        <pre>
+        <com># {_("Feel free to copy/paste this sample into Custom Commands.")}</com>
+        git rebase -i <tok>$COMMIT</tok>   {cmdName(_("&Interactive Rebase"))}
+        git rebase --continue   {cmdName(_("&Continue Rebase"))}
+        <tok>?</tok> git rebase --abort    {cmdName(_("&Abort Rebase"))}
+        git diff <tok>$COMMIT</tok> HEAD   {cmdName(_("Diff Commit With &HEAD"))}
+        </pre>""")
+        markup += paragraphs(_("Argument placeholders:"))
+        markup += _tokenReferenceTable(UserCommand.tokenHelpTable())
+        markup += paragraphs(linkify(_("For advanced usage tips, please visit [the user’s guide]."
+                                       ), _userCommandsGuideUrl))
+        return markup
