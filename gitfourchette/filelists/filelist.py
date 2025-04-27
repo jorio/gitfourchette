@@ -271,7 +271,7 @@ class FileList(QListView):
 
     def contextMenuActionRevertMode(self, patches, callback: Callable):
         n = len(patches)
-        action = ActionDef(_n("Revert Mode Changes", "Revert Mode Change", n), callback, enabled=False)
+        action = ActionDef(_n("Revert Mode Changes…", "Revert Mode Change…", n), callback, enabled=False)
 
         for patch in patches:
             if not patch:  # stale diff
@@ -284,9 +284,9 @@ class FileList(QListView):
                 action.enabled = True
                 if n == 1:
                     if nm == FileMode.BLOB_EXECUTABLE:
-                        action.caption = _("Revert Mode to Non-Executable")
+                        action.caption = _("Revert Mode to Non-Executable…")
                     elif nm == FileMode.BLOB:
-                        action.caption = _("Revert Mode to Executable")
+                        action.caption = _("Revert Mode to Executable…")
 
         return action
 
