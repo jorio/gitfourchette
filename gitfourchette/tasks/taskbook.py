@@ -71,6 +71,7 @@ class TaskBook:
             tasks.NewBranchFromHead: _("New local branch"),
             tasks.NewBranchFromRef: _("New local branch"),
             tasks.NewCommit: _("New commit"),
+            tasks.NewIgnorePattern: _("Ignore a new file name pattern"),
             tasks.NewRemote: _("Add remote"),
             tasks.NewStash: _("Stash changes"),
             tasks.NewTag: _("New tag"),

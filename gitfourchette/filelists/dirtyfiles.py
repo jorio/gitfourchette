@@ -45,6 +45,11 @@ class DirtyFiles(FileList):
                 icon="git-stage",
                 shortcuts=GlobalShortcuts.stageHotkeys[0])
 
+            contextMenuActionIgnore = ActionDef(
+                _n("&Ignore Untracked File…", "&Ignore Untracked Files…", n),
+                self.ignoreSelection,
+                enabled=n == 1 and onlyUntracked)
+
             if onlyUntracked:
                 discardText = _n("&Delete File…", "&Delete {n} Files…", n)
             else:
@@ -60,6 +65,7 @@ class DirtyFiles(FileList):
                 contextMenuActionDiscard,
                 self.contextMenuActionStash(),
                 self.contextMenuActionRevertMode(patches, self.discardModeChanges),
+                contextMenuActionIgnore,
                 ActionDef.SEPARATOR,
                 *self.contextMenuActionsDiff(patches),
             ]
@@ -160,3 +166,12 @@ class DirtyFiles(FileList):
     def onSpecialMouseClick(self):
         if settings.prefs.middleClickToStage:
             self.stage()
+
+    def ignoreSelection(self):
+        selected = list(self.selectedPaths())
+
+        if len(selected) != 1:
+            QApplication.beep()
+            return
+
+        NewIgnorePattern.invoke(self, selected[0])

@@ -6,15 +6,18 @@
 
 import logging
 from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import settings
+from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
-from gitfourchette.tasks.repotask import RepoTask
+from gitfourchette.tasks import TaskEffects
+from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -157,3 +160,36 @@ class GetCommitInfo(RepoTask):
 
     def saveLocator(self, locator):
         self.jumpTo = locator
+
+
+class NewIgnorePattern(RepoTask):
+    def flow(self, seedPath: str):
+        dlg = IgnorePatternDialog(seedPath, self.parentWidget())
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        yield from self.flowDialog(dlg)
+
+        pattern = dlg.pattern
+        if not pattern:
+            raise AbortTask()
+
+        yield from self.flowEnterWorkerThread()
+        self.effects |= TaskEffects.Workdir
+
+        relativeExcludePath = dlg.excludePath
+        excludePath = Path(self.repo.in_workdir(relativeExcludePath))
+
+        # Read existing exclude text
+        excludeText = ""
+        if excludePath.exists():
+            excludeText = excludePath.read_text("utf-8")
+            if not excludeText.endswith("\n"):
+                excludeText += "\n"
+
+        excludeText += pattern + "\n"
+        excludePath.write_text(excludeText, "utf-8")
+
+        self.postStatus = _("Added to {file}: {pattern}", pattern=pattern, file=relativeExcludePath)
+
+        # Jump to .gitignore
+        if self.repo.is_in_workdir(str(excludePath)):
+            self.jumpTo = NavLocator.inUnstaged(str(excludePath))

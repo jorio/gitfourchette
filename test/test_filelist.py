@@ -5,10 +5,13 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import sys
+
+from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
+from gitfourchette.nav import NavLocator, NavContext
 
 from .util import *
 from . import reposcenario
-from gitfourchette.nav import NavLocator, NavContext
 
 
 def testParentlessCommitFileList(tempDir, mainWindow):
@@ -403,3 +406,67 @@ def testGrayOutStageButtonsAfterDiscardingOnlyFile(tempDir, mainWindow):
     assert not rw.diffArea.stageButton.isEnabled()
     assert not rw.diffArea.discardButton.isEnabled()
     assert not rw.diffArea.unstageButton.isEnabled()
+
+
+@pytest.mark.parametrize("saveTo", [".gitignore", ".git/info/exclude"])
+def testIgnorePattern(tempDir, mainWindow, saveTo):
+    relPath = "a/SomeNewFile.txt"
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/.AAA_First", "hi")
+    writeFile(f"{wd}/zzz_Last", "hi")
+    writeFile(f"{wd}/{relPath}", "hi")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(relPath), check=True)
+    assert ".gitignore" not in qlvGetRowData(rw.dirtyFiles)
+    assert relPath in qlvGetRowData(rw.dirtyFiles)
+
+    menu = rw.dirtyFiles.makeContextMenu()
+    triggerMenuAction(menu, "ignore")
+
+    dlg: IgnorePatternDialog = rw.findChild(IgnorePatternDialog)
+    assert dlg.excludePath == ".gitignore"
+    qcbSetIndex(dlg.ui.fileEdit, saveTo)
+    dlg.accept()
+
+    # File must be gone
+    assert relPath not in qlvGetRowData(rw.dirtyFiles)
+    assert rw.navLocator.path != relPath
+
+    if saveTo == ".gitignore":
+        assert ".gitignore" in qlvGetRowData(rw.dirtyFiles)
+        assert NavLocator.inUnstaged(".gitignore").isSimilarEnoughTo(rw.navLocator)
+    else:
+        assert ".gitignore" not in qlvGetRowData(rw.dirtyFiles)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 13), reason="glob.translate requires Python 3.13")
+@pytest.mark.parametrize(["userPattern", "isValid"], [
+    ("a/SomeNewFile.txt", True),
+    ("SomeNewFile.txt", True),
+    ("*SomeNewFile*", True),
+    ("*.txt", True),
+    ("a", True),
+    ("b", False),
+    ("", False),
+])
+def testIgnorePatternValidation(tempDir, mainWindow, userPattern, isValid):
+    relPath = "a/SomeNewFile.txt"
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/{relPath}", "hi")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(relPath), check=True)
+    triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "ignore")
+
+    dlg: IgnorePatternDialog = rw.findChild(IgnorePatternDialog)
+    dlg.ui.patternEdit.setEditText(userPattern)
+
+    QTest.qWait(0)
+    validatorNotification: QAction = dlg.findChild(QAction, "ValidatorMultiplexerLineEditAction")
+    assert isValid == (not validatorNotification.isVisible())
+    dlg.accept()
+
+    assert isValid == (relPath not in qlvGetRowData(rw.dirtyFiles))

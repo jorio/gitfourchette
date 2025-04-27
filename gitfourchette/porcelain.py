@@ -705,8 +705,10 @@ class Repo(_VanillaRepository):
             raise ValueError("Won't create absolute path outside workdir")
         return p
 
-    def is_in_workdir(self, path: str) -> bool:
-        return _Path(path).resolve().is_relative_to(self.workdir)
+    def is_in_workdir(self, path: str, include_gitdir: bool = False) -> bool:
+        path_obj = _Path(path)
+        return (path_obj.is_relative_to(self.workdir)
+                and (include_gitdir or not path_obj.is_relative_to(self.path)))
 
     def in_gitdir(self, path: str) -> str:
         """Return an absolutized version of `path` within this repo's .git directory."""
