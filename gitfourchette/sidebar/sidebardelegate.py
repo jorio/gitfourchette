@@ -74,6 +74,7 @@ class SidebarDelegate(QStyledItemDelegate):
         isExplicitlyShown = False
         isExplicitlyHidden = False
         isImplicitlyHidden = False
+        isHideAllButThisMode = sidebarModel.isHideAllButThisMode()
         makeRoomForEye = False
         if node.canBeHidden():
             isExplicitlyShown = sidebarModel.isExplicitlyShown(node)
@@ -167,9 +168,9 @@ class SidebarDelegate(QStyledItemDelegate):
             r = QRect(option.rect)
             r.setLeft(textRect.right())
             r.setWidth(EYE_WIDTH)
-            if isExplicitlyShown or mouseOver and sidebarModel.isHideAllButThisMode():
+            if isExplicitlyShown or mouseOver and isHideAllButThisMode:
                 eyeIconName = "view-exclusive"
-            elif isExplicitlyHidden:
+            elif isExplicitlyHidden or (isImplicitlyHidden and isHideAllButThisMode):
                 eyeIconName = "view-hidden"
             elif isImplicitlyHidden:
                 eyeIconName = "view-hidden-indirect"
