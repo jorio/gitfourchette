@@ -30,7 +30,7 @@ INVALID_MOUSEPRESS = (-1, SidebarClickZone.Invalid)
 
 
 class Sidebar(QTreeView):
-    toggleHideRefPattern = Signal(str)
+    toggleHideRefPattern = Signal(str, bool)
 
     openSubmoduleRepo = Signal(str)
     openSubmoduleFolder = Signal(str)
@@ -146,7 +146,8 @@ class Sidebar(QTreeView):
         repo = model.repo
         item = node.kind
         data = node.data
-        isHidden = model.isExplicitlyHidden(node)
+        isExplicitlyShown = model.isExplicitlyShown(node)
+        isExplicitlyHidden = model.isExplicitlyHidden(node)
         mainWindow = GFApplication.instance().mainWindow
 
         if item == SidebarItem.WorkdirHeader:
@@ -254,12 +255,16 @@ class Sidebar(QTreeView):
 
                 ActionDef.SEPARATOR,
 
-                ActionDef(
-                    _("&Hide in Graph"),
-                    lambda: self.wantHideNode(node),
-                    checkState=[-1, 1][isHidden],
-                    tip=_("Hide this branch from the graph (effective if no other branches/tags point here)"),
-                ),
+                ActionDef(_("&Hide in Graph"),
+                          lambda: self.wantHideNode(node),
+                          checkState=[-1, 1][isExplicitlyHidden],
+                          tip=_("Hide this branch from the graph (effective if no other branches/tags point here)"),
+                          icon="view-hidden"),
+
+                ActionDef(_("Hide &All But This"),
+                          lambda: self.wantHideNode(node, True),
+                          checkState=[-1, 1][isExplicitlyShown],
+                          icon="view-exclusive"),
 
                 *mainWindow.contextualUserCommands(*userCommandTokens),
             ]
@@ -310,11 +315,15 @@ class Sidebar(QTreeView):
 
                 *webActions,
 
-                ActionDef(
-                    _("&Hide in Graph"),
-                    lambda: self.wantHideNode(node),
-                    checkState=[-1, 1][isHidden]
-                ),
+                ActionDef(_("&Hide in Graph"),
+                          lambda: self.wantHideNode(node),
+                          checkState=[-1, 1][isExplicitlyHidden],
+                          icon="view-hidden"),
+
+                ActionDef(_("Hide &All But This"),
+                          lambda: self.wantHideNode(node, True),
+                          checkState=[-1, 1][isExplicitlyShown],
+                          icon="view-exclusive"),
 
                 *mainWindow.contextualUserCommands(UserCommand.Token.Commit, UserCommand.Token.Ref, UserCommand.Token.Remote),
             ]
@@ -367,9 +376,15 @@ class Sidebar(QTreeView):
 
                 *collapseActions,
 
-                ActionDef(_("&Hide Remote in Graph"),
+                ActionDef(_("&Hide in Graph"),
                           lambda: self.wantHideNode(node),
-                          checkState=[-1, 1][isHidden]),
+                          checkState=[-1, 1][isExplicitlyHidden],
+                          icon="view-hidden"),
+
+                ActionDef(_("Hide &All But This"),
+                          lambda: self.wantHideNode(node, True),
+                          checkState=[-1, 1][isExplicitlyShown],
+                          icon="view-exclusive"),
 
                 *mainWindow.contextualUserCommands(UserCommand.Token.Remote),
             ]
@@ -391,9 +406,15 @@ class Sidebar(QTreeView):
                 ]
 
             actions += [
-                ActionDef(_("&Hide Folder Contents in Graph"),
+                ActionDef(_("&Hide in Graph"),
                           lambda: self.wantHideNode(node),
-                          checkState=[-1, 1][isHidden]),
+                          checkState=[-1, 1][isExplicitlyHidden],
+                          icon="view-hidden"),
+
+                ActionDef(_("Hide &All But This"),
+                          lambda: self.wantHideNode(node, True),
+                          checkState=[-1, 1][isExplicitlyShown],
+                          icon="view-exclusive"),
             ]
 
         elif item == SidebarItem.StashesHeader:
@@ -675,30 +696,12 @@ class Sidebar(QTreeView):
         else:
             QApplication.beep()
 
-    def wantHideNode(self, node: SidebarNode):
-        if node is None:
+    def wantHideNode(self, node: SidebarNode, allButThis: bool = False):
+        pattern = node.refMatchingPattern()
+        if not pattern:
             return
-
-        item = node.kind
-        data = node.data
-
-        if item == SidebarItem.Spacer:
-            pass
-
-        elif item in [SidebarItem.LocalBranch, SidebarItem.RemoteBranch]:
-            self.toggleHideRefPattern.emit(data)
-            self.repaint()
-
-        elif item == SidebarItem.Remote:
-            self.toggleHideRefPattern.emit(f"{RefPrefix.REMOTES}{data}/")
-            self.repaint()
-
-        elif item == SidebarItem.RefFolder:
-            self.toggleHideRefPattern.emit(f"{data}/")
-            self.repaint()
-
-        else:
-            QApplication.beep()
+        self.toggleHideRefPattern.emit(pattern, allButThis)
+        self.repaint()
 
     def getValidNode(self):
         try:
@@ -780,7 +783,8 @@ class Sidebar(QTreeView):
             return
 
         if zone == SidebarClickZone.Hide:
-            self.wantHideNode(node)
+            allButThis = event.button() == Qt.MouseButton.MiddleButton or self.sidebarModel.isHideAllButThisMode()
+            self.wantHideNode(node, allButThis)
             event.accept()
         elif zone == SidebarClickZone.Expand:
             # Toggle expanded state

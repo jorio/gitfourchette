@@ -379,8 +379,17 @@ class RepoModel:
         return gsl
 
     @benchmark
-    def toggleHideRefPattern(self, refPattern: str):
-        toggleSetElement(self.prefs.hiddenRefPatterns, refPattern)
+    def toggleHideRefPattern(self, refPattern: str, allButThis: bool = False):
+        if not allButThis:
+            self.prefs.showPatterns.clear()  # clear show patterns in non-allButThis mode
+            toggleSetElement(self.prefs.hidePatterns, refPattern)
+        else:
+            wasShowingThis = refPattern in self.prefs.showPatterns
+            self.prefs.hidePatterns.clear()  # clear hide patterns in allButThis mode
+            self.prefs.showPatterns.clear()  # only retain a single show pattern
+            if not wasShowingThis:
+                toggleSetElement(self.prefs.showPatterns, refPattern)
+
         self.prefs.setDirty()
         self.refreshHiddenRefCache()
 
@@ -398,37 +407,56 @@ class RepoModel:
 
     @benchmark
     def refreshHiddenRefCache(self):
+        showPatterns = self.prefs.showPatterns
+        hidePatterns = self.prefs.hidePatterns
+        numStalePatterns = 0
+
         assert type(self.hiddenRefs) is set
-        hiddenRefs = self.hiddenRefs
-        hiddenRefs.clear()
+        self.hiddenRefs.clear()
 
-        patterns = self.prefs.hiddenRefPatterns
-        if not patterns:
-            return
+        if showPatterns:
+            matchingRefs, numStalePatterns = self._matchPatterns(showPatterns)
+            self.hiddenRefs.update(self.refs.keys())
+            self.hiddenRefs.difference_update(matchingRefs)
+        elif hidePatterns:
+            matchingRefs, numStalePatterns = self._matchPatterns(hidePatterns)
+            self.hiddenRefs.update(matchingRefs)
 
+        if numStalePatterns > 0:
+            self.prefs.setDirty()
+
+    def _matchPatterns(self, patterns):
         assert type(patterns) is set
+
+        matchingRefs = set()
         patternsSeen = set()
 
         for ref in self.refs:
+            # Test for verbatim match first
             if ref in patterns:
-                hiddenRefs.add(ref)
+                matchingRefs.add(ref)
                 patternsSeen.add(ref)
-            else:
-                i = len(ref)
-                while i >= 0:
-                    i = ref.rfind('/', 0, i)
-                    if i < 0:
-                        break
-                    prefix = ref[:i+1]
-                    if prefix in patterns:
-                        hiddenRefs.add(ref)
-                        patternsSeen.add(prefix)
-                        break
+                continue
 
-        if len(patternsSeen) != len(patterns):
-            logger.debug(f"Culling stale hidden ref patterns {patterns - patternsSeen}")
-            self.prefs.hiddenRefPatterns = patternsSeen
-            self.prefs.setDirty()
+            # Break up directory segments
+            i = len(ref)
+            while i >= 0:
+                i = ref.rfind('/', 0, i)
+                if i < 0:
+                    break
+                prefix = ref[:i+1]
+                if prefix in patterns:
+                    matchingRefs.add(ref)
+                    patternsSeen.add(prefix)
+                    break
+
+        numStalePatterns = len(patterns) - len(patternsSeen)
+        assert numStalePatterns >= 0, "there can't be fewer patterns in total than we've visited!"
+        if numStalePatterns != 0:
+            logger.debug(f"Culling {numStalePatterns} stale ref patterns")
+            patterns.intersection_update(patternsSeen)
+
+        return matchingRefs, numStalePatterns
 
     def getKnownTips(self) -> Iterable[Oid]:
         return self.refs.values()

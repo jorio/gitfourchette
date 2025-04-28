@@ -214,7 +214,7 @@ class CommitLogDelegate(QStyledItemDelegate):
                     summaryText += f" – {draftIntro} {tquo(draftMessage)}"
 
             elif specialRowKind == SpecialRow.TruncatedHistory:
-                if self.repoModel.prefs.hiddenRefPatterns:
+                if self.repoModel.hiddenCommits and self.repoModel.hiddenRefs:
                     summaryText = _("History truncated to {0} commits (including hidden branches)")
                 else:
                     summaryText = _("History truncated to {0} commits")

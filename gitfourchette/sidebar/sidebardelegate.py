@@ -71,12 +71,15 @@ class SidebarDelegate(QStyledItemDelegate):
         mouseOver = bool(option.state & QStyle.StateFlag.State_Enabled) and bool(option.state & QStyle.StateFlag.State_MouseOver)
         colorGroup = QPalette.ColorGroup.Normal if hasFocus else QPalette.ColorGroup.Inactive
 
+        isExplicitlyShown = False
         isExplicitlyHidden = False
         isImplicitlyHidden = False
+        makeRoomForEye = False
         if node.canBeHidden():
+            isExplicitlyShown = sidebarModel.isExplicitlyShown(node)
             isExplicitlyHidden = sidebarModel.isExplicitlyHidden(node)
             isImplicitlyHidden = isExplicitlyHidden or sidebarModel.isImplicitlyHidden(node)
-        makeRoomForEye = isExplicitlyHidden or isImplicitlyHidden or (mouseOver and node.canBeHidden())
+            makeRoomForEye = mouseOver or isExplicitlyShown or isExplicitlyHidden or isImplicitlyHidden
 
         painter.save()
 
@@ -164,7 +167,9 @@ class SidebarDelegate(QStyledItemDelegate):
             r = QRect(option.rect)
             r.setLeft(textRect.right())
             r.setWidth(EYE_WIDTH)
-            if isExplicitlyHidden:
+            if isExplicitlyShown or mouseOver and sidebarModel.isHideAllButThisMode():
+                eyeIconName = "view-exclusive"
+            elif isExplicitlyHidden:
                 eyeIconName = "view-hidden"
             elif isImplicitlyHidden:
                 eyeIconName = "view-hidden-indirect"

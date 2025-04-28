@@ -173,6 +173,21 @@ class SidebarNode:
         """ Use this to compare SidebarNodes from two different models. """
         return self.kind == other.kind and self.data == other.data
 
+    def isLeafBranchKind(self):
+        return self.kind == SidebarItem.LocalBranch or self.kind == SidebarItem.RemoteBranch
+
+    def refMatchingPattern(self):
+        if self.isLeafBranchKind():
+            return self.data
+
+        if self.kind == SidebarItem.Remote:
+            return f"{RefPrefix.REMOTES}{self.data}/"
+
+        if self.kind == SidebarItem.RefFolder:
+            return f"{self.data}/"
+
+        return ""
+
     def __repr__(self):
         return f"SidebarNode({self.kind.name} {self.data})"
 
@@ -239,21 +254,21 @@ class SidebarModel(QAbstractItemModel):
         if emitSignals:
             self.endResetModel()
 
+    def isHideAllButThisMode(self):
+        return bool(self.repoModel.prefs.showPatterns)
+
+    def isExplicitlyShown(self, node: SidebarNode) -> bool:
+        return (self.isHideAllButThisMode()
+                and node.refMatchingPattern() in self.repoModel.prefs.showPatterns)
+
     def isExplicitlyHidden(self, node: SidebarNode) -> bool:
-        if node.kind == SidebarItem.LocalBranch or node.kind == SidebarItem.RemoteBranch:
-            return node.data in self.repoModel.prefs.hiddenRefPatterns
-        elif node.kind == SidebarItem.Remote:
-            return f"{RefPrefix.REMOTES}{node.data}/" in self.repoModel.prefs.hiddenRefPatterns
-        elif node.kind == SidebarItem.RefFolder:
-            return f"{node.data}/" in self.repoModel.prefs.hiddenRefPatterns
-        else:
-            return False
+        return (not self.isHideAllButThisMode()
+                and node.refMatchingPattern() in self.repoModel.prefs.hidePatterns)
 
     def isImplicitlyHidden(self, node: SidebarNode) -> bool:
-        if node.kind == SidebarItem.LocalBranch or node.kind == SidebarItem.RemoteBranch:
-            return node.data in self.repoModel.hiddenRefs and node.data not in self.repoModel.prefs.hiddenRefPatterns
-        else:
-            return False
+        return (node.isLeafBranchKind()
+                and node.data in self.repoModel.hiddenRefs
+                and node.data not in self.repoModel.prefs.hidePatterns)
 
     def isAncestryChainExpanded(self, node: SidebarNode):
         # Assume everything is expanded if collapse cache is missing (see restoreExpandedItems).
@@ -391,6 +406,9 @@ class SidebarModel(QAbstractItemModel):
 
             elif name == "HEAD" or name.startswith("stash@{"):
                 pass  # handled separately
+
+            elif name == UC_FAKEREF:
+                pass
 
             else:
                 warnings.warn(f"SidebarModel: unsupported ref prefix: {name}")

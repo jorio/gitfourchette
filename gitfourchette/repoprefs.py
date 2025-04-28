@@ -30,7 +30,8 @@ class RepoPrefs(PrefsFile):
     draftCommitSignature: Signature | None = None
     draftCommitSignatureOverride: SignatureOverride = SignatureOverride.Nothing
     draftAmendMessage: str = ""
-    hiddenRefPatterns: set = field(default_factory=set)
+    hidePatterns: set = field(default_factory=set)
+    showPatterns: set = field(default_factory=set)
     collapseCache: set = field(default_factory=set)
     sortBranches: RefSort = RefSort.UseGlobalPref
     sortRemoteBranches: RefSort = RefSort.UseGlobalPref
