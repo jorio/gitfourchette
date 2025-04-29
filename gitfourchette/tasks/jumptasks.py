@@ -21,7 +21,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import DeltaStatus, NULL_OID, Oid, Patch
 from gitfourchette.qt import *
-from gitfourchette.sidebar.sidebarmodel import UC_FAKEREF
+from gitfourchette.repomodel import UC_FAKEREF
 from gitfourchette.tasks import TaskPrereqs
 from gitfourchette.tasks.loadtasks import LoadCommit, LoadPatch, LoadWorkdir
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken

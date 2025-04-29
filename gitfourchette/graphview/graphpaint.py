@@ -22,6 +22,8 @@ DOT_RADIUS = 3
 UC_COLOR = colors.gray
 UC_STIPPLE = 12
 
+_dummyEmptyList = []
+
 
 def getColor(laneID):
     return colors.rainbowBright[laneID % len(colors.rainbowBright)]
@@ -145,9 +147,16 @@ def paintGraphFrame(
         # clear path for next iteration
         path.clear()
 
-    arcsPassingByCommit = list(frame.arcsPassingByCommit(hiddenCommits))
-    arcsOpenedByCommit = list(frame.arcsOpenedByCommit(hiddenCommits))
-    arcsClosedByCommit = list(frame.arcsClosedByCommit(hiddenCommits))
+    if frame.commit in hiddenCommits:
+        arcsPassingByCommit = _dummyEmptyList
+        arcsOpenedByCommit = _dummyEmptyList
+        arcsClosedByCommit = _dummyEmptyList
+        junctionsAtCommit = _dummyEmptyList
+    else:
+        arcsPassingByCommit = frame.arcsPassingByCommit(hiddenCommits)
+        arcsOpenedByCommit = list(frame.arcsOpenedByCommit(hiddenCommits))
+        arcsClosedByCommit = list(frame.arcsClosedByCommit(hiddenCommits))
+        junctionsAtCommit = frame.junctionsAtCommit(hiddenCommits)
 
     # draw arcs PASSING BY commit
     cy1 = middle
@@ -190,7 +199,7 @@ def paintGraphFrame(
         submitPath(path, arc.lane, arc.openedBy == UC_FAKEID, dashOffset=1)
 
     # draw arc junctions
-    for arc, _junction in frame.junctionsAtCommit(hiddenCommits):
+    for arc, _junction in junctionsAtCommit:
         columnA, columnB = laneColumnsAB[arc.lane]
         ax = x + columnA * LANE_WIDTH
         bx = x + columnB * LANE_WIDTH

@@ -15,7 +15,7 @@ from gitfourchette import settings
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel
+from gitfourchette.repomodel import RepoModel, UC_FAKEREF
 from gitfourchette.repoprefs import RefSort
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -23,9 +23,6 @@ from gitfourchette.trtables import TrTables
 logger = logging.getLogger(__name__)
 
 BRANCH_FOLDERS = True
-
-UC_FAKEREF = "UC_FAKEREF"  # actual refs are either HEAD or they start with /refs/, so this name is safe
-"Fake reference for Uncommitted Changes."
 
 
 class SidebarItem(enum.IntEnum):

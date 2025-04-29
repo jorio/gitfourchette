@@ -7,6 +7,7 @@
 import pytest
 
 from gitfourchette.nav import NavLocator
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarModel, SidebarNode
 from gitfourchette.toolbox import naturalSort
 from .util import *
@@ -287,6 +288,11 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
             assert sm.isExplicitlyShown(node)
         else:
             assert sm.isImplicitlyHidden(node) == (node.data in hiddenRefs)
+
+    # Workdir row must always be visible
+    uncommittedChangesIndex = rw.graphView.getFilterIndexForCommit(UC_FAKEID)
+    assert uncommittedChangesIndex.isValid()
+    assert uncommittedChangesIndex.row() == 0
 
 
 def testSidebarToolTips(tempDir, mainWindow):

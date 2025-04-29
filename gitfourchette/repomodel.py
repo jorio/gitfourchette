@@ -16,7 +16,12 @@ from gitfourchette.toolbox import *
 logger = logging.getLogger(__name__)
 
 UC_FAKEID = NULL_OID
-"Fake Oid used for the Uncommitted Changes row."
+"Fake Oid for Uncommitted Changes (aka Working Directory in the UI)."
+
+UC_FAKEREF = "UC_FAKEREF"
+"Fake reference name for Uncommitted Changes (aka Working Directory in the UI)."
+# Actual refs are either "HEAD" or they start with "refs/",
+# so this name should never collide with user refs.
 
 
 def toggleSetElement(s: set, element):
@@ -178,6 +183,7 @@ class RepoModel:
             self.homeBranch = self.repo.head_branch_shorthand
 
         refs = self.repo.map_refs_to_ids(include_stashes=False)
+        refs[UC_FAKEREF] = UC_FAKEID
 
         if refs == self.refs:
             # Make sure it's sorted in the exact same order...
@@ -298,6 +304,8 @@ class RepoModel:
         # ASCENDING chronological order so that the latest modified branches
         # come out at the top of the graph in topological mode.
         for tip in tipIds:
+            if tip == UC_FAKEID:
+                continue
             self.walker.push(tip)
 
         return self.walker
@@ -375,7 +383,6 @@ class RepoModel:
         self.localSeeds = gsl.localSeeds
         self.hiddenCommits = gsl.hiddenCommits
         self.foreignCommits = gsl.foreignCommits
-
         return gsl
 
     @benchmark
