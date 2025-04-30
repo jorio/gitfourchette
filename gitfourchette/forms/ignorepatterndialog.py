@@ -6,17 +6,14 @@
 
 import glob
 import re
-import warnings
 from pathlib import Path
 
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_ignorepatterndialog import Ui_IgnorePatternDialog
 from gitfourchette.localization import *
+from gitfourchette.pycompat import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
-
-# glob.translate requires Python 3.13+
-_hasGlobTranslate = hasattr(glob, 'translate')
 
 
 class IgnorePatternDialog(QDialog):
@@ -52,21 +49,16 @@ class IgnorePatternDialog(QDialog):
         return self.ui.fileEdit.currentData(Qt.ItemDataRole.UserRole)
 
     def validate(self, pattern: str):
-        # Compatibility with Python 3.12 and older: just skip validation
-        if not _hasGlobTranslate:  # pragma: no cover
-            warnings.warn("ignore pattern validation requires Python 3.13+")
-            return ""
-
         if not pattern:
             return _("Please fill in this field.")
 
         seedPath = self.seedPath
 
         # Doctor the pattern to match glob rules
-        if pattern.startswith("/"):
-            pattern = pattern.removeprefix("/")
-        elif "/" not in pattern:
+        if "/" not in pattern:
             pattern = "**/" + pattern
+        else:
+            pattern = pattern.removeprefix("/")
 
         regex1 = glob.translate(pattern, recursive=True, include_hidden=True)
         regex2 = glob.translate(pattern.removesuffix("/") + "/**", recursive=True, include_hidden=True)

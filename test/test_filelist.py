@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import os.path
-import sys
 
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
 from gitfourchette.nav import NavLocator, NavContext
@@ -441,7 +440,6 @@ def testIgnorePattern(tempDir, mainWindow, saveTo):
         assert ".gitignore" not in qlvGetRowData(rw.dirtyFiles)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 13), reason="glob.translate requires Python 3.13")
 @pytest.mark.parametrize(["userPattern", "isValid"], [
     ("a/SomeNewFile.txt", True),
     ("SomeNewFile.txt", True),
