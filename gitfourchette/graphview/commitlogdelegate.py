@@ -16,7 +16,7 @@ from gitfourchette.graphview.graphpaint import paintGraphFrame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel, UC_FAKEID
+from gitfourchette.repomodel import RepoModel, UC_FAKEID, UC_FAKEREF
 from gitfourchette.toolbox import *
 
 
@@ -29,12 +29,15 @@ class RefBox:
 
 
 REFBOXES = [
-    RefBox("refs/remotes/", "git-remote", QColor(Qt.GlobalColor.darkCyan)),
-    RefBox("refs/tags/", "git-tag", QColor(Qt.GlobalColor.darkYellow)),
-    RefBox("refs/heads/", "git-branch", QColor(Qt.GlobalColor.darkMagenta)),
+    RefBox(RefPrefix.REMOTES, "git-remote", QColor(Qt.GlobalColor.darkCyan)),
+    RefBox(RefPrefix.TAGS, "git-tag", QColor(Qt.GlobalColor.darkYellow)),
+    RefBox(RefPrefix.HEADS, "git-branch", QColor(Qt.GlobalColor.darkMagenta)),
 
     # detached HEAD as returned by Repo.map_commits_to_refs
     RefBox("HEAD", "git-head-detached", QColor(Qt.GlobalColor.darkRed), keepPrefix=True),
+
+    # Working Directory
+    RefBox(UC_FAKEREF, "git-workdir", QColor("#808080")),
 
     # Fallback
     RefBox("", "hint", QColor(Qt.GlobalColor.gray), keepPrefix=True)
@@ -199,13 +202,13 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             if specialRowKind == SpecialRow.UncommittedChanges:
                 oid = UC_FAKEID
-                summaryText = _("Working Directory")
+                summaryText = _("Working Directory") + " "
                 # Append change count if available
                 numChanges = self.repoModel.numUncommittedChanges
                 if numChanges == 0:
-                    summaryText += " " + _("(Clean)")
+                    summaryText += _("(Clean)")
                 elif numChanges > 0:
-                    summaryText += " " + _n("({n} change)", "({n} changes)", numChanges)
+                    summaryText += _n("({n} change)", "({n} changes)", numChanges)
                 # Append draft message if any
                 draftMessage = self.repoModel.prefs.draftCommitMessage
                 if draftMessage:
@@ -271,17 +274,6 @@ class CommitLogDelegate(QStyledItemDelegate):
             painter.setClipRect(rect)
             self._paintRefboxes(painter, rect, refsHere, toolTips)
             painter.restore()
-
-        # ------ Icons
-        if oid == UC_FAKEID:
-            r = QRect(rect)
-            r.setWidth(min(16, r.height()))
-            icon = stockIcon("git-workdir")
-            iconMode = QIcon.Mode.Normal
-            if isSelected:
-                iconMode = QIcon.Mode.Selected if hasFocus else QIcon.Mode.SelectedInactive
-            icon.paint(painter, r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, mode=iconMode)
-            rect.setLeft(r.right() + 4)
 
         # ------ Message
         # use muted color for foreign commit messages if not selected
@@ -431,6 +423,8 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         if forceOmitName:
             text = ""
+        # elif refName == UC_FAKEREF:
+        #     text = _("Working Directory")
         elif not refboxDef.keepPrefix:
             text = refName.removeprefix(refboxDef.prefix)
         else:
