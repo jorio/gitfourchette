@@ -428,6 +428,13 @@ class PrefsDialog(QDialog):
             highlighter = UserCommandSyntaxHighlighter(control)
             highlighter.setDocument(control.document())
 
+        control.setPlaceholderText(_(
+            "# Enter custom terminal commands here.\n"
+            "# You can then launch them from the {menu} menu.\n"
+            "# Click {button} below for more information.",
+            menu=tquo(stripAccelerators(_("&Commands"))),
+            button=tquo(_("Handy Reference"))))
+
         control.setPlainText(prefValue)
         control.textChanged.connect(lambda: self.assign(prefKey, control.toPlainText()))
         return control

@@ -481,7 +481,7 @@ class TrTables:
 
     @staticmethod
     def userCommandsGuide():
-        from gitfourchette.toolbox.textutils import paragraphs, linkify, stripAccelerators
+        from gitfourchette.toolbox.textutils import paragraphs, linkify, stripAccelerators, tquo
         from gitfourchette.exttools.usercommand import UserCommand
 
         def cmdName(s: str):
@@ -491,21 +491,21 @@ class TrTables:
         markup = textwrap.dedent("""\
         <style>
         body {background-color: palette(window); }
-        pre { font-size: small; white-space: pre-wrap; margin-left: 16px; }
+        pre { font-size: small; white-space: pre-wrap; margin: 0px; margin-left: 16px; }
         com { color: gray; font-style: italic; }
         tok { font-weight: bold; }
         </style><body>""")
-        markup += _("Enter custom terminal commands here. You can then launch them from the {0} menu.",
-                    stripAccelerators(_("&Commands")))
+        markup += paragraphs(_("Feel free to copy the sample below and paste it into the text box. "
+                               "Then, click OK, and explore {menu} in the menu bar.",
+                               menu=tquo(stripAccelerators(_("&Commands")))))
         markup += textwrap.dedent(f"""\
         <pre>
-        <com># {_("Feel free to copy/paste this sample into Custom Commands.")}</com>
         git rebase -i <tok>$COMMIT</tok>   {cmdName(_("&Interactive Rebase"))}
         git rebase --continue   {cmdName(_("&Continue Rebase"))}
         <tok>?</tok> git rebase --abort    {cmdName(_("&Abort Rebase"))}
         git diff <tok>$COMMIT</tok> HEAD   {cmdName(_("Diff Commit With &HEAD"))}
         </pre>""")
-        markup += paragraphs(_("Argument placeholders:"))
+        markup += paragraphs(_("You may use the following placeholders in your commands:"))
         markup += _tokenReferenceTable(UserCommand.tokenHelpTable())
         markup += paragraphs(linkify(_("For advanced usage tips, please visit [the user’s guide]."
                                        ), _userCommandsGuideUrl))
