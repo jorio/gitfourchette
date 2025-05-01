@@ -201,8 +201,8 @@ class SidebarModel(QAbstractItemModel):
     _checkedOutUpstream: str
     "Shorthand of the checked-out branch's upstream"
 
-    _cachedTooltipIndex: QModelIndex
-    _cachedTooltipText: str
+    _cachedToolTipIndex: QModelIndex
+    _cachedToolTipText: str
 
     collapseCache: set[str]
     collapseCacheValid: bool
@@ -244,12 +244,18 @@ class SidebarModel(QAbstractItemModel):
         self.nodesByRef = {}
         self._checkedOut = ""
         self._checkedOutUpstream = ""
-
-        self._cachedTooltipIndex = QModelIndex_default
-        self._cachedTooltipText = ""
+        self.clearCachedTooltip()
 
         if emitSignals:
             self.endResetModel()
+
+    def clearCachedTooltip(self):
+        self._cachedToolTipIndex = QModelIndex_default
+        self._cachedToolTipText = ""
+
+    def cacheToolTip(self, index: QModelIndex, text: str):
+        self._cachedToolTipIndex = index
+        self._cachedToolTipText = text
 
     def isHideAllButThisMode(self):
         return bool(self.repoModel.prefs.showPatterns)
@@ -553,18 +559,14 @@ class SidebarModel(QAbstractItemModel):
     def columnCount(self, parent: QModelIndex = QModelIndex_default) -> int:
         return 1
 
-    def cacheTooltip(self, index: QModelIndex, text: str):
-        self._cachedTooltipIndex = index
-        self._cachedTooltipText = text
-
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
 
         # Tooltips may show information that is expensive to obtain.
         # Try to reuse any tooltip that we may have cached for the same index.
-        if role == Qt.ItemDataRole.ToolTipRole and index == self._cachedTooltipIndex:
-            return self._cachedTooltipText
+        if role == Qt.ItemDataRole.ToolTipRole and index == self._cachedToolTipIndex:
+            return self._cachedToolTipText
 
         node = SidebarNode.fromIndex(index)
         assert node is not None
@@ -599,9 +601,9 @@ class SidebarModel(QAbstractItemModel):
                     upstream = self.repoModel.upstreams[branchName]
                     text += "\n" + _("Upstream: {0}", escape(upstream))
                 if branchName == self._checkedOut:
-                    text += "\n<img src='assets:icons/git-head' style='vertical-align: bottom;'/> "
-                    text += "HEAD " + _("(this is the checked-out branch)")
-                self.cacheTooltip(index, text)
+                    text += f"\n{self._iconTag('git-head')} HEAD " + _("(this is the checked-out branch)")
+                text += self.visibilityToolTip(node)
+                self.cacheToolTip(index, text)
                 return text
             elif iconKeyRole:
                 return "git-branch" if branchName != self._checkedOut else "git-head"
@@ -614,7 +616,7 @@ class SidebarModel(QAbstractItemModel):
                 text = ("<p style='white-space: pre'>"
                         + _("Unborn HEAD: does not point to a commit yet.") + "\n"
                         + _("Local branch {0} will be created when you create the initial commit.", bquo(target)))
-                self.cacheTooltip(index, text)
+                self.cacheToolTip(index, text)
                 return text
 
         elif item == SidebarItem.DetachedHead:
@@ -635,7 +637,10 @@ class SidebarModel(QAbstractItemModel):
                 return remoteName
             elif toolTipRole:
                 url = self.repo.remotes[remoteName].url
-                return "<p style='white-space: pre'>" + escape(url)
+                text = "<p style='white-space: pre'>" + escape(url)
+                text += self.visibilityToolTip(node)
+                self.cacheToolTip(index, text)
+                return text
             elif iconKeyRole:
                 return "git-remote"
 
@@ -653,7 +658,9 @@ class SidebarModel(QAbstractItemModel):
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (remote-tracking branch)", btag(shorthand))
                 if self._checkedOutUpstream == shorthand:
-                    text += "<br><i>" + _("Upstream for the checked-out branch ({0})", hquoe(self._checkedOut))
+                    text += "<br><i>" + _("Upstream for the checked-out branch ({0})", hquoe(self._checkedOut)) + "</i>"
+                text += self.visibilityToolTip(node)
+                self.cacheToolTip(index, text)
                 return text
             elif fontRole:
                 if self._checkedOutUpstream == shorthand:
@@ -672,13 +679,15 @@ class SidebarModel(QAbstractItemModel):
             elif toolTipRole:
                 prefix, name = RefPrefix.split(refName)
                 text = "<p style='white-space: pre'>"
-                text += "<img src='assets:icons/git-folder' style='vertical-align: bottom;'/> "
+                text += self._iconTag("git-folder") + " "
                 if prefix == RefPrefix.REMOTES:
                     text += _("{0} (remote branch folder)", btag(name))
                 elif prefix == RefPrefix.TAGS:
                     text += _("{0} (tag folder)", btag(name))
                 else:
                     text += _("{0} (local branch folder)", btag(name))
+                text += self.visibilityToolTip(node)
+                self.cacheToolTip(index, text)
                 return text
             elif iconKeyRole:
                 return "git-folder"
@@ -711,7 +720,7 @@ class SidebarModel(QAbstractItemModel):
                 text = "<p style='white-space: pre'>"
                 text += f"<b>stash@{{{row}}}</b>: {escape(commit.message)}<br/>"
                 text += f"<b>{_('date:')}</b> {escape(dateText)}"
-                self.cacheTooltip(index, text)
+                self.cacheToolTip(index, text)
                 return text
             elif iconKeyRole:
                 return "git-stash"
@@ -727,6 +736,7 @@ class SidebarModel(QAbstractItemModel):
                 text += "\n" + _("URL: {0}", escape(url))
                 if node.warning:
                     text += "<br>\u26a0 " + node.warning
+                self.cacheToolTip(index, text)
                 return text
             elif iconKeyRole:
                 return "achtung" if node.warning else "git-submodule"
@@ -745,12 +755,13 @@ class SidebarModel(QAbstractItemModel):
             elif iconKeyRole:
                 return "git-workdir"
             elif toolTipRole:
-                tip = _("Go to Working Directory")
-                tip = appendShortcutToToolTipText(tip, QKeySequence("Ctrl+G"))
+                text = _("Go to Working Directory")
+                text = appendShortcutToToolTipText(text, QKeySequence("Ctrl+G"))
                 if self.repoModel.numUncommittedChanges >= 0:
-                    tip += "\n" + _n("({n} uncommitted change)", "({n} uncommitted changes)",
+                    text += "\n" + _n("({n} uncommitted change)", "({n} uncommitted changes)",
                                      self.repoModel.numUncommittedChanges)
-                return tip
+                self.cacheToolTip(index, text)
+                return text
 
         else:
             if displayRole:
@@ -795,3 +806,17 @@ class SidebarModel(QAbstractItemModel):
             f |= Qt.ItemFlag.ItemNeverHasChildren
 
         return f
+
+    def visibilityToolTip(self, node):
+        if self.isExplicitlyShown(node):
+            return f"<br>{self._iconTag('view-exclusive')} " + _("Hiding everything but this (middle-click the eye to toggle)")
+        elif self.isExplicitlyHidden(node):
+            return f"<br>{self._iconTag('view-hidden')} " + _("Hidden (click the eye to toggle)")
+        elif self.isImplicitlyHidden(node):
+            return f"<br>{self._iconTag('view-hidden-indirect')} " + _("Indirectly hidden")
+        return ""
+
+    @staticmethod
+    def _iconTag(iconName: str):
+        return f"<img src='assets:icons/{iconName}' style='vertical-align: bottom'/>"
+

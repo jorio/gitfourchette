@@ -225,12 +225,18 @@ def testHideNestedRefFolders(tempDir, mainWindow, explicit, implicit, method):
         raise NotImplementedError(f"unknown method {method}")
 
     for node in rw.sidebar.walk():
+        index = node.createIndex(sm)
+        tip = sm.data(index, Qt.ItemDataRole.ToolTipRole)
+
         if not node.isLeafBranchKind():
             pass
         elif node.data == explicit:
+            assert re.search(r"hidden", tip, re.I)
             assert sm.isExplicitlyHidden(node)
         else:
-            assert sm.isImplicitlyHidden(node) == (node.data in implicit)
+            hidden = node.data in implicit
+            assert hidden == sm.isImplicitlyHidden(node)
+            assert hidden ^ (not re.search(r"indirectly hidden", tip, re.I))
 
 
 @pytest.mark.parametrize("explicit,implicit", [
@@ -282,12 +288,18 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
     hiddenRefs.discard(explicit)
 
     for node in rw.sidebar.walk():
+        index = node.createIndex(sm)
+        tip = sm.data(index, Qt.ItemDataRole.ToolTipRole)
+
         if not node.isLeafBranchKind():
             pass
         elif node.data == explicit:
             assert sm.isExplicitlyShown(node)
+            assert re.search(r"hiding everything but this", tip, re.I)
         else:
-            assert sm.isImplicitlyHidden(node) == (node.data in hiddenRefs)
+            hidden = node.data in hiddenRefs
+            assert hidden == sm.isImplicitlyHidden(node)
+            assert hidden ^ (not re.search(r"indirectly hidden", tip, re.I))
 
     # Workdir row must always be visible
     uncommittedChangesIndex = rw.graphView.getFilterIndexForCommit(UC_FAKEID)

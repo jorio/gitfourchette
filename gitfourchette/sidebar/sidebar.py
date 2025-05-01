@@ -61,6 +61,7 @@ class Sidebar(QTreeView):
 
         sidebarModel = SidebarModel(self)
         self.setModel(sidebarModel)
+        self.toggleHideRefPattern.connect(sidebarModel.clearCachedTooltip)
 
         self.setItemDelegate(SidebarDelegate(self))
 
