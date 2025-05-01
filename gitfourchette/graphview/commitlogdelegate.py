@@ -392,8 +392,10 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # Draw loose refs
         for refName in refs:
-            # Skip refboxes for hidden refs
-            if refName in repoModel.hiddenRefs:
+            # Skip refboxes for hidden refs (except tags and special refs)
+            if (refName in repoModel.hiddenRefs
+                    and refName.startswith("refs/")
+                    and not refName.startswith(RefPrefix.TAGS)):
                 continue
 
             # Skip clustered refs we've drawn above
