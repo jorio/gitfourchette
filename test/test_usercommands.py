@@ -259,3 +259,14 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
     output = readTextFile(commandsScratchFile, 5000).strip()
     assert re.search(locHead.hash7, output)
 
+
+def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
+    wd = unpackRepo(tempDir)
+    mainWindow.openRepo(wd)
+    QTest.qWait(0)
+
+    QTest.keySequence(mainWindow, "Ctrl+K, D")
+    acceptQMessageBox(mainWindow, "do you want to run")
+
+    output = readTextFile(commandsScratchFile, 5000).strip()
+    assert re.search(locHead.hash7, output)

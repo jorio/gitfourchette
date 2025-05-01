@@ -4,8 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import re
-
 from gitfourchette import colors
 from gitfourchette.qt import *
 from gitfourchette.exttools.usercommand import UserCommand
@@ -15,8 +13,6 @@ try:
 except ImportError:  # pragma: no cover
     # If Pygments isn't available, UserCommandSyntaxHighlighter should never be instantiated!
     pass
-
-_acceleratorKeyPattern = re.compile(r"(?<![^&]&)&[^&]")
 
 
 class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
@@ -64,11 +60,10 @@ class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(start, tokenLength,
                                self.commentFormat if not isCommandLine else self.titleFormat)
 
-                accelMatch = _acceleratorKeyPattern.search(token)
+                accelMatch = UserCommand.AcceleratorPattern.search(token)
                 if accelMatch:
-                    accelStart = start + accelMatch.span()[0]
-                    accelLength = accelMatch.span()[1] - accelMatch.span()[0]
-                    self.setFormat(accelStart, accelLength, self.acceleratorFormat)
+                    matchStart, matchEnd = accelMatch.span()
+                    self.setFormat(start + matchStart, matchEnd - matchStart, self.acceleratorFormat)
 
             # Once we've seen at least one text token, we know that's a command line
             if tokenType == Token.Text:

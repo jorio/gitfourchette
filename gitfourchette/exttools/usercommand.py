@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import re
 import shlex
 import traceback
 from pathlib import Path
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass
 class UserCommand:
+    LeaderKey = "Ctrl+K"
+    AcceleratorPattern = re.compile(r"(?<![^&]&)&([^&])")
     SeparatorDash = "-"
     AlwaysConfirmPrefix = "?"
 
@@ -218,8 +221,6 @@ class UserCommand:
 
     @classmethod
     def parseCommandBlock(cls, commandBlock: str):
-        fKey = 6
-
         for line in commandBlock.splitlines(keepends=False):
             split = line.split("#", 1)
 
@@ -247,9 +248,13 @@ class UserCommand:
             tokens = ToolCommands.splitCommandTokens(command)
             placeholders = set(ToolCommands.findPlaceholderTokens(tokens))
 
-            # Find shortcut
-            shortcut = f"F{fKey}" if fKey <= 12 else ""
-            fKey += 1
+            # Find accelerator key and derive shortcut from it
+            accelMatch = UserCommand.AcceleratorPattern.search(comment)
+            if accelMatch:
+                accelKey = accelMatch.group(1)
+                shortcut = f"{cls.LeaderKey}, {accelKey}"
+            else:
+                shortcut = ""
 
             yield UserCommand(
                 command=command,
