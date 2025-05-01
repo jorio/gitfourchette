@@ -8,6 +8,7 @@ import itertools
 import os
 import re
 import shlex
+import shutil
 import textwrap
 from collections.abc import Sequence
 from contextlib import suppress
@@ -189,12 +190,20 @@ class ToolCommands:
         # While we could simply export the parameters as environment variables
         # then run termcmd.sh from the static assets, this approach fails if
         # the terminal is a Flatpak (custom env vars always seem to be erased).
-        # That's why we generate a bespoke launcher script on the fly.
+        # That's why we generate a bespoke launcher script on the fly
+        # (which sources termcmd.sh).
 
-        shell = shell or cls.defaultShell()
+        # When running as a Flatpak, the assets folder lives in an app-specific
+        # mount point. I don't think we can get its "real" path on the host.
+        # So, copy termcmd.sh out of the assets folder before passing it to the
+        # external terminal program.
+        termcmdPath = Path(qTempDir()) / "termcmd.sh"
+        if not termcmdPath.exists():
+            termcmdSourcePath = QFile("assets:termcmd.sh").fileName()
+            shutil.copyfile(termcmdSourcePath, termcmdPath)
+
         yKey = "y"
         nKey = "n"
-        wrapperPath = QFile("assets:termcmd.sh").fileName()
         exitMessage = _("Command exited with code:")
         keyPrompt = _("Continue in a shell?") + f" [{yKey.upper()}/{nKey}]"
 
@@ -202,13 +211,12 @@ class ToolCommands:
             #!/usr/bin/env bash
             _GF_COMMAND="{command}"
             _GF_APPNAME={shlex.quote(qAppName())}
-            _GF_SHELL={shlex.quote(shell)}
             _GF_YKEY={shlex.quote(yKey)}
             _GF_NKEY={shlex.quote(nKey)}
             _GF_EXITMESSAGE={shlex.quote(exitMessage)}
             _GF_KEYPROMPT={shlex.quote(keyPrompt)}
             _GF_WORKDIR={shlex.quote(workdir)}
-            source {shlex.quote(wrapperPath)}
+            source {shlex.quote(str(termcmdPath))}
         """)
 
         cacheKey = f"{hash(script):x}"
@@ -217,7 +225,3 @@ class ToolCommands:
             path.write_text(script, "utf-8")
             path.chmod(0o755)
         return str(path)
-
-    @classmethod
-    def defaultShell(cls) -> str:
-        return os.environ.get("SHELL", "/usr/bin/sh")

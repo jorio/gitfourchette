@@ -37,4 +37,4 @@ if [ -n "$_GF_COMMAND" ]; then
 fi
 
 # Drop into a shell
-exec $_GF_SHELL
+exec ${SHELL:-/usr/bin/sh}
