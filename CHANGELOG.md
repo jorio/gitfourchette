@@ -1,5 +1,37 @@
 # GitFourchette version history
 
+## 1.3.0 (2025-05-03)
+
+**Upgrade note:** The terminal command template now requires the `$COMMAND` argument placeholder. Please review your terminal command in *Settings → External Tools → Terminal*.
+
+New features:
+
+- Custom terminal commands (Settings → Custom Commands) (#37).
+- Sidebar: Hide All But This (#49). You can now show a single branch and hide all others.
+- Add file to .gitignore or .git/info/exclude from untracked file context menu (#42)
+
+Quality of life improvements:
+
+- GraphView: Conjoined refboxes when a local branch is in sync with its upstream (#12)
+- Add target branch shorthand to default merge commit message (#39)
+- NewBranchDialog: Pre-tick upstream checkbox if branching off remote branch
+- Report mandatory placeholder token errors when launching external tool commands
+- Speed up remote listing and upstream lookup
+- Fix Sidebar/DiffArea would sometimes jump around by a few pixels while temporary banners were shown
+- Override Yaru icon theme's "scary" red warning icon (#27)
+- More helpful message if Python bindings for QtSvg are missing
+
+Bug fixes:
+
+- Sidebar: Strip initial slash in nested RefFolder display names (#45)
+- Fix Ctrl+G keyboard shortcut on GNOME
+- Work around window snapping issue on GNOME (#50)
+
+Two other bug fixes originally introduced in v1.2.0 had been dormant until now due to depending on a pygit2 version bump – they are now in full effect:
+
+- Fix push progress wasn't reported properly during transfer (requires pygit2 1.18.0) (#22)
+- Fix push couldn't be canceled once the transfer starts (requires pygit2 1.18.0) (#22)
+
 ## 1.2.1 (2025-03-05)
 
 User-suggested quality of life improvements:

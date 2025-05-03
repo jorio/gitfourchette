@@ -34,6 +34,9 @@ changelogSoup = markdown.markdown(changelogText)
 releases = []
 
 for soupLine in changelogSoup.splitlines():
+    # Flatpak linter doesn't recognize <strong>, they'll reject the build if the changelog contains one
+    soupLine = re.sub(r"<(/?)strong>", r"<\1em>", soupLine)
+
     if soupLine.startswith("<h"):
         if soupLine.startswith("<h1>"):
             continue

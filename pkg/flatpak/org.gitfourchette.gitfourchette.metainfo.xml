@@ -45,9 +45,13 @@
   <screenshots>
     <screenshot type="default">
       <image>https://gitfourchette.org/_static/appstream/packshot-shadow-light.png</image>
+      <caption>Exploring a repository in GitFourchette (light mode).</caption>
+      <caption xml:lang="fr">Exploration d’un dépôt dans GitFourchette (mode clair).</caption>
     </screenshot>
     <screenshot>
       <image>https://gitfourchette.org/_static/appstream/packshot-shadow-dark.png</image>
+      <caption>Exploring a repository in GitFourchette (dark mode).</caption>
+      <caption xml:lang="fr">Exploration d’un dépôt dans GitFourchette (mode sombre).</caption>
     </screenshot>
   </screenshots>
 
@@ -62,6 +66,40 @@
   </keywords>
 
   <releases>
+    <release version="1.3.0" date="2025-05-03" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.3.0</url>
+      <description>
+        <p><em>Upgrade note:</em> The terminal command template now requires the <code>$COMMAND</code> argument placeholder. Please review your terminal command in <em>Settings → External Tools → Terminal</em>.</p>
+        <p>New features:</p>
+        <ul>
+        <li>Custom terminal commands (Settings → Custom Commands) (#37).</li>
+        <li>Sidebar: Hide All But This (#49). You can now show a single branch and hide all others.</li>
+        <li>Add file to .gitignore or .git/info/exclude from untracked file context menu (#42)</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>GraphView: Conjoined refboxes when a local branch is in sync with its upstream (#12)</li>
+        <li>Add target branch shorthand to default merge commit message (#39)</li>
+        <li>NewBranchDialog: Pre-tick upstream checkbox if branching off remote branch</li>
+        <li>Report mandatory placeholder token errors when launching external tool commands</li>
+        <li>Speed up remote listing and upstream lookup</li>
+        <li>Fix Sidebar/DiffArea would sometimes jump around by a few pixels while temporary banners were shown</li>
+        <li>Override Yaru icon theme's "scary" red warning icon (#27)</li>
+        <li>More helpful message if Python bindings for QtSvg are missing</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Sidebar: Strip initial slash in nested RefFolder display names (#45)</li>
+        <li>Fix Ctrl+G keyboard shortcut on GNOME</li>
+        <li>Work around window snapping issue on GNOME (#50)</li>
+        </ul>
+        <p>Two other bug fixes originally introduced in v1.2.0 had been dormant until now due to depending on a pygit2 version bump – they are now in full effect:</p>
+        <ul>
+        <li>Fix push progress wasn't reported properly during transfer (requires pygit2 1.18.0) (#22)</li>
+        <li>Fix push couldn't be canceled once the transfer starts (requires pygit2 1.18.0) (#22)</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.1" date="2025-03-05" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.2.1</url>
       <description>
@@ -123,11 +161,8 @@
         <li>Fix DiffView out of sync with rest of RepoWidget after hiding a the currently-selected branch tip</li>
         <li>Fix italics in sidebar didn't update after changing the current branch's upstream (a remote-tracking branch in italics means it's the upstream for the current branch)</li>
         <li>Fix visual artifacts around character-level diffs in DiffView</li>
-        </ul>
-        <p>Bug fixes that will take effect as soon as pygit2 1.17.1 is released:</p>
-        <ul>
-        <li>Fix push progress wasn't reported properly during transfer - requires pygit2 1.17.1 (#22)</li>
-        <li>Fix push couldn't be canceled once the transfer starts - requires pygit2 1.17.1 (#22)</li>
+        <li>Fix push progress wasn't reported properly during transfer (requires pygit2 1.18.0) (#22)</li>
+        <li>Fix push couldn't be canceled once the transfer starts (requires pygit2 1.18.0) (#22)</li>
         </ul>
         <p>Breaking changes:</p>
         <ul>
