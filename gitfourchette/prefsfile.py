@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -20,9 +20,14 @@ from gitfourchette.qt import *
 logger = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass
 class PrefsFile:
     _filename = ""
     _allowMakeDirs = True
+    _fileVersionKey = "_version"
+
+    _dirty = False
+    _fileVersion = ""
 
     def getParentDir(self) -> str:
         from gitfourchette.settings import TEST_MODE
@@ -54,10 +59,7 @@ class PrefsFile:
         self._dirty = True
 
     def isDirty(self):
-        try:
-            return self._dirty
-        except AttributeError:
-            return False
+        return self._dirty
 
     def reset(self):
         assert dataclasses.is_dataclass(self)
@@ -110,6 +112,10 @@ class PrefsFile:
                 os.unlink(prefsPath)
             return ""
 
+        # Inject file version into JSON object before writing
+        self._fileVersion = APP_VERSION
+        filtered[self._fileVersionKey] = self._fileVersion
+
         # Dump the object to disk
         with open(prefsPath, "w", encoding="utf-8") as jsonFile:
             json.dump(obj=filtered, fp=jsonFile, indent='\t')
@@ -126,10 +132,19 @@ class PrefsFile:
         # Load JSON blob
         with open(prefsPath, encoding="utf-8") as file:
             try:
-                jsonObject = json.load(file)
+                jsonObject: dict[str, Any] = json.load(file)
             except ValueError as loadError:
                 logger.warning(f"{prefsPath}: {loadError}", exc_info=True)
                 return False
+
+        if not isinstance(jsonObject, dict):
+            logger.warning(f"{prefsPath}: not a JSON dict")
+            return False
+
+        # Pop file version before decoding user fields
+        fv = jsonObject.pop(self._fileVersionKey, "")
+        if isinstance(fv, str):
+            self._fileVersion = fv
 
         assert dataclasses.is_dataclass(self)
         fields: dict[str, dataclasses.Field] = self.__dataclass_fields__
@@ -139,6 +154,7 @@ class PrefsFile:
             if key.startswith('_') or key not in fields:
                 logger.warning(f"{prefsPath}: dropping key: {key}")
                 continue
+
             if value is None:
                 continue
 
