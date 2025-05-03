@@ -219,7 +219,8 @@ class GFApplication(QApplication):
 
         # To prevent flashing a window with incorrect dimensions,
         # restore the geometry BEFORE calling show()
-        self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
+        if not GNOME:  # Skip this on GNOME (issue #50)
+            self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
         self.mainWindow.show()
 
         # Restore session then consume it
