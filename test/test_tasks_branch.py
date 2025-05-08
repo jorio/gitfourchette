@@ -444,7 +444,7 @@ def testNewBranchFromCommit(tempDir, mainWindow, method):
     rw.jump(NavLocator.inCommit(oid1))
 
     if method == "graphstart":
-        triggerMenuAction(rw.graphView.makeContextMenu(), r"(start|new) branch")
+        triggerContextMenuAction(rw.graphView.viewport(), r"(start|new) branch")
     elif method == "graphcheckout":
         QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
         qd = findQDialog(rw, r"check ?out")
@@ -490,7 +490,7 @@ def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
         rw.sidebar.selectNode(sidebarNode)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "graphstart":
-        triggerMenuAction(rw.graphView.makeContextMenu(), r"(start|new) branch")
+        triggerContextMenuAction(rw.graphView.viewport(), r"(start|new) branch")
     elif method == "graphcheckout":
         QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
         qd = findQDialog(rw, r"check ?out")
@@ -525,7 +525,7 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
         findMenuAction(menu, "new.+branch.+here").trigger()
     elif method == "graphstart":
         rw.jump(NavLocator.inRef("refs/heads/no-parent"))
-        triggerMenuAction(rw.graphView.makeContextMenu(), r"(start|new) branch")
+        triggerContextMenuAction(rw.graphView.viewport(), r"(start|new) branch")
     elif method == "graphcheckout":
         rw.jump(NavLocator.inRef("refs/heads/no-parent"))
         QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
@@ -587,7 +587,7 @@ def testSwitchBranch(tempDir, mainWindow, method):
     elif method in ["graphmenu", "graphkey"]:
         rw.jump(NavLocator.inRef("refs/heads/no-parent"))
         if method == "graphmenu":
-            triggerMenuAction(rw.graphView.makeContextMenu(), "check out")
+            triggerContextMenuAction(rw.graphView.viewport(), "check out")
         else:
             rw.graphView.setFocus()
             QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
@@ -626,7 +626,7 @@ def testResetHeadToCommit(tempDir, mainWindow):
     assert rw.repo.branches.local['master'].target != oid1
 
     rw.jump(NavLocator.inCommit(oid1))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "reset.+here")
+    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
 
     dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+0966a4")
     dlg.modeButtons[ResetMode.HARD].click()
@@ -654,7 +654,7 @@ def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     assert uncommittedContents == readFile(uncommittedPath).decode("utf-8")
 
     rw.jump(NavLocator.inCommit(rootId2))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "reset.+here")
+    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
 
     dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+ea953d3")
     dlg.modeButtons[ResetMode.HARD].click()
@@ -988,13 +988,13 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
     elif method == "newbranch":
         oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
         rw.jump(NavLocator.inCommit(oid))
-        triggerMenuAction(rw.graphView.makeContextMenu(), "new branch")
+        triggerContextMenuAction(rw.graphView.viewport(), "new branch")
         findQDialog(rw, "new branch").accept()
         acceptQMessageBox(rw, "lose track of this commit")
     elif method == "checkout":
         oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
         rw.jump(NavLocator.inCommit(oid))
-        triggerMenuAction(rw.graphView.makeContextMenu(), "check out")
+        triggerContextMenuAction(rw.graphView.viewport(), "check out")
         findQDialog(rw, "check out").accept()
         acceptQMessageBox(rw, "lose track of this commit")
     else:
@@ -1014,7 +1014,7 @@ def testCreateBranchOnDetachedHead(tempDir, mainWindow):
     assert rw.repo.head_is_detached
 
     rw.jump(NavLocator.inCommit(looseOid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "new branch")
+    triggerContextMenuAction(rw.graphView.viewport(), "new branch")
     dlg: NewBranchDialog = findQDialog(rw, "new branch")
     dlg.ui.nameEdit.setText("hellobranch")
     assert dlg.ui.switchToBranchCheckBox.isChecked()

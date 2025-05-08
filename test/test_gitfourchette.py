@@ -226,7 +226,7 @@ def testTruncatedHistory(tempDir, mainWindow, method):
     if method == "specialdiff":
         qteClickLink(rw.specialDiffView, "change.+threshold")
     elif method == "graphcm":
-        triggerMenuAction(rw.graphView.makeContextMenu(), "change.+threshold")
+        triggerContextMenuAction(rw.graphView.viewport(), "change.+threshold")
     prefsDialog = findQDialog(mainWindow, "settings")
     QTest.qWait(0)
     assert prefsDialog.findChild(QWidget, "prefctl_maxCommits").hasFocus()
@@ -236,7 +236,7 @@ def testTruncatedHistory(tempDir, mainWindow, method):
     if method == "specialdiff":
         qteClickLink(rw.specialDiffView, "load full")
     elif method == "graphcm":
-        triggerMenuAction(rw.graphView.makeContextMenu(), "load full")
+        triggerContextMenuAction(rw.graphView.viewport(), "load full")
     assert 7 < rw.graphView.clFilter.rowCount()
 
     # Truncated history row must be gone
@@ -711,7 +711,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
     mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in python3")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in python3")
     assert readFile(scratchPath, 1000).decode().strip() == "about to sleep"
     mainWindow.closeAllTabs()
     pause(3)

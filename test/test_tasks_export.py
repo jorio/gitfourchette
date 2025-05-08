@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -61,8 +61,7 @@ def testExportPatchFromCommit(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(oid))
-    menu = rw.graphView.makeContextMenu()
-    triggerMenuAction(menu, r"export.+patch")
+    triggerContextMenuAction(rw.graphView.viewport(), r"export.+patch")
     acceptQFileDialog(rw, "export.+patch", f"{tempDir.name}/foo.patch")
 
     triggerMenuAction(mainWindow.menuBar(), "file/revert patch")

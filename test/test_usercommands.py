@@ -165,10 +165,10 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
         menu = mainWindow.mainToolBar.terminalAction.menu()
         action = findMenuAction(menu, params.menuName)
     elif params.actionSource == "graphview":
-        menu = rw.graphView.makeContextMenu()
+        menu = summonContextMenu(rw.graphView.viewport())
         action = findMenuAction(menu, r"\(command\) " + params.menuName)
     elif params.actionSource == "filelist":
-        menu = rw.committedFiles.makeContextMenu()
+        menu = summonContextMenu(rw.committedFiles.viewport())
         action = findMenuAction(menu, r"\(command\) " + params.menuName)
     elif params.actionSource == "sidebar":
         node = SidebarNode.fromIndex(rw.sidebar.selectedIndexes()[0])

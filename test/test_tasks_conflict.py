@@ -47,8 +47,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.oursButton.click()
     else:
-        menu = rw.dirtyFiles.makeContextMenu()
-        triggerMenuAction(menu, "resolve by.+ours")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+ours")
 
     # -------------------------
     # Take their a2.txt
@@ -63,8 +62,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.theirsButton.click()
     else:
-        menu = rw.dirtyFiles.makeContextMenu()
-        triggerMenuAction(menu, "resolve by.+theirs")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+theirs")
 
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
@@ -109,7 +107,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.oursButton.click()
     else:
-        triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "resolve by.+ours")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+ours")
 
     # -------------------------
     # Take their deletion of a2.txt
@@ -123,7 +121,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.theirsButton.click()
     else:
-        triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "resolve by.+theirs")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+theirs")
 
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()

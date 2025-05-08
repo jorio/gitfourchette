@@ -172,9 +172,8 @@ def testCommitInfo(tempDir, mainWindow, method):
         QTest.keyClick(rw.graphView, Qt.Key.Key_Space)
     elif method == "contextmenu":
         # Use Alt modifier to bring up debug info (for coverage)
-        QTest.keyPress(rw.graphView, Qt.Key.Key_Alt)
-        triggerMenuAction(rw.graphView.makeContextMenu(), "get info")
-        QTest.keyRelease(rw.graphView, Qt.Key.Key_Alt)
+        QTest.keyPress(rw.graphView, Qt.Key.Key_Alt, Qt.KeyboardModifier.AltModifier)
+        triggerContextMenuAction(rw.graphView.viewport(), "get info")
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -219,7 +218,7 @@ def testCopyCommitHash(tempDir, mainWindow, method):
         rw.graphView.setFocus()
         QTest.keySequence(rw.graphView, "Ctrl+C")
     elif method == "contextmenu":
-        triggerMenuAction(rw.graphView.makeContextMenu(), "copy.+hash")
+        triggerContextMenuAction(rw.graphView.viewport(), "copy.+hash")
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -247,7 +246,7 @@ def testCopyCommitMessage(tempDir, mainWindow, method):
         rw.graphView.setFocus()
         QTest.keySequence(rw.graphView, "Ctrl+Shift+C")
     elif method == "contextmenu":
-        triggerMenuAction(rw.graphView.makeContextMenu(), "copy.+message")
+        triggerContextMenuAction(rw.graphView.viewport(), "copy.+message")
     else:
         raise NotImplementedError(f"unknown method {method}")
 

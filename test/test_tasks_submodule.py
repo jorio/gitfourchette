@@ -52,13 +52,11 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
 
     elif method == "commitFileList":
         rw.jump(NavLocator.inCommit(oid=submoCommit, path="submodir"))
-        menu = rw.committedFiles.makeContextMenu()
-        triggerMenuAction(menu, r"open.+submodule.+in new tab")
+        triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+submodule.+in new tab")
 
     elif method == "dirtyFileList":
         rw.jump(NavLocator.inUnstaged(path="submodir"))
-        menu = rw.dirtyFiles.makeContextMenu()
-        triggerMenuAction(menu, r"open.+submodule.+in new tab")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), r"open.+submodule.+in new tab")
 
     elif method == "stagedFileList":
         with RepoContext(submoAbsPath, write_index=True) as submoRepo:
@@ -67,8 +65,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
         rw.refreshRepo()
 
         rw.jump(NavLocator.inStaged(path="submodir"))
-        menu = rw.stagedFiles.makeContextMenu()
-        triggerMenuAction(menu, r"open.+submodule.+in new tab")
+        triggerContextMenuAction(rw.stagedFiles.viewport(), r"open.+submodule.+in new tab")
 
     else:
         raise NotImplementedError("unknown method")
@@ -231,8 +228,8 @@ def testAbsorbSubmodule(tempDir, mainWindow):
     assert 1 == mainWindow.tabs.currentIndex()
 
     # Open superproject from tab context menu
-    mainWindow.tabs.tabContextMenuRequested.emit(QPoint(0, 0), 1)
-    tabMenu = mainWindow.findChild(QMenu, "MWRepoTabContextMenu")
+    tabBar = mainWindow.tabs.tabs
+    tabMenu = summonContextMenu(tabBar, tabBar.tabRect(1).center())
     triggerMenuAction(tabMenu, r"open superproject")
     assert 0 == mainWindow.tabs.currentIndex()  # back to first tab
     assert rw is mainWindow.tabs.currentWidget()  # back to first tab
@@ -488,7 +485,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
         dlg.ui.recurseSubmodulesCheckBox.setChecked(recurse)
         dlg.accept()
     elif method == "switch2":
-        triggerMenuAction(rw.graphView.makeContextMenu(), "check.?out")
+        triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
         dlg = findQDialog(rw, "check.?out")
         assert dlg.ui.switchToLocalBranchRadioButton.isChecked()
         assert dlg.ui.recurseSubmodulesCheckBox.isVisible()
@@ -496,7 +493,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
         dlg.ui.recurseSubmodulesCheckBox.setChecked(recurse)
         dlg.accept()
     elif method == "detach":
-        triggerMenuAction(rw.graphView.makeContextMenu(), "check.?out")
+        triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
         dlg = findQDialog(rw, "check.?out")
         dlg.ui.detachedHeadRadioButton.setChecked(True)
         dlg.ui.recurseSubmodulesCheckBox.setChecked(recurse)
@@ -519,7 +516,7 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     assert 1 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
     rw.jump(NavLocator.inCommit(initialCommit))
 
-    triggerMenuAction(rw.graphView.makeContextMenu(), "check.?out")
+    triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
     dlg = findQDialog(rw, "check.?out")
     dlg.ui.detachedHeadRadioButton.setChecked(True)
     dlg.ui.recurseSubmodulesCheckBox.setChecked(True)

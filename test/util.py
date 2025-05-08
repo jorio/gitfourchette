@@ -222,6 +222,12 @@ def triggerMenuAction(menu: QMenu | QMenuBar, pattern: str):
     action.trigger()
 
 
+def triggerContextMenuAction(widget: QWidget, pattern: str):
+    menu = summonContextMenu(widget)
+    triggerMenuAction(menu, pattern)
+    menu.close()
+
+
 def qteFind(qte: QTextEdit, pattern: str, plainText=False):
     assert isinstance(qte, QTextEdit)
     if plainText:
@@ -370,13 +376,6 @@ def findQToolButton(parent: QToolButton, textPattern: str) -> QToolButton:
     raise KeyError(f"did not find QToolButton \"{textPattern}\"")
 
 
-def findContextMenu(parent: QWidget) -> QMenu:
-    for menu in parent.findChildren(QMenu):
-        if menu.isVisible() and not isinstance(menu.parent(), QMenu):
-            return menu
-    raise KeyError("did not find context menu")
-
-
 def postMouseWheelEvent(target: QWidget, angleDelta: int, point=QPoint_zero, modifiers=Qt.KeyboardModifier.NoModifier):
     if QT5:
         point = QPoint(point)
@@ -394,3 +393,19 @@ def postMouseWheelEvent(target: QWidget, angleDelta: int, point=QPoint_zero, mod
         False)
 
     QApplication.instance().postEvent(target, fakeWheelEvent)
+
+
+def summonContextMenu(target: QWidget, localPoint=QPoint_zero):
+    def getVisibleContextMenu():
+        for tlw in QApplication.topLevelWidgets():
+            if isinstance(tlw, QMenu) and tlw.isVisible():
+                return tlw
+        return None
+
+    # No context menu should be visible at the beginning
+    assert not getVisibleContextMenu()
+
+    QTest.qWait(0)
+    event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, localPoint, target.mapToGlobal(localPoint))
+    QApplication.instance().postEvent(target, event)
+    return waitUntilTrue(getVisibleContextMenu)

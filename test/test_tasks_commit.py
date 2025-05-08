@@ -142,8 +142,7 @@ def testClearCommitMessageDraft(tempDir, mainWindow):
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
 
     assert rw.navLocator.context.isWorkdir()
-    graphCM = rw.graphView.makeContextMenu()
-    triggerMenuAction(graphCM, "clear draft")
+    triggerContextMenuAction(rw.graphView.viewport(), "clear draft")
 
     assert not rw.repoModel.prefs.hasDraftCommit()
     assert not rw.repoModel.prefs.draftCommitMessage
@@ -255,7 +254,7 @@ def testAmendCommitDontBreakRefresh(qtbot, tempDir, mainWindow):
 
     # Kick off amend dialog
     rw.jump(NavLocator.inWorkdir())
-    triggerMenuAction(rw.graphView.makeContextMenu(), "amend")
+    triggerContextMenuAction(rw.graphView.viewport(), "amend")
 
     # Amend HEAD commit without any changes, i.e. just change the timestamp.
     dialog: CommitDialog = findQDialog(rw, "amend")
@@ -393,7 +392,7 @@ def testCheckoutCommitDetachedHead(tempDir, mainWindow, method):
         rw.jump(NavLocator.inCommit(oid))
 
         if method == "graphcm":
-            triggerMenuAction(rw.graphView.makeContextMenu(), r"check.?out")
+            triggerContextMenuAction(rw.graphView.viewport(), r"check.?out")
         elif method == "graphkey":
             QTest.keySequence(rw.graphView, "Return")
         else:
@@ -417,7 +416,7 @@ def testCheckoutCommitBlockedByConflicts(tempDir, mainWindow):
 
     oid = Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6")
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), r"check.?out")
+    triggerContextMenuAction(rw.graphView.viewport(), r"check.?out")
 
     acceptQMessageBox(rw, "fix merge conflicts before performing this action")
 
@@ -485,7 +484,7 @@ def testRevertCommit(tempDir, mainWindow):
 
     oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "revert")
+    triggerContextMenuAction(rw.graphView.viewport(), "revert")
     acceptQMessageBox(rw, "do you want to revert")
     acceptQMessageBox(rw, "reverting.+c9ed7bf.+successful")
 
@@ -507,7 +506,7 @@ def testAbortRevertCommit(tempDir, mainWindow):
 
     oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "revert")
+    triggerContextMenuAction(rw.graphView.viewport(), "revert")
     acceptQMessageBox(rw, "do you want to revert")
     rejectQMessageBox(rw, "reverting.+c9ed7bf.+successful")
 
@@ -533,7 +532,7 @@ def testCherrypick(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "cherry")
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
 
     assert rw.diffArea.fileStackPage() == "workdir"
     assert rw.repo.status() == {"a/a1.txt": FileStatus.INDEX_NEW}
@@ -562,7 +561,7 @@ def testCherrypickDud(tempDir, mainWindow):
 
     oid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "cherry")
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
     acceptQMessageBox(rw, "nothing to cherry.?pick.+already")
 
 
@@ -577,7 +576,7 @@ def testAbortCherrypick(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "cherry")
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
     assert rw.diffArea.fileStackPage() == "workdir"
     assert rw.repo.status() == {"a/a1.txt": FileStatus.INDEX_NEW}
     rejectQMessageBox(rw, "cherry.+success.+commit")
@@ -607,7 +606,7 @@ def testNewTag(tempDir, mainWindow):
     oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
 
     rw.jump(NavLocator.inCommit(oid))
-    triggerMenuAction(rw.graphView.makeContextMenu(), "tag this commit")
+    triggerContextMenuAction(rw.graphView.viewport(), "tag this commit")
 
     dlg: QDialog = findQDialog(rw, "new tag")
     lineEdit = dlg.findChild(QLineEdit)

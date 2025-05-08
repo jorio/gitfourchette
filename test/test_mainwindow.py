@@ -221,11 +221,9 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
     for tabIndex, wd in enumerate([wd0, wd1]):
         wd = os.path.realpath(wd)
 
-        tabRect = mainWindow.tabs.tabs.tabRect(tabIndex)
-        clickPoint = tabRect.topLeft()
-        mainWindow.tabs.tabs.customContextMenuRequested.emit(clickPoint)
-
-        menu = findContextMenu(mainWindow)
+        tabBar = mainWindow.tabs.tabs
+        tabRect = tabBar.tabRect(tabIndex)
+        menu = summonContextMenu(tabBar, tabRect.center())
 
         triggerMenuAction(menu, "copy repo path")
         assert QApplication.clipboard().text() == wd

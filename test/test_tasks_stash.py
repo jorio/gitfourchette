@@ -105,8 +105,7 @@ def testNewPartialStash(tempDir, mainWindow, method):
             row = qlvFindRow(rw.dirtyFiles, file)
             index = rw.dirtyFiles.flModel.index(row, 0)
             rw.dirtyFiles.selectionModel().select(index, QItemSelectionModel.SelectionFlag.Select)
-        cm = rw.dirtyFiles.makeContextMenu()
-        triggerMenuAction(cm, "stash")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "stash")
     else:
         raise NotImplementedError(f"unknown method {method}")
 

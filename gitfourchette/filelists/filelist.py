@@ -126,6 +126,9 @@ class FileList(QListView):
 
         self.repo = None
 
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.onContextMenuRequested)
+
         flModel = FileListModel(self, navContext)
         self.setModel(flModel)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -200,25 +203,11 @@ class FileList(QListView):
         menu.setObjectName("FileListContextMenu")
         return menu
 
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        try:
-            menu = self.makeContextMenu()
-        except Exception as exc:
-            # Avoid exceptions in contextMenuEvent at all costs to prevent a crash
-            # (endless loop of "This exception was delayed").
-            excMessageBox(exc, message="Failed to create FileList context menu")
-            return
-
-        if not menu:
-            return
-
-        menu.exec(event.globalPos())
-
-        # Can't set WA_DeleteOnClose because this crashes on macOS e.g. when exporting a patch.
-        # (Context menu gets deleted while callback is running)
-        # Qt docs say: "for the object to be deleted, the control must return to the event loop from which deleteLater()
-        # was called" -- I suppose this means the context menu won't be deleted until the FileList has control again.
-        menu.deleteLater()
+    def onContextMenuRequested(self, point: QPoint):
+        menu = self.makeContextMenu()
+        if menu is not None:
+            menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            menu.popup(self.mapToGlobal(point))
 
     def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
         """ To be overridden """

@@ -15,10 +15,9 @@ def testOpenFileInQDesktopServices(tempDir, mainWindow, mockDesktopServices):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
-    menu = rw.committedFiles.makeContextMenu()
+    menu = summonContextMenu(rw.committedFiles.viewport())
     triggerMenuAction(menu, "open file in/working copy")
 
-    pause()
     url = mockDesktopServices.urls[-1]
     assert url.isLocalFile()
     assert url.toLocalFile() == wd + "a/a1"

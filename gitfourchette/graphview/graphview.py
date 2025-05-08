@@ -171,9 +171,8 @@ class GraphView(QListView):
     def onContextMenuRequested(self, point: QPoint):
         menu = self.makeContextMenu()
         if menu is not None:
-            globalPoint = self.mapToGlobal(point)
-            menu.exec(globalPoint)
-            menu.deleteLater()
+            menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            menu.popup(self.mapToGlobal(point))
 
     def clear(self):
         self.clModel.clear()

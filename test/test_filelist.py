@@ -31,7 +31,7 @@ def testSaveRevisionAtCommit(tempDir, mainWindow):
     rw.jump(loc)
     assert loc.isSimilarEnoughTo(rw.navLocator)
 
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "save.+copy/as of.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/as of.+commit")
     acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
     assert b"c2\nc2\n" == readFile(f"{tempDir.name}/c2@1203b03.txt")
 
@@ -45,7 +45,7 @@ def testSaveRevisionBeforeCommit(tempDir, mainWindow):
     rw.jump(loc)
     assert loc.isSimilarEnoughTo(rw.navLocator)
 
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "save.+copy/before.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/before.+commit")
     acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
     assert b"c2\n" == readFile(f"{tempDir.name}/c2@before-1203b03.txt")
 
@@ -58,7 +58,7 @@ def testSaveOldRevisionOfDeletedFile(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "c/c2-2.txt"))
 
     # c2-2.txt was deleted by the commit. Expect a warning about this.
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"save.+copy/as of.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"save.+copy/as of.+commit")
     acceptQMessageBox(rw, r"file.+deleted by.+commit")
 
 
@@ -86,7 +86,7 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
     rw.jump(loc)
     assert loc.isSimilarEnoughTo(rw.navLocator)
 
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), f"restore/{side}.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), f"restore/{side}.+commit")
     if result == "[NOP]":
         acceptQMessageBox(rw, "working copy.+already matches.+revision")
     else:
@@ -111,7 +111,7 @@ def testRevertCommittedFile(tempDir, mainWindow):
 
     assert b"On master\nOn master\n" == readFile(f"{wd}/master.txt")
 
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "revert")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     acceptQMessageBox(rw, "revert.+patch")
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("master.txt"))
 
@@ -128,7 +128,7 @@ def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "c/c2.txt"))
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inCommit(commitId, "c/c2.txt"))
 
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "revert")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     rejectQMessageBox(rw, "apply patch.+ran into an issue")
     assert not os.path.exists(f"{wd}/c/c2.txt")
 
@@ -246,15 +246,15 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
 
     # Now open the file in our shim
     # HEAD revision
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim/current")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/current")
     assert b"a/a1" in readFile(scratchPath, timeout=1000, unlink=True)
 
     # New revision
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim/before.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/before.+commit")
     acceptQMessageBox(mainWindow, "file did.?n.t exist")
 
     # Old revision
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), r"open.+in editor-shim/as of.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/as of.+commit")
     assert b"a1@49322bb" in readFile(scratchPath, timeout=1000, unlink=True)
 
 
@@ -267,7 +267,7 @@ def testEditFileInExternalDiffTool(tempDir, mainWindow):
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
     mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in python3")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in python3")
     scratchText = readFile(scratchPath, 1000, unlink=True).decode("utf-8")
     assert "[OLD]b2.txt" in scratchText
     assert "[NEW]b2.txt" in scratchText
@@ -281,7 +281,7 @@ def testEditFileInMissingFlatpak(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
 
-    triggerMenuAction(rw.committedFiles.makeContextMenu(), "open diff in org.gitfourchette.BogusEditorName")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in org.gitfourchette.BogusEditorName")
     qmb = waitForQMessageBox(rw, "couldn.t start flatpak .*org.gitfourchette.BogusEditorName")
     qmb.accept()
 
@@ -354,12 +354,10 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"))
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
-    menu = rw.committedFiles.makeContextMenu()
-    triggerMenuAction(menu, "path display style/name only")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/name only")
     assert ["c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
-    menu = rw.committedFiles.makeContextMenu()
-    triggerMenuAction(menu, "path display style/full")
+    triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/full")
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
 
@@ -421,8 +419,7 @@ def testIgnorePattern(tempDir, mainWindow, saveTo):
     assert ".gitignore" not in qlvGetRowData(rw.dirtyFiles)
     assert relPath in qlvGetRowData(rw.dirtyFiles)
 
-    menu = rw.dirtyFiles.makeContextMenu()
-    triggerMenuAction(menu, "ignore")
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "ignore")
 
     dlg: IgnorePatternDialog = rw.findChild(IgnorePatternDialog)
     assert dlg.excludePath == ".gitignore"
@@ -457,7 +454,7 @@ def testIgnorePatternValidation(tempDir, mainWindow, userPattern, isValid):
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged(relPath), check=True)
-    triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "ignore")
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "ignore")
 
     dlg: IgnorePatternDialog = rw.findChild(IgnorePatternDialog)
     dlg.ui.patternEdit.setEditText(userPattern)

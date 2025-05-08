@@ -15,7 +15,7 @@ def doStage(rw, method):
     if method == "key":
         QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)
     elif method == "menu":
-        triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "stage")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "stage")
     elif method == "button":
         rw.diffArea.stageButton.click()
     else:
@@ -26,7 +26,7 @@ def doDiscard(rw, method):
     if method == "key":
         QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Delete)
     elif method == "menu":
-        triggerMenuAction(rw.dirtyFiles.makeContextMenu(), "(discard|delete)")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "(discard|delete)")
     elif method == "button":
         rw.diffArea.discardButton.click()
     else:
@@ -37,7 +37,7 @@ def doUnstage(rw, method):
     if method == "key":
         QTest.keyPress(rw.stagedFiles, Qt.Key.Key_Delete)
     elif method == "menu":
-        triggerMenuAction(rw.stagedFiles.makeContextMenu(), "unstage")
+        triggerContextMenuAction(rw.stagedFiles.viewport(), "unstage")
     elif method == "button":
         rw.diffArea.unstageButton.click()
     else:
@@ -126,8 +126,7 @@ def testDiscardModeChange(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     assert qlvGetRowData(rw.dirtyFiles) == ["[+x] a/a1.txt"]
     qlvClickNthRow(rw.dirtyFiles, 0)
-    contextMenu = rw.dirtyFiles.makeContextMenu()
-    findMenuAction(contextMenu, "(restore|revert|discard) mode").trigger()
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "revert mode")
     acceptQMessageBox(rw, "(restore|revert|discard) mode")
 
     assert readFile(path).decode() == "keep this!"
@@ -145,8 +144,7 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
     assert os.path.exists(innerWd)
     assert qlvGetRowData(rw.dirtyFiles) == ["[tree] inner"]
     qlvClickNthRow(rw.dirtyFiles, 0)
-    contextMenu = rw.dirtyFiles.makeContextMenu()
-    findMenuAction(contextMenu, "delete").trigger()
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "delete")
     acceptQMessageBox(rw, "really delete.+inner")
 
     assert not os.path.exists(innerWd)
