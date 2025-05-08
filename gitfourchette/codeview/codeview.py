@@ -42,6 +42,9 @@ class CodeView(QPlainTextEdit):
         self.setReadOnly(True)
         self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
 
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.onContextMenuRequested)
+
         self.currentLocator = NavLocator()
         self.isDetachedWindow = False
 
@@ -51,7 +54,7 @@ class CodeView(QPlainTextEdit):
         self.visibilityChanged.connect(self.highlighter.onParentVisibilityChanged)
 
         self.gutter = gutterClass(self)
-        self.gutter.customContextMenuRequested.connect(lambda p: self.execContextMenu(self.gutter.mapToGlobal(p)))
+        self.gutter.customContextMenuRequested.connect(self.onContextMenuRequestedFromGutter)
         self.updateRequest.connect(self.gutter.onParentUpdateRequest)
         # self.blockCountChanged.connect(self.updateGutterWidth)
         self.syncViewportMarginsWithGutter()
@@ -100,9 +103,6 @@ class CodeView(QPlainTextEdit):
 
     # ---------------------------------------------
     # Qt events
-
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        self.execContextMenu(event.globalPos())
 
     def resizeEvent(self, event: QResizeEvent):
         super().resizeEvent(event)
@@ -269,40 +269,47 @@ class CodeView(QPlainTextEdit):
     # Context menu
 
     def contextMenuActions(self, clickedCursor: QTextCursor) -> list[ActionDef]:
-        return []
+        raise NotImplementedError("subclasses of CodeView must override this!")
 
-    def contextMenu(self, globalPos: QPoint):
+    def onContextMenuRequested(self, point: QPoint):
         # Don't show the context menu if we're empty
         if self.document().isEmpty():
             return None
 
-        # Get position of click in document
-        clickedCursor = self.cursorForPosition(self.mapFromGlobal(globalPos))
+        # Get standard context menu (copy, select all, etc.)
+        bottomMenu: QMenu = self.createStandardContextMenu()
 
+        # Get position of click in document
+        clickedCursor = self.cursorForPosition(point)
+
+        # Get actions from concrete class
         actions = self.contextMenuActions(clickedCursor)
 
+        # Append common CodeView actions
         actions += [
             ActionDef.SEPARATOR,
             ActionDef(_("&Word Wrap"), self.toggleWordWrap, checkState=1 if settings.prefs.wordWrap else -1),
             ActionDef(_("Configure Appearance…"), lambda: GFApplication.instance().openPrefsDialog("font"), icon="configure"),
+            ActionDef.SEPARATOR,
+            *bottomMenu.actions(),
         ]
 
-        bottom: QMenu = self.createStandardContextMenu()
-        menu = ActionDef.makeQMenu(self, actions, bottom)
-        bottom.deleteLater()  # don't need this menu anymore
+        # Create QMenu
+        menu = ActionDef.makeQMenu(self, actions)
         menu.setObjectName("CodeViewContextMenu")
-        return menu
+        menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
-    def execContextMenu(self, globalPos: QPoint):  # pragma: no cover
-        try:
-            menu = self.contextMenu(globalPos)
-            if not menu:
-                return
-            menu.exec(globalPos)
-            menu.deleteLater()
-        except Exception as exc:
-            # Avoid exceptions in contextMenuEvent at all costs to prevent a crash
-            excMessageBox(exc, message="Failed to create CodeView context menu")
+        # The master menu doesn't take ownership of bottomMenu's actions,
+        # so bottomMenu must be kept alive until the master menu is closed.
+        menu.destroyed.connect(bottomMenu.deleteLater)
+
+        # Show QMenu
+        menu.popup(self.viewport().mapToGlobal(point))
+
+    def onContextMenuRequestedFromGutter(self, point: QPoint):
+        point = self.gutter.mapToGlobal(point)
+        point = self.viewport().mapFromGlobal(point)
+        self.onContextMenuRequested(point)
 
     # ---------------------------------------------
     # Gutter

@@ -171,18 +171,10 @@ class ActionDef:
     def makeQMenu(
             parent: QWidget,
             actionDefs: Iterable[ActionDef | QAction],
-            bottomEntries: QMenu | None = None
     ) -> QMenu:
-
         menu = QMenu(parent)
         menu.setObjectName(f"{parent.objectName()}_ActionDefMenu" if parent else "ActionDefMenu")
-
         ActionDef.addToQMenu(menu, *actionDefs)
-
-        if bottomEntries:
-            menu.addSeparator()
-            menu.addActions(bottomEntries.actions())
-
         return menu
 
 

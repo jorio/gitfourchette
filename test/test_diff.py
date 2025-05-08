@@ -697,13 +697,13 @@ def testToggleWordWrap(tempDir, mainWindow):
     assert NavLocator.inUnstaged("longline.txt").isSimilarEnoughTo(rw.navLocator)
     assert dv.horizontalScrollBar().isVisible()
 
-    menu = dv.contextMenu(QPoint(0, 0))
-    triggerMenuAction(menu, "word wrap")
+    triggerContextMenuAction(dv.viewport(), "word wrap")
     QTest.qWait(0)
     assert not dv.horizontalScrollBar().isVisible()
 
 
-def testExportPatchFromHunk(tempDir, mainWindow):
+@pytest.mark.parametrize("fromGutter", [False, True])
+def testExportPatchFromHunk(tempDir, mainWindow, fromGutter):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
@@ -711,8 +711,7 @@ def testExportPatchFromHunk(tempDir, mainWindow):
     oid = Oid(hex="bab66b48f836ed950c99134ef666436fb07a09a0")
     rw.jump(NavLocator.inCommit(oid, "c/c1.txt"))
 
-    menu = dv.contextMenu(dv.viewport().mapToGlobal(qteBlockPoint(dv, 0)))
-    triggerMenuAction(menu, "export hunk.+as patch")
+    triggerContextMenuAction(dv.gutter if fromGutter else dv.viewport(), "export hunk.+as patch")
     exportedPath = acceptQFileDialog(rw, "export", f"{tempDir.name}", useSuggestedName=True)
     assert exportedPath.endswith("c1.txt[partial].patch")
     assert readTextFile(exportedPath).endswith(
@@ -723,7 +722,8 @@ def testExportPatchFromHunk(tempDir, mainWindow):
         "+c1\n")
 
 
-def testRevertHunk(tempDir, mainWindow):
+@pytest.mark.parametrize("fromGutter", [False, True])
+def testRevertHunk(tempDir, mainWindow, fromGutter):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
@@ -733,9 +733,7 @@ def testRevertHunk(tempDir, mainWindow):
     oid = Oid(hex="bab66b48f836ed950c99134ef666436fb07a09a0")
     rw.jump(NavLocator.inCommit(oid, "c/c1.txt"))
 
-    cr = dv.cursorRect(dv.textCursor())
-    menu = dv.contextMenu(dv.mapToGlobal(QPoint(cr.x(), cr.y())))
-    triggerMenuAction(menu, "revert hunk")
+    triggerContextMenuAction(dv.gutter if fromGutter else dv.viewport(), "revert hunk")
 
     assert NavLocator.inUnstaged("c/c1.txt").isSimilarEnoughTo(rw.navLocator)
     assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"
