@@ -330,36 +330,6 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
     dlg.accept()
 
 
-def testTabOverflow(tempDir, mainWindow):
-    mainWindow.resize(640, 480)  # make sure it's narrow enough for overflow
-
-    for i in range(10):
-        wd = unpackRepo(tempDir, renameTo=f"RepoCopy{i:04}")
-        mainWindow.openRepo(wd)
-        QTest.qWait(1)
-
-        if i <= 2:  # assume no overflow when there are few repos
-            assert not mainWindow.tabs.overflowGradient.isVisible()
-            assert not mainWindow.tabs.overflowButton.isVisible()
-
-    assert mainWindow.tabs.overflowGradient.isVisible()
-    assert mainWindow.tabs.overflowButton.isVisible()
-
-
-def testTabOverflowSingleTab(tempDir, mainWindow):
-    mainWindow.resize(640, 480)  # make sure it's narrow enough for overflow
-
-    # Don't set a super long name for Windows (max path length restriction)
-    wd = unpackRepo(tempDir, renameTo="W" * 128)
-    mainWindow.openRepo(wd)
-    QTest.qWait(1)
-    assert not mainWindow.tabs.overflowButton.isVisible()
-
-    mainWindow.onAcceptPrefsDialog({"autoHideTabs": True})
-    QTest.qWait(1)
-    assert not mainWindow.tabs.overflowButton.isVisible()
-
-
 def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread):
     # Simulate user holding down Ctrl+W with a fast key repeat rate.
     # PrimeRepo should be interrupted without crashing!

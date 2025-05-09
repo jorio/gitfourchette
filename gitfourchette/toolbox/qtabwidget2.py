@@ -33,17 +33,16 @@ class QTabBar2(QTabBar):
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.MiddleButton:
-            self.middleClickedIndex = self.tabAt(event.pos())
+            self.middleClickedIndex = self.tabAt(event.position().toPoint())
         else:
             self.middleClickedIndex = -1
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.doubleClickedIndex = self.tabAt(event.pos())
+            self.doubleClickedIndex = self.tabAt(event.position().toPoint())
         else:
             self.doubleClickedIndex = -1
-
         super().mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent):
@@ -64,12 +63,12 @@ class QTabBar2(QTabBar):
             pass
 
         elif event.button() == Qt.MouseButton.MiddleButton:
-            i = self.tabAt(event.pos())
+            i = self.tabAt(event.position().toPoint())
             if i >= 0 and i == self.middleClickedIndex:
                 self.tabMiddleClicked.emit(i)
 
         elif event.button() == Qt.MouseButton.LeftButton:
-            i = self.tabAt(event.pos())
+            i = self.tabAt(event.position().toPoint())
             if i >= 0 and i == self.doubleClickedIndex:
                 self.tabDoubleClicked.emit(i)
 
@@ -195,6 +194,7 @@ class QTabWidget2(QWidget):
         self.overflowMenu = QMenu(self)
         self.overflowMenu.setObjectName("QTW2OverflowMenu")
         self.overflowMenu.setToolTipsVisible(True)
+        self.overflowMenu.aboutToHide.connect(lambda: self.overflowButton.setChecked(False))
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
@@ -345,8 +345,7 @@ class QTabWidget2(QWidget):
             self.overflowMenu.addAction(action)
 
         pos = self.mapToGlobal(self.overflowButton.pos() + self.overflowButton.rect().bottomLeft())
-        self.overflowMenu.exec(pos)
-        self.overflowButton.setChecked(False)
+        self.overflowMenu.popup(pos)
 
     def resizeEvent(self, event: QResizeEvent):
         super().resizeEvent(event)
