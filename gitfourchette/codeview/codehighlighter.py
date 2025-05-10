@@ -83,9 +83,9 @@ class CodeHighlighter(QSyntaxHighlighter):
         for tokenType, tokenLength in lexJob.tokens(lineNumber, text):
             try:
                 charFormat = scheme[tokenType]
-                self.setFormat(column, tokenLength, charFormat)
             except KeyError:
-                pass
+                charFormat = ColorScheme.fillInFallback(scheme, tokenType)
+            self.setFormat(column, tokenLength, charFormat)
             column += tokenLength
 
     def setColorScheme(self, scheme: ColorScheme):

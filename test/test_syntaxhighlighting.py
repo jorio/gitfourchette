@@ -1,15 +1,15 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import pytest
 
+from .util import *
+
 from gitfourchette.syntax import syntaxHighlightingAvailable, LexJobCache
 from gitfourchette.nav import NavLocator
-
-from .util import *
 
 SAMPLE_CODE = """\
 '''
@@ -174,3 +174,19 @@ def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
         writeFile(f"{wd}/hello.py", SAMPLE_CODE)
 
     mainWindow.openRepo(wd)
+
+
+@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
+    # YAML has bespoke token types that aren't part of the standard Pygments token set,
+    # e.g. Token.Literal.Scalar.Plain, Token.Punctuation.Indicator.
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/hello.yml", "- name: Hello\n")
+
+    from gitfourchette.settings import prefs
+    scheme = prefs.syntaxHighlightingScheme()
+    numKnownTokens1 = len(scheme.highContrastScheme)
+
+    mainWindow.openRepo(wd)
+    numKnownTokens2 = len(scheme.highContrastScheme)
+    assert numKnownTokens2 > numKnownTokens1

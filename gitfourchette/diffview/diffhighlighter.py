@@ -9,7 +9,7 @@ import logging
 from gitfourchette.appconsts import *
 from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
-from gitfourchette.syntax import LexJob
+from gitfourchette.syntax import LexJob, ColorScheme
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +45,6 @@ class DiffHighlighter(CodeHighlighter):
         if diffLine is None:  # Hunk header, etc.
             return
 
-        column = 0
-        scheme = self.scheme.highContrastScheme if diffLine.origin in "+-" else self.scheme.scheme
-
         if diffLine.origin == '+':
             lexJob = self.newLexJob
             lineNumber = diffLine.new_lineno
@@ -60,14 +57,16 @@ class DiffHighlighter(CodeHighlighter):
         # from that revision in the diff.
         assert lexJob is not None
 
+        column = 0
+        scheme = self.scheme.highContrastScheme if diffLine.origin in "+-" else self.scheme.scheme
         boundary = len(text) - lineData.trailerLength
 
         for tokenType, tokenLength in lexJob.tokens(lineNumber, text):
             try:
                 charFormat = scheme[tokenType]
-                self.setFormat(column, tokenLength, charFormat)
             except KeyError:
-                pass
+                charFormat = ColorScheme.fillInFallback(scheme, tokenType)
+            self.setFormat(column, tokenLength, charFormat)
             column += tokenLength
             if column >= boundary:
                 break

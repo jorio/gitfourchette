@@ -175,5 +175,27 @@ class ColorScheme:
         cls.fallbackScheme = fallbackScheme
         cls._cachedScheme = fallbackScheme
 
+    @classmethod
+    def fillInFallback(cls, scheme: dict, tokenType) -> QTextCharFormat:
+        from pygments.token import Token
+
+        assert Token in scheme
+        assert tokenType not in scheme
+
+        # Split tokenType from most specific to most generic type, i.e. tokenType first, Token last
+        split = tokenType.split()
+        split.reverse()
+        assert split[0] == tokenType
+        assert split[-1] == Token
+
+        fallbackType = next(t for t in split if t in scheme)
+        fallbackFormat: QTextCharFormat = scheme[fallbackType]
+
+        for t in split:
+            if t not in scheme:
+                scheme[t] = fallbackFormat
+
+        return fallbackFormat
+
 
 ColorScheme.refreshFallbackScheme()
