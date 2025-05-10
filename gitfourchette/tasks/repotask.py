@@ -324,7 +324,9 @@ class RepoTask(QObject):
         Can be overridden by your task, but you should call super().onError() if you can't handle the exception.
         Called from the UI thread, after cleanup().
         """
-        if isinstance(exc, ConflictError):
+        if isinstance(exc, AbortTask):
+            pass
+        elif isinstance(exc, ConflictError):
             showConflictErrorMessage(self.parentWidget(), exc, self.name())
         elif isinstance(exc, MultiFileError):
             showMultiFileErrorMessage(self.parentWidget(), exc, self.name())
@@ -825,6 +827,7 @@ class RepoTaskRunner(QObject):
             elif isinstance(exception, AbortTask):
                 # Controlled exit, show message (if any)
                 self.reportAbortTask(task, exception)
+                task.onError(exception)  # Also let task clean up after itself
             elif isinstance(exception, RepoGoneError):
                 # Repo directory vanished
                 self.repoGone.emit()

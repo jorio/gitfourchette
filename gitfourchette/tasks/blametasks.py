@@ -8,7 +8,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
-from gitfourchette.tasks import RepoTask
+from gitfourchette.tasks import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
 from gitfourchette.trace import traceFile, blameFile, makeWorkdirMockCommit
@@ -16,6 +16,9 @@ from gitfourchette.trace import traceFile, blameFile, makeWorkdirMockCommit
 
 class OpenBlame(RepoTask):
     TraceSkimInterval = 50
+
+    def prereqs(self) -> TaskPrereqs:
+        return TaskPrereqs.NoUnborn
 
     def flow(self, path: str, seed: Oid = NULL_OID):
         progress = _BlameProgressDialog(self.parentWidget())
@@ -28,6 +31,11 @@ class OpenBlame(RepoTask):
         repo = self.repo
         head = repo.head_commit_id
         showCommit = seed
+
+        if seed == NULL_OID:
+            fileStatus = repo.status_file(path)
+            if fileStatus & (FileStatus.WT_NEW | FileStatus.INDEX_NEW):
+                raise AbortTask(_("File {0} has no history in the repository.", hquoe(path)))
 
         # Get most recent seed as possible
         with Benchmark("get seed"):

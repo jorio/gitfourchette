@@ -237,6 +237,33 @@ def testBlameGutterToolTips(blameWindow):
         summonToolTip(blameWindow.textEdit.gutter, beyondLastLine)
 
 
+def testBlameNewFile(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    writeFile(f"{wd}/SomeNewFile.txt", "hello")
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inUnstaged("SomeNewFile.txt"), check=True)
+    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    acceptQMessageBox(mainWindow, "no history")
+
+    rw.diffArea.stageButton.click()
+    rw.jump(NavLocator.inStaged("SomeNewFile.txt"), check=True)
+    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    acceptQMessageBox(mainWindow, "no history")
+
+
+def testBlameUnborn(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "TestEmptyRepository")
+
+    writeFile(f"{wd}/SomeNewFile.txt", "hello")
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("SomeNewFile.txt"), check=True)
+
+    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    acceptQMessageBox(mainWindow, "no commits in this repository")
+
+
 @pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testBlameSyntaxHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
