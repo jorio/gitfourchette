@@ -4,8 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import html
-import io
 import re
 from collections.abc import Iterable, Callable, Container
 from html import escape as escape
@@ -46,113 +44,65 @@ def messageSummary(body: str, elision=" [\u2026]"):
     return message, messageContinued
 
 
-# Ampersands from user strings must be sanitized for QLabel.
 def escamp(text: str) -> str:
+    """ Sanitize ampersands in user strings for QLabel. """
     return text.replace('&', '&&')
 
 
 def paragraphs(*args: str | list[str]) -> str:
-    """
-    Surrounds each argument string with an HTML "P" tag
-    (or BLOCKQUOTE if the argument starts with the tab character)
-    and returns a concatenated string of HTML tags.
-    """
-
-    lines: Iterable[str]
+    """ Return a string of HTML "P" tags surrounding each argument. """
 
     # If passed an actual list object, use that as the argument list.
     if len(args) == 1 and isinstance(args[0], list):
-        lines = args[0]
-    else:
-        lines = args
+        args = args[0]
 
-    builder = io.StringIO()
-    for line in lines:
-        assert type(line) is str
-        if line.startswith("\t"):
-            builder.write("<blockquote>")
-            builder.write(line)
-            builder.write("</blockquote>")
-        else:
-            builder.write("<p>")
-            builder.write(line)
-            builder.write("</p>")
-
-    return builder.getvalue()
+    inner = "</p><p>".join(args)
+    return f"<p>{inner}</p>"
 
 
-def _quotePattern(text, htm=True):
-    # Typographic quotes in your language. Will surround user strings throughout the app.
-    q = _("“{0}”")
-    if not htm:
-        q = html.unescape(q)
-    return q.format(text)
+def tquo(text: str) -> str:
+    """ Quote plain text with language-dependent typographic quotes. """
+    return _("“{0}”").format(text)
 
 
-def hquo(text: str):
-    """ Quote HTML-safe. """
-    text = escape(text)
-    text = _quotePattern(text)
-    return text
+def hquo(text: str) -> str:
+    """ Quote text, HTML-safe. """
+    return tquo(escape(text))
 
 
-def hquoe(text: str):
-    """ Quote HTML-safe elide. """
-    text = elide(text)
-    text = escape(text)
-    text = _quotePattern(text)
-    return text
+def hquoe(text: str) -> str:
+    """ Quote and elide text, HTML-safe. """
+    return tquo(escape(elide(text)))
 
 
-def bquo(text: str):
-    """ Quote bold HTML-safe. """
-    text = escape(text)
-    text = f"<b>{text}</b>"
-    text = _quotePattern(text)
-    return text
+def bquo(text: str) -> str:
+    """ Quote text, bold HTML-safe. """
+    return tquo(btag(text))
 
 
-def bquoe(text):
-    """ Quote bold HTML-safe elide. """
-    text = elide(text)
-    text = escape(text)
-    text = f"<b>{text}</b>"
-    text = _quotePattern(text)
-    return text
+def bquoe(text: str) -> str:
+    """ Quote and elide text, bold HTML-safe. """
+    return tquo(btag(elide(text)))
 
 
-def lquo(text):
-    """ Quote ampersand-safe. """
-    text = escamp(text)
-    text = _quotePattern(text, htm=False)
-    return text
+def lquo(text: str) -> str:
+    """ Quote text, ampersand-safe (for Qt labels). """
+    return tquo(escamp(text))
 
 
-def lquoe(text):
-    """ Quote ampersand-safe elide. """
-    text = elide(text)
-    text = escamp(text)
-    text = _quotePattern(text, htm=False)
-    return text
+def lquoe(text: str) -> str:
+    """ Quote and elide text, ampersand-safe (for Qt labels). """
+    return tquo(escamp(elide(text)))
 
 
-def tquo(text):
-    """ Quote plain text. """
-    text = _quotePattern(text, htm=False)
-    return text
+def tquoe(text: str) -> str:
+    """ Quote and elide plain text. """
+    return tquo(elide(text))
 
 
-def tquoe(text):
-    """ Quote plain text. """
-    text = elide(text)
-    text = _quotePattern(text, htm=False)
-    return text
-
-
-def btag(text):
-    text = escape(text)
-    text = f"<b>{text}</b>"
-    return text
+def btag(text: str) -> str:
+    """ Surround text with HTML "B" tags, HTML-safe. """
+    return f"<b>{escape(text)}</b>"
 
 
 def stripHtml(markup: str):
