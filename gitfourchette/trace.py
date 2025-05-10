@@ -23,7 +23,9 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette.appconsts import *
+from gitfourchette.graph import MockCommit
 from gitfourchette.porcelain import *
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL, Benchmark
 
 _logger = _logging.getLogger(__name__)
@@ -113,6 +115,28 @@ class Blame:
     @property
     def traceNode(self):
         return self.lines[0].traceNode
+
+    def toPlainText(self, repo: Repo):  # pragma: no cover (for debugging)
+        from datetime import datetime
+
+        dateNow = datetime.now()
+        result = ""
+
+        for i, blameLine in enumerate(self.lines):
+            node = blameLine.traceNode
+
+            if node.commitId == UC_FAKEID:
+                date = dateNow
+                author = "Not Committed Yet"
+            else:
+                commit = repo[node.commitId].peel(Commit)
+                author = commit.author.name
+                date = datetime.fromtimestamp(commit.author.time)
+
+            strDate = date.strftime("%Y-%m-%d")
+            result += f"{id7(node.commitId)} {node.path:20} ({author:20} {strDate} {i}) {blameLine.text.rstrip()}\n"
+
+        return result
 
 
 BlameCollection = dict[Oid, Blame]
@@ -627,9 +651,18 @@ def _traversePatch(patch: Patch, numLinesA: int) -> Generator[tuple[int, int, Di
         cursorB += 1
 
 
+def makeWorkdirMockCommit(repo: Repo, path: str) -> MockCommit:
+    headCommit = repo.head.peel(Commit)
+    workdirBlobId = repo.create_blob_fromworkdir(path)
+    workdirBlob = repo[workdirBlobId]
+    workdirMock = MockCommit(UC_FAKEID, [headCommit.id])
+    workdirMock.parents = [headCommit]
+    workdirMock.tree = {path: workdirBlob}
+    return workdirMock
+
+
 def traceCommandLineTool():  # pragma: no cover
     from argparse import ArgumentParser
-    from datetime import datetime, timezone
     from timeit import timeit
     from sys import stderr
 
@@ -650,7 +683,7 @@ def traceCommandLineTool():  # pragma: no cover
     with suppress(ValueError):
         relPath = relPath.relative_to(repo.workdir)
 
-    topCommit = repo.head.peel(Commit)
+    topCommit = makeWorkdirMockCommit(repo, str(relPath))
 
     with Benchmark("Trace"):
         trace = traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level,
@@ -664,11 +697,8 @@ def traceCommandLineTool():  # pragma: no cover
                                     progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
 
     if not args.quiet:
-        for i, blameLine in enumerate(blameCollection[trace.first.blobId].lines):
-            traceNode = blameLine.traceNode
-            commit = repo[traceNode.commitId].peel(Commit)
-            date = datetime.fromtimestamp(commit.author.time, timezone.utc).strftime("%Y-%m-%d")
-            print(f"{id7(traceNode.commitId)} {traceNode.path:20} ({commit.author.name:20} {date} {i}) {blameLine.text.rstrip()}")
+        rootBlame = blameCollection[trace.first.blobId]
+        print(rootBlame.toPlainText(repo))
 
     if args.benchmark:
         global APP_DEBUG
