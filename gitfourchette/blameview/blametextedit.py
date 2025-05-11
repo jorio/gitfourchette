@@ -47,7 +47,6 @@ class BlameTextEdit(CodeView):
             blameLabel = _("Blame File at {0}", tquo(shortHash(commitId)))
             gotoLabel = _("Show {0} in Repo", tquo(shortHash(commitId)))
 
-
         return [
             ActionDef(
                 blameLabel,
@@ -57,6 +56,7 @@ class BlameTextEdit(CodeView):
             ActionDef(
                 gotoLabel,
                 enabled=canInvoke,
+                icon="prefs-graph",
                 callback=lambda: self.jumpToCommit.emit(locator)
             ),
 

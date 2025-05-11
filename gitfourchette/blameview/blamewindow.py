@@ -57,8 +57,8 @@ class BlameWindow(QWidget):
 
         self.jumpButton = QToolButton()
         self.jumpButton.setText(_("Jump"))
-        self.jumpButton.setToolTip(_("Jump to this commit in the repo"))
-        self.jumpButton.setIcon(stockIcon("go"))
+        self.jumpButton.setToolTip(_("View this commit in the repo"))
+        self.jumpButton.setIcon(stockIcon("prefs-graph"))
         self.jumpButton.clicked.connect(lambda: self.jumpToCommit())
 
         self.olderButton = QToolButton()
