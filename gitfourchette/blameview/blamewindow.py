@@ -146,8 +146,7 @@ class BlameWindow(QWidget):
             else:
                 commit = self.model.repo.peel_commit(node.commitId)
                 message, _dummy = messageSummary(commit.message)
-                commitQdt = QDateTime.fromSecsSinceEpoch(commit.author.time, Qt.TimeSpec.OffsetFromUTC, commit.author.offset * 60)
-                dateText = QLocale().toString(commitQdt, "yyyy-MM-dd")  # settings.prefs.shortTimeFormat)
+                dateText = signatureDateFormat(commit.author, "yyyy-MM-dd", localTime=True)
                 caption = f"{dateText} {shortHash(node.commitId)} {message}"
 
             self.scrubber.addItem(caption, userData=node)

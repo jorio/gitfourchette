@@ -158,8 +158,7 @@ class BlameGutter(CodeGutter):
         else:
             commit: Commit = self.model.repo[node.commitId]
             sig = commit.author
-            commitQdt = QDateTime.fromSecsSinceEpoch(sig.time, Qt.TimeSpec.OffsetFromUTC, sig.offset * 60)
-            dateText = self.locale().toString(commitQdt, "yyyy-MM-dd")
+            dateText = signatureDateFormat(sig, "yyyy-MM-dd", localTime=True)
             nameText = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
 
         # Date
@@ -196,7 +195,7 @@ class BlameGutter(CodeGutter):
             commit = self.model.repo.peel_commit(node.commitId)
             text += newLine(_("commit"), shortHash(commit.id))
             text += newLine(_("author"), commit.author.name)
-            text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat))
+            text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat, localTime=False))
         text += newLine(_("file name"), node.path)
         text += newLine(_("revision"), node.revisionNumber)
         text += "</table>"

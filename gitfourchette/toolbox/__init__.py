@@ -24,6 +24,7 @@ from .gitutils import (
     splitRemoteUrl,
     stripRemoteUrlPath,
     guessRemoteUrlFromText,
+    formatTimeOffset,
     signatureQDateTime,
     signatureDateFormat,
 )

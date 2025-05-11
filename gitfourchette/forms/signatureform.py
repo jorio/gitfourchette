@@ -18,13 +18,6 @@ class SignatureOverride(enum.IntEnum):
     Both = 3
 
 
-def formatTimeOffset(minutes: int):
-    p = "-" if minutes < 0 else "+"
-    h = abs(minutes) // 60
-    m = abs(minutes) % 60
-    return f"{p}{h:02}:{m:02}"
-
-
 class SignatureForm(QWidget):
     signatureChanged = Signal()
 

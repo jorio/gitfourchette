@@ -169,9 +169,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             summaryText, contd = messageSummary(commit.message, ELISION)
             hashText = shortHash(commit.id)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
-
-            qdt = QDateTime.fromSecsSinceEpoch(author.time)
-            dateText = option.locale.toString(qdt, settings.prefs.shortTimeFormat)
+            dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
 
             if settings.prefs.authorDiffAsterisk:
                 if author.email != committer.email:

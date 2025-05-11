@@ -193,9 +193,27 @@ def guessRemoteUrlFromText(text: str):
     return ""
 
 
-def signatureQDateTime(sig: Signature) -> QDateTime:
-    return QDateTime.fromSecsSinceEpoch(sig.time, QTimeZone(sig.offset * 60))
+def formatTimeOffset(minutes: int):
+    p = "-" if minutes < 0 else "+"
+    h = abs(minutes) // 60
+    m = abs(minutes) % 60
+    return f"{p}{h:02}:{m:02}"
 
 
-def signatureDateFormat(sig: Signature, format=QLocale.FormatType.LongFormat) -> str:
-    return QLocale().toString(signatureQDateTime(sig), format)
+def signatureQDateTime(signature: Signature, localTime=False) -> QDateTime:
+    if localTime:
+        return QDateTime.fromSecsSinceEpoch(signature.time)
+    else:
+        return QDateTime.fromSecsSinceEpoch(signature.time, QTimeZone(signature.offset * 60))
+
+
+def signatureDateFormat(
+        signature: Signature,
+        format: str | QLocale.FormatType = QLocale.FormatType.LongFormat,
+        localTime=False
+) -> str:
+    dateTime = signatureQDateTime(signature, localTime)
+    text = QLocale().toString(dateTime, format)
+    if not localTime and format != QLocale.FormatType.LongFormat:
+        text += f" ({formatTimeOffset(signature.offset)})"
+    return text
