@@ -259,9 +259,9 @@ class FileList(QListView):
             icon="git-stash-black",
             shortcuts=TaskBook.shortcuts.get(NewStash, []))
 
-    def contextMenuActionRevertMode(self, patches, callback: Callable):
+    def contextMenuActionRevertMode(self, patches, callback: Callable, ellipsis=True):
         n = len(patches)
-        action = ActionDef(_n("Revert Mode Changes…", "Revert Mode Change…", n), callback, enabled=False)
+        action = ActionDef(_n("Revert Mode Changes", "Revert Mode Change", n), callback, enabled=False)
 
         for patch in patches:
             if not patch:  # stale diff
@@ -274,9 +274,12 @@ class FileList(QListView):
                 action.enabled = True
                 if n == 1:
                     if nm == FileMode.BLOB_EXECUTABLE:
-                        action.caption = _("Revert Mode to Non-Executable…")
+                        action.caption = _("Revert Mode to Non-Executable")
                     elif nm == FileMode.BLOB:
-                        action.caption = _("Revert Mode to Executable…")
+                        action.caption = _("Revert Mode to Executable")
+
+        if ellipsis:
+            action.caption += "…"
 
         return action
 
