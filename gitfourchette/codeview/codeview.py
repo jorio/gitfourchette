@@ -122,11 +122,11 @@ class CodeView(QPlainTextEdit):
 
     def wheelZoom(self, delta: int):
         delta //= 120
-        if delta == 0:
-            return
         font = self.font()
-        newSize = font.pointSizeF() + delta
-        if newSize <= 0:
+        oldSize = font.pointSizeF()
+        newSize = oldSize + delta
+        newSize = max(4, newSize)
+        if newSize == oldSize:
             return
         font.setPointSizeF(newSize)
         self.setFont(font)

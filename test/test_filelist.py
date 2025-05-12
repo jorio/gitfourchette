@@ -18,7 +18,7 @@ def testParentlessCommitFileList(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     oid = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
-    rw.jump(NavLocator.inCommit(oid))
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
     assert qlvGetRowData(rw.committedFiles) == ["c/c1.txt"]
 
 
@@ -27,9 +27,7 @@ def testSaveRevisionAtCommit(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     oid = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
-    loc = NavLocator.inCommit(oid, "c/c2.txt")
-    rw.jump(loc)
-    assert loc.isSimilarEnoughTo(rw.navLocator)
+    rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/as of.+commit")
     acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
@@ -41,9 +39,7 @@ def testSaveRevisionBeforeCommit(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     oid = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
-    loc = NavLocator.inCommit(oid, "c/c2.txt")
-    rw.jump(loc)
-    assert loc.isSimilarEnoughTo(rw.navLocator)
+    rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/before.+commit")
     acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
@@ -55,7 +51,7 @@ def testSaveOldRevisionOfDeletedFile(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     commitId = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
-    rw.jump(NavLocator.inCommit(commitId, "c/c2-2.txt"))
+    rw.jump(NavLocator.inCommit(commitId, "c/c2-2.txt"), check=True)
 
     # c2-2.txt was deleted by the commit. Expect a warning about this.
     triggerContextMenuAction(rw.committedFiles.viewport(), r"save.+copy/as of.+commit")
@@ -83,8 +79,7 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
 
     oid = rw.repo[commit].peel(Commit).id
     loc = NavLocator.inCommit(oid, path)
-    rw.jump(loc)
-    assert loc.isSimilarEnoughTo(rw.navLocator)
+    rw.jump(loc, check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), f"restore/{side}.+commit")
     if result == "[NOP]":
@@ -106,8 +101,7 @@ def testRevertCommittedFile(tempDir, mainWindow):
 
     oid = Oid(hex="58be4659bb571194ed4562d04b359d26216f526e")
     loc = NavLocator.inCommit(oid, "master.txt")
-    rw.jump(loc)
-    assert rw.navLocator.isSimilarEnoughTo(loc)
+    rw.jump(loc, check=True)
 
     assert b"On master\nOn master\n" == readFile(f"{wd}/master.txt")
 
@@ -119,14 +113,72 @@ def testRevertCommittedFile(tempDir, mainWindow):
     assert "On master\n" == readTextFile(f"{wd}/master.txt")
 
 
+def testRevertDeletedFile(tempDir, mainWindow):
+    path = "a/a1"
+    contents = "a1\n"
+
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        Path(f"{wd}/{path}").unlink()
+        repo.index.add_all()
+        oid = repo.create_commit_on_head("test delete", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+    assert not Path(f"{wd}/{path}").exists()
+    rw.jump(NavLocator.inCommit(oid, path), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
+    acceptQMessageBox(rw, "revert.+patch")
+    assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
+    assert readTextFile(f"{wd}/{path}") == contents
+
+
+def testRevertRenamedFile(tempDir, mainWindow):
+    path1 = "a/a1"
+    path2 = "newname"
+    contents = "a1\n"
+
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        Path(f"{wd}/{path1}").rename(f"{wd}/{path2}")
+        repo.index.add_all()
+        oid = repo.create_commit_on_head("test rename", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+    assert not Path(f"{wd}/{path1}").exists()
+    assert Path(f"{wd}/{path2}").exists()
+    rw.jump(NavLocator.inCommit(oid, path2), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
+    acceptQMessageBox(rw, "revert.+patch")
+    assert NavLocator.inUnstaged(path1).isSimilarEnoughTo(rw.navLocator)
+    assert readTextFile(f"{wd}/{path1}") == contents
+
+
+@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+def testRevertModeChangedFile(tempDir, mainWindow):
+    path = "a/a1"
+
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        Path(f"{wd}/{path}").chmod(0o777)
+        repo.index.add_all()
+        oid = repo.create_commit_on_head("test chmod", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+    assert Path(f"{wd}/{path}").lstat().st_mode & 0o777 == 0o777
+    rw.jump(NavLocator.inCommit(oid, path), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
+    acceptQMessageBox(rw, "revert.+patch")
+    assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
+    assert Path(f"{wd}/{path}").lstat().st_mode & 0o777 == 0o644
+
+
 def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     assert not os.path.exists(f"{wd}/c/c2.txt")
 
     commitId = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
-    rw.jump(NavLocator.inCommit(commitId, "c/c2.txt"))
-    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inCommit(commitId, "c/c2.txt"))
+    rw.jump(NavLocator.inCommit(commitId, "c/c2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     rejectQMessageBox(rw, "apply patch.+ran into an issue")
@@ -233,12 +285,11 @@ def testSearchEmptyFileList(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
-@pytest.mark.skipif(MACOS and os.environ.get("QT_QPA_PLATFORM", "") != "offscreen",
-                    reason="flaky on macOS unless executed offscreen")
+@pytest.mark.skipif(MACOS and not OFFSCREEN, reason="flaky on macOS unless executed offscreen")
 def testEditFileInExternalEditor(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"))
+    rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
 
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
@@ -261,7 +312,7 @@ def testEditFileInExternalEditor(tempDir, mainWindow):
 def testEditFileInExternalDiffTool(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
+    rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"), check=True)
 
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
@@ -279,7 +330,7 @@ def testEditFileInMissingFlatpak(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
+    rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in org.gitfourchette.BogusEditorName")
     qmb = waitForQMessageBox(rw, "couldn.t start flatpak .*org.gitfourchette.BogusEditorName")
@@ -340,7 +391,7 @@ def testFileListCopyPath(tempDir, mainWindow):
     clipboard.clear()
     assert not clipboard.text()
 
-    rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"))
+    rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     rw.committedFiles.setFocus()
     QTest.keySequence(rw.committedFiles, "Ctrl+C")
     clipped = clipboard.text()
@@ -351,7 +402,7 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"))
+    rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/name only")

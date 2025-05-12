@@ -10,6 +10,7 @@ import pytest
 
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
+from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
@@ -600,6 +601,12 @@ def testNewTag(tempDir, mainWindow):
     newTag = "cool-tag"
 
     wd = unpackRepo(tempDir)
+
+    # Nuke remotes for coverage of the no-remote code path.
+    # (See also testPushTagOnCreate)
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+
     rw = mainWindow.openRepo(wd)
     assert newTag not in rw.repo.listall_tags()
 
@@ -608,9 +615,8 @@ def testNewTag(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(oid))
     triggerContextMenuAction(rw.graphView.viewport(), "tag this commit")
 
-    dlg: QDialog = findQDialog(rw, "new tag")
-    lineEdit = dlg.findChild(QLineEdit)
-    QTest.keyClicks(lineEdit, newTag)
+    dlg: NewTagDialog = findQDialog(rw, "new tag")
+    QTest.keyClicks(dlg.ui.nameEdit, newTag)
     dlg.accept()
 
     assert newTag in rw.repo.listall_tags()
@@ -621,6 +627,12 @@ def testDeleteTag(tempDir, mainWindow, method):
     tagToDelete = "annotated_tag"
 
     wd = unpackRepo(tempDir)
+
+    # Nuke remotes for coverage of the no-remote code path.
+    # (See also testPushDeleteTag)
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+
     rw = mainWindow.openRepo(wd)
     assert tagToDelete in rw.repo.listall_tags()
     node = rw.sidebar.findNodeByRef(f"refs/tags/{tagToDelete}")

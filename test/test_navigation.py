@@ -400,39 +400,38 @@ def testSelectNextOrPreviousFile(tempDir, mainWindow):
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
     rw = mainWindow.openRepo(wd)
 
-    # In workdir
-    # Clear FileList selection
-    fl = rw.diffArea.fileListByContext(rw.navLocator.context)
-    fl.setFocus()
-    fl.clearSelection()
+    def clearCurrentFileListSelection():
+        fl = rw.diffArea.fileListByContext(rw.navLocator.context)
+        fl.setFocus()
+        fl.clearSelection()
 
-    for action, locator in [
-        ("next", NavLocator.inUnstaged("a/a1.txt")),
-        ("next", NavLocator.inStaged("a/a1.txt")),
-        ("next", NavLocator.inStaged("a/a1.txt")),
-        ("prev", NavLocator.inUnstaged("a/a1.txt")),
-        ("prev", NavLocator.inUnstaged("a/a1.txt")),
-    ]:
-        triggerMenuAction(mainWindow.menuBar(), f"view/{action}.+file")
-        assert locator.isSimilarEnoughTo(rw.navLocator)
+    def test(nextPrev: str, locator: NavLocator):
+        triggerMenuAction(mainWindow.menuBar(), f"view/{nextPrev}.+file")
+        return locator.isSimilarEnoughTo(rw.navLocator)
+
+    # In workdir
+    clearCurrentFileListSelection()
+    assert test("next", NavLocator.inUnstaged("a/a1.txt"))
+    assert test("next", NavLocator.inStaged("a/a1.txt"))
+    assert test("next", NavLocator.inStaged("a/a1.txt"))
+    assert test("prev", NavLocator.inUnstaged("a/a1.txt"))
+    assert test("prev", NavLocator.inUnstaged("a/a1.txt"))
+
+    # In workdir, dirty file list empty: next/prev must skip over empty list
+    rw.diffArea.stageButton.click()
+    clearCurrentFileListSelection()
+    assert test("next", NavLocator.inStaged("a/a1.txt"))
+    clearCurrentFileListSelection()
+    assert test("prev", NavLocator.inStaged("a/a1.txt"))
 
     # In a commit
     oid = Oid(hex='83834a7afdaa1a1260568567f6ad90020389f664')
     rw.jump(NavLocator.inCommit(Oid(hex='83834a7afdaa1a1260568567f6ad90020389f664')))
-
-    # Clear selection
-    fl = rw.diffArea.fileListByContext(rw.navLocator.context)
-    fl.setFocus()
-    fl.clearSelection()
-
-    for action, locator in [
-        ("next", NavLocator.inCommit(oid, "a/a1.txt")),
-        ("next", NavLocator.inCommit(oid, "a/a2.txt")),
-        ("next", NavLocator.inCommit(oid, "master.txt")),
-        ("next", NavLocator.inCommit(oid, "master.txt")),
-        ("prev", NavLocator.inCommit(oid, "a/a2.txt")),
-        ("prev", NavLocator.inCommit(oid, "a/a1.txt")),
-        ("prev", NavLocator.inCommit(oid, "a/a1.txt")),
-    ]:
-        triggerMenuAction(mainWindow.menuBar(), f"view/{action}.+file")
-        assert locator.isSimilarEnoughTo(rw.navLocator)
+    clearCurrentFileListSelection()
+    assert test("next", NavLocator.inCommit(oid, "a/a1.txt"))
+    assert test("next", NavLocator.inCommit(oid, "a/a2.txt"))
+    assert test("next", NavLocator.inCommit(oid, "master.txt"))
+    assert test("next", NavLocator.inCommit(oid, "master.txt"))
+    assert test("prev", NavLocator.inCommit(oid, "a/a2.txt"))
+    assert test("prev", NavLocator.inCommit(oid, "a/a1.txt"))
+    assert test("prev", NavLocator.inCommit(oid, "a/a1.txt"))

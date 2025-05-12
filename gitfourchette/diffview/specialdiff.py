@@ -84,10 +84,9 @@ class SpecialDiffError(Exception):
         if not oldFileExists:
             if delta.new_file.mode == FileMode.TREE:
                 return SpecialDiffError.treeDiff(delta)
-            elif delta.status in [DeltaStatus.ADDED, DeltaStatus.UNTRACKED]:
-                message = _("New empty file.")
             else:
-                message = _("File is empty.")
+                assert delta.status in [DeltaStatus.ADDED, DeltaStatus.UNTRACKED]
+                message = _("New empty file.")
 
         if oldFile.path != newFile.path:
             intro = _("Renamed:")

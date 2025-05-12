@@ -25,10 +25,8 @@ class GlobalShortcuts:
 
     @classmethod
     def initialize(cls):
-        if cls._initialized:
-            return
-
         assert QApplication.instance(), "QApplication must have been created before instantiating QKeySequence"
+        assert not cls._initialized, "GlobalShortcuts already initialized"
 
         cls.find = makeMultiShortcut(QKeySequence.StandardKey.Find, "/")
         cls.findNext = makeMultiShortcut(QKeySequence.StandardKey.FindNext if not GNOME else "F3")

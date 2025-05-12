@@ -480,8 +480,8 @@ def testDiffImage(tempDir, mainWindow):
     shutil.copyfile(getTestDataPath("image1.png"), f"{wd}/image.png")
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged("image.png"))
-    assert rw.specialDiffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged("image.png"), check=True)
+    assert rw.specialDiffView.isVisible()
     assert re.search("6.6 pixels", rw.specialDiffView.toPlainText())
     rw.diffArea.dirtyFiles.stage()
     rw.diffArea.commitButton.click()
@@ -490,15 +490,15 @@ def testDiffImage(tempDir, mainWindow):
 
     shutil.copyfile(getTestDataPath("image2.png"), f"{wd}/image.png")
     rw.refreshRepo()
-    rw.jump(NavLocator.inUnstaged("image.png"))
-    assert rw.specialDiffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged("image.png"), check=True)
+    assert rw.specialDiffView.isVisible()
     assert re.search("6.6 pixels", rw.specialDiffView.toPlainText())
     assert re.search("4.4 pixels", rw.specialDiffView.toPlainText())
 
     os.unlink(f"{wd}/image.png")
     rw.refreshRepo()
-    rw.jump(NavLocator.inUnstaged("image.png"))
-    assert rw.specialDiffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged("image.png"), check=True)
+    assert rw.specialDiffView.isVisible()
     assert re.search("6.6 pixels", rw.specialDiffView.toPlainText())
 
 
@@ -509,13 +509,39 @@ def testDiffLargeImage(tempDir, mainWindow):
         binfile.write(b"\x00" * 6_000_000)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged("image.png"))
+    rw.jump(NavLocator.inUnstaged("image.png"), check=True)
     assert rw.specialDiffView.isVisible()
     assert "image is very large" in rw.specialDiffView.toPlainText().lower()
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
     assert rw.specialDiffView.isVisible()
     assert "image is very large" not in rw.specialDiffView.toPlainText().lower()
+
+
+def testDiffSvgImage(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shutil.copyfile(getTestDataPath("image3.svg"), f"{wd}/image.svg")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("image.svg"), check=True)
+    assert rw.diffView.isVisible()
+    assert "<svg xmlns=" in rw.diffView.toPlainText()
+
+    mainWindow.onAcceptPrefsDialog({"renderSvg": True})
+    assert rw.specialDiffView.isVisible()
+    assert re.search("16.16 pixels", rw.specialDiffView.toPlainText())
+
+
+def testDiffTypeChange(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    Path(f"{wd}/a/a1").unlink()
+    Path(f"{wd}/a/a1").symlink_to(f"{wd}/master.txt")
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.specialDiffView.isVisible()
+    text = rw.specialDiffView.toPlainText()
+    assert re.search(r"type has changed", text, re.I)
+    assert re.search(r"old type.+regular file.+new type.+symbolic link", text, re.I | re.S)
 
 
 def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):
@@ -672,18 +698,21 @@ def testDiffViewMouseWheelZoom(tempDir, mainWindow):
     dv = rw.diffView
 
     initialFont = dv.font()
+    initialPointSize = initialFont.pointSize()
 
-    postMouseWheelEvent(dv.gutter, 120, modifiers=Qt.KeyboardModifier.ControlModifier)
-    QTest.qWait(1)
-    assert dv.font().pointSize() > initialFont.pointSize()
+    def scroll(delta: int):
+        postMouseWheelEvent(dv.gutter, delta, modifiers=Qt.KeyboardModifier.ControlModifier)
+        QTest.qWait(0)
+        return dv.font().pointSize()
 
-    postMouseWheelEvent(dv.gutter, -120, modifiers=Qt.KeyboardModifier.ControlModifier)
-    QTest.qWait(1)
-    assert dv.font().pointSize() == initialFont.pointSize()
+    assert scroll(120) > initialPointSize
+    assert scroll(-120) == initialPointSize
+    assert scroll(-120) < initialPointSize
 
-    postMouseWheelEvent(dv.gutter, -120, modifiers=Qt.KeyboardModifier.ControlModifier)
-    QTest.qWait(1)
-    assert dv.font().pointSize() < initialFont.pointSize()
+    # Test size floor
+    for _i in range(50):
+        minPointSize = scroll(-120)
+    assert scroll(-120) == minPointSize
 
 
 def testToggleWordWrap(tempDir, mainWindow):

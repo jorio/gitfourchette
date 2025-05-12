@@ -101,8 +101,11 @@ def testPrefsFontControl(tempDir, mainWindow):
     fontPicker.familyEdit.setCurrentFont(QFont(randomFamily))
     fontPicker.familyEdit.hidePopup()
     assert fontPicker.resetButton.isEnabled()
+    fontPicker.sizeEdit.setValue(27)
     dlg.accept()
-    assert randomFamily == rw.diffView.document().defaultFont().family()
+    effectiveFont = rw.diffView.document().defaultFont()
+    assert effectiveFont.family() == randomFamily
+    assert effectiveFont.pointSize() == 27
 
     dlg = mainWindow.openPrefsDialog("font")
     fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
@@ -110,7 +113,8 @@ def testPrefsFontControl(tempDir, mainWindow):
     fontPicker.resetButton.click()
     assert not fontPicker.resetButton.isEnabled()
     dlg.accept()
-    assert defaultFamily == rw.diffView.document().defaultFont().family()
+    effectiveFont = rw.diffView.document().defaultFont()
+    assert effectiveFont.family() == defaultFamily
 
 
 def testPrefsLanguageControl(tempDir, mainWindow):

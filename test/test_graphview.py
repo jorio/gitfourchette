@@ -273,35 +273,46 @@ def testRefSortFavorsHeadBranch(tempDir, mainWindow):
     assert amendedIndex.row() < masterIndex.row()
 
 
+@pytest.mark.skipif(WAYLAND and not OFFSCREEN, reason="wayland blocks cursor control (note: offscreen is fine)")
+@pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 def testCommitToolTip(tempDir, mainWindow):
-    masterId = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    QTest.qWait(0)
-
-    graphView = rw.graphView
+    viewport = rw.graphView.viewport()
     y = 30
 
     mainWindow.resize(1500, 600)
-    index = graphView.selectRowForLocator(NavLocator.inCommit(masterId))
-    QCursor.setPos(graphView.mapToGlobal(QPoint(16, y)))
     QTest.qWait(0)
-    toolTip = index.data(Qt.ItemDataRole.ToolTipRole)
-    assert not toolTip
+    with pytest.raises(TimeoutError):
+        summonToolTip(viewport, QPoint(16, y))
 
-    cursorPos = graphView.mapToGlobal(QPoint(graphView.width() - graphView.verticalScrollBar().width() - 16, y))
-    QCursor.setPos(cursorPos)
-    QTest.qWait(0)
-    toolTip = index.data(Qt.ItemDataRole.ToolTipRole)
+    QTest.qWait(100)
+    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
     assert "Delete c/c2-2.txt" not in toolTip
     assert "a.u.thor@example.com" in toolTip
 
     mainWindow.resize(300, 600)
-    QCursor.setPos(graphView.mapToGlobal(QPoint(graphView.width() - graphView.verticalScrollBar().width() - 16, y)))
     QTest.qWait(0)
-    toolTip = index.data(Qt.ItemDataRole.ToolTipRole)
+    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
     assert "Delete c/c2-2.txt" in toolTip
     assert "a.u.thor@example.com" in toolTip
+
+    # Amend, committer and author are different
+    rw.repo.amend_commit_on_head("AMENDED 1", committer=TEST_SIGNATURE)
+    rw.refreshRepo()
+    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
+    assert re.search("Committed by.+Test Person", toolTip)
+
+    # Amend, committer and author are the same person, but they use different times
+    signature2 = Signature(TEST_SIGNATURE.name, TEST_SIGNATURE.email, TEST_SIGNATURE.time + 3600, 0)
+    rw.repo.amend_commit_on_head("AMENDED 2\n\nand while we're here, let's cover the code path that wraps "
+                                 "very long commit messages in tooltips, yadda yadda, filler filler",
+                                 committer=TEST_SIGNATURE, author=signature2)
+    rw.refreshRepo()
+    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
+    assert "AMENDED 2<br><br>and while" in toolTip
+    assert "(committed)" in toolTip
+    assert "(authored)" in toolTip
 
 
 def testUnknownRefPrefix(tempDir, mainWindow):

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -47,12 +47,12 @@ class QFilePickerCheckBox(QWidget):
 
     def fileDialog(self) -> QFileDialog:
         """ Override this function to bring up a custom QFileDialog. """
-        return QFileDialog(self)
+        raise NotImplementedError("override this")
 
-    def validatePath(self, path: str):
+    def validatePath(self, path: str) -> str:
         """ Override this function to display a validation warning when the user selects a file.
         Returning an empty string causes the warning to disappear. """
-        return ""
+        raise NotImplementedError("override this")
 
     def makeFixedHeight(self):
         lh = self.browseButton.maximumHeight()

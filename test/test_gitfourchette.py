@@ -9,7 +9,10 @@ from contextlib import suppress
 
 import pytest
 
+from .util import *
+
 from gitfourchette.application import GFApplication
+from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.donateprompt import DonatePrompt
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
@@ -19,7 +22,6 @@ from gitfourchette.mainwindow import MainWindow
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.settings import Session
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
-from .util import *
 
 
 def bringUpRepoSettings(rw):
@@ -390,8 +392,32 @@ def testAutoHideMenuBar(mainWindow):
 
 
 def testAboutDialog(mainWindow):
+    app = QApplication.instance()
+
+    def hover(widget: QWidget, localPoint: QPointF) -> bool:
+        globalPoint = widget.mapToGlobal(localPoint.toPoint() if QT5 else localPoint)
+        event = QMouseEvent(QMouseEvent.Type.MouseMove, localPoint, globalPoint,
+                            Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+        return app.sendEvent(widget, event)
+
     triggerMenuAction(mainWindow.menuBar(), "help/about")
-    dlg = findQDialog(mainWindow, "about")
+    dlg: AboutDialog = findQDialog(mainWindow, "about")
+
+    header = dlg.ui.header
+    header.selectedText()
+    hoverPoint = QPointF(12, header.height() - 16)
+
+    # Test UrlToolTip
+    assert hover(header, hoverPoint)
+    waitUntilTrue(QToolTip.isVisible)
+    assert QToolTip.text() == "https://gitfourchette.org"
+
+    # Cover code path where linkHovered changes tooltip contents instantaneously
+    QToolTip.showText(QPoint_zero, "TEST!")
+    assert hover(header, hoverPoint + QPointF(0, 100))  # move mouse out of label
+    assert hover(header, hoverPoint)  # move mouse back in label
+    waitUntilTrue(lambda: QToolTip.text() == "https://gitfourchette.org")
+
     dlg.accept()
 
 

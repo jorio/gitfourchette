@@ -22,11 +22,11 @@ def _iconOverrideTable():
     iconTheme = QIcon.themeName().casefold()
 
     # Use native warning icon in all contexts on Mac & Windows
-    if MACOS or WINDOWS:
+    if MACOS or WINDOWS:  # pragma: no cover
         overrides["achtung"] = "SP_MessageBoxWarning"
 
     # Override Ubuntu default theme's scary red icon for warnings
-    if FREEDESKTOP and iconTheme.startswith("yaru"):
+    if FREEDESKTOP and iconTheme.startswith("yaru"):  # pragma: no cover
         overrides["SP_MessageBoxWarning"] = "warning-small-symbolic"
 
     return overrides

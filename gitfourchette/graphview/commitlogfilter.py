@@ -39,8 +39,6 @@ class CommitLogFilter(QSortFilterProxyModel):
         except IndexError:
             # Probably an extra special row
             return True
-        if not commit:
-            return True
         if commit.id == UC_FAKEID:
             return True
         return commit.id not in self.hiddenIds

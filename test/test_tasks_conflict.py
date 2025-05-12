@@ -409,3 +409,42 @@ def testMergeToolInBackground(tempDir, mainWindow):
     assert rw.mergeBanner.isVisible()
     assert "all conflicts fixed" in rw.mergeBanner.label.text().lower()
     assert not rw.repo.index.conflicts
+
+
+@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
+def testDiscardMergeResolution(tempDir, mainWindow):
+    mergeToolPath = getTestDataPath("merge-shim.py")
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("refs/heads/branch-conflicts")
+
+    # Initiate merge of branch-conflicts into master
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
+    acceptQMessageBox(rw, "branch-conflicts.+into.+master.+may cause conflicts")
+    assert ".gitignore" in rw.repo.index.conflicts
+    assert rw.conflictView.isVisible()
+
+    assert "merge-shim" in rw.conflictView.ui.mergeButton.text()
+    assert rw.conflictView.ui.mergePage.isVisible()
+    rw.conflictView.ui.mergeButton.click()
+    assert rw.conflictView.ui.mergeInProgressPage.isVisible()
+
+    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
+    scratchLines = scratchText.strip().splitlines()
+    assert "[MERGED]" in scratchLines[0]
+    assert "[OURS]" in scratchLines[1]
+    assert "[THEIRS]" in scratchLines[2]
+    assert "merge complete!" == readFile(scratchLines[0]).decode("utf-8").strip()
+
+    waitUntilTrue(lambda: rw.conflictView.ui.mergeCompletePage.isVisible())
+
+    # Discard the merge
+    rw.conflictView.ui.discardMergeButton.click()
+
+    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged(".gitignore"))
+    assert rw.conflictView.ui.mergePage.isVisible()
+    assert ".gitignore" in rw.repo.index.conflicts

@@ -7,8 +7,8 @@
 import os.path
 import pytest
 
-from . import reposcenario
 from .util import *
+from . import reposcenario
 
 
 def doStage(rw, method):
@@ -133,6 +133,26 @@ def testDiscardModeChange(tempDir, mainWindow):
     assert os.lstat(path).st_mode & 0o777 == 0o644
 
 
+@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+def testUnstageModeChange(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    path = f"{wd}/a/a1.txt"
+    assert os.lstat(path).st_mode & 0o777 == 0o644
+
+    writeFile(path, "keep this!")
+    os.chmod(path, 0o777)
+    with RepoContext(wd, write_index=True) as repo:
+        repo.index.add_all()
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB_EXECUTABLE
+    assert qlvGetRowData(rw.stagedFiles) == ["[+x] a/a1.txt"]
+
+    qlvClickNthRow(rw.stagedFiles, 0)
+    triggerContextMenuAction(rw.stagedFiles.viewport(), "revert mode")
+    assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB
+
+
 def testDiscardUntrackedTree(tempDir, mainWindow):
     outerWd = unpackRepo(tempDir, renameTo="outer")
     innerWd = unpackRepo(tempDir, renameTo="inner")
@@ -186,3 +206,19 @@ def testStagingBlockedBySafeCrlf(tempDir, mainWindow):
     acceptQMessageBox(rw, "stage files.+ran into an issue with 1 file.+1 other file was successful")
 
     assert rw.repo.status() == {'hello1.txt': FileStatus.INDEX_NEW, 'hello0.txt': FileStatus.WT_NEW}
+
+
+def testStagingBlockedByConflicts(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    reposcenario.statelessConflictingChange(wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.dirtyFiles.selectAll()
+    rw.diffArea.stageButton.click()
+    rejectQMessageBox(rw, "you have selected an unresolved merge conflict")
+
+    writeFile(f"{wd}/hello.txt", "hello")
+    rw.refreshRepo()
+    rw.dirtyFiles.selectAll()
+    rw.diffArea.discardButton.click()
+    rejectQMessageBox(rw, "there is an unresolved merge conflict among your selection")

@@ -96,9 +96,8 @@ class ActionDef:
 
         return action
 
-    def makeSubmenu(self, parent: QMenu) -> QMenu | None:
-        if not self.submenu:
-            return None
+    def makeSubmenu(self, parent: QMenu) -> QMenu:
+        assert self.submenu
 
         submenu = ActionDef.makeQMenu(parent=parent, actionDefs=self.submenu)
         submenu.setObjectName(f"{parent.objectName()}_ActionDefSubmenu" if parent else "ActionDefSubmenu")
@@ -106,8 +105,6 @@ class ActionDef:
         submenu.setEnabled(self.enabled)
         if self.icon:
             submenu.setIcon(stockIcon(self.icon))
-        if self.objectName:
-            submenu.setObjectName(self.objectName)
 
         return submenu
 

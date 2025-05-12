@@ -430,6 +430,11 @@ def summonContextMenu(target: QWidget, localPoint=QPoint_zero):
 
 
 def summonToolTip(target: QWidget, localPoint=QPoint_zero):
+    # Move the cursor so that context-sensitive tooltips still work.
+    # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
+    # but offscreen tests will still work fine.
+    QCursor.setPos(target.mapToGlobal(localPoint))
+
     # QTest.mouseMove doesn't trigger the tooltip in offscreen tests,
     # so post a QHelpEvent instead.
     assert not QToolTip.isVisible()

@@ -116,7 +116,7 @@ def excMessageBox(
         if len(_excMessageBoxQueue) <= 1:
             _showExcMessageBox(qmb)
 
-    except BaseException as excMessageBoxError:
+    except BaseException as excMessageBoxError:  # pragma: no cover
         sys.stderr.write("*********************************************\n")
         sys.stderr.write("excMessageBox failed!!!\n")
         sys.stderr.write("*********************************************\n")
@@ -195,8 +195,8 @@ def asyncMessageBox(
     }
 
     # macOS doesn't have a titlebar for message boxes, so put the title in the text
-    if macShowTitle and MACOS:
-        text = "<p><b>" + title + "</b></p>" + text
+    if MACOS and macShowTitle:  # pragma: no cover
+        text = f"<p><b>{title}</b></p>{text}"
 
     qmb = QMessageBox(
         icons.get(icon, QMessageBox.Icon.NoIcon),
