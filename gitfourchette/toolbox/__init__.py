@@ -73,7 +73,6 @@ from .qtutils import (
     lerp,
     mixColors,
     DocumentLinks,
-    waitForSignal,
     findParentWidget,
     setTabOrder,
     QModelIndex_default,

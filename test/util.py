@@ -333,13 +333,40 @@ def waitUntilTrue(callback, timeout=5000):
     raise TimeoutError(f"retry failed after {timeout} ms timeout")
 
 
-def waitForQDialog(parent: QWidget, pattern: str) -> QDialog:
+def waitForQDialog(parent: QWidget, pattern: str, timeout=5000) -> QDialog:
     def tryFind():
         try:
             return findQDialog(parent, pattern)
         except KeyError:
             return None
-    return waitUntilTrue(tryFind)
+    return waitUntilTrue(tryFind, timeout=timeout)
+
+
+def waitForSignal(signal: SignalInstance, timeout=5000, disconnect=True):
+    loop = QEventLoop()
+
+    signal.connect(loop.quit)
+
+    timer = QTimer()
+    timer.setSingleShot(True)
+    timer.timeout.connect(loop.quit)
+    timer.start(timeout)
+
+    loop.exec()
+    timedOut = not timer.isActive()
+    timer.stop()
+
+    if disconnect:
+        try:
+            signal.disconnect(loop.quit)
+        except (TypeError, RuntimeError):  # pragma: no cover
+            pass
+
+    loop.deleteLater()
+    timer.deleteLater()
+
+    if timedOut:
+        raise TimeoutError("waitForSignal timed out")
 
 
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:

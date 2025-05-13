@@ -679,16 +679,16 @@ def testHideSelectedBranch(tempDir, mainWindow, taskThread):
         repo.checkout_commit(detachedId)
 
     rw = mainWindow.openRepo(wd)
-    rw.repoTaskRunner.waitUntilReady()
+    waitForSignal(rw.repoTaskRunner.ready)
 
     # Select branch 'master'...
     rw.selectRef('refs/heads/master')
-    rw.repoTaskRunner.waitUntilReady()
+    waitForSignal(rw.repoTaskRunner.ready)
     assert rw.diffView.currentLocator.commit == masterId
 
     # ...and hide it. DiffView shouldn't show master anymore.
     rw.toggleHideRefPattern('refs/heads/master')
-    rw.repoTaskRunner.waitUntilReady()
+    waitForSignal(rw.repoTaskRunner.ready)
     assert masterId in rw.repoModel.hiddenCommits
 
     assert rw.navLocator.commit != masterId

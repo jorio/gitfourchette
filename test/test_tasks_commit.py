@@ -207,7 +207,7 @@ def testPasteMultilineCommitMessage(tempDir, mainWindow):
     dialog.reject()
 
 
-def testAmendCommit(qtbot, tempDir, mainWindow):
+def testAmendCommit(tempDir, mainWindow):
     oldMessage = "Delete c/c2-2.txt"
     newMessage = "amended commit message"
     newAuthorName = "Jean-Michel Tartempion"
@@ -228,8 +228,8 @@ def testAmendCommit(qtbot, tempDir, mainWindow):
     dialog.ui.revealSignature.setChecked(True)
     dialog.ui.signature.ui.nameEdit.setText(newAuthorName)
     dialog.ui.signature.ui.emailEdit.setText(newAuthorEmail)
-    with qtbot.waitSignal(dialog.destroyed):  # upon exiting context, wait for dialog to be gone
-        dialog.accept()
+    dialog.accept()
+    waitForSignal(dialog.destroyed, disconnect=False)  # wait for dialog to be gone after accepting
 
     headCommit = rw.repo.head_commit
     assert headCommit.id != oldHeadCommit.id
@@ -248,7 +248,7 @@ def testAmendCommit(qtbot, tempDir, mainWindow):
     assert not rw.committedFiles.isVisibleTo(rw)
 
 
-def testAmendCommitDontBreakRefresh(qtbot, tempDir, mainWindow):
+def testAmendCommitDontBreakRefresh(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -259,8 +259,8 @@ def testAmendCommitDontBreakRefresh(qtbot, tempDir, mainWindow):
 
     # Amend HEAD commit without any changes, i.e. just change the timestamp.
     dialog: CommitDialog = findQDialog(rw, "amend")
-    with qtbot.waitSignal(dialog.destroyed):  # upon exiting context, wait for dialog to be gone
-        dialog.accept()
+    dialog.accept()
+    waitForSignal(dialog.destroyed, disconnect=False)  # wait for dialog to be gone after accepting
 
     # Ensure no errors dialog boxes after operation (e.g. "commit not found")
     assert not mainWindow.findChildren(QDialog)

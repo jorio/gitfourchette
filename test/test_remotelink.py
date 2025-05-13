@@ -12,24 +12,27 @@ from gitfourchette.nav import NavContext
 from .util import *
 
 
+NET_TIMEOUT = 30_000
+
+
 @requiresNetwork
-def testHttpsCloneRepo(tempDir, mainWindow, taskThread, qtbot):
+def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("  https://github.com/libgit2/TestGitRepository  ")  # whitespace should be stripped
     cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
     cloneDialog.cloneButton.click()
-    qtbot.waitSignal(cloneDialog.finished).wait()
+    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = mainWindow.currentRepoWidget()
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
 
 
 @requiresNetwork
-def testSshCloneRepo(tempDir, mainWindow, taskThread, qtbot):
+def testSshCloneRepo(tempDir, mainWindow, taskThread):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
@@ -53,16 +56,16 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, qtbot):
     cloneDialog.ui.keyFilePicker.setPath(pubKeyCopy)
     cloneDialog.cloneButton.click()
 
-    passphraseDialog: TextInputDialog = waitForQDialog(mainWindow, "passphrase")
+    passphraseDialog: TextInputDialog = waitForQDialog(mainWindow, "passphrase", timeout=NET_TIMEOUT)
     # Make sure we're prompted to enter the passphrase for the correct key
     assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
     # Enter passphrase and accept
     passphraseDialog.findChild(QLineEdit).setText("empty")
     passphraseDialog.accept()
-    qtbot.waitSignal(cloneDialog.finished).wait()
+    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = mainWindow.currentRepoWidget()
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
@@ -70,17 +73,17 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, qtbot):
 
 
 @requiresNetwork
-def testHttpsShallowClone(tempDir, mainWindow, taskThread, qtbot):
+def testHttpsShallowClone(tempDir, mainWindow, taskThread):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
     cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
     cloneDialog.ui.shallowCloneCheckBox.setChecked(True)
     cloneDialog.cloneButton.click()
-    qtbot.waitSignal(cloneDialog.finished).wait()
+    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = mainWindow.currentRepoWidget()
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
@@ -95,12 +98,12 @@ def testHttpsShallowClone(tempDir, mainWindow, taskThread, qtbot):
 
 
 @requiresNetwork
-def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
+def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.remotes.delete("origin")
     rw = mainWindow.openRepo(wd)
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready)
     assert "origin/master" not in rw.repo.branches.remote
 
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
@@ -109,12 +112,12 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread, qtbot):
     remoteDialog.ui.nameEdit.setText("origin")
     remoteDialog.accept()
 
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
 
 @requiresNetwork
-def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbot):
+def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
     # Copy keyfile to non-default location to make sure we're not automatically picking up another key
     pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
     privKeyCopy = tempDir.name + "/HelloTestKey"
@@ -124,7 +127,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
     rw = mainWindow.openRepo(wd)
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready)
 
     # -------------------------------------------
     # Add remote with passphrase-protected keyfile
@@ -142,7 +145,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     # -------------------------------------------
     # Enter passphrase, don't remember it
 
-    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
+    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file", timeout=NET_TIMEOUT)
     pd.lineEdit.setText("empty")
 
     # Make sure it's for the correct key
@@ -162,7 +165,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
 
     # Accept
     pd.accept()
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
     # -------------------------------------------
@@ -186,10 +189,10 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, qtbo
     pd.lineEdit.setText("empty")
     assert pd.rememberCheckBox.isChecked()  # we ticked it previously
     pd.accept()
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
 
     # -------------------------------------------
     # Fetch, shouldn't prompt for passphrase again
 
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    qtbot.waitSignal(rw.repoTaskRunner.ready).wait()
+    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)

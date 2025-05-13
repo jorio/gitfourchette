@@ -384,16 +384,6 @@ def mixColors(c1: QColor, c2: QColor, ratio=.5, rmin=0.0, rmax=1.0):
         lerp(c1.alphaF(), c2.alphaF(), ratio, rmin, rmax))
 
 
-def waitForSignal(parent: QObject | QWidget, signal: SignalInstance):
-    loop = QEventLoop(parent)
-    def quitProxy():
-        loop.quit()
-    signal.connect(quitProxy)
-    loop.exec()
-    signal.disconnect(quitProxy)
-    loop.deleteLater()
-
-
 def findParentWidget(o: QObject) -> QWidget:
     p = o.parent()
     while p:
