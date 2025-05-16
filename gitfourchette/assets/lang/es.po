@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-04-20 20:46+0000\n"
-"Last-Translator: Alejandro Marin <jumarurex@gmail.com>\n"
+"PO-Revision-Date: 2025-05-17 18:03+0000\n"
+"Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
 "Language: es\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.1-dev\n"
+"X-Generator: Weblate 5.12-dev\n"
 
 #: application.py:84 forms/aboutdialog.py:52
 msgid "The comfortable Git UI for Linux."
@@ -2411,27 +2411,30 @@ msgstr ""
 #: graphview/graphview.py:41
 msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
 msgstr ""
+"Este commit no se muestra en la gráfica porque es parte de una rama oculta."
 
 #: graphview/graphview.py:43
 msgid "This commit isn’t shown in the graph because it isn’t part of the truncated commit history."
 msgstr ""
+"Este commit no se muestra en la gráfica porque no forma parte del historial "
+"de commits truncado."
 
 #: graphview/graphview.py:45
 msgid "This commit isn’t shown in the graph."
-msgstr ""
+msgstr "Este commit no se muestra en la gráfica."
 
 #: graphview/graphview.py:68
 msgid "Find a commit by hash, message or author|Find commit"
-msgstr ""
+msgstr "Encontrar un commit por su hash, mensaje o autor|Encontrar commit"
 
 #: graphview/graphview.py:103 tasks/jumptasks.py:225
 #, python-brace-format
 msgid "Load up to {0} commits"
-msgstr ""
+msgstr "Cargar hasta {0} commits"
 
 #: graphview/graphview.py:105
 msgid "Load full commit history"
-msgstr ""
+msgstr "Cargar el historial completo de commits"
 
 #: graphview/graphview.py:107
 msgid "Change threshold setting"
