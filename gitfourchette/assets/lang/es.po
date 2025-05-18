@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-05-17 18:03+0000\n"
+"PO-Revision-Date: 2025-05-19 21:02+0000\n"
 "Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
@@ -2576,11 +2576,11 @@ msgstr ""
 
 #: mainwindow.py:284 trtables.py:275
 msgid "Show status bar"
-msgstr ""
+msgstr "Mostrar la barra de estado"
 
 #: mainwindow.py:285 trtables.py:277
 msgid "Show menu bar"
-msgstr ""
+msgstr "Mostrar barra de menú"
 
 #: mainwindow.py:290
 msgid "Focus on Sidebar"
@@ -2642,7 +2642,7 @@ msgstr ""
 #: mainwindow.py:340
 #, python-brace-format
 msgid "{0} User’s Guide"
-msgstr ""
+msgstr "{0} Guía del Usuario"
 
 #: mainwindow.py:346
 msgid "Open Trash…"
@@ -2650,7 +2650,7 @@ msgstr ""
 
 #: mainwindow.py:348
 msgid "Explore changes that you may have discarded by mistake"
-msgstr ""
+msgstr "Explora los cambios que podrías haber descartado por error"
 
 #: mainwindow.py:350
 msgid "Empty Trash…"
@@ -2666,7 +2666,7 @@ msgstr ""
 
 #: mainwindow.py:382
 msgid "Clear the list of recently opened repositories"
-msgstr ""
+msgstr "Limpiar la lista de repositorios abiertos recientemente"
 
 #: mainwindow.py:391
 msgid "Menu bar hidden"
@@ -2674,36 +2674,36 @@ msgstr ""
 
 #: mainwindow.py:392
 msgid "The menu bar is now hidden. Press the Alt key to toggle it."
-msgstr ""
+msgstr "La barra de menú ahora está oculta. Pulsa la tecla Alt para cambiarlo."
 
 #: mainwindow.py:452
 msgid "Close Tab"
-msgstr ""
+msgstr "Cerrar Pestaña"
 
 #: mainwindow.py:453
 msgid "Close Other Tabs"
-msgstr ""
+msgstr "Cerrar las demás pestañas"
 
 #: mainwindow.py:454
 msgid "Unload Other Tabs"
-msgstr ""
+msgstr "Descargar las demás pestañas"
 
 #: mainwindow.py:458
 msgid "Configure Tabs…"
-msgstr ""
+msgstr "Configurar Pestañas…"
 
 #: mainwindow.py:487 mainwindow.py:768
 msgid "Open repository"
-msgstr ""
+msgstr "Abrir repositorio"
 
 #: mainwindow.py:488
 #, python-brace-format
 msgid "Couldn’t open the repository at {0}."
-msgstr ""
+msgstr "No se pudo abrir el repositorio en {0}."
 
 #: mainwindow.py:499
 msgid "There’s nothing at this path."
-msgstr ""
+msgstr "No hay nada en esta ruta."
 
 #: mainwindow.py:507 tasks/loadtasks.py:68
 #, python-brace-format
@@ -2725,7 +2725,7 @@ msgstr ""
 
 #: mainwindow.py:649
 msgid "There are no discarded changes to delete."
-msgstr ""
+msgstr "No hay cambios descartados que eliminar."
 
 #: mainwindow.py:655
 #, python-brace-format
@@ -2747,11 +2747,11 @@ msgstr ""
 
 #: mainwindow.py:666
 msgid "Delete permanently"
-msgstr ""
+msgstr "Eliminar permanentemente"
 
 #: mainwindow.py:674 mainwindow.py:705
 msgid "New repository"
-msgstr ""
+msgstr "Nuevo repositorio"
 
 #: mainwindow.py:676
 msgid "&Create repo here"
@@ -2761,19 +2761,21 @@ msgstr ""
 #, python-brace-format
 msgid "Are you sure you want to initialize a Git repository in {0}? This directory isn’t empty."
 msgstr ""
+"¿Estás seguros que quieres inicializar un repositorio Git en {0}? Este "
+"directorio no está vacío."
 
 #: mainwindow.py:696
 msgid "Directory isn’t empty"
-msgstr ""
+msgstr "El directorio no está vacío"
 
 #: mainwindow.py:704
 #, python-brace-format
 msgid "Couldn’t create an empty repository in {0}."
-msgstr ""
+msgstr "No se pudo crear un repositorio vacío en {0}."
 
 #: mainwindow.py:716
 msgid "A repository already exists here:"
-msgstr ""
+msgstr "Aquí ya existe un repositorio:"
 
 #: mainwindow.py:719
 msgid "Repository already exists"
@@ -2795,17 +2797,17 @@ msgstr ""
 
 #: mainwindow.py:745
 msgid "Repository found in parent folder"
-msgstr ""
+msgstr "Se encontró un repositorio en la carpeta padre"
 
 #: mainwindow.py:749
 #, python-brace-format
 msgid "&Open {0}"
-msgstr ""
+msgstr "&Abrir {0}"
 
 #: mainwindow.py:753
 #, python-brace-format
 msgid "&Create {0}"
-msgstr ""
+msgstr "&Crear {0}"
 
 #: mainwindow.py:831
 #, python-brace-format
@@ -2840,7 +2842,7 @@ msgstr ""
 
 #: mainwindow.py:1100
 msgid "&Reload"
-msgstr ""
+msgstr "&Recargar"
 
 #: mainwindow.py:1104
 msgid "&Not Now"
@@ -2864,12 +2866,12 @@ msgstr ""
 #: mergedriver.py:136
 #, python-brace-format
 msgid "Exit code: {0}."
-msgstr ""
+msgstr "Código de salida: {0}."
 
 #: nav.py:70
 msgctxt "NavContext"
 msgid "Empty"
-msgstr ""
+msgstr "Vacío"
 
 #: nav.py:71
 msgctxt "NavContext"
@@ -2898,7 +2900,7 @@ msgstr ""
 
 #: remotelink.py:94
 msgid "Remote operation interrupted by user."
-msgstr ""
+msgstr "Operación remota interrumpida por el usuario."
 
 #: remotelink.py:153
 msgid "Remote-specific public key file not found:"
@@ -2910,7 +2912,7 @@ msgstr ""
 
 #: remotelink.py:194
 msgid "Aborting remote operation…"
-msgstr ""
+msgstr "Abortando operación remota…"
 
 #: remotelink.py:227
 msgid "Too many credential retries."
@@ -2918,7 +2920,7 @@ msgstr ""
 
 #: remotelink.py:236
 msgid "Logging in with key:"
-msgstr ""
+msgstr "Iniciando sesión con la clave:"
 
 #: remotelink.py:248
 msgid "Unsupported authentication type."
@@ -2959,12 +2961,12 @@ msgstr ""
 #, python-brace-format
 msgctxt "download speed"
 msgid "({0}/s)"
-msgstr ""
+msgstr "({0}/s)"
 
 #: remotelink.py:294
 #, python-brace-format
 msgid "Download complete ({0})."
-msgstr ""
+msgstr "Descarga completada ({0})."
 
 #: remotelink.py:295
 #, python-brace-format
@@ -3026,7 +3028,7 @@ msgstr ""
 #: repowidget.py:631
 #, python-brace-format
 msgid "File {0} does not exist."
-msgstr ""
+msgstr "El archivo {0} no existe."
 
 #: repowidget.py:632
 msgid "Do you want to create it?"
@@ -3080,15 +3082,15 @@ msgstr ""
 
 #: repowidget.py:816 tasks/indextasks.py:568 tasks/taskbook.py:32
 msgid "Abort merge"
-msgstr ""
+msgstr "Abortar merge"
 
 #: repowidget.py:821
 msgid "Commit to conclude the cherry-pick."
-msgstr ""
+msgstr "Commit para concluir el cherry-pick."
 
 #: repowidget.py:826 tasks/indextasks.py:564
 msgid "Abort cherry-pick"
-msgstr ""
+msgstr "Abortar cherry-pick"
 
 #: repowidget.py:831
 msgid "Commit to conclude the revert."
@@ -3100,7 +3102,7 @@ msgstr ""
 
 #: repowidget.py:841
 msgid "Conflicts"
-msgstr ""
+msgstr "Conflictos"
 
 #: repowidget.py:842
 msgid "Fix the conflicts among the uncommitted changes."
@@ -3108,7 +3110,7 @@ msgstr ""
 
 #: repowidget.py:843 tasks/indextasks.py:576
 msgid "Reset index"
-msgstr ""
+msgstr "Reiniciar índice"
 
 #: repowidget.py:847
 msgid "Warning"
@@ -3118,6 +3120,8 @@ msgstr ""
 #, python-brace-format
 msgid "The repo is currently in state {state}, which {app} doesn’t support yet. Use <code>git</code> on the command line to continue."
 msgstr ""
+"El estado actual del repo es {state}, el cuál {app} aún no lo soporta. Usa "
+"<code>git</code> en la línea de comandos para continuar."
 
 #: repowidget.py:888
 msgid "Repository folder went missing:"
@@ -3139,6 +3143,8 @@ msgstr ""
 #: repowidget.py:1021
 msgid "Open this repo’s working directory in the system’s file manager"
 msgstr ""
+"Abrir el directorio de trabajo de este repo en el gestor de archivos del "
+"sistema"
 
 #: repowidget.py:1025
 msgid "Cop&y Repo Path"
@@ -3147,10 +3153,12 @@ msgstr ""
 #: repowidget.py:1027
 msgid "Copy the absolute path to this repo’s working directory to the clipboard"
 msgstr ""
+"Copiar la ruta absoluta hacia el directorio de trabajo de este repo al "
+"portapapeles"
 
 #: settings.py:314
 msgid "External editor"
-msgstr ""
+msgstr "Editor externo"
 
 #: settings.py:319 trtables.py:347
 msgid "Diff tool"
@@ -3196,7 +3204,7 @@ msgstr ""
 
 #: sidebar/sidebar.py:162 sidebar/sidebar.py:418
 msgid "Sort By"
-msgstr ""
+msgstr "Ordenar Por"
 
 #: sidebar/sidebar.py:184
 #, python-brace-format
@@ -3249,15 +3257,17 @@ msgstr ""
 
 #: sidebar/sidebar.py:234
 msgid "&Delete…"
-msgstr ""
+msgstr "&Eliminar…"
 
 #: sidebar/sidebar.py:243 sidebar/sidebar.py:307
 msgid "&Hide in Graph"
-msgstr ""
+msgstr "&Ocultar en el Gráfico"
 
 #: sidebar/sidebar.py:246
 msgid "Hide this branch from the graph (effective if no other branches/tags point here)"
 msgstr ""
+"Ocultar esta rama del gráfico (eficaz si no hay otras ramas/etiquetas que "
+"apunten aquí)"
 
 #: sidebar/sidebar.py:269 sidebar/sidebar.py:334
 #, python-brace-format
@@ -3310,7 +3320,7 @@ msgstr ""
 
 #: sidebar/sidebar.py:371
 msgid "Sort Remote Branches By"
-msgstr ""
+msgstr "Ordenar las Ramas Remotas Por"
 
 #: sidebar/sidebar.py:377
 msgid "Re&name Folder…"
@@ -3318,7 +3328,7 @@ msgstr ""
 
 #: sidebar/sidebar.py:378
 msgid "&Delete Folder…"
-msgstr ""
+msgstr "&Eliminar Carpeta…"
 
 #: sidebar/sidebar.py:383
 msgid "&Hide Folder Contents in Graph"
@@ -3517,7 +3527,7 @@ msgstr ""
 #: tasks/branchtasks.py:82
 #, python-brace-format
 msgid "Current name: {0}"
-msgstr ""
+msgstr "Nombre actual: {0}"
 
 #: tasks/branchtasks.py:85 tasks/branchtasks.py:148
 msgid "Rename"
