@@ -417,6 +417,13 @@ class GFApplication(QApplication):
             # Tested in KDE Plasma 6 and macOS 15.
             self.restyle.emit()
 
+        elif eventType == QEvent.Type.StatusTip:
+            # Eat QStatusTipEvent. The menubar emits those when a menu is hovered;
+            # but since we don't use status tips, the status bar is cleared for no reason.
+            if APP_DEBUG:
+                assert not event.tip(), "assuming QStatusTipEvent is always empty"
+            return True
+
         return False
 
     # -------------------------------------------------------------------------
