@@ -27,6 +27,7 @@ class QTabBar2(QTabBar):
         super().__init__(parent)
         self.middleClickedIndex = -1
         self.doubleClickedIndex = -1
+        self.setObjectName("QTabBar2")
 
     def tabLayoutChange(self):
         self.layoutChanged.emit()
@@ -133,9 +134,13 @@ class QTabWidget2(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.setObjectName("QTabWidget2")
 
         self.stacked = QStackedWidget(self)
-        self.shadowCurrentWidget = None
+        self.stacked.setObjectName("QTW2StackedWidget")
+
+        self.shadowCurrentWidgetId = 0
+        """ Keep an id instead of a real reference to not impede GC of a dead widget """
 
         self.tabScrollArea = QScrollArea(self)
         self.tabScrollArea.setWidgetResizable(True)
@@ -236,8 +241,8 @@ class QTabWidget2(QWidget):
             self.tabs.setTabIcon(i, QIcon())  # clear icon
 
         # See if we should emit the currentWidgetChanged signal
-        if currentWidget is not self.shadowCurrentWidget:
-            self.shadowCurrentWidget = currentWidget
+        if id(currentWidget) != self.shadowCurrentWidgetId:
+            self.shadowCurrentWidgetId = id(currentWidget)
             self.currentWidgetChanged.emit()
 
         # Forward signal
