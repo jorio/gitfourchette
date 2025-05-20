@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-05-19 21:02+0000\n"
+"PO-Revision-Date: 2025-05-21 06:02+0000\n"
 "Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
@@ -2742,8 +2742,9 @@ msgstr ""
 #: mainwindow.py:658 tasks/branchtasks.py:185 tasks/branchtasks.py:222
 #: tasks/indextasks.py:164 tasks/indextasks.py:240 tasks/indextasks.py:278
 #: tasks/nettasks.py:77 tasks/submoduletasks.py:97
+#, fuzzy
 msgid "This cannot be undone!"
-msgstr ""
+msgstr "¡Esto no puede deshacerse!"
 
 #: mainwindow.py:666
 msgid "Delete permanently"
@@ -3477,7 +3478,7 @@ msgstr ""
 #: sidebar/sidebarmodel.py:704
 #, python-brace-format
 msgid "URL: {0}"
-msgstr ""
+msgstr "URL: {0}"
 
 #: sidebar/sidebarmodel.py:725 tasks/taskbook.py:67
 msgid "Go to Uncommitted Changes"
@@ -3491,7 +3492,7 @@ msgstr ""
 #: tasks/branchtasks.py:36
 #, python-brace-format
 msgid "Do you want to switch to branch {0}?"
-msgstr ""
+msgstr "¿Quieres cambiar a la rama {0}?"
 
 #: tasks/branchtasks.py:37
 msgid "Switch"
@@ -3499,7 +3500,7 @@ msgstr ""
 
 #: tasks/branchtasks.py:43 tasks/taskbook.py:100
 msgid "Update submodules recursively"
-msgstr ""
+msgstr "Actualizar submódulos recursivamente"
 
 #: tasks/branchtasks.py:51 tasks/branchtasks.py:344 tasks/committasks.py:247
 #, python-brace-format
@@ -3514,15 +3515,15 @@ msgstr ""
 #: tasks/branchtasks.py:61
 #, python-brace-format
 msgid "Switched to branch {0}."
-msgstr ""
+msgstr "Se cambió a la rama {0}."
 
 #: tasks/branchtasks.py:80 tasks/taskbook.py:88
 msgid "Rename local branch"
-msgstr ""
+msgstr "Renombrar rama local"
 
 #: tasks/branchtasks.py:81 tasks/branchtasks.py:144 tasks/nettasks.py:108
 msgid "Enter new name:"
-msgstr ""
+msgstr "Introduce el nombre nuevo:"
 
 #: tasks/branchtasks.py:82
 #, python-brace-format
@@ -3531,12 +3532,12 @@ msgstr "Nombre actual: {0}"
 
 #: tasks/branchtasks.py:85 tasks/branchtasks.py:148
 msgid "Rename"
-msgstr ""
+msgstr "Renombrar"
 
 #: tasks/branchtasks.py:100
 #, python-brace-format
 msgid "Branch {0} renamed to {1}."
-msgstr ""
+msgstr "Rama {0} renombrada a {1}."
 
 #: tasks/branchtasks.py:128
 #, python-brace-format
@@ -3586,7 +3587,7 @@ msgstr ""
 
 #: tasks/branchtasks.py:189
 msgid "Delete branch"
-msgstr ""
+msgstr "Eliminar rama"
 
 #: tasks/branchtasks.py:197
 #, python-brace-format
@@ -3641,7 +3642,7 @@ msgstr ""
 #: tasks/branchtasks.py:347
 #, python-brace-format
 msgid "Switch to {0}"
-msgstr ""
+msgstr "Cambiar a {0}"
 
 #: tasks/branchtasks.py:412
 #, python-brace-format
@@ -3692,7 +3693,7 @@ msgstr ""
 
 #: tasks/branchtasks.py:532
 msgid "Fix the conflicts to proceed."
-msgstr ""
+msgstr "Arregla los conflictos para continuar."
 
 #: tasks/branchtasks.py:537
 msgid "Merging is not possible right now because you have staged changes."
@@ -3769,11 +3770,11 @@ msgstr ""
 
 #: tasks/committasks.py:43
 msgid "Create empty commit"
-msgstr ""
+msgstr "Crear un commit vacío"
 
 #: tasks/committasks.py:44 tasks/jumptasks.py:327
 msgid "Empty commit"
-msgstr ""
+msgstr "Commit vacío"
 
 #: tasks/committasks.py:46
 msgid "No files are staged for commit."
@@ -3781,7 +3782,7 @@ msgstr ""
 
 #: tasks/committasks.py:47
 msgid "Do you want to create an empty commit anyway?"
-msgstr ""
+msgstr "¿Quieres crear un commit vacío de todas formas?"
 
 #: tasks/committasks.py:49
 msgid "Proceed to Commit"
@@ -3790,7 +3791,7 @@ msgstr ""
 #: tasks/committasks.py:104
 #, python-brace-format
 msgid "Commit {0} created."
-msgstr ""
+msgstr "Commit {0} creado."
 
 #: tasks/committasks.py:124
 msgid "Proceed to Amend Commit"
@@ -3867,7 +3868,7 @@ msgstr[1] ""
 
 #: tasks/exporttasks.py:62
 msgid "Proceed"
-msgstr ""
+msgstr "Continuar"
 
 #: tasks/exporttasks.py:65
 msgid "Nothing to export. The patch is empty."
@@ -3930,7 +3931,7 @@ msgstr[1] ""
 
 #: tasks/indextasks.py:122
 msgid "Discard changes"
-msgstr ""
+msgstr "Descartar cambios"
 
 #: tasks/indextasks.py:139
 #, python-brace-format
@@ -3977,8 +3978,8 @@ msgstr[1] ""
 #, python-brace-format
 msgid "File discarded."
 msgid_plural "{n} files discarded."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Archivo descartado."
+msgstr[1] "{n} archivos descartados."
 
 #: tasks/indextasks.py:204
 #, python-brace-format
@@ -4061,7 +4062,7 @@ msgstr ""
 
 #: tasks/indextasks.py:414
 msgid "All files"
-msgstr ""
+msgstr "Todos los archivos"
 
 #: tasks/indextasks.py:449
 #, python-brace-format
@@ -4072,8 +4073,8 @@ msgstr ""
 #, python-brace-format
 msgid "<b>{n}</b> file will be modified in your working directory:"
 msgid_plural "<b>{n}</b> files will be modified in your working directory:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "<b>{n}</b> archivo se modificará en tu directorio de trabajo:"
+msgstr[1] "<b>{n}</b> archivos se modificarán en tu directorio de trabajo:"
 
 #: tasks/indextasks.py:484
 msgid "Apply patch"
@@ -4105,15 +4106,15 @@ msgstr ""
 
 #: tasks/indextasks.py:522
 msgid "recreated"
-msgstr ""
+msgstr "recreado"
 
 #: tasks/indextasks.py:524
 msgid "deleted"
-msgstr ""
+msgstr "eliminado"
 
 #: tasks/indextasks.py:526
 msgid "overwritten"
-msgstr ""
+msgstr "sobrescrito"
 
 #: tasks/indextasks.py:528
 #, python-brace-format
@@ -4123,7 +4124,7 @@ msgstr ""
 #: tasks/indextasks.py:529
 #, python-brace-format
 msgid "This file will be {processed} in your working directory."
-msgstr ""
+msgstr "Este archivo será {processed} en tu directorio de trabajo."
 
 #: tasks/indextasks.py:532
 msgid "Restore"
@@ -4132,7 +4133,7 @@ msgstr ""
 #: tasks/indextasks.py:545
 #, python-brace-format
 msgid "File {path} {processed}."
-msgstr ""
+msgstr "Archivo {path} {processed}."
 
 #: tasks/indextasks.py:559
 msgid "No abortable state is in progress."
@@ -4192,7 +4193,7 @@ msgstr ""
 
 #: tasks/indextasks.py:593
 msgid "No files are affected."
-msgstr ""
+msgstr "No hay archivos afectados."
 
 #: tasks/indextasks.py:596
 msgid "All conflicts will be cleared and all <b>staged</b> changes will be lost."
@@ -4227,8 +4228,8 @@ msgstr[1] ""
 #, python-brace-format
 msgid "Commit {n} file"
 msgid_plural "Commit {n} files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Commit {n} archivo"
+msgstr[1] "Commit {n} archivos"
 
 #: tasks/jumptasks.py:177
 msgid "Working directory clean|Workdir clean"
@@ -4236,7 +4237,7 @@ msgstr ""
 
 #: tasks/jumptasks.py:179
 msgid "The working directory is clean."
-msgstr ""
+msgstr "El directorio de trabajo está limpio."
 
 #: tasks/jumptasks.py:180
 msgid "There aren’t any changes to commit."
@@ -4286,12 +4287,12 @@ msgstr[1] ""
 
 #: tasks/jumptasks.py:329
 msgid "This commit is empty."
-msgstr ""
+msgstr "Este commit está vacío."
 
 #: tasks/jumptasks.py:330
 #, python-brace-format
 msgid "Commit {0} doesn’t affect any files."
-msgstr ""
+msgstr "El commit {0} no afecta a ningún archivo."
 
 #: tasks/jumptasks.py:336
 msgid "Rename detection was skipped to load this large commit faster."
@@ -4367,11 +4368,11 @@ msgstr ""
 
 #: tasks/misctasks.py:93
 msgid "Hash"
-msgstr ""
+msgstr "Hash"
 
 #: tasks/misctasks.py:95
 msgid "Author"
-msgstr ""
+msgstr "Autor"
 
 #: tasks/misctasks.py:96
 msgid "Committer"
@@ -5546,26 +5547,26 @@ msgstr ""
 #: trtables.py:263
 msgctxt "Prefs"
 msgid "Commit History"
-msgstr ""
+msgstr "Historial de commits"
 
 #: trtables.py:264
 msgctxt "Prefs"
 msgid "Trash"
-msgstr ""
+msgstr "Papelera"
 
 #: trtables.py:265
 msgctxt "Prefs"
 msgid "External Tools"
-msgstr ""
+msgstr "Herramientas externas"
 
 #: trtables.py:266
 msgctxt "Prefs"
 msgid "Advanced"
-msgstr ""
+msgstr "Avanzado"
 
 #: trtables.py:268
 msgid "Language"
-msgstr ""
+msgstr "Idioma"
 
 #: trtables.py:269
 msgid "Theme"
@@ -5589,15 +5590,18 @@ msgstr ""
 
 #: trtables.py:274
 msgid "Remember up to # recent repositories"
-msgstr ""
+msgstr "Recordar hasta # repositorios recientes"
 
 #: trtables.py:278
+#, fuzzy
 msgid "When the menu bar is hidden, press the Alt key to show it again."
 msgstr ""
+"Cuando la barra de menú está oculta, presione la tecla Alt para mostrarla de "
+"nuevo."
 
 #: trtables.py:279
 msgid "Restore all “don’t show this again” messages"
-msgstr ""
+msgstr "Restaurar todos los mensajes de \"no mostrar esto de nuevo\""
 
 #: trtables.py:280
 msgid "Middle-click a file name to stage/unstage the file"
@@ -5605,7 +5609,7 @@ msgstr ""
 
 #: trtables.py:283
 msgid "One tab is # spaces"
-msgstr ""
+msgstr "Una pestaña es # espacios"
 
 #: trtables.py:284
 msgid "Show up to # context lines"
@@ -5621,7 +5625,7 @@ msgstr ""
 
 #: trtables.py:287
 msgid "Load images up to # KB"
-msgstr ""
+msgstr "Cargar imagenes hasta # KB"
 
 #: trtables.py:288
 msgid "Word wrap"
@@ -5641,15 +5645,16 @@ msgstr ""
 
 #: trtables.py:294
 msgid "Treat SVG files as"
-msgstr ""
+msgstr "Tratar los archivos SVG como"
 
 #: trtables.py:296
 msgid "Show tab close button"
-msgstr ""
+msgstr "Mostrar botón de cerrar pestaña"
 
 #: trtables.py:297
+#, fuzzy
 msgid "Expand tabs to available width"
-msgstr ""
+msgstr "Ampliar pestañas al ancho disponible"
 
 #: trtables.py:298
 msgid "Auto-hide tabs if only one repo is open"
@@ -5661,11 +5666,11 @@ msgstr ""
 
 #: trtables.py:301
 msgid "Sort commits"
-msgstr ""
+msgstr "Ordenar commits"
 
 #: trtables.py:302
 msgid "Chronologically"
-msgstr ""
+msgstr "Cronológicamente"
 
 #: trtables.py:303
 msgid "Topologically"
@@ -5709,11 +5714,11 @@ msgstr ""
 
 #: trtables.py:325
 msgid "Load up to # commits in the history"
-msgstr ""
+msgstr "Cargar hasta # commits en el historial"
 
 #: trtables.py:326
 msgid "Set to 0 to always load the full commit history."
-msgstr ""
+msgstr "Colocar a 0 para cargar siempre el historial completo de commits."
 
 #: trtables.py:327
 msgid "Draw rows using alternating background colors"
