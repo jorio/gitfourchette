@@ -216,6 +216,20 @@ QIcon.Mode.SelectedInactive = QIcon.Mode(4)
 
 
 # -----------------------------------------------------------------------------
+# Verbose QObject destructors
+
+if APP_VERBOSEDEL:
+    def _QObject_dtor(obj: QObject):
+        cls = obj.__class__
+        if cls.__module__.startswith(QT_BINDING + "."):  # Skip standard Qt objects
+            return
+        _logger.info(f"QObject.__del__ {cls.__name__}")
+    assert not hasattr(QObject, "__del__")
+    QObject.__del__ = _QObject_dtor
+    _logger.info("Verbose QObject destructors enabled")
+
+
+# -----------------------------------------------------------------------------
 # Utility functions
 
 def qAppName():

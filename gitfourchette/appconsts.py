@@ -48,6 +48,11 @@ Can be forced with environment variable APP_NOTHREADS.
 Implied by APP_TESTMODE.
 """
 
+APP_VERBOSEDEL = _envBool("APP_VERBOSEDEL")
+"""
+Verbose QObject Python destructors (__del__).
+"""
+
 if APP_TESTMODE:
     APP_SYSTEM_NAME += "_testmode"
     APP_DISPLAY_NAME += "TestMode"

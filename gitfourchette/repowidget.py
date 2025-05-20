@@ -66,9 +66,6 @@ class RepoWidget(QStackedWidget):
     sharedSplitterSizes: dict[str, list[int]]
     centralSplitSizesBackup: list[int]
 
-    def __del__(self):
-        logger.debug(f"__del__ RepoWidget {self.pendingPath}")
-
     def __bool__(self):
         """ Override QStackedWidget.__bool__ so we can do quick None comparisons """
         return True
