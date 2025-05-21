@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pytestqt.qtbot import QtBot
 from typing import TYPE_CHECKING
 import pygit2
@@ -54,14 +55,14 @@ def qapp_cls():
 
 
 @pytest.fixture
-def tempDir() -> tempfile.TemporaryDirectory:
+def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
     td = tempfile.TemporaryDirectory(prefix="gitfourchettetest-")
     yield td
     td.cleanup()
 
 
 @pytest.fixture
-def mainWindow(request, qtbot: QtBot) -> MainWindow:
+def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     from gitfourchette import qt, trash, porcelain, tasks
     from gitfourchette.appconsts import APP_TESTMODE
     from .util import TEST_SIGNATURE, waitUntilTrue
@@ -94,6 +95,8 @@ def mainWindow(request, qtbot: QtBot) -> MainWindow:
     # Run the test...
     assert app.mainWindow is not None  # help out code analysis a bit
     yield app.mainWindow
+
+    assert app.mainWindow is not None, "mainWindow vanished after the test"
 
     # Look for any unclosed dialogs after the test
     leakedDialog = ""

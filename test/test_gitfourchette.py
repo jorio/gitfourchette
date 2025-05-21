@@ -545,9 +545,11 @@ def testRestoreSession(tempDir, mainWindow):
     rw.toggleHideRefPattern("refs/heads/no-parent")
 
     # End this session
-    mainWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
-    mainWindow.close()
+    originalWindow = mainWindow
+    originalWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+    originalWindow.close()
     app.endSession(clearTempDir=False)
+    app.mainWindow = None
 
     # Make one of the repos inaccessible
     shutil.rmtree(f"{tempDir.name}/RepoCopy0003")
@@ -555,7 +557,6 @@ def testRestoreSession(tempDir, mainWindow):
     # ----------------------------------------------
     # Begin new session
 
-    app.mainWindow = None
     app.beginSession()
     QTest.qWait(1)
     mainWindow2: MainWindow = app.mainWindow
@@ -577,8 +578,13 @@ def testRestoreSession(tempDir, mainWindow):
     hiddenBranchNode = rw.sidebar.findNodeByRef("refs/heads/no-parent")
     assert rw.sidebar.sidebarModel.isExplicitlyHidden(hiddenBranchNode)
 
+    # Clean up
     mainWindow2.close()
     mainWindow2.deleteLater()
+    waitUntilTrue(lambda: not app.mainWindow)
+
+    # Let fixture delete original window
+    app.mainWindow = originalWindow
 
 
 def testCommandLinePaths(tempDir, mainWindow):
@@ -587,8 +593,9 @@ def testCommandLinePaths(tempDir, mainWindow):
     app = GFApplication.instance()
 
     # End default unit test session so we can start a new one with fake command line paths
-    mainWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)  # Let fixture delete original MainWindow
-    mainWindow.close()
+    originalWindow = mainWindow
+    originalWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)  # Let fixture delete original MainWindow
+    originalWindow.close()
     app.endSession(clearTempDir=False)
     app.mainWindow = None
 
@@ -601,6 +608,7 @@ def testCommandLinePaths(tempDir, mainWindow):
     app.beginSession()
     QTest.qWait(1)
     mainWindow = app.mainWindow
+    assert mainWindow is not originalWindow
 
     # Check that we opened the correct repos
     assert mainWindow.tabs.count() == 2  # Two distinct repos were opened
@@ -611,6 +619,10 @@ def testCommandLinePaths(tempDir, mainWindow):
     # Clean up
     mainWindow.close()
     mainWindow.deleteLater()
+    waitUntilTrue(lambda: not app.mainWindow)
+
+    # Let fixture delete original window
+    app.mainWindow = originalWindow
 
 
 def testMaximizeDiffArea(tempDir, mainWindow):
