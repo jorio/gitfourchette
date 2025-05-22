@@ -29,6 +29,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
+from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -524,6 +525,17 @@ class RepoWidget(QStackedWidget):
             with QSignalBlockerContext(self.graphView, self.sidebar):
                 self.graphView.clear()
                 self.sidebar.model().clear()
+
+        # GC help:
+        # Detangle cross-references to help out garbage collector
+        self.diffView.gutter = None
+        self.sidebar.repoWidget = None
+        self.graphView.repoWidget = None
+        for searchBar in self.findChildren(SearchBar):  # Help collect FileLists, GraphView, DiffView
+            searchBar.buddy = None
+            searchBar.notFoundMessage = None
+        # Release any LexJobs that we own (it's not a big deal if we lose cached jobs for other tabs)
+        LexJobCache.clear()
 
         # Let repo wrap up
         if hasRepo:
