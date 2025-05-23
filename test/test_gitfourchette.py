@@ -8,6 +8,7 @@ import os.path
 from contextlib import suppress
 
 import pytest
+from pytestqt.qtbot import QtBot
 
 from .util import *
 
@@ -16,7 +17,7 @@ from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.donateprompt import DonatePrompt
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
-from gitfourchette.forms.unloadedrepoplaceholder import UnloadedRepoPlaceholder
+from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.mainwindow import MainWindow
 from gitfourchette.nav import NavLocator, NavContext
@@ -64,28 +65,45 @@ def testDisplayAllNestedUntrackedFiles(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(WINDOWS, reason="Windows blocks external processes from touching the repo while we have a handle on it")
-def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow):
+def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow, qtbot: QtBot):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    assert rw.isLoaded
 
     rw.repoModel.prefs.draftCommitMessage = "some bogus change to prevent prefs to be written"
     rw.repoModel.prefs.write(force=True)
     assert os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
 
-    os.rename(wd, os.path.normpath(wd) + "-2")
+    oldName = os.path.normpath(wd)
+    newName = oldName + "-2"
+    os.rename(oldName, newName)
 
-    mainWindow.currentRepoWidget().refreshRepo()
-    assert not rw.isLoaded
+    rw.refreshRepo()
+    assert not rw.isVisible()
 
-    urp: UnloadedRepoPlaceholder = rw.placeholderWidget
-    assert urp is not None
-    assert isinstance(urp, UnloadedRepoPlaceholder)
-    assert urp.isVisibleTo(rw)
-    assert re.search(r"folder.+missing", urp.ui.label.text(), re.I)
+    stub: RepoStub = mainWindow.tabs.currentWidget()
+    assert isinstance(stub, RepoStub)
+    assert stub.ui.promptPage.isVisible()
+    assert re.search(r"folder.+missing", stub.ui.promptReadyLabel.text(), re.I)
 
     # Make sure we're not writing the prefs to a ghost directory structure upon exiting
     assert not os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
+
+    # Try to reload - this causes a GitError.
+    # Normally, RepoTaskRunner re-raises the exception, causing qtbot to fail the unit test.
+    # In this specific case, don't let qtbot fail the test because of it.
+    with qtbot.captureExceptions() as uncaughtExceptions:
+        stub.ui.promptLoadButton.click()
+        assert len(uncaughtExceptions) == 1
+        assert "repository not found" in str(uncaughtExceptions[0]).lower()
+        rejectQMessageBox(mainWindow, "repository not found")
+    assert stub.ui.promptPage.isVisible()  # RepoStub still visible
+
+    # Move back then try to reload
+    os.rename(newName, oldName)
+    stub.ui.promptLoadButton.click()
+    assert not stub.isVisible()
+    rw = mainWindow.currentRepoWidget()
+    assert os.path.samefile(wd, rw.workdir)
 
 
 def testSkipRenameDetection(tempDir, mainWindow):
@@ -101,24 +119,23 @@ def testSkipRenameDetection(tempDir, mainWindow):
         oid = repo.create_commit_on_head("renamed a2.txt and added a ton of files")
 
     rw = mainWindow.openRepo(wd)
-    assert rw.isLoaded
-    assert not rw.diffBanner.isVisibleTo(rw)
+    assert not rw.diffBanner.isVisible()
 
     rw.jump(NavLocator.inCommit(oid))
     assert 102 == len(qlvGetRowData(rw.committedFiles))
-    assert rw.diffBanner.isVisibleTo(rw)
+    assert rw.diffBanner.isVisible()
     assert "rename" in rw.diffBanner.label.text().lower()
 
     assert "detect" in rw.diffBanner.buttons[-1].text().lower()
     rw.diffBanner.buttons[-1].click()
 
     assert 101 == len(qlvGetRowData(rw.committedFiles))
-    assert rw.diffBanner.isVisibleTo(rw)
+    assert rw.diffBanner.isVisible()
     print(rw.diffBanner.label.text())
     assert re.search(r"1 rename.* detected", rw.diffBanner.label.text(), re.I)
 
     rw.diffBanner.dismissButton.click()
-    assert not rw.diffBanner.isVisibleTo(rw)
+    assert not rw.diffBanner.isVisible()
 
 
 def testNewRepo(tempDir, mainWindow):
@@ -132,7 +149,6 @@ def testNewRepo(tempDir, mainWindow):
     rw = mainWindow.currentRepoWidget()
     assert path == os.path.normpath(rw.repo.workdir)
 
-    assert rw.uiReady
     assert rw.navLocator.context.isWorkdir()
 
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.LocalBranch)
@@ -193,7 +209,7 @@ def testTruncatedHistory(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     QTest.qWait(1)
-    assert 7 == rw.graphView.clFilter.rowCount()
+    assert rw.graphView.clFilter.rowCount() == 7  # 1 Workdir, 5 Commits, 1 Truncated
 
     # Search bar shouldn't be able to reach bottom commit
     triggerMenuAction(mainWindow.menuBar(), "edit/find")
@@ -208,20 +224,18 @@ def testTruncatedHistory(tempDir, mainWindow, method):
     rw.graphView.searchBar.ui.closeButton.click()
 
     # Bottom commit contents must be able to be displayed
-    rw.jump(NavLocator.inCommit(bottomCommit))
-    assert rw.navLocator.commit == bottomCommit
-    assert rw.diffBanner.isVisibleTo(rw)
+    rw.jump(NavLocator.inCommit(bottomCommit, "c/c1.txt"), check=True)
+    assert rw.diffBanner.isVisible()
     assert re.search("commit.+n.t shown in the graph", rw.diffBanner.label.text(), re.I)
     assert not rw.graphView.selectedIndexes()
 
     # Jump to truncated history row
-    loc = NavLocator(NavContext.SPECIAL, path=str(SpecialRow.TruncatedHistory))
-    rw.jump(loc)
-    assert loc.isSimilarEnoughTo(rw.navLocator)
+    truncatedHistoryLocator = NavLocator(NavContext.SPECIAL, path=str(SpecialRow.TruncatedHistory))
+    rw.jump(truncatedHistoryLocator, check=True)
     assert rw.graphView.currentRowKind == SpecialRow.TruncatedHistory
     assert rw.graphView.selectedIndexes()
 
-    assert rw.specialDiffView.isVisibleTo(rw)
+    assert rw.specialDiffView.isVisible()
     assert "truncated" in rw.specialDiffView.toPlainText().lower()
 
     # Click "change threshold"
@@ -229,6 +243,8 @@ def testTruncatedHistory(tempDir, mainWindow, method):
         qteClickLink(rw.specialDiffView, "change.+threshold")
     elif method == "graphcm":
         triggerContextMenuAction(rw.graphView.viewport(), "change.+threshold")
+    if not OFFSCREEN:
+        QTest.qWait(100)  # Non-offscreen needs this nudge
     prefsDialog = findQDialog(mainWindow, "settings")
     QTest.qWait(0)
     assert prefsDialog.findChild(QWidget, "prefctl_maxCommits").hasFocus()
@@ -239,18 +255,19 @@ def testTruncatedHistory(tempDir, mainWindow, method):
         qteClickLink(rw.specialDiffView, "load full")
     elif method == "graphcm":
         triggerContextMenuAction(rw.graphView.viewport(), "load full")
-    assert 7 < rw.graphView.clFilter.rowCount()
+    # Heads up! RepoWidget changes after a full reload
+    rw = mainWindow.currentRepoWidget()
+    assert rw.graphView.clFilter.rowCount() > 7
 
-    # Truncated history row must be gone
-    with pytest.raises(ValueError):
-        rw.jump(loc)
+    # Truncated history row must be gone.
+    with pytest.raises(ValueError, match="no special row"):
+        rw.jump(truncatedHistoryLocator)
     rejectQMessageBox(mainWindow, "navigate in repo")  # dismiss error message
 
     # Bottom commit should work now
-    rw.jump(NavLocator.inCommit(bottomCommit))
-    assert rw.navLocator.commit == bottomCommit
+    rw.jump(NavLocator.inCommit(bottomCommit, "c/c1.txt"), check=True)
     assert rw.graphView.selectedIndexes()
-    assert not rw.diffBanner.isVisibleTo(rw)
+    assert not rw.diffBanner.isVisible()
 
 
 def testRepoNickname(tempDir, mainWindow):
@@ -690,17 +707,17 @@ def testHideSelectedBranch(tempDir, mainWindow, taskThread):
         detachedId = Oid(hex='ce112d052bcf42442aa8563f1e2b7a8aabbf4d17')
         repo.checkout_commit(detachedId)
 
-    rw = mainWindow.openRepo(wd)
-    waitForSignal(rw.repoTaskRunner.ready)
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
 
     # Select branch 'master'...
     rw.selectRef('refs/heads/master')
-    waitForSignal(rw.repoTaskRunner.ready)
+    waitUntilTrue(lambda: not rw.repoTaskRunner.isBusy())
     assert rw.diffView.currentLocator.commit == masterId
 
     # ...and hide it. DiffView shouldn't show master anymore.
     rw.toggleHideRefPattern('refs/heads/master')
-    waitForSignal(rw.repoTaskRunner.ready)
+    waitUntilTrue(lambda: not rw.repoTaskRunner.isBusy())
     assert masterId in rw.repoModel.hiddenCommits
 
     assert rw.navLocator.commit != masterId

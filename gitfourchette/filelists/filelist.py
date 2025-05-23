@@ -18,6 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -97,7 +98,7 @@ class FileList(QListView):
     openSubRepo = Signal(str)
     statusMessage = Signal(str)
 
-    repo: Repo
+    repoModel: RepoModel
 
     navContext: NavContext
     """
@@ -121,10 +122,10 @@ class FileList(QListView):
     Backup of selected paths before refreshing the view.
     """
 
-    def __init__(self, parent: QWidget, navContext: NavContext):
+    def __init__(self, repoModel: RepoModel, parent: QWidget, navContext: NavContext):
         super().__init__(parent)
 
-        self.repo = None
+        self.repoModel = repoModel
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.onContextMenuRequested)
@@ -164,6 +165,10 @@ class FileList(QListView):
 
     def refreshPrefs(self):
         self.setVerticalScrollMode(settings.prefs.listViewScrollMode)
+
+    @property
+    def repo(self) -> Repo:
+        return self.repoModel.repo
 
     @property
     def flModel(self) -> FileListModel:

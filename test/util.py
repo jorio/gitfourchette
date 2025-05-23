@@ -369,6 +369,23 @@ def waitForSignal(signal: SignalInstance, timeout=5000, disconnect=True):
         raise TimeoutError("waitForSignal timed out")
 
 
+def waitForRepoWidget(mainWindow):
+    from gitfourchette.repowidget import RepoWidget
+    from gitfourchette.mainwindow import NoRepoWidgetError
+
+    def attempt() -> RepoWidget | None:
+        try:
+            return mainWindow.currentRepoWidget()
+        except NoRepoWidgetError:
+            return None
+
+    rw = waitUntilTrue(attempt)
+    assert isinstance(rw, RepoWidget)
+
+    waitUntilTrue(lambda: not rw.repoTaskRunner.isBusy())
+    return rw
+
+
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
     numBoxesFound = 0
     for qmb in parent.findChildren(QMessageBox):

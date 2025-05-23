@@ -138,7 +138,7 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
     headerNode = sb.findNodeByKind(headerKind)
 
     def getNodeDatas():
-        return [node.data for node in sb.findNodesByKind(leafKind)]
+        return [node.data for node in rw.sidebar.findNodesByKind(leafKind)]
 
     sortedByTimeDesc = getNodeDatas()
     sortedByTimeAsc = list(reversed(sortedByTimeDesc))
@@ -169,6 +169,8 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
     qcbSetIndex(comboBox, "name.+a-z")
     dlg.accept()
     acceptQMessageBox(mainWindow, "take effect.+until you reload")
+    del rw, sb
+    rw = mainWindow.currentRepoWidget()
     assert getNodeDatas() == sortedByNameAsc
 
 

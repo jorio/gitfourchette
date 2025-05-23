@@ -572,7 +572,8 @@ class RefreshRepo(RepoTask):
 
         # Refresh window title and state banner.
         # Do this last because it requires the index to be fresh (updated by LoadWorkdir)
-        rw.refreshWindowChrome()
+        rw.refreshWindowTitle()
+        rw.refreshBanner()
 
         logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "
                      f"Sub={int(submodulesChanged)} Rem={int(remotesChanged)} Ups={int(upstreamsChanged)}")

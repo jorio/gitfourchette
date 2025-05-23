@@ -263,6 +263,11 @@ class QTabWidget2(QWidget):
         self.stacked.setCurrentIndex(i)
         self.tabs.update()
 
+    def setCurrentWidget(self, widget: QWidget):
+        i = self.indexOf(widget)
+        assert i >= 0
+        self.setCurrentIndex(i)
+
     def indexOf(self, widget: QWidget):
         return self.stacked.indexOf(widget)
 
@@ -285,12 +290,25 @@ class QTabWidget2(QWidget):
         return self.stacked.count()
 
     def removeTab(self, i: int):
+        assert isinstance(i, int)
         widget = self.stacked.widget(i)
         # remove widget from stacked view _before_ removing the tab,
         # because removing the tab may send a tab change event
         self.stacked.removeWidget(widget)
         self.tabs.removeTab(i)
         self.syncBarSize()
+
+    def swapWidget(self, i: int, newWidget: QWidget):
+        currentIndex = self.currentIndex()
+        oldWidget = self.stacked.widget(i)
+        self.stacked.removeWidget(oldWidget)
+        assert oldWidget.parentWidget() is self.stacked, "QStackedWidget isn't supposed to deparent its pages"
+        self.stacked.insertWidget(i, newWidget)
+        self.stacked.setCurrentIndex(currentIndex)  # Keep it stable
+        if currentIndex == i:
+            self.shadowCurrentWidgetId = id(newWidget)
+            self.currentWidgetChanged.emit()
+        return oldWidget
 
     def widgets(self):
         for i in range(self.stacked.count()):

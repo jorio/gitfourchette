@@ -9,14 +9,13 @@ from contextlib import suppress
 
 from gitfourchette import colors
 from gitfourchette import settings
-from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import DiffDocument
+from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
 from gitfourchette.diffview.specialdiff import (ShouldDisplayPatchAsImageDiff, SpecialDiffError, DiffImagePair)
 from gitfourchette.graph import GraphBuildLoop
-from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.porcelain import *
@@ -36,34 +35,31 @@ def contextLines():
 
 
 class PrimeRepo(RepoTask):
-    progressRange = Signal(int, int)
-    progressValue = Signal(int)
-    progressMessage = Signal(str)
-    progressAbortable = Signal(bool)
+    """
+    This task initializes a RepoModel and a RepoWidget.
+    It runs on a RepoStub's RepoTaskRunner, then hands over control to the RepoWidget.
+    """
 
-    abortFlag: bool
+    def flow(self, repoStub: RepoStub):
+        # Store repoStub in class instance so that onError() can manipulate it
+        # if this coroutine raises an exception
+        self.repoStub = repoStub
 
-    def onAbortButtonClicked(self):
-        self.abortFlag = True
-
-    def flow(self, path: str, maxCommits: int = -1):
+        from gitfourchette.application import GFApplication
+        from gitfourchette.mainwindow import MainWindow
         from gitfourchette.repowidget import RepoWidget
         from gitfourchette.repomodel import RepoModel
-        from gitfourchette.tasks.jumptasks import Jump
 
-        assert path
+        app = GFApplication.instance()
+        mainWindow: MainWindow = repoStub.window()
+        assert isinstance(repoStub, RepoStub)
+        assert isinstance(mainWindow, MainWindow)
 
-        rw = self.rw
-        assert isinstance(rw, RepoWidget)
+        mainWindow.statusBar2.showBusyMessage(repoStub.ui.progressLabel.text())
 
-        progressWidget = rw.setPlaceholderWidgetOpenRepoProgress()
-
-        self.abortFlag = False
-        self.progressRange.connect(progressWidget.ui.progressBar.setRange)
-        self.progressValue.connect(progressWidget.ui.progressBar.setValue)
-        self.progressMessage.connect(progressWidget.ui.label.setText)
-        self.progressAbortable.connect(progressWidget.ui.abortButton.setEnabled)
-        progressWidget.ui.abortButton.clicked.connect(self.onAbortButtonClicked)
+        path = repoStub.workdir
+        locator = repoStub.locator
+        maxCommits = repoStub.maxCommits
 
         # Create the repo
         repo = Repo(path, RepositoryOpenFlag.NO_SEARCH)
@@ -71,14 +67,10 @@ class PrimeRepo(RepoTask):
         if repo.is_bare:
             raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.", app=qAppName()))
 
-        # Bind to sessionwide git config file
-        sessionwideConfigPath = GFApplication.instance().sessionwideGitConfigPath
+        # Bind to sessionwide git config file.
         # Level -1 was chosen because it's the only level for which changing branch settings
         # in a repo won't leak into this file (e.g. change branch upstream).
-        # TODO: `level=4, force=True` would make sense here but this leaks branch settings. Is this a bug in pygit2?
-        #       git_config_add_file_ondisk has an optional 'repo' argument "to allow parsing of conditional includes",
-        #       but pygit2 doesn't make it possible to pass anything but NULL.
-        #       See also https://github.com/libgit2/libgit2/blob/main/include/git2/config.h#L42
+        sessionwideConfigPath = app.sessionwideGitConfigPath
         repo.config.add_file(sessionwideConfigPath, level=-1)
 
         # Create RepoModel
@@ -90,24 +82,21 @@ class PrimeRepo(RepoTask):
         # ---------------------------------------------------------------------
         yield from self.flowEnterWorkerThread()
 
+        # Get a locale to format numbers on the worker thread
         locale = QLocale()
 
         # Prime the walker (this might take a while)
         walker = repoModel.primeWalker()
-
-        commitSequence = [repoModel.uncommittedChangesMockCommit()]
 
         # Retrieve the number of commits that we loaded last time we opened this repo
         # so we can estimate how long it'll take to load it again
         numCommitsBallpark = settings.history.getRepoNumCommits(repo.workdir)
         if numCommitsBallpark != 0:
             # Reserve second half of progress bar for graph progress
-            self.progressRange.emit(0, 2*numCommitsBallpark)
+            repoStub.progressRange.emit(0, 2*numCommitsBallpark)
 
         # ---------------------------------------------------------------------
         # Build commit sequence
-
-        self.progressAbortable.emit(True)
 
         truncatedHistory = False
         if maxCommits < 0:  # -1 means take maxCommits from prefs. Warning, pref value can be 0, meaning infinity!
@@ -116,49 +105,51 @@ class PrimeRepo(RepoTask):
             maxCommits = 2**63  # ought to be enough
         progressInterval = 1000 if maxCommits >= 10000 else 1000
 
+        commitSequence = [repoModel.uncommittedChangesMockCommit()]
+
         for i, commit in enumerate(walker):
             commitSequence.append(commit)
 
-            if i+1 >= maxCommits or (self.abortFlag and i+1 >= progressInterval):
+            if i + 1 >= maxCommits or (i + 1 >= progressInterval and repoStub.didAbort):
                 truncatedHistory = True
                 break
 
             # Report progress, not too often
-            if i % progressInterval == 0:
+            if i % progressInterval == 0 and not repoStub.didAbort:
                 message = _("{0} commits…", locale.toString(i))
-                self.progressMessage.emit(message)
+                repoStub.progressMessage.emit(message)
                 if numCommitsBallpark > 0 and i <= numCommitsBallpark:
-                    self.progressValue.emit(i)
+                    repoStub.progressValue.emit(i)
                     # Let RepoTaskRunner kill us here (e.g. if closing the RepoWidget tab while we're loading)
                     yield from self.flowEnterWorkerThread()
 
         # Can't abort anymore
-        self.progressAbortable.emit(False)
+        repoStub.progressAbortable.emit(False)
 
         numCommits = len(commitSequence) - 1
         logger.info(f"{repoModel.shortName}: loaded {numCommits} commits")
         if truncatedHistory:
-            message = _("{0} commits (truncated log).", locale.toString(numCommits))
+            message = _("{0} commits loaded (truncated log).", locale.toString(numCommits))
         else:
             message = _("{0} commits total.", locale.toString(numCommits))
-        self.progressMessage.emit(message)
+            repoStub.progressMessage.emit(message)
 
         if numCommitsBallpark != 0:
             # First half of progress bar was for commit log
-            self.progressRange.emit(-numCommits, numCommits)
+            repoStub.progressRange.emit(-numCommits, numCommits)
         else:
-            self.progressRange.emit(0, numCommits)
-        self.progressValue.emit(0)
+            repoStub.progressRange.emit(0, numCommits)
+        repoStub.progressValue.emit(0)
 
         # ---------------------------------------------------------------------
         # Build graph
 
-        hideSeeds = self.repoModel.getHiddenTips()
-        localSeeds = self.repoModel.getLocalTips()
-        buildLoop = GraphBuildLoop(heads=self.repoModel.getKnownTips(), hideSeeds=hideSeeds, localSeeds=localSeeds)
-        buildLoop.onKeyframe = self.progressValue.emit
+        hideSeeds = repoModel.getHiddenTips()
+        localSeeds = repoModel.getLocalTips()
+        buildLoop = GraphBuildLoop(heads=repoModel.getKnownTips(), hideSeeds=hideSeeds, localSeeds=localSeeds)
+        buildLoop.onKeyframe = repoStub.progressValue.emit
         buildLoop.sendAll(commitSequence)
-        self.progressValue.emit(numCommits)
+        repoStub.progressValue.emit(numCommits)
 
         graph = buildLoop.graph
         repoModel.hiddenCommits = buildLoop.hiddenCommits
@@ -174,10 +165,6 @@ class PrimeRepo(RepoTask):
         # ---------------------------------------------------------------------
         yield from self.flowEnterUiThread()
 
-        # Assign RepoModel to RepoWidget
-        rw.repoModel = repoModel
-        rw.updateBoundRepo()
-
         # Save commit count (if not truncated)
         if not truncatedHistory:
             settings.history.setRepoNumCommits(repo.workdir, numCommits)
@@ -186,68 +173,77 @@ class PrimeRepo(RepoTask):
         settings.history.addRepo(repo.workdir)
         settings.history.setRepoSuperproject(repo.workdir, repoModel.superproject)
         settings.history.write()
-        rw.window().fillRecentMenu()  # TODO: emit signal instead?
 
-        # Finally, prime the UI.
+        # Finally, prime the UI: Create RepoWidget
+        rw = RepoWidget(repoModel, parent=mainWindow)
 
-        # Prime GraphView
-        with QSignalBlockerContext(rw.graphView):
-            if repoModel.truncatedHistory:
-                extraRow = SpecialRow.TruncatedHistory
-            elif repo.is_shallow:
-                extraRow = SpecialRow.EndOfShallowHistory
-            else:
-                extraRow = SpecialRow.Invalid
-
-            rw.graphView.clFilter.setHiddenCommits(repoModel.hiddenCommits)
-            rw.graphView.clModel._extraRow = extraRow
-            rw.graphView.clModel.setCommitSequence(repoModel.commitSequence)
-            rw.graphView.selectRowForLocator(NavLocator.inWorkdir(), force=True)
-
-        # Prime Sidebar
-        with QSignalBlockerContext(rw.sidebar):
-            collapseCache = repoModel.prefs.collapseCache
-            if collapseCache:
-                rw.sidebar.sidebarModel.collapseCache = set(collapseCache)
-                rw.sidebar.sidebarModel.collapseCacheValid = True
-            rw.sidebar.refresh(repoModel)
-
-        # Focus on some interesting widget within the RepoWidget after loading the repo.
-        rw.setInitialFocus()
-
-        # Restore main UI
-        rw.removePlaceholderWidget()
-
-        # Refresh tab text
-        rw.nameChange.emit()
-
-        # Splitters may have moved around while loading, restore them
-        rw.restoreSplitterStates()
-
-        # Scrolling HEAD into view isn't super intuitive if we boot to Uncommitted Changes
-        # if newState.activeCommitId:
-        #     rw.graphView.scrollToCommit(newState.activeCommitId, QAbstractItemView.ScrollHint.PositionAtCenter)
+        # Replicate final loading message in status bar
+        rw.pendingStatusMessage = message
 
         # Jump to workdir (or pending locator, if any)
-        if not rw.pendingLocator:
-            initialLocator = NavLocator(NavContext.WORKDIR)
-            initialLocator = initialLocator.withExtraFlags(NavFlags.AllowWriteIndex)
+        assert not rw.pendingLocator
+        if not locator:
+            locator = NavLocator(NavContext.WORKDIR).withExtraFlags(NavFlags.AllowWriteIndex)
+
+        # As soon as the RepoStub's task runner has wrapped up this task,
+        # hand control to the RepoWidget's task runner and finish initialization.
+        repoStub.taskRunner.ready.connect(lambda: rw.runTask(InstallRepoWidget, locator, repoStub))
+
+    def onError(self, exc: Exception):
+        try:
+            repoStub = self.repoStub
+        except AttributeError:
+            pass
         else:
-            # Consume pending locator
-            initialLocator = rw.pendingLocator
-            rw.pendingLocator = NavLocator()
+            if not repoStub.didClose:
+                repoStub.disableAutoLoad(message=str(exc))
+
+        super().onError(exc)
+
+
+class InstallRepoWidget(RepoTask):
+    """
+    Run after a successful PrimeRepo.
+    """
+
+    @classmethod
+    def name(cls) -> str:
+        return _("Loading repo")
+
+    def flow(self, initialLocator: NavLocator, repoStub: RepoStub):
+        from gitfourchette.repowidget import RepoWidget
+        from gitfourchette.tasks import Jump
+
+        assert isinstance(repoStub, RepoStub), "passed widget isn't RepoStub"
+
+        rw = self.parentWidget()
+        assert isinstance(rw, RepoWidget), "task parent isn't RepoWidget"
+
         yield from self.flowSubtask(Jump, initialLocator)
 
         rw.refreshNumUncommittedChanges()
         rw.graphView.scrollToRowForLocator(initialLocator, QAbstractItemView.ScrollHint.PositionAtCenter)
 
+        # TODO: This can fail if the user has closed the tab!!!!
+        mainWindow = rw.window()
+        mainWindow.installRepoWidget(rw, mainWindow.tabs.indexOf(repoStub))
+
+        # Once RepoWidget is installed, consider repoStub dead beyond this point
+        del repoStub
+
+        # Refresh tab/window/banner text
+        rw.nameChange.emit()
+
+        # Focus on some interesting widget within the RepoWidget after loading the repo.
+        rw.setInitialFocus()
+
         # It's not necessary to refresh everything again (including workdir patches)
         # after priming the repo.
         self.effects = TaskEffects.Nothing
 
-    def onError(self, exc: Exception):
-        self.rw.cleanup(str(exc), allowAutoReload=False)
-        super().onError(exc)
+        # RepoWidget.refreshRepo may have been called while we were setting up the widget in this task.
+        # Clear the stashed effect bits to avoid an unnecessary refresh.
+        rw.pendingEffects = TaskEffects.Nothing
 
 
 class LoadWorkdir(RepoTask):

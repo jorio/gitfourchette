@@ -153,6 +153,9 @@ class RepoModel:
         self.syncUpstreams()
         self.superproject = repo.get_superproject()
 
+    def __del__(self):
+        logger.debug("__del__ RepoModel")
+
     @property
     def numRealCommits(self):
         # The first item in the commit sequence is the "fake commit" for Uncommitted Changes.

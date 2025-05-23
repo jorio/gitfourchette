@@ -76,7 +76,6 @@ class TaskBook:
             tasks.NewStash: _("Stash changes"),
             tasks.NewTag: _("New tag"),
             tasks.OpenBlame: _("Annotate file history"),
-            tasks.PrimeRepo: _("Open repo"),
             tasks.PullBranch: _("Pull remote branch"),
             tasks.PushBranch: _("Push branch"),
             tasks.PushRefspecs: _("Push refspecs"),

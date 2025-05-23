@@ -19,8 +19,8 @@ from gitfourchette.toolbox import *
 
 
 class CommittedFiles(FileList):
-    def __init__(self, parent: QWidget):
-        super().__init__(parent, NavContext.COMMITTED)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, navContext=NavContext.COMMITTED)
 
     def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
         actions = []

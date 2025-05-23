@@ -14,8 +14,9 @@ from gitfourchette.application import GFApplication
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
 from gitfourchette.localization import *
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.porcelain import NULL_OID, DiffConflict, ConflictSides, Repo
+from gitfourchette.porcelain import NULL_OID, DiffConflict, ConflictSides
 from gitfourchette.qt import *
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution
 from gitfourchette.toolbox import *
 from gitfourchette.exttools.toolprocess import ToolProcess
@@ -39,15 +40,15 @@ class ConflictViewKit:
 class ConflictView(QWidget):
     openPrefs = Signal(str)
 
-    repo: Repo | None
+    repoModel: RepoModel
     currentConflict: DiffConflict | None
     currentMerge: MergeDriver | None
     currentMergeState: MergeDriver.State
 
-    def __init__(self, parent=None):
+    def __init__(self, repoModel: RepoModel, parent=None):
         super().__init__(parent)
 
-        self.repo = None  # will be set by RepoWidget
+        self.repoModel = repoModel
         self.currentConflict = None
         self.currentMerge = None
         self.currentMergeState = MergeDriver.State.Idle
@@ -127,7 +128,7 @@ class ConflictView(QWidget):
     def openMergeTool(self, conflict: DiffConflict, reopenWorkInProgress=False):
         mergeDriver = MergeDriver.findOngoingMerge(conflict)
         if mergeDriver is None:
-            mergeDriver = MergeDriver(self, self.repo, conflict)
+            mergeDriver = MergeDriver(self, self.repoModel.repo, conflict)
         mergeDriver.startProcess(reopenWorkInProgress)
         self.refresh()
 

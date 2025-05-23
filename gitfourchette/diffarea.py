@@ -37,12 +37,12 @@ def gridPadding():
 
 
 class DiffArea(QWidget):
-    def __init__(self, parent):
+    def __init__(self, repoModel, parent):
         super().__init__(parent)
         self.setObjectName("CommitExplorer")
 
-        fileStack = self._makeFileStack()
-        diffContainer = self._makeDiffContainer()
+        fileStack = self._makeFileStack(repoModel)
+        diffContainer = self._makeDiffContainer(repoModel)
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         splitter.setObjectName("Split_DiffArea")
@@ -87,10 +87,10 @@ class DiffArea(QWidget):
     # -------------------------------------------------------------------------
     # Constructor helpers
 
-    def _makeFileStack(self):
-        dirtyContainer = self._makeDirtyContainer()
-        stageContainer = self._makeStageContainer()
-        committedFilesContainer = self._makeCommittedFilesContainer()
+    def _makeFileStack(self, repoModel):
+        dirtyContainer = self._makeDirtyContainer(repoModel)
+        stageContainer = self._makeStageContainer(repoModel)
+        committedFilesContainer = self._makeCommittedFilesContainer(repoModel)
 
         stagingSplitter = QSplitter(Qt.Orientation.Vertical, self)
         stagingSplitter.addWidget(dirtyContainer)
@@ -103,30 +103,30 @@ class DiffArea(QWidget):
         fileStack.addWidget(committedFilesContainer)
         return fileStack
 
-    def _makeDirtyContainer(self):
+    def _makeDirtyContainer(self, repoModel):
         header = QElidedLabel(" ")
         header.setObjectName("dirtyHeader")
         header.setToolTip(_("Unstaged files: will not be included in the commit unless you stage them."))
         header.setMinimumHeight(FILEHEADER_HEIGHT)
         header.setEnabled(False)
 
-        dirtyFiles = DirtyFiles(self)
+        dirtyFiles = DirtyFiles(repoModel, self)
 
-        stageButton = QToolButton()
+        stageButton = QToolButton(self)
         stageButton.setObjectName("stageButton")
         stageButton.setText(_("Stage"))
         stageButton.setIcon(stockIcon("git-stage"))
         stageButton.setToolTip(_("Stage selected files"))
         appendShortcutToToolTip(stageButton, GlobalShortcuts.stageHotkeys[0])
 
-        discardButton = QToolButton()
+        discardButton = QToolButton(self)
         discardButton.setObjectName("discardButton")
         discardButton.setText(_("Discard"))
         discardButton.setIcon(stockIcon("git-discard"))
         discardButton.setToolTip(_("Discard changes in selected files"))
         appendShortcutToToolTip(discardButton, GlobalShortcuts.discardHotkeys[0])
 
-        container = QWidget()
+        container = QWidget(self)
         layout = QGridLayout(container)
         layout.setSpacing(0)  # automatic frameless list views on KDE Plasma 6 Breeze
         layout.setContentsMargins(QMargins())
@@ -155,23 +155,23 @@ class DiffArea(QWidget):
 
         return container
 
-    def _makeStageContainer(self):
+    def _makeStageContainer(self, repoModel):
         header = QElidedLabel(" ")
         header.setObjectName("stagedHeader")
         header.setToolTip(_("Staged files: will be included in the commit."))
         header.setMinimumHeight(FILEHEADER_HEIGHT)
         header.setEnabled(False)
 
-        stagedFiles = StagedFiles(self)
+        stagedFiles = StagedFiles(repoModel, self)
 
-        unstageButton = QToolButton()
+        unstageButton = QToolButton(self)
         unstageButton.setObjectName("unstageButton")
         unstageButton.setText(_("Unstage"))
         unstageButton.setIcon(stockIcon("git-unstage"))
         unstageButton.setToolTip(_("Unstage selected files"))
         appendShortcutToToolTip(unstageButton, GlobalShortcuts.discardHotkeys[0])
 
-        commitButton = QToolButton()
+        commitButton = QToolButton(self)
         commitButton.setObjectName("commitButton")
         commitButton.setText(_p("verb", "Commit"))
         commitButton.setIcon(stockIcon("git-commit", "gray=#599E5E"))
@@ -201,7 +201,7 @@ class DiffArea(QWidget):
         commitButton.setMenu(commitButtonMenu)
 
         # Lay out container
-        container = QWidget()
+        container = QWidget(self)
         layout = QGridLayout(container)
         layout.setContentsMargins(QMargins())
         layout.setSpacing(0)  # automatic frameless list views on KDE Plasma 6 Breeze
@@ -225,15 +225,15 @@ class DiffArea(QWidget):
 
         return container
 
-    def _makeCommittedFilesContainer(self):
-        committedFiles = CommittedFiles(self)
+    def _makeCommittedFilesContainer(self, repoModel):
+        committedFiles = CommittedFiles(repoModel, self)
 
         header = QElidedLabel(" ")
         header.setObjectName("committedHeader")
         header.setMinimumHeight(FILEHEADER_HEIGHT)
         header.setEnabled(False)
 
-        container = QWidget()
+        container = QWidget(self)
         layout = QGridLayout(container)
         layout.setContentsMargins(QMargins())
         layout.setSpacing(0)  # automatic frameless list views on KDE Plasma 6 Breeze
@@ -248,7 +248,7 @@ class DiffArea(QWidget):
         self.committedHeader = header
         return container
 
-    def _makeDiffContainer(self):
+    def _makeDiffContainer(self, repoModel):
         header = QLabel(" ")
         header.setObjectName("diffHeader")
         header.setMinimumHeight(FILEHEADER_HEIGHT)
@@ -256,35 +256,35 @@ class DiffArea(QWidget):
         # Don't let header dictate window width if displaying long filename
         header.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
 
-        topContainer = QWidget()
+        topContainer = QWidget(self)
         topLayout = QHBoxLayout(topContainer)
         topLayout.setContentsMargins(0, 0, 0, 0)
         topLayout.addWidget(header)
 
-        diff = DiffView()
+        diff = DiffView(self)
 
-        diffViewContainer = QWidget()
+        diffViewContainer = QWidget(self)
         diffViewContainerLayout = QVBoxLayout(diffViewContainer)
         diffViewContainerLayout.setSpacing(0)
         diffViewContainerLayout.setContentsMargins(0, 0, 0, 0)
         diffViewContainerLayout.addWidget(diff.searchBar)
         diffViewContainerLayout.addWidget(diff)
 
-        specialDiff = SpecialDiffView()
+        specialDiff = SpecialDiffView(self)
 
-        conflict = ConflictView()
+        conflict = ConflictView(repoModel, self)
         conflictScroll = QScrollArea()
         conflictScroll.setWidget(conflict)
         conflictScroll.setWidgetResizable(True)
 
-        stack = QStackedWidget()
+        stack = QStackedWidget(self)
         # Add widgets in same order as DiffStackPage
         stack.addWidget(diffViewContainer)
         stack.addWidget(specialDiff)
         stack.addWidget(conflictScroll)
         stack.setCurrentIndex(0)
 
-        stackContainer = QWidget()
+        stackContainer = QWidget(self)
         layout = QVBoxLayout(stackContainer)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(1)

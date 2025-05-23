@@ -301,6 +301,10 @@ class CloneDialog(QDialog):
         self.ui.urlEdit.lineEdit().selectAll()
         self.ui.urlEdit.lineEdit().insert(newUrl)
 
+    def onCloneSuccessful(self):
+        self.cloneSuccessful.emit(self.path)
+        self.accept()
+
 
 class CloneTask(RepoTask):
     """
@@ -354,8 +358,9 @@ class CloneTask(RepoTask):
         yield from self.flowEnterUiThread()
         settings.history.addCloneUrl(url)
         settings.history.setDirty()
-        dialog.cloneSuccessful.emit(path)
-        dialog.accept()
+
+        # When the task runner wraps up, tell dialog to finish
+        dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
 
     def recurseIntoSubmodules(self, repo: Repo, depth: int):
         for i, submodule in enumerate(repo.recurse_submodules(), 1):

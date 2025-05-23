@@ -253,12 +253,9 @@ class RepoTask(QObject):
             assert isinstance(parentWidget, RepoWidget)
         return parentWidget
 
-    def setRepoModel(self, repoModel: RepoModel | None):
+    def setRepoModel(self, repoModel: RepoModel):
         self.repoModel = repoModel
-        if self.repoModel is not None:
-            self.repo = repoModel.repo
-        else:
-            self.repo = None
+        self.repo = repoModel.repo
 
     def __str__(self):
         return self.objectName()

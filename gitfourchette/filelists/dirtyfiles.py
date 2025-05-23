@@ -16,8 +16,8 @@ from gitfourchette.toolbox import *
 
 
 class DirtyFiles(FileList):
-    def __init__(self, parent):
-        super().__init__(parent, NavContext.UNSTAGED)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, navContext=NavContext.UNSTAGED)
 
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 

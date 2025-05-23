@@ -5,14 +5,12 @@
 # -----------------------------------------------------------------------------
 
 from collections.abc import Iterable
-from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.repowidget import RepoWidget
 from gitfourchette.tasks import TaskBook
 from gitfourchette.toolbox import *
 
@@ -25,8 +23,6 @@ class MainToolBar(QToolBar):
     pull = Signal()
     push = Signal()
 
-    observed: RepoWidget | None
-
     backAction: QAction
     forwardAction: QAction
     terminalAction: QAction
@@ -34,8 +30,6 @@ class MainToolBar(QToolBar):
 
     def __init__(self, parent: QWidget):
         super().__init__(englishTitleCase(_("Show toolbar")), parent)
-
-        self.observed = None
 
         self.setObjectName("GFToolbar")
         self.setMovable(False)
@@ -190,29 +184,9 @@ class MainToolBar(QToolBar):
         settings.prefs.toolBarIconSize = w
         settings.prefs.setDirty()
 
-    def observeRepoWidget(self, rw: RepoWidget | None):
-        if rw is self.observed:
-            return
-
-        if self.observed is not None:
-            with suppress(RuntimeError, TypeError):
-                self.observed.historyChanged.disconnect(self.updateNavButtons)
-
-        self.observed = rw
-
-        if rw is not None:
-            rw.historyChanged.connect(self.updateNavButtons)
-
-        self.updateNavButtons()
-
-    def updateNavButtons(self):
-        rw = self.observed
-        if rw is None:
-            self.backAction.setEnabled(False)
-            self.forwardAction.setEnabled(False)
-        else:
-            self.backAction.setEnabled(rw.navHistory.canGoBack())
-            self.forwardAction.setEnabled(rw.navHistory.canGoForward())
+    def updateNavButtons(self, back: bool = False, forward: bool = False):
+        self.backAction.setEnabled(back)
+        self.forwardAction.setEnabled(forward)
 
     def setTerminalActions(self, newActions: Iterable[QAction]):
         terminalAction = self.terminalAction

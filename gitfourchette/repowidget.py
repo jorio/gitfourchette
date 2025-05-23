@@ -18,10 +18,10 @@ from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
-from gitfourchette.forms.openrepoprogress import OpenRepoProgress
+from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.forms.unloadedrepoplaceholder import UnloadedRepoPlaceholder
 from gitfourchette.globalshortcuts import GlobalShortcuts
+from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.localization import *
 from gitfourchette.nav import NavHistory, NavLocator, NavContext
@@ -37,7 +37,7 @@ from gitfourchette.trtables import TrTables
 logger = logging.getLogger(__name__)
 
 
-class RepoWidget(QStackedWidget):
+class RepoWidget(QWidget):
     nameChange = Signal()
     openRepo = Signal(str, NavLocator)
     openPrefs = Signal(str)
@@ -45,6 +45,7 @@ class RepoWidget(QStackedWidget):
     historyChanged = Signal()
     requestAttention = Signal()
     becameVisible = Signal()
+    mustReplaceWithStub = Signal(RepoStub)
 
     busyMessage = Signal(str)
     statusMessage = Signal(str)
@@ -52,13 +53,8 @@ class RepoWidget(QStackedWidget):
 
     repoModel: RepoModel
 
-    pendingPath: str
-    "Path of the repository if it isn't loaded yet (state=None)"
-
     pendingLocator: NavLocator
     pendingEffects: TaskEffects
-
-    allowAutoLoad: bool
 
     navLocator: NavLocator
     navHistory: NavHistory
@@ -67,43 +63,27 @@ class RepoWidget(QStackedWidget):
     sharedSplitterSizes: dict[str, list[int]]
     centralSplitSizesBackup: list[int]
 
-    def __bool__(self):
-        """ Override QStackedWidget.__bool__ so we can do quick None comparisons """
-        return True
 
     @property
     def repo(self) -> Repo:
-        if self.repoModel is None:
-            return None
         return self.repoModel.repo
 
     @property
-    def isLoaded(self):
-        return self.repoModel is not None
-
-    @property
-    def isPriming(self):
-        task = self.repoTaskRunner.currentTask
-        priming = isinstance(task, tasks.PrimeRepo)
-        return priming
-
-    @property
     def workdir(self):
-        if self.repoModel:
-            return os.path.normpath(self.repoModel.repo.workdir)
-        else:
-            return self.pendingPath
+        return os.path.normpath(self.repoModel.repo.workdir)
 
     @property
     def superproject(self):
-        if self.repoModel:
-            return self.repoModel.superproject
-        else:
-            return settings.history.getRepoSuperproject(self.workdir)
+        return self.repoModel.superproject
 
-    def __init__(self, parent: QWidget, pendingWorkdir: str, lazy=False):
+    def __init__(self, repoModel: RepoModel, parent: QWidget):
         super().__init__(parent)
-        self.setObjectName("RepoWidget")
+        self.setObjectName(f"{type(self).__name__}({repoModel.shortName})")
+
+        # The stylesheet must be refreshed so that subsequent tweakFont calls can take effect.
+        self.setStyleSheet("* {}")
+
+        self.dead = False
 
         # Use RepoTaskRunner to schedule git operations to run on a separate thread.
         self.repoTaskRunner = tasks.RepoTaskRunner(self)
@@ -112,48 +92,21 @@ class RepoWidget(QStackedWidget):
         self.repoTaskRunner.repoGone.connect(self.onRepoGone)
         self.repoTaskRunner.requestAttention.connect(self.requestAttention)
 
-        self.repoModel = None
-        self.pendingPath = os.path.normpath(pendingWorkdir)
+        self.repoModel = repoModel
         self.pendingLocator = NavLocator()
         self.pendingEffects = TaskEffects.Nothing
         self.pendingStatusMessage = ""
-        self.allowAutoLoad = True
 
         self.busyCursorDelayer = QTimer(self)
         self.busyCursorDelayer.setSingleShot(True)
         self.busyCursorDelayer.setInterval(100)
-        self.busyCursorDelayer.timeout.connect(lambda: self.setCursor(Qt.CursorShape.BusyCursor))
+        self.busyCursorDelayer.timeout.connect(self.onBusyCursorDelayerTimeout)
 
         self.navLocator = NavLocator()
         self.navHistory = NavHistory()
 
-        self.sharedSplitterSizes = {}  # To be replaced with a shared reference
+        self.sharedSplitterSizes = self.window().sharedSplitterSizes  # Shared reference in MainWindow
         self.centralSplitSizesBackup = []
-
-        self.uiReady = False
-        self.mainWidgetPlaceholder = None
-
-        if not lazy:
-            self.setupUi()
-        else:
-            # To save some time on boot, we'll call setupUi later if this isn't the foreground RepoWidget.
-            # Create placeholder for the main UI until setupUi is called.
-            # This is because remove/setPlaceholderWidget expects QStackedLayout slot 0 to be taken by the main UI.
-            self.mainWidgetPlaceholder = QWidget(self)
-            self.addWidget(self.mainWidgetPlaceholder)
-
-    def setupUi(self):
-        if self.uiReady:
-            return
-
-        mainLayout = self.layout()
-        assert isinstance(mainLayout, QStackedLayout)
-
-        if not mainLayout.isEmpty():
-            assert mainLayout.widget(0) is self.mainWidgetPlaceholder
-            mainLayout.removeWidget(self.mainWidgetPlaceholder)
-            self.mainWidgetPlaceholder.deleteLater()
-            self.mainWidgetPlaceholder = None
 
         # ----------------------------------
         # Splitters
@@ -166,7 +119,11 @@ class RepoWidget(QStackedWidget):
         centralSplitter.setObjectName("Split_Central")
         self.centralSplitter = centralSplitter
 
-        mainLayout.insertWidget(0, sideSplitter)
+        dummyLayout = QVBoxLayout()
+        dummyLayout.setSpacing(0)
+        dummyLayout.setContentsMargins(QMargins())
+        dummyLayout.addWidget(sideSplitter)
+        self.setLayout(dummyLayout)
 
         # ----------------------------------
         # Build widgets
@@ -174,7 +131,7 @@ class RepoWidget(QStackedWidget):
         sidebarContainer = self._makeSidebarContainer()
         graphContainer = self._makeGraphContainer()
 
-        self.diffArea = DiffArea(self)
+        self.diffArea = DiffArea(self.repoModel, self)
         # Bridges for legacy code
         self.dirtyFiles = self.diffArea.dirtyFiles
         self.stagedFiles = self.diffArea.stagedFiles
@@ -235,21 +192,11 @@ class RepoWidget(QStackedWidget):
         self.sidebar.openSubmoduleRepo.connect(self.openSubmoduleRepo)
         self.sidebar.openSubmoduleFolder.connect(self.openSubmoduleFolder)
 
-        # ----------------------------------
-
-        self.restoreSplitterStates()
-
-        # ----------------------------------
-        # Prepare placeholder "opening repository" widget
-
-        self.setPlaceholderWidgetOpenRepoProgress()
+        self.nameChange.connect(self.refreshWindowTitle)
+        self.nameChange.connect(self.sidebar.sidebarModel.refreshRepoName)
 
         # ----------------------------------
         # Styling
-
-        # Huh? Gotta refresh the stylesheet after calling setupUi on a lazy-inited RepoWidget,
-        # otherwise fonts somehow appear slightly too large within the RepoWidget on macOS.
-        self.setStyleSheet("* {}")
 
         # Remove sidebar frame
         self.sidebar.setFrameStyle(QFrame.Shape.NoFrame)
@@ -269,21 +216,52 @@ class RepoWidget(QStackedWidget):
         )
 
         # ----------------------------------
-        # We're ready
+        # Prime GraphView
 
-        self.uiReady = True
+        with QSignalBlockerContext(self.graphView):
+            if repoModel.truncatedHistory:
+                extraRow = SpecialRow.TruncatedHistory
+            elif repoModel.repo.is_shallow:
+                extraRow = SpecialRow.EndOfShallowHistory
+            else:
+                extraRow = SpecialRow.Invalid
 
-    def updateBoundRepo(self):
-        repo = self.repo
-        if not self.uiReady:
-            return
-        for w in (
-            self.diffArea.dirtyFiles,
-            self.diffArea.stagedFiles,
-            self.diffArea.committedFiles,
-            self.diffArea.conflictView,
-        ):
-            w.repo = repo
+            self.graphView.clFilter.setHiddenCommits(repoModel.hiddenCommits)
+            self.graphView.clModel._extraRow = extraRow
+            self.graphView.clModel.setCommitSequence(repoModel.commitSequence)
+            self.graphView.selectRowForLocator(NavLocator.inWorkdir(), force=True)
+
+        # ----------------------------------
+        # Prime Sidebar
+
+        with QSignalBlockerContext(self.sidebar):
+            collapseCache = repoModel.prefs.collapseCache
+            if collapseCache:
+                self.sidebar.sidebarModel.collapseCache = set(collapseCache)
+                self.sidebar.sidebarModel.collapseCacheValid = True
+            self.sidebar.refresh(repoModel)
+
+        # ----------------------------------
+        self.restoreSplitterStates()
+        self.refreshWindowTitle()
+        self.refreshBanner()
+
+    def replaceWithStub(
+            self,
+            locator: NavLocator = NavLocator.Empty,
+            maxCommits: int = -1,
+            message: str = ""
+    ) -> RepoStub:
+        locator = locator or self.pendingLocator or self.navLocator
+        stub = RepoStub(parent=self.window(), workdir=self.workdir,
+                        locator=locator, maxCommits=maxCommits)
+        if message:
+            stub.disableAutoLoad(message)
+        self.mustReplaceWithStub.emit(stub)
+        return stub
+
+    def overridePendingLocator(self, locator: NavLocator):
+        self.pendingLocator = locator
 
     # -------------------------------------------------------------------------
     # Initial layout
@@ -337,33 +315,7 @@ class RepoWidget(QStackedWidget):
         return task
 
     # -------------------------------------------------------------------------
-    # Initial repo priming
-
-    def primeRepo(self, path: str = "", force: bool = False, maxCommits: int = -1):
-        if not force and self.isLoaded:
-            warnings.warn(f"Repo already primed! {path}")
-            return None
-
-        # Save prefs before force-reloading the repo.
-        if force and self.isLoaded:
-            self.repoModel.prefs.write()
-
-        primingTask = self.repoTaskRunner.currentTask
-        if isinstance(primingTask, tasks.PrimeRepo):
-            logger.debug(f"Repo is being primed: {path}")
-            return primingTask
-
-        path = path or self.pendingPath
-        assert path
-        return self.runTask(tasks.PrimeRepo, path=path, maxCommits=maxCommits)
-
-    # -------------------------------------------------------------------------
     # Splitter state
-
-    def setSharedSplitterSizes(self, splitterSizes: dict[str, list[int]]):
-        self.sharedSplitterSizes = splitterSizes
-        if self.uiReady:
-            self.restoreSplitterStates()
 
     def saveSplitterState(self, splitter: QSplitter):
         # QSplitter.saveState() saves a bunch of properties that we may want to
@@ -403,47 +355,6 @@ class RepoWidget(QStackedWidget):
         self.diffArea.contextHeader.maximizeButton.setChecked(isMaximized)
 
     # -------------------------------------------------------------------------
-    # Placeholder widgets
-
-    @property
-    def mainStack(self) -> QStackedLayout:
-        layout = self.layout()
-        assert isinstance(layout, QStackedLayout)
-        return layout
-
-    def removePlaceholderWidget(self):
-        self.mainStack.setCurrentIndex(0)
-        while self.mainStack.count() > 1:
-            i = self.mainStack.count() - 1
-            w = self.mainStack.widget(i)
-            logger.debug(f"Removing modal placeholder widget: {w.objectName()}")
-            self.mainStack.removeWidget(w)
-            w.deleteLater()
-        assert self.mainStack.count() <= 1
-
-    def setPlaceholderWidget(self, w):
-        if w is not self.placeholderWidget:
-            self.removePlaceholderWidget()
-            self.mainStack.addWidget(w)
-        self.mainStack.setCurrentWidget(w)
-        assert self.mainStack.currentIndex() != 0
-        assert self.mainStack.count() <= 2
-
-    def setPlaceholderWidgetOpenRepoProgress(self):
-        pw = self.placeholderWidget
-        if not isinstance(pw, OpenRepoProgress):
-            name = self.getTitle()
-            pw = OpenRepoProgress(self, name)
-        self.setPlaceholderWidget(pw)
-        return pw
-
-    @property
-    def placeholderWidget(self):
-        if self.mainStack.count() > 1:
-            return self.mainStack.widget(1)
-        return None
-
-    # -------------------------------------------------------------------------
     # Navigation
 
     def saveFilePositions(self):
@@ -476,57 +387,45 @@ class RepoWidget(QStackedWidget):
 
     # -------------------------------------------------------------------------
 
-    def __repr__(self):
-        return f"RepoWidget({self.getTitle()})"
-
     def getTitle(self) -> str:
-        if self.repoModel:
-            return self.repoModel.shortName
-        elif self.pendingPath:
-            return settings.history.getRepoTabName(self.pendingPath)
-        else:
-            return "???"
+        return self.repoModel.shortName
 
     def closeEvent(self, event: QCloseEvent):
         """ Called when closing a repo tab """
-        # Don't bother with the placeholder since we'll disappear immediately
-        self.cleanup(installPlaceholder=False)
+        try:
+            self.cleanup()
+        except Exception as exc:  # pragma: no cover
+            excMessageBox(exc, abortUnitTest=True)
+        return super().closeEvent(event)
 
     def showEvent(self, event: QShowEvent):
         super().showEvent(event)
         self.becameVisible.emit()
 
-    def cleanup(self, message: str = "", allowAutoReload: bool = True, installPlaceholder: bool = True):
+    def cleanup(self):
         assert onAppThread()
+        assert not self.dead, "RepoWidget already dead"
+        self.dead = True
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
         self.repoTaskRunner.killCurrentTask()
         self.repoTaskRunner.joinZombieTask()
 
-        # Don't bother with the placeholder widget if we've been lazy-initialized
-        installPlaceholder &= self.uiReady
-        hasRepo = self.repoModel is not None and self.repoModel.repo is not None
-
-        # Save sidebar collapse cache (if our UI has settled)
-        if hasRepo and self.uiReady:
+        # Save sidebar collapse cache
+        newCollapseCache = set()
+        if self.sidebar.sidebarModel.collapseCacheValid:
+            newCollapseCache.update(self.sidebar.sidebarModel.collapseCache)
+        with NonCriticalOperation("Write repo prefs"):  # May raise OSError
             uiPrefs = self.repoModel.prefs
-            if self.sidebar.sidebarModel.collapseCacheValid:
-                uiPrefs.collapseCache = set(self.sidebar.sidebarModel.collapseCache)
-            else:
-                uiPrefs.collapseCache = set()
-            try:
+            if newCollapseCache != uiPrefs.collapseCache:
+                uiPrefs.collapseCache = newCollapseCache
+                uiPrefs.setDirty()
+            if uiPrefs.isDirty():
                 uiPrefs.write()
-            except OSError as e:
-                logger.warning(f"OSError when writing prefs: {e}")
 
-        # Clear UI
-        if installPlaceholder:
-            self.diffArea.clear()
-            with QSignalBlockerContext(self.graphView, self.sidebar):
-                self.graphView.clear()
-                self.sidebar.model().clear()
+        # -----------------------------
+        # GC help
 
-        # GC help:
         # Detangle cross-references to help out garbage collector
         self.diffView.gutter = None
         self.sidebar.repoWidget = None
@@ -536,42 +435,6 @@ class RepoWidget(QStackedWidget):
             searchBar.notFoundMessage = None
         # Release any LexJobs that we own (it's not a big deal if we lose cached jobs for other tabs)
         LexJobCache.clear()
-
-        # Let repo wrap up
-        if hasRepo:
-            # Save path if we want to reload the repo later
-            self.pendingPath = os.path.normpath(self.repoModel.repo.workdir)
-            self.allowAutoLoad = allowAutoReload
-
-            # Free the repository
-            self.repoModel.repo.free()
-            self.repoModel.repo = None
-            logger.info(f"Repository freed: {self.pendingPath}")
-
-        # Forget RepoModel
-        self.repoModel = None
-        self.updateBoundRepo()
-
-        # Install placeholder widget
-        if installPlaceholder:
-            placeholder = UnloadedRepoPlaceholder(self)
-            placeholder.ui.nameLabel.setText(self.getTitle())
-            placeholder.ui.loadButton.clicked.connect(lambda: self.primeRepo())
-            placeholder.ui.icon.setVisible(False)
-            self.setPlaceholderWidget(placeholder)
-
-            if message:
-                placeholder.ui.label.setText(message)
-
-            if not allowAutoReload:
-                placeholder.ui.icon.setText("")
-                placeholder.ui.icon.setPixmap(stockIcon("image-missing").pixmap(96))
-                placeholder.ui.icon.setVisible(True)
-                placeholder.ui.loadButton.setText(_("Try to reload"))
-
-            # Clean up status bar if there were repo-specific warnings in it
-            if self.isVisible():
-                self.refreshWindowChrome()
 
     def loadPatchInNewWindow(self, patch: Patch, locator: NavLocator):
         try:
@@ -763,10 +626,6 @@ class RepoWidget(QStackedWidget):
     def refreshRepo(self, effects: TaskEffects = TaskEffects.DefaultRefresh, jumpTo: NavLocator = NavLocator.Empty):
         """Refresh the repo as soon as possible."""
 
-        if (not self.isLoaded) or self.isPriming:
-            return
-        assert self.repoModel is not None
-
         if not self.isVisible() or self.repoTaskRunner.isBusy():
             # Can't refresh right now. Stash the effect bits for later.
             logger.debug(f"Stashing refresh bits {repr(effects)}")
@@ -800,48 +659,27 @@ class RepoWidget(QStackedWidget):
                 self.statusMessage.emit(self.pendingStatusMessage)
                 self.pendingStatusMessage = ""
 
-    def refreshWindowChrome(self):
-        shortname = self.getTitle()
+    def refreshWindowTitle(self):
+        title = self.getTitle()
         inBrackets = ""
-        suffix = ""
         repo = self.repo
 
-        if not repo:
-            pass
-        elif repo.head_is_unborn:
+        if repo.head_is_unborn:
             inBrackets = _("Unborn HEAD")
         elif repo.head_is_detached:
             oid = repo.head_commit_id
-            inBrackets = _("Detached HEAD") + " @ " + shortHash(oid)
+            inBrackets = f'{_("Detached HEAD")} @ {shortHash(oid)}'
         else:
             with suppress(GitError):
                 inBrackets = repo.head_branch_shorthand
 
-        if APP_DEBUG:
-            chain = ["APP_DEBUG"]
-            if APP_TESTMODE:
-                chain.append("APP_TESTMODE")
-            if APP_NOTHREADS:
-                chain.append("APP_NOTHREADS")
-            chain.append(f"PID {os.getpid()}")
-            chain.append(QT_BINDING)
-            suffix += " - " + ", ".join(chain)
-
         if inBrackets:
-            suffix = F" [{inBrackets}]{suffix}"
+            title = f"{title} [{inBrackets}]"
 
-        self.window().setWindowTitle(shortname + suffix)
-
-        # Refresh state banner (merging, cherrypicking, reverting, etc.)
-        self.refreshBanner()
+        self.setWindowTitle(title)
 
     def refreshBanner(self):
-        if not self.uiReady:
-            return
-        elif not self.repo:
-            self.mergeBanner.setVisible(False)
-            return
-
+        """ Refresh state banner (merging, cherrypicking, reverting, etc.) """
         repo = self.repo
 
         rstate = repo.state() if repo else RepositoryState.NONE
@@ -946,19 +784,14 @@ class RepoWidget(QStackedWidget):
         elif not self.busyCursorDelayer.isActive():
             self.busyCursorDelayer.start()
 
+    def onBusyCursorDelayerTimeout(self):
+        self.setCursor(Qt.CursorShape.BusyCursor)
+
     def onRepoGone(self):
-        message = _("Repository folder went missing:") + "\n" + escamp(self.pendingPath)
-
-        # Unload the repo
-        self.cleanup(message=message, allowAutoReload=False)
-
-        # Update window chrome
-        self.nameChange.emit()
+        message = _("Repository folder went missing:") + "\n" + escamp(self.workdir)
+        self.replaceWithStub(message=message)
 
     def refreshPrefs(self, *prefDiff: str):
-        if not self.uiReady:
-            return
-
         self.diffView.refreshPrefs()
         self.specialDiffView.refreshPrefs()
         self.graphView.refreshPrefs()
@@ -970,8 +803,7 @@ class RepoWidget(QStackedWidget):
         self.committedFiles.refreshPrefs()
 
         # Reflect any change in titlebar prefs
-        if self.uiReady and self.isVisible():
-            self.refreshWindowChrome()
+        self.refreshWindowTitle()
 
     # -------------------------------------------------------------------------
 
@@ -1006,7 +838,7 @@ class RepoWidget(QStackedWidget):
             self.pendingLocator = NavLocator.inCommit(self.repoModel.commitSequence[-1].id)
             # Reload the repo
             maxCommits = int(kwargs.get("n", self.repoModel.nextTruncationThreshold))
-            self.primeRepo(force=True, maxCommits=maxCommits)
+            self.replaceWithStub(self.pendingLocator, maxCommits)
         elif url.authority() == "opensubfolder":
             p = self.repo.in_workdir(simplePath)
             self.openRepo.emit(p, NavLocator())
@@ -1016,7 +848,7 @@ class RepoWidget(QStackedWidget):
             cmdName = simplePath
             taskClass = tasks.__dict__[cmdName]
             self.runTask(taskClass, **kwargs)
-        else:
+        else:  # pragma: no cover
             warnings.warn(f"Unsupported authority in internal link: {url.toDisplayString()}")
 
     # -------------------------------------------------------------------------

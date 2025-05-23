@@ -56,7 +56,6 @@ from gitfourchette.tasks.jumptasks import (
     JumpToUncommittedChanges,
     RefreshRepo,
 )
-from gitfourchette.tasks.loadtasks import PrimeRepo
 from gitfourchette.tasks.nettasks import (
     DeleteRemoteBranch,
     RenameRemoteBranch,

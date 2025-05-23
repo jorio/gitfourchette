@@ -333,13 +333,13 @@ def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow):
 def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow):
     originWd = unpackRepo(tempDir)
 
-    rw = mainWindow.newRepo(tempDir.name + "/newrepo")
+    mainWindow.newRepo(tempDir.name + "/newrepo")
+    rw = waitForRepoWidget(mainWindow)
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
     remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
     remoteDialog.ui.urlEdit.setText(originWd)
     remoteDialog.ui.nameEdit.setText("localfs")
     remoteDialog.accept()
-    QTest.qWait(1)
 
     assert rw.sidebar.findNodeByKind(SidebarItem.UnbornHead)
     assert rw.sidebar.findNodeByKind(SidebarItem.Remote)

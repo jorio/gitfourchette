@@ -16,8 +16,8 @@ from gitfourchette.toolbox import *
 
 
 class StagedFiles(FileList):
-    def __init__(self, parent):
-        super().__init__(parent, NavContext.STAGED)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, navContext=NavContext.STAGED)
 
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 

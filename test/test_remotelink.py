@@ -24,8 +24,7 @@ def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
     cloneDialog.cloneButton.click()
     waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
-    rw = mainWindow.currentRepoWidget()
-    waitForSignal(rw.repoTaskRunner.ready)
+    rw = waitForRepoWidget(mainWindow)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
@@ -64,8 +63,7 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread):
     passphraseDialog.accept()
     waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
-    rw = mainWindow.currentRepoWidget()
-    waitForSignal(rw.repoTaskRunner.ready)
+    rw = waitForRepoWidget(mainWindow)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
@@ -82,8 +80,7 @@ def testHttpsShallowClone(tempDir, mainWindow, taskThread):
     cloneDialog.cloneButton.click()
     waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
-    rw = mainWindow.currentRepoWidget()
-    waitForSignal(rw.repoTaskRunner.ready)
+    rw = waitForRepoWidget(mainWindow)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
@@ -102,8 +99,8 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.remotes.delete("origin")
-    rw = mainWindow.openRepo(wd)
-    waitForSignal(rw.repoTaskRunner.ready)
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
     assert "origin/master" not in rw.repo.branches.remote
 
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
@@ -126,8 +123,8 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
 
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
-    rw = mainWindow.openRepo(wd)
-    waitForSignal(rw.repoTaskRunner.ready)
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
 
     # -------------------------------------------
     # Add remote with passphrase-protected keyfile

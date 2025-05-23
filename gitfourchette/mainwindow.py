@@ -25,6 +25,7 @@ from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.maintoolbar import MainToolBar
+from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.forms.welcomewidget import WelcomeWidget
@@ -34,7 +35,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
-from gitfourchette.tasks import TaskBook
+from gitfourchette.tasks import TaskBook, RepoTaskRunner
 from gitfourchette.toolbox import *
 from gitfourchette.toolbox.fittedtext import FittedText
 from gitfourchette.trash import Trash
@@ -297,7 +298,7 @@ class MainWindow(QMainWindow):
 
             ActionDef(
                 _("Reloa&d"),
-                lambda: self.currentRepoWidget().primeRepo(force=True),
+                lambda: self.currentRepoWidget().replaceWithStub(),
                 shortcuts="Ctrl+F5",
                 tip=_("Reopen the repo from scratch"),
             ),
@@ -410,46 +411,62 @@ class MainWindow(QMainWindow):
 
     def currentRepoWidget(self) -> RepoWidget:
         rw = self.tabs.currentWidget()
-        if rw is None:
+        if not isinstance(rw, RepoWidget):  # it might be a RepoStub
             raise NoRepoWidgetError()
-        assert isinstance(rw, RepoWidget)
         return rw
 
+    def tabWidgetForWorkdirPath(self, workdir: str) -> RepoWidget | RepoStub | None:
+        widget: RepoWidget | RepoStub
+        for widget in self.tabs.widgets():
+            assert isinstance(widget, RepoWidget | RepoStub)
+            with suppress(FileNotFoundError):  # may be raised if workdir cannot be accessed
+                if os.path.samefile(workdir, widget.workdir):
+                    return widget
+        return None
+
+    def setWindowTitle(self, title: str):
+        if APP_DEBUG:
+            chain = ["DEBUG", str(os.getpid()), QT_BINDING]
+            if APP_TESTMODE:
+                chain.append("TESTMODE")
+            if APP_NOTHREADS:
+                chain.append("NOTHREADS")
+            title = f"{title} ({' '.join(chain)})"
+
+        super().setWindowTitle(title)
+
     def onTabCurrentWidgetChanged(self):
-        try:
-            w = self.currentRepoWidget()
-        except NoRepoWidgetError:
-            self.mainToolBar.observeRepoWidget(None)
+        self.mainToolBar.updateNavButtons()  # Kill back/forward arrows
+        self.statusBar2.clearMessage()
+
+        widget = self.tabs.currentWidget()
+
+        # Switch to welcome widget if zero tabs
+        if not widget:
+            self.welcomeStack.setCurrentWidget(self.welcomeWidget)
+            self.setWindowTitle(APP_DISPLAY_NAME)
             return
 
-        # Get out of welcome widget
-        self.welcomeStack.setCurrentWidget(self.tabs)
+        self.welcomeStack.setCurrentWidget(self.tabs)  # Exit welcome widget
+        self.setWindowTitle(widget.windowTitle())
 
-        # Refresh window title before loading
-        w.refreshWindowChrome()
-        self.mainToolBar.observeRepoWidget(w)
+        # If it's a RepoStub, load it if needed
+        if not isinstance(widget, RepoWidget):
+            assert isinstance(widget, RepoStub)
+            if not widget.isPriming() and widget.willAutoLoad():
+                widget.loadNow()
+            return
 
-        if w.uiReady:
-            # Refreshing the repo may lock up the UI for a split second.
-            # Respond to tab change now to improve perceived snappiness.
-            w.restoreSplitterStates()  # Restore splitters now to prevent flicker
-            GFApplication.instance().processEventsNoInput()
-        else:
-            # setupUi may take a sec, so show placeholder widget now.
-            w.setPlaceholderWidgetOpenRepoProgress()
-            GFApplication.instance().processEventsNoInput()
-            # And prime the UI
-            w.setupUi()
+        # We know it's a RepoWidget beyond this point
+        assert isinstance(widget, RepoWidget)
 
-        assert w.uiReady
+        # Update back/forward buttons
+        self.onRepoHistoryChanged(widget)
 
-        if w.isLoaded:
-            # Trigger repo refresh.
-            w.refreshRepo()
-            w.refreshWindowChrome()
-        elif w.allowAutoLoad:
-            # Tab was lazy-loaded.
-            w.primeRepo()
+        widget.restoreSplitterStates()
+
+        # Refresh the repo
+        widget.refreshRepo()
 
     def generateTabContextMenu(self, i: int):
         if i < 0:  # Right mouse button released outside tabs
@@ -459,7 +476,8 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         menu.setObjectName("MWRepoTabContextMenu")
 
-        anyOtherLoadedTabs = any(tab is not rw and tab.repoModel for tab in self.tabs.widgets())
+        anyOtherLoadedTabs = any(tab is not rw and isinstance(tab, RepoWidget)
+                                 for tab in self.tabs.widgets())
 
         ActionDef.addToQMenu(
             menu,
@@ -492,7 +510,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Repo loading
 
-    def openRepo(self, path: str, exactMatch=True) -> RepoWidget | None:
+    def openRepo(self, path: str, exactMatch=True) -> RepoWidget | RepoStub | None:
         try:
             rw = self._openRepo(path, exactMatch=exactMatch)
         except BaseException as exc:
@@ -505,63 +523,92 @@ class MainWindow(QMainWindow):
             return None
 
         self.saveSession()
+
+        # Return a concrete RepoWidget instead of a RepoStub if loading is already completed
+        # (mostly for single-threaded unit tests that expect a deterministic chain of events).
+        if RepoTaskRunner.ForceSerial:
+            rw2 = self.tabWidgetForWorkdirPath(rw.workdir)
+            if isinstance(rw2, RepoWidget):
+                rw = rw2
+            else:
+                assert not APP_TESTMODE, "the RepoWidget isn't ready yet"
+
         return rw
 
-    def _openRepo(self, path: str, foreground=True, tabIndex=-1, exactMatch=True, locator=NavLocator.Empty) -> RepoWidget:
+    def _openRepo(self, path: str, foreground=True, tabIndex=-1, exactMatch=True, locator=NavLocator.Empty
+                  ) -> RepoWidget | RepoStub:
         # Make sure the path exists
         if not os.path.exists(path):
             raise FileNotFoundError(_("There’s nothing at this path."))
 
-        # Get the workdir
-        if exactMatch:
-            workdir = path
-        else:
+        # Resolve the workdir
+        if not exactMatch:
             with RepoContext(path) as repo:
                 if repo.is_bare:
                     raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.", app=qAppName()))
-                workdir = repo.workdir
+                path = repo.workdir
 
         # First check that we don't have a tab for this repo already
-        for i in range(self.tabs.count()):
-            existingRW: RepoWidget = self.tabs.widget(i)
-            with suppress(FileNotFoundError):  # if existingRW has illegal workdir, this exception may be raised
-                if os.path.samefile(workdir, existingRW.workdir):
-                    existingRW.pendingLocator = locator
-                    self.tabs.setCurrentIndex(i)
-                    return existingRW
+        existingWidget = self.tabWidgetForWorkdirPath(path)
+        if existingWidget is not None:
+            existingWidget.overridePendingLocator(locator)
+            self.tabs.setCurrentWidget(existingWidget)
+            return existingWidget
 
-        # Create a RepoWidget
-        rw = RepoWidget(self, workdir, lazy=not foreground)
-        rw.setSharedSplitterSizes(self.sharedSplitterSizes)
+        # Create a RepoStub
+        stub = RepoStub(parent=self, workdir=path, locator=locator)
 
-        # Hook RepoWidget signals
-        rw.nameChange.connect(lambda: self.onRepoNameChange(rw))
+        # Create a tab
+        with QSignalBlockerContext(self.tabs):
+            title = escamp(stub.getTitle())
+            tabIndex = self.tabs.insertTab(tabIndex, stub, title)
+            self.tabs.setTabTooltip(tabIndex, compactPath(path))
+            if foreground:
+                self.tabs.setCurrentIndex(tabIndex)
+
+        # We've got at least one tab now, so switch away from WelcomeWidget
+        assert self.tabs.count() > 0
+        self.welcomeStack.setCurrentWidget(self.tabs)
+
+        # Load repo now
+        if foreground:
+            self.setWindowTitle(stub.windowTitle())
+            stub.loadNow()
+
+        return stub
+
+    def installRepoWidget(self, rw: RepoWidget, tabIndex: int):
+        repoStub = self.tabs.widget(tabIndex)
+        assert tabIndex >= 0, "stub to replace isn't in tabs"
+        assert isinstance(repoStub, RepoStub), "yanked widget isn't RepoStub"
+
+        rw.nameChange.connect(lambda: self.onRepoNameChanged(rw))
         rw.requestAttention.connect(lambda: self.onRepoRequestsAttention(rw))
         rw.openRepo.connect(lambda path, locator: self.openRepoNextTo(rw, path, locator))
         rw.openPrefs.connect(self.openPrefsDialog)
+        rw.mustReplaceWithStub.connect(lambda stub: self.replaceRepoWidgetWithStub(rw, stub))
 
         rw.statusMessage.connect(self.statusBar2.showMessage)
         rw.busyMessage.connect(self.statusBar2.showBusyMessage)
         rw.clearStatus.connect(self.statusBar2.clearMessage)
 
-        # Create a tab for the RepoWidget
-        with QSignalBlockerContext(self.tabs):
-            title = escamp(rw.getTitle())
-            tabIndex = self.tabs.insertTab(tabIndex, rw, title)
-            self.tabs.setTabTooltip(tabIndex, compactPath(workdir))
-            if foreground:
-                self.tabs.setCurrentIndex(tabIndex)
-                self.mainToolBar.observeRepoWidget(rw)
+        rw.historyChanged.connect(lambda: self.onRepoHistoryChanged(rw))
+        rw.windowTitleChanged.connect(lambda: self.onRepoWindowTitleChanged(rw))
 
-        # Switch away from WelcomeWidget
-        self.welcomeStack.setCurrentWidget(self.tabs)
+        self.tabs.swapWidget(tabIndex, rw)
 
-        # Load repo now
-        if foreground:
-            rw.pendingLocator = locator
-            self.onTabCurrentWidgetChanged()
+        assert not repoStub.taskRunner.isBusy()
+        repoStub.setParent(None)  # tabs don't deparent the widget
+        repoStub.deleteLater()
 
-        return rw
+    def replaceRepoWidgetWithStub(self, oldWidget: RepoWidget, stub: RepoStub):
+        tabIndex = self.tabs.indexOf(oldWidget)
+        assert tabIndex >= 0, "RepoWidget to replace isn't in tabs"
+        self.tabs.swapWidget(tabIndex, stub)
+
+        oldWidget.setParent(None)  # tabs don't deparent the widget
+        oldWidget.close()  # will call cleanup
+        oldWidget.deleteLater()
 
     # -------------------------------------------------------------------------
 
@@ -573,12 +620,17 @@ class MainWindow(QMainWindow):
         with suppress(NoRepoWidgetError):
             self.currentRepoWidget().refreshRepo()
 
-    def onRepoNameChange(self, rw: RepoWidget):
+    def onRepoNameChanged(self, rw: RepoWidget):
         self.refreshTabText(rw)
-        if rw.isVisible():
-            rw.refreshWindowChrome()
-            rw.sidebar.sidebarModel.refreshRepoName()
         self.fillRecentMenu()
+
+    def onRepoWindowTitleChanged(self, rw: RepoWidget):
+        if rw.isVisible():
+            self.setWindowTitle(rw.windowTitle())
+
+    def onRepoHistoryChanged(self, rw: RepoWidget):
+        if rw.isVisible():
+            self.mainToolBar.updateNavButtons(rw.navHistory.canGoBack(), rw.navHistory.canGoForward())
 
     def onRepoRequestsAttention(self, rw: RepoWidget):
         i = self.tabs.indexOf(rw)
@@ -773,9 +825,7 @@ class MainWindow(QMainWindow):
 
     def cloneDialog(self, initialUrl: str = ""):
         dlg = CloneDialog(initialUrl, self)
-
-        dlg.cloneSuccessful.connect(lambda path: self.openRepo(path))
-
+        dlg.cloneSuccessful.connect(lambda path: self.openRepo(path, exactMatch=True))
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
@@ -796,18 +846,17 @@ class MainWindow(QMainWindow):
 
         self.closeTab(self.tabs.currentIndex())
 
-    def closeTab(self, index: int, singleTab: bool = True):
+    def closeTab(self, index: int, finalTab: bool = True):
         widget = self.tabs.widget(index)
-        widget.close()  # will call RepoWidget.cleanup
+
+        # Clean up the widget
+        widget.close()  # will call RepoWidget.cleanup()
+        widget.deleteLater()  # help out GC (for PySide6)
+        del widget
+
         self.tabs.removeTab(index)
-        widget.deleteLater()
 
-        # If that was the last tab, back to welcome widget
-        if self.tabs.count() == 0:
-            self.welcomeStack.setCurrentWidget(self.welcomeWidget)
-            self.setWindowTitle(qAppName())
-
-        if singleTab:
+        if finalTab:
             self.saveSession()
             gc.collect()
 
@@ -817,36 +866,39 @@ class MainWindow(QMainWindow):
 
         # Now close all tabs in reverse order but skip the index we want to keep.
         start = self.tabs.count()-1
+        final = 1 if index == 0 else 0
         for i in range(start, -1, -1):
             if i != index:
-                self.closeTab(i, False)
+                self.closeTab(i, i == final)
 
-        self.saveSession()
-        gc.collect()
+    def unloadOtherTabs(self, index: int = -1):
+        if index < 0:
+            index = self.tabs.currentIndex()
 
-    def unloadOtherTabs(self, index: int):
         # First, set this tab as active so an active tab that gets closed doesn't trigger other tabs to load.
         self.tabs.setCurrentIndex(index)
 
-        # Now close all tabs in reverse order but skip the index we want to keep.
+        # Now unload all tabs but skip the index we want to keep.
         numUnloaded = 0
         for i in range(self.tabs.count()):
-            if i == index:
+            rw = self.tabs.widget(i)
+            if i == index or not isinstance(rw, RepoWidget):
                 continue
-            rw: RepoWidget = self.tabs.widget(i)
-            if rw.repoModel:
-                numUnloaded += 1
-            rw.cleanup()
+            with QSignalBlockerContext(rw):
+                stub = rw.replaceWithStub()
+            stub.disableAutoLoad()
+            self.replaceRepoWidgetWithStub(rw, stub)
+            del rw
+            numUnloaded += 1
 
         self.statusBar2.showMessage(_n("{n} background tab unloaded.", "{n} background tabs unloaded.", numUnloaded))
         gc.collect()
-        self.statusBar2.update()
 
     def closeAllTabs(self):
         start = self.tabs.count() - 1
         with QSignalBlockerContext(self.tabs):  # Don't let awaken unloaded tabs
             for i in range(start, -1, -1):  # Close tabs in reverse order
-                self.closeTab(i, False)
+                self.closeTab(i, i == 0)
 
         self.onTabCurrentWidgetChanged()
 
@@ -912,9 +964,7 @@ class MainWindow(QMainWindow):
                 errors.append((path, exc))
                 continue
 
-            # _openRepo may still return None without throwing an exception in case of failure
-            if newRepoWidget is None:
-                continue
+            assert isinstance(newRepoWidget, RepoWidget | RepoStub)
 
             # If we were passed a "sloppy" path from the command line, remember the root path.
             if sloppy:
@@ -958,7 +1008,7 @@ class MainWindow(QMainWindow):
         session = settings.Session()
         session.windowGeometry = self.saveGeometry().data()
         session.splitterSizes = self.sharedSplitterSizes.copy()
-        session.tabs = [self.tabs.widget(i).workdir for i in range(self.tabs.count())]
+        session.tabs = [widget.workdir for widget in self.tabs.widgets()]
         session.activeTabIndex = self.tabs.currentIndex()
         session.setDirty()
         if writeNow:
@@ -1129,8 +1179,8 @@ class MainWindow(QMainWindow):
                 buttons=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
             reloadButton = qmb.button(QMessageBox.StandardButton.Ok)
             reloadButton.setText(_("&Reload"))
-            qmb.accepted.connect(lambda: self.unloadOtherTabs(self.tabs.currentIndex()))
-            qmb.accepted.connect(lambda: self.currentRepoWidget().primeRepo(force=True))
+            qmb.accepted.connect(lambda: self.unloadOtherTabs())
+            qmb.accepted.connect(lambda: self.currentRepoWidget().replaceWithStub())
             cancelButton = qmb.button(QMessageBox.StandardButton.Cancel)
             cancelButton.setText(_("&Not Now"))
             qmb.show()
@@ -1138,8 +1188,7 @@ class MainWindow(QMainWindow):
         # If any changed setting matches autoReload, schedule a "forced" refresh of all loaded RepoWidgets
         if any(k in autoReload for k in prefDiff):
             for rw in self.tabs.widgets():
-                assert isinstance(rw, RepoWidget)
-                if not rw.isLoaded:
+                if not isinstance(rw, RepoWidget):
                     continue
                 locator = rw.pendingLocator or rw.navLocator
                 locator = locator.withExtraFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
