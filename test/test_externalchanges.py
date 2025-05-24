@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -15,6 +15,9 @@ def testExternalUnstage(tempDir, mainWindow):
     writeFile(F"{wd}/master.txt", "same old file -- brand new contents!\n")
 
     rw = mainWindow.openRepo(wd)
+
+    rw.dirtyFiles.setFocus()
+    waitUntilTrue(rw.dirtyFiles.hasFocus)
 
     # Stage master.txt
     assert (qlvGetRowData(rw.dirtyFiles), qlvGetRowData(rw.stagedFiles)) == (["master.txt"], [])
@@ -69,6 +72,8 @@ def testStayOnFileAfterPartialPatchDespiteExternalChange(tempDir, mainWindow):
 
     # Stage a single line
     qlvClickNthRow(rw.dirtyFiles, 1)
+    rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     qteClickBlock(rw.diffView, 1)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
 
@@ -118,8 +123,8 @@ def testExternalChangeWhileTaskIsBusyThenAborts(tempDir, mainWindow):
 
     writeFile(f"{wd}/sneaky.txt", "tee hee")
 
-    QTest.qWait(1)
-    assert QGuiApplication.applicationState() == Qt.ApplicationState.ApplicationActive, "needed for onRegainForeground"
+    # needed for onRegainForeground
+    waitUntilTrue(lambda: QGuiApplication.applicationState() == Qt.ApplicationState.ApplicationActive)
 
     mainWindow.onRegainForeground()
     rejectQMessageBox(rw, r"empty commit")

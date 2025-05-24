@@ -387,9 +387,12 @@ def testFileListCopyPath(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     # Make sure the clipboard is clean before we begin
-    clipboard = QApplication.clipboard()
-    clipboard.clear()
-    assert not clipboard.text()
+    clipboard = QGuiApplication.clipboard()
+    if WAYLAND and not OFFSCREEN:
+        warnings.warn("wayland blocks QClipboard.clear()")
+    else:
+        clipboard.clear()
+        assert not clipboard.text()
 
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     rw.committedFiles.setFocus()

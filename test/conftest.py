@@ -94,6 +94,7 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
 
     # Run the test...
     assert app.mainWindow is not None  # help out code analysis a bit
+    waitUntilTrue(app.mainWindow.isActiveWindow)  # for non-offscreen tests
     yield app.mainWindow
 
     assert app.mainWindow is not None, "mainWindow vanished after the test"

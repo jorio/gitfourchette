@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import pytest
+import warnings
 
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
@@ -18,8 +19,8 @@ def testEmptyDiffEmptyFile(tempDir, mainWindow):
 
     qlvClickNthRow(rw.dirtyFiles, 0)
 
-    assert not rw.diffView.isVisibleTo(rw)
-    assert rw.specialDiffView.isVisibleTo(rw)
+    assert not rw.diffView.isVisible()
+    assert rw.specialDiffView.isVisible()
     assert re.search(r"empty file", rw.specialDiffView.toPlainText(), re.I)
 
 
@@ -68,6 +69,7 @@ def testDiffViewStageLines(tempDir, mainWindow, method):
     assert rw.repo.status() == {"NewFile.txt": FileStatus.WT_NEW}
 
     rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
 
     assert not rw.diffView.rubberBand.isVisible()
     assert not rw.diffView.rubberBandButtonGroup.isVisible()
@@ -108,8 +110,10 @@ def testDiffViewStageAllLinesThenJumpToNextFile(tempDir, mainWindow):
     writeFile(f"{wd}/aaaaa.txt", "line A\nlineB\n")
     writeFile(f"{wd}/master.txt", "\n".join(["On master"]*50))
     rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("aaaaa.txt"), check=True)
 
-    rw.jump(NavLocator.inUnstaged("aaaaa.txt"))
+    rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     qteSelectBlocks(rw.diffView, 1, 2)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
 
@@ -125,6 +129,8 @@ def testPartialPatchSpacesInFilename(tempDir, mainWindow):
     qlvClickNthRow(rw.dirtyFiles, 0)
     assert rw.repo.status() == {"file with spaces.txt": FileStatus.WT_NEW}
 
+    rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     qteClickBlock(rw.diffView, 1)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
 
@@ -152,6 +158,7 @@ def testPartialPatchPreservesExecutableFileMode(tempDir, mainWindow):
     # Partial patch of first modified line
     qlvClickNthRow(rw.dirtyFiles, 0)
     rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Down)    # Skip hunk line (@@...@@)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)  # Stage first modified line
     assert rw.repo.status() == {"master.txt": FileStatus.WT_MODIFIED | FileStatus.INDEX_MODIFIED}
@@ -202,6 +209,7 @@ def testSubpatchNoEOL(tempDir, mainWindow):
     # Initiate subpatch by selecting lines and hitting return
     qlvClickNthRow(rw.dirtyFiles, 0)
     rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     rw.diffView.selectAll()
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
     assert rw.repo.status() == {"master.txt": FileStatus.INDEX_MODIFIED}
@@ -209,6 +217,7 @@ def testSubpatchNoEOL(tempDir, mainWindow):
     # It must also work in reverse - let's unstage this change via a subpatch
     qlvClickNthRow(rw.stagedFiles, 0)
     rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     rw.diffView.selectAll()
     QTest.keyPress(rw.diffView, Qt.Key.Key_Delete)
     assert rw.repo.status() == {"master.txt": FileStatus.WT_MODIFIED}
@@ -216,6 +225,7 @@ def testSubpatchNoEOL(tempDir, mainWindow):
     # Finally, let's discard this change via a subpatch
     qlvClickNthRow(rw.dirtyFiles, 0)
     rw.diffView.setFocus()
+    waitUntilTrue(rw.diffView.hasFocus)
     rw.diffView.selectAll()
     QTest.keyPress(rw.diffView, Qt.Key.Key_Delete)
     acceptQMessageBox(rw, "discard")
@@ -229,13 +239,11 @@ def testDiffInNewWindow(tempDir, mainWindow, closeManually):
     assert mainWindow in QApplication.topLevelWidgets()
 
     oid = Oid(hex='1203b03dc816ccbb67773f28b3c19318654b0bc8')
-    rw.jump(NavLocator.inCommit(oid))
+    rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
     qlvClickNthRow(rw.committedFiles, 0)
-    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inCommit(oid, "c/c2.txt"))
-    assert mainWindow.isActiveWindow()
 
     rw.committedFiles.openDiffInNewWindow.emit(rw.diffView.currentPatch, rw.navLocator)
-    QTest.qWait(0)
+    waitUntilTrue(lambda: not mainWindow.isActiveWindow())
 
     diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == "DetachedDiffWindow")
     diffWidget: DiffView = diffWindow.findChild(DiffView)
@@ -245,9 +253,8 @@ def testDiffInNewWindow(tempDir, mainWindow, closeManually):
     assert not mainWindow.isActiveWindow()
 
     # Initiate search
-    QTest.qWait(0)
     QTest.keySequence(diffWidget, QKeySequence.StandardKey.Find)
-    assert diffWidget.searchBar.isVisibleTo(diffWidget.window())
+    assert diffWidget.searchBar.isVisible()
 
     # Make sure the diff is closed when the repowidget is gone
     if closeManually:
@@ -272,13 +279,12 @@ def testSearchDiff(tempDir, mainWindow):
     searchNext = searchBar.ui.forwardButton
     searchPrev = searchBar.ui.backwardButton
 
-    assert not searchBar.isVisibleTo(rw)
     diffView.setFocus()
-    # Give it two event loop iterations to react...
-    QTest.qWait(1)
-    QTest.qWait(1)
+    waitUntilTrue(diffView.hasFocus)
+
+    assert not searchBar.isVisible()
     QTest.keySequence(diffView, "Ctrl+F")  # window to be shown for this to work!
-    assert searchBar.isVisibleTo(rw)
+    assert searchBar.isVisible()
 
     QTest.keyClicks(searchLine, "master")
     searchNext.click()
@@ -314,7 +320,7 @@ def testSearchDiff(tempDir, mainWindow):
 
     # Search for nonexistent text
     QTest.keySequence(diffView, "Ctrl+F")  # window to be shown for this to work!
-    assert searchBar.isVisibleTo(rw)
+    assert searchBar.isVisible()
     searchBar.lineEdit.setFocus()
     if QT5:  # Qt5 is somehow finicky here (else-branch works perfectly in Qt6) - not important enough to troubleshoot - Qt5 is on the way out
         searchBar.lineEdit.setText("MadeUpGarbage")
@@ -354,15 +360,19 @@ def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     oid = Oid(hex='0966a434eb1a025db6b71485ab63a3bfbea520b6')
-    rw.jump(NavLocator.inCommit(oid, path="master.txt"))
+    rw.jump(NavLocator.inCommit(oid, path="master.txt"), check=True)
 
     # Make sure the clipboard is clean before we begin
-    clipboard = QApplication.clipboard()
-    clipboard.clear()
-    assert not clipboard.text()
+    clipboard = QGuiApplication.clipboard()
+    if WAYLAND and not OFFSCREEN:
+        warnings.warn("wayland blocks QClipboard.clear()")
+    else:
+        clipboard.clear()
+        assert not clipboard.text()
 
     diffView = rw.diffView
     diffView.setFocus()
+    waitUntilTrue(diffView.hasFocus)
     diffView.selectAll()
     diffView.copy()
     QTest.qWait(1)
@@ -387,8 +397,8 @@ def testDiffStrayLineEndings(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
 
-    rw.jump(NavLocator.inUnstaged(path="crlf.txt"))
-    assert rw.diffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged(path="crlf.txt"), check=True)
+    assert rw.diffView.isVisible()
     assert rw.diffView.toPlainText().lower() == (
         "@@ -0,0 +1,3 @@\n"
         "hi<crlf>\n"
@@ -400,8 +410,8 @@ def testDiffStrayLineEndings(tempDir, mainWindow):
     # libgit2 doesn't consider CR to be a linebreak when creating a Diff.
     # Even then, what we have is still better than nothing for the rare use
     # case of importing an ancient Mac file from the 80s/90s into a Git repo.
-    rw.jump(NavLocator.inUnstaged(path="cr.txt"))
-    assert rw.diffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged(path="cr.txt"), check=True)
+    assert rw.diffView.isVisible()
     assert rw.diffView.toPlainText().lower() == (
         "@@ -0,0 +1 @@\n"
         "ancient mac file<cr>"
@@ -415,8 +425,8 @@ def testDiffBinaryWarning(tempDir, mainWindow):
         f.write(b"\x00\x00\x00\x00")
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged(path="binary.whatever"))
-    assert rw.specialDiffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged(path="binary.whatever"), check=True)
+    assert rw.specialDiffView.isVisible()
     assert "binary" in rw.specialDiffView.toPlainText().lower()
 
 
@@ -428,12 +438,12 @@ def testDiffVeryLongLines(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged(path="longlines.txt"))
-    assert not rw.diffView.isVisibleTo(rw)
-    assert rw.specialDiffView.isVisibleTo(rw)
+    assert not rw.diffView.isVisible()
+    assert rw.specialDiffView.isVisible()
     assert "long lines" in rw.specialDiffView.toPlainText().lower()
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
-    assert rw.diffView.isVisibleTo(rw)
+    assert rw.diffView.isVisible()
     assert rw.diffView.toPlainText().rstrip() == "@@ -0,0 +1 @@\n" + contents.rstrip()
 
 
@@ -445,7 +455,7 @@ def testDiffLargeFile(tempDir, mainWindow):
     writeFile(f"{wd}/bigfile.txt", contents)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged(path="bigfile.txt"))
+    rw.jump(NavLocator.inUnstaged(path="bigfile.txt"), check=True)
     assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
     assert "diff is very large" in rw.specialDiffView.toPlainText().lower()
@@ -465,13 +475,13 @@ def testDiffLargeFilesWithVeryLongLines(tempDir, mainWindow):
     writeFile(f"{wd}/longlines.txt", contents)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged(path="longlines.txt"))
-    assert not rw.diffView.isVisibleTo(rw)
-    assert rw.specialDiffView.isVisibleTo(rw)
+    rw.jump(NavLocator.inUnstaged(path="longlines.txt"), check=True)
+    assert not rw.diffView.isVisible()
+    assert rw.specialDiffView.isVisible()
     assert "diff is very large" in rw.specialDiffView.toPlainText().lower()
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
-    assert rw.diffView.isVisibleTo(rw)
+    assert rw.diffView.isVisible()
     assert rw.diffView.toPlainText().rstrip() == f"@@ -0,0 +1,{numLines} @@\n{contents.rstrip()}"
 
 
@@ -551,7 +561,7 @@ def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     diffView = rw.diffView
 
-    rw.jump(NavLocator.inUnstaged("master.txt"))
+    rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
     assert not diffView.textCursor().hasSelection()
 
     # Select some text
@@ -586,7 +596,8 @@ def testDiffContextLinesSetting(tempDir, mainWindow):
     assert 1+3+2+3 == len(rw.diffView.toPlainText().splitlines())
 
     prefsDialog = mainWindow.openPrefsDialog("contextLines")
-    QTest.qWait(0)
+    waitUntilTrue(lambda: QApplication.focusWidget() is not None
+                  and QApplication.focusWidget().objectName() == "prefctl_contextLines")
     QTest.keyClicks(QApplication.focusWidget(), "8")
     prefsDialog.accept()
 
@@ -603,7 +614,7 @@ def testDiffGutterMouseInputs(tempDir, mainWindow):
     LMB = Qt.MouseButton.LeftButton
 
     oid = Oid(hex="bab66b48f836ed950c99134ef666436fb07a09a0")
-    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"))
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
 
     def selection():
         text = dv.textCursor().selectedText()
@@ -658,7 +669,7 @@ def testDiffGutterMouseInputs(tempDir, mainWindow):
     QTest.mouseDClick(dv.gutter, LMB, pos=line3)
     assert "c1" == selection()
 
-    rw.jump(NavLocator.inUnstaged("manylines.txt"))
+    rw.jump(NavLocator.inUnstaged("manylines.txt"), check=True)
     assert dv.firstVisibleBlock().blockNumber() == 0
     postMouseWheelEvent(dv.gutter, -120)
     QTest.qWait(1)
@@ -672,7 +683,10 @@ def testDiffViewStageBlankLines(tempDir, mainWindow):
     dv = rw.diffView
     LMB = Qt.MouseButton.LeftButton
 
-    rw.jump(NavLocator.inUnstaged("hello.txt"))
+    rw.jump(NavLocator.inUnstaged("hello.txt"), check=True)
+
+    dv.setFocus()
+    waitUntilTrue(dv.hasFocus)
 
     line1 = qteBlockPoint(dv, 1)  # Hello1
     line2 = qteBlockPoint(dv, 2)  # (blank)

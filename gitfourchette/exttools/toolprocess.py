@@ -59,14 +59,27 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
     browseButtonID = QMessageBox.StandardButton.Open
 
     qmb = asyncMessageBox(parent, 'warning', title, message,
-                          configureButtonID | browseButtonID | QMessageBox.StandardButton.Cancel)
+                          configureButtonID | browseButtonID | QMessageBox.StandardButton.Cancel,
+                          deleteOnClose=True)
+
+    def browseDialog():
+        qfd = QFileDialog(parent, _("Where is {tool}?", tool=lquo(programName)))
+        qfd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
+        qfd.setFileMode(QFileDialog.FileMode.AnyFile)
+        qfd.setWindowModality(Qt.WindowModality.WindowModal)
+        qfd.setOption(QFileDialog.Option.DontUseNativeDialog, APP_TESTMODE)
+        qfd.show()
+        qfd.fileSelected.connect(lambda newPath: onLocateTool(prefKey, newPath))
+        return qfd
 
     configureButton = qmb.button(configureButtonID)
     configureButton.setText(_("Edit Command…"))
     configureButton.setIcon(stockIcon("configure"))
+    configureButton.clicked.connect(lambda: GFApplication.instance().openPrefsDialog(prefKey))
 
     browseButton = qmb.button(browseButtonID)
     browseButton.setText(_("Locate {tool}…", tool=lquo(programName)))
+    browseButton.clicked.connect(browseDialog)
 
     removeBrowseButton = bool(compileError)
     if FREEDESKTOP:
@@ -76,20 +89,6 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
     if removeBrowseButton:
         qmb.removeButton(browseButton)
 
-    def onQMBFinished(result):
-        if result == configureButtonID:
-            GFApplication.instance().openPrefsDialog(prefKey)
-        elif result == browseButtonID:
-            qfd = QFileDialog(parent, _("Where is {tool}?", tool=lquo(programName)))
-            qfd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
-            qfd.setFileMode(QFileDialog.FileMode.AnyFile)
-            qfd.setWindowModality(Qt.WindowModality.WindowModal)
-            qfd.setOption(QFileDialog.Option.DontUseNativeDialog, APP_TESTMODE)
-            qfd.show()
-            qfd.fileSelected.connect(lambda newPath: onLocateTool(prefKey, newPath))
-            return qfd
-
-    qmb.finished.connect(onQMBFinished)
     qmb.show()
 
 

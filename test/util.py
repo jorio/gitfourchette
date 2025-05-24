@@ -427,6 +427,10 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggested
 
     qfd.selectFile(path)
     qfd.show()
+
+    if MACOS and not OFFSCREEN and os.path.isdir(path):
+        qfd.selectFile(path + "/")
+
     qfd.accept()
     return path
 

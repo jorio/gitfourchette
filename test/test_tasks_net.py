@@ -39,8 +39,8 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
 
     # Bring up clone dialog
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
-    QTest.qWait(0)
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
+    waitUntilTrue(cloneDialog.isActiveWindow)
     assert not cloneDialog.ui.pathEdit.text()  # path initially empty
     assert -1 == cloneDialog.ui.urlEdit.currentIndex()
     assert not cloneDialog.ui.urlEdit.lineEdit().text()  # URL initially empty
@@ -97,11 +97,10 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
     # Fire ze missiles
     assert cloneDialog.cloneButton.isEnabled()
     cloneDialog.cloneButton.click()
-    assert not cloneDialog.isVisible()
+    del cloneDialog
 
     # Get RepoWidget for cloned repo
     rw = mainWindow.currentRepoWidget()
-    assert rw is not None
 
     # Check that the cloned repo's state looks OK
     clonedRepo = rw.repo
@@ -110,12 +109,12 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
 
     # Look at some commit within the repo
     oid = Oid(hex="bab66b48f836ed950c99134ef666436fb07a09a0")
-    rw.jump(NavLocator.inCommit(oid))
-    assert ["c/c1.txt"] == qlvGetRowData(rw.committedFiles)
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
 
     # Bring up clone dialog again and check that the URL was added to the history
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
+    waitUntilTrue(cloneDialog.isActiveWindow)
     urlEdit = cloneDialog.ui.urlEdit
     assert urlEdit.currentText() == ""
     assert 0 <= urlEdit.findText("clear", Qt.MatchFlag.MatchContains)

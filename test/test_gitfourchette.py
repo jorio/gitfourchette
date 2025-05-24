@@ -419,6 +419,7 @@ def testAboutDialog(mainWindow):
 
     triggerMenuAction(mainWindow.menuBar(), "help/about")
     dlg: AboutDialog = findQDialog(mainWindow, "about")
+    waitUntilTrue(dlg.isActiveWindow)
 
     header = dlg.ui.header
     header.selectedText()

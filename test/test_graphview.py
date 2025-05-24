@@ -34,11 +34,10 @@ def testCommitSearch(tempDir, mainWindow):
         assert len(indexes) == 1
         return indexes[0].row()
 
-    assert not searchBar.isVisibleTo(rw)
+    assert not searchBar.isVisible()
 
-    QTest.qWait(0)
     QTest.keySequence(mainWindow, "Ctrl+F")
-    assert searchBar.isVisibleTo(rw)
+    assert searchBar.isVisible()
 
     QTest.keyClicks(searchEdit, "first")
 
@@ -206,8 +205,12 @@ def testCopyCommitHash(tempDir, mainWindow, method):
     """
 
     # Make sure the clipboard is clean before we begin
-    QApplication.clipboard().clear()
-    assert not QApplication.clipboard().text()
+    clipboard = QGuiApplication.clipboard()
+    if WAYLAND and not OFFSCREEN:
+        warnings.warn("wayland blocks QClipboard.clear()")
+    else:
+        clipboard.clear()
+        assert not clipboard.text()
 
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
@@ -223,7 +226,7 @@ def testCopyCommitHash(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     QTest.qWait(1)
-    assert QApplication.clipboard().text() == str(oid1)
+    assert clipboard.text() == str(oid1)
 
 
 @pytest.mark.parametrize("method", ["hotkey", "contextmenu"])
@@ -234,8 +237,12 @@ def testCopyCommitMessage(tempDir, mainWindow, method):
     """
 
     # Make sure the clipboard is clean before we begin
-    QApplication.clipboard().clear()
-    assert not QApplication.clipboard().text()
+    clipboard = QGuiApplication.clipboard()
+    if WAYLAND and not OFFSCREEN:
+        warnings.warn("wayland blocks QClipboard.clear()")
+    else:
+        clipboard.clear()
+        assert not clipboard.text()
 
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
@@ -251,7 +258,7 @@ def testCopyCommitMessage(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     QTest.qWait(1)
-    assert QApplication.clipboard().text() == "Merge branch 'a' into c"
+    assert clipboard.text() == "Merge branch 'a' into c"
 
 
 def testRefSortFavorsHeadBranch(tempDir, mainWindow):
