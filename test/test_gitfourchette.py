@@ -456,6 +456,8 @@ def testDonatePrompt(mainWindow, mockDesktopServices):
     secondsInADay = 60 * 60 * 24
 
     class Session:
+        numSessions = 0
+
         def __init__(self, begin=True, end=True):
             self.begin = begin
             self.end = end
@@ -465,8 +467,11 @@ def testDonatePrompt(mainWindow, mockDesktopServices):
                 app.mainWindow = None
                 app.beginSession()
                 QTest.qWait(1)
-            assert app.mainWindow is not None
-            return app.mainWindow
+            window = app.mainWindow
+            assert window is not None
+            Session.numSessions += 1
+            window.setWindowTitle(f"(DonatePrompt session {Session.numSessions})")
+            return window
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             if self.end:
@@ -506,7 +511,7 @@ def testDonatePrompt(mainWindow, mockDesktopServices):
     with Session() as mainWindow:
         donate: DonatePrompt = mainWindow.findChild(DonatePrompt)
         donate.ui.byeButton.click()
-    with Session(end=False) as mainWindow:
+    with Session() as mainWindow:
         assert not mainWindow.findChild(DonatePrompt)
         assert settings.prefs.donatePrompt < 0  # permanently disabled
 

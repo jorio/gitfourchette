@@ -99,11 +99,10 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     assert app.mainWindow is not None, "mainWindow vanished after the test"
 
     # Look for any unclosed dialogs after the test
-    leakedDialog = ""
+    leakedWindows = []
     for dialog in app.mainWindow.findChildren(qt.QDialog):
         if dialog.isVisible():
-            leakedDialog = dialog.windowTitle()
-            break
+            leakedWindows.append(dialog.windowTitle() + "(unclosed dialog)")
 
     # Kill the main window
     app.mainWindow.close()
@@ -119,12 +118,19 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     # This will reset the temp settings folder.
     app.endSession()
 
+    # Purge leaked windows
+    for window in app.topLevelWindows():
+        if window.isVisible():
+            leakedWindows.append(window.title() + "(top-level window)")
+            window.deleteLater()
+
     # Skip cleanup asserts if the test itself failed
     if request.session.testsfailed > failCount:
         return
 
-    # Die here if any dialogs are still visible after the unit test
-    assert not leakedDialog, f"Unit test has leaked dialog: '{leakedDialog}'"
+    # Die here if any windows are still visible after the unit test
+    assert not leakedWindows, \
+        f"Unit test has leaked {len(leakedWindows)} windows: {'; '.join(leakedWindows)}"
 
     from gitfourchette.exttools.mergedriver import MergeDriver
     assert not MergeDriver._ongoingMerges, "Unit test has leaked MergeDriver objects"
