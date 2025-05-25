@@ -349,7 +349,8 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
     dlg.accept()
 
 
-def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread):
+@pytest.mark.parametrize("withGC", [True, False])
+def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread, withGC):
     # Simulate user holding down Ctrl+W with a fast key repeat rate.
     # PrimeRepo should be interrupted without crashing!
     # TODO: For exhaustiveness we should make a large repo with tens of thousands of commits
@@ -364,7 +365,8 @@ def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread):
     mainWindow.restoreSession(sesh)
 
     for _dummy in range(numTabs):
-        mainWindow.closeTab(0)
+        i = 0
+        mainWindow.closeTab(i, finalTab=withGC)
         QTest.qWait(1)  # Simulate some delay as if key-repeating Ctrl+W
 
 
