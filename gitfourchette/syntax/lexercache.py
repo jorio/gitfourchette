@@ -13,6 +13,7 @@ from contextlib import suppress
 try:
     import pygments.lexers
     from pygments.lexer import Lexer
+    from pygments import __version__ as pygmentsVersion
     hasPygments = True
 except ImportError:  # pragma: no cover
     hasPygments = False
@@ -145,7 +146,17 @@ class LexerCache:
         with suppress(KeyError):
             aliasTable['.svg'] = aliasTable['.xml']
 
+        def removeLexer(lexerName: str):
+            nonlocal aliasTable
+            aliasTable = {ext: alias for ext, alias in aliasTable.items() if alias != lexerName}
+
         # No Pygments overhead for null lexers
-        aliasTable = {ext: alias for ext, alias in aliasTable.items() if alias != 'text'}
+        removeLexer("text")
+
+        # Disable Lua syntax highlighting in bad Pygments versions (issue #55)
+        if pygmentsVersion.startswith(("2.19.0", "2.19.1")):  # pragma: no cover
+            logger.warning(f"The Lua lexer in Pygments {pygmentsVersion} is known to have issues. "
+                           f"Disabling Lua syntax highlighting.")
+            removeLexer("lua")
 
         cls.lexerAliases = aliasTable
