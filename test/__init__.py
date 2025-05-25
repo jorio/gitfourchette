@@ -1,14 +1,18 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import logging
 import os
+import sys
 
 # Verbose logging by default in unit tests
-logging.basicConfig(level=logging.DEBUG)
+# Don't override datefmt so we get milliseconds
+logging.basicConfig(
+    stream=sys.stdout,
+    format='%(levelname).1s %(asctime)s %(filename)-24s | %(message)s')
 logging.captureWarnings(True)
 
 # Keep QT_API env var (used by our qt.py module) in sync with Qt binding used by pytest-qt

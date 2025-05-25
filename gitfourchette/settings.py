@@ -137,7 +137,7 @@ class Prefs(PrefsFile):
     animations                  : bool                  = True
     condensedFonts              : bool                  = True
     pygmentsPlugins             : bool                  = False
-    verbosity                   : LoggingLevel          = LoggingLevel.Warning
+    verbosity                   : LoggingLevel          = LoggingLevel.Debug if APP_TESTMODE else LoggingLevel.Warning
     forceQtApi                  : QtApiNames            = QtApiNames.Automatic
 
     _category_hidden            : int                   = 0

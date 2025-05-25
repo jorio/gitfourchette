@@ -6,13 +6,15 @@
 
 from __future__ import annotations
 
+import logging
+import os
+import tempfile
 from collections.abc import Generator
-from pytestqt.qtbot import QtBot
 from typing import TYPE_CHECKING
+
 import pygit2
 import pytest
-import tempfile
-import os
+from pytestqt.qtbot import QtBot
 
 from gitfourchette.application import GFApplication
 
@@ -40,6 +42,19 @@ def setUpGitConfigSearchPaths(prefix=""):
 @pytest.fixture(scope='session', autouse=True)
 def maskHostGitConfig():
     setUpGitConfigSearchPaths("")
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setUpLogging():
+    rootLogger = logging.root
+    rootLogger.setLevel(logging.DEBUG)
+
+    yield
+
+    # Chatty destructors may cause spam after pytest has wound down.
+    # Work around https://github.com/pytest-dev/pytest/issues/5502
+    for handler in rootLogger.handlers:
+        rootLogger.removeHandler(handler)
 
 
 @pytest.fixture(scope="session")
