@@ -1024,7 +1024,7 @@ class MainWindow(QMainWindow):
         # Important so unit tests wind down properly!
         self.closeAllTabs()
 
-        event.accept()
+        super().closeEvent(event)
 
     # -------------------------------------------------------------------------
     # Drag and drop

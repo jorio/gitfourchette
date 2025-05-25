@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -35,7 +35,11 @@ def main():
     app = GFApplication(sys.argv, __file__)
 
     # Quit app cleanly on Ctrl+C (all repos and associated file handles will be freed)
-    signal.signal(signal.SIGINT, lambda *args: app.quit())
+    def onSigint(*_dummy):
+        # Posting an event to be processed on the next event loop
+        # is more stable than just calling app.quit() at any time.
+        app.postEvent(app, QEvent(QEvent.Type.Quit))
+    signal.signal(signal.SIGINT, onSigint)
 
     # Force Python interpreter to run every now and then so it can run the Ctrl+C signal handler
     # (Otherwise the app won't actually die until the window regains focus, see https://stackoverflow.com/q/4938723)
