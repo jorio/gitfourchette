@@ -174,9 +174,9 @@ class GFApplication(QApplication):
             session.tabs += self.commandLinePaths
             session.activeTabIndex = len(session.tabs) - 1
 
-        # Boot main window first thing when event loop starts
+        # Boot main window
         if bootUi:
-            QTimer.singleShot(0, self.bootUi)
+            self.bootUi()
 
     def endSession(self, clearTempDir=True):
         from gitfourchette import settings
