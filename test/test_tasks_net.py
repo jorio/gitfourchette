@@ -331,9 +331,10 @@ def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow):
 
 def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow):
     originWd = unpackRepo(tempDir)
+    wd = tempDir.name + "/newrepo"
 
-    mainWindow.newRepo(tempDir.name + "/newrepo")
-    rw = waitForRepoWidget(mainWindow)
+    pygit2.init_repository(wd)
+    rw = mainWindow.openRepo(wd)
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
     remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
     remoteDialog.ui.urlEdit.setText(originWd)

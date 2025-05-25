@@ -1,0 +1,103 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025 Iliyas Jorio.
+# This file is part of GitFourchette, distributed under the GNU GPL v3.
+# For full terms, see the included LICENSE file.
+# -----------------------------------------------------------------------------
+
+import logging
+import os
+
+import pygit2
+
+from gitfourchette.localization import *
+from gitfourchette.qt import *
+from gitfourchette.tasks.repotask import RepoTask, AbortTask
+from gitfourchette.toolbox import *
+
+logger = logging.getLogger(__name__)
+
+
+class NewRepo(RepoTask):
+    openRepo = Signal(str)
+
+    def flow(self):
+        fileDialog = PersistentFileDialog.saveFile(self.parentWidget(), "NewRepo", _("New repository"))
+        fileDialog.setFileMode(QFileDialog.FileMode.Directory)
+        fileDialog.setLabelText(QFileDialog.DialogLabel.Accept, _("&Create repo here"))
+        fileDialog.setWindowModality(Qt.WindowModality.WindowModal)
+        fileDialog.show()
+        yield from self.flowDialog(fileDialog)
+
+        path = fileDialog.selectedFiles()[0]
+
+        # macOS's native file picker may return a directory that doesn't exist yet
+        # (it expects us to create it ourselves). libgit2 won't detect the parent repo
+        # if the directory doesn't exist.
+        parentDetectionPath = path
+        if not os.path.exists(parentDetectionPath):
+            parentDetectionPath = os.path.dirname(parentDetectionPath)
+
+        parentPath = pygit2.discover_repository(parentDetectionPath) or ""
+        if parentPath:
+            yield from self._confirmCreateSubrepo(path, parentPath)
+
+        # if not allowNonEmptyDirectory and os.path.exists(path) and os.listdir(path):
+        if os.path.exists(path) and os.listdir(path):
+            message = _("Are you sure you want to initialize a Git repository in {0}? "
+                        "This directory isn’t empty.", bquo(path))
+            yield from self.flowConfirm(title=_("Directory isn’t empty"), text=message, icon="warning")
+
+        pygit2.init_repository(path)
+        self.openRepo.emit(path)
+
+    def _confirmCreateSubrepo(self, path: str, parentPath: str):
+        assert parentPath
+        myBasename = os.path.basename(path)
+
+        parentPath = os.path.normpath(parentPath)
+        parentWorkdir = os.path.dirname(parentPath) if os.path.basename(parentPath) == ".git" else parentPath
+        parentBasename = os.path.basename(parentWorkdir)
+
+        if parentPath == path or parentWorkdir == path:
+            yield from self.flowConfirm(
+                title=_("Repository already exists"),
+                text=paragraphs(_("A repository already exists here:"), escape(compactPath(parentWorkdir))),
+                verb=_("&Open existing repo"),
+                buttonIcon="SP_DirOpenIcon")
+            wantOpen = True
+
+        else:
+            displayPath = compactPath(path)
+            commonLength = len(os.path.commonprefix([displayPath, compactPath(parentWorkdir)]))
+            i1 = commonLength - len(parentBasename)
+            i2 = commonLength
+            dp1 = escape(displayPath[: i1])
+            dp2 = escape(displayPath[i1: i2])
+            dp3 = escape(displayPath[i2:])
+            muted = mutedTextColorHex(self)
+            prettyPath = (f"<div style='white-space: pre;'>"
+                          f"<span style='color: {muted};'>{dp1}</span>"
+                          f"<b>{dp2}</b>"
+                          f"<span style='color: {muted};'>{dp3}</span></div>")
+
+            message = paragraphs(
+                _("An existing repository, {0}, was found in a parent folder of this location:", bquoe(parentBasename)),
+                prettyPath,
+                _("Are you sure you want to create {0} within the existing repo?", hquoe(myBasename)))
+
+            createButton = QPushButton(_("&Create {0}", lquoe(myBasename)))
+            createButton.clicked.connect(lambda: self.newRepo(path, detectParentRepo=False))
+
+            result = yield from self.flowConfirm(
+                title=_("Repository found in parent folder"),
+                text=message,
+                verb=_("&Open {0}", lquoe(parentBasename)),
+                buttonIcon="SP_DirOpenIcon")
+
+            # OK button is Open; Create is the other one. (Cancel would have aborted early.)
+            # Also checking for Accepted so that unit tests can do qmb.accept().
+            wantOpen = result in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
+
+        if wantOpen:
+            self.openRepo.emit(parentWorkdir)
+            raise AbortTask()

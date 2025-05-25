@@ -433,7 +433,7 @@ class RepoTask(QObject):
         assert self._currentFlow is not None
         assert self._isRunningOnAppThread()
 
-        parentWidget = self.rw
+        parentWidget = self.parentWidget()
         if parentWidget.isVisible():
             return
 

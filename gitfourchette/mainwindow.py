@@ -15,8 +15,6 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Literal
 
-import pygit2
-
 from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
@@ -36,6 +34,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
 from gitfourchette.tasks import TaskBook, RepoTaskRunner
+from gitfourchette.tasks.newrepotasks import NewRepo
 from gitfourchette.toolbox import *
 from gitfourchette.toolbox.fittedtext import FittedText
 from gitfourchette.trash import Trash
@@ -738,90 +737,12 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # File menu callbacks
 
-    def newRepo(self, path="", detectParentRepo=True, allowNonEmptyDirectory=False):
-        if not path:
-            qfd = PersistentFileDialog.saveFile(self, "NewRepo", _("New repository"))
-            qfd.setFileMode(QFileDialog.FileMode.Directory)
-            qfd.setLabelText(QFileDialog.DialogLabel.Accept, _("&Create repo here"))
-            qfd.fileSelected.connect(self.newRepo)
-            qfd.show()
-            return
-
-        parentRepo: str = ""
-        if detectParentRepo:
-            # macOS's native file picker may return a directory that doesn't
-            # exist yet (it expects us to create it ourselves). libgit2 won't
-            # detect the parent repo if the directory doesn't exist.
-            parentDetectionPath = path
-            if not os.path.exists(parentDetectionPath):
-                parentDetectionPath = os.path.dirname(parentDetectionPath)
-
-            parentRepo = pygit2.discover_repository(parentDetectionPath) or ""
-
-        if not detectParentRepo or not parentRepo:
-            if not allowNonEmptyDirectory and os.path.exists(path) and os.listdir(path):
-                message = _("Are you sure you want to initialize a Git repository in {0}? "
-                            "This directory isn’t empty.", bquo(path))
-                askConfirmation(self, _("Directory isn’t empty"), message, messageBoxIcon='warning',
-                                callback=lambda: self.newRepo(path, detectParentRepo, allowNonEmptyDirectory=True))
-                return
-
-            try:
-                pygit2.init_repository(path)
-                return self.openRepo(path, exactMatch=True)
-            except Exception as exc:
-                message = _("Couldn’t create an empty repository in {0}.", bquo(path))
-                excMessageBox(exc, _("New repository"), message, parent=self, icon='warning')
-
-        if parentRepo:
-            myBasename = os.path.basename(path)
-
-            parentRepo = os.path.normpath(parentRepo)
-            parentWorkdir = os.path.dirname(parentRepo) if os.path.basename(parentRepo) == ".git" else parentRepo
-            parentBasename = os.path.basename(parentWorkdir)
-
-            if parentRepo == path or parentWorkdir == path:
-                message = paragraphs(
-                    _("A repository already exists here:"),
-                    escape(compactPath(parentWorkdir)))
-                qmb = asyncMessageBox(
-                    self, 'information', _("Repository already exists"), message,
-                    QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Cancel)
-                qmb.button(QMessageBox.StandardButton.Open).setText(_("&Open existing repo"))
-                qmb.accepted.connect(lambda: self.openRepo(parentWorkdir, exactMatch=True))
-                qmb.show()
-            else:
-                displayPath = compactPath(path)
-                commonLength = len(os.path.commonprefix([displayPath, compactPath(parentWorkdir)]))
-                i1 = commonLength - len(parentBasename)
-                i2 = commonLength
-                dp1 = escape(displayPath[: i1])
-                dp2 = escape(displayPath[i1: i2])
-                dp3 = escape(displayPath[i2:])
-                muted = mutedTextColorHex(self)
-                prettyPath = (f"<div style='white-space: pre;'>"
-                              f"<span style='color: {muted};'>{dp1}</span>"
-                              f"<b>{dp2}</b>"
-                              f"<span style='color: {muted};'>{dp3}</span></div>")
-
-                message = paragraphs(
-                    _("An existing repository, {0}, was found in a parent folder of this location:", bquoe(parentBasename)),
-                    prettyPath,
-                    _("Are you sure you want to create {0} within the existing repo?", hquoe(myBasename)))
-
-                qmb = asyncMessageBox(
-                    self, 'information', _("Repository found in parent folder"), message,
-                    QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-
-                openButton = qmb.button(QMessageBox.StandardButton.Open)
-                openButton.setText(_("&Open {0}", lquoe(parentBasename)))
-                openButton.clicked.connect(lambda: self.openRepo(parentWorkdir, exactMatch=True))
-
-                createButton = qmb.button(QMessageBox.StandardButton.Ok)
-                createButton.setText(_("&Create {0}", lquoe(myBasename)))
-                createButton.clicked.connect(lambda: self.newRepo(path, detectParentRepo=False))
-
-                qmb.show()
+    def newRepo(self):
+        runner = RepoTaskRunner(self)
+        newRepoTask = NewRepo(runner)
+        newRepoTask.openRepo.connect(self.openRepo)
+        runner.put(newRepoTask)
+        runner.ready.connect(runner.deleteLater)
 
     def cloneDialog(self, initialUrl: str = ""):
         dlg = CloneDialog(initialUrl, self)
