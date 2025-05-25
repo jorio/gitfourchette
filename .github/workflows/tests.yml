@@ -17,16 +17,16 @@ jobs:
       matrix:
         include:
         # Legacy configs
-        - {name: '310-pyqt5-outdated', os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12'}
         # pytest 8.3.5 is the last version without a mandatory requirement for pygments
-        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip install pytest==8.3.5 && pip uninstall -y pygments'}
+        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pytest==8.3.5 && pip uninstall -y pygments'}
+        - {name: '310-pyqt5-outdated', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12'}
         # Semi-legacy configs
-        - {name: '311-pyqt6', os: ubuntu-latest, python-version: '3.11', qt-binding: pyqt6}
-        - {name: '312-pyqt6', os: ubuntu-latest, python-version: '3.12', qt-binding: pyqt6}
+        - {name: '311-pyqt6', os: ubuntu-latest, py: '3.11', qt: pyqt6}
+        - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6}
         # Up-to-date configs
-        - {name: '313-pyqt6', os: ubuntu-latest, python-version: '3.13', qt-binding: pyqt6, testenv: 'TESTFLATPAK=1'}
-        - {name: '313-pyside6', os: ubuntu-latest, python-version: '3.13', qt-binding: pyside6, testenv: 'TESTFLATPAK=1', coverage: true}
-        - {name: '313-pyqt6-mac', os: macos-latest, python-version: '3.13', qt-binding: pyqt6}
+        - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, args: '--with-flatpak'}
+        - {name: '313-pyside6', os: ubuntu-latest, py: '3.13', qt: pyside6, args: '--with-flatpak', coverage: true}
+        - {name: '313-pyqt6-mac', os: macos-latest, py: '3.13', qt: pyqt6}
 
     steps:
     - name: Checkout
@@ -34,23 +34,23 @@ jobs:
 
     - name: Qt dependencies
       if: ${{ runner.os == 'Linux' }}
-      run: sudo apt install ${{ matrix.qt-binding == 'pyqt5' && 'libqt5gui5' || 'libqt6gui6' }}
+      run: sudo apt install ${{ matrix.qt == 'pyqt5' && 'libqt5gui5' || 'libqt6gui6' }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.py }}
         cache: 'pip'
 
     - name: Pip dependencies
       run: |
-        pip install -e .[${{ matrix.qt-binding }},pygments,test]
+        pip install -e .[${{ matrix.qt }},pygments,test]
         ${{ matrix.piptweak }}
 
     - run: ruff check
 
     - name: Unit tests
-      run: TESTNET=1 ${{ matrix.testenv }} PYTEST_QT_API=${{ matrix.qt-binding }} ./test.sh ${{ matrix.coverage && '--cov' }}
+      run: ./test.py --qt=${{ matrix.qt }} --with-network ${{ matrix.args }} ${{ matrix.coverage && '--cov' }}
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
