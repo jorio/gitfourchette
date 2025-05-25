@@ -356,7 +356,7 @@ def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread, withGC)
     # TODO: For exhaustiveness we should make a large repo with tens of thousands of commits
     #       to simulate interrupting the walker loop in PrimeRepo.
 
-    numTabs = 15
+    numTabs = 50
     sesh = Session()
     for i in range(numTabs):
         wd = unpackRepo(tempDir, renameTo=f"RepoCopy{i:04}")
@@ -575,6 +575,7 @@ def testRestoreSession(tempDir, mainWindow):
     originalWindow.close()
     app.endSession(clearTempDir=False)
     app.mainWindow = None
+    QTest.qWait(0)
 
     # Make one of the repos inaccessible
     shutil.rmtree(f"{tempDir.name}/RepoCopy0003")
@@ -583,8 +584,7 @@ def testRestoreSession(tempDir, mainWindow):
     # Begin new session
 
     app.beginSession()
-    QTest.qWait(1)
-    mainWindow2: MainWindow = app.mainWindow
+    mainWindow2: MainWindow = waitUntilTrue(lambda: app.mainWindow)
 
     # We've lost one of the repos
     acceptQMessageBox(mainWindow2, r"session could.?n.t be restored.+RepoCopy0003")

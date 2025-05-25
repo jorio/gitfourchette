@@ -164,6 +164,7 @@ class PrimeRepo(RepoTask):
         # RETURN TO UI THREAD
         # ---------------------------------------------------------------------
         yield from self.flowEnterUiThread()
+        assert not repoStub.didClose, "unexpectedly continuing PrimeRepo after RepoStub was closed"
 
         # Save commit count (if not truncated)
         if not truncatedHistory:
@@ -187,7 +188,10 @@ class PrimeRepo(RepoTask):
 
         # As soon as the RepoStub's task runner has wrapped up this task,
         # hand control to the RepoWidget's task runner and finish initialization.
-        repoStub.taskRunner.ready.connect(lambda: rw.runTask(InstallRepoWidget, locator, repoStub))
+        def finishInstall():
+            assert not repoStub.didClose, "RepoStub was closed as we were going to hand over control to RepoWidget"
+            rw.runTask(InstallRepoWidget, locator, repoStub)
+        repoStub.taskRunner.ready.connect(finishInstall)
 
     def onError(self, exc: Exception):
         try:
@@ -215,16 +219,19 @@ class InstallRepoWidget(RepoTask):
         from gitfourchette.tasks import Jump
 
         assert isinstance(repoStub, RepoStub), "passed widget isn't RepoStub"
+        assert not repoStub.didClose, "unexpectedly starting InstallRepoWidget after RepoStub was closed"
 
         rw = self.parentWidget()
         assert isinstance(rw, RepoWidget), "task parent isn't RepoWidget"
+        repoStub.closing.connect(rw.cleanup)
 
         yield from self.flowSubtask(Jump, initialLocator)
+        repoStub.closing.disconnect(rw.cleanup)
+        assert not repoStub.didClose, "unexpectedly continuing InstallRepoWidget after RepoStub was closed during Jump"
 
         rw.refreshNumUncommittedChanges()
         rw.graphView.scrollToRowForLocator(initialLocator, QAbstractItemView.ScrollHint.PositionAtCenter)
 
-        # TODO: This can fail if the user has closed the tab!!!!
         mainWindow = rw.window()
         mainWindow.installRepoWidget(rw, mainWindow.tabs.indexOf(repoStub))
 

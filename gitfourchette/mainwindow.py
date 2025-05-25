@@ -849,12 +849,14 @@ class MainWindow(QMainWindow):
     def closeTab(self, index: int, finalTab: bool = True):
         widget = self.tabs.widget(index)
 
+        # Remove the tab BEFORE cleaning up the widget
+        # to prevent any interaction with it while it's wrapping up.
+        self.tabs.removeTab(index)
+
         # Clean up the widget
         widget.close()  # will call RepoWidget.cleanup()
         widget.deleteLater()  # help out GC (for PySide6)
         del widget
-
-        self.tabs.removeTab(index)
 
         if finalTab:
             self.saveSession()

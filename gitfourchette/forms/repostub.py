@@ -27,6 +27,7 @@ class RepoStub(QWidget):
     progressValue = Signal(int)
     progressMessage = Signal(str)
     progressAbortable = Signal(bool)
+    closing = Signal()
 
     def __init__(self, parent=None, workdir="", locator=NavLocator.Empty, maxCommits=-1):
         super().__init__(parent)
@@ -66,14 +67,23 @@ class RepoStub(QWidget):
         self.taskRunner = RepoTaskRunner(parent=self)
         self.taskRunner.setObjectName(f"RepoTaskRunner(STUB: {self.getTitle()})")
 
-    def close(self):
+    def close(self) -> bool:
+        assert not self.didClose, "RepoStub is already closing!"
+
         self.didAbort = True
         self.didClose = True
+
+        self.ui.progressLabel.setText(_("Aborting. Just a moment…"))
+        self.ui.progressAbortButton.setEnabled(False)
+        self.ui.progressBar.setRange(0, 0)
+
         if self.taskRunner.isBusy():
-            _logger.info("Interrupting ongoing PrimeRepo task because RepoStub was force closed!")
+            _logger.debug(f"Interrupting priming task because {self.objectName()} was force closed!")
             self.taskRunner.killCurrentTask()
             self.taskRunner.joinZombieTask()
-        super().close()
+
+        self.closing.emit()
+        return super().close()
 
     def resetUi(self):
         self.didAbort = False
