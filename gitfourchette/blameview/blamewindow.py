@@ -7,13 +7,14 @@
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.blameview.blamemodel import BlameModel
+from gitfourchette.blameview.blamescrubber import BlameScrubber
 from gitfourchette.blameview.blametextedit import BlameTextEdit
-from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
+from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel, UC_FAKEID
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
 from gitfourchette.toolbox import *
@@ -42,18 +43,12 @@ class BlameWindow(QWidget):
         # Die in tandem with RepoWidget
         taskInvoker.destroyed.connect(self.close)
 
-        self.scrubber = QComboBox()
-        self.scrubber.addItem(_("Loading…"))
         self.textEdit = BlameTextEdit(self.model)
         self.textEdit.setUpAsDetachedWindow()
         self.textEdit.searchBar.lineEdit.setPlaceholderText(_("Find text in revision"))
 
-        self.scrubber.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
-        self.scrubber.setMinimumWidth(128)
+        self.scrubber = BlameScrubber(self.model, self)
         self.scrubber.activated.connect(self.onScrubberActivated)
-        self.scrubber.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
-        self.scrubber.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
-        enforceComboBoxMaxVisibleItems(self.scrubber, QApplication.primaryScreen().availableSize().height() // 18 - 1)
 
         self.jumpButton = QToolButton()
         self.jumpButton.setText(_("Jump"))
@@ -110,6 +105,7 @@ class BlameWindow(QWidget):
 
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(Qt.WindowType.Window)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         app = GFApplication.instance()
         app.mouseSideButtonPressed.connect(self.onMouseSideButtonPressed)
@@ -134,24 +130,7 @@ class BlameWindow(QWidget):
         self.model.trace = trace
         self.model.blameCollection = blameCollection
 
-        self.scrubber.clear()
-
-        startNode = trace.first  # fall back to newest commit
-        for index, node in enumerate(trace):
-            if node.commitId == startAt:
-                startNode = node
-
-            if node.commitId == UC_FAKEID:
-                caption = _("Uncommitted changes in working directory")
-            else:
-                commit = self.model.repo.peel_commit(node.commitId)
-                message, _dummy = messageSummary(commit.message)
-                dateText = signatureDateFormat(commit.author, "yyyy-MM-dd", localTime=True)
-                caption = f"{dateText} {shortHash(node.commitId)} {message}"
-
-            self.scrubber.addItem(caption, userData=node)
-            self.scrubber.setItemIcon(index, stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)]))
-
+        startNode = self.scrubber.scrubberModel.setTrace(trace, startAt)
         self.setTraceNode(startNode)
 
     def saveFilePosition(self):
@@ -170,7 +149,7 @@ class BlameWindow(QWidget):
         self.model.currentBlame = self.model.blameCollection[node.blobId]
 
         with QSignalBlockerContext(self.scrubber):
-            scrubberIndex = self.scrubber.findData(node)
+            scrubberIndex = self.scrubber.findData(node.commitId, CommitLogModel.Role.Oid)
             self.scrubber.setCurrentIndex(scrubberIndex)
 
         blob = self.model.repo.peel_blob(node.blobId)
@@ -227,7 +206,7 @@ class BlameWindow(QWidget):
         index = self.scrubber.currentIndex()
         index += delta
         assert 0 <= index < self.scrubber.count()
-        node = self.scrubber.itemData(index)
+        node = self.getTraceNodeFromScrubberRow(index)
         self.setTraceNode(node)
 
     def goBackOrForwardDelta(self, delta: int):
@@ -239,8 +218,11 @@ class BlameWindow(QWidget):
         self.setTraceNode(node, saveFilePositionFirst=False)
 
     def onScrubberActivated(self, index: int):
-        node: TraceNode = self.scrubber.itemData(index)
+        node = self.getTraceNodeFromScrubberRow(index)
         self.setTraceNode(node)
+
+    def getTraceNodeFromScrubberRow(self, index: int) -> TraceNode:
+        return self.scrubber.itemData(index, CommitLogModel.Role.TraceNode)
 
     def jumpToCommit(self, locator: NavLocator = NavLocator.Empty):
         if locator == NavLocator.Empty:

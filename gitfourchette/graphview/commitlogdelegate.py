@@ -16,7 +16,7 @@ from gitfourchette.graphview.graphpaint import paintGraphFrame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel, UC_FAKEID, UC_FAKEREF
+from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel
 from gitfourchette.toolbox import *
 
 
@@ -62,14 +62,16 @@ NARROW_WIDTH = (500, 750)
 
 
 class CommitLogDelegate(QStyledItemDelegate):
-    def __init__(self, repoWidget, parent=None):
+    def __init__(self, repoModel: RepoModel, searchBar: SearchBar | None=None, parent: QWidget | None=None):
         super().__init__(parent)
 
-        self.repoWidget = repoWidget
+        self.repoModel = repoModel
+        self.searchBar = searchBar
 
         self.mustRefreshMetrics = True
         self.hashCharWidth = 0
         self.dateMaxWidth = 0
+        self.authorMaxWidth = 0
         self.activeCommitFont = QFont()
         self.uncommittedFont = QFont()
         self.refboxFont = QFont()
@@ -104,33 +106,31 @@ class CommitLogDelegate(QStyledItemDelegate):
         self.dateMaxWidth = QFontMetrics(self.activeCommitFont).horizontalAdvance(dateText + " ")
         self.dateMaxWidth = int(self.dateMaxWidth)  # make sure it's an int for pyqt5 compat
 
-    @property
-    def repoModel(self) -> RepoModel:
-        return self.repoWidget.repoModel
+        self.authorMaxWidth = self.hashCharWidth * MAX_AUTHOR_CHARS.get(settings.prefs.authorDisplayStyle, 16)
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground=True):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         try:
-            self._paint(painter, option, index)
+            self._paint(painter, option, index, fillBackground)
         except Exception as exc:  # pragma: no cover
             painter.restore()
             painter.save()
             self._paintError(painter, option, index, exc)
         painter.restore()
 
-    def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+    def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
         toolTips: list[CommitToolTipZone] = []
 
         hasFocus = option.state & QStyle.StateFlag.State_HasFocus
         isSelected = option.state & QStyle.StateFlag.State_Selected
-        style = option.widget.style()
         palette: QPalette = option.palette
-        outlineColor = palette.color(QPalette.ColorRole.Base)
         colorGroup = QPalette.ColorGroup.Normal if hasFocus else QPalette.ColorGroup.Inactive
 
         # Draw default background
-        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, option.widget)
+        if fillBackground:
+            style = option.widget.style()
+            style.drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, option.widget)
 
         if isSelected:
             painter.setPen(palette.color(colorGroup, QPalette.ColorRole.HighlightedText))
@@ -146,7 +146,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         rect.setRight(rect.right() - XMARGIN)
 
         # Compute column bounds
-        authorWidth = hcw * MAX_AUTHOR_CHARS.get(settings.prefs.authorDisplayStyle, 16)
+        authorWidth = self.authorMaxWidth
         dateWidth = self.dateMaxWidth
         if rect.width() < NARROW_WIDTH[0]:
             authorWidth = 0
@@ -177,15 +177,14 @@ class CommitLogDelegate(QStyledItemDelegate):
                 if author.time != committer.time:
                     dateText += "*"
 
-            if self.repoModel.headCommitId == commit.id:
-                painter.setFont(self.activeCommitFont)
-
-            searchBar: SearchBar = self.parent().searchBar
-            searchTerm: str = searchBar.searchTerm
-            searchTermLooksLikeHash: bool = searchBar.searchTermLooksLikeHash
-
-            if not searchBar.isVisible():
+            if self.searchBar:
+                searchTerm: str = self.searchBar.searchTerm
+                searchTermLooksLikeHash: bool = self.searchBar.searchTermLooksLikeHash
+                if not self.searchBar.isVisible():
+                    searchTerm = ""
+            else:
                 searchTerm = ""
+                searchTermLooksLikeHash = False
         else:
             commit = None
             oid = None
@@ -200,19 +199,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             if specialRowKind == SpecialRow.UncommittedChanges:
                 oid = UC_FAKEID
-                summaryText = _("Working Directory") + " "
-                # Append change count if available
-                numChanges = self.repoModel.numUncommittedChanges
-                if numChanges == 0:
-                    summaryText += _("(Clean)")
-                elif numChanges > 0:
-                    summaryText += _n("({n} change)", "({n} changes)", numChanges)
-                # Append draft message if any
-                draftMessage = self.repoModel.prefs.draftCommitMessage
-                if draftMessage:
-                    draftMessage = messageSummary(draftMessage)[0].strip()
-                    draftIntro = _("Commit draft:")
-                    summaryText += f" – {draftIntro} {tquo(draftMessage)}"
+                summaryText = self.uncommittedChangesMessage()
 
             elif specialRowKind == SpecialRow.TruncatedHistory:
                 if self.repoModel.hiddenCommits and self.repoModel.hiddenRefs:
@@ -226,6 +213,9 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             else:  # pragma: no cover
                 summaryText = f"*** Unsupported special row {specialRowKind}"
+
+        if self.isBold(index):
+            painter.setFont(self.activeCommitFont)
 
         # Get metrics now so the message gets elided according to the custom font style
         # that may have been just set for this commit.
@@ -253,25 +243,15 @@ class CommitLogDelegate(QStyledItemDelegate):
             x2 = min(len(hashText), len(searchTerm)) * hcw
             SearchBar.highlightNeedle(painter, rect, hashText, 0, len(searchTerm), x1, x2)
 
-        # ------ Graph
+        # ------ Set private/message area rect
         rect.setLeft(leftBoundSummary)
-        if oid is not None:
-            paintGraphFrame(self.repoModel, oid, painter, rect, outlineColor)
-            rect.setLeft(rect.right())
-
-        # ------ Set refbox/message area rect
         if oid is not None and oid != UC_FAKEID:
             rect.setRight(leftBoundName - XMARGIN)
         else:
             rect.setRight(rightBound)
 
-        # ------ Refboxes
-        refsHere = self.repoModel.refsAt.get(oid, None)
-        if refsHere:
-            painter.save()
-            painter.setClipRect(rect)
-            self._paintRefboxes(painter, rect, refsHere, toolTips)
-            painter.restore()
+        # ------ Private
+        self.paintPrivate(painter, option, rect, oid, toolTips)
 
         # ------ Message
         # use muted color for foreign commit messages if not selected
@@ -318,9 +298,11 @@ class CommitLogDelegate(QStyledItemDelegate):
         # ----------------
 
         # Tooltip metrics
+        # Block model signals to update it - otherwise QComboBox will constantly redraw itself
         model = index.model()
-        model.setData(index, leftBoundName if authorWidth != 0 else -1, CommitLogModel.Role.AuthorColumnX)
-        model.setData(index, toolTips, CommitLogModel.Role.ToolTipZones)
+        with QSignalBlockerContext(model):
+            model.setData(index, leftBoundName if authorWidth != 0 else -1, CommitLogModel.Role.AuthorColumnX)
+            model.setData(index, toolTips, CommitLogModel.Role.ToolTipZones)
 
     def _paintRefboxes(self, painter: QPainter, rect: QRect, refs: list[str], toolTips: list[CommitToolTipZone]):
         repoModel = self.repoModel
@@ -572,3 +554,39 @@ class CommitLogDelegate(QStyledItemDelegate):
         r = super().sizeHint(option, index)
         r.setHeight(option.fontMetrics.height() * mult // 100)
         return r
+
+    def isBold(self, index: QModelIndex) -> bool:
+        commitId = index.data(CommitLogModel.Role.Oid)
+        return commitId == self.repoModel.headCommitId
+
+    def uncommittedChangesMessage(self) -> str:
+        summaryText = _("Working Directory") + " "
+        # Append change count if available
+        numChanges = self.repoModel.numUncommittedChanges
+        if numChanges == 0:
+            summaryText += _("(Clean)")
+        elif numChanges > 0:
+            summaryText += _n("({n} change)", "({n} changes)", numChanges)
+        # Append draft message if any
+        draftMessage = self.repoModel.prefs.draftCommitMessage
+        if draftMessage:
+            draftMessage = messageSummary(draftMessage)[0].strip()
+            draftIntro = _("Commit draft:")
+            summaryText += f" – {draftIntro} {tquo(draftMessage)}"
+        return summaryText
+
+    def paintPrivate(self, painter, option, rect, oid, toolTips):
+        # ------ Graph
+        if oid is not None:
+            outlineColor = option.palette.color(QPalette.ColorRole.Base)
+            graphRect = QRect(rect)
+            paintGraphFrame(self.repoModel, oid, painter, graphRect, outlineColor)
+            rect.setLeft(graphRect.right())
+
+        # ------ Refboxes
+        refsHere = self.repoModel.refsAt.get(oid, None)
+        if refsHere:
+            painter.save()
+            painter.setClipRect(rect)
+            self._paintRefboxes(painter, rect, refsHere, toolTips)
+            painter.restore()

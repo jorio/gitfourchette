@@ -8,8 +8,10 @@ import shutil
 import textwrap
 import pytest
 
+from collections.abc import Generator
 from typing import Literal
 
+from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from .util import *
 
 from gitfourchette.blameview.blamewindow import BlameWindow
@@ -41,7 +43,7 @@ class BlameFixture:
 
 
 @pytest.fixture
-def blameWindow(tempDir, mainWindow) -> BlameWindow:
+def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
     wd = unpackRepo(tempDir, "testrepoformerging")
 
     # Edit file so we have some uncommitted changes
@@ -64,11 +66,14 @@ def blameWindow(tempDir, mainWindow) -> BlameWindow:
 
     blameWindow._unitTestMainWindow = mainWindow
     blameWindow._unitTestRepoWidget = rw
-    return blameWindow
+    yield blameWindow
+
+    blameWindow.close()
 
 
 def testOpenBlameCorrectTrace(blameWindow):
     blameModel = blameWindow.model
+    assert blameModel
 
     # Look at trace
     assert len(blameModel.trace) == len(BlameFixture.history)
@@ -80,13 +85,15 @@ def testOpenBlameCorrectTrace(blameWindow):
 
 def testOpenBlameJumpAround(blameWindow):
     blameModel = blameWindow.model
+    assert blameModel
+    assert blameWindow.scrubber.model().blameModel
 
     assert NavLocator.inCommit(BlameFixture.revs["spanish"], BlameFixture.path).isSimilarEnoughTo(blameModel.currentLocator)
 
     # Jump to French commit (4ec4)
     gotoOid = BlameFixture.revs["french"]
     gotoNode = blameModel.trace.nodeForCommit(gotoOid)
-    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode)
+    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode, CommitLogModel.Role.TraceNode)
     qcbSetIndex(blameWindow.scrubber, "say hello in french")
     assert NavLocator.inCommit(gotoOid, BlameFixture.path).isSimilarEnoughTo(blameModel.currentLocator)
     assert blameWindow.textEdit.toPlainText().strip() == "hello world\nhola mundo\nbonjour le monde"
@@ -94,7 +101,7 @@ def testOpenBlameJumpAround(blameWindow):
     # Jump to uncommitted changes
     gotoOid = BlameFixture.revs["workdir"]
     gotoNode = blameModel.trace.nodeForCommit(gotoOid)
-    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode)
+    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode, CommitLogModel.Role.TraceNode)
     qcbSetIndex(blameWindow.scrubber, "uncommitted")
     assert NavLocator(context=NavContext.WORKDIR, path=BlameFixture.path).isSimilarEnoughTo(blameModel.currentLocator)
     assert blameWindow.textEdit.toPlainText().strip() == "ciao mondo\nhello world\nhola mundo\nbonjour le monde"
@@ -158,7 +165,7 @@ def testOpenBlameNavigateUpDown(blameWindow):
         assert newerButton.isEnabled()
         newerButton.click()
     assert (True, False) == (olderButton.isEnabled(), newerButton.isEnabled())
-    assert "Uncommitted" in scrubber.currentText()
+    assert "uncommitted" in scrubber.currentText().lower()
 
 
 def testBlameJumpToCommit(blameWindow):

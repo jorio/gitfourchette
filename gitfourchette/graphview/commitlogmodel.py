@@ -40,6 +40,7 @@ class CommitLogModel(QAbstractListModel):
         ToolTipZones    = Qt.ItemDataRole.UserRole + 2
         AuthorColumnX   = Qt.ItemDataRole.UserRole + 3
         SpecialRow      = Qt.ItemDataRole.UserRole + 4
+        TraceNode       = Qt.ItemDataRole.UserRole + 5  # for BlameScrubber
 
     # Reference to RepoState.commitSequence
     _commitSequence: list[Commit]
@@ -151,6 +152,8 @@ class CommitLogModel(QAbstractListModel):
                 tip += commitAuthorTooltip(commit)
 
             return tip
+
+        return None
 
     def setData(self, index, value, role=None):
         if role == CommitLogModel.Role.AuthorColumnX:

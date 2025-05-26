@@ -64,7 +64,6 @@ class GraphView(QListView):
         self.repoWidget = parent
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # prevents double-clicking to edit row text
-        self.setItemDelegate(CommitLogDelegate(parent, parent=self))
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.onContextMenuRequested)
@@ -74,6 +73,9 @@ class GraphView(QListView):
         self.searchBar.setUpItemViewBuddy()
         self.searchBar.hide()
         self.clFilter.rowsAboutToBeInserted.connect(self.searchBar.invalidateBadStem)
+
+        self.clDelegate = CommitLogDelegate(self.repoModel, searchBar=self.searchBar, parent=self)
+        self.setItemDelegate(self.clDelegate)
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs(invalidateMetrics=False)
