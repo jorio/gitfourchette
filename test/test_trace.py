@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import hashlib
 
 import pytest
@@ -13,6 +15,11 @@ from gitfourchette.trace import *
 
 TRACEPATH = "TraceMe.txt"
 
+# Each scenario is a 3-tuple interpreted as such:
+# 1. Commit graph definition parsed by GraphDiagram.
+# 2. Text contents of TraceMe.txt at each point of the commit sequence.
+#    An underscore means that TraceMe.txt does not exist in that commit's tree.
+# 3. Expected significant commits.
 SCENARIOS = {
     # a ┯ 4
     # b ┿ 4 <-- significant revision
@@ -24,6 +31,12 @@ SCENARIOS = {
     "linear": (
         "a-b-c-d-e-f-g",
         "4 4 3 2 1 1 1",
+        "  b c d     g",
+    ),
+
+    "linear with extra history before file is created": (
+        "a-b-c-d-e-f-g-h-i-j",
+        "4 4 3 2 1 1 1 _ _ _",  # underscore means the file doesn't exist
         "  b c d     g",
     ),
 
@@ -107,6 +120,30 @@ SCENARIOS = {
     ),
 }
 
+
+class MockBlob:
+    def __init__(self, data: str):
+        self.data = data.encode()
+        realHash = hashlib.sha1(f'blob {len(self.data)}'.encode() + b'\0' + self.data)
+        self.id = Oid(hex=realHash.hexdigest())
+
+
+class MockTree(dict):
+    def diff_to_tree(self, treeAbove: MockTree, _a, _b, _c):
+        assert _a == 0
+        assert _b == 0
+        assert _c == 0
+
+        class DummyDiffNoRenames:
+            def __init__(self):
+                self.deltas = {}
+
+            def find_similar(self):
+                pass
+
+        return DummyDiffNoRenames()
+
+
 @pytest.mark.parametrize('scenarioKey', SCENARIOS.keys())
 def testTrace(scenarioKey):
     print()
@@ -119,15 +156,15 @@ def testTrace(scenarioKey):
     print(diagram)
 
     for commit, blobText in zip(sequence, blobDefs.split(), strict=True):
-        class MockBlob:
-            def __init__(self, data: str):
-                self.data = data.encode()
-                realHash = hashlib.sha1(f'blob {len(self.data)}'.encode() + b'\0' + self.data)
-                self.id = Oid(hex=realHash.hexdigest())
-        commit.tree = {TRACEPATH: MockBlob(blobText)}
+        commit.tree = MockTree()
+        if blobText != "_":
+            commit.tree[TRACEPATH] = MockBlob(blobText)
 
     ll = traceFile(TRACEPATH, sequence[0])
     ll.dump()
 
     for traceNode, significantCommit in zip(ll, significantCommits, strict=True):
         assert traceNode.commitId == significantCommit
+
+    assert ll.tail.sealed
+    assert ll.tail.status == DeltaStatus.ADDED
