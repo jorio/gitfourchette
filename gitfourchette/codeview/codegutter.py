@@ -32,7 +32,7 @@ class CodeGutter(QWidget):
         super().__init__(parent)
         self.codeView = parent
 
-        cursorDpr = 1 if FREEDESKTOP else 4  # On Linux, Qt doesn't seem to support cursors at non-1 DPR
+        cursorDpr = 1 if (FREEDESKTOP and not WAYLAND) else 4  # Qt doesn't seem to support cursor DPR on X11
         cursorPix = QPixmap(f"assets:icons/right_ptr@{cursorDpr}x")
         cursorPix.setDevicePixelRatio(cursorDpr)
         flippedCursor = QCursor(cursorPix, hotX=19, hotY=5)
