@@ -39,10 +39,13 @@ BLAME_PROGRESS_INTERVAL = 10 if not APP_TESTMODE else 1
 class TraceNode:
     DefaultStatus = DeltaStatus.UNMODIFIED
 
+    # "Constant" fields known at constructor time
     path: str
     commitId: Oid  # earliest commit in the branch where this blob shows up
     blobId: Oid
     level: int  # branch ancestry level (breadth distance from root branch)
+
+    # Fields that are modified as the trace is refined
     status: DeltaStatus = DefaultStatus
     llPrev: TraceNode | None = None
     llNext: TraceNode | None = None
@@ -65,9 +68,10 @@ class TraceNode:
             frontier: list[tuple[TraceNode, Commit]],
             ancestorBlobId: Oid
     ) -> bool:
-        assert not self.sealed
+        assert not self.sealed, "node already sealed"
         assert commit
         assert commit.id == self.commitId
+        assert self.blobId != NULL_OID
 
         # Update status, unless we've set it manually (i.e. RENAMED)
         if self.status != TraceNode.DefaultStatus:
@@ -179,8 +183,8 @@ class Trace:
         assert not node.llNext
 
         if APP_DEBUG:  # expensive!
-            assert after in self
-            assert node not in self
+            assert after in self, "inserting after a node that's not in the LL"
+            assert node not in self, "node to insert is already in the LL"
 
         afterNext = after.llNext
 
@@ -197,9 +201,12 @@ class Trace:
         self.count += 1
         assert self.count >= 0
 
+        if APP_DEBUG:  # expensive!
+            assert self.allCommitsUnique(), "duplicate commits in LL"
+
     def unlink(self, node: TraceNode):
         if APP_DEBUG:  # expensive!
-            assert node in self
+            assert node in self, "unlinking a node that's not in the LL"
 
         assert node is not self.head, "can't remove head sentinel"
         if node is self.tail:
@@ -216,6 +223,9 @@ class Trace:
 
         node.llNext = None
         node.llPrev = None
+
+    def allCommitsUnique(self):
+        return len(set(n.commitId for n in self)) == len(self)
 
     class TraceNodeIterator:
         def __init__(self, ll: Trace, reverse=False):
@@ -314,8 +324,8 @@ def traceFile(
         progressCallback=_dummyProgressCallback,
 ) -> Trace:
     ll = Trace(topPath)
-    frontier = [(ll.head, topCommit)]
-    visited: dict[Oid, TraceNode] = {}
+    frontier: list[tuple[TraceNode, Commit]] = [(ll.head, topCommit)]
+    knownBlobs: dict[Oid, Oid] = {}
     numCommits = 0
 
     progressCallback(0)
@@ -329,7 +339,7 @@ def traceFile(
 
         assert node is ll.head or node.llPrev, "dangling node in frontier!"
 
-        if commit.id in visited:
+        if commit.id in knownBlobs:
             continue
 
         if level > maxLevel:
@@ -345,17 +355,18 @@ def traceFile(
         while True:
             assert (not newBranch) == (node.level == level)
             assert newBranch == node.sealed
-            assert commit.id not in visited, "commit already visited!"
+            assert commit.id not in knownBlobs, "commit already visited!"
 
             numCommits += 1
             tree = commit.tree
-            visited[commit.id] = node
 
             if numCommits % TRACE_PROGRESS_INTERVAL == 0:
                 progressCallback(len(ll))
 
             path, blobId = _getBlob(path, tree, treeAbove, node.blobId)
             useful = blobId != node.blobId
+            knownBlobs[commit.id] = blobId
+
             if blobId == NULL_OID:
                 # Blob added here
                 assert newBranch or treeAbove is not None
@@ -372,8 +383,7 @@ def traceFile(
                     significant = nodeAbove.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
                     assert significant
                 newBranch = False
-                # progressCallback(len(ll))
-                visited[commit.id] = node
+                knownBlobs[commit.id] = node.blobId
             else:
                 assert node.level == level
                 node.commitId = commit.id
@@ -384,34 +394,36 @@ def traceFile(
             commitAbove = commit
             treeAbove = tree
 
+            # Optional: Skim over irrelevant portions of the branch
             if skipSkimming > 0:
                 # Don't skim yet
                 skipSkimming -= 1
             elif level == 0 and skimInterval:
                 # Try to skim this branch (see docstring in the function for more info)
-                commit, skipSkimming = _skimBranch(node, commit, visited, skimInterval)
+                commit, skipSkimming = _skimBranch(node, commit, knownBlobs, skimInterval)
                 if skipSkimming == 0:
                     commitAbove = commit
                     treeAbove = commit.tree
 
+            # Get next commit in branch
             try:
-                # Get next commit in branch
                 commit = commit.parents[0]
             except IndexError:
                 # Initial commit
                 blobId = NULL_OID
                 break  # bail from the branch
 
-            if commit.id in visited:
-                # Don't revisit
-                visitedNode = visited[commit.id]
-                assert visitedNode.blobId != NULL_OID
-                blobId = visitedNode.blobId
-                break  # bail from the branch
+            # Don't revisit a commit
+            try:
+                blobId = knownBlobs[commit.id]  # will be used as ancestor blob for sealing the node
+                break  # this commit has already been seen, bail from the branch
+            except KeyError:
+                # Commit hasn't been visited yet
+                pass
 
         # Seal last node in branch
         if not newBranch:
-            assert commitAbove.id in visited
+            assert commitAbove.id in knownBlobs
             significant = node.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
             if not significant:
                 ll.unlink(node)
@@ -436,6 +448,9 @@ def traceFile(
         else:
             assert not (node.status == DeltaStatus.MODIFIED and node.blobId == node.ancestorBlobId)
 
+    if APP_DEBUG:
+        assert ll.allCommitsUnique(), "some duplicates!!"
+
     if progressCallback:
         progressCallback(len(ll))
 
@@ -444,7 +459,7 @@ def traceFile(
     return ll
 
 
-def _skimBranch(node: TraceNode, topCommit: Commit, visited: dict[Oid, TraceNode], interval: int):
+def _skimBranch(node: TraceNode, topCommit: Commit, knownBlobs: dict[Oid, Oid], interval: int):
     """
     Time spent tracing a file is dominated by looking up blobs by path in trees
     (in a lucky scenario where we never have to call Diff.find_similar()).
@@ -470,19 +485,19 @@ def _skimBranch(node: TraceNode, topCommit: Commit, visited: dict[Oid, TraceNode
     assert commit.id == node.commitId
     assert node.level == 0
 
-    skimmed = {node.commitId: node}
+    skimmed = {node.commitId: node.blobId}
     try:
         for _step in range(interval):
             parents = commit.parents
             if len(parents) > 1:
                 raise LookupError()
             commit = parents[0]
-            skimmed[commit.id] = node
+            skimmed[commit.id] = node.blobId
         tree = commit.tree
         blobId = tree[node.path].id
         if blobId == node.blobId:
             node.commitId = commit.id  # Important! Bring current node to this commit
-            visited.update(skimmed)  # Mark all skimmed commits as visited
+            knownBlobs.update(skimmed)  # Mark all skimmed commits as visited
             return commit, 0
     except LookupError:
         pass

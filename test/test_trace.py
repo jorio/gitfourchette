@@ -34,10 +34,16 @@ SCENARIOS = {
         "  b c d     g",
     ),
 
+    # a ┯ 3
+    # b ┿ 2
+    # c ┿ 1
+    # x ┿ _ <-- file did not exist; stop tracing here
+    # y ┿ _
+    # z ┷ _
     "linear with extra history before file is created": (
-        "a-b-c-d-e-f-g-h-i-j",
-        "4 4 3 2 1 1 1 _ _ _",  # underscore means the file doesn't exist
-        "  b c d     g",
+        "a-b-c-x-y-z",
+        "3 2 1 _ _ _",  # underscore means the file doesn't exist
+        "a b c",
     ),
 
     # a ┯     2
@@ -60,7 +66,7 @@ SCENARIOS = {
     # c ┿ │ 2 <-- significant
     # d ┿ │ 1
     # z ┷─╯ 1 <-- significant
-    "parallel skip": (
+    "parallel prune1": (
         "a-m:b,p p:z b-c-d-z",
         "2 2     1   2 2 1 1",
         "              c   z",
@@ -73,7 +79,7 @@ SCENARIOS = {
     # c ┿ │ 3
     # d ┿ │ 4
     # z ┷─╯ 4
-    "parallel don't prune": (
+    "parallel keep1": (
         "a-m:b,p p:z b-c-d-z",
         "1 1     2   3 3 4 4",
         "  m     p     c   z",
@@ -87,7 +93,7 @@ SCENARIOS = {
     # f ┿ │ 3 <-- significant contributor on main branch
     # g │ ┿ 4
     # h ┷─╯ 4
-    "parallel prune d-e-g": (
+    "parallel prune2": (
         "a-b-c:f,d d-e:g f:h g-h",
         "1 2 3     4 4   3   4 4",
         "a b             f     h"
@@ -101,10 +107,20 @@ SCENARIOS = {
     # f ┿ │ 4
     # g │ ┿ 4
     # h ┷─╯ 4
-    "parallel don't prune d-e-g": (
+    "parallel keep2": (
         "a-b-c:f,d d-e:g f:h g-h",
         "1 2 3     3 3   4   4 4",
         "a b c       e         h"
+    ),
+
+    # c ┯─╮ 3 <-- significant because merge point
+    # e │ ┿ 3 <-- significant contributor on parallel branch
+    # g │ ┿ 4     (don't care)
+    # h ┷─╯ 4 <-- significant because main branch
+    "parallel keep2 reduced": (
+        "c:h,e e-g-h",
+        "3     3 4 4",
+        "c     e   h"
     ),
 
     "double merge": (
@@ -117,6 +133,25 @@ SCENARIOS = {
         "a:d,b b-c:z,e d:f,e e:g f:h,g g:i h:j,i i:k j:z,k k:z z",
         "3     2 2     3     2   3     2   3     2   3     2   1",
         "j k z",
+    ),
+
+    # a ┯─╮  <-- 1 (add)
+    # b │ ┿  <-- 1 (add)
+    # z ┷─╯  <-- file did not exist yet
+    "bumper 1": (
+        "a:z,b b-z",
+        "1     1 _",
+        "a     b",
+    ),
+
+    # a ┯─╮  <-- 2 (add)
+    # b │ ┿  <-- 2 (modify)
+    # c │ ┿  <-- 1 (add)
+    # z ┷─╯  <-- file did not exist yet
+    "bumper 2": (
+        "a:z,b b-c-z",
+        "2     2 1 _",
+        "a     b c",
     ),
 }
 
