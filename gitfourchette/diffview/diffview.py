@@ -272,7 +272,7 @@ class DiffView(CodeView):
                         shortcuts=GlobalShortcuts.stageHotkeys[0],
                     ),
                     ActionDef(
-                        _("Discard Lines"),
+                        _("Discard Lines…"),
                         self.discardSelection,
                         "git-discard-lines",
                         shortcuts=GlobalShortcuts.discardHotkeys[0],
@@ -290,7 +290,7 @@ class DiffView(CodeView):
                         "git-stage-lines",
                     ),
                     ActionDef(
-                        _("Discard Hunk"),
+                        _("Discard Hunk…"),
                         lambda: self.discardHunk(clickedHunkID),
                         "git-discard-lines",
                     ),
