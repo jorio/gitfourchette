@@ -26,7 +26,7 @@ class BlameScrubber(QComboBox):
         self.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
         enforceComboBoxMaxVisibleItems(self, QApplication.primaryScreen().availableSize().height() // 18 - 1)
 
-        self.scrubberDelegate = BlameScrubberDelegate(blameModel.repoModel, parent=self)
+        self.scrubberDelegate = BlameScrubberDelegate(blameModel, parent=self)
         self.setItemDelegate(self.scrubberDelegate)
 
     def paintEvent(self, e):

@@ -575,7 +575,14 @@ class CommitLogDelegate(QStyledItemDelegate):
             summaryText += f" – {draftIntro} {tquo(draftMessage)}"
         return summaryText
 
-    def paintPrivate(self, painter, option, rect, oid, toolTips):
+    def paintPrivate(
+            self,
+            painter: QPainter,
+            option: QStyleOptionViewItem,
+            rect: QRect,
+            oid: Oid,
+            toolTips: list[CommitToolTipZone]
+    ):
         # ------ Graph
         if oid is not None:
             outlineColor = option.palette.color(QPalette.ColorRole.Base)

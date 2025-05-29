@@ -5,12 +5,11 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.blameview.blamemodel import BlameModel
-from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
-from gitfourchette.toolbox import stockIcon, onAppThread
+from gitfourchette.toolbox import onAppThread
 from gitfourchette.trace import Trace, TraceNode
 
 
@@ -74,9 +73,5 @@ class BlameScrubberModel(QAbstractListModel):
 
         elif role == CommitLogModel.Role.TraceNode:
             return node
-
-        elif role == Qt.ItemDataRole.DecorationRole:
-            # TODO: display those in delegate!
-            return stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)])
 
         return None
