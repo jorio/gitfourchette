@@ -6,7 +6,6 @@
 
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
-from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.toolbox import onAppThread
@@ -17,23 +16,14 @@ class BlameScrubberModel(QAbstractListModel):
     blameModel: BlameModel
     nodes: list[TraceNode]
 
-    def __init__(self, parent):
+    def __init__(self, blameModel: BlameModel, parent: QWidget):
         super().__init__(parent)
+
         if APP_DEBUG and HAS_QTEST:
             self.modelTester = QAbstractItemModelTester(self)
 
-    def setTrace(self, trace: Trace, startAt: Oid):
-        self.nodes = []
-
-        startNode = trace.first  # fall back to newest commit
-
-        for node in trace:
-            if node.commitId == startAt:
-                startNode = node
-            self.nodes.append(node)
-
-        self.modelReset.emit()
-        return startNode
+        self.blameModel = blameModel
+        self.nodes = list(blameModel.trace)
 
     def columnCount(self, parent = ...):
         return 1

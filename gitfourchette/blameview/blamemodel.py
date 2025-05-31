@@ -19,6 +19,16 @@ class BlameModel:
     currentTraceNode: TraceNode
     currentBlame: Blame
 
+    def __init__(self, repoModel: RepoModel, trace: Trace, blameCollection: BlameCollection, taskInvoker: QWidget):
+        self.taskInvoker = taskInvoker
+        self.repoModel = repoModel
+        self.trace = trace
+        self.blameCollection = blameCollection
+
+        startNode = trace.first  # fall back to newest commit
+        self.currentTraceNode = startNode
+        self.currentBlame = blameCollection[startNode.blobId]
+
     @property
     def repo(self) -> Repo:
         return self.repoModel.repo

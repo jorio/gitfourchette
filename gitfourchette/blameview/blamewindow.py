@@ -25,7 +25,7 @@ class BlameWindow(QWidget):
     _currentBlameWindows = []
     "Currently open BlameWindows"
 
-    def __init__(self, repoModel: RepoModel, taskInvoker: QWidget):
+    def __init__(self, blameModel: BlameModel):
         # DON'T parent the window so it doesn't sit on top of MainWindow on Wayland
         super().__init__(None)
 
@@ -34,20 +34,18 @@ class BlameWindow(QWidget):
 
         self.setObjectName("BlameWindow")
 
-        self.model = BlameModel()
-        self.model.taskInvoker = taskInvoker
-        self.model.repoModel = repoModel
+        self.model = blameModel
 
         self.navHistory = NavHistory()
 
         # Die in tandem with RepoWidget
-        taskInvoker.destroyed.connect(self.close)
+        blameModel.taskInvoker.destroyed.connect(self.close)
 
-        self.textEdit = BlameTextEdit(self.model)
+        self.textEdit = BlameTextEdit(blameModel, self)
         self.textEdit.setUpAsDetachedWindow()
         self.textEdit.searchBar.lineEdit.setPlaceholderText(_("Find text in revision"))
 
-        self.scrubber = BlameScrubber(self.model, self)
+        self.scrubber = BlameScrubber(blameModel, self)
         self.scrubber.activated.connect(self.onScrubberActivated)
 
         self.jumpButton = QToolButton()
@@ -125,13 +123,6 @@ class BlameWindow(QWidget):
         super().closeEvent(event)
 
     # -------------------------------------------------------------------------
-
-    def setTrace(self, trace: Trace, blameCollection: BlameCollection, startAt: Oid):
-        self.model.trace = trace
-        self.model.blameCollection = blameCollection
-
-        startNode = self.scrubber.scrubberModel.setTrace(trace, startAt)
-        self.setTraceNode(startNode)
 
     def saveFilePosition(self):
         currentLocator = self.textEdit.getPreciseLocator()

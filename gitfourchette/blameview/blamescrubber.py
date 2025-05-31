@@ -16,8 +16,7 @@ class BlameScrubber(QComboBox):
     def __init__(self, blameModel: BlameModel, parent: QWidget):
         super().__init__(parent)
 
-        self.scrubberModel = BlameScrubberModel(self)
-        self.scrubberModel.blameModel = blameModel
+        self.scrubberModel = BlameScrubberModel(blameModel, parent=self)
         self.setModel(self.scrubberModel)
 
         self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)

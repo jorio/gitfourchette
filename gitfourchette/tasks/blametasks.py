@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -72,13 +73,20 @@ class OpenBlame(RepoTask):
         # Annotate file
         yield from self.flowEnterWorkerThread()
         with Benchmark("blame"):
-            blame = blameFile(repo, trace, seed, progressCallback=progress.reportBlameProgress)
+            blameCollection = blameFile(repo, trace, seed, progressCallback=progress.reportBlameProgress)
+
+        blameModel = BlameModel(self.repoModel, trace, blameCollection, self.parentWidget())
 
         yield from self.flowEnterUiThread()
         progress.close()
 
-        blameWindow = BlameWindow(self.repoModel, self.parentWidget())
-        blameWindow.setTrace(trace, blame, showCommit)
+        blameWindow = BlameWindow(blameModel)
+
+        try:
+            startNode = blameModel.trace.nodeForCommit(showCommit)
+        except KeyError:
+            startNode = blameModel.trace.first
+        blameWindow.setTraceNode(startNode)
 
         windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
         windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
