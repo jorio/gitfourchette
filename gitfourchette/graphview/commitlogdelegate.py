@@ -587,9 +587,8 @@ class CommitLogDelegate(QStyledItemDelegate):
     ):
         # ------ Graph
         if oid is not None:
-            outlineColor = option.palette.color(QPalette.ColorRole.Base)
             graphRect = QRect(rect)
-            paintGraphFrame(self.repoModel, oid, painter, graphRect, outlineColor)
+            paintGraphFrame(painter, graphRect, oid, self.repoModel.graph, self.repoModel.hiddenCommits)
             rect.setLeft(graphRect.right())
 
         # ------ Refboxes

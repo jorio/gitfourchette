@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.blame import *
+from gitfourchette.graph import Graph, GraphWeaver
 from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
@@ -19,6 +20,7 @@ class BlameModel:
     currentTraceNode: TraceNode
     currentBlame: AnnotatedFile
     nodeSequence: list[TraceNode]
+    graph: Graph
 
     def __init__(self, repoModel: RepoModel, trace: Trace, blameCollection: BlameCollection, taskInvoker: QWidget):
         self.taskInvoker = taskInvoker
@@ -30,10 +32,20 @@ class BlameModel:
         self.currentTraceNode = startNode
         self.currentBlame = blameCollection[startNode.blobId]
 
-        self.nodeSequence = list(startNode.walkGraph())
+        # Create graph
+        self.nodeSequence = []
+        self.graph, graphWeaver = GraphWeaver.newGraph()
+        for node in startNode.walkGraph():
+            self.nodeSequence.append(node)
+            parentIds = [parent.commitId for parent in node.parents]
+            graphWeaver.newCommit(node.commitId, parentIds)
+            self.graph.commitRows[node.commitId] = graphWeaver.row
+
         if APP_DEBUG:
             allCommitIds = [node.commitId for node in self.nodeSequence]
             assert len(set(allCommitIds)) == len(allCommitIds), "duplicate commits in sequence"
+            self.graph.testConsistency()
+
         assert len(self.nodeSequence) == trace.numRelevantNodes, \
             f"{len(self.nodeSequence)} nodes in sequence, but traced {trace.numRelevantNodes} relevant nodes"
 

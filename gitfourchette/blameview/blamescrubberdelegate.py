@@ -8,6 +8,7 @@ from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogmodel import CommitToolTipZone
+from gitfourchette.graphview.graphpaint import paintGraphFrame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
@@ -30,15 +31,19 @@ class BlameScrubberDelegate(CommitLogDelegate):
             oid: Oid,
             toolTips: list[CommitToolTipZone]
     ):
+        node = self.blameModel.trace.nodeForCommit(oid)
+
+        # Graph frame
+        graphRect = QRect(rect)
+        paintGraphFrame(painter, graphRect, oid, self.blameModel.graph, set())
+        rect.setLeft(graphRect.right())
+
+        # Icon
         iconRect = QRect(rect)
         iconSize = min(16, iconRect.height())
         iconRect.setWidth(iconSize)
-
-        node = self.blameModel.trace.nodeForCommit(oid)
-
         icon = stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)])
         icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-
         rect.setLeft(iconRect.right() + 5)
 
     def uncommittedChangesMessage(self) -> str:

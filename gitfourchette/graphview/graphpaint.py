@@ -9,10 +9,10 @@ from collections.abc import Set
 
 from gitfourchette import colors
 from gitfourchette import settings
-from gitfourchette.graph import Frame
-from gitfourchette.graph.graph import Oid
+from gitfourchette.graph import Graph, Frame
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel, UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID
 
 logger = logging.getLogger(__name__)
 
@@ -75,16 +75,12 @@ def getCommitBulletColumn(
 
 
 def paintGraphFrame(
-        repoModel: RepoModel,
-        oid: Oid,
         painter: QPainter,
         rect: QRect,
-        outlineColor: QColor
+        oid: Oid,
+        graph: Graph,
+        hiddenCommits: Set[Oid]
 ):
-    graph = repoModel.graph
-    hiddenCommits = repoModel.hiddenCommits
-    assert graph is not None
-
     try:
         # Get this commit's sequential index in the graph
         myRow = graph.getCommitRow(oid)
@@ -93,6 +89,7 @@ def paintGraphFrame(
         return
 
     painter.save()
+    outlineColor = painter.background().color()
 
     # Lines are drawn with SquareCap to fill in gaps at fractional display scaling factors.
     # This may cause the painter to overflow to neighboring rows, so set a clip rect.

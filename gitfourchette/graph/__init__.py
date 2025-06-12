@@ -22,3 +22,4 @@ from gitfourchette.graph.graphbuilder import (
     MockCommit,
     MockOid,
 )
+from gitfourchette.graph.graphweaver import GraphWeaver
