@@ -10,55 +10,50 @@ import logging as _logging
 from collections.abc import Generator
 
 from gitfourchette.appconsts import *
-from gitfourchette.blame import Trace
-from gitfourchette.blame.annotatedfile import BlameCollection, AnnotatedFile
-from gitfourchette.blame.trace import _dummyProgressCallback
-from gitfourchette.blame.tracenode import TraceNode
+from gitfourchette.blame.annotatedfile import AnnotatedFile
+from gitfourchette.blame.trace import TraceNode, Trace
 from gitfourchette.porcelain import *
 
 _logger = _logging.getLogger(__name__)
 
 BLAME_PROGRESS_INTERVAL = 10 if not APP_TESTMODE else 1
 
+BlameCollection = dict[Oid, AnnotatedFile]
+
 
 def blameFile(
         repo: Repo,
-        ll: Trace,
+        topNode: TraceNode,
         topCommitId: Oid = NULL_OID,
-        progressCallback=_dummyProgressCallback
-) -> BlameCollection:
-    # Get tail blob
-    blobIdA = ll.tail.blobId
-    blobA = repo[blobIdA].peel(Blob)
-
-    # Prep blame
+        progressCallback=Trace.dummyProgressCallback
+):
     blameCollection: BlameCollection = {}
 
-    # Traverse trace from tail up
-    i = 0
-    revisionNumber = 1
-    for node in ll.reverseIter():
-        i += 1
+    nodeSequence = list(topNode.walkGraph())
+
+    blobIdA = nodeSequence[-1].blobId
+    blobA = repo[blobIdA]
+    assert isinstance(blobA, Blob)
+
+    for i, node in enumerate(reversed(nodeSequence)):
         if i % BLAME_PROGRESS_INTERVAL == 0:
             progressCallback(i)
 
         assert node.sealed
-        assert node is not ll.head, "head sentinel is fake"
 
         blobIdA = node.ancestorBlobId
         blobIdB = node.blobId
 
         # Skip nodes that don't contribute a new blob
         if blobIdA == blobIdB:
-            assert node.status == DeltaStatus.RENAMED
+            assert node.status == DeltaStatus.RENAMED, f"{node} isn't 'R'?"
             continue
         if blobIdB in blameCollection:
             _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
             continue
 
         # Assign informal revision number
-        node.revisionNumber = revisionNumber
-        revisionNumber += 1
+        node.revisionNumber = len(blameCollection) + 1
 
         blobB = repo[blobIdB]
         assert isinstance(blobB, Blob)
@@ -86,13 +81,13 @@ def blameFile(
 
         # Enrich blame with more precise information from a merged branch
         if (not blameB.binary
-                and node.llNext
-                and node.llNext.level == node.level + 1
-                and node.llNext.blobId != blobIdA):
+                and len(node.parents) >= 2
+                and node.parents[1].blobId != blobIdA):
+            extraParent = node.parents[1]
             if APP_DEBUG:  # Very expensive assertion that will slow down the blame significantly
-                assert repo.descendant_of(node.commitId, node.llNext.commitId)
-            olderBlob = repo[node.llNext.blobId]
-            olderBlame = blameCollection[node.llNext.blobId]
+                assert repo.descendant_of(node.commitId, extraParent.commitId)
+            olderBlob = repo[extraParent.blobId]
+            olderBlame = blameCollection[extraParent.blobId]
             olderPatch = olderBlob.diff(blobB)
             _overrideBlame(olderPatch, olderBlame, blameB)
 
@@ -180,5 +175,3 @@ def _traversePatch(patch: Patch, numLinesA: int) -> Generator[tuple[int, int, Di
         yield cursorA, cursorB, None
         cursorA += 1
         cursorB += 1
-
-

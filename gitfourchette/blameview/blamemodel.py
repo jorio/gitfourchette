@@ -18,6 +18,7 @@ class BlameModel:
     blameCollection: BlameCollection
     currentTraceNode: TraceNode
     currentBlame: AnnotatedFile
+    nodeSequence: list[TraceNode]
 
     def __init__(self, repoModel: RepoModel, trace: Trace, blameCollection: BlameCollection, taskInvoker: QWidget):
         self.taskInvoker = taskInvoker
@@ -28,6 +29,13 @@ class BlameModel:
         startNode = trace.first  # fall back to newest commit
         self.currentTraceNode = startNode
         self.currentBlame = blameCollection[startNode.blobId]
+
+        self.nodeSequence = list(startNode.walkGraph())
+        if APP_DEBUG:
+            allCommitIds = [node.commitId for node in self.nodeSequence]
+            assert len(set(allCommitIds)) == len(allCommitIds), "duplicate commits in sequence"
+        assert len(self.nodeSequence) == trace.numRelevantNodes, \
+            f"{len(self.nodeSequence)} nodes in sequence, but traced {trace.numRelevantNodes} relevant nodes"
 
     @property
     def repo(self) -> Repo:

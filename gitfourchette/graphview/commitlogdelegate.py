@@ -120,6 +120,8 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.restore()
 
     def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
+        assert index.isValid()
+
         toolTips: list[CommitToolTipZone] = []
 
         hasFocus = option.state & QStyle.StateFlag.State_HasFocus

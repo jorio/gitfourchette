@@ -7,73 +7,145 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Generator
 
+from gitfourchette.appconsts import *
 from gitfourchette.porcelain import *
-
-PLACEHOLDER_OID = Oid(hex='E' * 40)
 
 
 @dataclasses.dataclass
 class TraceNode:
     DefaultStatus = DeltaStatus.UNMODIFIED
+    GarbageStatus = DeltaStatus.UNREADABLE
+    ValidStatuses = [DeltaStatus.ADDED, DeltaStatus.DELETED, DeltaStatus.MODIFIED, DeltaStatus.RENAMED]
 
-    # "Constant" fields known at constructor time
     path: str
-    commitId: Oid  # earliest commit in the branch where this blob shows up
+    commit: Commit
     blobId: Oid
-    level: int  # branch ancestry level (breadth distance from root branch)
+    level: int = -1
+    revisionNumber: int = -1
 
-    # Fields that are modified as the trace is refined
-    status: DeltaStatus = DefaultStatus
-    llPrev: TraceNode | None = None
-    llNext: TraceNode | None = None
     sealed: bool = False
-    ancestorBlobId: Oid = PLACEHOLDER_OID
-    revisionNumber: int = 0
+    status: DeltaStatus = DefaultStatus
+    parents: list[TraceNode] = dataclasses.field(default_factory=list)
+    children: list[TraceNode] = dataclasses.field(default_factory=list)
 
-    def __str__(self):
-        status_char = self.status.name[0]
-        indent = ' ' * 4 * self.level
-        return f"({self.level},{id7(self.commitId)},{id7(self.blobId)},{status_char}) {indent}{self.path}"
+    subbingInForCommits: list[Oid] = dataclasses.field(default_factory=list)
+    # Irrelevant commits that this node is subbing in for.
 
     def __repr__(self):
-        status_char = self.status.name[0]
-        return f"(level={self.level}, commit={id7(self.commitId)}, blob={id7(self.ancestorBlobId)}→{id7(self.blobId)}, status={status_char}, path={self.path})"
+        return f"({self.status.name[0]},{id7(self.commit)})"
 
-    def seal(
-            self,
-            commit: Commit,
-            frontier: list[tuple[TraceNode, Commit]],
-            ancestorBlobId: Oid
-    ) -> bool:
-        assert not self.sealed, "node already sealed"
-        assert commit
-        assert commit.id == self.commitId
-        assert self.blobId != NULL_OID
+    @property
+    def commitId(self) -> Oid:
+        return self.commit.id
 
-        # Update status, unless we've set it manually (i.e. RENAMED)
-        if self.status != TraceNode.DefaultStatus:
-            assert self.status == DeltaStatus.RENAMED
-        elif ancestorBlobId == self.blobId:
-            self.status = DeltaStatus.UNMODIFIED
-        elif ancestorBlobId == NULL_OID:
-            self.status = DeltaStatus.ADDED
-        else:
-            self.status = DeltaStatus.MODIFIED
+    @property
+    def ancestorBlobId(self):
+        try:
+            assert self.parents[0].status in TraceNode.ValidStatuses
+            assert self.parents[0].sealed
+            return self.parents[0].blobId
+        except IndexError:
+            assert self.status == DeltaStatus.ADDED
+            return NULL_OID
 
-        # A significant node contributes a difference to the blob or path
-        significant = self.status != DeltaStatus.UNMODIFIED
+    def compare(self, path: str, blobId: Oid) -> DeltaStatus:
+        if blobId == NULL_OID:
+            return DeltaStatus.ADDED
+        if path != self.path:
+            return DeltaStatus.RENAMED
+        if blobId != self.blobId:
+            return DeltaStatus.MODIFIED
+        return DeltaStatus.UNMODIFIED
+
+    def addParent(self, node: TraceNode):
+        assert node not in self.parents
+        assert self not in node.children
+        self.parents.append(node)
+        node.children.append(self)
+
+    def unlinkPassthrough(self, replaceWith: TraceNode):
+        assert not self.parents, "passthrough nodes aren't supposed to have any parents"
+        assert self.status != TraceNode.GarbageStatus, "this node has already been unlinked"
+        assert replaceWith.status != TraceNode.GarbageStatus, "don't chain passthrough nodes"
+        assert replaceWith.sealed
+
+        for child in self.children:
+            assert child.status != TraceNode.GarbageStatus
+            oldIndex = child.parents.index(self)
+            try:
+                existingIndex = child.parents.index(replaceWith)
+            except ValueError:
+                child.parents[oldIndex] = replaceWith
+                assert child not in replaceWith.children
+                replaceWith.children.append(child)
+            else:
+                assert existingIndex < oldIndex
+                del child.parents[oldIndex]
+                assert child in replaceWith.children
+
+        assert all(oid not in replaceWith.subbingInForCommits for oid in self.subbingInForCommits)
+        replaceWith.subbingInForCommits.extend(self.subbingInForCommits)
 
         self.sealed = True
-        self.ancestorBlobId = ancestorBlobId
+        self.status = TraceNode.GarbageStatus  # this node should never be used anymore
+        self.parents.clear()
+        self.children.clear()
+        self.subbingInForCommits.clear()
 
-        if significant:
-            # Look at parents if we're significant
-            parents = commit.parents
-            if len(parents) > 1:
-                if len(parents) > 2:
-                    raise NotImplementedError(f"Octopus merge unsupported ({id7(commit)})")
-                parent1 = parents[1]
-                frontier.insert(0, (self, parent1))
+    def walkGraph(self) -> Generator[TraceNode, None, None]:
+        frontierNodes = [self]
+        frontierPendingChildren = [0]
 
-        return significant
+        if APP_DEBUG:
+            debugSeen: set[Oid] = set()
+
+        while frontierNodes:
+            # Find rightmost frontier node with no pending children.
+            for i in range(len(frontierPendingChildren) - 1, -1, -1):
+                if frontierPendingChildren[i] == 0:
+                    break
+            else:
+                raise NotImplementedError("frontier deadlock")
+
+            # Pop the node off the frontier.
+            node = frontierNodes[i]
+            del frontierNodes[i]
+            del frontierPendingChildren[i]
+
+            # Push this node's parents to the frontier.
+            for parent in node.parents:
+                if APP_DEBUG:
+                    assert node in parent.children
+
+                # Figure out how many pending children this parent still has.
+                # If the parent was already in the frontier, some of its children have already been seen.
+                try:
+                    i = frontierNodes.index(parent)
+                except ValueError:
+                    # Parent isn't in frontier yet, so none of its children have been seen yet.
+                    parentPendingChildren = len(parent.children)
+                else:
+                    # Parent is already in frontier, meaning some of its children have already been seen.
+                    # Pop parent from frontier so we can add it back at the tail.
+                    parentPendingChildren = frontierPendingChildren[i]
+                    del frontierNodes[i]
+                    del frontierPendingChildren[i]
+                assert 1 <= parentPendingChildren <= len(parent.children)
+
+                # Deduct current node from parent's pending children.
+                parentPendingChildren -= 1
+
+                # Push parent to frontier tail.
+                frontierNodes.append(parent)
+                frontierPendingChildren.append(parentPendingChildren)
+
+            if APP_DEBUG:
+                assert len(frontierNodes) == len(frontierPendingChildren)
+                assert node.status in TraceNode.ValidStatuses
+                assert node.commitId not in debugSeen, f"commit {id7(node.commitId)} visited twice"
+                debugSeen.add(node.commitId)
+
+            # Yield the current node to the caller.
+            yield node

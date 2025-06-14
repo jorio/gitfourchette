@@ -6,9 +6,9 @@
 
 from __future__ import annotations
 
-import logging as _logging
 import time
-from collections.abc import Iterator
+from collections.abc import Callable
+import logging
 
 from gitfourchette.appconsts import *
 from gitfourchette.blame.tracenode import TraceNode
@@ -16,130 +16,208 @@ from gitfourchette.graph import MockCommit
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import UC_FAKEID
 
-_logger = _logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 TRACE_PROGRESS_INTERVAL = 200 if not APP_TESTMODE else 1
 
 
 class Trace:
-    head: TraceNode
-    tail: TraceNode
-    count: int
+    """
+    Trace relevant commits in a file's history.
+    """
 
-    def __init__(self, path: str):
-        self.head = TraceNode(path, NULL_OID, NULL_OID, level=-1, sealed=True)
-        self.tail = self.head
-        self.count = 0
+    first: TraceNode
+    numRelevantNodes: int
+    visitedCommits: dict[Oid, TraceNode]
+
+    @staticmethod
+    def dummyProgressCallback(n: int):
+        pass
+
+    def __init__(
+            self,
+            topPath: str,
+            topCommit: Commit,
+            skimInterval: int = 0,
+            maxLevel: int = 0x3FFFFFF,
+            progressCallback: Callable[[int], None] = dummyProgressCallback,
+    ):
+        self._branchFrontier = []
+        self.visitedCommits = {}
+        self.numRelevantNodes = -1  # deduct 1 for mock starter
+
+        mockStarter = MockCommit(NULL_OID, [topCommit.id])
+        mockStarter.parents = [topCommit]
+        mockStarter.tree = None
+        nodeStarter = TraceNode(topPath, mockStarter, NULL_OID, level=0)
+        self._branchFrontier.append((nodeStarter, 0))
+
+        progressCallback(0)
+        progressTicks = 0
+        timeStart = time.perf_counter()
+
+        while self._branchFrontier:
+            # Pop a branch off the frontier
+            node, pNum = self._branchFrontier.pop(0)
+
+            # Skip this branch if it's beyond the breadth limit
+            if node.level + min(1, pNum) > maxLevel:
+                continue
+
+            # Walk commits on the branch, top to bottom (newest to oldest), until one of these dead-ends:
+            # - the file was created in the current commit (no need to explore any older commits)
+            # - reached the branching point off a branch that we've already explored
+            # - the current commit has no parents (initial commit)
+            while node is not None:
+                if progressTicks % TRACE_PROGRESS_INTERVAL == 0:
+                    progressCallback(self.numRelevantNodes)
+                progressTicks += 1
+
+                node = self._walkBranch(node, pNum)
+                pNum = 0
+
+        del self._branchFrontier
+
+        assert len(nodeStarter.parents) == 1
+        self.first = nodeStarter.parents[0]
+
+        timeTaken = int(1000 * (time.perf_counter() - timeStart))
+        _logger.debug(f"{len(self.visitedCommits)} commits visited, {len(self)} were relevant ({timeTaken} ms)")
+
+    def _walkBranch(self, nodeAbove: TraceNode, parentNum: int = 0):
+        assert parentNum >= 0
+
+        # Optional: Skim over irrelevant portions of the branch
+        # if skipSkimming > 0:
+        #     # Don't skim yet
+        #     skipSkimming -= 1
+        # elif level == 0 and skimInterval:
+        #     # Try to skim this branch (see docstring in the function for more info)
+        #     commit, skipSkimming = _skimBranch(node, commit, knownBlobs, skimInterval)
+        #     if skipSkimming == 0:
+        #         commitAbove = commit
+        #         treeAbove = commit.tree
+
+        # Get next commit in branch
+        try:
+            commitBelow = nodeAbove.commit.parents[parentNum]
+        except IndexError:  # Initial commit
+            assert parentNum == 0
+            assert not nodeAbove.sealed
+            nodeAbove.status = DeltaStatus.ADDED
+            nodeAbove.sealed = True
+            self.numRelevantNodes += 1
+            return None  # bail from branch
+
+        # Compare
+        treeAbove = nodeAbove.commit.tree
+        treeBelow = commitBelow.tree
+        pathBelow, blobIdBelow = _getBlob(nodeAbove.path, treeBelow, treeAbove, nodeAbove.blobId)
+        cmpStatus = nodeAbove.compare(pathBelow, blobIdBelow)
+        commitIsRelevant = cmpStatus != DeltaStatus.UNMODIFIED
+
+        # Look up branching point on parent branch (if any)
+        # (if found, we're here:)   │ ┿  <-- nodeAbove
+        #                           ┿─╯  <-- nodeBelow
+        nodeBelow = self.visitedCommits.get(commitBelow.id, None)
+
+        # See if this commit is relevant
+        if not commitIsRelevant and not nodeAbove.sealed:
+            # If known parent on visited branch: don't revisit
+            if nodeBelow is not None:
+                # Scrub passthrough node from visitedCommits
+                for oid in nodeAbove.subbingInForCommits:
+                    assert self.visitedCommits[oid] is nodeAbove
+                    self.visitedCommits[oid] = nodeBelow
+                # This node is useless now
+                nodeAbove.unlinkPassthrough(replaceWith=nodeBelow)
+                return None
+
+            # Commit is not relevant.
+            # Move this node to the next commit on the branch.
+            assert not nodeAbove.sealed, "can't change the commit in a sealed node!"
+            assert pathBelow == nodeAbove.path
+            assert blobIdBelow == nodeAbove.blobId
+            nodeBelow = nodeAbove
+            nodeBelow.commit = commitBelow
+        else:
+            if not commitIsRelevant:
+                assert nodeAbove.sealed
+                assert parentNum != 0
+
+            # Commit is relevant
+            if parentNum == 0:
+                assert not nodeAbove.sealed
+                nodeAbove.status = cmpStatus
+                nodeAbove.sealed = True
+                self.numRelevantNodes += 1
+            assert nodeAbove.sealed
+
+            # Push extra parents onto frontier
+            if parentNum == 0:
+                numParents = len(nodeAbove.commit.parents)
+                if numParents == 2:
+                    self._branchFrontier.insert(0, (nodeAbove, 1))
+                elif numParents >= 3:
+                    raise NotImplementedError("Octopus merge unsupported")
+
+            # Bail from the branch if we added the file here
+            if blobIdBelow == NULL_OID:
+                assert nodeAbove.sealed
+                # assert nodeAbove.status == DeltaStatus.ADDED, f"{nodeAbove} isn't 'A'? (above {id7(commitBelow.id)})"
+                return None
+
+            # If known parent on visited branch: don't revisit
+            if nodeBelow is not None:
+                assert nodeBelow.status != TraceNode.GarbageStatus
+                assert nodeBelow.sealed
+                if nodeBelow.blobId != blobIdBelow:
+                    _logger.warning(f"{nodeAbove} disagrees with parent branch {nodeBelow} on a renamed file")
+                nodeAbove.addParent(nodeBelow)  # merge into it
+                return None  # bail from the branch
+
+            # Create new transient node below to keep exploring this branch linearly
+            levelBelow = nodeAbove.level + min(1, parentNum)
+            nodeBelow = TraceNode(path=pathBelow, commit=commitBelow, blobId=blobIdBelow, level=levelBelow)
+            nodeAbove.addParent(nodeBelow)
+
+        if commitBelow.id in self.visitedCommits:
+            assert commitBelow.id not in self.visitedCommits, f"commit {id7(commitBelow)} visited twice"
+        self.visitedCommits[commitBelow.id] = nodeBelow
+        nodeBelow.subbingInForCommits.append(commitBelow.id)
+
+        return nodeBelow
 
     def __len__(self):
-        return self.count
+        return self.numRelevantNodes
 
-    def __bool__(self):
-        return self.count != 0
-
-    def __contains__(self, node: TraceNode) -> bool:
-        if node is self.head:
-            return True
-        for candidate in self:
-            if node is candidate:
-                return True
-        return False
-
-    @property
-    def first(self):
-        if self.head is self.tail:
-            raise IndexError("empty trace")
-        return self.head.llNext
-
-    def insert(self, after: TraceNode, node: TraceNode):
-        assert after
-        assert after is not node
-        assert not node.llPrev
-        assert not node.llNext
-
-        if APP_DEBUG:  # expensive!
-            assert after in self, "inserting after a node that's not in the LL"
-            assert node not in self, "node to insert is already in the LL"
-
-        afterNext = after.llNext
-
-        node.llNext = after.llNext
-        node.llPrev = after
-        after.llNext = node
-
-        if after is self.tail:
-            assert not afterNext
-            self.tail = node
-        else:
-            afterNext.llPrev = node
-
-        self.count += 1
-        assert self.count >= 0
-
-        if APP_DEBUG:  # expensive!
-            assert self.allCommitsUnique(), "duplicate commits in LL"
-
-    def unlink(self, node: TraceNode):
-        if APP_DEBUG:  # expensive!
-            assert node in self, "unlinking a node that's not in the LL"
-
-        assert node is not self.head, "can't remove head sentinel"
-        if node is self.tail:
-            self.tail = node.llPrev
-
-        assert node.llPrev, "only head may have null llPrev"
-        node.llPrev.llNext = node.llNext
-
-        if node.llNext:
-            node.llNext.llPrev = node.llPrev
-
-        self.count -= 1
-        assert self.count >= 0
-
-        node.llNext = None
-        node.llPrev = None
-
-    def allCommitsUnique(self):
-        return len({n.commitId for n in self}) == len(self)
-
-    class TraceNodeIterator:
-        def __init__(self, ll: Trace, reverse=False):
-            self.reverse = reverse
-            if reverse:
-                self.next = ll.tail
-                self.end = ll.head
-            else:
-                self.next = ll.head.llNext
-                self.end = None
-
-        def __iter__(self) -> Iterator[TraceNode]:
-            return self
-
-        def __next__(self) -> TraceNode:
-            node = self.next
-            if node is self.end:
-                raise StopIteration()
-            self.next = node.llPrev if self.reverse else node.llNext
-            return node
-
-    def __iter__(self) -> Iterator[TraceNode]:
-        return Trace.TraceNodeIterator(self)
-
-    def reverseIter(self):
-        return Trace.TraceNodeIterator(self, reverse=True)
-
-    def nodeForCommit(self, oid: Oid):
-        for node in self:
-            if node.commitId == oid:
-                return node
-        raise KeyError("commit is not in trace")
+    def nodeForCommit(self, commitId: Oid) -> TraceNode:
+        return self.visitedCommits[commitId]
 
     def dump(self):
-        for node in self:
-            print(str(node))
+        from gitfourchette.graph import GraphWeaver, GraphDiagram
+        _graph, graphWeaver = GraphWeaver.newGraph()
+        diagram = GraphDiagram()
+        for node in self.first.walkGraph():
+            parentIds = [parent.commitId for parent in node.parents]
+            graphWeaver.newCommit(node.commitId, parentIds)
+            y = len(diagram.scanlines)
+            diagram.newFrame(graphWeaver.sealCopy(), set(), False)
+            diagram.margins[y] = [f"{id7(node.ancestorBlobId)}\u2192{id7(node.blobId)} {str(node)}", node.path]
+        print(diagram.bake())
+
+    @staticmethod
+    def makeWorkdirMockCommit(repo: Repo, path: str) -> MockCommit:
+        headCommit = repo.head.peel(Commit)
+        workdirBlobId = repo.create_blob_fromworkdir(path)
+        workdirBlob = repo[workdirBlobId]
+        workdirMock = MockCommit(UC_FAKEID, [headCommit.id])
+        workdirMock.parents = [headCommit]
+        workdirMock.tree = {path: workdirBlob}
+        return workdirMock
 
 
-def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) -> tuple[str, Oid]:
+def _getBlob(path: str, tree: Tree, treeAbove: Tree, knownBlobId: Oid) -> tuple[str, Oid]:
     try:
         # Most common case: the path is in the commit's tree.
         return path, tree[path].id
@@ -147,10 +225,7 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
         # Path missing from this commit's tree.
         pass
 
-    # No treeAbove in the case of a new branch that we just popped off the frontier.
-    # If we get here in this case, then the new branch is useless.
-    if treeAbove is None:
-        return "", NULL_OID
+    assert treeAbove is not None
 
     # Did the commit above rename the file?
     diff = tree.diff_to_tree(treeAbove, DiffOption.NORMAL, 0, 0)
@@ -185,153 +260,6 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree | None, knownBlobId: Oid) ->
 
     # We're past the commit that created this file. Bail from the branch.
     return "", NULL_OID
-
-
-def _dummyProgressCallback(n: int):
-    pass
-
-
-def traceFile(
-        topPath: str,
-        topCommit: Commit,
-        skimInterval=0,
-        maxLevel=0x3FFFFFFF,
-        progressCallback=_dummyProgressCallback,
-) -> Trace:
-    ll = Trace(topPath)
-    frontier: list[tuple[TraceNode, Commit]] = [(ll.head, topCommit)]
-    knownBlobs: dict[Oid, Oid] = {}
-    numCommits = 0
-
-    progressCallback(0)
-    timeStart = time.perf_counter()
-
-    # Outer loop: Pop branch off frontier
-    while frontier:
-        node, commit = frontier.pop(0)
-        path = node.path
-        level = node.level + 1
-
-        assert node is ll.head or node.llPrev, "dangling node in frontier!"
-
-        if commit.id in knownBlobs:
-            continue
-
-        if level > maxLevel:
-            continue
-
-        # TODO: Deleted file in seed
-        treeAbove = None
-        commitAbove = None
-        newBranch = True
-        skipSkimming = 0
-
-        # Inner loop: Walk branch
-        while True:
-            assert (not newBranch) == (node.level == level)
-            assert newBranch == node.sealed
-            assert commit.id not in knownBlobs, "commit already visited!"
-
-            numCommits += 1
-            tree = commit.tree
-
-            if numCommits % TRACE_PROGRESS_INTERVAL == 0:
-                progressCallback(len(ll))
-
-            path, blobId = _getBlob(path, tree, treeAbove, node.blobId)
-            useful = blobId != node.blobId
-            knownBlobs[commit.id] = blobId
-
-            if blobId == NULL_OID:
-                # Blob added here
-                assert newBranch or treeAbove is not None
-                break  # bail from the branch
-            if not newBranch and path != node.path:
-                node.status = DeltaStatus.RENAMED
-                useful = True
-
-            if newBranch or useful:
-                nodeAbove = node
-                node = TraceNode(path=path, commitId=commit.id, blobId=blobId, level=level)
-                ll.insert(nodeAbove, node)
-                if not newBranch:  # Seal node above
-                    significant = nodeAbove.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
-                    assert significant
-                newBranch = False
-                knownBlobs[commit.id] = node.blobId
-            else:
-                assert node.level == level
-                node.commitId = commit.id
-
-            # We own the node past this point
-            assert not newBranch
-
-            commitAbove = commit
-            treeAbove = tree
-
-            # Optional: Skim over irrelevant portions of the branch
-            if skipSkimming > 0:
-                # Don't skim yet
-                skipSkimming -= 1
-            elif level == 0 and skimInterval:
-                # Try to skim this branch (see docstring in the function for more info)
-                commit, skipSkimming = _skimBranch(node, commit, knownBlobs, skimInterval)
-                if skipSkimming == 0:
-                    commitAbove = commit
-                    treeAbove = commit.tree
-
-            # Get next commit in branch
-            try:
-                commit = commit.parents[0]
-            except IndexError:
-                # Initial commit
-                blobId = NULL_OID
-                break  # bail from the branch
-
-            # Don't revisit a commit
-            try:
-                blobId = knownBlobs[commit.id]  # will be used as ancestor blob for sealing the node
-                break  # this commit has already been seen, bail from the branch
-            except KeyError:
-                # Commit hasn't been visited yet
-                pass
-
-        # Seal last node in branch
-        if not newBranch:
-            assert commitAbove.id in knownBlobs
-            significant = node.seal(commit=commitAbove, frontier=frontier, ancestorBlobId=blobId)
-            if not significant:
-                ll.unlink(node)
-
-    # Scrap useless revisions: Traverse LL from the tail up;
-    # Cull nodes with blobs that are known to show up at a smaller ancestry level
-    # closer to the tail. For example:
-    # (level=3) │ │ ┿   blob2 - Keep
-    # (level=2) │ │ ┿   blob1 - Cull
-    # (level=1) │ ┿─╯   blob1 - Cull
-    # (level=0) ┿─╯     blob1 - Keep
-    #           ├─╮
-    # (level=1) │ ┷     blob1 - Keep - Earliest appearance of blob1
-    knownLevels = {}
-    for node in ll.reverseIter():
-        assert node.sealed
-        assert node.status != TraceNode.DefaultStatus
-        if knownLevels.get(node.blobId, 0x3FFFFFFF) > node.level:
-            knownLevels[node.blobId] = node.level
-        elif node.status == DeltaStatus.MODIFIED:
-            ll.unlink(node)
-        else:
-            assert not (node.status == DeltaStatus.MODIFIED and node.blobId == node.ancestorBlobId)
-
-    if APP_DEBUG:
-        assert ll.allCommitsUnique(), "some duplicates!!"
-
-    if progressCallback:
-        progressCallback(len(ll))
-
-    timeTaken = int(1000 * (time.perf_counter() - timeStart))
-    _logger.debug(f"{numCommits} commits traced; {len(ll)} were relevant. ({timeTaken} ms)")
-    return ll
 
 
 def _skimBranch(node: TraceNode, topCommit: Commit, knownBlobs: dict[Oid, Oid], interval: int):
@@ -380,11 +308,3 @@ def _skimBranch(node: TraceNode, topCommit: Commit, knownBlobs: dict[Oid, Oid], 
     return topCommit, len(skimmed)
 
 
-def makeWorkdirMockCommit(repo: Repo, path: str) -> MockCommit:
-    headCommit = repo.head.peel(Commit)
-    workdirBlobId = repo.create_blob_fromworkdir(path)
-    workdirBlob = repo[workdirBlobId]
-    workdirMock = MockCommit(UC_FAKEID, [headCommit.id])
-    workdirMock.parents = [headCommit]
-    workdirMock.tree = {path: workdirBlob}
-    return workdirMock

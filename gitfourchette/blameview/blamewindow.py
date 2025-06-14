@@ -137,8 +137,12 @@ class BlameWindow(QWidget):
         self.model.currentTraceNode = node
         self.model.currentBlame = self.model.blameCollection[node.blobId]
 
+        # Update scrubber
+        # Heads up: Look up scrubber row from the sequence of nodes, not via
+        # scrubber.findData(commitId, CommitLogModel.Role.Oid), because this
+        # compares references to Oid objects, not Oid values.
+        scrubberIndex = self.model.nodeSequence.index(node)
         with QSignalBlockerContext(self.scrubber):
-            scrubberIndex = self.scrubber.findData(node.commitId, CommitLogModel.Role.Oid)
             self.scrubber.setCurrentIndex(scrubberIndex)
 
         blob = self.model.repo.peel_blob(node.blobId)

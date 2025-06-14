@@ -12,6 +12,7 @@ import pytest
 
 from gitfourchette.blame import *
 from gitfourchette.graph import GraphDiagram, MockOid, GraphBuildLoop
+from gitfourchette.porcelain import *
 
 TRACEPATH = "TraceMe.txt"
 
@@ -57,6 +58,18 @@ SCENARIOS = {
         "a-b:f,c c:e,d d-e-f-g",
         "2 2     2     2 2 2 1",
         "                  f g",
+    ),
+
+    "parallel prune0a": (
+        "a:b,p p-b",
+        "2     1 1",
+        "a       b",
+    ),
+
+    "parallel prune0b": (
+        "a:b,p p-q-r-s-b",
+        "2     1 1 1 1 1",
+        "a             b",
     ),
 
     # a ┯   2
@@ -153,6 +166,114 @@ SCENARIOS = {
         "2     2 1 _",
         "a     b c",
     ),
+
+    # a ┯─╮  <-- 1
+    # b │ ┿  <-- 2
+    # z ┷─╯  <-- 3
+    "simple merge, all relevant": (
+        "a:z,b b-z",
+        "1     2 3",
+        "a     b z",
+    ),
+
+    # a ┯─╮  <-- 1
+    # b │ ┿  <-- 2
+    # n ┿─╯  <-- 3
+    # z ┷    <-- 3
+    "simple merge, root commit not relevant": (
+        "a:n,b b-n-z",
+        "1     2 3 3",
+        "a     b   z",
+    ),
+
+    "multi tails": (
+        "a-c:f,d d-e f",
+        "1 2     3 4 5",
+        "a c     d e f",
+    ),
+
+    # a ┯─╮
+    # b ┿───╮
+    # c │ │ ┿
+    # d │ │ ┿
+    # e │ ┿─╯
+    # f ┿─╯
+    #   │─╮
+    # g │ ┷
+    # h ┷
+    "significant rev merged into lower level": (
+        "a:b,e b:f,c c-d-e-f:h,g g h",
+        "3     2     2 1 1 1     1 0",
+        "a     b     c     f     g h",
+    ),
+
+    # a ┯─╮
+    # b │ ┿
+    # c ┿─╮
+    # d │ ┿
+    # e ┷─╯
+    "don't visit twice 1": (
+        "a:c,b b:d c:e,d d-e",
+        "4     3   2     1 0",
+        "a     b   c     d e",
+    ),
+
+    "don't visit twice 2": (
+        "a:c,b b-b2:d c:e,d d-e",
+        "4     3 3b   2     1 0",
+        "a     b b2   c     d e",
+    ),
+
+    "don't visit twice 3": (
+        "a:c,b b:d c-c2:e,d d-e",
+        "4     3   2 2    1 0",
+        "a     b     c2   d e",
+    ),
+
+    "don't visit twice 4": (
+        "a:c,b b:d c:e,d d-e",
+        "4     3   1     1 1",
+        "a     b           e",
+    ),
+
+    # a ┯─╮
+    # b │ ┿─╮  <-- here b returns into a shallower branch, but d's contribution is still relevant
+    # d │ │ ┷
+    # c ┿─╯
+    # e ┷
+    "consider extra parent even if returning to shallower branch": (
+        "a:c,b b:c,d d c-e",
+        "4     4     2 3 1",
+        "a     b     d c e",
+    ),
+
+    "junction?": (
+        "a:c,b b:d c:e,d d-e",
+        "4     3   2     1 0",
+        "a     b   c     d e",
+    ),
+
+    # a ┯─╮  <-- blob 2
+    # b │ ┿  <-- file did not exist
+    # c ┿ │  <-- blob 1
+    # d ┷─╯  <-- file did not exist
+    "prune branch that diverged before file was created": (
+        "a:c,b b:d c-d",
+        "2     _   1 _",
+        "a         c  ",
+    ),
+
+    "graphwalk don't revisit 1": (
+        "67:2d,fc fc-a8:c1 2d-b4-c1-88-zz",
+        "17       04 04    71 68 ef ef b3",
+        "67          a8    2d b4    88 zz",
+    ),
+
+    "graphwalk don't revisit 2": (
+        "74:84,ff ff:e8 84-c8-5c-e8-dd",
+        "f8       77    fb 6b 13 5d 5d",
+        "74       ff    84 c8 5c    dd",
+    )
 }
 
 
@@ -195,11 +316,12 @@ def testTrace(scenarioKey):
         if blobText != "_":
             commit.tree[TRACEPATH] = MockBlob(blobText)
 
-    ll = traceFile(TRACEPATH, sequence[0])
-    ll.dump()
+    traceState = Trace(TRACEPATH, sequence[0])
+    assert traceState.numRelevantNodes == len(significantCommits)
 
-    for traceNode, significantCommit in zip(ll, significantCommits, strict=True):
+    for traceNode, significantCommit in zip(traceState.first.walkGraph(), significantCommits, strict=True):
+        print(f"[GRAPHWALK] {traceNode} {traceNode.blobId} {traceNode.sealed}")
+        assert traceNode.sealed
         assert traceNode.commitId == significantCommit
 
-    assert ll.tail.sealed
-    assert ll.tail.status == DeltaStatus.ADDED
+    assert traceNode.status == DeltaStatus.ADDED

@@ -14,36 +14,31 @@ from gitfourchette.toolbox import onAppThread
 
 class BlameScrubberModel(QAbstractListModel):
     blameModel: BlameModel
-    nodes: list[TraceNode]
 
     def __init__(self, blameModel: BlameModel, parent: QWidget):
+        self.blameModel = blameModel
+
         super().__init__(parent)
 
         if APP_DEBUG and HAS_QTEST:
             self.modelTester = QAbstractItemModelTester(self)
 
-        self.blameModel = blameModel
-        self.nodes = list(blameModel.trace)
-
     def columnCount(self, parent = ...):
         return 1
 
     def rowCount(self, parent = ...) -> int:
-        try:
-            return len(self.nodes)
-        except AttributeError:
-            return 0
+        return len(self.blameModel.nodeSequence)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
         assert index.isValid()
+
         row = index.row()
-        node = self.nodes[row]
+        node = self.blameModel.nodeSequence[row]
 
         if role == Qt.ItemDataRole.DisplayRole:
-            # if APP_TESTMODE:
-            assert self.blameModel
-            assert self.blameModel.repo, f"{len(self.nodes)} {self.blameModel.repoModel.repo} {self.blameModel.repoModel.refs} {self.blameModel.currentTraceNode}"
-            if node.commitId == UC_FAKEID:
+            # DisplayRole is intended as a unit test helper only.
+            # BlameScrubberDelegate doesn't render this role.
+            if node.commitId == UC_FAKEID:  # for unit tests
                 return "UNCOMMITTED CHANGES IN WORKING DIRECTORY"
             return self.blameModel.repo.peel_commit(node.commitId).message
 
@@ -51,9 +46,7 @@ class BlameScrubberModel(QAbstractListModel):
             assert onAppThread()
             assert self.blameModel
             assert self.blameModel.repo
-            if node.commitId == UC_FAKEID:
-                return None
-            return self.blameModel.repo.peel_commit(node.commitId)
+            return node.commit
 
         elif role == CommitLogModel.Role.Oid:
             return node.commitId

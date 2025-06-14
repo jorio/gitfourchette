@@ -850,7 +850,6 @@ class Graph:
         # Verify chains
         if self.startArc.nextArc:
             for a in self.startArc.nextArc:
-                logger.info(f"{a}")
                 assert a.chain.isValid()
 
         # Verify keyframes

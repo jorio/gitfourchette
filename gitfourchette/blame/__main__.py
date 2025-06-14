@@ -37,17 +37,17 @@ def traceCommandLineTool():  # pragma: no cover
     with suppress(ValueError):
         relPath = relPath.relative_to(repo.workdir)
 
-    topCommit = makeWorkdirMockCommit(repo, str(relPath))
+    topCommit = Trace.makeWorkdirMockCommit(repo, str(relPath))
 
     with Benchmark("Trace"):
-        trace = traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level,
-                          progressCallback=lambda n: print(f"\rTrace {n}...", end="", file=stderr))
+        trace = Trace(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level,
+                      progressCallback=lambda n: print(f"\rTrace {n}...", end="", file=stderr))
 
     if args.trace:
         trace.dump()
 
     with Benchmark("Blame"):
-        blameCollection = blameFile(repo, trace, topCommit.id,
+        blameCollection = blameFile(repo, trace.first, topCommit.id,
                                     progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
 
     if not args.quiet:
@@ -59,9 +59,9 @@ def traceCommandLineTool():  # pragma: no cover
         APP_DEBUG = False
         N = 10
         print("Benchmarking...")
-        elapsed = timeit(lambda: traceFile(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level), number=N)
+        elapsed = timeit(lambda: Trace(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level), number=N)
         print(f"Trace: {elapsed*1000/N:.0f} ms avg")
-        elapsed = timeit(lambda: blameFile(repo, trace, topCommit.id), number=N)
+        elapsed = timeit(lambda: blameFile(repo, trace.first, topCommit.id), number=N)
         print(f"Blame: {elapsed*1000/N:.0f} ms avg")
 
 

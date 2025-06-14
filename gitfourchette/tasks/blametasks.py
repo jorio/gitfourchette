@@ -54,7 +54,7 @@ class OpenBlame(RepoTask):
 
         if seed == head:
             try:
-                seedCommit = makeWorkdirMockCommit(repo, path)
+                seedCommit = Trace.makeWorkdirMockCommit(repo, path)
                 seed = seedCommit.id
                 assert seed == UC_FAKEID
             except KeyError:
@@ -62,9 +62,9 @@ class OpenBlame(RepoTask):
 
         # Trace commit in branch
         with Benchmark("trace"):
-            trace = traceFile(path, seedCommit,
-                              skimInterval=self.TraceSkimInterval,
-                              progressCallback=progress.reportTraceProgress)
+            trace = Trace(path, seedCommit,
+                          skimInterval=self.TraceSkimInterval,
+                          progressCallback=progress.reportTraceProgress)
 
         yield from self.flowEnterUiThread()
         progress.setRange(0, len(trace))
@@ -73,7 +73,7 @@ class OpenBlame(RepoTask):
         # Annotate file
         yield from self.flowEnterWorkerThread()
         with Benchmark("blame"):
-            blameCollection = blameFile(repo, trace, seed, progressCallback=progress.reportBlameProgress)
+            blameCollection = blameFile(repo, trace.first, seed, progressCallback=progress.reportBlameProgress)
 
         blameModel = BlameModel(self.repoModel, trace, blameCollection, self.parentWidget())
 
@@ -154,7 +154,7 @@ class _BlameProgressDialog(QProgressDialog):
 
     def _showTraceProgress(self, n: int):
         assert onAppThread()
-        if n != 0:
+        if n > 0:
             self.setLabelText(_n("Found {n} revision…", "Found {n} revisions…", n=n))
 
     def _showBlameProgress(self, n: int):
