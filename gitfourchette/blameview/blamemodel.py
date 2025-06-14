@@ -4,10 +4,10 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.blame import *
 from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
-from gitfourchette.trace import Trace, TraceNode, Blame, BlameCollection
 from gitfourchette.qt import *
 
 

@@ -6,19 +6,17 @@
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.blame import *
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.blameview.blamescrubber import BlameScrubber
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory
-from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
-from gitfourchette.repomodel import RepoModel
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
 from gitfourchette.toolbox import *
-from gitfourchette.trace import TraceNode, Trace, BlameCollection
 
 
 class BlameWindow(QWidget):

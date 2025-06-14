@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.blame import *
 from gitfourchette.blameview.blamegutter import BlameGutter
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.codeview.codeview import CodeView
@@ -12,7 +13,6 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.qt import *
 from gitfourchette.tasks import TaskBook, GetCommitInfo
 from gitfourchette.toolbox import *
-from gitfourchette.trace import TraceNode
 
 
 class BlameTextEdit(CodeView):

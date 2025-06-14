@@ -10,8 +10,8 @@ import hashlib
 
 import pytest
 
+from gitfourchette.blame import *
 from gitfourchette.graph import GraphDiagram, MockOid, GraphBuildLoop
-from gitfourchette.trace import *
 
 TRACEPATH = "TraceMe.txt"
 

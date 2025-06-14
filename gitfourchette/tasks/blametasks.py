@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.blame import *
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -12,7 +13,6 @@ from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
-from gitfourchette.trace import traceFile, blameFile, makeWorkdirMockCommit
 
 
 class OpenBlame(RepoTask):

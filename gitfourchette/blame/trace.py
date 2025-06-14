@@ -4,15 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-"""
-Trace the relevant commits in a file's history and annotate (blame) it.
-
-This can be faster than libgit2's blame (as of libgit2 1.8), especially if you
-need annotations at all points of the file's history.
-
-CAVEAT: Octopus merges not supported yet.
-"""
-
 from __future__ import annotations as _annotations
 
 import dataclasses as _dataclasses
