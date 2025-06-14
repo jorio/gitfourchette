@@ -13,12 +13,7 @@ need annotations at all points of the file's history.
 CAVEAT: Octopus merges not supported yet.
 """
 
-from gitfourchette.blame.trace import (
-    Blame,
-    BlameCollection,
-    Trace,
-    TraceNode,
-    blameFile,
-    makeWorkdirMockCommit,
-    traceFile,
-)
+from gitfourchette.blame.annotatedfile import AnnotatedFile, BlameCollection
+from gitfourchette.blame.blame import blameFile
+from gitfourchette.blame.tracenode import TraceNode
+from gitfourchette.blame.trace import Trace, makeWorkdirMockCommit, traceFile

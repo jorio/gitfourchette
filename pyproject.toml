@@ -67,7 +67,7 @@ source = [
 ]
 
 omit = [
-    "gitfourchette/__main__.py",
+    "gitfourchette/**/__main__.py",
     "gitfourchette/pycompat.py",
     "gitfourchette/qt.py",
     "gitfourchette/toolbox/excutils.py",  # uncaught exception formatters (shouldn't be needed if all tests pass!)

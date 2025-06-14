@@ -17,7 +17,7 @@ class BlameModel:
     trace: Trace
     blameCollection: BlameCollection
     currentTraceNode: TraceNode
-    currentBlame: Blame
+    currentBlame: AnnotatedFile
 
     def __init__(self, repoModel: RepoModel, trace: Trace, blameCollection: BlameCollection, taskInvoker: QWidget):
         self.taskInvoker = taskInvoker

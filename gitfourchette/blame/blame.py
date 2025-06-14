@@ -1,0 +1,184 @@
+# -----------------------------------------------------------------------------
+# Copyright (C) 2025 Iliyas Jorio.
+# This file is part of GitFourchette, distributed under the GNU GPL v3.
+# For full terms, see the included LICENSE file.
+# -----------------------------------------------------------------------------
+
+from __future__ import annotations
+
+import logging as _logging
+from collections.abc import Generator
+
+from gitfourchette.appconsts import *
+from gitfourchette.blame import Trace
+from gitfourchette.blame.annotatedfile import BlameCollection, AnnotatedFile
+from gitfourchette.blame.trace import _dummyProgressCallback
+from gitfourchette.blame.tracenode import TraceNode
+from gitfourchette.porcelain import *
+
+_logger = _logging.getLogger(__name__)
+
+BLAME_PROGRESS_INTERVAL = 10 if not APP_TESTMODE else 1
+
+
+def blameFile(
+        repo: Repo,
+        ll: Trace,
+        topCommitId: Oid = NULL_OID,
+        progressCallback=_dummyProgressCallback
+) -> BlameCollection:
+    # Get tail blob
+    blobIdA = ll.tail.blobId
+    blobA = repo[blobIdA].peel(Blob)
+
+    # Prep blame
+    blameCollection: BlameCollection = {}
+
+    # Traverse trace from tail up
+    i = 0
+    revisionNumber = 1
+    for node in ll.reverseIter():
+        i += 1
+        if i % BLAME_PROGRESS_INTERVAL == 0:
+            progressCallback(i)
+
+        assert node.sealed
+        assert node is not ll.head, "head sentinel is fake"
+
+        blobIdA = node.ancestorBlobId
+        blobIdB = node.blobId
+
+        # Skip nodes that don't contribute a new blob
+        if blobIdA == blobIdB:
+            assert node.status == DeltaStatus.RENAMED
+            continue
+        if blobIdB in blameCollection:
+            _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
+            continue
+
+        # Assign informal revision number
+        node.revisionNumber = revisionNumber
+        revisionNumber += 1
+
+        blobB = repo[blobIdB]
+        assert isinstance(blobB, Blob)
+
+        if blobIdA == NULL_OID:
+            assert node.status == DeltaStatus.ADDED
+            blameCollection[blobIdB] = _makeInitialBlame(node, blobB)
+            continue
+        elif blobA.id == blobIdA:
+            # Reuse previous blob (speedup, common case)
+            pass
+        else:
+            blobA = repo[blobIdA]
+
+        assert isinstance(blobA, Blob)
+        patch = blobA.diff(blobB)
+
+        blameA = blameCollection[blobIdA]
+        blameB = _blamePatch(patch, blameA, node)
+
+        if APP_DEBUG and not blameB.binary:
+            def countLines(data: bytes):
+                return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
+            assert len(blameB.lines) - 1 == countLines(blobB.data)
+
+        # Enrich blame with more precise information from a merged branch
+        if (not blameB.binary
+                and node.llNext
+                and node.llNext.level == node.level + 1
+                and node.llNext.blobId != blobIdA):
+            if APP_DEBUG:  # Very expensive assertion that will slow down the blame significantly
+                assert repo.descendant_of(node.commitId, node.llNext.commitId)
+            olderBlob = repo[node.llNext.blobId]
+            olderBlame = blameCollection[node.llNext.blobId]
+            olderPatch = olderBlob.diff(blobB)
+            _overrideBlame(olderPatch, olderBlame, blameB)
+
+        # Save this blame
+        blameCollection[blobIdB] = blameB
+
+        # Save new blob for next iteration, might save us a lookup if it's the next blob's ancestor
+        blobA = blobB
+
+        # See if stop
+        if topCommitId == node.commitId:
+            break
+
+    return blameCollection
+
+
+def _makeInitialBlame(node: TraceNode, blob: Blob) -> AnnotatedFile:
+    blame = AnnotatedFile(node)
+
+    data = blob.data
+    if b'\0' in data:
+        blobText = "$$$BINARY_PLACEHOLDER_LINE$$$"
+        blame.binary = True
+    else:
+        blobText = data.decode("utf-8", errors="replace")
+
+    blame.lines.extend(AnnotatedFile.Line(node, line) for line in blobText.splitlines(keepends=True))
+    return blame
+
+
+def _blamePatch(patch: Patch, blameA: AnnotatedFile, nodeB: TraceNode) -> AnnotatedFile:
+    blameB = AnnotatedFile(nodeB)
+    blameB.binary = patch.delta.is_binary
+
+    for lineA, lineB, diffLine in _traversePatch(patch, len(blameA.lines)):
+        assert lineB == len(blameB.lines)
+        if lineA:  # context line
+            blameB.lines.append(blameA.lines[lineA])
+        else:  # new line originating in B
+            blameB.lines.append(AnnotatedFile.Line(nodeB, diffLine.content))
+
+    return blameB
+
+
+def _overrideBlame(patch: Patch, blameA: AnnotatedFile, blameB: AnnotatedFile):
+    for lineA, lineB, _dummy in _traversePatch(patch, len(blameA.lines)):
+        if lineA:  # context line
+            assert blameB.lines[lineB].text == blameA.lines[lineA].text
+            blameB.lines[lineB] = blameA.lines[lineA]
+
+
+def _traversePatch(patch: Patch, numLinesA: int) -> Generator[tuple[int, int, DiffLine | None], None, None]:
+    cursorA = 1
+    cursorB = 1
+
+    for hunk in patch.hunks:
+        for diffLine in hunk.lines:
+            lineA = diffLine.old_lineno
+            lineB = diffLine.new_lineno
+            origin = diffLine.origin
+
+            if origin == '-':
+                # Skip deleted line
+                assert lineA >= 1
+                cursorA = lineA + 1
+            elif origin == '+':
+                # This commit is to blame for this line
+                assert lineB >= 1
+                yield 0, cursorB, diffLine
+                cursorB += 1
+            elif origin == ' ':
+                # Catch up to lineA
+                assert lineA >= 1
+                while cursorA <= lineA:
+                    yield cursorA, cursorB, None
+                    cursorA += 1
+                    cursorB += 1
+                assert cursorB == lineB + 1
+            else:
+                # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
+                assert origin in "=><"
+
+    # Copy rest of file
+    while cursorA < numLinesA:
+        yield cursorA, cursorB, None
+        cursorA += 1
+        cursorB += 1
+
+
