@@ -18,7 +18,8 @@ jobs:
         include:
         # Legacy configs
         - {name: '310-pyqt5-outdated', os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12'}
-        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip uninstall -y pygments'}
+        # pytest 8.3.5 is the last version without a mandatory requirement for pygments
+        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, python-version: '3.10', qt-binding: pyqt5, piptweak: 'pip install pytest==8.3.5 && pip uninstall -y pygments'}
         # Semi-legacy configs
         - {name: '311-pyqt6', os: ubuntu-latest, python-version: '3.11', qt-binding: pyqt6}
         - {name: '312-pyqt6', os: ubuntu-latest, python-version: '3.12', qt-binding: pyqt6}
