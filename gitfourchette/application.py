@@ -315,10 +315,7 @@ class GFApplication(QApplication):
             return
 
         # Try to load gettext translator for application strings.
-        languageCode = locale.name()
-        languageCode = languageCode.split("_")[0]  # strip territory (e.g. fr_FR --> fr)
-        languageFile = QFile(f"assets:lang/{languageCode}.mo")
-        installGettextTranslator(languageFile.fileName())
+        self._installGettextTranslator(locale)
 
         # Remove previously installed qtbase translator
         QCoreApplication.removeTranslator(self.qtbaseTranslator)
@@ -328,6 +325,37 @@ class GFApplication(QApplication):
             qtTranslationsDir = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
             if self.qtbaseTranslator.load(locale, "qtbase", "_", qtTranslationsDir, ".qm"):
                 QCoreApplication.installTranslator(self.qtbaseTranslator)
+
+    @staticmethod
+    def _installGettextTranslator(locale: QLocale):
+        # We'll be resolving the path to an '.mo' file that best matches the given locale.
+        moFilePath = ""
+
+        # Match Qt language code with .mo files exported from Weblate.
+        # The codes for most languages already match, but Chinese is a notable exception.
+        qtLocaleToWeblate = {
+            "zh_CN": "zh_Hans",
+        }
+
+        languageCode = locale.name()
+        languageCode = qtLocaleToWeblate.get(languageCode, languageCode)
+
+        # Look for a territory-specific file first, then fall back to a
+        # generic language file (e.g. 'fr_CA' then 'fr').
+        try:
+            genericLanguageCode = QLocale.languageToCode(locale.language())
+        except AttributeError:  # pragma: no cover - Compatibility with Qt 5 and pre-Qt 6.3
+            genericLanguageCode = languageCode.split("_")[0]
+
+        for stem in languageCode, genericLanguageCode:
+            languageFile = QFile(f"assets:lang/{stem}.mo")
+            if languageFile.exists():
+                moFilePath = languageFile.fileName()
+                break
+
+        # Install translations from the '.mo' file.
+        # If we couldn't find a file, this will fall back to American English.
+        installGettextTranslator(moFilePath)
 
     def applyLanguagePref(self):
         from gitfourchette import settings

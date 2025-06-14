@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -29,13 +29,30 @@ from gettext import NullTranslations
 
 _translator = NullTranslations()
 
-def installGettextTranslator(path: str):
+
+def installGettextTranslator(path: str = "") -> bool:
+    """
+    Load translations from a gettext '.mo' file.
+
+    Return True if the translations were successfully loaded.
+
+    If the given path is empty or doesn't exist, fall back to
+    American English and return False.
+    """
+
     global _translator
-    try:
-        with open(path, 'rb') as fp:
-            _translator = GNUTranslations(fp)
-    except OSError:
-        _translator = NullTranslations()
+
+    if path:
+        try:
+            with open(path, 'rb') as fp:
+                _translator = GNUTranslations(fp)
+                return True
+        except OSError:
+            pass
+
+    _translator = NullTranslations()
+    return False
+
 
 def _(message: str, *args, **kwargs) -> str:
     message = _translator.gettext(message)
@@ -43,11 +60,14 @@ def _(message: str, *args, **kwargs) -> str:
         message = message.format(*args, **kwargs)
     return message
 
+
 def _n(singular: str, plural: str, n: int, *args, **kwargs) -> str:
     return _translator.ngettext(singular, plural, n).format(*args, **kwargs, n=n)
 
+
 def _np(context: str, singular: str, plural: str, n: int) -> str:
     return _translator.npgettext(context, singular, plural, n).format(n=n)
+
 
 def _p(context: str, message: str, *args, **kwargs) -> str:
     message = _translator.pgettext(context, message)

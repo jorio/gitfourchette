@@ -122,7 +122,6 @@ def testPrefsLanguageControl(tempDir, mainWindow):
     dlg = mainWindow.openPrefsDialog("language")
     comboBox: QComboBox = dlg.findChild(QWidget, "prefctl_language")
     qcbSetIndex(comboBox, "fran.ais")
-    comboBox.activated.emit(comboBox.currentIndex())
     dlg.accept()
     acceptQMessageBox(mainWindow, "application des pr.f.rences")
 
