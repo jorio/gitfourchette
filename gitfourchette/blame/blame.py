@@ -18,8 +18,6 @@ _logger = _logging.getLogger(__name__)
 
 BLAME_PROGRESS_INTERVAL = 10 if not APP_TESTMODE else 1
 
-BlameCollection = dict[Oid, AnnotatedFile]
-
 
 def blameFile(
         repo: Repo,
@@ -27,8 +25,6 @@ def blameFile(
         topCommitId: Oid = NULL_OID,
         progressCallback=Trace.dummyProgressCallback
 ):
-    blameCollection: BlameCollection = {}
-
     nodeSequence = list(topNode.walkGraph())
 
     blobIdA = nodeSequence[-1].blobId
@@ -40,27 +36,26 @@ def blameFile(
             progressCallback(i)
 
         assert node.sealed
+        assert node.annotatedFile is None, ("node already has an annotated file "
+                                            "(safe to ignore this if benchmarking; just run python -OO)")
 
-        blobIdA = node.ancestorBlobId
+        blobIdA = node.ancestorBlobId  # blob id in first parent
         blobIdB = node.blobId
 
         # Skip nodes that don't contribute a new blob
         if blobIdA == blobIdB:
             assert node.status == DeltaStatus.RENAMED, f"{node} isn't 'R'?"
             continue
-        if blobIdB in blameCollection:
-            _logger.debug(f"Not blaming node (same blob contributed earlier): {node}")
-            continue
 
         # Assign informal revision number
-        node.revisionNumber = len(blameCollection) + 1
+        node.revisionNumber = i + 1
 
         blobB = repo[blobIdB]
         assert isinstance(blobB, Blob)
 
         if blobIdA == NULL_OID:
             assert node.status == DeltaStatus.ADDED
-            blameCollection[blobIdB] = _makeInitialBlame(node, blobB)
+            node.annotatedFile = _makeInitialBlame(node, blobB)
             continue
         elif blobA.id == blobIdA:
             # Reuse previous blob (speedup, common case)
@@ -69,9 +64,9 @@ def blameFile(
             blobA = repo[blobIdA]
 
         assert isinstance(blobA, Blob)
+        assert node.parents[0].annotatedFile is not None, "node parent 0 is not annotated yet"
         patch = blobA.diff(blobB)
-
-        blameA = blameCollection[blobIdA]
+        blameA = node.parents[0].annotatedFile
         blameB = _blamePatch(patch, blameA, node)
 
         if APP_DEBUG and not blameB.binary:
@@ -87,12 +82,12 @@ def blameFile(
             if APP_DEBUG:  # Very expensive assertion that will slow down the blame significantly
                 assert repo.descendant_of(node.commitId, extraParent.commitId)
             olderBlob = repo[extraParent.blobId]
-            olderBlame = blameCollection[extraParent.blobId]
+            olderBlame = extraParent.annotatedFile
             olderPatch = olderBlob.diff(blobB)
             _overrideBlame(olderPatch, olderBlame, blameB)
 
         # Save this blame
-        blameCollection[blobIdB] = blameB
+        node.annotatedFile = blameB
 
         # Save new blob for next iteration, might save us a lookup if it's the next blob's ancestor
         blobA = blobB
@@ -100,8 +95,6 @@ def blameFile(
         # See if stop
         if topCommitId == node.commitId:
             break
-
-    return blameCollection
 
 
 def _makeInitialBlame(node: TraceNode, blob: Blob) -> AnnotatedFile:

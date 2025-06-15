@@ -135,7 +135,6 @@ class BlameWindow(QWidget):
             self.saveFilePosition()
 
         self.model.currentTraceNode = node
-        self.model.currentBlame = self.model.blameCollection[node.blobId]
 
         # Update scrubber
         # Heads up: Look up scrubber row from the sequence of nodes, not via

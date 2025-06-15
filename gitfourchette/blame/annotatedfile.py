@@ -52,6 +52,3 @@ class AnnotatedFile:
             result += f"{id7(node.commitId)} {node.path:20} ({author:20} {strDate} {i}) {blameLine.text.rstrip()}\n"
 
         return result
-
-
-BlameCollection = dict[Oid, AnnotatedFile]

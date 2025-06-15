@@ -16,21 +16,18 @@ class BlameModel:
     taskInvoker: QWidget
     repoModel: RepoModel
     trace: Trace
-    blameCollection: BlameCollection
     currentTraceNode: TraceNode
     currentBlame: AnnotatedFile
     nodeSequence: list[TraceNode]
     graph: Graph
 
-    def __init__(self, repoModel: RepoModel, trace: Trace, blameCollection: BlameCollection, taskInvoker: QWidget):
+    def __init__(self, repoModel: RepoModel, trace: Trace, taskInvoker: QWidget):
         self.taskInvoker = taskInvoker
         self.repoModel = repoModel
         self.trace = trace
-        self.blameCollection = blameCollection
 
         startNode = trace.first  # fall back to newest commit
         self.currentTraceNode = startNode
-        self.currentBlame = blameCollection[startNode.blobId]
 
         # Create graph
         self.nodeSequence = []
@@ -52,6 +49,10 @@ class BlameModel:
     @property
     def repo(self) -> Repo:
         return self.repoModel.repo
+
+    @property
+    def currentBlame(self) -> AnnotatedFile:
+        return self.currentTraceNode.annotatedFile
 
     @property
     def currentLocator(self) -> NavLocator:

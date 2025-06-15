@@ -47,11 +47,11 @@ def traceCommandLineTool():  # pragma: no cover
         trace.dump()
 
     with Benchmark("Blame"):
-        blameCollection = blameFile(repo, trace.first, topCommit.id,
-                                    progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
+        blameFile(repo, trace.first, topCommit.id,
+                  progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
 
     if not args.quiet:
-        rootBlame = blameCollection[trace.first.blobId]
+        rootBlame = trace.first.annotatedFile
         print(rootBlame.toPlainText(repo))
 
     if args.benchmark:

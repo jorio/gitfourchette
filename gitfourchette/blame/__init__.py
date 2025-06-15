@@ -16,4 +16,4 @@ CAVEAT: Octopus merges not supported yet.
 from gitfourchette.blame.annotatedfile import AnnotatedFile
 from gitfourchette.blame.tracenode import TraceNode
 from gitfourchette.blame.trace import Trace
-from gitfourchette.blame.blame import BlameCollection, blameFile
+from gitfourchette.blame.blame import blameFile

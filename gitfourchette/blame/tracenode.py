@@ -8,9 +8,13 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 from gitfourchette.appconsts import *
 from gitfourchette.porcelain import *
+
+if TYPE_CHECKING:
+    from gitfourchette.blame.annotatedfile import AnnotatedFile
 
 
 @dataclasses.dataclass
@@ -32,6 +36,8 @@ class TraceNode:
 
     subbingInForCommits: list[Oid] = dataclasses.field(default_factory=list)
     # Irrelevant commits that this node is subbing in for.
+
+    annotatedFile: AnnotatedFile | None = None
 
     def __repr__(self):
         return f"({self.status.name[0]},{id7(self.commit)})"
