@@ -78,7 +78,6 @@ class OpenBlame(RepoTask):
         blameModel = BlameModel(self.repoModel, trace, blameCollection, self.parentWidget())
 
         yield from self.flowEnterUiThread()
-        progress.close()
 
         blameWindow = BlameWindow(blameModel)
 
@@ -92,6 +91,7 @@ class OpenBlame(RepoTask):
         windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
         blameWindow.resize(windowWidth, windowHeight)
 
+        progress.close()
         blameWindow.show()
 
         self.postStatus = _n("{n} revision annotated.", "{n} revisions annotated.", n=len(trace))

@@ -7,6 +7,7 @@
 from gitfourchette.blame import *
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
+from gitfourchette.localization import _
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.toolbox import onAppThread
@@ -35,11 +36,11 @@ class BlameScrubberModel(QAbstractListModel):
         row = index.row()
         node = self.blameModel.nodeSequence[row]
 
-        if role == Qt.ItemDataRole.DisplayRole:
+        if APP_TESTMODE and role == Qt.ItemDataRole.DisplayRole:
             # DisplayRole is intended as a unit test helper only.
             # BlameScrubberDelegate doesn't render this role.
             if node.commitId == UC_FAKEID:  # for unit tests
-                return "UNCOMMITTED CHANGES IN WORKING DIRECTORY"
+                return _("Uncommitted Changes in Working Directory")
             return self.blameModel.repo.peel_commit(node.commitId).message
 
         elif role == CommitLogModel.Role.Commit:

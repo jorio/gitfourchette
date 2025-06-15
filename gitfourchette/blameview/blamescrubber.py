@@ -16,17 +16,20 @@ class BlameScrubber(QComboBox):
     def __init__(self, blameModel: BlameModel, parent: QWidget):
         super().__init__(parent)
 
+        self.scrubberDelegate = BlameScrubberDelegate(blameModel, parent=self)
         self.scrubberModel = BlameScrubberModel(blameModel, parent=self)
+
+        self.setMinimumWidth(128)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
+
+        # For performance, prevent Qt from looking at every item in the model during initialization
+        self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.view().setUniformItemSizes(True)
+
+        self.setItemDelegate(self.scrubberDelegate)
         self.setModel(self.scrubberModel)
 
-        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
-        self.setMinimumWidth(128)
-        self.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
-        self.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
-        enforceComboBoxMaxVisibleItems(self, QApplication.primaryScreen().availableSize().height() // 18 - 1)
-
-        self.scrubberDelegate = BlameScrubberDelegate(blameModel, parent=self)
-        self.setItemDelegate(self.scrubberDelegate)
+        enforceComboBoxMaxVisibleItems(self, 25)
 
     def paintEvent(self, e):
         painter = QStylePainter(self)
