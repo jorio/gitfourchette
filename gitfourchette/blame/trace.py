@@ -68,10 +68,14 @@ class Trace:
             # - the file was created in the current commit (no need to explore any older commits)
             # - reached the branching point off a branch that we've already explored
             # - the current commit has no parents (initial commit)
+            numUnskimmables = 0
             while node is not None:
                 if progressTicks % TRACE_PROGRESS_INTERVAL == 0:
                     progressCallback(self.numRelevantNodes)
                 progressTicks += 1
+
+                if node.level == 0 and pNum == 0 and skimInterval > 0:
+                    numUnskimmables = self._skimBranch(node, skimInterval, numUnskimmables)
 
                 node = self._walkBranch(node, pNum)
                 pNum = 0
@@ -86,17 +90,6 @@ class Trace:
 
     def _walkBranch(self, nodeAbove: TraceNode, parentNum: int = 0):
         assert parentNum >= 0
-
-        # Optional: Skim over irrelevant portions of the branch
-        # if skipSkimming > 0:
-        #     # Don't skim yet
-        #     skipSkimming -= 1
-        # elif level == 0 and skimInterval:
-        #     # Try to skim this branch (see docstring in the function for more info)
-        #     commit, skipSkimming = _skimBranch(node, commit, knownBlobs, skimInterval)
-        #     if skipSkimming == 0:
-        #         commitAbove = commit
-        #         treeAbove = commit.tree
 
         # Get next commit in branch
         try:
@@ -188,6 +181,75 @@ class Trace:
 
         return nodeBelow
 
+    def _skimBranch(self, node: TraceNode, interval: int, numUnskimmables: int):
+        """
+        Time spent tracing a file is dominated by looking up blobs by path in
+        trees (in a lucky scenario where we never have to call
+        Diff.find_similar()).
+
+        In a long-lived repo, it's likely that the file we're tracing doesn't
+        change blobs that often. This function attempts to skip irrelevant
+        commits so we can space out blob lookups.
+
+        We rewind the branch by `interval` commits (starting from the top
+        commit) without looking at the trees that are skimmed over. We then look
+        up the file's blob after rewinding.
+
+        If we land on a blob that matches the one in the top commit, it's
+        reasonable to assume that the file hasn't changed in the interval.
+        Otherwise, we discard the rewind operation.
+
+        Note that this technique may cause some revisions to be missing from
+        the trace if the file changes contents within the interval, but reverts
+        to identical blobs at both ends of the interval.
+        """
+
+        commit = node.commit
+        assert node.level == 0
+        assert not node.sealed
+        assert not node.parents
+
+        if numUnskimmables > 0:  # don't skim yet
+            numUnskimmables -= 1
+            return numUnskimmables
+
+        skimmed: list[Oid] = []
+
+        # Hop over `interval` commits.
+        try:
+            for _i in range(interval):
+                parents = commit.parents
+                # if len(parents) > 1:  # Examine merge commit thoroughly - TODO: I don't think this is still necessary
+                #     raise LookupError()
+                commit = parents[0]  # may raise LookupError
+                assert commit.id not in self.visitedCommits
+                skimmed.append(commit.id)
+
+            tree = commit.tree
+            blobId = tree[node.path].id  # may raise LookupError
+        except LookupError:
+            # Couldn't hop all the way.
+            # Prevent hopping over these commits again.
+            return len(skimmed)
+
+        # We've hopped over `len(skimmed)` commits.
+        # Is it still the same blob after skimming?
+        if blobId != node.blobId:
+            # It's not the same blob, so the relevant commit must be among
+            # those we've hopped over. Prevent hopping over these again.
+            return len(skimmed)
+
+        # Bring current node to this commit
+        node.commit = commit
+
+        # Mark all skimmed commits as visited by this node
+        for oid in skimmed:
+            assert oid not in self.visitedCommits
+            self.visitedCommits[oid] = node
+
+        # Skimming can resume immediately after this commit
+        return 0
+
     def __len__(self):
         return self.numRelevantNodes
 
@@ -260,51 +322,3 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree, knownBlobId: Oid) -> tuple[
 
     # We're past the commit that created this file. Bail from the branch.
     return "", NULL_OID
-
-
-def _skimBranch(node: TraceNode, topCommit: Commit, knownBlobs: dict[Oid, Oid], interval: int):
-    """
-    Time spent tracing a file is dominated by looking up blobs by path in trees
-    (in a lucky scenario where we never have to call Diff.find_similar()).
-
-    In a long-lived repo, it's likely that the file we're tracing doesn't
-    change blobs that often. This function attempts to skip irrelevant commits
-    so we can space out blob lookups.
-
-    We rewind the branch by `interval` commits (starting from `topCommit`)
-    without looking at the trees that are skimmed over. We then look up the
-    file's blob after rewinding.
-
-    If we land on a blob that matches the one in `topCommit`, it's reasonable
-    to assume that the file hasn't changed in the interval. Otherwise, we
-    discard the rewind operation.
-
-    Note that this technique may cause some revisions to be missing from the
-    trace if the file changes contents within the interval, but reverts to
-    identical blobs at both ends of the interval.
-    """
-
-    commit = topCommit
-    assert commit.id == node.commitId
-    assert node.level == 0
-
-    skimmed = {node.commitId: node.blobId}
-    try:
-        for _step in range(interval):
-            parents = commit.parents
-            if len(parents) > 1:
-                raise LookupError()
-            commit = parents[0]
-            skimmed[commit.id] = node.blobId
-        tree = commit.tree
-        blobId = tree[node.path].id
-        if blobId == node.blobId:
-            node.commitId = commit.id  # Important! Bring current node to this commit
-            knownBlobs.update(skimmed)  # Mark all skimmed commits as visited
-            return commit, 0
-    except LookupError:
-        pass
-
-    return topCommit, len(skimmed)
-
-

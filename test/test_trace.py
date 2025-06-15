@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 
 import pytest
@@ -15,6 +16,14 @@ from gitfourchette.graph import GraphDiagram, MockOid, GraphBuildLoop
 from gitfourchette.porcelain import *
 
 TRACEPATH = "TraceMe.txt"
+
+@dataclasses.dataclass
+class Scenario:
+    textGraph: str
+    blobDefs: str
+    textSignificantCommits: str
+    skimInterval: int = 0
+
 
 # Each scenario is a 3-tuple interpreted as such:
 # 1. Commit graph definition parsed by GraphDiagram.
@@ -29,7 +38,7 @@ SCENARIOS = {
     # e ┿ 1
     # f ┿ 1
     # g ┷ 1 <-- significant revision
-    "linear": (
+    "linear": Scenario(
         "a-b-c-d-e-f-g",
         "4 4 3 2 1 1 1",
         "  b c d     g",
@@ -41,7 +50,7 @@ SCENARIOS = {
     # x ┿ _ <-- file did not exist; stop tracing here
     # y ┿ _
     # z ┷ _
-    "linear with extra history before file is created": (
+    "linear with extra history before file is created": Scenario(
         "a-b-c-x-y-z",
         "3 2 1 _ _ _",  # underscore means the file doesn't exist
         "a b c",
@@ -54,19 +63,19 @@ SCENARIOS = {
     # e │ ┿─╯ 2
     # f ┿─╯   2 <-- significant
     # g ┷     1 <-- significant
-    "collapse": (
+    "collapse": Scenario(
         "a-b:f,c c:e,d d-e-f-g",
         "2 2     2     2 2 2 1",
         "                  f g",
     ),
 
-    "parallel prune0a": (
+    "parallel prune0a": Scenario(
         "a:b,p p-b",
         "2     1 1",
         "a       b",
     ),
 
-    "parallel prune0b": (
+    "parallel prune0b": Scenario(
         "a:b,p p-q-r-s-b",
         "2     1 1 1 1 1",
         "a             b",
@@ -79,7 +88,7 @@ SCENARIOS = {
     # c ┿ │ 2 <-- significant
     # d ┿ │ 1
     # z ┷─╯ 1 <-- significant
-    "parallel prune1": (
+    "parallel prune1": Scenario(
         "a-m:b,p p:z b-c-d-z",
         "2 2     1   2 2 1 1",
         "              c   z",
@@ -92,7 +101,7 @@ SCENARIOS = {
     # c ┿ │ 3
     # d ┿ │ 4
     # z ┷─╯ 4
-    "parallel keep1": (
+    "parallel keep1": Scenario(
         "a-m:b,p p:z b-c-d-z",
         "1 1     2   3 3 4 4",
         "  m     p     c   z",
@@ -106,7 +115,7 @@ SCENARIOS = {
     # f ┿ │ 3 <-- significant contributor on main branch
     # g │ ┿ 4
     # h ┷─╯ 4
-    "parallel prune2": (
+    "parallel prune2": Scenario(
         "a-b-c:f,d d-e:g f:h g-h",
         "1 2 3     4 4   3   4 4",
         "a b             f     h"
@@ -120,7 +129,7 @@ SCENARIOS = {
     # f ┿ │ 4
     # g │ ┿ 4
     # h ┷─╯ 4
-    "parallel keep2": (
+    "parallel keep2": Scenario(
         "a-b-c:f,d d-e:g f:h g-h",
         "1 2 3     3 3   4   4 4",
         "a b c       e         h"
@@ -130,19 +139,19 @@ SCENARIOS = {
     # e │ ┿ 3 <-- significant contributor on parallel branch
     # g │ ┿ 4     (don't care)
     # h ┷─╯ 4 <-- significant because main branch
-    "parallel keep2 reduced": (
+    "parallel keep2 reduced": Scenario(
         "c:h,e e-g-h",
         "3     3 4 4",
         "c     e   h"
     ),
 
-    "double merge": (
+    "double merge": Scenario(
         "a:e,b b-c-d:f e:g,f f-g",
         "2     2 2 2   2     2 1",
         "              e     f g",
     ),
 
-    "triple merge": (
+    "triple merge": Scenario(
         "a:d,b b-c:z,e d:f,e e:g f:h,g g:i h:j,i i:k j:z,k k:z z",
         "3     2 2     3     2   3     2   3     2   3     2   1",
         "j k z",
@@ -151,7 +160,7 @@ SCENARIOS = {
     # a ┯─╮  <-- 1 (add)
     # b │ ┿  <-- 1 (add)
     # z ┷─╯  <-- file did not exist yet
-    "bumper 1": (
+    "bumper 1": Scenario(
         "a:z,b b-z",
         "1     1 _",
         "a     b",
@@ -161,7 +170,7 @@ SCENARIOS = {
     # b │ ┿  <-- 2 (modify)
     # c │ ┿  <-- 1 (add)
     # z ┷─╯  <-- file did not exist yet
-    "bumper 2": (
+    "bumper 2": Scenario(
         "a:z,b b-c-z",
         "2     2 1 _",
         "a     b c",
@@ -170,7 +179,7 @@ SCENARIOS = {
     # a ┯─╮  <-- 1
     # b │ ┿  <-- 2
     # z ┷─╯  <-- 3
-    "simple merge, all relevant": (
+    "simple merge, all relevant": Scenario(
         "a:z,b b-z",
         "1     2 3",
         "a     b z",
@@ -180,13 +189,13 @@ SCENARIOS = {
     # b │ ┿  <-- 2
     # n ┿─╯  <-- 3
     # z ┷    <-- 3
-    "simple merge, root commit not relevant": (
+    "simple merge, root commit not relevant": Scenario(
         "a:n,b b-n-z",
         "1     2 3 3",
         "a     b   z",
     ),
 
-    "multi tails": (
+    "multi tails": Scenario(
         "a-c:f,d d-e f",
         "1 2     3 4 5",
         "a c     d e f",
@@ -201,7 +210,7 @@ SCENARIOS = {
     #   │─╮
     # g │ ┷
     # h ┷
-    "significant rev merged into lower level": (
+    "significant rev merged into lower level": Scenario(
         "a:b,e b:f,c c-d-e-f:h,g g h",
         "3     2     2 1 1 1     1 0",
         "a     b     c     f     g h",
@@ -212,25 +221,25 @@ SCENARIOS = {
     # c ┿─╮
     # d │ ┿
     # e ┷─╯
-    "don't visit twice 1": (
+    "don't visit twice 1": Scenario(
         "a:c,b b:d c:e,d d-e",
         "4     3   2     1 0",
         "a     b   c     d e",
     ),
 
-    "don't visit twice 2": (
+    "don't visit twice 2": Scenario(
         "a:c,b b-b2:d c:e,d d-e",
         "4     3 3b   2     1 0",
         "a     b b2   c     d e",
     ),
 
-    "don't visit twice 3": (
+    "don't visit twice 3": Scenario(
         "a:c,b b:d c-c2:e,d d-e",
         "4     3   2 2    1 0",
         "a     b     c2   d e",
     ),
 
-    "don't visit twice 4": (
+    "don't visit twice 4": Scenario(
         "a:c,b b:d c:e,d d-e",
         "4     3   1     1 1",
         "a     b           e",
@@ -241,13 +250,13 @@ SCENARIOS = {
     # d │ │ ┷
     # c ┿─╯
     # e ┷
-    "consider extra parent even if returning to shallower branch": (
+    "consider extra parent even if returning to shallower branch": Scenario(
         "a:c,b b:c,d d c-e",
         "4     4     2 3 1",
         "a     b     d c e",
     ),
 
-    "junction?": (
+    "junction?": Scenario(
         "a:c,b b:d c:e,d d-e",
         "4     3   2     1 0",
         "a     b   c     d e",
@@ -257,23 +266,51 @@ SCENARIOS = {
     # b │ ┿  <-- file did not exist
     # c ┿ │  <-- blob 1
     # d ┷─╯  <-- file did not exist
-    "prune branch that diverged before file was created": (
+    "prune branch that diverged before file was created": Scenario(
         "a:c,b b:d c-d",
         "2     _   1 _",
         "a         c  ",
     ),
 
-    "graphwalk don't revisit 1": (
+    "graphwalk don't revisit 1": Scenario(
         "67:2d,fc fc-a8:c1 2d-b4-c1-88-zz",
         "17       04 04    71 68 ef ef b3",
         "67          a8    2d b4    88 zz",
     ),
 
-    "graphwalk don't revisit 2": (
+    "graphwalk don't revisit 2": Scenario(
         "74:84,ff ff:e8 84-c8-5c-e8-dd",
         "f8       77    fb 6b 13 5d 5d",
         "74       ff    84 c8 5c    dd",
-    )
+    ),
+
+    "skimming beyond history": Scenario(
+        "c0-c1-c2-c3-c4-c5-c6-c7-c8-c9",
+        " 2  2  2  2  2  2  2  2  2  2",
+        "                           c9",
+        skimInterval=50,
+    ),
+
+    "skimming 2 hops": Scenario(
+        "c0-c1-c2-c3-c4-c5-c6-c7-c8-c9",
+        " 2  2  2  2  2  2  2  2  1  1",
+        "                     c7    c9",
+        skimInterval=4,
+    ),
+
+    "skimming 1 hop 1": Scenario(
+        "c0-c1-c2-c3-c4-c5-c6-c7-c8-c9",
+        " 2  2  2  2  2  2  2  2  2  1",
+        "                        c8 c9",
+        skimInterval=9,
+    ),
+
+    "skimming 1 hop 2": Scenario(
+        "c0-c1-c2-c3-c4-c5-c6-c7-c8-c9",
+        " 2  2  2  2  2  2  2  2  1  1",
+        "                     c7    c9",
+        skimInterval=9,
+    ),
 }
 
 
@@ -304,19 +341,19 @@ class MockTree(dict):
 def testTrace(scenarioKey):
     print()
 
-    textGraph, blobDefs, textSignificantCommits = SCENARIOS[scenarioKey]
-    significantCommits = MockOid.encodeAll(textSignificantCommits.split())
-    sequence, heads = GraphDiagram.parseDefinition(textGraph)
+    scenario = SCENARIOS[scenarioKey]
+    significantCommits = MockOid.encodeAll(scenario.textSignificantCommits.split())
+    sequence, heads = GraphDiagram.parseDefinition(scenario.textGraph)
 
     diagram = GraphDiagram.diagram(GraphBuildLoop(heads).sendAll(sequence).graph)
     print(diagram)
 
-    for commit, blobText in zip(sequence, blobDefs.split(), strict=True):
+    for commit, blobText in zip(sequence, scenario.blobDefs.split(), strict=True):
         commit.tree = MockTree()
         if blobText != "_":
             commit.tree[TRACEPATH] = MockBlob(blobText)
 
-    traceState = Trace(TRACEPATH, sequence[0])
+    traceState = Trace(TRACEPATH, sequence[0], skimInterval=scenario.skimInterval)
     assert traceState.numRelevantNodes == len(significantCommits)
 
     for traceNode, significantCommit in zip(traceState.first.walkGraph(), significantCommits, strict=True):

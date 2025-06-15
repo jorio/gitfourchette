@@ -16,7 +16,7 @@ from gitfourchette.toolbox import *
 
 
 class OpenBlame(RepoTask):
-    TraceSkimInterval = 50
+    TraceSkimInterval = 20
 
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoUnborn
