@@ -32,6 +32,13 @@ SCENARIOS = {
         ["d31f5a6", "7f82283"],
         testRepo="TestGitRepository",
     ),
+
+    "start trace on deletion": Scenario(
+        "c/c2-2.txt",
+        [],
+        seedCommit="c9ed7bf",
+        testRepo="TestGitRepository",
+    ),
 }
 
 

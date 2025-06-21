@@ -44,6 +44,11 @@ def blameFile(
         # Assign informal revision number
         node.revisionNumber = i + 1
 
+        if blobIdB == NULL_OID:
+            assert node.status == DeltaStatus.DELETED
+            node.annotatedFile = AnnotatedFile(node)  # blank
+            continue
+
         blobB = repo[blobIdB]
         assert isinstance(blobB, Blob)
 

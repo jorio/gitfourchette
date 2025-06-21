@@ -45,7 +45,7 @@ class Trace:
     ):
         self._branchFrontier = []
         self.visitedCommits = {}
-        self.numRelevantNodes = -1  # deduct 1 for mock starter
+        self.numRelevantNodes = 0
 
         mockStarter = MockCommit(NULL_OID, [topCommit.id])
         mockStarter.parents = [topCommit]
@@ -83,8 +83,23 @@ class Trace:
 
         del self._branchFrontier
 
+        # Determine which node to use as the top of the graph.
+        # The starter node is useless if it's not subbing in for any commits.
+        # In the case of a deletion in the top commit, the starter node is useful
+        # because it's been moved to a 'real' commit.
         assert len(nodeStarter.parents) == 1
-        self.first = nodeStarter.parents[0]
+        if nodeStarter.subbingInForCommits:
+            self.first = nodeStarter
+            assert self.first.status == DeltaStatus.DELETED
+        else:
+            self.first = nodeStarter.parents[0]
+            assert self.first.children == [nodeStarter]
+            self.first.children.clear()
+            self.numRelevantNodes -= 1  # we're not using the starter
+        assert not self.first.children
+        if APP_DEBUG:
+            nodeStarterInVisitedCommits = any(vNode is nodeStarter for vNode in self.visitedCommits.values())
+            assert nodeStarterInVisitedCommits == (nodeStarter is self.first)
 
         timeTaken = int(1000 * (time.perf_counter() - timeStart))
         _logger.debug(f"{len(self.visitedCommits)} commits visited, {len(self)} were relevant ({timeTaken} ms)")
@@ -107,8 +122,16 @@ class Trace:
         treeAbove = nodeAbove.commit.tree
         treeBelow = commitBelow.tree
         pathBelow, blobIdBelow = _getBlob(nodeAbove.path, treeBelow, treeAbove, nodeAbove.blobId)
-        cmpStatus = nodeAbove.compare(pathBelow, blobIdBelow)
-        commitIsRelevant = cmpStatus != DeltaStatus.UNMODIFIED
+        if nodeAbove.blobId != NULL_OID:
+            statusBelow = nodeAbove.compare(pathBelow, blobIdBelow)
+        elif blobIdBelow != NULL_OID:
+            statusBelow = DeltaStatus.DELETED
+            assert pathBelow == nodeAbove.path
+        else:
+            statusBelow = DeltaStatus.UNMODIFIED
+            assert not pathBelow
+            pathBelow = nodeAbove.path
+        commitIsRelevant = statusBelow != DeltaStatus.UNMODIFIED
 
         # Look up branching point on parent branch (if any)
         # (if found, we're here:)   │ ┿  <-- nodeAbove
@@ -142,7 +165,7 @@ class Trace:
             # Commit is relevant
             if parentNum == 0:
                 assert not nodeAbove.sealed
-                nodeAbove.status = cmpStatus
+                nodeAbove.status = statusBelow
                 nodeAbove.sealed = True
                 self.numRelevantNodes += 1
             assert nodeAbove.sealed
@@ -289,6 +312,10 @@ def _getBlob(path: str, tree: Tree, treeAbove: Tree, knownBlobId: Oid) -> tuple[
     except KeyError:
         # Path missing from this commit's tree.
         pass
+
+    # Support starting a trace from a commit that has deleted the file.
+    if treeAbove is None:
+        return "", NULL_OID
 
     assert treeAbove is not None
 

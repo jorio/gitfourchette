@@ -13,6 +13,7 @@ from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory
+from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
@@ -144,13 +145,18 @@ class BlameWindow(QWidget):
         with QSignalBlockerContext(self.scrubber):
             self.scrubber.setCurrentIndex(scrubberIndex)
 
-        blob = self.model.repo.peel_blob(node.blobId)
-        data = blob.data
-
-        if self.model.currentBlame.binary:
-            text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
+        useLexer = False
+        if node.blobId == NULL_OID:
+            text = "*** " + _("File deleted in commit {0}", shortHash(node.commitId)) + " ***"
         else:
-            text = data.decode('utf-8', errors='replace')
+            blob = self.model.repo.peel_blob(node.blobId)
+            data = blob.data
+
+            if self.model.currentBlame.binary:
+                text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
+            else:
+                text = data.decode('utf-8', errors='replace')
+                useLexer = True
 
         newLocator = self.model.currentLocator
         newLocator = self.navHistory.refine(newLocator)
@@ -164,7 +170,10 @@ class BlameWindow(QWidget):
         self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path), commit=shortHash(node.commitId)))
 
         # Install lex job
-        lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
+        if useLexer:
+            lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
+        else:
+            lexJob = None
         if lexJob is not None:
             self.textEdit.highlighter.installLexJob(lexJob)
             self.textEdit.highlighter.rehighlight()
@@ -223,7 +232,7 @@ class BlameWindow(QWidget):
         self.model.taskInvoker.activateWindow()
 
     @staticmethod
-    def _getLexJob(path, blobId, data):
+    def _getLexJob(path: str, blobId: Oid, data: str) -> LexJob | None:
         if not settings.prefs.isSyntaxHighlightingEnabled():
             return None
 

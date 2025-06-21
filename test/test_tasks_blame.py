@@ -200,6 +200,19 @@ def testBlameBinaryBlob(tempDir, mainWindow):
     blameWindow.close()
 
 
+def testBlameStartTraceOnDeletion(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "TestGitRepository")
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt"), check=True)
+
+    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    QTest.qWait(0)
+    blameWindow: BlameWindow = findWindow("blame")
+    text = blameWindow.textEdit.toPlainText().lower()
+    assert "file deleted in commit c9ed7bf" in text
+    blameWindow.close()
+
+
 def testBlameContextMenu(blameWindow):
     scrubber = blameWindow.scrubber
     viewport = blameWindow.textEdit.viewport()
