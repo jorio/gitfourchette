@@ -7,11 +7,11 @@
 from __future__ import annotations
 
 import logging as _logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 from gitfourchette.appconsts import *
 from gitfourchette.blame.annotatedfile import AnnotatedFile
-from gitfourchette.blame.trace import TraceNode, Trace
+from gitfourchette.blame.tracenode import TraceNode
 from gitfourchette.porcelain import *
 
 _logger = _logging.getLogger(__name__)
@@ -22,8 +22,7 @@ BLAME_PROGRESS_INTERVAL = 10 if not APP_TESTMODE else 1
 def blameFile(
         repo: Repo,
         topNode: TraceNode,
-        topCommitId: Oid = NULL_OID,
-        progressCallback=Trace.dummyProgressCallback
+        progressCallback: Callable[[int], None]
 ):
     nodeSequence = list(topNode.walkGraph())
 
@@ -91,10 +90,6 @@ def blameFile(
 
         # Save new blob for next iteration, might save us a lookup if it's the next blob's ancestor
         blobA = blobB
-
-        # See if stop
-        if topCommitId == node.commitId:
-            break
 
 
 def _makeInitialBlame(node: TraceNode, blob: Blob) -> AnnotatedFile:

@@ -73,7 +73,7 @@ class OpenBlame(RepoTask):
         # Annotate file
         yield from self.flowEnterWorkerThread()
         with Benchmark("blame"):
-            blameFile(repo, trace.first, seed, progressCallback=progress.reportBlameProgress)
+            trace.annotate(repo, progressCallback=progress.reportBlameProgress)
 
         blameModel = BlameModel(self.repoModel, trace, self.parentWidget())
 

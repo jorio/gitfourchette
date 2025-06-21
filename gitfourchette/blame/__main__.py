@@ -47,8 +47,7 @@ def traceCommandLineTool():  # pragma: no cover
         trace.dump()
 
     with Benchmark("Blame"):
-        blameFile(repo, trace.first, topCommit.id,
-                  progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
+        trace.annotate(repo, progressCallback=lambda n: print(f"\rBlame {n}...", end="", file=stderr))
 
     if not args.quiet:
         rootBlame = trace.first.annotatedFile
@@ -61,7 +60,7 @@ def traceCommandLineTool():  # pragma: no cover
         print("Benchmarking...")
         elapsed = timeit(lambda: Trace(str(relPath), topCommit, skimInterval=args.skim, maxLevel=args.max_level), number=N)
         print(f"Trace: {elapsed*1000/N:.0f} ms avg")
-        elapsed = timeit(lambda: blameFile(repo, trace.first, topCommit.id), number=N)
+        elapsed = timeit(lambda: trace.annotate(repo), number=N)
         print(f"Blame: {elapsed*1000/N:.0f} ms avg")
 
 

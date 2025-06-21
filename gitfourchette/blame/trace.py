@@ -11,6 +11,7 @@ from collections.abc import Callable
 import logging
 
 from gitfourchette.appconsts import *
+from gitfourchette.blame.blame import blameFile
 from gitfourchette.blame.tracenode import TraceNode
 from gitfourchette.graph import MockCommit
 from gitfourchette.porcelain import *
@@ -252,6 +253,9 @@ class Trace:
 
     def __len__(self):
         return self.numRelevantNodes
+
+    def annotate(self, repo: Repo, progressCallback: Callable[[int], None] = dummyProgressCallback):
+        blameFile(repo, self.first, progressCallback)
 
     def nodeForCommit(self, commitId: Oid) -> TraceNode:
         return self.visitedCommits[commitId]
