@@ -311,6 +311,12 @@ SCENARIOS = {
         "                     c7    c9",
         skimInterval=9,
     ),
+
+    "added file in merge commit": Scenario(
+        "a:z,b b-c-d-z",
+        "3     3 2 1 _",
+        "a     b c d  ",
+    ),
 }
 
 

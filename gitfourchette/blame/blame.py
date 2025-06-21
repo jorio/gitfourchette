@@ -41,11 +41,6 @@ def blameFile(
         blobIdA = node.ancestorBlobId  # blob id in first parent
         blobIdB = node.blobId
 
-        # Skip nodes that don't contribute a new blob
-        if blobIdA == blobIdB:
-            assert node.status == DeltaStatus.RENAMED, f"{node} isn't 'R'?"
-            continue
-
         # Assign informal revision number
         node.revisionNumber = i + 1
 

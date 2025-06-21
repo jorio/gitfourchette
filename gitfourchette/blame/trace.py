@@ -158,7 +158,6 @@ class Trace:
             # Bail from the branch if we added the file here
             if blobIdBelow == NULL_OID:
                 assert nodeAbove.sealed
-                # assert nodeAbove.status == DeltaStatus.ADDED, f"{nodeAbove} isn't 'A'? (above {id7(commitBelow.id)})"
                 return None
 
             # If known parent on visited branch: don't revisit
