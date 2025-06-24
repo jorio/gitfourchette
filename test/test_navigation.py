@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -407,6 +407,8 @@ def testSelectNextOrPreviousFile(tempDir, mainWindow):
 
     def test(nextPrev: str, locator: NavLocator):
         triggerMenuAction(mainWindow.menuBar(), f"view/{nextPrev}.+file")
+        fl = rw.diffArea.fileListByContext(locator.context)
+        assert fl.isVisible()
         return locator.isSimilarEnoughTo(rw.navLocator)
 
     # In workdir
@@ -426,9 +428,7 @@ def testSelectNextOrPreviousFile(tempDir, mainWindow):
 
     # In a commit
     oid = Oid(hex='83834a7afdaa1a1260568567f6ad90020389f664')
-    rw.jump(NavLocator.inCommit(Oid(hex='83834a7afdaa1a1260568567f6ad90020389f664')))
-    clearCurrentFileListSelection()
-    assert test("next", NavLocator.inCommit(oid, "a/a1.txt"))
+    rw.jump(NavLocator.inCommit(oid, "a/a1.txt"), check=True)
     assert test("next", NavLocator.inCommit(oid, "a/a2.txt"))
     assert test("next", NavLocator.inCommit(oid, "master.txt"))
     assert test("next", NavLocator.inCommit(oid, "master.txt"))

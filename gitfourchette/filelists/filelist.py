@@ -93,6 +93,7 @@ class FileListDelegate(QStyledItemDelegate):
 
 class FileList(QListView):
     nothingClicked = Signal()
+    """ Only emitted if the widget has focus. """
     selectedCountChanged = Signal(int)
     openDiffInNewWindow = Signal(Patch, NavLocator)
     openSubRepo = Signal(str)
@@ -433,10 +434,14 @@ class FileList(QListView):
 
     def selectRow(self, rowNumber=0):
         if self.model().rowCount() == 0:
-            self.nothingClicked.emit()
+            self.emitNothingClicked()
             self.clearSelection()
         else:
             self.setCurrentIndex(self.model().index(rowNumber or 0, 0))
+
+    def emitNothingClicked(self):
+        if self.hasFocus():
+            self.nothingClicked.emit()
 
     def selectionChanged(self, justSelected: QItemSelection, justDeselected: QItemSelection):
         super().selectionChanged(justSelected, justDeselected)
@@ -472,7 +477,7 @@ class FileList(QListView):
             locator = locator.withExtraFlags(NavFlags.AllowMultiSelect)
             Jump.invoke(self, locator)
         else:
-            self.nothingClicked.emit()
+            self.emitNothingClicked()
 
     def highlightCounterpart(self, loc: NavLocator):
         try:

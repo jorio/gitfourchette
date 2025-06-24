@@ -450,11 +450,7 @@ class DiffArea(QWidget):
             self.stagedFiles.clear()
             self.clearDocument()
 
-    def clearDocument(self, sourceFileList: FileList | None = None):
-        # Ignore clear request if it comes from a widget that doesn't have focus
-        if sourceFileList and not sourceFileList.hasFocus():
-            return
-
+    def clearDocument(self, locator: NavLocator):
         # Enter empty special page
         self.specialDiffView.clear()
         self.setDiffStackPage("special")
@@ -464,10 +460,6 @@ class DiffArea(QWidget):
 
         self.diffHeader.setText(" ")
 
-        if sourceFileList:
-            locator = NavLocator(sourceFileList.navContext, sourceFileList.commitId)
-        else:
-            locator = NavLocator(NavContext.WORKDIR if self.fileStackPage() else NavContext.COMMITTED)
         self.setUpForLocator(locator)
 
     # -------------------------------------------------------------------------

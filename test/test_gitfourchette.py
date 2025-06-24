@@ -121,7 +121,8 @@ def testSkipRenameDetection(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     assert not rw.diffBanner.isVisible()
 
-    rw.jump(NavLocator.inCommit(oid))
+    # Jump to the deleted file
+    rw.jump(NavLocator.inCommit(oid, "a/a2.txt"), check=True)
     assert 102 == len(qlvGetRowData(rw.committedFiles))
     assert rw.diffBanner.isVisible()
     assert "rename" in rw.diffBanner.label.text().lower()
@@ -129,6 +130,8 @@ def testSkipRenameDetection(tempDir, mainWindow):
     assert "detect" in rw.diffBanner.buttons[-1].text().lower()
     rw.diffBanner.buttons[-1].click()
 
+    assert rw.navLocator.context == NavContext.COMMITTED
+    assert rw.diffArea.committedFiles.isVisible()
     assert 101 == len(qlvGetRowData(rw.committedFiles))
     assert rw.diffBanner.isVisible()
     print(rw.diffBanner.label.text())

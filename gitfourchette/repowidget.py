@@ -175,7 +175,7 @@ class RepoWidget(QWidget):
 
         for fileList in self.dirtyFiles, self.stagedFiles, self.committedFiles:
             # File list view selections are mutually exclusive.
-            fileList.nothingClicked.connect(lambda fl=fileList: self.diffArea.clearDocument(fl))
+            fileList.nothingClicked.connect(lambda: self.diffArea.clearDocument(NavLocator.inWorkdir()))
             fileList.statusMessage.connect(self.statusMessage)
             fileList.openSubRepo.connect(lambda path: self.openRepo.emit(self.repo.in_workdir(path), NavLocator()))
 

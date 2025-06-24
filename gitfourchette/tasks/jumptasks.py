@@ -65,11 +65,10 @@ class Jump(RepoTask):
             # Load workdir or commit, and show the corresponding view
             if locator.context == NavContext.SPECIAL:
                 self.showSpecial(locator)  # always raises Jump.Result
+            elif locator.context.isWorkdir():
+                locator = yield from self.showWorkdir(locator)
             else:
-                if locator.context.isWorkdir():
-                    locator = yield from self.showWorkdir(locator)
-                else:
-                    locator = yield from self.showCommit(locator)
+                locator = yield from self.showCommit(locator)
         except Jump.Result as r:
             # The showXXX functions may bail early by raising Jump.Result.
             result = r
@@ -356,7 +355,7 @@ class Jump(RepoTask):
         document = result.document
 
         if document is None:
-            area.clearDocument()
+            area.clearDocument(result.locator)
 
         elif isinstance(document, DiffDocument):
             assert result.patch is not None
