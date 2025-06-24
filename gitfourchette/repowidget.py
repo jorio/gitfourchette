@@ -20,7 +20,6 @@ from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.localization import *
@@ -881,7 +880,8 @@ class RepoWidget(QWidget):
 
             ActionDef.SEPARATOR,
 
-            *cls.pathsMenuItemsByProxy(invoker, proxy),
+            # TODO: Yech (invoker.window())
+            *invoker.window().repolessActions(lambda: proxy().workdir),
 
             ActionDef.SEPARATOR,
 
@@ -894,46 +894,4 @@ class RepoWidget(QWidget):
                     ActionDef("config", lambda: proxy().openLocalConfig()),
                     ActionDef("exclude", lambda: proxy().openLocalExclude()),
                 ]),
-        ]
-
-    @classmethod
-    def pathsMenuItemsByProxy(cls, invoker, proxy):
-        superprojectLabel = _("Open Superproject")
-        superprojectEnabled = True
-
-        if isinstance(invoker, cls):
-            superproject = invoker.superproject
-            superprojectEnabled = bool(superproject)
-            if superprojectEnabled:
-                superprojectName = settings.history.getRepoTabName(superproject)
-                superprojectLabel = _("Open Superproject {0}", lquo(superprojectName))
-
-        return [
-            ActionDef(
-                _("&Open Repo Folder"),
-                lambda: proxy().openRepoFolder(),
-                icon="reveal",
-                shortcuts=GlobalShortcuts.openRepoFolder,
-                tip=_("Open this repo’s working directory in the system’s file manager"),
-            ),
-
-            ActionDef(
-                _("Open &Terminal"),
-                lambda: proxy().openTerminal(),
-                icon="terminal",
-                shortcuts=GlobalShortcuts.openTerminal,
-                tip=_("Open a terminal in the repo’s working directory"),
-            ),
-
-            ActionDef(
-                _("Cop&y Repo Path"),
-                lambda: proxy().copyRepoPath(),
-                tip=_("Copy the absolute path to this repo’s working directory to the clipboard"),
-            ),
-
-            ActionDef(
-                superprojectLabel,
-                lambda: proxy().openSuperproject(),
-                enabled=superprojectEnabled,
-            ),
         ]

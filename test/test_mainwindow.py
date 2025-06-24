@@ -9,8 +9,10 @@ import os
 import pytest
 
 from gitfourchette.forms.clonedialog import CloneDialog
+from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.mainwindow import NoRepoWidgetError
 from gitfourchette.nav import NavContext
+from gitfourchette.repowidget import RepoWidget
 from .util import *
 
 
@@ -200,7 +202,7 @@ def testMainWindowMenuItems(tempDir, mainWindow):
         findMenuAction(mainWindow.menuBar(), "file/recent/repo2")
 
 
-def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
+def testTabBarActions(tempDir, mainWindow, mockDesktopServices):
     """
     WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
     (No worries if you're running the tests offscreen.)
@@ -213,14 +215,18 @@ def testRepoWidgetTabBarActions(tempDir, mainWindow, mockDesktopServices):
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")
+    wd0 = os.path.realpath(wd0)
+    wd1 = os.path.realpath(wd1)
 
-    mainWindow.openRepo(wd0)
-    mainWindow.openRepo(wd1)
+    # Open wd0 in the foreground (RepoWidget), and wd1 in the background (RepoStub)
+    widget0 = mainWindow.openRepo(wd0)
+    widget1 = mainWindow._openRepo(wd1, foreground=False)
+
     assert mainWindow.tabs.count() == 2
+    assert isinstance(widget0, RepoWidget)
+    assert isinstance(widget1, RepoStub)
 
     for tabIndex, wd in enumerate([wd0, wd1]):
-        wd = os.path.realpath(wd)
-
         tabBar = mainWindow.tabs.tabs
         tabRect = tabBar.tabRect(tabIndex)
         menu = summonContextMenu(tabBar, tabRect.center())

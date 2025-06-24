@@ -10,7 +10,7 @@ import logging
 import os
 import re
 import time
-from collections.abc import Sequence
+from collections.abc import Sequence, Callable
 from contextlib import suppress
 from pathlib import Path
 from typing import Literal
@@ -19,6 +19,7 @@ from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
 from gitfourchette.codeview.codeview import CodeView
+from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
@@ -471,11 +472,11 @@ class MainWindow(QMainWindow):
         if i < 0:  # Right mouse button released outside tabs
             return None
 
-        rw: RepoWidget = self.tabs.widget(i)
+        widget: RepoWidget | RepoStub = self.tabs.widget(i)
         menu = QMenu(self)
         menu.setObjectName("MWRepoTabContextMenu")
 
-        anyOtherLoadedTabs = any(tab is not rw and isinstance(tab, RepoWidget)
+        anyOtherLoadedTabs = any(tab is not widget and isinstance(tab, RepoWidget)
                                  for tab in self.tabs.widgets())
 
         ActionDef.addToQMenu(
@@ -484,7 +485,7 @@ class MainWindow(QMainWindow):
             ActionDef(_("Close Other Tabs"), lambda: self.closeOtherTabs(i), enabled=self.tabs.count() > 1),
             ActionDef(_("Unload Other Tabs"), lambda: self.unloadOtherTabs(i), enabled=self.tabs.count() > 1 and anyOtherLoadedTabs),
             ActionDef.SEPARATOR,
-            *rw.pathsMenuItems(),
+            *self.repolessActions(widget.workdir),
             ActionDef.SEPARATOR,
             ActionDef(_("Configure Tabs…"), lambda: self.openPrefsDialog("tabCloseButton")),
         )
@@ -500,11 +501,10 @@ class MainWindow(QMainWindow):
         menu.popup(globalPoint)
 
     def onTabDoubleClicked(self, i: int):
-        if i < 0:
+        if i < 0 or not settings.prefs.doubleClickTabOpensFolder:
             return
-        rw: RepoWidget = self.tabs.widget(i)
-        if settings.prefs.doubleClickTabOpensFolder:
-            rw.openRepoFolder()
+        widget: RepoWidget | RepoStub = self.tabs.widget(i)
+        openFolder(widget.workdir)
 
     # -------------------------------------------------------------------------
     # Repo loading
@@ -1173,3 +1173,69 @@ class MainWindow(QMainWindow):
                 shortcuts=command.shortcut,
             ))
         return actions
+
+    # -------------------------------------------------------------------------
+    # Repository-less actions (actions that only need a path to the workdir;
+    # full-blown RepoWidget not required)
+
+    def repolessActions(self, workdir: str | Callable[[], str]):
+        superprojectLabel = _("Open Superproject")
+        superprojectEnabled = True
+        superproject = None
+
+        if isinstance(workdir, str):
+            def workdirProxy():
+                return workdir
+            superproject = settings.history.getRepoSuperproject(workdir)
+            superprojectEnabled = bool(superproject)
+            if superprojectEnabled:
+                superprojectName = settings.history.getRepoTabName(superproject)
+                superprojectLabel = _("Open Superproject {0}", lquo(superprojectName))
+        else:
+            workdirProxy = workdir
+        assert callable(workdirProxy)
+
+        return [
+            ActionDef(
+                _("&Open Repo Folder"),
+                lambda: openFolder(workdirProxy()),
+                icon="reveal",
+                shortcuts=GlobalShortcuts.openRepoFolder,
+                tip=_("Open this repo’s working directory in the system’s file manager"),
+            ),
+
+            ActionDef(
+                _("Open &Terminal"),
+                lambda: ToolProcess.startTerminal(self, workdirProxy()),
+                icon="terminal",
+                shortcuts=GlobalShortcuts.openTerminal,
+                tip=_("Open a terminal in the repo’s working directory"),
+            ),
+
+            ActionDef(
+                _("Cop&y Repo Path"),
+                lambda: self.repolessCopyPath(workdirProxy()),
+                tip=_("Copy the absolute path to this repo’s working directory to the clipboard"),
+            ),
+
+            ActionDef(
+                superprojectLabel,
+                lambda: self.repolessOpenSuperproject(workdirProxy(), superproject),
+                enabled=superprojectEnabled,
+            ),
+        ]
+
+    def repolessCopyPath(self, workdir: str):
+        QApplication.clipboard().setText(workdir)
+        self.statusBar2.showMessage(clipboardStatusMessage(workdir))
+
+    def repolessOpenSuperproject(self, workdir: str, superproject: str | None = None):
+        if superproject is None:
+            superproject = settings.history.getRepoSuperproject(workdir)
+
+        if not superproject:
+            showInformation(self, _("Open Superproject"), _("This repository does not have a superproject."))
+            return
+
+        submoduleTab = self.tabWidgetForWorkdirPath(workdir)  # may be None
+        self.openRepoNextTo(submoduleTab, superproject)

@@ -6,6 +6,8 @@
 
 import os.path
 
+from gitfourchette.forms.repostub import RepoStub
+from gitfourchette.repowidget import RepoWidget
 from .util import *
 
 
@@ -83,9 +85,11 @@ def testDoubleClickTabOpensWorkdir(tempDir, mainWindow, mockDesktopServices):
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")
 
-    mainWindow.openRepo(wd0)
-    mainWindow.openRepo(wd1)
+    mainWindow._openRepo(wd0, foreground=True)  # RepoWidget
+    mainWindow._openRepo(wd1, foreground=False)  # RepoStub
     assert mainWindow.tabs.count() == 2
+    assert isinstance(mainWindow.tabs.widget(0), RepoWidget)
+    assert isinstance(mainWindow.tabs.widget(1), RepoStub)
 
     for tabIndex, wd in enumerate([wd0, wd1]):
         wd = os.path.realpath(wd)
@@ -96,4 +100,6 @@ def testDoubleClickTabOpensWorkdir(tempDir, mainWindow, mockDesktopServices):
         QTest.mouseDClick(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
         QTest.mouseRelease(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
         QTest.qWait(0)
-        assert mockDesktopServices.urls[-1] == QUrl.fromLocalFile(wd)
+        url: QUrl = mockDesktopServices.urls[-1]
+        assert url.isLocalFile()
+        assert os.path.realpath(url.toLocalFile()) == wd
