@@ -13,6 +13,7 @@ import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
+from gitfourchette.manualgc import gcHint
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import ConflictError, GitError, MultiFileError, Repo, RepositoryState
@@ -829,6 +830,9 @@ class RepoTaskRunner(QObject):
             self.postTask.emit(task)
 
             task.deleteLater()
+
+            # Manual GC: After completing a task is an opportune time to collect garbage
+            gcHint()
 
         else:
             raise NotImplementedError(f"Unsupported FlowControlToken {token.flowControl}")

@@ -223,7 +223,14 @@ if APP_VERBOSEDEL:
         cls = obj.__class__
         if cls.__module__.startswith(QT_BINDING + "."):  # Skip standard Qt objects
             return
-        _logger.info(f"QObject.__del__ {cls.__name__}")
+
+        message = f"QObject.__del__ {cls.__name__}"
+        app = QApplication.instance()
+        if app and app.thread() is not QThread.currentThread():
+            message += " !!!DANGER!!! QObject destroyed outside of UI thread!"
+
+        _logger.info(message)
+
     assert not hasattr(QObject, "__del__")
     QObject.__del__ = _QObject_dtor
     _logger.info("Verbose QObject destructors enabled")
