@@ -40,6 +40,10 @@ class PrimeRepo(RepoTask):
     It runs on a RepoStub's RepoTaskRunner, then hands over control to the RepoWidget.
     """
 
+    @classmethod
+    def name(cls) -> str:
+        return _("Loading repo")
+
     def flow(self, repoStub: RepoStub):
         # Store repoStub in class instance so that onError() can manipulate it
         # if this coroutine raises an exception
@@ -49,6 +53,7 @@ class PrimeRepo(RepoTask):
         from gitfourchette.mainwindow import MainWindow
         from gitfourchette.repowidget import RepoWidget
         from gitfourchette.repomodel import RepoModel
+        from gitfourchette.tasks import Jump
 
         app = GFApplication.instance()
         mainWindow: MainWindow = repoStub.window()
@@ -176,7 +181,8 @@ class PrimeRepo(RepoTask):
         settings.history.write()
 
         # Finally, prime the UI: Create RepoWidget
-        rw = RepoWidget(repoModel, parent=mainWindow)
+        rw = RepoWidget(repoModel, repoStub.taskRunner, parent=mainWindow)
+        # del repoStub.taskRunner
 
         # Replicate final loading message in status bar
         rw.pendingStatusMessage = message
@@ -186,12 +192,32 @@ class PrimeRepo(RepoTask):
         if not locator:
             locator = NavLocator(NavContext.WORKDIR).withExtraFlags(NavFlags.AllowWriteIndex)
 
-        # As soon as the RepoStub's task runner has wrapped up this task,
-        # hand control to the RepoWidget's task runner and finish initialization.
-        def finishInstall():
-            assert not repoStub.didClose, "RepoStub was closed as we were going to hand over control to RepoWidget"
-            rw.runTask(InstallRepoWidget, locator, repoStub)
-        repoStub.taskRunner.ready.connect(finishInstall)
+        repoStub.closing.connect(rw.cleanup)
+        yield from self.flowSubtask(Jump, locator)
+        repoStub.closing.disconnect(rw.cleanup)
+        assert not repoStub.didClose, "unexpectedly continuing InstallRepoWidget after RepoStub was closed during Jump"
+
+        rw.refreshNumUncommittedChanges()
+        rw.graphView.scrollToRowForLocator(locator, QAbstractItemView.ScrollHint.PositionAtCenter)
+
+        mainWindow.installRepoWidget(rw, mainWindow.tabs.indexOf(repoStub))
+
+        # Once RepoWidget is installed, consider repoStub dead beyond this point
+        del repoStub, self.repoStub
+
+        # Refresh tab/window/banner text
+        rw.nameChange.emit()
+
+        # It's not necessary to refresh everything again (including workdir patches)
+        # after priming the repo.
+        self.effects = TaskEffects.Nothing
+
+        # RepoWidget.refreshRepo may have been called while we were setting up the widget in this task.
+        # Clear the stashed effect bits to avoid an unnecessary refresh.
+        rw.pendingEffects = TaskEffects.Nothing
+
+        # Focus on some interesting widget within the RepoWidget after loading the repo.
+        rw.graphView.setFocus()
 
     def onError(self, exc: Exception):
         try:
@@ -203,54 +229,6 @@ class PrimeRepo(RepoTask):
                 repoStub.disableAutoLoad(message=str(exc))
 
         super().onError(exc)
-
-
-class InstallRepoWidget(RepoTask):
-    """
-    Run after a successful PrimeRepo.
-    """
-
-    @classmethod
-    def name(cls) -> str:
-        return _("Loading repo")
-
-    def flow(self, initialLocator: NavLocator, repoStub: RepoStub):
-        from gitfourchette.repowidget import RepoWidget
-        from gitfourchette.tasks import Jump
-
-        assert isinstance(repoStub, RepoStub), "passed widget isn't RepoStub"
-        assert not repoStub.didClose, "unexpectedly starting InstallRepoWidget after RepoStub was closed"
-
-        rw = self.parentWidget()
-        assert isinstance(rw, RepoWidget), "task parent isn't RepoWidget"
-        repoStub.closing.connect(rw.cleanup)
-
-        yield from self.flowSubtask(Jump, initialLocator)
-        repoStub.closing.disconnect(rw.cleanup)
-        assert not repoStub.didClose, "unexpectedly continuing InstallRepoWidget after RepoStub was closed during Jump"
-
-        rw.refreshNumUncommittedChanges()
-        rw.graphView.scrollToRowForLocator(initialLocator, QAbstractItemView.ScrollHint.PositionAtCenter)
-
-        mainWindow = rw.window()
-        mainWindow.installRepoWidget(rw, mainWindow.tabs.indexOf(repoStub))
-
-        # Once RepoWidget is installed, consider repoStub dead beyond this point
-        del repoStub
-
-        # Refresh tab/window/banner text
-        rw.nameChange.emit()
-
-        # Focus on some interesting widget within the RepoWidget after loading the repo.
-        rw.setInitialFocus()
-
-        # It's not necessary to refresh everything again (including workdir patches)
-        # after priming the repo.
-        self.effects = TaskEffects.Nothing
-
-        # RepoWidget.refreshRepo may have been called while we were setting up the widget in this task.
-        # Clear the stashed effect bits to avoid an unnecessary refresh.
-        rw.pendingEffects = TaskEffects.Nothing
 
 
 class LoadWorkdir(RepoTask):

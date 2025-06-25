@@ -596,7 +596,6 @@ class MainWindow(QMainWindow):
 
         self.tabs.swapWidget(tabIndex, rw)
 
-        assert not repoStub.taskRunner.isBusy()
         repoStub.setParent(None)  # tabs don't deparent the widget
         repoStub.deleteLater()
 

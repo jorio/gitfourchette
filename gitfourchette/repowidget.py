@@ -29,7 +29,7 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.syntax import LexJobCache
-from gitfourchette.tasks import RepoTask, TaskEffects, TaskBook
+from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskEffects, TaskBook
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -75,7 +75,7 @@ class RepoWidget(QWidget):
     def superproject(self):
         return self.repoModel.superproject
 
-    def __init__(self, repoModel: RepoModel, parent: QWidget):
+    def __init__(self, repoModel: RepoModel, taskRunner: RepoTaskRunner, parent: QWidget):
         super().__init__(parent)
         self.setObjectName(f"{type(self).__name__}({repoModel.shortName})")
 
@@ -85,7 +85,8 @@ class RepoWidget(QWidget):
         self.dead = False
 
         # Use RepoTaskRunner to schedule git operations to run on a separate thread.
-        self.repoTaskRunner = tasks.RepoTaskRunner(self)
+        self.repoTaskRunner = taskRunner
+        self.repoTaskRunner.setParent(self)
         self.repoTaskRunner.postTask.connect(self.refreshPostTask)
         self.repoTaskRunner.progress.connect(self.onRepoTaskProgress)
         self.repoTaskRunner.repoGone.connect(self.onRepoGone)
@@ -613,14 +614,6 @@ class RepoWidget(QWidget):
         self.graphView.viewport().update()
 
     # -------------------------------------------------------------------------
-
-    def setInitialFocus(self):
-        """
-        Focus on some useful widget within RepoWidget.
-        Intended to be called immediately after loading a repo.
-        """
-        if not self.focusWidget():  # only if nothing has the focus yet
-            self.graphView.setFocus()
 
     def refreshRepo(self, effects: TaskEffects = TaskEffects.DefaultRefresh, jumpTo: NavLocator = NavLocator.Empty):
         """Refresh the repo as soon as possible."""
