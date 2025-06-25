@@ -75,7 +75,7 @@ class Trace:
                     progressCallback(self.numRelevantNodes)
                 progressTicks += 1
 
-                if node.level == 0 and pNum == 0 and skimInterval > 0:
+                if pNum == 0 and skimInterval > 0:
                     numUnskimmables = self._skimBranch(node, skimInterval, numUnskimmables)
 
                 node = self._walkBranch(node, pNum)
@@ -228,7 +228,6 @@ class Trace:
         """
 
         commit = node.commit
-        assert node.level == 0
         assert not node.sealed
         assert not node.parents
 
@@ -239,30 +238,38 @@ class Trace:
         skimmed: list[Oid] = []
 
         # Hop over `interval` commits.
-        try:
-            for _i in range(interval):
-                parents = commit.parents
-                # if len(parents) > 1:  # Examine merge commit thoroughly - TODO: I don't think this is still necessary
-                #     raise LookupError()
-                commit = parents[0]  # may raise LookupError
-                assert commit.id not in self.visitedCommits
-                skimmed.append(commit.id)
+        for _i in range(interval):
+            # Get first parent, or stop here if it's a parentless commit.
+            try:
+                parent0 = commit.parents[0]
+            except LookupError:
+                break
 
-            tree = commit.tree
-            blobId = tree[node.path].id  # may raise LookupError
-        except LookupError:
-            # Couldn't hop all the way.
-            # Prevent hopping over these commits again.
-            return len(skimmed)
+            # Branching point: don't revisit known commits
+            if parent0.id in self.visitedCommits:
+                break
+
+            commit = parent0
+            skimmed.append(commit.id)
 
         # We've hopped over `len(skimmed)` commits.
-        # Is it still the same blob after skimming?
-        if blobId != node.blobId:
-            # It's not the same blob, so the relevant commit must be among
-            # those we've hopped over. Prevent hopping over these again.
+        # `commit` is now the commit at the "bottom" of the hop.
+        # Now see if the file is in the bottom commit's tree.
+        tree = commit.tree
+        try:
+            blobId = tree[node.path].id
+            sameBlob = blobId == node.blobId
+        except LookupError:
+            sameBlob = False
+
+        # If it's not the same blob after skimming, the relevant commit must
+        # be among those we've hopped over. Prevent hopping over these again
+        # so that we examine each of them thoroughly.
+        if not sameBlob:
             return len(skimmed)
 
-        # Bring current node to this commit
+        # It's the same blob at both ends of the hop.
+        # Bring current node to the commit at the end of the hop.
         node.commit = commit
 
         # Mark all skimmed commits as visited by this node
