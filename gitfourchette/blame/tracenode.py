@@ -93,6 +93,9 @@ class TraceNode:
 
         assert all(oid not in replaceWith.subbingInForCommits for oid in self.subbingInForCommits)
         replaceWith.subbingInForCommits.extend(self.subbingInForCommits)
+        assert self.commitId in replaceWith.subbingInForCommits
+        if APP_DEBUG:
+            assert len(replaceWith.subbingInForCommits) == len(set(replaceWith.subbingInForCommits))
 
         self.sealed = True
         self.status = TraceNode.GarbageStatus  # this node should never be used anymore

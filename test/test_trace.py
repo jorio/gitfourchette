@@ -317,6 +317,29 @@ SCENARIOS = {
         "3     3 2 1 _",
         "a     b c d  ",
     ),
+
+    # a ┯─╮ 2
+    # b │ ┿ 2
+    # c │ ┿
+    # d │ ┿
+    # e │ ┿
+    # f ┿─╮
+    # g │ ┿
+    # z ┷─╯ 1
+    "skim double merge, interval 2": Scenario(
+        "a:f,b b-c-d-e:g f:z,g g-z",
+        "2     2 1 1 1   1     1 1",
+        "a     b                 z",
+        skimInterval=2,
+    ),
+
+    # Same as above with different skim interval
+    "skim double merge, interval 1": Scenario(
+        "a:f,b b-c-d-e:g f:z,g g-z",
+        "2     2 1 1 1   1     1 1",
+        "a     b                 z",
+        skimInterval=1,
+    ),
 }
 
 

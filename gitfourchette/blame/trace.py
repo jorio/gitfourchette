@@ -142,11 +142,15 @@ class Trace:
         if not commitIsRelevant and not nodeAbove.sealed:
             # If known parent on visited branch: don't revisit
             if nodeBelow is not None:
-                # Scrub passthrough node from visitedCommits
+                # We're at a branching point: a non-relevant branch (nodeAbove)
+                # is branching off nodeBelow, which itself is relevant.
+                # Replace nodeAbove with nodeBelow, then discard nodeAbove.
                 for oid in nodeAbove.subbingInForCommits:
                     assert self.visitedCommits[oid] is nodeAbove
                     self.visitedCommits[oid] = nodeBelow
-                # This node is useless now
+                if APP_DEBUG:
+                    assert nodeAbove not in self.visitedCommits.values(), f"passthrough {nodeAbove} still appears in visitedCommits"
+                # Replace any links to nodeAbove: redirect to nodeBelow instead.
                 nodeAbove.unlinkPassthrough(replaceWith=nodeBelow)
                 return None
 
@@ -185,7 +189,7 @@ class Trace:
 
             # If known parent on visited branch: don't revisit
             if nodeBelow is not None:
-                assert nodeBelow.status != TraceNode.GarbageStatus
+                assert nodeBelow.status != TraceNode.GarbageStatus, f"na={nodeAbove} nb={nodeBelow} (below is garbage)"
                 assert nodeBelow.sealed
                 if nodeBelow.blobId != blobIdBelow:
                     _logger.warning(f"{nodeAbove} disagrees with parent branch {nodeBelow} on a renamed file")
@@ -246,8 +250,13 @@ class Trace:
                 break
 
             # Branching point: don't revisit known commits
-            if parent0.id in self.visitedCommits:
+            try:
+                branchingPoint = self.visitedCommits[parent0.id]
+                assert branchingPoint.sealed
+                assert branchingPoint.status in TraceNode.ValidStatuses
                 break
+            except KeyError:
+                pass
 
             commit = parent0
             skimmed.append(commit.id)
@@ -275,7 +284,11 @@ class Trace:
         # Mark all skimmed commits as visited by this node
         for oid in skimmed:
             assert oid not in self.visitedCommits
+            assert oid not in node.subbingInForCommits
             self.visitedCommits[oid] = node
+            node.subbingInForCommits.append(oid)
+        assert commit.id in self.visitedCommits
+        assert commit.id in node.subbingInForCommits
 
         # Skimming can resume immediately after this commit
         return 0
