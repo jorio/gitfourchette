@@ -23,8 +23,7 @@ class RepoStub(QWidget):
     """
 
     # Signals for cross-thread control from PrimeRepo task
-    progressRange = Signal(int, int)
-    progressValue = Signal(int)
+    progressFraction = Signal(float)
     progressMessage = Signal(str)
     progressAbortable = Signal(bool)
     closing = Signal()
@@ -49,8 +48,7 @@ class RepoStub(QWidget):
         self.ui.promptLoadButton.clicked.connect(self.loadNow)
         self.ui.progressAbortButton.clicked.connect(self.onAbortButtonClicked)
 
-        self.progressRange.connect(self.ui.progressBar.setRange)
-        self.progressValue.connect(self.ui.progressBar.setValue)
+        self.progressFraction.connect(self.setProgress)
         self.progressMessage.connect(self.ui.progressLabel.setText)
         self.progressAbortable.connect(self.onChangeProgressInterruptable)
         self.ui.progressPage.setCursor(Qt.CursorShape.BusyCursor)
@@ -75,7 +73,7 @@ class RepoStub(QWidget):
 
         self.ui.progressLabel.setText(_("Aborting. Just a moment…"))
         self.ui.progressAbortButton.setEnabled(False)
-        self.ui.progressBar.setRange(0, 0)
+        self.setProgress(-1)
 
         if self.taskRunner.isBusy():
             _logger.debug(f"Interrupting priming task because {self.objectName()} was force closed!")
@@ -92,9 +90,8 @@ class RepoStub(QWidget):
         self.ui.promptIcon.setVisible(False)
         self.ui.progressLabel.setText(_("Opening {0}…", tquo(self.getTitle())))
         self.ui.stackedWidget.setCurrentWidget(self.ui.progressPage)
-        self.ui.progressBar.setRange(0, 0)
-        self.ui.progressBar.setValue(0)
         self.ui.progressAbortButton.setEnabled(True)
+        self.setProgress(0)
 
     def disableAutoLoad(self, message=""):
         self.ui.stackedWidget.setCurrentWidget(self.ui.promptPage)
@@ -111,6 +108,14 @@ class RepoStub(QWidget):
         self.didAbort = True
         self.ui.progressLabel.setText(_("Loading interrupted. Just a moment…"))
         self.ui.progressAbortButton.setEnabled(False)
+
+    def setProgress(self, progress: float):
+        if progress < 0:
+            self.ui.progressBar.setRange(0, 0)
+            self.ui.progressBar.setValue(0)
+        else:
+            self.ui.progressBar.setRange(0, 1000)
+            self.ui.progressBar.setValue(int(progress * 1000))
 
     def onChangeProgressInterruptable(self, abortable: True):
         self.ui.progressAbortButton.setEnabled(abortable and self.didAbort)

@@ -96,9 +96,9 @@ class PrimeRepo(RepoTask):
         # Retrieve the number of commits that we loaded last time we opened this repo
         # so we can estimate how long it'll take to load it again
         numCommitsBallpark = settings.history.getRepoNumCommits(repo.workdir)
-        if numCommitsBallpark != 0:
-            # Reserve second half of progress bar for graph progress
-            repoStub.progressRange.emit(0, 2*numCommitsBallpark)
+
+        if not numCommitsBallpark:
+            repoStub.progressFraction.emit(-1.0)  # Indeterminate progress
 
         # ---------------------------------------------------------------------
         # Build commit sequence
@@ -123,8 +123,8 @@ class PrimeRepo(RepoTask):
             if i % progressInterval == 0 and not repoStub.didAbort:
                 message = _("{0} commits…", locale.toString(i))
                 repoStub.progressMessage.emit(message)
-                if numCommitsBallpark > 0 and i <= numCommitsBallpark:
-                    repoStub.progressValue.emit(i)
+                if numCommitsBallpark:  # Fill up left half of progress bar
+                    repoStub.progressFraction.emit(.5 * min(1.0, i / numCommitsBallpark))
                 # Let RepoTaskRunner kill us here (e.g. if closing the tab while we're loading)
                 yield from self.flowEnterWorkerThread()
 
@@ -139,22 +139,23 @@ class PrimeRepo(RepoTask):
             message = _("{0} commits total.", locale.toString(numCommits))
             repoStub.progressMessage.emit(message)
 
-        if numCommitsBallpark != 0:
-            # First half of progress bar was for commit log
-            repoStub.progressRange.emit(-numCommits, numCommits)
-        else:
-            repoStub.progressRange.emit(0, numCommits)
-        repoStub.progressValue.emit(0)
-
         # ---------------------------------------------------------------------
         # Build graph
+
+        def reportGraphProgress(commitNo: int):
+            if not numCommits:  # Avoid division by 0
+                return
+            progress = commitNo / numCommits
+            if numCommitsBallpark:
+                progress = .5 + .5 * progress  # Fill up the right half of the progress bar.
+            self.repoStub.progressFraction.emit(progress)
 
         hideSeeds = repoModel.getHiddenTips()
         localSeeds = repoModel.getLocalTips()
         buildLoop = GraphBuildLoop(heads=repoModel.getKnownTips(), hideSeeds=hideSeeds, localSeeds=localSeeds)
-        buildLoop.onKeyframe = repoStub.progressValue.emit
+        buildLoop.onKeyframe = reportGraphProgress
         buildLoop.sendAll(commitSequence)
-        repoStub.progressValue.emit(numCommits)
+        repoStub.progressFraction.emit(1.0)
 
         graph = buildLoop.graph
         repoModel.hiddenCommits = buildLoop.hiddenCommits
