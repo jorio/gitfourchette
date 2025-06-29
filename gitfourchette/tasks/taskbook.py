@@ -190,6 +190,7 @@ class TaskBook:
             tasks.NewRemote: "git-remote",
             tasks.NewStash: "git-stash-black",
             tasks.NewTag: "git-tag",
+            tasks.OpenBlame: "git-blame",
             tasks.PullBranch: "git-pull",
             tasks.PushBranch: "git-push",
             tasks.SetUpGitIdentity: "user-identity",

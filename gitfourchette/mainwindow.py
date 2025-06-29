@@ -270,7 +270,7 @@ class MainWindow(QMainWindow):
             ActionDef.SEPARATOR,
             ActionDef(_("Next File"), self.nextFile, shortcuts="Ctrl+]"),
             ActionDef(_("Previous File"), self.previousFile, shortcuts="Ctrl+["),
-            ActionDef(_("Annotate File Histor&y…"), self.blameFile, shortcuts=TaskBook.shortcuts[tasks.OpenBlame]),
+            ActionDef(_("Annotate File Histor&y…"), self.blameFile, icon=TaskBook.icons[tasks.OpenBlame], shortcuts=TaskBook.shortcuts[tasks.OpenBlame]),
             ActionDef.SEPARATOR,
             ActionDef(_("&Next Tab"), self.nextTab, shortcuts="Ctrl+Shift+]" if MACOS else "Ctrl+Tab"),
             ActionDef(_("&Previous Tab"), self.previousTab, shortcuts="Ctrl+Shift+[" if MACOS else "Ctrl+Shift+Tab"),

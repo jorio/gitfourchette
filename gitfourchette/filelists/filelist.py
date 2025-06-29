@@ -328,6 +328,7 @@ class FileList(QListView):
         return ActionDef(
             englishTitleCase(OpenBlame.name()),
             self.blameFile,
+            icon=TaskBook.icons[OpenBlame],
             enabled=isEnabled,
             shortcuts=TaskBook.shortcuts[OpenBlame],
         )
