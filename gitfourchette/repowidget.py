@@ -363,7 +363,7 @@ class RepoWidget(QWidget):
             return
 
         if self.diffView.isVisibleTo(self):
-            newLocator = self.diffView.getPreciseLocator()
+            newLocator = self.diffView.preciseLocator()
             if not newLocator.isSimilarEnoughTo(self.navLocator):
                 warnings.warn(f"RepoWidget/DiffView locator mismatch: {self.navLocator} vs. {newLocator}")
         else:

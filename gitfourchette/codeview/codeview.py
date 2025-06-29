@@ -166,59 +166,94 @@ class CodeView(QPlainTextEdit):
 
     def restorePosition(self, locator: NavLocator):
         # Get position at start/end of line
-        block: QTextBlock = self.document().findBlockByNumber(locator.diffLineNo)
+        block: QTextBlock = self.document().findBlockByNumber(locator.cursorLine)
         sol = block.position()
         eol = block.position() + block.length()
 
         # If cursor position still falls within the same line, keep that position.
         # Otherwise, snap cursor position to start of line.
-        pos = locator.diffCursor
+        pos = locator.cursorChar
         if not (sol <= pos < eol):
             pos = sol
-
-        # Unholy kludge to stabilize scrollbar position when QPlainTextEdit has wrapped lines
-        vsb = self.verticalScrollBar()
-        scrollTo = locator.diffScroll
-        if self.lineWrapMode() != QPlainTextEdit.LineWrapMode.NoWrap and locator.diffScroll != 0:
-            topCursor = self.textCursor()
-            topCursor.setPosition(locator.diffScrollTop)
-            self.setTextCursor(topCursor)
-            self.centerCursor()
-            scrolls = 0
-            corner = self.getStableTopLeftCorner()
-            while scrolls < 500 and self.cursorForPosition(corner).position() < locator.diffScrollTop:
-                scrolls += 1
-                scrollTo = vsb.value() + 1
-                vsb.setValue(scrollTo)
-            # logger.debug(f"Stabilized in {scrolls} iterations - final scroll {scrollTo} vs {locator.diffScroll})"
-            #              f" - char pos {self.cursorForPosition(corner).position()} vs {locator.diffScrollTop}")
 
         # Move text cursor
         newTextCursor = self.textCursor()
         newTextCursor.setPosition(pos)
         self.setTextCursor(newTextCursor)
 
-        # Finally, restore the scrollbar
-        vsb.setValue(scrollTo)
+        # Restore the scrollbar
+        self.restoreScrollPosition(locator.scrollChar)
 
-    def getStableTopLeftCorner(self):
+    def restoreScrollPosition(self, topCharacter: int) -> int:
+        scrollValue = self._findScrollPosition(topCharacter)
+        self.verticalScrollBar().setValue(scrollValue)
+        return scrollValue
+
+    def _findScrollPosition(self, topCharacter: int) -> int:
+        """
+        Return a value to be set on the vertical scrollbar so that `topCharacter`
+        is part of the first visible line in the viewport.
+        """
+        if topCharacter == 0:
+            return 0
+
+        topCursor = self.textCursor()
+        topCursor.setPosition(topCharacter)
+
+        scrollBar = self.verticalScrollBar()
+
+        # If line wrapping is OFF, QScrollBar.value() perfectly matches up with
+        # line numbers.
+        if self.lineWrapMode() == QPlainTextEdit.LineWrapMode.NoWrap:
+            return topCursor.blockNumber()
+
+        # If line wrapping is ON, we can't simply cache and restore QScrollBar.value().
+        # It seems that QPlainTextEdit doesn't wrap lines that aren't visible yet,
+        # so the scrollbar's range isn't reliable until the desired line is in view.
+
+        # First, center the viewport on the desired top character.
+        backupCursor = self.textCursor()
+        self.setTextCursor(topCursor)
+        self.centerCursor()
+
+        # Scroll down one notch at a time until topCharacter becomes part of
+        # the top visible line in the viewport.
+        cornerPixel = self.topLeftCornerPixel()
+        scrollValue = 0
+        i = 0
+        while i < 500 and self.cursorForPosition(cornerPixel).position() < topCharacter:
+            i += 1
+            scrollValue = scrollBar.value() + 1
+            scrollBar.setValue(scrollValue)
+            if scrollBar.value() < scrollValue:  # Can't scroll past end of document
+                break
+
+        # logger.debug(f"Stabilized in {i} iterations - final scroll {scrollValue} - "
+        #              f"char pos {self.cursorForPosition(cornerPixel).position()} vs {topCharacter}")
+
+        # Restore backup cursor
+        self.setTextCursor(backupCursor)
+
+        return scrollValue
+
+    def topLeftCornerPixel(self) -> QPoint:
         return QPoint(0, self.fontMetrics().height() // 2)
 
-    def getPreciseLocator(self):
-        corner = self.getStableTopLeftCorner()
-        cornerCursor = self.cursorForPosition(corner)
+    def topLeftCornerCursor(self) -> QTextCursor:
+        cornerPixel = self.topLeftCornerPixel()
+        cornerCursor = self.cursorForPosition(cornerPixel)
+        return cornerCursor
 
+    def preciseLocator(self) -> NavLocator:
+        cornerCursor = self.topLeftCornerCursor()
         textCursor = self.textCursor()
 
         locator = self.currentLocator.coarse()
         locator = locator.replace(
-            diffCursor=textCursor.position(),
-            diffLineNo=textCursor.blockNumber(),
-            diffScroll=self.verticalScrollBar().value(),
-            diffScrollTop=cornerCursor.position())
+            cursorChar=textCursor.position(),
+            cursorLine=textCursor.blockNumber(),
+            scrollChar=cornerCursor.position())
 
-        # logger.info(f"getPreciseLocator: {diffScrollTop} - {cornerCursor.positionInBlock()}"
-        #             f" - {cornerCursor.block().text()[cornerCursor.positionInBlock():]}")
         return locator
 
     # ---------------------------------------------

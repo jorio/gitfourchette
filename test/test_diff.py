@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import pytest
+import re
 import warnings
 
 from gitfourchette.diffview.diffview import DiffView
@@ -743,6 +744,53 @@ def testToggleWordWrap(tempDir, mainWindow):
     triggerContextMenuAction(dv.viewport(), "word wrap")
     QTest.qWait(0)
     assert not dv.horizontalScrollBar().isVisible()
+
+
+def testRestoreScrollPositionWithWordWrap(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    def writeLongFile(numLines, numWordsPerLine):
+        text = ""
+        for y in range(numLines):
+            text += " ".join(f"y{y}x{x}" for x in range(numWordsPerLine)) + "\n"
+        writeFile(f"{wd}/longfile.txt", text)
+
+    writeFile(f"{wd}/dontcare.txt", "whatever")
+    writeLongFile(50, 200)
+
+    # Enable word wrap and make window narrow enough for the lines to wrap significantly
+    mainWindow.onAcceptPrefsDialog({"wordWrap": True})
+    mainWindow.resize(999, 600)
+
+    rw = mainWindow.openRepo(wd)
+    dv = rw.diffView
+    scrollBar = dv.verticalScrollBar()
+
+    rw.jump(NavLocator.inUnstaged("longfile.txt"), check=True)
+    assert not dv.horizontalScrollBar().isVisible()
+    assert scrollBar.isVisible()
+
+    def getTopLeftWord():
+        cursor = dv.topLeftCornerCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.EndOfWord, QTextCursor.MoveMode.KeepAnchor)
+        return cursor.selectedText()
+
+    # Scroll down to 100th+ word on 25th line
+    while not re.match(r"y25x1\d\d", getTopLeftWord()):
+        value = scrollBar.value() + 1
+        scrollBar.setValue(value)
+        assert value == scrollBar.value(), "scrolled too far"
+
+    # Remember which exact word it is (it's unlikely to be exactly y25x100 - 'x' may be a bit above 100)
+    expectedRestoreScrollToWord = getTopLeftWord()
+
+    # Jump to another file so that we back up the current position on longline.txt
+    rw.jump(NavLocator.inUnstaged("dontcare.txt"), check=True)
+    assert getTopLeftWord() == "@@"
+
+    # Jump back to longline.txt and make sure we've restored the correct scroll position
+    rw.jump(NavLocator.inUnstaged("longfile.txt"), check=True)
+    assert getTopLeftWord() == expectedRestoreScrollToWord
 
 
 @pytest.mark.parametrize("fromGutter", [False, True])

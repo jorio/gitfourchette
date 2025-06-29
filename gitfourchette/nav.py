@@ -85,10 +85,24 @@ class NavLocator:
     commit: Oid = NULL_OID
     path: str = ""
     ref: str = ""
-    diffLineNo: int = 0
-    diffCursor: int = 0
-    diffScroll: int = 0
-    diffScrollTop: int = 0
+
+    cursorChar: int = 0
+    """
+    Character position of the text cursor.
+    """
+
+    cursorLine: int = 0
+    """
+    Line number of the text cursor. CodeView will attempt to keep the cursor on
+    this line in case of a mismatch with `cursorChar` (which may occur when file
+    contents change in the workdir).
+    """
+
+    scrollChar: int = 0
+    """
+    Character position of the top-left corner in the scrollable viewport.
+    """
+
     flags: NavFlags = NavFlags.DefaultFlags  # WARNING: Those are not saved in history
 
     URL_AUTHORITY: ClassVar[str] = "jump"
@@ -415,6 +429,6 @@ class NavHistory:
                 s += "---> "
             else:
                 s += "     "
-            s += f"{h.contextKey[:7]} {h.path:32} {h.diffScroll} {h.diffCursor}"
+            s += f"{h.contextKey[:7]} {h.path:32} {h.scrollChar} {h.cursorChar}"
             i -= 1
         return s
