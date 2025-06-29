@@ -206,10 +206,16 @@ def testBlameStartTraceOnDeletion(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt"), check=True)
 
     triggerMenuAction(mainWindow.menuBar(), "view/file history")
-    QTest.qWait(0)
     blameWindow: BlameWindow = findWindow("blame")
+
     text = blameWindow.textEdit.toPlainText().lower()
     assert "file deleted in commit c9ed7bf" in text
+
+    # Traverse to bottom of history
+    for _i in range(3):
+        blameWindow.olderButton.click()
+    assert blameWindow.model.currentTraceNode.commitId == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
+
     blameWindow.close()
 
 
@@ -327,3 +333,45 @@ def testBlameSyntaxHighlighting(tempDir, mainWindow):
     assert color2 != color1  # different token types should be different colors
 
     blameWindow.close()
+
+
+def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
+    numPaddingLines = 250
+    padding = "/* " + "\n".join(f"padding {i}" for i in range(1, numPaddingLines + 1)) + " */\n"
+    fileHistory = [
+        f"{padding}int foo=1;\nint bar=2;\nint baz=3;\n{padding}",
+        f"{padding}int foo=1;\nint bar=2;\nint baz=3000;\n{padding}",
+        f"{padding}int gotcha=0;\nint foo=1;\nint bar=2;\nint baz=3000;\n{padding}",
+        f"{padding}int gotcha=0;\nint bar=2;\nint baz=3000;\n{padding}",
+    ]
+
+    wd = unpackRepo(tempDir)
+    oids = []
+    with RepoContext(wd) as repo:
+        for i, snapshot in enumerate(fileHistory):
+            writeFile(f"{wd}/hello.c", snapshot)
+            repo.index.add_all()
+            oid = repo.create_commit_on_head(f"revision {i}", TEST_SIGNATURE, TEST_SIGNATURE)
+            oids.append(oid)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oids[0], "hello.c"), check=True)
+    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+
+    blameWindow: BlameWindow = findWindow("blame")
+    vsb = blameWindow.textEdit.verticalScrollBar()
+    assert vsb.isVisible()
+    vsb.setValue(numPaddingLines)
+    assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
+
+    # Go up 1 revision - Line numbers identical. Exact 'foo' line should be found.
+    blameWindow.newerButton.click()
+    assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
+
+    # Go up 1 revision - One new line was added above 'foo' line. Exact 'foo' line should still be found.
+    blameWindow.newerButton.click()
+    assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
+
+    # Go up 1 revision - 'foo' line was deleted, so rely on raw line numbers.
+    blameWindow.newerButton.click()
+    assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"

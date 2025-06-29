@@ -123,17 +123,28 @@ class BlameWindow(QWidget):
 
     # -------------------------------------------------------------------------
 
-    def saveFilePosition(self):
-        currentLocator = self.textEdit.getPreciseLocator()
+    def saveFilePosition(self) -> NavLocator:
+        currentLocator = self.textEdit.preciseLocator()
         self.navHistory.push(currentLocator)
+        return currentLocator
 
-    def setTraceNode(self, node: TraceNode, saveFilePositionFirst=True):
+    def setTraceNode(self, node: TraceNode, saveFilePositionFirst=True, transposeFilePosition=True):
         # Stop lexing BEFORE changing the document!
         self.textEdit.highlighter.stopLexJobs()
 
         # Update current locator
         if saveFilePositionFirst:
             self.saveFilePosition()
+
+        # Figure out which line number (QTextBlock) to scroll to
+        if transposeFilePosition:
+            topBlock = self.textEdit.topLeftCornerCursor().blockNumber()
+            try:
+                oldLine = self.model.currentTraceNode.annotatedFile.lines[1 + topBlock]
+                topBlock = node.annotatedFile.findLineByReference(oldLine, topBlock) - 1
+            except (IndexError,  # Zero lines in annotatedFile ("File deleted in commit" notice)
+                    ValueError):  # Could not findLineByReference
+                pass  # default to raw line number already stored in topBlock
 
         self.model.currentTraceNode = node
 
@@ -169,6 +180,10 @@ class BlameWindow(QWidget):
         self.textEdit.syncViewportMarginsWithGutter()
         self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path), commit=shortHash(node.commitId)))
 
+        if transposeFilePosition:
+            blockPosition = self.textEdit.document().findBlockByNumber(topBlock).position()
+            self.textEdit.restoreScrollPosition(blockPosition)
+
         # Install lex job
         if useLexer:
             lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
@@ -179,7 +194,6 @@ class BlameWindow(QWidget):
             self.textEdit.highlighter.rehighlight()
 
         self.syncNavButtons()
-        print(self.navHistory.getTextLog())
 
     def syncNavButtons(self):
         index = self.scrubber.currentIndex()
@@ -216,7 +230,7 @@ class BlameWindow(QWidget):
         if not locator:
             return
         node = self.model.trace.nodeForCommit(locator.commit)
-        self.setTraceNode(node, saveFilePositionFirst=False)
+        self.setTraceNode(node, saveFilePositionFirst=False, transposeFilePosition=False)
 
     def onScrubberActivated(self, index: int):
         node = self.getTraceNodeFromScrubberRow(index)

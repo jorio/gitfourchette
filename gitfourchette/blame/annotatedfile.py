@@ -52,3 +52,22 @@ class AnnotatedFile:
             result += f"{id7(node.commitId)} {node.path:20} ({author:20} {strDate} {i}) {blameLine.text.rstrip()}\n"
 
         return result
+
+    def findLineByReference(self, target: Line, start: int, searchRange: int = 250) -> int:
+        lines = self.lines
+        count = len(lines)
+        start = min(start, count - 1)
+        searchRange = min(searchRange, count)
+
+        lo = start
+        hi = start + 1
+
+        for _i in range(searchRange):
+            if lo >= 0 and lines[lo] is target:
+                return lo
+            if hi < count and lines[hi] is target:
+                return hi
+            lo -= 1
+            hi += 1
+
+        raise ValueError("annotated line not found within given range")
