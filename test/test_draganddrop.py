@@ -182,3 +182,18 @@ def testDropFileWithinRepoOnMainWindow(tempDir, mainWindow, mimePayload):
     _dragAndDrop(mainWindow, mime, r"drop here to blame.+c1\.txt")
     blameWindow = findWindow(r"blame.+c1\.txt")
     blameWindow.close()
+
+
+@pytest.mark.parametrize("ignored", [False, True])
+def testDropUntrackedFileWithinRepoOnMainWindow(tempDir, mainWindow, ignored):
+    wd = unpackRepo(tempDir)
+    path = f"{wd}/untracked.txt"
+    writeFile(path, "hello")
+    if ignored:
+        writeFile(f"{wd}/.gitignore", "/untracked.txt\n")
+
+    mainWindow.openRepo(wd)
+    mime = QMimeData()
+    mime.setText(path)
+    _dragAndDrop(mainWindow, mime, r"drop here to blame.+untracked\.txt")
+    rejectQMessageBox(mainWindow, r"untracked\.txt.+has no history")

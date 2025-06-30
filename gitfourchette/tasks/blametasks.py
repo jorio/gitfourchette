@@ -34,8 +34,7 @@ class OpenBlame(RepoTask):
         showCommit = seed
 
         if seed == NULL_OID:
-            fileStatus = repo.status_file(path)
-            if fileStatus & (FileStatus.WT_NEW | FileStatus.INDEX_NEW):
+            if path not in repo.head_tree:
                 raise AbortTask(_("File {0} has no history in the repository.", hquoe(path)))
 
         # Get most recent seed as possible
