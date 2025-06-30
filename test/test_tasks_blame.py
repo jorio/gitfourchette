@@ -69,6 +69,8 @@ def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
     yield blameWindow
 
     blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
 
 
 def testOpenBlameCorrectTrace(blameWindow):
