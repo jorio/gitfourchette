@@ -8,7 +8,6 @@ import os
 
 import pytest
 
-from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.mainwindow import NoRepoWidgetError
 from gitfourchette.nav import NavContext
@@ -22,58 +21,6 @@ def testOpenDialog(tempDir, mainWindow):
     acceptQFileDialog(mainWindow, "open", wd)
     rw = mainWindow.currentRepoWidget()
     assert os.path.samefile(wd, rw.workdir)
-
-
-@pytest.mark.parametrize("mimePayload", ["text", "url"])
-def testDropDirectoryOntoMainWindowOpensRepository(tempDir, mainWindow, mimePayload):
-    wd = unpackRepo(tempDir)
-
-    mime = QMimeData()
-    if mimePayload == "url":
-        wdUrl = QUrl.fromLocalFile(wd)
-        mime.setUrls([wdUrl])
-    else:
-        mime.setText(wd)
-
-    assert mainWindow.tabs.count() == 0
-    with pytest.raises(NoRepoWidgetError):
-        mainWindow.currentRepoWidget()
-
-    pos = QPointF(mainWindow.width()//2, mainWindow.height()//2)
-    dropEvent = QDropEvent(pos, Qt.DropAction.MoveAction, mime, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
-    dropEvent.acceptProposedAction()
-    mainWindow.dropEvent(dropEvent)
-
-    assert mainWindow.tabs.count() == 1
-    assert os.path.normpath(mainWindow.currentRepoWidget().repo.workdir) == os.path.normpath(wd)
-
-
-@pytest.mark.parametrize("mimePayload", ["url", "text", "sloppytext"])
-def testDropUrlOntoMainWindowBringsUpCloneDialog(mainWindow, mimePayload):
-    assert mainWindow.tabs.count() == 0
-    with pytest.raises(NoRepoWidgetError):
-        mainWindow.currentRepoWidget()
-
-    address = "https://github.com/jorio/bugdom"
-    mime = QMimeData()
-    if mimePayload == "url":
-        wdUrl = QUrl(address)
-        mime.setUrls([wdUrl])
-    elif mimePayload == "text":
-        mime.setText(address)
-    elif mimePayload == "sloppytext":
-        mime.setText("  " + address + "  ")
-
-    pos = QPointF(mainWindow.width()//2, mainWindow.height()//2)
-    dropEvent = QDropEvent(pos, Qt.DropAction.MoveAction, mime, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
-    dropEvent.acceptProposedAction()
-    mainWindow.dropEvent(dropEvent)
-
-    cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
-    assert cloneDialog is not None
-    assert cloneDialog.url == address
-
-    cloneDialog.reject()
 
 
 def testOpenSameRepoTwice(tempDir, mainWindow):

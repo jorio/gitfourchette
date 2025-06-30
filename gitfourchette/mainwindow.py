@@ -13,12 +13,12 @@ import time
 from collections.abc import Sequence, Callable
 from contextlib import suppress
 from pathlib import Path
-from typing import Literal
 
 from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
 from gitfourchette.codeview.codeview import CodeView
+from gitfourchette.dropzone import DropAction, DropZone
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
@@ -119,6 +119,9 @@ class MainWindow(QMainWindow):
 
         self.refreshPrefs()
 
+        self.dropZone = DropZone(self)
+        self.dropZone.setVisible(False)
+
     # -------------------------------------------------------------------------
     # Event handlers
 
@@ -143,11 +146,25 @@ class MainWindow(QMainWindow):
             super().keyReleaseEvent(event)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        action, data = self.getDropOutcomeFromMimeData(event.mimeData())
-        if action:
-            event.acceptProposedAction()
+        try:
+            action, data = self.getDropOutcomeFromMimeData(event.mimeData())
+            if action == DropAction.Deny and not data:
+                event.setAccepted(False)
+                return
+            self.dropZone.install(action, data)
+            if action == DropAction.Deny:
+                event.setDropAction(Qt.DropAction.IgnoreAction)  # 'nope' cursor on KDE
+            else:
+                event.acceptProposedAction()
+        except Exception:  # pragma: no cover - Don't let this crash the application
+            logger.exception("dragEnterEvent failed")
+            event.setAccepted(False)
+
+    def dragLeaveEvent(self, event: QDragLeaveEvent):
+        self.dropZone.setVisible(False)
 
     def dropEvent(self, event: QDropEvent):
+        self.dropZone.setVisible(False)
         action, data = self.getDropOutcomeFromMimeData(event.mimeData())
         event.setAccepted(True)  # keep dragged item from coming back to cursor on macOS
         self.handleDrop(action, data)
@@ -534,8 +551,7 @@ class MainWindow(QMainWindow):
 
         return rw
 
-    def _openRepo(self, path: str, foreground=True, tabIndex=-1, exactMatch=True, locator=NavLocator.Empty
-                  ) -> RepoWidget | RepoStub:
+    def _resolveWorkdir(self, path: str, exactMatch) -> tuple[str, RepoWidget | RepoStub | None]:
         # Make sure the path exists
         if not os.path.exists(path):
             raise FileNotFoundError(_("There’s nothing at this path."))
@@ -547,8 +563,19 @@ class MainWindow(QMainWindow):
                     raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.", app=qAppName()))
                 path = repo.workdir
 
-        # First check that we don't have a tab for this repo already
+        # Scan for an existing tab for this repo
         existingWidget = self.tabWidgetForWorkdirPath(path)
+        if existingWidget is not None:
+            return existingWidget.workdir, existingWidget
+
+        # There's no widget for this workdir but it's a valid repo
+        return path, None
+
+    def _openRepo(self, path: str, foreground=True, tabIndex=-1, exactMatch=True, locator=NavLocator.Empty
+                  ) -> RepoWidget | RepoStub:
+        path, existingWidget = self._resolveWorkdir(path, exactMatch)
+
+        # First check that we don't have a tab for this repo already
         if existingWidget is not None:
             existingWidget.overridePendingLocator(locator)
             self.tabs.setCurrentWidget(existingWidget)
@@ -949,53 +976,63 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Drag and drop
 
-    @staticmethod
-    def getDropOutcomeFromLocalFilePath(path: str) -> tuple[Literal["", "patch", "open"], str]:
+    def getDropOutcomeFromLocalFilePath(self, path: str) -> tuple[DropAction, str]:
         if path.endswith(".patch"):
-            return "patch", path
-        else:
-            return "open", path
+            return DropAction.Patch, path
 
-    @staticmethod
-    def getDropOutcomeFromMimeData(mime: QMimeData) -> tuple[Literal["", "patch", "open", "clone"], str]:
+        try:
+            workdir, existingWidget = self._resolveWorkdir(path, exactMatch=False)
+        except Exception as exc:
+            if isinstance(exc, GitError) and str(exc).startswith("Repository not found"):
+                return DropAction.Deny, _("{0} isn’t in a Git repo", tquoe(Path(path).name))
+            else:  # pragma: no cover
+                logger.exception("in drop outcome: _resolveWorkdir failed")
+                return DropAction.Deny, str(exc)
+
+        if existingWidget is not None and existingWidget.isVisible() and Path(path).is_file():
+            return DropAction.Blame, path
+
+        return DropAction.Open, workdir
+
+    def getDropOutcomeFromMimeData(self, mime: QMimeData) -> tuple[DropAction, str]:
         if mime.hasUrls():
             try:
                 url: QUrl = mime.urls()[0]
             except IndexError:
-                return "", ""
+                return DropAction.Deny, ""
 
             if url.isLocalFile():
                 path = url.toLocalFile()
-                return MainWindow.getDropOutcomeFromLocalFilePath(path)
+                return self.getDropOutcomeFromLocalFilePath(path)
             else:
-                return "clone", url.toString()
+                return DropAction.Clone, url.toString()
 
         elif mime.hasText():
             text = mime.text()
             text = text.strip()
             if os.path.isabs(text) and os.path.exists(text):
-                return "open", text
+                return self.getDropOutcomeFromLocalFilePath(text)
             elif text.startswith(("ssh://", "git+ssh://", "https://", "http://")):
-                return "clone", text
+                return DropAction.Clone, text
             elif re.match(r"^[a-zA-Z0-9-_.]+@.+:.+", text):
-                return "clone", text
+                return DropAction.Clone, text
             else:
-                return "", text
+                return DropAction.Deny, ""
 
-        else:
-            return "", ""
+        return DropAction.Deny, ""
 
-    def handleDrop(self, action: str, data: str):
-        if action == "clone":
+    def handleDrop(self, action: DropAction, data: str):
+        if action == DropAction.Deny:
+            pass
+        elif action == DropAction.Clone:
             self.cloneDialog(data)
-        elif action == "open":
-            with suppress(NoRepoWidgetError, ValueError):
-                rw = self.currentRepoWidget()
-                relPath = str(Path(data).relative_to(rw.workdir))  # May raise ValueError('X is not in the subpath of Y')
-                rw.blameFile(relPath)
-                return
-            self.openRepo(data, exactMatch=False)
-        elif action == "patch":
+        elif action == DropAction.Blame:
+            rw = self.currentRepoWidget()
+            relPath = str(Path(data).relative_to(rw.workdir))  # May raise ValueError('X is not in the subpath of Y')
+            rw.blameFile(relPath)
+        elif action == DropAction.Open:
+            self.openRepo(data, exactMatch=True)
+        elif action == DropAction.Patch:
             tasks.ApplyPatchFile.invoke(self, False, data)
         else:
             warnings.warn(f"Unsupported drag-and-drop outcome {action}")
