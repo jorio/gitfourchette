@@ -50,20 +50,20 @@ class BlameWindow(QWidget):
         self.jumpButton = QToolButton()
         self.jumpButton.setText(_("Jump"))
         self.jumpButton.setToolTip(_("View this commit in the repo"))
-        self.jumpButton.setIcon(stockIcon("prefs-graph"))
+        self.jumpButton.setIcon(stockIcon("go-window@20px"))
         self.jumpButton.clicked.connect(lambda: self.jumpToCommit())
 
         self.olderButton = QToolButton()
         self.olderButton.setText(_("Older"))
         self.olderButton.clicked.connect(self.goOlder)
         self.olderButton.setToolTip(_("Go to older revision"))
-        self.olderButton.setIcon(stockIcon("go-down-search"))
+        self.olderButton.setIcon(stockIcon("go-older"))
 
         self.newerButton = QToolButton()
         self.newerButton.setText(_("Newer"))
         self.newerButton.clicked.connect(self.goNewer)
         self.newerButton.setToolTip(_("Go to newer revision"))
-        self.newerButton.setIcon(stockIcon("go-up-search"))
+        self.newerButton.setIcon(stockIcon("go-newer"))
 
         self.backButton = QToolButton()
         self.backButton.setText(_("Back"))

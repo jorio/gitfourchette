@@ -50,13 +50,14 @@ class BlameTextEdit(CodeView):
         return [
             ActionDef(
                 blameLabel,
+                icon="git-blame",
                 callback=lambda: self.selectNode.emit(node)
             ),
 
             ActionDef(
                 gotoLabel,
                 enabled=canInvoke,
-                icon="prefs-graph",
+                icon="go-window",
                 callback=lambda: self.jumpToCommit.emit(locator)
             ),
 
@@ -64,6 +65,7 @@ class BlameTextEdit(CodeView):
                 self.model.taskInvoker,
                 GetCommitInfo,
                 taskArgs=[commitId, False],
+                icon="SP_MessageBoxInformation",
                 enabled=canInvoke and not isWorkdir,
             ),
         ]
