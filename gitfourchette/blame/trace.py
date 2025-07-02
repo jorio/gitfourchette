@@ -177,10 +177,8 @@ class Trace:
             # Push extra parents onto frontier
             if parentNum == 0:
                 numParents = len(nodeAbove.commit.parents)
-                if numParents == 2:
-                    self._branchFrontier.insert(0, (nodeAbove, 1))
-                elif numParents >= 3:
-                    raise NotImplementedError("Octopus merge unsupported")
+                for p in range(numParents - 1, 0, -1):
+                    self._branchFrontier.insert(0, (nodeAbove, p))
 
             # Bail from the branch if we added the file here
             if blobIdBelow == NULL_OID:

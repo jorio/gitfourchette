@@ -39,6 +39,13 @@ SCENARIOS = {
         seedCommit="c9ed7bf",
         testRepo="TestGitRepository",
     ),
+
+    "octopus": Scenario(
+        "hello.txt",
+        ["bd3c034", "bb5e854", "e87a100", "bb5e854",
+         "e87a100", "0f0fe48", "e87a100", "0f0fe48"],
+        testRepo="octopusblame",
+    )
 }
 
 

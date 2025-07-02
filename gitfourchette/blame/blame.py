@@ -73,17 +73,21 @@ def blameFile(
                 return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
             assert len(blameB.lines) - 1 == countLines(blobB.data)
 
-        # Enrich blame with more precise information from a merged branch
-        if (not blameB.binary
-                and len(node.parents) >= 2
-                and node.parents[1].blobId != blobIdA):
-            extraParent = node.parents[1]
-            if APP_DEBUG:  # Very expensive assertion that will slow down the blame significantly
-                assert repo.descendant_of(node.commitId, extraParent.commitId)
-            olderBlob = repo[extraParent.blobId]
-            olderBlame = extraParent.annotatedFile
-            olderPatch = olderBlob.diff(blobB)
-            _overrideBlame(olderPatch, olderBlame, blameB)
+        # Enrich blame with more precise information from merged branches
+        numParents = len(node.parents)
+        if numParents >= 2 and not blameB.binary:
+            for p in range(numParents - 1, 0, -1):
+                assert p >= 1
+                extraParent = node.parents[p]
+                if APP_DEBUG:  # Very expensive assertion that will slow down the blame significantly
+                    assert repo.descendant_of(node.commitId, extraParent.commitId)
+                if extraParent.blobId == blobIdA:
+                    continue
+                olderBlob = repo[extraParent.blobId]
+                olderBlame = extraParent.annotatedFile
+                olderPatch = olderBlob.diff(blobB)
+                assert olderBlame is not None, f"node parent {p} is not annotated yet"
+                _overrideBlame(olderPatch, olderBlame, blameB)
 
         # Save this blame
         node.annotatedFile = blameB
