@@ -57,6 +57,12 @@ class SearchBar(QWidget):
     notFoundMessage: Callable[[str], str]
     """ Callback that generates "not found" text. """
 
+    selectNextOccurrenceOnPulse: bool
+    """ If True, searchPulseTimer's callback will select the next occurrence of
+    the search term (if found) in the buddy widget. Otherwise, the search term
+    will be reevaluated without changing the selection. This flag is reset to
+    True whenever searchPulseTimer is retriggered. """
+
     @property
     def rawSearchTerm(self) -> str:
         return self.lineEdit.text()
@@ -109,6 +115,7 @@ class SearchBar(QWidget):
         self.searchTerm = ""
         self.searchTermBadStem = ""
         self.searchTermLooksLikeHash = False
+        self.selectNextOccurrenceOnPulse = True
 
         self.searchPulseTimer = QTimer(self)
         self.searchPulseTimer.setSingleShot(True)
@@ -184,9 +191,16 @@ class SearchBar(QWidget):
             self.searchTermLooksLikeHash = bool(re.match(LIKELY_HASH_PATTERN, text))
 
         if newTerm and not stillBad:
+            self.selectNextOccurrenceOnPulse = True
             self.searchPulseTimer.start()
         else:
             self.searchPulseTimer.stop()
+
+    def reevaluateSearchTerm(self):
+        self.invalidateBadStem()
+        if self.isVisible():
+            self.onSearchTextChanged(self.rawSearchTerm)
+            self.selectNextOccurrenceOnPulse = False
 
     def isRed(self) -> bool:
         return "true" == self.property("red")
@@ -316,10 +330,11 @@ class SearchBar(QWidget):
 
             index = self.searchRange(searchRange)
             if index is not None and index.isValid():
-                view.setCurrentIndex(index)
-                return index
-
-        self.setRed()
+                if self.selectNextOccurrenceOnPulse:
+                    view.setCurrentIndex(index)
+                break
+        else:
+            self.setRed()
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,

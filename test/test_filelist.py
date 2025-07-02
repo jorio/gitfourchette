@@ -284,6 +284,48 @@ def testSearchEmptyFileList(tempDir, mainWindow):
     acceptQMessageBox(rw, "not found")
 
 
+def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):
+    needle = "2.txt"
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    fileList = rw.committedFiles
+    searchBar = fileList.searchBar
+
+    # Go to head commit and start a file search
+    mainWindow.selectHead()
+    assert fileList.isVisible()
+    fileList.setFocus()
+    QTest.keySequence(rw, QKeySequence.StandardKey.Find)
+    assert searchBar.isVisible()
+    searchBar.lineEdit.setText(needle)
+    QTest.qWait(0)
+
+    # Walk through all the commits in the graph while the search bar is still open.
+    # This forces the search bar to reevaluate its search term.
+    hits = 0
+    for _i in range(rw.graphView.currentIndex().row(), rw.graphView.model().rowCount()):
+        assert searchBar.isVisible()
+        assert searchBar.lineEdit.text() == needle
+
+        fileNames = qlvGetRowData(fileList)
+        anyHighlighted = any(needle in f for f in fileNames)
+        hits += [0, 1][anyHighlighted]
+
+        # After reevaluation, the 'red' property must be updated
+        assert searchBar.isRed() == (not anyHighlighted)
+
+        # Search term reevaluation must not touch the current selection.
+        assert fileList.currentIndex().row() == 0
+
+        # Move to next commit
+        rw.graphView.setFocus()
+        QTest.keyClick(rw.graphView, Qt.Key.Key_Down)
+        QTest.qWait(0)
+
+    assert hits > 0, "bad test! filename needle not found in any of the commits!"
+
+
 @pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
 @pytest.mark.skipif(MACOS and not OFFSCREEN, reason="flaky on macOS unless executed offscreen")
 def testEditFileInExternalEditor(tempDir, mainWindow):

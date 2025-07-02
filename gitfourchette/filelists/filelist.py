@@ -184,6 +184,7 @@ class FileList(QListView):
         self.flModel.setDiffs(diffs)
         self.skippedRenameDetection = skippedRenameDetection
         self.updateFocusPolicy()
+        self.searchBar.reevaluateSearchTerm()
 
     def clear(self):
         self.flModel.clear()
