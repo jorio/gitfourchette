@@ -244,15 +244,19 @@ class CodeView(QPlainTextEdit):
         cornerCursor = self.cursorForPosition(cornerPixel)
         return cornerCursor
 
-    def preciseLocator(self) -> NavLocator:
+    def topLeftCornerCharacter(self) -> int:
         cornerCursor = self.topLeftCornerCursor()
+        return cornerCursor.position()
+
+    def preciseLocator(self) -> NavLocator:
+        scrollChar = self.topLeftCornerCharacter()
         textCursor = self.textCursor()
 
         locator = self.currentLocator.coarse()
         locator = locator.replace(
             cursorChar=textCursor.position(),
             cursorLine=textCursor.blockNumber(),
-            scrollChar=cornerCursor.position())
+            scrollChar=scrollChar)
 
         return locator
 
@@ -293,7 +297,16 @@ class CodeView(QPlainTextEdit):
             wrapMode = QPlainTextEdit.LineWrapMode.WidgetWidth
         else:
             wrapMode = QPlainTextEdit.LineWrapMode.NoWrap
+
+        # Bail if no-op
+        if self.lineWrapMode() == wrapMode:
+            return
+
+        # Changing the wrap mode will trash our scroll position, so remember where we are.
+        topCharacter = self.topLeftCornerCharacter()
+
         self.setLineWrapMode(wrapMode)
+        self.restoreScrollPosition(topCharacter)
 
     def toggleWordWrap(self):
         settings.prefs.wordWrap = not settings.prefs.wordWrap

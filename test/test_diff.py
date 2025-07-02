@@ -13,6 +13,14 @@ from gitfourchette.nav import NavLocator
 from .util import *
 
 
+def writeLongFile(path, numLines, numWordsPerLine) -> str:
+    text = ""
+    for y in range(numLines):
+        text += " ".join(f"y{y}x{x}" for x in range(numWordsPerLine)) + "\n"
+    writeFile(path, text)
+    return path
+
+
 def testEmptyDiffEmptyFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     touchFile(F"{wd}/NewEmptyFile.txt")
@@ -731,32 +739,38 @@ def testDiffViewMouseWheelZoom(tempDir, mainWindow):
 
 
 def testToggleWordWrap(tempDir, mainWindow):
-    text = ("pen pineapple apple pen " * 250) + "\n"
-    text *= 12
-
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/longline.txt", text)
+    mainWindow.resize(999, 400)
+
+    writeLongFile(f"{wd}/longfile.txt", 50, 200)
+
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
-    assert NavLocator.inUnstaged("longline.txt").isSimilarEnoughTo(rw.navLocator)
+
+    rw.jump(NavLocator.inUnstaged("longfile.txt"), check=True)
     assert dv.horizontalScrollBar().isVisible()
 
-    triggerContextMenuAction(dv.viewport(), "word wrap")
-    QTest.qWait(0)
-    assert not dv.horizontalScrollBar().isVisible()
+    # Scroll down a bit and look at the first visible word
+    dv.verticalScrollBar().setValue(5)
+    assert dv.firstVisibleBlock().text().startswith("y4x0")
+
+    for enableWrap in [True, False]:
+        # Toggle word wrap
+        triggerContextMenuAction(dv.viewport(), "word wrap")
+        QTest.qWait(0)
+
+        # Horizontal scroll bar should only be visible without wrap
+        assert dv.horizontalScrollBar().isVisible() == (not enableWrap)
+
+        # Scroll position should be stable after toggling word wrap
+        assert dv.firstVisibleBlock().text().startswith("y4x0")
 
 
 def testRestoreScrollPositionWithWordWrap(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    def writeLongFile(numLines, numWordsPerLine):
-        text = ""
-        for y in range(numLines):
-            text += " ".join(f"y{y}x{x}" for x in range(numWordsPerLine)) + "\n"
-        writeFile(f"{wd}/longfile.txt", text)
-
     writeFile(f"{wd}/dontcare.txt", "whatever")
-    writeLongFile(50, 200)
+    writeLongFile(f"{wd}/longfile.txt", 50, 200)
 
     # Enable word wrap and make window narrow enough for the lines to wrap significantly
     mainWindow.onAcceptPrefsDialog({"wordWrap": True})
