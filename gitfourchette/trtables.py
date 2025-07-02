@@ -118,6 +118,7 @@ class TrTables:
                 NVERule.NOT_WINDOWS_FRIENDLY    : _("This name is discouraged for compatibility with Windows."),
                 NVERule.NAME_TAKEN_BY_REF       : _("This name is already taken."),
                 NVERule.NAME_TAKEN_BY_FOLDER    : _("This name is already taken by a folder."),
+                NVERule.NOT_A_FOLDER            : _("The folder in this path clashes with an existing ref that isn’t a folder."),
             },
 
             FileMode: {

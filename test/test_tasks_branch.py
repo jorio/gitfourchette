@@ -168,8 +168,10 @@ def testRenameBranch(tempDir, mainWindow, method):
     badNames = [
         # Existing refs or folders
         "no-parent",
+        "no-parent/nope",
         "folder1/folder2",
         "folder1",
+        "folder1/folder2/leaf/nope",
         # Illegal patterns
         "",
         "@",

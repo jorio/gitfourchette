@@ -158,6 +158,7 @@ class NameValidationError(ValueError):
         NOT_WINDOWS_FRIENDLY = 6
         NAME_TAKEN_BY_REF = 7
         NAME_TAKEN_BY_FOLDER = 8
+        NOT_A_FOLDER = 9
 
     def __init__(self, rule: Rule):
         super().__init__(f"Name validation failed ({rule})")
@@ -377,10 +378,13 @@ def validate_refname(name: str, reserved_names: list[str]):
     # name of an existing folder, libgit2 first deletes the branch, then errors
     # out with "cannot lock ref 'refs/heads/folder', there are refs beneath
     # that folder". So, let's avoid losing the branch.
-    else:
-        folder = name.lower() + "/"
-        if any(n.lower().startswith(folder) for n in reserved_names):
-            raise NameValidationError(NameValidationError.Rule.NAME_TAKEN_BY_FOLDER)
+    folder = name.lower() + "/"
+    if any(n.lower().startswith(folder) for n in reserved_names):
+        raise NameValidationError(NameValidationError.Rule.NAME_TAKEN_BY_FOLDER)
+
+    # Prevent creating a folder with the same name as an existing ref
+    if "/" in name and any(name.lower().startswith(n.lower() + "/") for n in reserved_names):
+        raise NameValidationError(NameValidationError.Rule.NOT_A_FOLDER)
 
 
 def validate_signature_item(s: str):
