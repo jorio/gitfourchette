@@ -495,7 +495,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
     elif method == "detach":
         triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
         dlg = findQDialog(rw, "check.?out")
-        dlg.ui.detachedHeadRadioButton.setChecked(True)
+        dlg.ui.detachHeadRadioButton.setChecked(True)
         dlg.ui.recurseSubmodulesCheckBox.setChecked(recurse)
         dlg.accept()
     else:
@@ -518,7 +518,7 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
 
     triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
     dlg = findQDialog(rw, "check.?out")
-    dlg.ui.detachedHeadRadioButton.setChecked(True)
+    dlg.ui.detachHeadRadioButton.setChecked(True)
     dlg.ui.recurseSubmodulesCheckBox.setChecked(True)
     dlg.accept()
 

@@ -224,6 +224,9 @@ class CheckoutCommit(RepoTask):
         return TaskPrereqs.NoConflicts
 
     def flow(self, oid: Oid):
+        from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
+        from gitfourchette.tasks.branchtasks import SwitchBranch, NewBranchFromCommit, ResetHead
+
         refs = self.repo.listall_refs_pointing_at(oid)
         refs = [r.removeprefix(RefPrefix.HEADS) for r in refs if r.startswith(RefPrefix.HEADS)]
 
@@ -235,6 +238,7 @@ class CheckoutCommit(RepoTask):
         dlg = CheckoutCommitDialog(
             oid=oid,
             refs=refs,
+            currentBranch=self.repo.head_branch_shorthand,
             anySubmodules=anySubmodules,
             parent=self.parentWidget())
 
@@ -249,7 +253,7 @@ class CheckoutCommit(RepoTask):
 
         self.effects |= TaskEffects.Refs | TaskEffects.Head
 
-        if dlg.ui.detachedHeadRadioButton.isChecked():
+        if dlg.ui.detachHeadRadioButton.isChecked():
             headId = self.repoModel.headCommitId
             if self.repoModel.dangerouslyDetachedHead() and oid != headId:
                 text = paragraphs(
@@ -267,18 +271,18 @@ class CheckoutCommit(RepoTask):
             self.jumpTo = NavLocator.inRef("HEAD")
 
             if wantSubmodules:
-                from gitfourchette.tasks import UpdateSubmodulesRecursive
                 yield from self.flowEnterUiThread()
                 yield from self.flowSubtask(UpdateSubmodulesRecursive)
 
         elif dlg.ui.switchToLocalBranchRadioButton.isChecked():
             branchName = dlg.ui.switchToLocalBranchComboBox.currentText()
-            from gitfourchette.tasks import SwitchBranch
             yield from self.flowSubtask(SwitchBranch, branchName, askForConfirmation=False, recurseSubmodules=wantSubmodules)
 
         elif dlg.ui.createBranchRadioButton.isChecked():
-            from gitfourchette.tasks.branchtasks import NewBranchFromCommit
             yield from self.flowSubtask(NewBranchFromCommit, oid)
+
+        elif dlg.ui.resetHeadRadioButton.isChecked():
+            yield from self.flowSubtask(ResetHead, oid)
 
         else:
             raise NotImplementedError("Unsupported CheckoutCommitDialog outcome")

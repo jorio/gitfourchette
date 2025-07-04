@@ -618,7 +618,8 @@ def testSwitchToCurrentBranch(tempDir, mainWindow):
     acceptQMessageBox(rw, "already checked.out")
 
 
-def testResetHeadToCommit(tempDir, mainWindow):
+@pytest.mark.parametrize("method", ["direct", "checkoutdialog"])
+def testResetHeadToCommit(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -628,7 +629,16 @@ def testResetHeadToCommit(tempDir, mainWindow):
     assert rw.repo.branches.local['master'].target != oid1
 
     rw.jump(NavLocator.inCommit(oid1))
-    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
+
+    if method == "direct":
+        triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
+    elif method == "checkoutdialog":
+        triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
+        checkoutDialog = findQDialog(rw, "check.?out")
+        checkoutDialog.findChild(QRadioButton, "resetHeadRadioButton").setChecked(True)
+        checkoutDialog.accept()
+    else:
+        raise NotImplementedError(f"unknown method {method}")
 
     dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+0966a4")
     dlg.modeButtons[ResetMode.HARD].click()

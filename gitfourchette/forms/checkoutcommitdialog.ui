@@ -60,9 +60,16 @@
        </layout>
       </item>
       <item>
-       <widget class="QRadioButton" name="detachedHeadRadioButton">
+       <widget class="QRadioButton" name="detachHeadRadioButton">
         <property name="text">
          <string>Enter &amp;detached HEAD here</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="resetHeadRadioButton">
+        <property name="text">
+         <string>&amp;Reset HEAD here…</string>
         </property>
        </widget>
       </item>
@@ -150,6 +157,14 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>switchToLocalBranchRadioButton</tabstop>
+  <tabstop>switchToLocalBranchComboBox</tabstop>
+  <tabstop>detachHeadRadioButton</tabstop>
+  <tabstop>resetHeadRadioButton</tabstop>
+  <tabstop>createBranchRadioButton</tabstop>
+  <tabstop>recurseSubmodulesCheckBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

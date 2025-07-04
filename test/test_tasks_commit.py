@@ -382,31 +382,32 @@ def testCommitDialogJumpsToWorkdir(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["graphkey", "graphcm"])
-def testCheckoutCommitDetachedHead(tempDir, mainWindow, method):
+def testCheckoutCommitDetachHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
-    for oid in [Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6"),
-                Oid(hex="6db9c2ebf75590eef973081736730a9ea169a0c4"),
+    for loc in [NavLocator.inCommit(Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6"), "master.txt"),
+                NavLocator.inCommit(Oid(hex="6db9c2ebf75590eef973081736730a9ea169a0c4"), "a/a2.txt"),
                 ]:
-        rw.jump(NavLocator.inCommit(oid))
+        rw.jump(loc, check=True)
+        rw.activateWindow()
 
         if method == "graphcm":
             triggerContextMenuAction(rw.graphView.viewport(), r"check.?out")
         elif method == "graphkey":
-            QTest.keySequence(rw.graphView, "Return")
+            QTest.keyPress(rw.graphView.viewport(), Qt.Key.Key_Return)
         else:
             raise NotImplementedError(f"unknown method {method}")
 
         dlg = findQDialog(rw, "check.?out commit")
-        dlg.findChild(QRadioButton, "detachedHeadRadioButton", Qt.FindChildOption.FindChildrenRecursively).setChecked(True)
+        dlg.findChild(QRadioButton, "detachHeadRadioButton").setChecked(True)
         dlg.accept()
 
         assert repo.head_is_detached
-        assert repo.head_commit_id == oid
+        assert repo.head_commit_id == loc.commit
 
-        assert rw.graphView.currentCommitId == oid, "graphview's selected commit has jumped around"
+        assert rw.graphView.currentCommitId == loc.commit, "graphview's selected commit has jumped around"
 
 
 def testCheckoutCommitBlockedByConflicts(tempDir, mainWindow):
@@ -435,7 +436,7 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
     QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
 
     dlg = findQDialog(rw, "check.?out commit")
-    dlg.findChild(QRadioButton, "detachedHeadRadioButton", Qt.FindChildOption.FindChildrenRecursively).setChecked(True)
+    dlg.findChild(QRadioButton, "detachHeadRadioButton").setChecked(True)
     dlg.accept()
 
     assert rw.repo.head_is_detached
@@ -673,7 +674,7 @@ def testCheckoutTag(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     dlg = findQDialog(rw, "check.?out commit")
-    dlg.findChild(QRadioButton, "detachedHeadRadioButton", Qt.FindChildOption.FindChildrenRecursively).setChecked(True)
+    dlg.findChild(QRadioButton, "detachHeadRadioButton").setChecked(True)
     dlg.accept()
 
     oid = Oid(hex="c070ad8c08840c8116da865b2d65593a6bb9cd2a")
