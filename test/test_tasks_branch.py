@@ -8,6 +8,7 @@ import re
 
 import pytest
 
+from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
@@ -449,9 +450,9 @@ def testNewBranchFromCommit(tempDir, mainWindow, method):
         triggerContextMenuAction(rw.graphView.viewport(), r"(start|new) branch")
     elif method == "graphcheckout":
         QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
-        qd = findQDialog(rw, r"check ?out")
-        qd.findChild(QRadioButton, "createBranchRadioButton").setChecked(True)
-        qd.accept()
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, r"check.?out")
+        checkoutDialog.ui.createBranchRadioButton.setChecked(True)
+        checkoutDialog.accept()
     else:
         raise NotImplementedError("unknown method")
 
@@ -495,9 +496,9 @@ def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
         triggerContextMenuAction(rw.graphView.viewport(), r"(start|new) branch")
     elif method == "graphcheckout":
         QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
-        qd = findQDialog(rw, r"check ?out")
-        qd.findChild(QRadioButton, "createBranchRadioButton").setChecked(True)
-        qd.accept()
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, r"check.?out")
+        checkoutDialog.ui.createBranchRadioButton.setChecked(True)
+        checkoutDialog.accept()
     else:
         raise NotImplementedError("unknown method")
 
@@ -531,9 +532,9 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
     elif method == "graphcheckout":
         rw.jump(NavLocator.inRef("refs/heads/no-parent"))
         QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
-        qd = findQDialog(rw, r"check ?out")
-        qd.findChild(QRadioButton, "createBranchRadioButton").setChecked(True)
-        qd.accept()
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, r"check.?out")
+        checkoutDialog.ui.createBranchRadioButton.setChecked(True)
+        checkoutDialog.accept()
     else:
         raise NotImplementedError("unknown method")
 
@@ -593,9 +594,9 @@ def testSwitchBranch(tempDir, mainWindow, method):
         else:
             rw.graphView.setFocus()
             QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
-        qd = findQDialog(rw, "check out")
-        assert qd.findChild(QRadioButton, "switchToLocalBranchRadioButton").isChecked()
-        qd.accept()
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out")
+        assert checkoutDialog.ui.switchRadioButton.isChecked()
+        checkoutDialog.accept()
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -634,8 +635,8 @@ def testResetHeadToCommit(tempDir, mainWindow, method):
         triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
     elif method == "checkoutdialog":
         triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
-        checkoutDialog = findQDialog(rw, "check.?out")
-        checkoutDialog.findChild(QRadioButton, "resetHeadRadioButton").setChecked(True)
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out")
+        checkoutDialog.ui.resetHeadRadioButton.setChecked(True)
         checkoutDialog.accept()
     else:
         raise NotImplementedError(f"unknown method {method}")
@@ -827,7 +828,8 @@ def testMergeUpToDate(tempDir, mainWindow):
     acceptQMessageBox(rw, "already up.to.date")
 
 
-def testMergeFastForward(tempDir, mainWindow):
+@pytest.mark.parametrize("method", ["sidebar", "checkout"])
+def testMergeFastForward(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch('no-parent')
@@ -836,8 +838,18 @@ def testMergeFastForward(tempDir, mainWindow):
     assert rw.repo.head.target != rw.repo.branches.local['master'].target
 
     node = rw.sidebar.findNodeByRef("refs/heads/master")
-    menu = rw.sidebar.makeNodeMenu(node)
-    triggerMenuAction(menu, "merge")
+    rw.sidebar.setCurrentIndex(node.createIndex(rw.sidebar.sidebarModel))
+
+    if method == "sidebar":
+        menu = rw.sidebar.makeNodeMenu(node)
+        triggerMenuAction(menu, "merge")
+    elif method == "checkout":
+        triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out")
+        checkoutDialog.ui.mergeRadioButton.click()
+        checkoutDialog.accept()
+    else:
+        raise NotImplementedError()
 
     qmb = findQMessageBox(rw, "can .*fast.forward")
 

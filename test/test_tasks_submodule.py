@@ -11,6 +11,7 @@ import pygit2
 import pytest
 from pygit2.enums import SubmoduleStatus
 
+from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -478,7 +479,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
         qmb.accept()
     elif method == "newbranch":
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "new branch")
-        dlg = findQDialog(rw, "new branch")
+        dlg: CheckoutCommitDialog = findQDialog(rw, "new branch")
         dlg.ui.nameEdit.setText("blahblah")
         assert dlg.ui.recurseSubmodulesCheckBox.isVisible()
         assert dlg.ui.recurseSubmodulesCheckBox.isChecked()
@@ -486,8 +487,8 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
         dlg.accept()
     elif method == "switch2":
         triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
-        dlg = findQDialog(rw, "check.?out")
-        assert dlg.ui.switchToLocalBranchRadioButton.isChecked()
+        dlg: CheckoutCommitDialog = findQDialog(rw, "check.?out")
+        assert dlg.ui.switchRadioButton.isChecked()
         assert dlg.ui.recurseSubmodulesCheckBox.isVisible()
         assert dlg.ui.recurseSubmodulesCheckBox.isChecked()
         dlg.ui.recurseSubmodulesCheckBox.setChecked(recurse)

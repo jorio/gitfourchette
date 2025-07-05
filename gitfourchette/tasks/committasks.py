@@ -225,10 +225,10 @@ class CheckoutCommit(RepoTask):
 
     def flow(self, oid: Oid):
         from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
-        from gitfourchette.tasks.branchtasks import SwitchBranch, NewBranchFromCommit, ResetHead
+        from gitfourchette.tasks.branchtasks import SwitchBranch, NewBranchFromCommit, ResetHead, MergeBranch
 
         refs = self.repo.listall_refs_pointing_at(oid)
-        refs = [r.removeprefix(RefPrefix.HEADS) for r in refs if r.startswith(RefPrefix.HEADS)]
+        refs = [r for r in refs if r.startswith((RefPrefix.HEADS, RefPrefix.REMOTES))]
 
         commitMessage = self.repo.get_commit_message(oid)
         commitMessage, junk = messageSummary(commitMessage)
@@ -274,8 +274,8 @@ class CheckoutCommit(RepoTask):
                 yield from self.flowEnterUiThread()
                 yield from self.flowSubtask(UpdateSubmodulesRecursive)
 
-        elif dlg.ui.switchToLocalBranchRadioButton.isChecked():
-            branchName = dlg.ui.switchToLocalBranchComboBox.currentText()
+        elif dlg.ui.switchRadioButton.isChecked():
+            branchName = dlg.ui.switchComboBox.currentText()
             yield from self.flowSubtask(SwitchBranch, branchName, askForConfirmation=False, recurseSubmodules=wantSubmodules)
 
         elif dlg.ui.createBranchRadioButton.isChecked():
@@ -283,6 +283,9 @@ class CheckoutCommit(RepoTask):
 
         elif dlg.ui.resetHeadRadioButton.isChecked():
             yield from self.flowSubtask(ResetHead, oid)
+
+        elif dlg.ui.mergeRadioButton.isChecked():
+            yield from self.flowSubtask(MergeBranch, refs[0])
 
         else:
             raise NotImplementedError("Unsupported CheckoutCommitDialog outcome")

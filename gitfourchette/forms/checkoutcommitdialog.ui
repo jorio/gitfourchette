@@ -44,14 +44,14 @@
          <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
         </property>
         <item>
-         <widget class="QRadioButton" name="switchToLocalBranchRadioButton">
+         <widget class="QRadioButton" name="switchRadioButton">
           <property name="text">
            <string>Switch to &amp;branch:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="switchToLocalBranchComboBox">
+         <widget class="QComboBox" name="switchComboBox">
           <property name="toolTip">
            <string>List of branches that point to this commit.</string>
           </property>
@@ -70,6 +70,13 @@
        <widget class="QRadioButton" name="resetHeadRadioButton">
         <property name="text">
          <string>&amp;Reset HEAD here…</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="mergeRadioButton">
+        <property name="text">
+         <string>&amp;Merge into HEAD…</string>
         </property>
        </widget>
       </item>
@@ -158,10 +165,11 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>switchToLocalBranchRadioButton</tabstop>
-  <tabstop>switchToLocalBranchComboBox</tabstop>
+  <tabstop>switchRadioButton</tabstop>
+  <tabstop>switchComboBox</tabstop>
   <tabstop>detachHeadRadioButton</tabstop>
   <tabstop>resetHeadRadioButton</tabstop>
+  <tabstop>mergeRadioButton</tabstop>
   <tabstop>createBranchRadioButton</tabstop>
   <tabstop>recurseSubmodulesCheckBox</tabstop>
  </tabstops>
@@ -174,8 +182,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>238</x>
-     <y>244</y>
+     <x>250</x>
+     <y>457</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
@@ -190,8 +198,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>402</x>
-     <y>244</y>
+     <x>414</x>
+     <y>457</y>
     </hint>
     <hint type="destinationlabel">
      <x>364</x>
@@ -200,18 +208,18 @@
    </hints>
   </connection>
   <connection>
-   <sender>switchToLocalBranchRadioButton</sender>
+   <sender>switchRadioButton</sender>
    <signal>toggled(bool)</signal>
-   <receiver>switchToLocalBranchComboBox</receiver>
+   <receiver>switchComboBox</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>226</x>
-     <y>107</y>
+     <x>253</x>
+     <y>58</y>
     </hint>
     <hint type="destinationlabel">
-     <x>359</x>
-     <y>115</y>
+     <x>564</x>
+     <y>64</y>
     </hint>
    </hints>
   </connection>

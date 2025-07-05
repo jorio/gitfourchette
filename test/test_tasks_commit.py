@@ -8,6 +8,7 @@ import os.path
 
 import pytest
 
+from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
@@ -400,9 +401,9 @@ def testCheckoutCommitDetachHead(tempDir, mainWindow, method):
         else:
             raise NotImplementedError(f"unknown method {method}")
 
-        dlg = findQDialog(rw, "check.?out commit")
-        dlg.findChild(QRadioButton, "detachHeadRadioButton").setChecked(True)
-        dlg.accept()
+        checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out commit")
+        checkoutDialog.ui.detachHeadRadioButton.setChecked(True)
+        checkoutDialog.accept()
 
         assert repo.head_is_detached
         assert repo.head_commit_id == loc.commit
@@ -435,9 +436,9 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
     rw.graphView.setFocus()
     QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
 
-    dlg = findQDialog(rw, "check.?out commit")
-    dlg.findChild(QRadioButton, "detachHeadRadioButton").setChecked(True)
-    dlg.accept()
+    checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out commit")
+    checkoutDialog.ui.detachHeadRadioButton.setChecked(True)
+    checkoutDialog.accept()
 
     assert rw.repo.head_is_detached
     assert rw.repo.head_commit_id == headId
@@ -673,9 +674,9 @@ def testCheckoutTag(tempDir, mainWindow, method):
     else:
         raise NotImplementedError(f"unknown method {method}")
 
-    dlg = findQDialog(rw, "check.?out commit")
-    dlg.findChild(QRadioButton, "detachHeadRadioButton").setChecked(True)
-    dlg.accept()
+    checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out commit")
+    checkoutDialog.ui.detachHeadRadioButton.setChecked(True)
+    checkoutDialog.accept()
 
     oid = Oid(hex="c070ad8c08840c8116da865b2d65593a6bb9cd2a")
     assert repo.head_is_detached
