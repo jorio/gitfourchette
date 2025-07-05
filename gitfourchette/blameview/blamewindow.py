@@ -12,7 +12,7 @@ from gitfourchette.blameview.blamescrubber import BlameScrubber
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator, NavHistory
+from gitfourchette.nav import NavLocator, NavHistory, NavFlags
 from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
@@ -242,8 +242,8 @@ class BlameWindow(QWidget):
     def jumpToCommit(self, locator: NavLocator = NavLocator.Empty):
         if locator == NavLocator.Empty:
             locator = self.model.currentLocator
+        locator = locator.withExtraFlags(NavFlags.ActivateWindow)
         Jump.invoke(self.model.taskInvoker, locator)
-        self.model.taskInvoker.activateWindow()
 
     @staticmethod
     def _getLexJob(path: str, blobId: Oid, data: str) -> LexJob | None:

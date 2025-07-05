@@ -51,6 +51,8 @@ class Jump(RepoTask):
         if not locator:
             return
 
+        activateWindow = locator.hasFlags(NavFlags.ActivateWindow)
+
         rw = self.rw
 
         # Back up current locator
@@ -98,8 +100,18 @@ class Jump(RepoTask):
                 # Blank path
                 result = Jump.Result(locator, "", None)
 
+        assert onAppThread()
         self.saveFinalLocator(result.locator)
         self.displayResult(result)
+
+        if activateWindow:
+            def doActivateWindow():
+                rw.activateWindow()
+                rw.window().raise_()  # for macOS
+
+            # Wayland sometimes ignores activateWindow if called here directly,
+            # but postponing it to the next event loop seems to work consistently.
+            QTimer.singleShot(0, doActivateWindow)
 
     def showWorkdir(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
         rw = self.rw
@@ -336,9 +348,12 @@ class Jump(RepoTask):
         return locator
 
     def saveFinalLocator(self, locator: NavLocator):
-        # Strip Force flags before saving the locator
-        # (otherwise switching back and forth into the app may reload a commit)
-        locator = locator.withoutFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
+        # Strip Force flags before saving the locator, otherwise switching
+        # back and forth into the app may reload a commit.
+        # Also strip RaiseWindow because it's meant as a one-time flag.
+        locator = locator.withoutFlags(NavFlags.ForceDiff
+                                       | NavFlags.ForceRecreateDocument
+                                       | NavFlags.ActivateWindow)
 
         self.rw.navLocator = locator
 

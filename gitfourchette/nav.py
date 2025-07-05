@@ -38,6 +38,9 @@ class NavFlags(enum.IntFlag):
     AllowMultiSelect = enum.auto()
     "Don't reset the selection when loading this location."
 
+    ActivateWindow = enum.auto()
+    "Bring window to the foreground after jumping to this location."
+
     DefaultFlags = 0
 
 
