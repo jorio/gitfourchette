@@ -54,7 +54,7 @@ class GetCommitInfo(RepoTask):
         dateText = signatureDateFormat(sig)
         return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
 
-    def flow(self, oid: Oid, withDebugInfo=False):
+    def flow(self, oid: Oid, withDebugInfo=False, dialogParent: QWidget | None = None):
         links = DocumentLinks()
 
         def commitLink(commitId):
@@ -134,8 +134,9 @@ class GetCommitInfo(RepoTask):
         <table>{table}</table>
         """
 
+        dialogParent = dialogParent or self.parentWidget()
         messageBox = asyncMessageBox(
-            self.parentWidget(), 'information', title, markup, macShowTitle=False,
+            dialogParent, 'information', title, markup, macShowTitle=False,
             buttons=QMessageBox.StandardButton.Ok)
 
         if details:
@@ -156,7 +157,13 @@ class GetCommitInfo(RepoTask):
         label.linkActivated.connect(lambda url: links.processLink(url, self))
         label.linkActivated.connect(lambda: messageBox.accept())
 
-        yield from self.flowDialog(messageBox)
+        messageBox.show()
+
+        # Instead of yielding `flowDialog`, let `messageBox` outlive the task so
+        # that the user can trigger other tasks while `messageBox` is open above
+        # a non-MainWindow (like BlameWindow). We still need a dummy yield here
+        # to satisfy the requirement that `flow` be a generator.
+        yield from self.flowEnterUiThread()
 
     def saveLocator(self, locator):
         self.jumpTo = locator

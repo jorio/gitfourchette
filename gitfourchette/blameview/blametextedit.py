@@ -64,7 +64,7 @@ class BlameTextEdit(CodeView):
             TaskBook.action(
                 self.model.taskInvoker,
                 GetCommitInfo,
-                taskArgs=[commitId, False],
+                taskArgs=[commitId, False, self.window()],
                 icon="SP_MessageBoxInformation",
                 enabled=canInvoke and not isWorkdir,
             ),
