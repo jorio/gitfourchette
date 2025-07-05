@@ -51,6 +51,7 @@ class RepoWidget(QWidget):
     clearStatus = Signal()
 
     repoModel: RepoModel
+    taskRunner: RepoTaskRunner
 
     pendingLocator: NavLocator
     pendingEffects: TaskEffects
@@ -61,7 +62,6 @@ class RepoWidget(QWidget):
     splittersToSave: list[QSplitter]
     sharedSplitterSizes: dict[str, list[int]]
     centralSplitSizesBackup: list[int]
-
 
     @property
     def repo(self) -> Repo:
@@ -85,12 +85,12 @@ class RepoWidget(QWidget):
         self.dead = False
 
         # Use RepoTaskRunner to schedule git operations to run on a separate thread.
-        self.repoTaskRunner = taskRunner
-        self.repoTaskRunner.setParent(self)
-        self.repoTaskRunner.postTask.connect(self.refreshPostTask)
-        self.repoTaskRunner.progress.connect(self.onRepoTaskProgress)
-        self.repoTaskRunner.repoGone.connect(self.onRepoGone)
-        self.repoTaskRunner.requestAttention.connect(self.requestAttention)
+        self.taskRunner = taskRunner
+        self.taskRunner.setParent(self)
+        self.taskRunner.postTask.connect(self.refreshPostTask)
+        self.taskRunner.progress.connect(self.onRepoTaskProgress)
+        self.taskRunner.repoGone.connect(self.onRepoGone)
+        self.taskRunner.requestAttention.connect(self.requestAttention)
 
         self.repoModel = repoModel
         self.pendingLocator = NavLocator()
@@ -300,21 +300,6 @@ class RepoWidget(QWidget):
         return container
 
     # -------------------------------------------------------------------------
-    # Tasks
-
-    def runTask(self, taskClass: type[RepoTask], *args, **kwargs) -> RepoTask:
-        assert issubclass(taskClass, RepoTask)
-
-        # Initialize the task
-        task = taskClass(self.repoTaskRunner)
-        task.setRepoModel(self.repoModel)
-
-        # Enqueue the task
-        self.repoTaskRunner.put(task, *args, **kwargs)
-
-        return task
-
-    # -------------------------------------------------------------------------
     # Splitter state
 
     def saveSplitterState(self, splitter: QSplitter):
@@ -374,16 +359,16 @@ class RepoWidget(QWidget):
         return self.navLocator
 
     def jump(self, locator: NavLocator, check=False):
-        self.runTask(tasks.Jump, locator)
+        tasks.Jump.invoke(self, locator)
         if check:
-            self.repoTaskRunner.joinWorkerThread()
+            self.taskRunner.joinWorkerThread()
             assert self.navLocator.isSimilarEnoughTo(locator), f"failed to jump to: {locator}"
 
     def navigateBack(self):
-        self.runTask(tasks.JumpBackOrForward, -1)
+        tasks.JumpBackOrForward.invoke(self, -1)
 
     def navigateForward(self):
-        self.runTask(tasks.JumpBackOrForward, 1)
+        tasks.JumpBackOrForward.invoke(self, 1)
 
     # -------------------------------------------------------------------------
 
@@ -408,8 +393,8 @@ class RepoWidget(QWidget):
         self.dead = True
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
-        self.repoTaskRunner.killCurrentTask()
-        self.repoTaskRunner.joinZombieTask()
+        self.taskRunner.killCurrentTask()
+        self.taskRunner.joinZombieTask()
 
         # Save sidebar collapse cache
         newCollapseCache = set()
@@ -618,7 +603,7 @@ class RepoWidget(QWidget):
     def refreshRepo(self, effects: TaskEffects = TaskEffects.DefaultRefresh, jumpTo: NavLocator = NavLocator.Empty):
         """Refresh the repo as soon as possible."""
 
-        if not self.isVisible() or self.repoTaskRunner.isBusy():
+        if not self.isVisible() or self.taskRunner.isBusy():
             # Can't refresh right now. Stash the effect bits for later.
             logger.debug(f"Stashing refresh bits {repr(effects)}")
             self.pendingEffects |= effects
@@ -683,7 +668,7 @@ class RepoWidget(QWidget):
         bannerCallback = None
 
         def abortMerge():
-            self.runTask(tasks.AbortMerge)
+            tasks.AbortMerge.invoke(self)
 
         if rstate == RepositoryState.MERGE:
             try:
@@ -839,7 +824,8 @@ class RepoWidget(QWidget):
         elif url.authority() == "exec":
             cmdName = simplePath
             taskClass = tasks.__dict__[cmdName]
-            self.runTask(taskClass, **kwargs)
+            assert issubclass(taskClass, RepoTask)
+            taskClass.invoke(self, **kwargs)
         else:  # pragma: no cover
             warnings.warn(f"Unsupported authority in internal link: {url.toDisplayString()}")
 

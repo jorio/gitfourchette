@@ -12,7 +12,7 @@ from typing import Any
 from gitfourchette import tasks
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.tasks import RepoTask, TaskInvoker
+from gitfourchette.tasks import RepoTask
 from gitfourchette.toolbox import MultiShortcut, makeMultiShortcut, ActionDef, englishTitleCase
 
 
@@ -233,17 +233,17 @@ class TaskBook:
     def action(
             cls,
             invoker: QObject,
-            taskType: type[RepoTask],
+            taskClass: type[RepoTask],
             name="",
             accel="",
             taskArgs: Any = None,
             **kwargs
     ) -> ActionDef:
         if not name:
-            name = cls.autoActionName(taskType)
+            name = cls.autoActionName(taskClass)
 
         if accel:
-            name = cls.autoActionName(taskType)
+            name = cls.autoActionName(taskClass)
             i = name.lower().find(accel.lower())
             if i >= 0:
                 name = name[:i] + "&" + name[i:]
@@ -253,12 +253,12 @@ class TaskBook:
         elif not isinstance(taskArgs, tuple | list):
             taskArgs = (taskArgs,)
 
-        icon = cls.icons.get(taskType, "")
-        shortcuts = cls.shortcuts.get(taskType, [])
-        tip = cls.tips.get(taskType, "")
+        icon = cls.icons.get(taskClass, "")
+        shortcuts = cls.shortcuts.get(taskClass, [])
+        tip = cls.tips.get(taskClass, "")
 
         def callback():
-            TaskInvoker.invoke(invoker, taskType, *taskArgs)
+            taskClass.invoke(invoker, *taskArgs)
 
         actionDef = ActionDef(name, callback=callback, icon=icon, shortcuts=shortcuts, tip=tip)
 
@@ -268,7 +268,7 @@ class TaskBook:
         return actionDef
 
     @classmethod
-    def toolbarAction(cls, invoker: QObject, taskType: type[RepoTask]):
-        name = cls.toolbarNames.get(taskType, "")
-        tip = cls.autoActionName(taskType)
-        return cls.action(invoker, taskType, name).replace(tip=tip)
+    def toolbarAction(cls, invoker: QObject, taskClass: type[RepoTask]):
+        name = cls.toolbarNames.get(taskClass, "")
+        tip = cls.autoActionName(taskClass)
+        return cls.action(invoker, taskClass, name).replace(tip=tip)

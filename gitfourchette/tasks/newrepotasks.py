@@ -6,6 +6,7 @@
 
 import logging
 import os
+from collections.abc import Callable
 
 import pygit2
 
@@ -18,9 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class NewRepo(RepoTask):
-    openRepo = Signal(str)
-
-    def flow(self):
+    def flow(self, openRepo: Callable[[str], None]):
         fileDialog = PersistentFileDialog.saveFile(self.parentWidget(), "NewRepo", _("New repository"))
         fileDialog.setFileMode(QFileDialog.FileMode.Directory)
         fileDialog.setLabelText(QFileDialog.DialogLabel.Accept, _("&Create repo here"))
@@ -39,7 +38,7 @@ class NewRepo(RepoTask):
 
         parentPath = pygit2.discover_repository(parentDetectionPath) or ""
         if parentPath:
-            yield from self._confirmCreateSubrepo(path, parentPath)
+            yield from self._confirmCreateSubrepo(path, parentPath, openRepo)
 
         # if not allowNonEmptyDirectory and os.path.exists(path) and os.listdir(path):
         if os.path.exists(path) and os.listdir(path):
@@ -48,9 +47,9 @@ class NewRepo(RepoTask):
             yield from self.flowConfirm(title=_("Directory isn’t empty"), text=message, icon="warning")
 
         pygit2.init_repository(path)
-        self.openRepo.emit(path)
+        openRepo(path)
 
-    def _confirmCreateSubrepo(self, path: str, parentPath: str):
+    def _confirmCreateSubrepo(self, path: str, parentPath: str, openRepo: Callable[[str], None]):
         assert parentPath
         myBasename = os.path.basename(path)
 
@@ -99,5 +98,5 @@ class NewRepo(RepoTask):
             wantOpen = result in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
 
         if wantOpen:
-            self.openRepo.emit(parentWorkdir)
+            openRepo(parentWorkdir)
             raise AbortTask()

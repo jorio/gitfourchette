@@ -138,7 +138,8 @@ class RepoStub(QWidget):
 
     def loadNow(self):
         assert not self.isPriming(), "attempting to load RepoStub twice"
+        from gitfourchette.tasks import TaskInvocation
         from gitfourchette.tasks.loadtasks import PrimeRepo
-        primeTask = PrimeRepo(self.taskRunner)
         self.resetUi()
-        self.taskRunner.put(primeTask, repoStub=self)
+        call = TaskInvocation(self.taskRunner, PrimeRepo, repoStub=self)
+        self.taskRunner.put(call)

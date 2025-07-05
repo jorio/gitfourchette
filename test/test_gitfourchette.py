@@ -263,9 +263,7 @@ def testTruncatedHistory(tempDir, mainWindow, method):
     assert rw.graphView.clFilter.rowCount() > 7
 
     # Truncated history row must be gone.
-    with pytest.raises(ValueError, match="no special row"):
-        rw.jump(truncatedHistoryLocator)
-    rejectQMessageBox(mainWindow, "navigate in repo")  # dismiss error message
+    assert rw.graphView.clModel._extraRow == SpecialRow.Invalid
 
     # Bottom commit should work now
     rw.jump(NavLocator.inCommit(bottomCommit, "c/c1.txt"), check=True)
@@ -723,12 +721,12 @@ def testHideSelectedBranch(tempDir, mainWindow, taskThread):
 
     # Select branch 'master'...
     rw.selectRef('refs/heads/master')
-    waitUntilTrue(lambda: not rw.repoTaskRunner.isBusy())
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert rw.diffView.currentLocator.commit == masterId
 
     # ...and hide it. DiffView shouldn't show master anymore.
     rw.toggleHideRefPattern('refs/heads/master')
-    waitUntilTrue(lambda: not rw.repoTaskRunner.isBusy())
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert masterId in rw.repoModel.hiddenCommits
 
     assert rw.navLocator.commit != masterId

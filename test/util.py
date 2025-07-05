@@ -382,7 +382,7 @@ def waitForRepoWidget(mainWindow):
     rw = waitUntilTrue(attempt)
     assert isinstance(rw, RepoWidget)
 
-    waitUntilTrue(lambda: not rw.repoTaskRunner.isBusy())
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     return rw
 
 

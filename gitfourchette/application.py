@@ -21,7 +21,7 @@ from gitfourchette.qt import *
 if TYPE_CHECKING:
     from gitfourchette.mainwindow import MainWindow
     from gitfourchette.settings import Session
-    from gitfourchette.tasks import RepoTask
+    from gitfourchette.tasks import RepoTask, TaskInvocation
     from gitfourchette.porcelain import GitConfig
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class GFApplication(QApplication):
         self.restyle.connect(self.onRestyle)
 
         from gitfourchette.globalshortcuts import GlobalShortcuts
-        from gitfourchette.tasks import TaskBook, TaskInvoker
+        from gitfourchette.tasks import TaskBook, TaskInvocation
 
         # Prepare session-wide temporary directory
         if FLATPAK:
@@ -119,7 +119,7 @@ class GFApplication(QApplication):
         # Prime singletons
         GlobalShortcuts.initialize()
         TaskBook.initialize()
-        TaskInvoker.instance().invokeSignal.connect(self.onInvokeTask)
+        TaskInvocation.initializeGlobalSignal().connect(self.onInvokeTask)
 
         # Get initial session tabs
         commandLinePaths = parser.positionalArguments()
@@ -239,23 +239,23 @@ class GFApplication(QApplication):
 
     # -------------------------------------------------------------------------
 
-    def onInvokeTask(self, invoker: QObject, taskType: type[RepoTask], args: tuple, kwargs: dict) -> RepoTask | None:
+    def onInvokeTask(self, call: TaskInvocation) -> RepoTask | None:
         from gitfourchette.mainwindow import MainWindow
         from gitfourchette.repowidget import RepoWidget
         from gitfourchette.toolbox import showInformation
 
         if self.mainWindow is None:
-            warnings.warn(f"Ignoring task request {taskType.__name__} because we don't have a window")
+            warnings.warn(f"Ignoring {repr(call)} because we don't have a window")
             return None
 
-        assert isinstance(invoker, QObject)
-        if invoker.signalsBlocked():
-            logger.debug(f"Ignoring task request {taskType.__name__} from invoker with blocked signals: " +
-                         (invoker.objectName() or invoker.__class__.__name__))
+        assert isinstance(call.invoker, QObject)
+        if call.invoker.signalsBlocked():
+            logger.debug(f"Ignoring {repr(call)} from invoker with blocked signals: " +
+                         (call.invoker.objectName() or call.invoker.__class__.__name__))
             return None
 
         # Find parent in hierarchy
-        candidate = invoker
+        candidate = call.invoker
         while candidate is not None:
             if isinstance(candidate, RepoWidget | MainWindow):
                 break
@@ -266,16 +266,16 @@ class GFApplication(QApplication):
         elif isinstance(candidate, MainWindow):
             repoWidget = candidate.currentRepoWidget()
             if repoWidget is None:
-                showInformation(candidate, taskType.name(),
+                showInformation(candidate, call.taskClass.name(),
                                 _("Please open a repository before performing this action."))
-                return
+                return None
         else:
             repoWidget = None
 
         if repoWidget is None:
             raise AssertionError("RepoTasks must be invoked from a child of RepoWidget or MainWindow")
 
-        return repoWidget.runTask(taskType, *args, **kwargs)
+        return repoWidget.taskRunner.put(call)
 
     # -------------------------------------------------------------------------
 

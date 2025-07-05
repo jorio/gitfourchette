@@ -34,7 +34,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
-from gitfourchette.tasks import TaskBook, RepoTaskRunner
+from gitfourchette.tasks import TaskBook, RepoTaskRunner, TaskInvocation
 from gitfourchette.tasks.newrepotasks import NewRepo
 from gitfourchette.toolbox import *
 from gitfourchette.toolbox.fittedtext import FittedText
@@ -765,9 +765,8 @@ class MainWindow(QMainWindow):
 
     def newRepo(self):
         runner = RepoTaskRunner(self)
-        newRepoTask = NewRepo(runner)
-        newRepoTask.openRepo.connect(self.openRepo)
-        runner.put(newRepoTask)
+        call = TaskInvocation(runner, NewRepo, self.openRepo)
+        runner.put(call)
         runner.ready.connect(runner.deleteLater)
 
     def cloneDialog(self, initialUrl: str = ""):

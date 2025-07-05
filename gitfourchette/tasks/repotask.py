@@ -218,7 +218,8 @@ class RepoTask(QObject):
 
     @classmethod
     def invoke(cls, invoker: QObject, *args, **kwargs):
-        TaskInvoker.invoke(invoker, cls, *args, **kwargs)
+        call = TaskInvocation(invoker, cls, *args, **kwargs)
+        TaskInvocation.invokeSignal.emit(call)
 
     def __init__(self, parent: QObject):
         super().__init__(parent)
@@ -638,6 +639,7 @@ class RepoTaskRunner(QObject):
         self._currentTask = None
         self._zombieTask = None
         self._currentTaskBenchmark = Benchmark("???")
+        self.repoModel = None
 
         self._workerThread = FlowWorkerThread(self)
         self._workerThread.flow = None
@@ -695,11 +697,15 @@ class RepoTaskRunner(QObject):
         assert not self._workerThread.isRunning()
         assert not self._workerThread.flow
 
-    def put(self, task: RepoTask, *args, **kwargs):
+    def put(self, call: TaskInvocation):
         assert onAppThread()
 
+        task = call.taskClass(self)
+        if self.repoModel:
+            task.setRepoModel(self.repoModel)
+
         # Get flow generator
-        task._currentFlow = task.flow(*args, **kwargs)
+        task._currentFlow = task.flow(*call.taskArgs, **call.taskKwargs)
         assert isinstance(task._currentFlow, Generator), "flow() must contain at least one yield statement"
 
         if not self._currentTask:
@@ -882,22 +888,30 @@ class RepoTaskRunner(QObject):
             qmb.show()
 
 
-class TaskInvoker(QObject):
-    """Singleton that lets you dispatch tasks from anywhere in the application."""
+class TaskInvocation:
+    invoker: QObject
+    taskClass: type[RepoTask]
+    taskArgs: tuple
+    taskKwargs: dict[str, Any]
 
-    invokeSignal = Signal(QObject, object, tuple, dict)
-    _instance: TaskInvoker | None = None
+    def __init__(self, invoker: QObject, taskClass: type[RepoTask], *args, **kwargs):
+        assert issubclass(taskClass, RepoTask)
+        self.invoker = invoker
+        self.taskClass = taskClass
+        self.taskArgs = args
+        self.taskKwargs = kwargs
 
-    @staticmethod
-    def instance():
-        if TaskInvoker._instance is None:
-            TaskInvoker._instance = TaskInvoker(None)
-            TaskInvoker._instance.setObjectName("RepoTaskInvoker")
-        return TaskInvoker._instance
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.taskClass.__name__})"
 
-    @staticmethod
-    def invoke(invoker: QObject, taskType: type[RepoTask], *args, **kwargs):
-        TaskInvoker.instance().invokeSignal.emit(invoker, taskType, args, kwargs)
+    @classmethod
+    def initializeGlobalSignal(cls):
+        class _InvokeSignalOwner(QObject):
+            invoke = Signal(TaskInvocation)
+        assert not hasattr(cls, "_invokeSignalOwner"), "global task invoke signal already initialized"
+        cls._invokeSignalOwner = _InvokeSignalOwner(None)
+        cls.invokeSignal = cls._invokeSignalOwner.invoke
+        return cls.invokeSignal
 
 
 RepoTaskSubtype = TypeVar('RepoTaskSubtype', bound=RepoTask)

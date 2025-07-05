@@ -182,6 +182,7 @@ class PrimeRepo(RepoTask):
         settings.history.write()
 
         # Finally, prime the UI: Create RepoWidget
+        repoStub.taskRunner.repoModel = repoModel
         rw = RepoWidget(repoModel, repoStub.taskRunner, parent=mainWindow)
         # del repoStub.taskRunner
 

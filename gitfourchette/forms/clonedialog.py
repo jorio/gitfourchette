@@ -21,7 +21,7 @@ from gitfourchette.porcelain import Repo, pygit2_version_at_least
 from gitfourchette.qt import *
 from gitfourchette.remotelink import RemoteLink
 from gitfourchette.repoprefs import RepoPrefs
-from gitfourchette.tasks import RepoTask, RepoTaskRunner
+from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -294,7 +294,10 @@ class CloneDialog(QDialog):
             depth = self.ui.shallowCloneDepthSpinBox.value()
 
         self.ui.statusForm.initProgress(_("Contacting remote host…"))
-        self.taskRunner.put(CloneTask(self), url=self.url, path=self.path, depth=depth, privKeyPath=privKeyPath, recursive=recursive)
+        call = TaskInvocation(self.taskRunner, CloneTask,
+                              dialog=self, url=self.url, path=self.path, depth=depth,
+                              privKeyPath=privKeyPath, recursive=recursive)
+        self.taskRunner.put(call)
 
     def onUrlProtocolChanged(self, newUrl: str):
         # This pushes the new text to the QLineEdit's undo stack (whereas setText clears the undo stack).
@@ -314,19 +317,19 @@ class CloneTask(RepoTask):
 
     stickyStatus = Signal(str)
 
-    def __init__(self, dialog: CloneDialog):
-        super().__init__(dialog)
+    cloneDialog: CloneDialog
+    remoteLink: RemoteLink
+
+    def abort(self):
+        self.remoteLink.raiseAbortFlag()
+
+    def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
         self.cloneDialog = dialog
         self.remoteLink = RemoteLink(self)
         self.remoteLink.message.connect(dialog.ui.statusForm.setProgressMessage)
         self.remoteLink.progress.connect(dialog.ui.statusForm.setProgressValue)
         self.stickyStatus.connect(dialog.ui.statusGroupBox.setTitle)
 
-    def abort(self):
-        self.remoteLink.raiseAbortFlag()
-
-    def flow(self, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
-        dialog = self.cloneDialog
         dialog.enableInputs(False)
         dialog.aboutToReject.connect(self.remoteLink.raiseAbortFlag)
 

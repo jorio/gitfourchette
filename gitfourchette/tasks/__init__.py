@@ -4,9 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette.tasks.repotask import RepoTask, RepoTaskRunner, TaskPrereqs, TaskEffects
+from gitfourchette.tasks.repotask import RepoTask, RepoTaskRunner, TaskPrereqs, TaskEffects, TaskInvocation
 from gitfourchette.tasks.repotask import RepoGoneError
-from gitfourchette.tasks.repotask import TaskInvoker
 
 from gitfourchette.tasks.blametasks import (
     OpenBlame,

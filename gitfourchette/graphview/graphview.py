@@ -288,8 +288,7 @@ class GraphView(QListView):
             index = self.clFilter.index(0, 0)
             assert index.data(CommitLogModel.Role.SpecialRow) == SpecialRow.UncommittedChanges
         elif locator.context == NavContext.SPECIAL:
-            if self.clModel._extraRow == SpecialRow.Invalid:
-                raise ValueError("no special row")
+            assert self.clModel._extraRow != SpecialRow.Invalid, "no special row!"
             index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
             assert locator.path == str(index.data(CommitLogModel.Role.SpecialRow))
         else:

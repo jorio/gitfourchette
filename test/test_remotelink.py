@@ -109,7 +109,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
     remoteDialog.ui.nameEdit.setText("origin")
     remoteDialog.accept()
 
-    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
+    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
 
@@ -162,7 +162,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
 
     # Accept
     pd.accept()
-    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
+    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
     # -------------------------------------------
@@ -186,10 +186,10 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
     pd.lineEdit.setText("empty")
     assert pd.rememberCheckBox.isChecked()  # we ticked it previously
     pd.accept()
-    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
+    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
 
     # -------------------------------------------
     # Fetch, shouldn't prompt for passphrase again
 
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    waitForSignal(rw.repoTaskRunner.ready, timeout=NET_TIMEOUT)
+    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
