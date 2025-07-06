@@ -216,7 +216,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             else:  # pragma: no cover
                 summaryText = f"*** Unsupported special row {specialRowKind}"
 
-        if self.isBold(index):
+        if self.isBold(oid):
             painter.setFont(self.activeCommitFont)
 
         # Get metrics now so the message gets elided according to the custom font style
@@ -257,7 +257,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # ------ Message
         # use muted color for foreign commit messages if not selected
-        if not isSelected and commit and commit.id in self.repoModel.foreignCommits:
+        if not isSelected and self.isDim(oid):
             painter.setPen(Qt.GlobalColor.gray)
 
         elidedSummaryText = elide(summaryText)
@@ -557,11 +557,16 @@ class CommitLogDelegate(QStyledItemDelegate):
         r.setHeight(option.fontMetrics.height() * mult // 100)
         return r
 
-    def isBold(self, index: QModelIndex) -> bool:
-        commitId = index.data(CommitLogModel.Role.Oid)
-        return commitId == self.repoModel.headCommitId
+    def isBold(self, oid: Oid) -> bool:
+        """ Can be overridden """
+        return oid != NULL_OID and oid == self.repoModel.headCommitId
+
+    def isDim(self, oid: Oid):
+        """ Can be overridden """
+        return oid != NULL_OID and oid in self.repoModel.foreignCommits
 
     def uncommittedChangesMessage(self) -> str:
+        """ Can be overridden """
         summaryText = _("Working Directory") + " "
         # Append change count if available
         numChanges = self.repoModel.numUncommittedChanges
@@ -585,6 +590,11 @@ class CommitLogDelegate(QStyledItemDelegate):
             oid: Oid,
             toolTips: list[CommitToolTipZone]
     ):
+        """
+        Draw widget-specific information inbetween the commit hash and message.
+        By default, draws the graph and refboxes. Can be overridden.
+        """
+
         # ------ Graph
         if oid is not None:
             graphRect = QRect(rect)

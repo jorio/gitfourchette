@@ -7,7 +7,6 @@
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.blameview.blamescrubberdelegate import BlameScrubberDelegate
 from gitfourchette.blameview.blamescrubbermodel import BlameScrubberModel
-from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.qt import *
 from gitfourchette.toolbox import enforceComboBoxMaxVisibleItems
 
@@ -16,7 +15,8 @@ class BlameScrubber(QComboBox):
     def __init__(self, blameModel: BlameModel, parent: QWidget):
         super().__init__(parent)
 
-        self.scrubberDelegate = BlameScrubberDelegate(blameModel, parent=self)
+        self.scrubberListDelegate = BlameScrubberDelegate(blameModel, singleItem=False, parent=self)
+        self.scrubberMiniDelegate = BlameScrubberDelegate(blameModel, singleItem=True, parent=self)
         self.scrubberModel = BlameScrubberModel(blameModel, parent=self)
 
         self.setMinimumWidth(128)
@@ -26,7 +26,7 @@ class BlameScrubber(QComboBox):
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.view().setUniformItemSizes(True)
 
-        self.setItemDelegate(self.scrubberDelegate)
+        self.setItemDelegate(self.scrubberListDelegate)
         self.setModel(self.scrubberModel)
 
         enforceComboBoxMaxVisibleItems(self, 25)
@@ -40,10 +40,9 @@ class BlameScrubber(QComboBox):
 
         rect = painter.style().subElementRect(QStyle.SubElement.SE_ComboBoxFocusRect, controlOption, self)
 
-        delegate: CommitLogDelegate = self.itemDelegate()
         itemOption = QStyleOptionViewItem()
         itemOption.initFrom(self)
         itemOption.widget = self
         itemOption.rect = rect
         modelIndex = self.model().index(self.currentIndex(), 0)
-        delegate.paint(painter, itemOption, modelIndex, fillBackground=False)
+        self.scrubberMiniDelegate.paint(painter, itemOption, modelIndex, fillBackground=False)

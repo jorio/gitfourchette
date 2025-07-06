@@ -16,11 +16,15 @@ from gitfourchette.toolbox import stockIcon
 
 
 class BlameScrubberDelegate(CommitLogDelegate):
-    def __init__(self, blameModel: BlameModel, parent: QWidget):
+    def __init__(self, blameModel: BlameModel, singleItem: bool, parent: QWidget):
         self.blameModel = blameModel
+        self.singleItem = singleItem
         super().__init__(repoModel=blameModel.repoModel, parent=parent)
 
-    def isBold(self, index):
+    def isBold(self, oid: Oid) -> bool:
+        return not self.singleItem and oid == self.blameModel.currentTraceNode.commitId
+
+    def isDim(self, oid: Oid) -> bool:
         return False
 
     def paintPrivate(
@@ -34,9 +38,10 @@ class BlameScrubberDelegate(CommitLogDelegate):
         node = self.blameModel.trace.nodeForCommit(oid)
 
         # Graph frame
-        graphRect = QRect(rect)
-        paintGraphFrame(painter, graphRect, oid, self.blameModel.graph, set())
-        rect.setLeft(graphRect.right())
+        if not self.singleItem:
+            graphRect = QRect(rect)
+            paintGraphFrame(painter, graphRect, oid, self.blameModel.graph, set())
+            rect.setLeft(graphRect.right())
 
         # Icon
         iconRect = QRect(rect)
