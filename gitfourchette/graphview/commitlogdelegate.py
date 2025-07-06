@@ -254,10 +254,8 @@ class CommitLogDelegate(QStyledItemDelegate):
             SearchBar.highlightNeedle(painter, rect, fullText, needlePos, needleLen)
 
         # ------ Pin
-        if self.showPin() and oid != NULL_OID and self.repoModel.pinnedCommit == oid:
-            icon = stockIcon("pin", f"gray={painter.pen().color().name()}")
-            icon.paint(painter, pinIconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-            toolTips.append(CommitToolTipZone(pinIconRect.left(), pinIconRect.right(), "pin"))
+        if self.showPin() and self.repoModel.pinnedCommit != NULL_OID:
+            self._paintPinArea(painter, pinIconRect, index.row(), toolTips)
 
         # ------ Hash
         charRect = QRect(leftBoundHash, rect.top(), hcw, rect.height())
@@ -563,6 +561,48 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # Advance caller rectangle
         rect.setLeft(round(clipBox.right()) + (6 if not rClip else 0))
+
+    def _paintPinArea(
+            self,
+            painter: QPainter,
+            rect: QRect,
+            row: int,
+            toolTips: list[CommitToolTipZone],
+    ):
+        # TODO: Exclude UC row and any special rows at the bottom
+        # outlineColorName = painter.background().color().name()
+        outlineColorName = "white"
+
+        swap = False
+        sourceRow = self.repoModel.graph.commitRows.get(self.repoModel.pinnedCommit, -1)
+        targetRow = self.parent().currentIndex().row()
+        downward = sourceRow < targetRow
+        icon1 = ""  # background
+        icon2 = ""  # decal
+
+        if row == sourceRow:
+            icon1 = "graphpin-end"
+            icon2 = "graphpin-tack"
+            if targetRow != row:
+                icon1 += "ud"[not downward]
+            toolTips.append(CommitToolTipZone(rect.left(), rect.right(), "pinSource"))
+        elif row == targetRow:
+            icon1 = "graphpin-end" + "ud"[downward]
+            icon2 = "graphpin-arr" + "ud"[downward ^ swap]
+            toolTips.append(CommitToolTipZone(rect.left(), rect.right(), "pinTarget"))
+        elif min(sourceRow, targetRow) < row < max(sourceRow, targetRow):
+            icon1 = "graphpin-fill"
+
+        if not (icon1 or icon2):
+            return
+
+        painter.save()
+        painter.setClipRect(rect)
+        for iconName in (icon1, icon2):
+            if iconName:
+                icon = stockIcon(iconName, f"teal=gray aqua={outlineColorName}")
+                icon.paint(painter, rect)
+        painter.restore()
 
     def _paintError(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, exc: BaseException):  # pragma: no cover
         """Last-resort row drawing routine used if _paint raises an exception."""

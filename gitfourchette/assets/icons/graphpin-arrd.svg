@@ -1,0 +1,10 @@
+<svg version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="linearGradient3" x1="8" x2="8" y1="10" y2="2" gradientTransform="matrix(1.3333 0 0 1 -18.667 -2)" gradientUnits="userSpaceOnUse">
+<stop stop-color="aqua" offset="0"/>
+<stop stop-color="aqua" stop-opacity="0" offset="1"/>
+</linearGradient>
+</defs>
+<path d="m12 9.5-4 2.5-4-2.5v-2.5l4 2.5 4-2.5z" fill="aqua"/>
+<rect x="7" width="2" height="11" fill="url(#linearGradient3)"/>
+</svg>

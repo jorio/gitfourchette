@@ -208,6 +208,11 @@ class Jump(RepoTask):
             assert delta.old.isIdValid()
             return delta.old == currentDelta.old
 
+        #---------------------
+        if self.repoModel.pinnedCommit != NULL_OID:
+            rw.graphView.viewport().repaint()
+        #---------------------
+
         # In staged or commit contexts, we've got valid hashes for both sides.
         assert delta.old.isIdValid()
         assert delta.new.isIdValid()

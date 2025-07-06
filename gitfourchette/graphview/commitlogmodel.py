@@ -19,7 +19,7 @@ from gitfourchette.trtables import TrTables
 class CommitToolTipZone:
     left: int
     right: int
-    kind: Literal['ref', 'author', 'message', 'pin']
+    kind: Literal['ref', 'author', 'message', 'pinSource', 'pinTarget']
     data: str = ""
 
 
@@ -137,7 +137,11 @@ class CommitLogModel(QAbstractListModel):
                 elif zone.kind == "author":
                     tip = commitAuthorTooltip(commit, *self.repoModel.getCachedGpgStatus(commit))
                 elif zone.kind == "pin":
+                    tip = commitAuthorTooltip(commit)
+                elif zone.kind == "pinSource":
                     tip = _("Commit {0} is pinned for comparison", shortHash(commit.id))
+                elif zone.kind == "pinTarget":
+                    tip = _("This commit is being compared to the pinned commit")
                 break
 
             if self._authorColumnX <= 0:  # author hidden in narrow window
