@@ -226,6 +226,31 @@ class PrimeRepo(RepoTask):
         super().onError(exc)
 
 
+# TODO: PINNED COMMITS 2026
+# class LoadCommit(RepoTask):
+#     def canKill(self, task: RepoTask):
+#         return isinstance(task, LoadWorkdir | LoadCommit | LoadPatch)
+#
+#     def flow(self, locator: NavLocator, pinnedCommit: Oid):
+#         yield from self.flowEnterWorkerThread()
+#
+#         oid = locator.commit
+#         largeCommitThreshold = -1 if locator.hasFlags(NavFlags.AllowLargeCommits) else RENAME_COUNT_THRESHOLD
+#         cl = contextLines()
+#
+#         if pinnedCommit == NULL_OID:
+#             diffs, didRenames = self.repo.commit_diffs(oid, find_similar_threshold=largeCommitThreshold, context_lines=cl)
+#         else:
+#             thisTree = self.repo.peel_commit(pinnedCommit).tree
+#             thatTree = self.repo.peel_commit(oid).tree
+#             diffs = [thisTree.diff_to_tree(thatTree, context_lines=contextLines())]
+#             didRenames = self.repo.detect_renames_maybe(diffs[0], largeCommitThreshold)
+#
+#         self.diffs = diffs
+#         self.skippedRenameDetection = not didRenames
+#         self.message = self.repo.get_commit_message(oid)
+
+
 class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
@@ -325,7 +350,10 @@ class LoadPatch(RepoTask):
 
         locationText = ""
         if locator.context == NavContext.COMMITTED:
-            locationText = _p("at (specific commit)", "at {0}", shortHash(locator.commit))
+            if not self.repoModel.hasPinnedCommit:
+                locationText = _p("at (specific commit)", "at {0}", shortHash(locator.commit))
+            else:
+                locationText = self.repoModel.formatPinComparisonHashes(locator.commit)
         elif locator.context.isWorkdir():
             locationText = locator.context.translateName().lower()
         if locationText:

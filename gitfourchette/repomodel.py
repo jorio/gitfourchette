@@ -140,6 +140,8 @@ class RepoModel:
     headIsDetached: bool
     homeBranch: str
 
+    pinnedCommit: Oid
+
     prefs: RepoPrefs
 
     def __init__(self, repo: Repo):
@@ -153,6 +155,7 @@ class RepoModel:
 
         self.headIsDetached = False
         self.homeBranch = ""
+        self.pinnedCommit = NULL_OID
 
         self.superproject = ""
 
@@ -217,6 +220,13 @@ class RepoModel:
     @property
     def singleRemote(self) -> bool:
         return len(self.remotes) == 1
+
+    @property
+    def hasPinnedCommit(self) -> bool:
+        return self.pinnedCommit != NULL_OID
+
+    def formatPinComparisonHashes(self, compareTo: Oid):
+        return f"\u2022{shortHash(self.pinnedCommit)} \u2192 {shortHash(compareTo)}"
 
     @benchmark
     def syncRefs(self):

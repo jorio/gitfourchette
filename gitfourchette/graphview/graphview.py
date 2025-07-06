@@ -26,6 +26,7 @@ from gitfourchette.toolbox import *
 class GraphView(QListView):
     linkActivated = Signal(str)
     statusMessage = Signal(str)
+    pinCommit = Signal(Oid)
 
     clModel: CommitLogModel
     clFilter: CommitLogFilter
@@ -141,6 +142,10 @@ class GraphView(QListView):
 
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
+            if self.repoModel.pinnedCommit != oid:
+                pinAction = ActionDef(_("Pin For C&omparison"), lambda: self.pinCommit.emit(oid), "pin")
+            else:
+                pinAction = ActionDef(_("Unpin For C&omparison"), lambda: self.pinCommit.emit(NULL_OID), "pin")
 
             gpgLookAtCommit = repo.peel_commit(oid)
             gpgStatus, _gpgKeyInfo = repoModel.getCachedGpgStatus(gpgLookAtCommit)
@@ -166,6 +171,8 @@ class GraphView(QListView):
                 TaskBook.action(self, CherrypickCommit, _("Cherry &Pick…"), taskArgs=oid),
                 TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),
                 TaskBook.action(self, ExportCommitAsPatch, _("E&xport As Patch…"), taskArgs=oid),
+                ActionDef.SEPARATOR,
+                pinAction,
                 ActionDef.SEPARATOR,
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),

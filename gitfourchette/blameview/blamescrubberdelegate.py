@@ -30,6 +30,9 @@ class BlameScrubberDelegate(CommitLogDelegate):
     def isDim(self, oid: Oid) -> bool:
         return False
 
+    def showPin(self) -> bool:
+        return False
+
     def paintPrivate(
             self,
             painter: QPainter,

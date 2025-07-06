@@ -9,14 +9,22 @@ from collections.abc import Callable
 from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
-PERMANENT_PROPERTY = "permanent"
-
 
 class ContextHeader(QFrame):
+    PermanentButtonProperty = "permanent"
+    CompareModeProperty = "compare"
+
+    toggleMaximize = Signal()
+    unpinCommit = Signal()
+
+    locator: NavLocator
+    buttons: list[QToolButton]
+
     def __init__(self, parent):
         super().__init__(parent)
         self.setObjectName("ContextHeader")
@@ -36,6 +44,7 @@ class ContextHeader(QFrame):
         self.maximizeButton.setIcon(stockIcon("maximize"))
         self.maximizeButton.setToolTip(_("Maximize the diff area and hide the commit graph"))
         self.maximizeButton.setCheckable(True)
+        self.maximizeButton.clicked.connect(self.toggleMaximize)
 
         self.restyle()
         GFApplication.instance().restyle.connect(self.restyle)
@@ -45,10 +54,10 @@ class ContextHeader(QFrame):
         fg = mutedTextColorHex(self, .8)
         self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}  ContextHeader QLabel {{ color: {fg}; }}")
 
-    def addButton(self, text: str, callback: Callable | None = None, permanent=False) -> QToolButton:
+    def addButton(self, text: str, callback: Callable | Signal | None = None, permanent=False) -> QToolButton:
         button = QToolButton(self)
         button.setText(text)
-        button.setProperty(PERMANENT_PROPERTY, "true" if permanent else "")
+        button.setProperty(ContextHeader.PermanentButtonProperty, "true" if permanent else "")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setAutoRaise(True)
         self.buttons.append(button)
@@ -66,21 +75,29 @@ class ContextHeader(QFrame):
     def clearButtons(self):
         for i in range(len(self.buttons) - 1, -1, -1):
             button = self.buttons[i]
-            if not button.property(PERMANENT_PROPERTY):
+            if not button.property(ContextHeader.PermanentButtonProperty):
                 button.hide()
                 button.deleteLater()
                 del self.buttons[i]
 
     @DisableWidgetUpdatesContext.methodDecorator
-    def setContext(self, locator: NavLocator, commitMessage: str = "", isStash=False):
+    def setContext(self, locator: NavLocator, commitMessage: str = "", isStash=False, pinnedCommit: Oid = NULL_OID):
         self.clearButtons()
+
+        comparingPin = locator.context == NavContext.COMMITTED and pinnedCommit != NULL_OID
 
         self.locator = locator
 
         if locator.context == NavContext.COMMITTED:
-            kind = _p("noun", "Stash") if isStash else _p("noun", "Commit")
-            summary, _continued = messageSummary(commitMessage)
-            self.mainLabel.setText(f"{kind} {shortHash(locator.commit)} – {summary}")
+            if not comparingPin:
+                kind = _p("noun", "Stash") if isStash else _p("noun", "Commit")
+                summary, _continued = messageSummary(commitMessage)
+                mainText = f"{kind} {shortHash(locator.commit)} – {summary}"
+            elif pinnedCommit == locator.commit:
+                mainText = _("Commit {0} is pinned for comparison", shortHash(pinnedCommit))
+            else:
+                mainText = _("Comparing pinned commit {0} to {1}", "\u2022" + shortHash(pinnedCommit), shortHash(locator.commit))
+            self.mainLabel.setText(mainText)
 
             infoButton = self.addButton(_("Info"), lambda: GetCommitInfo.invoke(self, self.locator.commit))
             infoButton.setToolTip(_("Show details about this commit") if not isStash
@@ -98,3 +115,16 @@ class ContextHeader(QFrame):
         else:
             # Special context (e.g. history truncated)
             self.mainLabel.setText(" ")
+
+        if comparingPin:
+            unpinButton = self.addButton(_("Unpin {0}", tquo(shortHash(pinnedCommit))), self.unpinCommit)
+            unpinButton.setIcon(stockIcon("pin", "gray=white"))
+            unpinButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+
+        # Toggle 'compare' property
+        if comparingPin != bool(self.property(ContextHeader.CompareModeProperty)):
+            self.setProperty(ContextHeader.CompareModeProperty, "true" if comparingPin else "")
+            if comparingPin:
+                self.setStyleSheet("* {}")
+            else:
+                self.restyle()

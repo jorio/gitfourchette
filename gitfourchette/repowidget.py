@@ -21,7 +21,7 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.localization import *
-from gitfourchette.nav import NavHistory, NavLocator, NavContext
+from gitfourchette.nav import NavHistory, NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
@@ -160,7 +160,8 @@ class RepoWidget(QWidget):
         centralSplitter.setCollapsible(0, True)  # Let DiffArea be maximized, thereby hiding the graph
         centralSplitter.setCollapsible(1, False)  # DiffArea can never be collapsed
         self.centralSplitSizesBackup = centralSplitter.sizes()
-        self.diffArea.contextHeader.maximizeButton.clicked.connect(self.maximizeDiffArea)
+        self.diffArea.contextHeader.toggleMaximize.connect(self.maximizeDiffArea)
+        self.diffArea.contextHeader.unpinCommit.connect(self.pinCommit)  # pass no args to pinCommit -> unpin
         centralSplitter.splitterMoved.connect(self.syncDiffAreaMaximizeButton)
 
         splitters: list[QSplitter] = self.findChildren(QSplitter)
@@ -186,6 +187,7 @@ class RepoWidget(QWidget):
         self.graphView.statusMessage.connect(self.statusMessage)
         self.graphView.clDelegate.requestSignatureVerification.connect(self.repoModel.queueGpgVerification)
         self.graphView.clDelegate.requestSignatureVerification.connect(self.scheduleFlushGpgVerificationQueue)
+        self.graphView.pinCommit.connect(self.pinCommit)
 
         self.diffArea.conflictView.openPrefs.connect(self.openPrefs)
         self.diffArea.diffView.contextualHelp.connect(self.statusMessage)
@@ -819,6 +821,10 @@ class RepoWidget(QWidget):
             taskClass.invoke(self, **kwargs)
         else:  # pragma: no cover
             warnings.warn(f"Unsupported authority in internal link: {url.toDisplayString()}")
+
+    def pinCommit(self, compareTo: Oid = NULL_OID):
+        self.repoModel.pinnedCommit = compareTo
+        self.jump(self.navLocator.withExtraFlags(NavFlags.ForceDiff))
 
     # -------------------------------------------------------------------------
 

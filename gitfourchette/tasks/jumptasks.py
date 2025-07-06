@@ -122,6 +122,9 @@ class Jump(RepoTask):
         self.saveFinalLocator(result.locator)
         self.displayResult(result)
 
+        if self.repoModel.hasPinnedCommit:
+            self.rw.graphView.viewport().update()
+
         if locator.hasFlags(NavFlags.ActivateWindow):  # initial locator!
             self.rw.activateWindow()
 
@@ -340,6 +343,7 @@ class Jump(RepoTask):
         """
 
         rw = self.rw
+        repoModel = self.repoModel
         area = rw.diffArea
         assert locator.context == NavContext.COMMITTED
 
@@ -347,7 +351,7 @@ class Jump(RepoTask):
         if locator.ref:
             assert locator.commit == NULL_OID
             try:
-                oid = self.repoModel.refs[locator.ref]
+                oid = repoModel.refs[locator.ref]
                 locator = locator.replace(commit=oid, ref="")
             except KeyError as exc:
                 raise AbortTask(_("Unknown reference {0}.", tquo(locator.ref))) from exc
@@ -356,13 +360,13 @@ class Jump(RepoTask):
         assert not locator.ref
 
         try:
-            stashIndex = rw.repoModel.stashes.index(locator.commit)
+            stashIndex = repoModel.stashes.index(locator.commit)
             isStash = True
         except ValueError:
             stashIndex = -1
             isStash = False
 
-        commit = rw.repo.peel_commit(locator.commit)
+        commit = repoModel.repo.peel_commit(locator.commit)
         warnings = []
 
         # Select row in commit log
@@ -384,12 +388,12 @@ class Jump(RepoTask):
             if isStash:
                 rw.sidebar.selectAnyRef(f"stash@{{{stashIndex}}}")
             else:
-                refCandidates = rw.repoModel.refsAt.get(locator.commit, [])
+                refCandidates = repoModel.refsAt.get(locator.commit, [])
                 rw.sidebar.selectAnyRef(*refCandidates)
 
         flv = area.committedFiles
         area.diffBanner.setVisible(False)
-        area.contextHeader.setContext(locator, commit.message, isStash)
+        area.contextHeader.setContext(locator, commit.message, isStash, repoModel.pinnedCommit)
 
         if locator.commit == flv.commitId and not locator.hasFlags(NavFlags.ForceDiff):
             # No need to reload the same commit
@@ -404,6 +408,8 @@ class Jump(RepoTask):
             tokens = GitDriver.buildShowCommand(locator.commit)
             driver = yield from self.flowCallGit(*tokens)
             deltas = driver.readShowRawZ()
+            # TODO: PINNED COMMITS 2026
+            # subtask = yield from self.flowSubtask(LoadCommit, locator, repoModel.pinnedCommit)
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 
@@ -415,9 +421,30 @@ class Jump(RepoTask):
                 numChanges = flv.model().rowCount()
 
             # Set header text
-            headerText = toLengthVariants(_n("{n} change:|{n} ch.:", "{n} changes:|{n} ch.:", numChanges))
+            if repoModel.hasPinnedCommit:
+                pinWide = repoModel.formatPinComparisonHashes(locator.commit)
+                pinNarrow = pinWide.replace(' ', '')
+                headerText = toLengthVariants(_n("{n} change ({pin1}):|{n} ch. ({pin2}):",
+                                                 "{n} changes ({pin1}):|{n} ch. ({pin2}):",
+                                                 numChanges, pin1=pinWide, pin2=pinNarrow))
+            else:
+                headerText = toLengthVariants(_n("{n} change:|{n} ch.:", "{n} changes:|{n} ch.:", numChanges))
             area.committedHeader.setText(headerText)
             area.committedHeader.setToolTip("<p>" + escape(summary).replace("\n", "<br>"))
+
+        # Early out if the pinned comparison comes out empty
+        if repoModel.hasPinnedCommit and repoModel.pinnedCommit == locator.commit:
+            locator = locator.replace(path="")
+            header = ""
+            pinHash = tquo(shortHash(repoModel.pinnedCommit))
+            sde = SpecialDiffError(
+                _("Commit {0} is pinned for comparison", pinHash),
+                _("Other commits will be compared to {0}", pinHash),
+                longform=toRoomyUL([
+                    _("Select another commit in the history to diff it against this commit."),
+                    _("Click {0} (in the divider above) to exit comparison mode.", tquo(_("Unpin")))])
+            )
+            raise Jump.Result(locator, header, sde)
 
         # Early out if the commit is empty
         if flv.isEmpty():

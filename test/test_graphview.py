@@ -426,3 +426,38 @@ def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
     # Now, hidethis must be gone
     with pytest.raises(GraphView.SelectCommitError):
         rw.graphView.getFilterIndexForCommit(hidethisTip)
+
+
+def testPinCommitForComparison(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    contextHeader = rw.diffArea.contextHeader
+
+    assert rw.repoModel.pinnedCommit == NULL_OID
+    assert not contextHeader.property("compare")
+
+    pinId = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
+    compareId = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+
+    # Pin commit 6e1475
+    rw.jump(NavLocator.inCommit(pinId, "b/b1.txt"), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "pin for comparison")
+    assert rw.repoModel.pinnedCommit == pinId
+    assert contextHeader.property("compare")
+    assert re.match(r"commit.+6e1475.+is pinned", contextHeader.mainLabel.text(), re.I)
+
+    # In workdir, don't compare to pinned commit
+    rw.jump(NavLocator.inWorkdir())
+    assert not rw.diffArea.contextHeader.property("compare")
+
+    # Compare pinned commit to ce112d
+    rw.jump(NavLocator.inCommit(compareId, "c/c2-2.txt"), check=True)
+    assert contextHeader.property("compare")
+    assert re.match(r"comparing.+pin.+6e1475.+ce112d", contextHeader.mainLabel.text(), re.I)
+    assert qlvGetRowData(rw.committedFiles) == ["a/a1", "c/c2-2.txt"]
+
+    # Unpin (stay on ce112d)
+    unpinButton = next(b for b in contextHeader.buttons if b.text().startswith("Unpin"))
+    unpinButton.click()
+    assert not contextHeader.property("compare")
+    assert qlvGetRowData(rw.committedFiles) == ["c/c2-2.txt"]

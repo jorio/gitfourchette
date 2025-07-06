@@ -160,6 +160,12 @@ class CommitLogDelegate(QStyledItemDelegate):
         rect.setLeft(rect.left() + XMARGIN)
         rect.setRight(rect.right() - XMARGIN)
 
+        # Reserve space for pin icon
+        if self.showPin() and self.repoModel.pinnedCommit != NULL_OID:
+            pinIconRect = QRect(rect)
+            pinIconRect.setWidth(max(16, pinIconRect.height()))
+            rect.setLeft(pinIconRect.right() + 5)
+
         # Compute column bounds
         authorWidth = self.authorMaxWidth
         dateWidth = self.dateMaxWidth
@@ -246,6 +252,12 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         def highlight(fullText: str, needlePos: int, needleLen: int):
             SearchBar.highlightNeedle(painter, rect, fullText, needlePos, needleLen)
+
+        # ------ Pin
+        if self.showPin() and oid != NULL_OID and self.repoModel.pinnedCommit == oid:
+            icon = stockIcon("pin", f"gray={painter.pen().color().name()}")
+            icon.paint(painter, pinIconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            toolTips.append(CommitToolTipZone(pinIconRect.left(), pinIconRect.right(), "pin"))
 
         # ------ Hash
         charRect = QRect(leftBoundHash, rect.top(), hcw, rect.height())
@@ -590,6 +602,10 @@ class CommitLogDelegate(QStyledItemDelegate):
     def isDim(self, oid: Oid):
         """ Can be overridden """
         return oid != NULL_OID and oid in self.repoModel.foreignCommits
+
+    def showPin(self) -> bool:
+        """ Can be overridden """
+        return True
 
     def uncommittedChangesMessage(self) -> str:
         """ Can be overridden """

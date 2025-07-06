@@ -24,3 +24,7 @@ DiffView[dark="false"] { selection-background-color: rgba(0, 0, 0, 20%); selecti
 DiffView[dark="true"] { selection-background-color: rgba(255, 255, 255, 26%); }
 
 QFaintSeparator { border: none; background: rgba(0, 0, 0, 15%); }
+
+ContextHeader[compare="true"] {background-color: #B10DC9; color: white;}
+ContextHeader[compare="true"] QLabel,
+ContextHeader[compare="true"] QToolButton {color: white;}
