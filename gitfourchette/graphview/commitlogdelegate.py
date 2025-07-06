@@ -600,7 +600,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.setClipRect(rect)
         for iconName in (icon1, icon2):
             if iconName:
-                icon = stockIcon(iconName, f"teal=gray aqua={outlineColorName}")
+                icon = stockIcon(iconName, f"teal=#666 blue=#555 aqua={outlineColorName}")
                 icon.paint(painter, rect)
         painter.restore()
 

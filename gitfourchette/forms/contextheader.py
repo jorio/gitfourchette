@@ -49,17 +49,28 @@ class ContextHeader(QFrame):
         self.restyle()
         GFApplication.instance().restyle.connect(self.restyle)
 
+    def isCompareMode(self):
+        return bool(self.property(ContextHeader.CompareModeProperty))
+
     def restyle(self):
-        bg = mutedTextColorHex(self, .07)
-        fg = mutedTextColorHex(self, .8)
-        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}  ContextHeader QLabel {{ color: {fg}; }}")
+        comparing = self.isCompareMode()
+
+        if not comparing:
+            bg = mutedTextColorHex(self, .07)
+            fg = mutedTextColorHex(self, .8)
+            self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}  ContextHeader QLabel {{ color: {fg}; }}")
+        else:
+            self.setStyleSheet("* {}")
+
+        for b in self.buttons:
+            b.setAutoRaise(not comparing)
 
     def addButton(self, text: str, callback: Callable | Signal | None = None, permanent=False) -> QToolButton:
         button = QToolButton(self)
         button.setText(text)
         button.setProperty(ContextHeader.PermanentButtonProperty, "true" if permanent else "")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setAutoRaise(True)
+        button.setAutoRaise(not self.isCompareMode())
         self.buttons.append(button)
 
         if callback is not None:
@@ -118,13 +129,10 @@ class ContextHeader(QFrame):
 
         if comparingPin:
             unpinButton = self.addButton(_("Unpin {0}", tquo(shortHash(pinnedCommit))), self.unpinCommit)
-            unpinButton.setIcon(stockIcon("pin", "gray=white"))
+            unpinButton.setIcon(stockIcon("pin"))
             unpinButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
         # Toggle 'compare' property
-        if comparingPin != bool(self.property(ContextHeader.CompareModeProperty)):
+        if comparingPin != self.isCompareMode():
             self.setProperty(ContextHeader.CompareModeProperty, "true" if comparingPin else "")
-            if comparingPin:
-                self.setStyleSheet("* {}")
-            else:
-                self.restyle()
+            self.restyle()

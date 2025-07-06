@@ -1,4 +1,10 @@
 <svg version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="a" x2="8" y2="8" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+<stop stop-color="teal" offset=".5"/>
+<stop stop-color="blue" offset=".5"/>
+</linearGradient>
+</defs>
 <rect x="0" y="-1" width="16" height="18" fill="aqua"/>
-<rect x="1" y="-1" width="14" height="18" fill="teal"/>
+<rect x="1" y="-1" width="14" height="18" fill="url(#a)"/>
 </svg>
