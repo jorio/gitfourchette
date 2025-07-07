@@ -193,6 +193,13 @@ class GraphView(QListView):
             menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
+    def mousePressEvent(self, event: QMouseEvent):
+        if (event.isAccepted()
+                and event.modifiers() == Qt.KeyboardModifier.ShiftModifier
+                and self.currentCommitId):
+            self.pinCommit.emit(self.currentCommitId)
+        super().mousePressEvent(event)
+
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         currentIndex = self.currentIndex()
         if not currentIndex.isValid() or event.button() != Qt.MouseButton.LeftButton:
