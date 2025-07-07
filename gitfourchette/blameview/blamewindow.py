@@ -53,16 +53,19 @@ class BlameWindow(QWidget):
         self.jumpButton.setIcon(stockIcon("go-window@20px"))
         self.jumpButton.clicked.connect(lambda: self.jumpToCommit())
 
+        oldNewTipTemplate = (f"<p style='white-space: pre'>{{0}}<br>"
+                             f"<span style='color: {mutedToolTipColorHex()}'>({_('Shift+Click:')} {{1}})</span>")
+
         self.olderButton = QToolButton()
         self.olderButton.setText(_("Older"))
         self.olderButton.clicked.connect(self.goOlder)
-        self.olderButton.setToolTip(_("Go to older revision"))
+        self.olderButton.setToolTip(oldNewTipTemplate.format(_("Go to next older revision"), _("Jump to bottom")))
         self.olderButton.setIcon(stockIcon("go-older"))
 
         self.newerButton = QToolButton()
         self.newerButton.setText(_("Newer"))
         self.newerButton.clicked.connect(self.goNewer)
-        self.newerButton.setToolTip(_("Go to newer revision"))
+        self.newerButton.setToolTip(oldNewTipTemplate.format(_("Go to next newer revision"), _("Jump to top")))
         self.newerButton.setIcon(stockIcon("go-newer"))
 
         self.backButton = QToolButton()
@@ -206,10 +209,18 @@ class BlameWindow(QWidget):
         self.forwardButton.setEnabled(self.navHistory.canGoForward())
 
     def goNewer(self):
-        self.goNewerOrOlder(-1)
+        if QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.ShiftModifier:
+            topNode = self.model.nodeSequence[0]
+            self.setTraceNode(topNode)
+        else:
+            self.goNewerOrOlder(-1)
 
     def goOlder(self):
-        self.goNewerOrOlder(1)
+        if QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.ShiftModifier:
+            bottomNode = self.model.nodeSequence[-1]
+            self.setTraceNode(bottomNode)
+        else:
+            self.goNewerOrOlder(1)
 
     def goBack(self):
         self.goBackOrForwardDelta(-1)

@@ -169,6 +169,20 @@ def testOpenBlameNavigateUpDown(blameWindow):
     assert (True, False) == (olderButton.isEnabled(), newerButton.isEnabled())
     assert "uncommitted" in scrubber.currentText().lower()
 
+    # Uncommitted Changes --> Shift+Click --> Initial commit
+    QTest.mouseClick(olderButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier)
+    assert (False, True) == (olderButton.isEnabled(), newerButton.isEnabled())
+    assert "First commit" in scrubber.currentText()
+
+    # Initial commit --> Shift+Click --> Uncommitted Changes
+    QTest.mouseClick(newerButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier)
+    assert (True, False) == (olderButton.isEnabled(), newerButton.isEnabled())
+    assert "Uncommitted" in scrubber.currentText()
+
+    # Weird issue with PyQt6 6.9.1? The shift-clicking in this test may cause
+    # later tests to fail unless we perform a no-modifier click now.
+    QTest.mouseClick(newerButton, Qt.MouseButton.LeftButton)
+
 
 def testBlameJumpToCommit(blameWindow):
     rw = blameWindow._unitTestRepoWidget
