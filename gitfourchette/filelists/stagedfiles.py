@@ -43,8 +43,8 @@ class StagedFiles(FileList):
                 self.contextMenuActionStash(),
                 self.contextMenuActionRevertMode(patches, self.unstageModeChange, ellipsis=False),
                 ActionDef.SEPARATOR,
-                *self.contextMenuActionsDiff(patches),
                 self.contextMenuActionBlame(patches),
+                *self.contextMenuActionsDiff(patches),
                 ActionDef.SEPARATOR,
                 *self.contextMenuActionsEdit(patches),
             ]

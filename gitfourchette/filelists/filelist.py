@@ -268,7 +268,7 @@ class FileList(QListView):
 
     def contextMenuActionRevertMode(self, patches, callback: Callable, ellipsis=True):
         n = len(patches)
-        action = ActionDef(_n("Revert Mode Changes", "Revert Mode Change", n), callback, enabled=False)
+        action = ActionDef(_n("Revert Mode Change", "Revert Mode Changes", n), callback, enabled=False)
 
         for patch in patches:
             if not patch:  # stale diff
@@ -327,7 +327,7 @@ class FileList(QListView):
                 isEnabled = patch.delta.status != DeltaStatus.ADDED
 
         return ActionDef(
-            englishTitleCase(OpenBlame.name()),
+            englishTitleCase(OpenBlame.name()) + "\u2026",
             self.blameFile,
             icon=TaskBook.icons[OpenBlame],
             enabled=isEnabled,

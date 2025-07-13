@@ -32,14 +32,16 @@ class CommittedFiles(FileList):
 
         if not anySubmodules:
             actions += [
+                self.contextMenuActionBlame(patches),
+
+                ActionDef.SEPARATOR,
+
                 ActionDef(
                     _("Open Diff in New &Window"),
                     self.wantOpenDiffInNewWindow,
                 ),
 
                 *self.contextMenuActionsDiff(patches),
-
-                self.contextMenuActionBlame(patches),
 
                 ActionDef.SEPARATOR,
 

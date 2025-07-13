@@ -42,7 +42,6 @@ class BlameWindow(QWidget):
 
         self.textEdit = BlameTextEdit(blameModel, self)
         self.textEdit.setUpAsDetachedWindow()
-        self.textEdit.searchBar.lineEdit.setPlaceholderText(_("Find text in revision"))
 
         self.scrubber = BlameScrubber(blameModel, self)
         self.scrubber.activated.connect(self.onScrubberActivated)
@@ -181,7 +180,8 @@ class BlameWindow(QWidget):
         self.textEdit.restorePosition(newLocator)
 
         self.textEdit.syncViewportMarginsWithGutter()
-        self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path), commit=shortHash(node.commitId)))
+        self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path),
+                              commit=shortHash(node.commitId) if node.commitId else _("(Uncommitted)")))
 
         if transposeFilePosition:
             blockPosition = self.textEdit.document().findBlockByNumber(topBlock).position()

@@ -75,7 +75,7 @@ class TaskBook:
             tasks.NewRemote: _("Add remote"),
             tasks.NewStash: _("Stash changes"),
             tasks.NewTag: _("New tag"),
-            tasks.OpenBlame: _("Annotate file history"),
+            tasks.OpenBlame: _("Blame file"),
             tasks.PullBranch: _("Pull remote branch"),
             tasks.PushBranch: _("Push branch"),
             tasks.PushRefspecs: _("Push refspecs"),
@@ -160,7 +160,7 @@ class TaskBook:
             tasks.NewBranchFromHead: makeMultiShortcut("Ctrl+B"),
             tasks.NewCommit: makeMultiShortcut(QKeySequence.StandardKey.Save),
             tasks.NewStash: makeMultiShortcut("Ctrl+Alt+S"),
-            tasks.OpenBlame: makeMultiShortcut("Ctrl+Y"),
+            tasks.OpenBlame: makeMultiShortcut("Ctrl+L"),
             tasks.PullBranch: makeMultiShortcut("Ctrl+Shift+P"),
             tasks.PushBranch: makeMultiShortcut("Ctrl+P"),
         }

@@ -58,7 +58,7 @@ def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
     rw.jump(seedLoc, check=True)
 
     # Open blame window
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     blameWindow = findWindow("blame")
     assert isinstance(blameWindow, BlameWindow)
 
@@ -206,7 +206,7 @@ def testBlameBinaryBlob(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
     shutil.copyfile(getTestDataPath("image1.png"), f"{wd}/hello.txt")
     mainWindow.openRepo(wd)
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     QTest.qWait(0)
     blameWindow: BlameWindow = findWindow("blame")
     qcbSetIndex(blameWindow.scrubber, "working directory")
@@ -221,7 +221,7 @@ def testBlameStartTraceOnDeletion(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt"), check=True)
 
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     blameWindow: BlameWindow = findWindow("blame")
 
     text = blameWindow.textEdit.toPlainText().lower()
@@ -286,12 +286,12 @@ def testBlameNewFile(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inUnstaged("SomeNewFile.txt"), check=True)
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     acceptQMessageBox(mainWindow, "no history")
 
     rw.diffArea.stageButton.click()
     rw.jump(NavLocator.inStaged("SomeNewFile.txt"), check=True)
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     acceptQMessageBox(mainWindow, "no history")
 
 
@@ -302,7 +302,7 @@ def testBlameUnborn(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged("SomeNewFile.txt"), check=True)
 
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     acceptQMessageBox(mainWindow, "no commits in this repository")
 
 
@@ -332,7 +332,7 @@ def testBlameSyntaxHighlighting(tempDir, mainWindow):
     # Open blame window on the commit that produced text1
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(oids[0], "SomeNewFile.yml"), check=True)
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
     blameWindow: BlameWindow = findWindow("blame")
     assert "syntaxtest1" in blameWindow.scrubber.currentText()
 
@@ -372,7 +372,7 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(oids[0], "hello.c"), check=True)
-    triggerMenuAction(mainWindow.menuBar(), "view/file history")
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
 
     blameWindow: BlameWindow = findWindow("blame")
     vsb = blameWindow.textEdit.verticalScrollBar()

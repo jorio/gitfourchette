@@ -67,8 +67,8 @@ class DirtyFiles(FileList):
                 self.contextMenuActionRevertMode(patches, self.discardModeChanges),
                 contextMenuActionIgnore,
                 ActionDef.SEPARATOR,
-                *self.contextMenuActionsDiff(patches),
                 self.contextMenuActionBlame(patches),
+                *self.contextMenuActionsDiff(patches),
             ]
 
         elif onlyConflicts:

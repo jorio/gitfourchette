@@ -62,7 +62,7 @@ class CodeView(QPlainTextEdit):
         self.cursorPositionChanged.connect(self.updateRubberBand)
         self.selectionChanged.connect(self.updateRubberBand)
 
-        self.searchBar = SearchBar(self, _("Find text"))
+        self.searchBar = SearchBar(self, toLengthVariants(_("Find text in code|Find text")))
         self.searchBar.searchNext.connect(lambda: self.search(SearchBar.Op.Next))
         self.searchBar.searchPrevious.connect(lambda: self.search(SearchBar.Op.Previous))
         self.searchBar.searchTermChanged.connect(self.onSearchTermChanged)
