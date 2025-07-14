@@ -18,28 +18,25 @@ echo "App version: $APPVER"
 mkdir -p "$ROOT/build"
 cd "$ROOT/build"
 
-# Freeze QT api
+# Freeze Qt api
 "$ROOT/update_resources.py" --freeze $QT_API
 
 # Write requirements file so python_appimage knows what to include.
 # The path to gitfourchette's root dir must be absolute.
 echo -e "$ROOT[$QT_API,pygments]" > "$HERE/requirements.txt"
 
-# Create AppImage
-python3 -m python_appimage -v -a continuous build app -p $PYVER "$HERE"
-
-# Post-process the AppImage
-mv GitFourchette-$ARCH.AppImage FullFat.AppImage
-rm -rf squashfs-root  # remove existing squashfs-root from previous run
-./FullFat.AppImage --appimage-extract  # extract contents to squashfs-root
+# Use python_appimage to create AppImage contents directory
+python3 -m python_appimage --verbose build app --python-version $PYVER --no-packaging "$HERE"
 
 # Remove junk that we don't need
-pushd squashfs-root
+pushd GitFourchette-$ARCH
 junklist=$(cat "$HERE/junklist.txt")
 rm -rfv $junklist
 popd
 
-# Repackage the AppImage
-~/.local/bin/.appimagetool-continuous.appdir.$ARCH/AppRun --no-appstream squashfs-root
+# Package the AppImage ourselves
+curl -LO https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$ARCH.AppImage
+chmod +x appimagetool-$ARCH.AppImage
+./appimagetool-$ARCH.AppImage --no-appstream GitFourchette-$ARCH
 chmod +x GitFourchette-$ARCH.AppImage
 mv -v GitFourchette{,-$APPVER}-$ARCH.AppImage
