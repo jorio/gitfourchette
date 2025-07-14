@@ -66,6 +66,29 @@
   </keywords>
 
   <releases>
+    <release version="1.4.0" date="2025-07-14" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.4.0</url>
+      <description>
+        <p>New features:</p>
+        <ul>
+        <li>Blame/File History. Within GitFourchette, right-click any file and select "Blame File"; or, drag any file in your repo from your file manager and drop it onto the main window to view its history.</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>An informative "drop zone" now appears when you drag an item from an external program over the main window. This tells you what will happen upon dropping the item (open repo folder, open repo containing a file, blame file in current repo, apply patch file, clone URL).</li>
+        <li>CheckoutCommitDialog: Also offer Merge, Reset HEAD</li>
+        <li>New branch/tag name validation: Friendly warning if attempting to create a folder with the same name as an existing ref</li>
+        <li>CodeView: Toggling Word Wrap now preserves your scroll position in the document</li>
+        <li>FileList: Reevaluate search term when jumping to another commit</li>
+        <li>DiffGutter: Enable high-DPI custom cursor on Wayland</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix "Detect Renames" may unexpectedly switch to the workdir in rare cases</li>
+        <li>Flatpak distribution: Updated to Pygments 2.19.2 to fix problems with Lua syntax highlighting</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.3.0" date="2025-05-03" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.3.0</url>
       <description>

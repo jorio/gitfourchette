@@ -1,5 +1,25 @@
 # GitFourchette version history
 
+## 1.4.0 (2025-07-14)
+
+New features:
+
+- Blame/File History. Within GitFourchette, right-click any file and select "Blame File"; or, drag any file in your repo from your file manager and drop it onto the main window to view its history.
+
+Quality of life improvements:
+
+- An informative "drop zone" now appears when you drag an item from an external program over the main window. This tells you what will happen upon dropping the item (open repo folder, open repo containing a file, blame file in current repo, apply patch file, clone URL).
+- CheckoutCommitDialog: Also offer Merge, Reset HEAD
+- New branch/tag name validation: Friendly warning if attempting to create a folder with the same name as an existing ref
+- CodeView: Toggling Word Wrap now preserves your scroll position in the document
+- FileList: Reevaluate search term when jumping to another commit
+- DiffGutter: Enable high-DPI custom cursor on Wayland
+
+Bug fixes:
+
+- Fix "Detect Renames" may unexpectedly switch to the workdir in rare cases
+- Flatpak distribution: Updated to Pygments 2.19.2 to fix problems with Lua syntax highlighting
+
 ## 1.3.0 (2025-05-03)
 
 **Upgrade note:** The terminal command template now requires the `$COMMAND` argument placeholder. Please review your terminal command in *Settings → External Tools → Terminal*.
