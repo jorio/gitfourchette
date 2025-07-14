@@ -22,7 +22,6 @@ from gitfourchette.toolbox import onAppThread as _onAppThread
 _logger = logging.getLogger(__name__)
 
 gc.disable()
-_logger.debug("Automatic GC disabled. Call gcHint() for manual garbage collection")
 
 
 if APP_DEBUG:
