@@ -213,7 +213,7 @@ class ToolProcess(QProcess):
             return None
 
         try:
-            tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory)
+            tokens, directory = ToolCommands.compileCommand(command, replacements, positional, directory, detached)
         except ValueError as exc:
             onExternalToolProcessError(parent, prefKey, compileError=exc)
             return None
