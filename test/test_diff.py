@@ -842,3 +842,58 @@ def testRevertHunk(tempDir, mainWindow, fromGutter):
 
     assert NavLocator.inUnstaged("c/c1.txt").isSimilarEnoughTo(rw.navLocator)
     assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"
+
+
+@pytest.mark.parametrize("sampleText", [
+    # Sample text is Python comments to ensure that syntax highlighting
+    # applies to the entire line.
+
+    # Complex CJK glyph encoded as two UTF-16 surrogates.
+    # The glyph must be kept whole!
+    ("#Hello W\U00030EDErld",
+     "#Hello W\U00030EDDrld"),
+
+    # Blue heart emoji
+    ("#Hello World",
+     "#Hello W\U0001F499rld"),
+
+    # Simple emoji --> complex emoji (single glyph made of many codepoints)
+    ("#Hello W\U0001f504rld",
+     "#Hello W\U0001f486\U0001f3fd\u200d\u2642\ufe0frld"),
+
+    # Skin tone modifier diff. Ideally, this shouldn't be broken into 3 glyphs,
+    # but it's acceptable as long as no U+FFFD placeholders appear.
+    ("#Hello W\U0001f486\U0001f3fd\u200d\u2642\ufe0frld",
+     "#Hello W\U0001f486\U0001f3ff\u200d\u2642\ufe0frld"),
+])
+def testCharacterLevelDiffInUnicodeSurrogatePairs(tempDir, mainWindow, sampleText):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        writeFile(f"{wd}/surrogatepairs.py", f"{sampleText[0]}\n# bogus context\n")
+        repo.index.add_all()
+        repo.create_commit_on_head("TEST SURROGATE PAIRS", TEST_SIGNATURE, TEST_SIGNATURE)
+        writeFile(f"{wd}/surrogatepairs.py", f"{sampleText[1]}\n# bogus context\n")
+
+    rw = mainWindow.openRepo(wd)
+    document: QTextDocument = rw.diffView.document()
+
+    # Let syntax highlighting settle
+    QTest.qWait(0)
+    assert all(job.lexingComplete for job in rw.diffView.highlighter.lexJobs)
+
+    def reconstructLine(lineNumber: int):
+        block = document.findBlockByNumber(lineNumber)
+        text16 = block.text().encode('utf_16_le')
+        slices = []
+        for f in block.layout().formats():
+            start16 = 2 * f.start
+            end16 = 2 * (f.start + f.length)
+            slice16 = text16[start16: end16]
+            slices.append(slice16.decode('utf_16_le', 'replace'))
+        return "".join(slices)
+
+    assert "\uFFFD" not in reconstructLine(1), "placeholder char - incorrect split?"
+    assert "\uFFFD" not in reconstructLine(2), "placeholder char - incorrect split?"
+    assert reconstructLine(1) == sampleText[0]
+    assert reconstructLine(2) == sampleText[1]

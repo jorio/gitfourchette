@@ -93,6 +93,7 @@ from .textutils import (
     withUniqueSuffix,
     englishTitleCase,
     naturalSort,
+    qstringLength,
 )
 from .urltooltip import UrlToolTip
 from .validatormultiplexer import ValidatorMultiplexer

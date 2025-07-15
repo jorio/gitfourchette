@@ -297,19 +297,25 @@ class DiffDocument:
             aheadOfDoppelganger = i < ld.doppelganger
 
             if aheadOfDoppelganger:
-                sm = difflib.SequenceMatcher(a=ld.text, b=lineData[ld.doppelganger].text)
+                textA = ld.text
+                textB = lineData[ld.doppelganger].text
+                sm = difflib.SequenceMatcher(a=textA, b=textB)
                 blocks = sm.get_matching_blocks()
                 doppelgangerBlocksQueue.append(blocks)  # Set blocks aside for my doppelganger
             else:
                 blocks = doppelgangerBlocksQueue.pop(0)  # Consume blocks set aside by my doppelganger
 
             cf = style.delCF2 if ld.diffLine.origin == '-' else style.addCF2
-            offset = ld.cursorStart
-
-            for x1, x2 in _invertMatchingBlocks(blocks, useA=aheadOfDoppelganger):
-                cursor.setPosition(offset + x1, QTextCursor.MoveMode.MoveAnchor)
-                cursor.setPosition(offset + x2, QTextCursor.MoveMode.KeepAnchor)
+            px2 = 0
+            cx2 = ld.cursorStart
+            for sx1, sx2 in _invertMatchingBlocks(blocks, useA=aheadOfDoppelganger):
+                assert sx1 >= px2
+                cx1 = cx2 + qstringLength(ld.text[px2: sx1])  # advance to new x1
+                cx2 = cx1 + qstringLength(ld.text[sx1: sx2])
+                cursor.setPosition(cx1, QTextCursor.MoveMode.MoveAnchor)
+                cursor.setPosition(cx2, QTextCursor.MoveMode.KeepAnchor)
                 cursor.setCharFormat(cf)
+                px2 = sx2
 
         assert not doppelgangerBlocksQueue, "should've consumed all doppelganger matching blocks!"
 
