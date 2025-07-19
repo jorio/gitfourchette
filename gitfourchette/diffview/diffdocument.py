@@ -219,26 +219,41 @@ class DiffDocument:
 
                 lineData.append(ld)
 
-        style = DiffStyle()
+        # Recreating a QTextDocument is faster than clearing any existing one.
+        textDocument = QTextDocument()
+        textDocument.setObjectName("DiffDocument")
+        textDocument.setDocumentLayout(QPlainTextDocumentLayout(textDocument))
 
-        document = QTextDocument()  # recreating a document is faster than clearing the existing one
-        document.setObjectName("DiffPatchDocument")
-        document.setDocumentLayout(QPlainTextDocumentLayout(document))
-
-        cursor: QTextCursor = QTextCursor(document)
+        diffDocument = DiffDocument(document=textDocument, lineData=lineData, style=DiffStyle(),
+                                    pluses=pluses, minuses=minuses)
 
         # Begin batching text insertions for performance.
         # This prevents Qt from recomputing the document's layout after every line insertion.
+        cursor = QTextCursor(textDocument)
         cursor.beginEditBlock()
 
+        # Build up document from the lineData array.
+        diffDocument.buildTextDocument(cursor)
+
+        # Emphasize doppelganger differences.
+        diffDocument.formatDoppelgangerDiffs(cursor)
+
+        # Done batching text insertions.
+        cursor.endEditBlock()
+
+        return diffDocument
+
+    @benchmark
+    def buildTextDocument(self, cursor: QTextCursor):
+        assert self.document.isEmpty()
+
+        style = self.style
         defaultBF = cursor.blockFormat()
         defaultCF = cursor.charFormat()
         showStrayCRs = settings.prefs.showStrayCRs
+        isEmpty = True
 
-        assert document.isEmpty()
-
-        # Build up document from the lineData array.
-        for ld in lineData:
+        for ld in self.lineData:
             # Decide block format & character format
             if ld.diffLine is None:
                 bf = style.hunkBF
@@ -269,11 +284,11 @@ class DiffDocument:
                 trailer = _("<no newline at end of file>")
                 trimBack = None  # yes, None. This will cancel slicing.
 
-            if not document.isEmpty():
+            if isEmpty:
+                ld.cursorStart = 0
+            else:
                 cursor.insertBlock()
                 ld.cursorStart = cursor.position()
-            else:
-                ld.cursorStart = 0
 
             cursor.setBlockFormat(bf)
             cursor.setBlockCharFormat(cf)
@@ -285,44 +300,53 @@ class DiffDocument:
                 cursor.insertText(trailer)
 
             ld.cursorEnd = cursor.position()
+            isEmpty = False
 
-        # Emphasize doppelganger differences
+    @benchmark
+    def formatDoppelgangerDiffs(self, cursor: QTextCursor):
+        if self.pluses == 0 or self.minuses == 0:  # Don't bother if there can't be any doppelgangers
+            return
+
         doppelgangerBlocksQueue = []
-        for i, ld in enumerate(lineData):
-            if ld.doppelganger < 0:  # Skip lines without doppelgangers
+        delFormat = self.style.delCF2
+        addFormat = self.style.addCF2
+
+        for lineNumber, line in enumerate(self.lineData):
+            if line.doppelganger < 0:  # Skip lines without doppelgangers
                 continue
 
-            assert i != ld.doppelganger, "line cannot be its own doppelganger"
-            assert ld.diffLine is not None, "line with doppelganger must have a DiffLine"
-            aheadOfDoppelganger = i < ld.doppelganger
+            assert lineNumber != line.doppelganger, "line cannot be its own doppelganger"
+            assert line.diffLine is not None, "line with doppelganger must have a DiffLine"
+            aheadOfDoppelganger = lineNumber < line.doppelganger
 
             if aheadOfDoppelganger:
-                textA = ld.text
-                textB = lineData[ld.doppelganger].text
+                textA = line.text
+                textB = self.lineData[line.doppelganger].text
                 sm = difflib.SequenceMatcher(a=textA, b=textB)
                 blocks = sm.get_matching_blocks()
                 doppelgangerBlocksQueue.append(blocks)  # Set blocks aside for my doppelganger
             else:
                 blocks = doppelgangerBlocksQueue.pop(0)  # Consume blocks set aside by my doppelganger
 
-            cf = style.delCF2 if ld.diffLine.origin == '-' else style.addCF2
-            px2 = 0
-            cx2 = ld.cursorStart
-            for sx1, sx2 in _invertMatchingBlocks(blocks, useA=aheadOfDoppelganger):
-                assert sx1 >= px2
-                cx1 = cx2 + qstringLength(ld.text[px2: sx1])  # advance to new x1
-                cx2 = cx1 + qstringLength(ld.text[sx1: sx2])
-                cursor.setPosition(cx1, QTextCursor.MoveMode.MoveAnchor)
-                cursor.setPosition(cx2, QTextCursor.MoveMode.KeepAnchor)
-                cursor.setCharFormat(cf)
-                px2 = sx2
+            charFormat = delFormat if line.diffLine.origin == '-' else addFormat
+
+            cursorPos = line.cursorStart
+            oldBlockEnd = 0
+            for blockStart, blockEnd in _invertMatchingBlocks(blocks, useA=aheadOfDoppelganger):
+                assert blockStart >= oldBlockEnd
+
+                # Advance Qt cursor (UTF-16!) to new doppelganger block
+                cursorPos += qstringLength(line.text[oldBlockEnd: blockStart])
+                cursor.setPosition(cursorPos, QTextCursor.MoveMode.MoveAnchor)
+
+                # Move to end of doppelganger block and apply formatting
+                cursorPos += qstringLength(line.text[blockStart: blockEnd])
+                cursor.setPosition(cursorPos, QTextCursor.MoveMode.KeepAnchor)
+                cursor.setCharFormat(charFormat)
+
+                oldBlockEnd = blockEnd
 
         assert not doppelgangerBlocksQueue, "should've consumed all doppelganger matching blocks!"
-
-        # Done batching text insertions.
-        cursor.endEditBlock()
-
-        return DiffDocument(document=document, lineData=lineData, style=style, pluses=pluses, minuses=minuses)
 
 
 def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Generator[tuple[int, int], None, None]:
