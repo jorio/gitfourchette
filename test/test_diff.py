@@ -884,11 +884,12 @@ def testCharacterLevelDiffInUnicodeSurrogatePairs(tempDir, mainWindow, sampleTex
 
     def reconstructLine(lineNumber: int):
         block = document.findBlockByNumber(lineNumber)
-        text16 = block.text().encode('utf_16_le')
+        text16 = document.toRawText().encode('utf_16_le')
         slices = []
-        for f in block.layout().formats():
-            start16 = 2 * f.start
-            end16 = 2 * (f.start + f.length)
+        fragment: QTextFragment
+        for fragment in block.fragments():  # this iterator is a qt.py extension
+            start16 = 2 * fragment.position()  # fragment pos is relative to entire text
+            end16 = 2 * (fragment.position() + fragment.length())
             slice16 = text16[start16: end16]
             slices.append(slice16.decode('utf_16_le', 'replace'))
         return "".join(slices)

@@ -23,6 +23,7 @@ import json as _json
 import logging as _logging
 import os as _os
 import sys as _sys
+import typing as _typing
 from contextlib import suppress as _suppress
 
 from gitfourchette.appconsts import *
@@ -210,6 +211,17 @@ if QT5:
 if not hasattr(QCheckBox, 'checkStateChanged'):
     # Note: this forwards an int, not a real CheckState, but the values are the same.
     QCheckBox.checkStateChanged = QCheckBox.stateChanged
+
+# Pythonic iterator for QTextFragments in a QTextBlock. Use this instead of QTextBlock.__iter__,
+# which in PySide6 is an inconvenient QTextBlock::iterator, and in PyQt6 isn't implemented at all.
+def _QTextBlock_fragments(block: QTextBlock) -> _typing.Generator[QTextFragment, None, None]:
+    iterator = block.begin()  # QTextBlock::iterator
+    while not iterator.atEnd():
+        fragment = iterator.fragment()
+        if fragment.isValid():
+            yield iterator.fragment()
+        iterator += 1
+QTextBlock.fragments = _QTextBlock_fragments
 
 # Custom "selected, no focus" icon mode.
 QIcon.Mode.SelectedInactive = QIcon.Mode(4)
