@@ -352,6 +352,11 @@ class PushBranch(RepoTask):
         # ---------------
         # Push clicked
 
+        if dialog.willForcePush and RemoteLink.supportsLease():
+            lease = dialog.currentRemoteBranchName
+        else:
+            lease = None
+
         remote = self.repo.remotes[dialog.currentRemoteName]
         logger.info(f"Will push to: {dialog.refspec} ({remote.name})")
         link = RemoteLink(self)
@@ -379,7 +384,13 @@ class PushBranch(RepoTask):
         error = None
         try:
             with link.remoteContext(remote):
+                if lease:
+                    link.setLease(remote, lease)
+
                 remote.push([dialog.refspec], callbacks=link)
+
+                link.clearLease()
+
             if resetTrackingReference:
                 self.repo.edit_upstream_branch(dialog.currentLocalBranchName, resetTrackingReference)
         except Exception as exc:

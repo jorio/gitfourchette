@@ -12,6 +12,11 @@ import re
 from contextlib import suppress
 from pathlib import Path
 
+try:
+    from pygit2.remotes import PushUpdate
+except ImportError:  # Compatibility with pygit2 1.18.1 and older
+    PushUpdate = None
+
 from gitfourchette import settings
 from gitfourchette.forms.passphrasedialog import PassphraseDialog
 from gitfourchette.localization import *
@@ -69,6 +74,10 @@ def collectUserKeyFiles():
             keypairFiles.append((str(publicKey), str(privateKey)))
 
     return keypairFiles
+
+
+class StaleLeaseError(ConnectionError):
+    pass
 
 
 class RemoteLink(QObject, RemoteCallbacks):
@@ -133,6 +142,9 @@ class RemoteLink(QObject, RemoteCallbacks):
         self.transferRateTimer.invalidate()
 
         self._sidebandProgressBuffer = ""
+
+        self.pushLease = None
+        self.pushLeaseRemote = None
 
     def forceCustomKeyFile(self, privKeyPath):
         self.usingCustomKeyFile = privKeyPath
@@ -274,6 +286,71 @@ class RemoteLink(QObject, RemoteCallbacks):
             _("Uploading…"),
             _("Upload complete ({0})."),
             showIndexingProgress=False)
+
+    @staticmethod
+    def supportsLease(fatal=False) -> bool:
+        return pygit2_version_at_least("1.18.2", raise_error=fatal, feature_name="Force Push With Lease")
+
+    def setLease(self, remote: Remote, simpleName: str):
+        # The push_negotiation callback (required for lease check) is only effective in pygit2 1.18.2+
+        RemoteLink.supportsLease(fatal=True)
+
+        if self.pushLease is None:
+            self.pushLease = {}
+            self.pushLeaseRemote = remote
+        else:
+            assert self.pushLeaseRemote is remote, "lease can only be set for one remote at a time"
+
+        repo = remote._repo
+        rbName = remote.name + "/" + simpleName
+        branch = repo.branches.remote[rbName]
+        target = branch.target
+        remoteRefName = RefPrefix.HEADS + simpleName
+        self.pushLease[remoteRefName] = target
+
+        logger.debug(f"Setting lease on {remoteRefName} ({id7(target)})")
+
+    def clearLease(self):
+        self.pushLease = None
+        self.pushLeaseRemote = None
+
+    # Only effective with pygit2 1.18.2+
+    @mayAbortNetworkOperation
+    def push_negotiation(self, updates: list[PushUpdate]):
+        if self.pushLease is None:
+            return
+
+        remoteHeadInfo = self.pushLeaseRemote.list_heads(connect=False)
+
+        for update in updates:
+            refName = update.dst_refname
+
+            try:
+                actualHead = next(rh.oid for rh in remoteHeadInfo if rh.name == refName)
+            except StopIteration:
+                logger.debug(f"push_negotiation: no advertised head for {refName}")
+                actualHead = NULL_OID
+
+            try:
+                knownHead = self.pushLease[refName]
+            except KeyError:
+                logger.debug(f"push_negotiation: no lease for {refName}")
+                knownHead = NULL_OID
+
+            if knownHead != actualHead:
+                remoteName = self.pushLeaseRemote.name
+                displayShorthand = remoteName + "/" + RefPrefix.split(refName)[1]
+                raise StaleLeaseError(
+                    _("Your repository’s knowledge of remote branch {branch} is out of date. "
+                      "The force-push was rejected to prevent data loss. "
+                      "Please fetch remote {remote} before pushing again. "
+                      "(Expected commit at tip: {known}; actually on the remote: {actual}.)",
+                      branch=tquo(displayShorthand),
+                      known=tquo(shortHash(knownHead)),
+                      actual=tquo(shortHash(actualHead)),
+                      remote=tquo(remoteName)))
+
+            logger.info(f"push_negotiation: lease check pass ({refName} {id7(knownHead)})")
 
     def _genericTransferProgress(self, objectsTransferred: int, totalObjects: int, bytesTransferred: int,
                                  transferingMessage: str, completeMessage: str, showIndexingProgress=True):

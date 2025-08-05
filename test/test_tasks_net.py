@@ -12,6 +12,7 @@ We use a bare repository on the local filesystem as a "remote server".
 """
 
 import os.path
+import re
 
 import pytest
 
@@ -717,3 +718,57 @@ def testPushDeleteTag(tempDir, mainWindow):
 
     with RepoContext(barePath) as bareRepo:
         assert "etiquette" not in bareRepo.listall_tags()
+
+
+@pytest.mark.skipif(pygit2OlderThan("1.18.2"), reason="old pygit2")
+def testForcePushWithLeasePass(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+
+    with RepoContext(wd) as repo:
+        newOid = repo.amend_commit_on_head("amended locally", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog: PushDialog = findQDialog(rw, "push.+branch")
+    pushDialog.ui.forcePushCheckBox.click()
+    pushDialog.accept()
+
+    assert rw.repo.branches.remote["remote2/master"].target == newOid
+
+
+@pytest.mark.skipif(pygit2OlderThan("1.18.2"), reason="old pygit2")
+def testForcePushWithLeaseRejected(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    bareCopy = makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+
+    with RepoContext(bareCopy) as bareRepo:
+        _unknownCommitId = bareRepo.create_commit(
+            "refs/heads/master",
+            TEST_SIGNATURE,
+            TEST_SIGNATURE,
+            "new commit on remote that local copy doesn't have yet",
+            bareRepo.head_tree.id,
+            [bareRepo.head_commit_id])
+
+    with RepoContext(wd) as repo:
+        newOid = repo.amend_commit_on_head("amended locally", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog: PushDialog = findQDialog(rw, "push.+branch")
+    pushDialog.ui.forcePushCheckBox.click()
+    pushDialog.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).click()
+
+    assert pushDialog.ui.statusForm.isVisible()
+    assert pushDialog.ui.statusForm.blurbLabel.isVisible()
+    assert re.search(
+        r"force.push.+rejected to prevent data loss",
+        pushDialog.ui.statusForm.blurbLabel.text(),
+        re.I)
+    pushDialog.reject()
+
+    assert rw.repo.branches.remote["remote2/master"].target != newOid

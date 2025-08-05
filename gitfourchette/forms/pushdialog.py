@@ -246,6 +246,10 @@ class PushDialog(QDialog):
         self.onPickLocalBranch()
 
         self.ui.forcePushCheckBox.clicked.connect(self.setOkButtonText)
+
+        if RemoteLink.supportsLease():
+            self.ui.forcePushCheckBox.setText(self.ui.forcePushCheckBox.text() + " " + _("(with lease)"))
+
         self.setOkButtonText()
 
         convertToBrandedDialog(self)
