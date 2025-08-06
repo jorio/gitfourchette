@@ -448,6 +448,8 @@ class MainWindow(QMainWindow):
                 chain.append("TESTMODE")
             if APP_NOTHREADS:
                 chain.append("NOTHREADS")
+            if settings.prefs.vanillaGit:
+                chain.append("vanillaGit")
             title = f"{title} ({' '.join(chain)})"
 
         super().setWindowTitle(title)

@@ -120,6 +120,11 @@ class PrefsDialog(QDialog):
                 category = prefKey.removeprefix("_category_")
                 continue
 
+            if prefKey.startswith("_spacer"):
+                form = categoryForms[category]
+                form.addRow(" ", None)
+                continue
+
             # Skip irrelevant settings
             if prefKey in skipKeys or prefKey.startswith("_") or category == "hidden":
                 continue
@@ -328,6 +333,10 @@ class PrefsDialog(QDialog):
             control = self.boundedIntControl(key, value, 0, 999_999)
             control.setSpecialValueText("\u221E")  # infinity
             return control
+        elif key == "gitPath":
+            return self.strControlWithPresets(key, value, {
+                "Default": "/usr/bin/git",
+            })
         elif issubclass(valueType, enum.Enum):
             return self.enumControl(key, value, type(value))
         elif valueType is int:

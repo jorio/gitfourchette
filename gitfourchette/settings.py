@@ -110,9 +110,13 @@ class Prefs(PrefsFile):
 
     _category_external          : int                   = 0
     externalEditor              : str                   = ""
+    terminal                    : str                   = ToolPresets.DefaultTerminalCommand
+    _spacer0                    : int                   = 0
     externalDiff                : str                   = ToolPresets.DefaultDiffCommand
     externalMerge               : str                   = ToolPresets.DefaultMergeCommand
-    terminal                    : str                   = ToolPresets.DefaultTerminalCommand
+    _spacer1                    : int                   = 0
+    vanillaGit                  : bool                  = False
+    gitPath                     : str                   = "/usr/bin/git"
 
     _category_userCommands      : int                   = 0
     commands                    : str                   = ""

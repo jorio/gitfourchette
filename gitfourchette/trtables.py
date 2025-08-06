@@ -469,6 +469,14 @@ class TrTables:
                 _("The {0} placeholder is mandatory. It is automatically substituted for a wrapper script that "
                   "enters your working directory and optionally starts one of your Custom Commands.",
                   "$COMMAND")),
+            "vanillaGit": _("Use system git instead of libgit2 when possible (experimental)"),
+            "vanillaGit_help": "<p>" + _(
+                "You can have {app} issue “git” commands instead of "
+                "using libgit2 to manipulate your repositories. "
+                "This may give you better results if your workflow calls for it, "
+                "but this is still experimental."
+            ),
+            "gitPath": _("Git"),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",
