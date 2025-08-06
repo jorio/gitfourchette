@@ -446,7 +446,7 @@ class RepoTask(QObject):
         yield token
         parentWidget.becameVisible.disconnect(self.uiReady)
 
-    def flowStartProcess(self, process: QProcess) -> Generator[FlowControlToken, None, None]:
+    def flowStartProcess(self, process: QProcess, autoFail=True) -> Generator[FlowControlToken, None, None]:
         assert self._isRunningOnAppThread(), "start processes from UI thread"
 
         commandLine = shlex.join([process.program()] + process.arguments())
@@ -461,20 +461,20 @@ class RepoTask(QObject):
         waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
         yield waitToken
 
-        if process.exitCode() != 0:
+        if autoFail and process.exitCode() != 0:
             stderr = process.readAllStandardError().data().decode(errors="replace")
             message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
             message += f"<p style='font-size: small'><code>{escape(commandLine)}</p>"
             message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
             raise AbortTask(message)
 
-    def flowCallGit(self, *args) -> Generator[FlowControlToken, None, QProcess]:
+    def flowCallGit(self, *args: str, autoFail=True) -> Generator[FlowControlToken, None, QProcess]:
         process = QProcess(self.parentWidget())
         process.setProgram("/usr/bin/git")  # TODO: read path from prefs
         if self.repo is not None:
             process.setWorkingDirectory(self.repo.workdir)
         process.setArguments(args)
-        yield from self.flowStartProcess(process)
+        yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 
     def flowDialog(self, dialog: QDialog, abortTaskIfRejected=True, proceedSignal=None):

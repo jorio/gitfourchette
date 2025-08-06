@@ -146,9 +146,8 @@ class PushDialog(QDialog):
     def currentRemoteBranchFullName(self) -> str:
         return self.currentRemoteName + "/" + self.currentRemoteBranchName
 
-    @property
-    def refspec(self):
-        prefix = "+" if self.willForcePush else ""
+    def refspec(self, withForcePrefix=True):
+        prefix = "+" if withForcePrefix and self.willForcePush else ""
         lbn = self.currentLocalBranchName
         rbn = self.currentRemoteBranchName
         return f"{prefix}refs/heads/{lbn}:refs/heads/{rbn}"
@@ -256,6 +255,9 @@ class PushDialog(QDialog):
 
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
+    def okButton(self) -> QPushButton:
+        return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+
     def setOkButtonText(self):
         icon = "git-push"
         tip = ""
@@ -269,7 +271,7 @@ class PushDialog(QDialog):
         else:
             text = _("&Push")
 
-        okButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        okButton = self.okButton()
         okButton.setText(text)
         okButton.setIcon(stockIcon(icon))
         okButton.setToolTip(tip)

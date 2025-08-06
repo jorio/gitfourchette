@@ -18,8 +18,22 @@ class VanillaFetchStatusFlag(StrEnum):
     UpToDate = "="
 
 
-def readTable(pattern, stdout, linesep="\n"):
-    stdout = stdout.decode("utf-8", errors="replace")
-    stdout = stdout.removesuffix(linesep)
-    return [re.match(pattern, line).groups() for line in stdout.split(linesep)]
+def readTable(pattern, stdout, linesep="\n", strict=True):
+    table = []
 
+    if isinstance(stdout, bytes):
+        stdout = stdout.decode("utf-8", errors="replace")
+    stdout = stdout.removesuffix(linesep)
+
+    for line in stdout.split(linesep):
+        match = re.match(pattern, line)
+
+        if match is None:
+            if strict:
+                raise ValueError("table line does not match pattern: " + line)
+            else:
+                continue
+
+        table.append(match.groups())
+
+    return table

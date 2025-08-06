@@ -290,6 +290,8 @@ class RemoteLink(QObject, RemoteCallbacks):
 
     @staticmethod
     def supportsLease(fatal=False) -> bool:
+        if settings.prefs.vanillaGit:
+            return True
         return pygit2_version_at_least("1.18.2", raise_error=fatal, feature_name="Force Push With Lease")
 
     def setLease(self, remote: Remote, simpleName: str):

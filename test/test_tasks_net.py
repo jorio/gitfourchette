@@ -497,7 +497,7 @@ def testPullRemoteBranchCausesConflict(tempDir, mainWindow, gitBackend):
 @pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
                     reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 @pytest.mark.parametrize("asNewBranch", [False, True])
-def testPush(tempDir, mainWindow, asNewBranch):
+def testPush(tempDir, mainWindow, asNewBranch, gitBackend):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
 
     wd = unpackRepo(tempDir)
@@ -561,7 +561,7 @@ def testPush(tempDir, mainWindow, asNewBranch):
 
 @pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
                     reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
-def testShadowUpstream(tempDir, mainWindow):
+def testShadowUpstream(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, keepOldUpstream=True)
 
@@ -579,7 +579,7 @@ def testShadowUpstream(tempDir, mainWindow):
     qcbSetIndex(pushDialog.ui.remoteBranchEdit, r"new remote branch on.+remote2")
     assert pushDialog.currentRemoteBranchFullName == "remote2/master-2"
     pushDialog.ui.trackCheckBox.setChecked(False)
-    pushDialog.accept()
+    pushDialog.okButton().click()
 
     # Open PushDialog on master again, remote2/master-2 should be automatically selected.
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
@@ -592,7 +592,7 @@ def testShadowUpstream(tempDir, mainWindow):
     assert pushDialog.currentRemoteBranchFullName == "remote2/no-parent"
     pushDialog.ui.forcePushCheckBox.setChecked(True)
     pushDialog.ui.trackCheckBox.setChecked(False)
-    pushDialog.accept()
+    pushDialog.okButton().click()
 
     # Open PushDialog on master again, remote2/no-parent should be automatically selected.
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
@@ -727,7 +727,7 @@ def testPushDeleteTag(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.18.2"), reason="old pygit2")
-def testForcePushWithLeasePass(tempDir, mainWindow):
+def testForcePushWithLeasePass(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
 
@@ -739,13 +739,13 @@ def testForcePushWithLeasePass(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
     pushDialog: PushDialog = findQDialog(rw, "push.+branch")
     pushDialog.ui.forcePushCheckBox.click()
-    pushDialog.accept()
+    pushDialog.okButton().click()
 
     assert rw.repo.branches.remote["remote2/master"].target == newOid
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.18.2"), reason="old pygit2")
-def testForcePushWithLeaseRejected(tempDir, mainWindow):
+def testForcePushWithLeaseRejected(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
 
     bareCopy = makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
@@ -767,7 +767,7 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
     pushDialog: PushDialog = findQDialog(rw, "push.+branch")
     pushDialog.ui.forcePushCheckBox.click()
-    pushDialog.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).click()
+    pushDialog.okButton().click()
 
     assert pushDialog.ui.statusForm.isVisible()
     assert pushDialog.ui.statusForm.blurbLabel.isVisible()

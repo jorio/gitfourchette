@@ -395,13 +395,92 @@ class PushBranch(RepoTask):
         dialog = PushDialog(self.repoModel, branch, self.parentWidget())
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
+        impl = self.attemptWithGit if settings.prefs.vanillaGit else self.attemptWithLibgit2
+
         tryAgain = True
         while tryAgain:
-            tryAgain = yield from self.attempt(dialog)
+            tryAgain = yield from impl(dialog)
 
         dialog.accept()
 
-    def attempt(self, dialog: PushDialog):
+    def attemptWithGit(self, dialog: PushDialog):
+        yield from self.flowDialog(dialog, proceedSignal=dialog.startOperationButton.clicked)
+
+        # ---------------
+        # Push clicked
+
+        remote = self.repo.remotes[dialog.currentRemoteName]
+        refspec = dialog.refspec(withForcePrefix=False)  # no '+' prefix -- we control force via arguments to git
+        logger.info(f"Will push to: {refspec} ({remote.name})")
+        link = RemoteLink(self)
+
+        dialog.ui.statusForm.initProgress(_("Contacting remote host…"))
+        link.message.connect(dialog.ui.statusForm.setProgressMessage)
+        link.progress.connect(dialog.ui.statusForm.setProgressValue)
+
+        resetTrackingReference = dialog.ui.trackCheckBox.isEnabled() and dialog.ui.trackCheckBox.isChecked()
+
+        # Look at the state of the checkboxes BEFORE calling this --  it'll disable the checkboxes!
+        dialog.setRemoteLink(link)
+
+        # ----------------
+        # Task meat
+
+        self.effects |= TaskEffects.Refs
+        if resetTrackingReference:
+            self.effects |= TaskEffects.Upstreams
+
+        args = ["push", "--porcelain", "--progress"]
+
+        if dialog.willForcePush:
+            args += ["--force-with-lease"]
+
+        if resetTrackingReference:
+            args += ["--set-upstream"]
+
+        args += [remote.name, refspec]
+
+        driver = yield from self.flowCallGit(*args, autoFail=False)
+        stdout = driver.readAll().data().decode(errors="replace")
+        stderr = driver.readAllStandardError().data().decode(errors="replace")
+        logger.debug("Push stdout:\n" + stdout)
+        logger.debug("Push stderr:\n" + stderr)
+
+        # ---------------
+        # Debrief
+
+        # Capture summary for the last pushed branch.
+        # Output format: "<flag> \t <from(local)>:<to(remote)> \t <summary> (<reason>)"
+        # But the first and last lines may contain other junk,
+        # so skip lines that don't match the pattern (strict=False).
+        summary = ""
+        for _flag, _localRef, _remoteRef, summary in readTable("(.)\t(.+):(.+)\t(.+)", stdout, strict=False):
+            pass
+
+        errorExplainer = ""
+        if "(stale info)" in summary:
+            errorExplainer = _(
+                "<b>Rejected:</b> Your repository’s knowledge of remote branch {branch} is out of date. "
+                "The force-push was rejected to prevent data loss. "
+                "Please fetch remote {remote} before pushing again.",
+                branch=hquo(dialog.currentRemoteBranchFullName),
+                remote=hquo(remote.name))
+
+        dialog.setRemoteLink(None)
+        dialog.saveShadowUpstream()
+        link.deleteLater()
+
+        if driver.exitCode() != 0:
+            QApplication.beep()
+            QApplication.alert(dialog, 500)
+            dialog.ui.statusForm.setBlurb(errorExplainer + f"<p style='white-space: pre-wrap'>{escape(stderr)}")
+        else:
+            # self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
+            self.postStatus = _("Push complete.") + " " + summary
+
+        return driver.exitCode() != 0
+
+    def attemptWithLibgit2(self, dialog: PushDialog):
         yield from self.flowDialog(dialog, proceedSignal=dialog.startOperationButton.clicked)
 
         # ---------------
@@ -413,7 +492,8 @@ class PushBranch(RepoTask):
             lease = None
 
         remote = self.repo.remotes[dialog.currentRemoteName]
-        logger.info(f"Will push to: {dialog.refspec} ({remote.name})")
+        refspec = dialog.refspec(withForcePrefix=True)
+        logger.info(f"Will push to: {refspec} ({remote.name})")
         link = RemoteLink(self)
 
         dialog.ui.statusForm.initProgress(_("Contacting remote host…"))
@@ -442,7 +522,7 @@ class PushBranch(RepoTask):
                 if lease:
                     link.setLease(remote, lease)
 
-                remote.push([dialog.refspec], callbacks=link)
+                remote.push([refspec], callbacks=link)
 
                 link.clearLease()
 
