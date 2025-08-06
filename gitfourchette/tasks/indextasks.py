@@ -6,10 +6,11 @@
 
 import logging
 import os
+import re
 import shutil
 from contextlib import suppress
 
-from gitfourchette import reverseunidiff
+from gitfourchette import reverseunidiff, settings
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
@@ -417,6 +418,50 @@ class ApplyPatchFile(RepoTask):
 
             path = qfd.selectedFiles()[0]
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(reverse, path, title, verb)
+
+    def _withGit(self, reverse: bool, path: str, title: str, verb: str):
+        # Do a dry run first.
+        command = ["apply", "-z", "--numstat", "--check", path]
+        if reverse:
+            command.append("--reverse")
+        driver = yield from self.flowCallGit(*command)
+        stdout = driver.readAll().data().removesuffix(b'\0')
+
+        details = []
+        firstFile = ""
+        for bline in stdout.split(b'\0'):
+            match = re.match(rb"(-|\d+)\t(-|\d+)\t(.+)", bline)
+            adds = match.group(1).decode(errors="replace")
+            dels = match.group(2).decode(errors="replace")
+            patchFile = match.group(3).decode(errors="replace")
+            if adds == "-" or dels == "-":
+                details.append(_("(binary)") + " " + escape(patchFile))
+            else:
+                details.append(f"(+{adds} -{dels}) {escape(patchFile)}")
+            firstFile = firstFile or patchFile
+
+        text = paragraphs(
+            _("Do you want to {verb} patch file {path}?",
+              verb=btag(verb.lower()), path=bquoe(os.path.basename(path))),
+            _n("<b>{n}</b> file will be modified in your working directory:",
+               "<b>{n}</b> files will be modified in your working directory:", n=len(details))
+        )
+
+        yield from self.flowConfirm(title, text, verb=verb, detailList=details)
+
+        # Dry run confirmed, go ahead
+        self.effects |= TaskEffects.Workdir
+
+        command = ["apply", path]
+        if reverse:
+            command.append("--reverse")
+        yield from self.flowCallGit(*command)
+
+        self.jumpTo = NavLocator.inUnstaged(firstFile)
+
+    def _withLibgit2(self, reverse: bool, path: str, title: str, verb: str):
         yield from self.flowEnterWorkerThread()
 
         with open(path, encoding='utf-8') as patchFile:
