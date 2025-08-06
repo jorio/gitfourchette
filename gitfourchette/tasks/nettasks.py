@@ -12,9 +12,11 @@ import logging
 import traceback
 from contextlib import suppress
 
+from gitfourchette import settings
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotelinkdialog import RemoteLinkDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.gitdriver import readTable, VanillaFetchStatusFlag
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -185,6 +187,10 @@ class FetchRemotes(_BaseNetTask):
 
 class FetchRemoteBranch(_BaseNetTask):
     def flow(self, remoteBranchName: str = "", debrief: bool = True):
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(remoteBranchName, debrief)
+
+    def _withLibgit2(self, remoteBranchName: str = "", debrief: bool = True):
         if not remoteBranchName:
             upstream = self._autoDetectUpstream()
             remoteBranchName = upstream.shorthand
@@ -223,6 +229,55 @@ class FetchRemoteBranch(_BaseNetTask):
         if newTarget == NULL_OID:
             # Raise exception to prevent PullBranch from continuing
             raise AbortTask(_("{0} has disappeared from the remote server.", bquoe(remoteBranchName)))
+
+    def _withGit(self, shorthand: str = "", debrief: bool = True):
+        if not shorthand:
+            upstream = self._autoDetectUpstream()
+            shorthand = upstream.shorthand
+
+        title = _("Fetch remote branch {0}", tquoe(shorthand))
+        self._showRemoteLinkDialog(title)
+
+        remoteName, remoteBranch = split_remote_branch_shorthand(shorthand)
+        fullRemoteRef = RefPrefix.REMOTES + shorthand
+
+        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+
+        driver = yield from self.flowCallGit(
+            "fetch",
+            "--porcelain",  # output tabular data on stdout
+            "--progress",   # output progress info on stderr
+            "--no-tags",
+            "--verbose",    # show status of up-to-date refs
+            remoteName,
+            remoteBranch)
+        stdout = driver.readAll().data()
+        table = readTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$", stdout)
+
+        updatedTips = {
+            localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
+            for flag, oldHex, newHex, localRef in table
+        }
+
+        flag, oldTarget, newTarget = updatedTips[fullRemoteRef]
+
+        self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(
+            updatedTips,
+            _("Fetch complete."),
+            noNewCommits=_("No new commits on {0}.", lquo(shorthand)),
+            skipUpToDate=True)
+
+        # Jump to new commit if there was an update and the branch didn't vanish
+        if flag not in [VanillaFetchStatusFlag.UpToDate, VanillaFetchStatusFlag.PrunedRef]:
+            self.jumpTo = NavLocator.inCommit(newTarget)
+
+        # Clean up RemoteLinkDialog before showing any error text
+        self.cleanup()
+
+        if flag == VanillaFetchStatusFlag.PrunedRef:
+            # Raise exception to prevent PullBranch from continuing
+            # TODO: This does not actually occur when fetching a single branch!
+            raise AbortTask(_("{0} has disappeared from the remote server.", bquoe(shorthand)))
 
 
 class PullBranch(_BaseNetTask):

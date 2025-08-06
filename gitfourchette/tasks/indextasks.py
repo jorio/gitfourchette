@@ -6,12 +6,12 @@
 
 import logging
 import os
-import re
 import shutil
 from contextlib import suppress
 
 from gitfourchette import reverseunidiff, settings
 from gitfourchette.exttools.mergedriver import MergeDriver
+from gitfourchette.gitdriver import readTable
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -427,15 +427,12 @@ class ApplyPatchFile(RepoTask):
         if reverse:
             command.append("--reverse")
         driver = yield from self.flowCallGit(*command)
-        stdout = driver.readAll().data().removesuffix(b'\0')
+        stdout = driver.readAll().data()
 
+        table = readTable(r"^(-|\d+)\t(-|\d+)\t(.+)$", stdout, "\0")
         details = []
         firstFile = ""
-        for bline in stdout.split(b'\0'):
-            match = re.match(rb"(-|\d+)\t(-|\d+)\t(.+)", bline)
-            adds = match.group(1).decode(errors="replace")
-            dels = match.group(2).decode(errors="replace")
-            patchFile = match.group(3).decode(errors="replace")
+        for adds, dels, patchFile in table:
             if adds == "-" or dels == "-":
                 details.append(_("(binary)") + " " + escape(patchFile))
             else:

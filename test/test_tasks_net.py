@@ -230,7 +230,7 @@ def testFetchRemote(tempDir, mainWindow, method):
     assert {"localfs/master", "localfs/new-remote-branch"} == {x for x in rw.repo.branches.remote if x.startswith("localfs/")}
 
 
-def testFetchRemoteBranch(tempDir, mainWindow):
+def testFetchRemoteBranch(tempDir, mainWindow, gitBackend):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     newHead = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
 
@@ -265,7 +265,7 @@ def testFetchRemoteBranch(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("pull", [False, True])
-def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
+def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull, gitBackend):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
 
@@ -292,15 +292,20 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
         node = rw.sidebar.findNodeByRef("refs/heads/master")
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "pull")
-    acceptQMessageBox(rw, "localfs/master.+disappeared")
 
-    # It's gone
-    assert "localfs/master" not in rw.repo.branches.remote
-    with pytest.raises(KeyError):
-        rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
+    if gitBackend == "libgit2":
+        acceptQMessageBox(rw, "localfs/master.+disappeared")
+
+        # It's gone
+        assert "localfs/master" not in rw.repo.branches.remote
+        with pytest.raises(KeyError):
+            rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
+    else:
+        acceptQMessageBox(rw, "couldn.+t find remote ref master")
+        # TODO: Should we automatically prune the branch in this case?
 
 
-def testFetchRemoteBranchNoChange(tempDir, mainWindow):
+def testFetchRemoteBranchNoChange(tempDir, mainWindow, gitBackend):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
@@ -315,7 +320,7 @@ def testFetchRemoteBranchNoChange(tempDir, mainWindow):
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
-def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow):
+def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow, gitBackend):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, "localfs", preFetch=True)
@@ -349,7 +354,7 @@ def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow):
         rw.sidebar.findNodeByKind(SidebarItem.LocalBranch)
 
 
-def testFetchRemoteBranchNoUpstream(tempDir, mainWindow):
+def testFetchRemoteBranchNoUpstream(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.edit_upstream_branch("master", "")
@@ -360,7 +365,7 @@ def testFetchRemoteBranchNoUpstream(tempDir, mainWindow):
     assert not findMenuAction(menu, "fetch").isEnabled()
 
 
-def testFetchRemoteBranchUnbornHead(tempDir, mainWindow):
+def testFetchRemoteBranchUnbornHead(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
     upstreamWd = unpackRepo(tempDir)
 
@@ -383,6 +388,7 @@ def testFetchRemoteBranchUnbornHead(tempDir, mainWindow):
     assert masterTip == rw.repo.branches.remote["origin/master"].target
 
 
+# gitBackend parametrization not needed here
 def testPullRemoteBranchNoUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
@@ -396,7 +402,7 @@ def testPullRemoteBranchNoUpstream(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("remoteNeedsFetching", [True, False])
-def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching):
+def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching, gitBackend):
     newTip = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
@@ -427,7 +433,7 @@ def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching
     rw.repoModel.graph.getCommitRow(newTip)  # must not raise
 
 
-def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow):
+def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow, gitBackend):
     newTip = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
@@ -454,7 +460,7 @@ def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow)
     rw.repoModel.graph.getCommitRow(newTip)  # must not raise
 
 
-def testPullRemoteBranchCausesConflict(tempDir, mainWindow):
+def testPullRemoteBranchCausesConflict(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, testRepoName="testrepoformerging")
     makeBareCopy(wd, "localfs", True)
 

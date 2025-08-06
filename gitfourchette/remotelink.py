@@ -19,6 +19,7 @@ except ImportError:  # Compatibility with pygit2 1.18.1 and older
 
 from gitfourchette import settings
 from gitfourchette.forms.passphrasedialog import PassphraseDialog
+from gitfourchette.gitdriver import VanillaFetchStatusFlag
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -474,6 +475,34 @@ class RemoteLink(QObject, RemoteCallbacks):
         if not self.updatedTips:
             messages.append(noNewCommits or _("No new commits."))
         return " ".join(messages)
+
+    @staticmethod
+    def formatUpdatedTipsMessageFromGitOutput(
+            updatedTips: dict[str, tuple[str, Oid, Oid]],
+            header: str,
+            noNewCommits="",
+            skipUpToDate=False,
+    ) -> str:
+        messages = []
+        for ref in updatedTips:
+            rp, rb = RefPrefix.split(ref)
+            if not rp:  # no "refs/" prefix, e.g. FETCH_HEAD, etc.
+                continue
+            flag, oldTip, newTip = updatedTips[ref]
+            if flag == VanillaFetchStatusFlag.UpToDate:
+                if skipUpToDate:
+                    continue
+                ps = _("{0} is already up to date with {1}.", tquo(rb), tquo(shortHash(oldTip)))
+            elif flag == VanillaFetchStatusFlag.NewRef:
+                ps = _("{0} created: {1}.", tquo(rb), shortHash(newTip))
+            elif flag == VanillaFetchStatusFlag.PrunedRef:
+                ps = _("{0} deleted, was {1}.", tquo(rb), shortHash(oldTip))
+            else:  # ' ' (fast forward), '+' (forced update), '!' (error)
+                ps = _("{0}: {1} → {2}.", tquo(rb), shortHash(oldTip), shortHash(newTip))
+            messages.append(ps)
+        if not messages:
+            messages.append(noNewCommits or _("No new commits."))
+        return " ".join([header] + messages)
 
     class RemoteContext:
         def __init__(self, remoteLink: RemoteLink, remote: Remote | str, resetParams=True):
