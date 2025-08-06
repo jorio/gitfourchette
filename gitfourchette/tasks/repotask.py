@@ -9,6 +9,7 @@ from __future__ import annotations
 import enum
 import logging
 import re
+import shlex
 import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
@@ -138,7 +139,8 @@ class FlowControlToken:
     class Kind(enum.IntEnum):
         ContinueOnUiThread = enum.auto()
         ContinueOnWorkThread = enum.auto()
-        WaitReady = enum.auto()
+        WaitUserReady = enum.auto()
+        WaitProcessReady = enum.auto()
         InterruptedByException = enum.auto()
 
     flowControl: Kind
@@ -439,10 +441,41 @@ class RepoTask(QObject):
         if parentWidget.isVisible():
             return
 
-        token = FlowControlToken(FlowControlToken.Kind.WaitReady)
+        token = FlowControlToken(FlowControlToken.Kind.WaitUserReady)
         parentWidget.becameVisible.connect(self.uiReady)
         yield token
         parentWidget.becameVisible.disconnect(self.uiReady)
+
+    def flowStartProcess(self, process: QProcess) -> Generator[FlowControlToken, None, None]:
+        assert self._isRunningOnAppThread(), "start processes from UI thread"
+
+        commandLine = shlex.join([process.program()] + process.arguments())
+        logger.info(f"Starting process: {commandLine}")
+
+        def onProcessFinished(exitCode: int, exitStatus: QProcess.ExitStatus):
+            self.uiReady.emit()
+
+        process.finished.connect(onProcessFinished)
+        process.start()
+
+        waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+        yield waitToken
+
+        if process.exitCode() != 0:
+            stderr = process.readAllStandardError().data().decode(errors="replace")
+            message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
+            message += f"<p style='font-size: small'><code>{escape(commandLine)}</p>"
+            message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
+            raise AbortTask(message)
+
+    def flowCallGit(self, *args) -> Generator[FlowControlToken, None, QProcess]:
+        process = QProcess(self.parentWidget())
+        process.setProgram("/usr/bin/git")  # TODO: read path from prefs
+        if self.repo is not None:
+            process.setWorkingDirectory(self.repo.workdir)
+        process.setArguments(args)
+        yield from self.flowStartProcess(process)
+        return process
 
     def flowDialog(self, dialog: QDialog, abortTaskIfRejected=True, proceedSignal=None):
         """
@@ -459,7 +492,7 @@ class RepoTask(QObject):
 
         yield from self.flowRequestForegroundUi()
 
-        waitToken = FlowControlToken(FlowControlToken.Kind.WaitReady)
+        waitToken = FlowControlToken(FlowControlToken.Kind.WaitUserReady)
         didReject = False
 
         def onReject():
@@ -619,9 +652,10 @@ class RepoTaskRunner(QObject):
     repoGone = Signal()
     ready = Signal()
     requestAttention = Signal()
+    _aboutToProcessToken = Signal()
 
     _continueFlow = Signal(FlowControlToken)
-    "Connected to _iterateFlow"
+    "Emitted from worker thread, connected to _iterateFlow."
 
     _workerThread: FlowWorkerThread
 
@@ -698,6 +732,11 @@ class RepoTaskRunner(QObject):
         assert not self._workerThread.isRunning()
         assert not self._workerThread.flow
 
+    def blockUntilNextToken(self):
+        block = QEventLoop()
+        self._aboutToProcessToken.connect(block.quit)
+        block.exec()
+
     def put(self, call: TaskInvocation):
         assert onAppThread()
 
@@ -750,6 +789,8 @@ class RepoTaskRunner(QObject):
 
     def _iterateFlow(self, task: RepoTask, token: FlowControlToken):
         while True:
+            self._aboutToProcessToken.emit()
+
             assert onAppThread()
             task._currentIteration += 1
 
@@ -785,19 +826,29 @@ class RepoTaskRunner(QObject):
         assert flow is not None
         assert task is self._currentTask
 
-        if (token.flowControl == FlowControlToken.Kind.ContinueOnUiThread or
-              (token.flowControl == FlowControlToken.Kind.ContinueOnWorkThread and RepoTaskRunner.ForceSerial)):
+        tk = token.flowControl
+        TK = FlowControlToken.Kind
+
+        if tk == TK.ContinueOnUiThread or (RepoTaskRunner.ForceSerial and tk == TK.ContinueOnWorkThread):
             # Get next continuation token on this thread then loop to beginning of _iterateFlow
             token = RepoTaskRunner._getNextToken(flow)
             assert token is not None, "Do not yield None from a RepoTask coroutine"
             return token
 
-        elif token.flowControl == FlowControlToken.Kind.WaitReady:
+        elif tk == TK.WaitUserReady:
             self.progress.emit("", False)
             self.requestAttention.emit()
             # When user is ready, task.uiReady will fire, and we'll re-enter _iterateFlow
 
-        elif token.flowControl == FlowControlToken.Kind.ContinueOnWorkThread:
+        elif tk == TK.WaitProcessReady:
+            busyMessage = _("Busy: {0}…", task.name())
+            self.progress.emit(busyMessage, True)
+
+            # In unit tests, block until the process has completed
+            if RepoTaskRunner.ForceSerial:
+                self.blockUntilNextToken()
+
+        elif tk == TK.ContinueOnWorkThread:
             assert not RepoTaskRunner.ForceSerial
             busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
@@ -808,7 +859,7 @@ class RepoTaskRunner(QObject):
             self._workerThread.flow = flow
             self._workerThread.start()
 
-        elif token.flowControl == FlowControlToken.Kind.InterruptedByException:
+        elif tk == TK.InterruptedByException:
             exception = token.exception
             assert exception is not None, "FlowControlToken(InterruptedByException) must provide an exception!"
 

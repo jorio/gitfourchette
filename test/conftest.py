@@ -24,19 +24,38 @@ if TYPE_CHECKING:
 
 
 def setUpGitConfigSearchPaths(prefix=""):
-    # Don't let unit tests access host system's git config
+    """
+    Prevent unit tests from accessing the host system's git config files.
+    This modifies libgit2 search paths and GIT_CONFIG environment variables
+    for vanilla git.
+    """
+    ConfigLevel = pygit2.enums.ConfigLevel
+
     levels = [
-        pygit2.enums.ConfigLevel.GLOBAL,
-        pygit2.enums.ConfigLevel.XDG,
-        pygit2.enums.ConfigLevel.SYSTEM,
-        pygit2.enums.ConfigLevel.PROGRAMDATA,
+        ConfigLevel.GLOBAL,
+        ConfigLevel.XDG,
+        ConfigLevel.SYSTEM,
+        ConfigLevel.PROGRAMDATA,
     ]
+
     for level in levels:
         if prefix:
             path = f"{prefix}_{level.name}"
         else:
             path = ""
         pygit2.settings.search_path[level] = path
+
+    def vanillaGitConfigPath(level):
+        path = pygit2.settings.search_path[level]
+        if path:
+            # When there are no valid config files in the search path, libgit2
+            # will create a file named ".gitconfig" the first time it writes
+            # a config object to disk
+            path += "/.gitconfig"
+        return path
+
+    os.environ["GIT_CONFIG_SYSTEM"] = vanillaGitConfigPath(ConfigLevel.SYSTEM)
+    os.environ["GIT_CONFIG_GLOBAL"] = vanillaGitConfigPath(ConfigLevel.GLOBAL)
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -102,6 +121,8 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     globalGitConfig = porcelain.GitConfigHelper.ensure_file(porcelain.GitConfigLevel.GLOBAL)
     globalGitConfig["user.name"] = TEST_SIGNATURE.name
     globalGitConfig["user.email"] = TEST_SIGNATURE.email
+    # Let vanilla git clone submodules from filesystem remotes (for offline tests)
+    globalGitConfig["protocol.file.allow"] = "always"
 
     # Boot the UI
     assert app.mainWindow is None
