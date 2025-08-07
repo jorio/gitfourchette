@@ -95,7 +95,7 @@ def testHttpsShallowClone(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
+def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread, gitBackend):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.remotes.delete("origin")
@@ -113,6 +113,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
     assert "origin/master" in rw.repo.branches.remote
 
 
+# TODO: Vanilla git backend
 @requiresNetwork
 def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
     # Copy keyfile to non-default location to make sure we're not automatically picking up another key

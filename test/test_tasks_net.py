@@ -129,7 +129,7 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
     cloneDialog.reject()
 
 
-def testFetchNewRemoteBranches(tempDir, mainWindow):
+def testFetchNewRemoteBranches(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=False)
     rw = mainWindow.openRepo(wd)
@@ -198,7 +198,7 @@ def testRenameRemoteBranch(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["sidebar", "toolbar"])
-def testFetchRemote(tempDir, mainWindow, method):
+def testFetchRemote(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
 
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
@@ -214,7 +214,8 @@ def testFetchRemote(tempDir, mainWindow, method):
     rw = mainWindow.openRepo(wd)
 
     # We only know about master and no-parent in the remote for now
-    assert {"localfs/master", "localfs/no-parent"} == {x for x in rw.repo.branches.remote if x.startswith("localfs/")}
+    assert {"localfs/master", "localfs/no-parent"} == {
+        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
     # Fetch the remote
     if method == "sidebar":
@@ -227,7 +228,8 @@ def testFetchRemote(tempDir, mainWindow, method):
         raise NotImplementedError(f"Unsupported method {method}")
 
     # We must see that no-parent is gone and that new-remote-branch appeared
-    assert {"localfs/master", "localfs/new-remote-branch"} == {x for x in rw.repo.branches.remote if x.startswith("localfs/")}
+    assert {"localfs/master", "localfs/new-remote-branch"} == {
+        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
 
 def testFetchRemoteBranch(tempDir, mainWindow, gitBackend):
@@ -335,7 +337,7 @@ def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow, gitBackend):
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
-def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow):
+def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow, gitBackend):
     originWd = unpackRepo(tempDir)
     wd = tempDir.name + "/newrepo"
 

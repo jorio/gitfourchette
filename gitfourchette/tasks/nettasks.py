@@ -156,6 +156,12 @@ class FetchRemotes(_BaseNetTask):
 
         self._showRemoteLinkDialog(title)
 
+        if settings.prefs.vanillaGit:
+            yield from self._withGit(title, singleRemoteName)
+        else:
+            yield from self._withLibgit2(title, remotes)
+
+    def _withLibgit2(self, title: str, remotes: list[Remote]):
         errors = []
         for remote in remotes:
             # Bail if user clicked Abort button
@@ -183,6 +189,17 @@ class FetchRemotes(_BaseNetTask):
         if errors:
             errorMessage = _n("Couldn’t fetch remote:", "Couldn’t fetch {n} remotes:", len(errors))
             yield from self.flowConfirm(title, errorMessage, detailList=errors, canCancel=False, icon='warning')
+
+    def _withGit(self, title: str, singleRemoteName: str = ""):
+        args = ["fetch", "--porcelain", "--verbose", "--prune"]
+
+        if singleRemoteName:
+            args += ["--no-all", singleRemoteName]
+        else:
+            args += ["--all"]
+
+        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        yield from self.flowCallGit(*args)
 
 
 class FetchRemoteBranch(_BaseNetTask):

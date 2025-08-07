@@ -15,7 +15,7 @@ from gitfourchette.sidebar.sidebarmodel import SidebarItem
 
 
 @pytest.mark.parametrize("method", ["menubar", "sidebarmenu", "sidebarkey"])
-def testNewRemote(tempDir, mainWindow, method):
+def testNewRemote(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
