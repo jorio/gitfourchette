@@ -146,7 +146,7 @@ def testFetchNewRemoteBranches(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
-def testDeleteRemoteBranch(tempDir, mainWindow, method):
+def testDeleteRemoteBranch(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
     rw = mainWindow.openRepo(wd)

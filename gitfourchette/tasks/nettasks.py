@@ -71,7 +71,7 @@ class DeleteRemoteBranch(_BaseNetTask):
     def flow(self, remoteBranchShorthand: str):
         assert not remoteBranchShorthand.startswith(RefPrefix.REMOTES)
 
-        remoteName, _remoteBranchName = split_remote_branch_shorthand(remoteBranchShorthand)
+        remoteName, branchNameOnRemote = split_remote_branch_shorthand(remoteBranchShorthand)
 
         text = paragraphs(
             _("Really delete branch {0} from the remote repository?", bquo(remoteBranchShorthand)),
@@ -82,6 +82,12 @@ class DeleteRemoteBranch(_BaseNetTask):
 
         self._showRemoteLinkDialog()
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(remoteBranchShorthand, remoteName, branchNameOnRemote)
+
+        self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
+
+    def _withLibgit2(self, remoteBranchShorthand: str, remoteName: str, branchNameOnRemote: str):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
@@ -89,7 +95,9 @@ class DeleteRemoteBranch(_BaseNetTask):
         with self.remoteLink.remoteContext(remote):
             self.repo.delete_remote_branch(remoteBranchShorthand, self.remoteLink)
 
-        self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
+    def _withGit(self, remoteBranchShorthand: str, remoteName: str, branchNameOnRemote: str):
+        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        yield from self.flowCallGit("push", "--porcelain", "--progress", remoteName, "--delete", branchNameOnRemote)
 
 
 class RenameRemoteBranch(_BaseNetTask):
