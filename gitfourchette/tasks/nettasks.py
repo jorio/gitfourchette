@@ -101,9 +101,9 @@ class DeleteRemoteBranch(_BaseNetTask):
 
 
 class RenameRemoteBranch(_BaseNetTask):
-    def flow(self, remoteBranchName: str):
-        assert not remoteBranchName.startswith(RefPrefix.REMOTES)
-        remoteName, branchName = split_remote_branch_shorthand(remoteBranchName)
+    def flow(self, remoteBranchShorthand: str):
+        assert not remoteBranchShorthand.startswith(RefPrefix.REMOTES)
+        remoteName, branchName = split_remote_branch_shorthand(remoteBranchShorthand)
         newBranchName = branchName  # naked name, NOT prefixed with the name of the remote
 
         reservedNames = self.repo.listall_remote_branches().get(remoteName, [])
@@ -113,7 +113,7 @@ class RenameRemoteBranch(_BaseNetTask):
 
         dlg = TextInputDialog(
             self.parentWidget(),
-            _("Rename remote branch {0}", tquoe(remoteBranchName)),
+            _("Rename remote branch {0}", tquoe(remoteBranchShorthand)),
             _("WARNING: This will rename the branch for all users of the remote!") + "<br>" + _("Enter new name:"))
         dlg.setText(newBranchName)
         dlg.setValidator(lambda name: nameValidationMessage(name, reservedNames, nameTaken))
@@ -127,6 +127,12 @@ class RenameRemoteBranch(_BaseNetTask):
 
         self._showRemoteLinkDialog(self.name())
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(remoteName, remoteBranchShorthand, newBranchName)
+
+        self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchShorthand), tquo(newBranchName))
+
+    def _withLibgit2(self, remoteName: str, remoteBranchShorthand: str, newBranchName: str):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
@@ -134,14 +140,59 @@ class RenameRemoteBranch(_BaseNetTask):
 
         # Fetch remote branch first to avoid data loss if we're out of date
         with self.remoteLink.remoteContext(remote):
-            self.repo.fetch_remote_branch(remoteBranchName, self.remoteLink)
+            self.repo.fetch_remote_branch(remoteBranchShorthand, self.remoteLink)
 
         # Rename the remote branch
         # TODO: Can we reuse the connection in a single remoteContext?
         with self.remoteLink.remoteContext(remote):
-            self.repo.rename_remote_branch(remoteBranchName, newBranchName, self.remoteLink)
+            self.repo.rename_remote_branch(remoteBranchShorthand, newBranchName, self.remoteLink)
 
-        self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchName), tquo(newBranchName))
+    def _withGit(self, remoteName: str, oldShorthand: str, newBranchName: str):
+        repo = self.repo
+        _remoteName, oldBranchName = split_remote_branch_shorthand(oldShorthand)
+        oldRemoteRef = RefPrefix.REMOTES + oldShorthand
+
+        # Find local branches using this upstream
+        adjustUpstreams: list[str] = []
+        for lb in repo.branches.local:
+            with suppress(KeyError):  # KeyError if upstream branch doesn't exist
+                if repo.branches.local[lb].upstream_name == oldRemoteRef:
+                    adjustUpstreams.append(lb)
+
+        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+
+        # First, make a new branch pointing to the same ref as the old one
+        refspec1 = f"{RefPrefix.REMOTES}{oldShorthand}:{RefPrefix.HEADS}{newBranchName}"
+
+        # Next, delete the old branch
+        refspec2 = f":{RefPrefix.HEADS}{oldBranchName}"
+
+        logger.info(f"Rename remote branch: remote: {remoteName}; refspec: {[refspec1, refspec2]}; "
+                    f"adjust upstreams: {adjustUpstreams}")
+
+        # For safety, make sure we're up to date
+        yield from self.flowCallGit(
+            "fetch",
+            "--porcelain",  # output tabular data on stdout
+            "--progress",   # output progress info on stderr
+            "--no-tags",
+            "--verbose",    # show status of up-to-date refs
+            remoteName,
+            oldBranchName)
+
+        # Then go ahead with the push
+        yield from self.flowCallGit(
+            "push",
+            "--porcelain",
+            "--progress",
+            "--atomic",
+            remoteName,
+            refspec1,
+            refspec2)
+
+        new_remote_branch = repo.branches.remote[remoteName + "/" + newBranchName]
+        for lb in adjustUpstreams:
+            repo.branches.local[lb].upstream = new_remote_branch
 
 
 class FetchRemotes(_BaseNetTask):
@@ -268,6 +319,8 @@ class FetchRemoteBranch(_BaseNetTask):
 
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
+        # WARNING: fetch --porcelain is only available since git 2.41 (June 2023)
+        # Ubuntu 22.04 LTS ships with git 2.34.1; macOS 15 ships with git 2.39.5
         driver = yield from self.flowCallGit(
             "fetch",
             "--porcelain",  # output tabular data on stdout

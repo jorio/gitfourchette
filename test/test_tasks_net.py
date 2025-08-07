@@ -172,9 +172,23 @@ def testDeleteRemoteBranch(tempDir, mainWindow, method, gitBackend):
         rw.sidebar.findNodeByRef("refs/remotes/localfs/no-parent")
 
 
-def testRenameRemoteBranch(tempDir, mainWindow):
+def testRenameRemoteBranch(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+
+    # TODO: It would be great to have this part of the test work with libgit2,
+    #       but this causes an "object is not a committish" error during the fetch.
+    if gitBackend == "git":
+        with RepoContext(bareCopy) as bareRepo:
+            bareBranch = bareRepo.branches.local["no-parent"]
+            unknownCommitId = bareRepo.create_commit(
+                "refs/heads/no-parent",
+                TEST_SIGNATURE,
+                TEST_SIGNATURE,
+                "new commit on remote that local copy doesn't have yet",
+                bareRepo.head_tree.id, # bareBranch.peel(Tree).id,
+                [bareBranch.peel(Commit).id])
+
     rw = mainWindow.openRepo(wd)
 
     assert "localfs/no-parent" in rw.repo.branches.remote
@@ -195,6 +209,9 @@ def testRenameRemoteBranch(tempDir, mainWindow):
     rw.sidebar.findNodeByRef("refs/remotes/localfs/new-name")
 
     assert rw.repo.branches.local["no-parent"].upstream_name == "refs/remotes/localfs/new-name"
+
+    if gitBackend == "git":
+        assert rw.repo.branches.remote["localfs/new-name"].target == unknownCommitId
 
 
 @pytest.mark.parametrize("method", ["sidebar", "toolbar"])
