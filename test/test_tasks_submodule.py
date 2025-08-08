@@ -304,7 +304,7 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     assert qteFind(rw.specialDiffView, r"to complete the removal.+commit \.gitmodules")
 
 
-def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow):
+def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd, absorb=True)
 
@@ -337,7 +337,7 @@ def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow):
     triggerMenuAction(menu, "update")
 
 
-def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow):
+def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow, gitBackend):
     sm = "submosub"
 
     # Unpack full-blown repo (complete with submodule) as our upstream
@@ -385,7 +385,7 @@ def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow):
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 @pytest.mark.parametrize("method", ["single", "recurse"])
-def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method):
+def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method, gitBackend):
     sm = "submosub"
 
     # Unpack full-blown repo (complete with submodule) as our upstream
@@ -454,12 +454,15 @@ def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method):
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 @pytest.mark.parametrize("recurse", [True, False])
 @pytest.mark.parametrize("method", ["switch1", "switch2", "detach", "newbranch"])
-def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
+def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse, gitBackend):
     oid = Oid(hex="ea953d3ba4c5326d530dc09b4ca9781b01c18e00")
     contentsHead = b"hello from submodule\nan update!\n"
     contentsOld = b"hello from submodule\n"
 
     wd = unpackRepo(tempDir, "submoroot")
+
+    # Workaround for git backend - it absolutely needs an URL for the submodule
+    GitConfig(wd + "/.gitmodules")["submodule.submosub.url"] = ""
 
     with RepoContext(wd) as repo:
         repo.create_branch_from_commit("old", oid)
@@ -508,7 +511,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
         assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
 
 
-def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
+def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow, gitBackend):
     initialCommit = Oid(hex="2b6471b8999e560c9601ffaa0a5b8376ac403ce4")
 
     wd = unpackRepo(tempDir, "submoroot")

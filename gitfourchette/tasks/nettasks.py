@@ -414,10 +414,18 @@ class UpdateSubmodule(_BaseNetTask):
                 tree = subrepo[submodule.head_id].peel(Tree)
                 subrepo.checkout_tree(tree)
 
-        # Wrap update operation with RemoteLinkKeyFileContext: we need the keys
-        # if the submodule uses an SSH connection.
-        with self.remoteLink.remoteContext(submodule.url or ""):
-            submodule.update(init=init, callbacks=self.remoteLink)
+        if settings.prefs.vanillaGit:
+            args = ["submodule", "update"]
+            if init:
+                args += ["--init"]
+            args += ["--", submodulePath]
+            yield from self.flowEnterUiThread()
+            yield from self.flowCallGit(*args)
+        else:
+            # Wrap update operation with RemoteLinkKeyFileContext: we need the keys
+            # if the submodule uses an SSH connection.
+            with self.remoteLink.remoteContext(submodule.url or ""):
+                submodule.update(init=init, callbacks=self.remoteLink)
 
         # The weird construct (n=1) is to stop xgettext from complaining about duplicate singular strings.
         self.postStatus = _n("Submodule updated.", "{n} submodules updated.", 1)
