@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import re
+import shlex
 import traceback
 import urllib.parse
 from contextlib import suppress
@@ -17,7 +18,7 @@ from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
 from gitfourchette.localization import *
-from gitfourchette.porcelain import Repo, pygit2_version_at_least
+from gitfourchette.porcelain import Repo, pygit2_version_at_least, RepoContext
 from gitfourchette.qt import *
 from gitfourchette.remotelink import RemoteLink
 from gitfourchette.repoprefs import RepoPrefs
@@ -106,12 +107,6 @@ class CloneDialog(QDialog):
             self.ui.recurseSubmodulesCheckBox.setChecked(False)
             self.ui.recurseSubmodulesCheckBox.setEnabled(False)
             self.ui.recurseSubmodulesCheckBox.setText("Recursing into submodules requires pygit2 1.15.1+")
-
-        if settings.prefs.vanillaGit:
-            keyCheckBox = self.ui.keyFilePicker.checkBox
-            keyCheckBox.setChecked(False)
-            keyCheckBox.setEnabled(False)
-            keyCheckBox.setText(keyCheckBox.text() + " " + _("(not available with git backend)"))
 
     def validateUrl(self, url):
         if not url:
@@ -411,10 +406,24 @@ class CloneTaskVanillaGit(RepoTask):
         dialog.enableInputs(False)
         dialog.aboutToReject.connect(self.remoteLink.raiseAbortFlag)
 
-        # Clone the repo
-        args = ["clone"]
+        # Prepare clone command
+        args = []
+
+        if privKeyPath:
+            driver = yield from self.flowCallGit("config", "--get", "core.sshCommand", autoFail=False)
+            if driver.exitCode() == 0:
+                sshCommandBase = bytes(driver.readAllStandardOutput()).decode()
+                sshCommandTokens = shlex.split(sshCommandBase, posix=True)
+            else:
+                sshCommandTokens = ["/usr/bin/ssh"]
+            sshCommand = shlex.join(sshCommandTokens + ["-i", privKeyPath])
+            args += ["-c", f"core.sshCommand={sshCommand}"]
+
+        args += ["clone"]
+
         if recursive:
             args += ["--recurse-submodules"]
+
         if depth != 0:
             if recursive:
                 args += ["--shallow-submodules"]
@@ -424,12 +433,20 @@ class CloneTaskVanillaGit(RepoTask):
                 "--no-single-branch",   # for compatibility with libgit2 backend's behavior
                 "--no-tags",            # for compatibility with libgit2 backend's behavior
             ]
+
         args += ["--", url, path]
+
+        # Clone the repo
         yield from self.flowCallGit(*args)
 
         # Successfully cloned
         settings.history.addCloneUrl(url)
         settings.history.setDirty()
+
+        # Store custom key (if any) in cloned repo config
+        if privKeyPath:
+            with RepoContext(path, RepositoryOpenFlag.NO_SEARCH) as repo:
+                RepoPrefs.setRemoteKeyFileForRepo(repo, repo.remotes[0].name, privKeyPath)
 
         # When the task runner wraps up, tell dialog to finish
         dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)

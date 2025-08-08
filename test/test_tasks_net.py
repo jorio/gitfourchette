@@ -87,15 +87,13 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow, gitBackend):
     QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Play with key file picker
-    # (only available with libgit2 backend)
-    if gitBackend != "git":
-        assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
-        cloneDialog.ui.keyFilePicker.checkBox.click()
-        qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
-        assert "key file" in qfd.windowTitle().lower()
-        qfd.reject()
-        assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
-        QTest.qWait(0)  # wait for QFileDialog to be collected
+    assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
+    cloneDialog.ui.keyFilePicker.checkBox.click()
+    qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
+    assert "key file" in qfd.windowTitle().lower()
+    qfd.reject()
+    assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
+    QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Fire ze missiles
     assert cloneDialog.cloneButton.isEnabled()

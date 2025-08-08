@@ -123,6 +123,8 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     globalGitConfig["user.email"] = TEST_SIGNATURE.email
     # Let vanilla git clone submodules from filesystem remotes (for offline tests)
     globalGitConfig["protocol.file.allow"] = "always"
+    # Prevent OpenSSH from looking at host user's key files
+    globalGitConfig["core.sshCommand"] = "/usr/bin/ssh -F none -o 'IdentityFile none'"
 
     # Boot the UI
     assert app.mainWindow is None

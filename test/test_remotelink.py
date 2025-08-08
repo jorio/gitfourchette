@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import pytest
+
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.passphrasedialog import PassphraseDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
@@ -13,6 +15,22 @@ from .util import *
 
 
 NET_TIMEOUT = 30_000
+
+
+@pytest.fixture
+def useAskpassShim():
+    backup = dict(os.environ)
+
+    os.environ.update({
+        "SSH_ASKPASS": getTestDataPath("askpass-shim.py"),
+        "SSH_ASKPASS_REQUIRE": "force",
+        "GFTEST_ASKPASS_SHIM_PASSWORD": "empty",
+    })
+
+    yield
+
+    os.environ.clear()
+    os.environ.update(backup)
 
 
 @requiresNetwork
@@ -30,9 +48,8 @@ def testHttpsCloneRepo(tempDir, mainWindow, taskThread, gitBackend):
     assert "origin/no-parent" in rw.repo.branches.remote
 
 
-# TODO: Vanilla git backend
 @requiresNetwork
-def testSshCloneRepo(tempDir, mainWindow, taskThread):
+def testSshCloneRepo(tempDir, mainWindow, taskThread, gitBackend, useAskpassShim):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
@@ -51,17 +68,19 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread):
     privKeyCopy = tempDir.name + "/HelloTestKey"
     shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
     shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+    os.chmod(privKeyCopy, 0o600)
 
     # Set custom passphrase-protected key
     cloneDialog.ui.keyFilePicker.setPath(pubKeyCopy)
     cloneDialog.cloneButton.click()
 
-    passphraseDialog: TextInputDialog = waitForQDialog(mainWindow, "passphrase", timeout=NET_TIMEOUT)
-    # Make sure we're prompted to enter the passphrase for the correct key
-    assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
-    # Enter passphrase and accept
-    passphraseDialog.findChild(QLineEdit).setText("empty")
-    passphraseDialog.accept()
+    if gitBackend == "libgit2":
+        passphraseDialog: TextInputDialog = waitForQDialog(mainWindow, "passphrase", timeout=NET_TIMEOUT)
+        # Make sure we're prompted to enter the passphrase for the correct key
+        assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
+        # Enter passphrase and accept
+        passphraseDialog.findChild(QLineEdit).setText("empty")
+        passphraseDialog.accept()
     waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = waitForRepoWidget(mainWindow)
@@ -116,7 +135,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread, gitBackend):
 
 # TODO: Vanilla git backend
 @requiresNetwork
-def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
+def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, gitBackend, useAskpassShim):
     # Copy keyfile to non-default location to make sure we're not automatically picking up another key
     pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
     privKeyCopy = tempDir.name + "/HelloTestKey"
@@ -144,26 +163,28 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
     # -------------------------------------------
     # Enter passphrase, don't remember it
 
-    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file", timeout=NET_TIMEOUT)
-    pd.lineEdit.setText("empty")
+    if gitBackend == "libgit2":
+        pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file", timeout=NET_TIMEOUT)
+        pd.lineEdit.setText("empty")
 
-    # Make sure it's for the correct key
-    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
-    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
+        # Make sure it's for the correct key
+        assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
+        assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
 
-    # Don't remember the passphrase
-    assert pd.rememberCheckBox.isChecked()  # ticked by default
-    pd.rememberCheckBox.setChecked(False)
+        # Don't remember the passphrase
+        assert pd.rememberCheckBox.isChecked()  # ticked by default
+        pd.rememberCheckBox.setChecked(False)
 
-    # Play with echo mode
-    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
-    pd.lineEdit.actions()[0].trigger()
-    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Normal
-    pd.lineEdit.actions()[0].trigger()
-    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
+        # Play with echo mode
+        assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
+        pd.lineEdit.actions()[0].trigger()
+        assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Normal
+        pd.lineEdit.actions()[0].trigger()
+        assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
 
-    # Accept
-    pd.accept()
+        # Accept
+        pd.accept()
+
     waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
