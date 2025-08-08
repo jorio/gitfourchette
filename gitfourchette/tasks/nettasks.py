@@ -455,12 +455,22 @@ class PushRefspecs(_BaseNetTask):
 
         self._showRemoteLinkDialog()
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(remotes, refspecs)
+
+    def _withLibgit2(self, remotes: list[Remote], refspecs: list[str]):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs
 
         for remote in remotes:
             with self.remoteLink.remoteContext(remote):
                 remote.push(refspecs, callbacks=self.remoteLink)
+
+    def _withGit(self, remotes: list[Remote], refspecs: list[str]):
+        self.effects |= TaskEffects.Refs
+
+        for remote in remotes:
+            yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", remote.name, *refspecs, remote=remote.name)
 
 
 class PushBranch(RepoTask):

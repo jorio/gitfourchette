@@ -654,7 +654,7 @@ def testPushNoRemotes(tempDir, mainWindow):
     acceptQMessageBox(rw, "add a remote")
 
 
-def testPushTagOnCreate(tempDir, mainWindow):
+def testPushTagOnCreate(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, keepOldUpstream=True)
 
@@ -680,7 +680,7 @@ def testPushTagOnCreate(tempDir, mainWindow):
         assert "etiquette" in bareRepo.listall_tags()
 
 
-def testPushExistingTag(tempDir, mainWindow):
+def testPushExistingTag(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, keepOldUpstream=True)
 
@@ -698,7 +698,7 @@ def testPushExistingTag(tempDir, mainWindow):
         assert "etiquette" in bareRepo.listall_tags()
 
 
-def testPushAllTags(tempDir, mainWindow):
+def testPushAllTags(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
 
@@ -722,7 +722,7 @@ def testPushAllTags(tempDir, mainWindow):
         assert "etiquette3" in bareRepo.listall_tags()
 
 
-def testPushDeleteTag(tempDir, mainWindow):
+def testPushDeleteTag(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.create_reference("refs/tags/etiquette", repo.head_commit_id)
