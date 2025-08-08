@@ -107,6 +107,12 @@ class CloneDialog(QDialog):
             self.ui.recurseSubmodulesCheckBox.setEnabled(False)
             self.ui.recurseSubmodulesCheckBox.setText("Recursing into submodules requires pygit2 1.15.1+")
 
+        if settings.prefs.vanillaGit:
+            keyCheckBox = self.ui.keyFilePicker.checkBox
+            keyCheckBox.setChecked(False)
+            keyCheckBox.setEnabled(False)
+            keyCheckBox.setText(keyCheckBox.text() + " " + _("(not available with git backend)"))
+
     def validateUrl(self, url):
         if not url:
             return _("Please fill in this field.")
@@ -294,7 +300,8 @@ class CloneDialog(QDialog):
             depth = self.ui.shallowCloneDepthSpinBox.value()
 
         self.ui.statusForm.initProgress(_("Contacting remote host…"))
-        call = TaskInvocation(self.taskRunner, CloneTask,
+        cloneTaskClass = CloneTaskVanillaGit if settings.prefs.vanillaGit else CloneTask
+        call = TaskInvocation(self.taskRunner, cloneTaskClass,
                               dialog=self, url=self.url, path=self.path, depth=depth,
                               privKeyPath=privKeyPath, recursive=recursive)
         self.taskRunner.put(call)
@@ -380,3 +387,58 @@ class CloneTask(RepoTask):
         QApplication.alert(dialog, 500)
         dialog.enableInputs(True)
         dialog.ui.statusForm.setBlurb(f"<span style='white-space: pre;'><b>{TrTables.exceptionName(exc)}:</b> {escape(str(exc))}")
+
+
+class CloneTaskVanillaGit(RepoTask):
+    """
+    Even though we don't have a Repository yet, this is a RepoTask so we can
+    easily run the clone operation in a background thread.
+    """
+
+    cloneDialog: CloneDialog
+    remoteLink: RemoteLink
+
+    def abort(self):
+        self.remoteLink.raiseAbortFlag()
+
+    def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
+        self.cloneDialog = dialog
+        self.remoteLink = RemoteLink(self)
+        self.remoteLink.message.connect(dialog.ui.statusForm.setProgressMessage)
+        self.remoteLink.progress.connect(dialog.ui.statusForm.setProgressValue)
+        dialog.ui.statusGroupBox.setTitle(_("Cloning…"))
+
+        dialog.enableInputs(False)
+        dialog.aboutToReject.connect(self.remoteLink.raiseAbortFlag)
+
+        # Clone the repo
+        args = ["clone"]
+        if recursive:
+            args += ["--recurse-submodules"]
+        if depth != 0:
+            if recursive:
+                args += ["--shallow-submodules"]
+            args += [
+                "--depth",
+                str(depth),
+                "--no-single-branch",   # for compatibility with libgit2 backend's behavior
+                "--no-tags",            # for compatibility with libgit2 backend's behavior
+            ]
+        args += ["--", url, path]
+        yield from self.flowCallGit(*args)
+
+        # Successfully cloned
+        settings.history.addCloneUrl(url)
+        settings.history.setDirty()
+
+        # When the task runner wraps up, tell dialog to finish
+        dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
+
+    def onError(self, exc: BaseException):
+        traceback.print_exception(exc.__class__, exc, exc.__traceback__)
+        dialog = self.cloneDialog
+        QApplication.beep()
+        QApplication.alert(dialog, 500)
+        dialog.enableInputs(True)
+        # Don't escape() exception text because flowStartProcess already formats it as HTML for us
+        dialog.ui.statusForm.setBlurb(f"<span style='white-space: pre-wrap;'><b>{TrTables.exceptionName(exc)}:</b> {exc}")

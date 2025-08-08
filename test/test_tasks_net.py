@@ -29,7 +29,7 @@ from .util import *
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testCloneRepoWithSubmodules(tempDir, mainWindow):
+def testCloneRepoWithSubmodules(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, renameTo="unpacked-repo")
     subWd, _dummy = reposcenario.submodule(wd, True)  # spice it up with a submodule
     bare = makeBareCopy(wd, addAsRemote="", preFetch=False)
@@ -87,13 +87,15 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
     QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Play with key file picker
-    assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
-    cloneDialog.ui.keyFilePicker.checkBox.click()
-    qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
-    assert "key file" in qfd.windowTitle().lower()
-    qfd.reject()
-    assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
-    QTest.qWait(0)  # wait for QFileDialog to be collected
+    # (only available with libgit2 backend)
+    if gitBackend != "git":
+        assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
+        cloneDialog.ui.keyFilePicker.checkBox.click()
+        qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
+        assert "key file" in qfd.windowTitle().lower()
+        qfd.reject()
+        assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
+        QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Fire ze missiles
     assert cloneDialog.cloneButton.isEnabled()

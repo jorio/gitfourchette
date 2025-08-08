@@ -16,7 +16,7 @@ NET_TIMEOUT = 30_000
 
 
 @requiresNetwork
-def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
+def testHttpsCloneRepo(tempDir, mainWindow, taskThread, gitBackend):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("  https://github.com/libgit2/TestGitRepository  ")  # whitespace should be stripped
@@ -30,6 +30,7 @@ def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
     assert "origin/no-parent" in rw.repo.branches.remote
 
 
+# TODO: Vanilla git backend
 @requiresNetwork
 def testSshCloneRepo(tempDir, mainWindow, taskThread):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
@@ -71,7 +72,7 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testHttpsShallowClone(tempDir, mainWindow, taskThread):
+def testHttpsShallowClone(tempDir, mainWindow, taskThread, gitBackend):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
