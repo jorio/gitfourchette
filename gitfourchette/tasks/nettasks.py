@@ -97,7 +97,15 @@ class DeleteRemoteBranch(_BaseNetTask):
 
     def _withGit(self, remoteBranchShorthand: str, remoteName: str, branchNameOnRemote: str):
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
-        yield from self.flowCallGit("push", "--porcelain", "--progress", remoteName, "--delete", branchNameOnRemote)
+        yield from self.flowCallGit(
+            "push",
+            "--porcelain",
+            "--progress",
+            remoteName,
+            "--delete",
+            branchNameOnRemote,
+            remote=remoteName,
+        )
 
 
 class RenameRemoteBranch(_BaseNetTask):
@@ -178,7 +186,9 @@ class RenameRemoteBranch(_BaseNetTask):
             "--no-tags",
             "--verbose",    # show status of up-to-date refs
             remoteName,
-            oldBranchName)
+            oldBranchName,
+            remote=remoteName,
+        )
 
         # Then go ahead with the push
         yield from self.flowCallGit(
@@ -188,7 +198,9 @@ class RenameRemoteBranch(_BaseNetTask):
             "--atomic",
             remoteName,
             refspec1,
-            refspec2)
+            refspec2,
+            remote=remoteName,
+        )
 
         new_remote_branch = repo.branches.remote[remoteName + "/" + newBranchName]
         for lb in adjustUpstreams:
@@ -258,7 +270,7 @@ class FetchRemotes(_BaseNetTask):
             args += ["--all"]
 
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
-        yield from self.flowCallGit(*args)
+        yield from self.flowCallGit(*args, remote=singleRemoteName)
 
 
 class FetchRemoteBranch(_BaseNetTask):
@@ -536,7 +548,7 @@ class PushBranch(RepoTask):
 
         args += [remote.name, refspec]
 
-        driver = yield from self.flowCallGit(*args, autoFail=False)
+        driver = yield from self.flowCallGit(*args, autoFail=False, remote=remote.name)
         stdout = driver.readAll().data().decode(errors="replace")
         stderr = driver.readAllStandardError().data().decode(errors="replace")
         logger.debug("Push stdout:\n" + stdout)

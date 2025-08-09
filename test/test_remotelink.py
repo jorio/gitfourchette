@@ -141,6 +141,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, gitB
     privKeyCopy = tempDir.name + "/HelloTestKey"
     shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
     shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+    os.chmod(privKeyCopy, 0o600)
 
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
@@ -187,6 +188,10 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, gitB
 
     waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
+
+    if gitBackend == "git":
+        # TODO: passphrase input test (if we decide to keep remote-specific keys for the vanilla git backend)
+        return
 
     # -------------------------------------------
     # Fetch, enter passphrase, remember it, but cancel

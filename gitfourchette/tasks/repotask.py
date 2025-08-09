@@ -468,11 +468,29 @@ class RepoTask(QObject):
             message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
             raise AbortTask(message)
 
-    def flowCallGit(self, *args: str, autoFail=True) -> Generator[FlowControlToken, None, QProcess]:
+    def flowCallGit(
+            self,
+            *args: str,
+            autoFail=True,
+            remote="",
+    ) -> Generator[FlowControlToken, None, QProcess]:
         process = QProcess(self.parentWidget())
         process.setProgram("/usr/bin/git")  # TODO: read path from prefs
         if self.repo is not None:
             process.setWorkingDirectory(self.repo.workdir)
+
+        if remote:
+            from gitfourchette.repoprefs import RepoPrefs
+            remoteKeyFile = RepoPrefs.getRemoteKeyFileForRepo(self.repo, remote)
+            if remoteKeyFile:
+                sshCommandBase = self.repo.get_config_value(("core", "sshCommand"))
+                if sshCommandBase:
+                    sshCommandTokens = shlex.split(sshCommandBase, posix=True)
+                else:
+                    sshCommandTokens = ["/usr/bin/ssh"]
+                sshCommand = shlex.join(sshCommandTokens + ["-i", remoteKeyFile])
+                args = ("-c", f"core.sshCommand={sshCommand}") + args
+
         process.setArguments(args)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
