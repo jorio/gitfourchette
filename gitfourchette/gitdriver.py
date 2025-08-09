@@ -7,6 +7,8 @@
 import re
 from enum import StrEnum
 
+from gitfourchette.qt import *
+
 
 class VanillaFetchStatusFlag(StrEnum):
     FastForward = " "
@@ -16,6 +18,18 @@ class VanillaFetchStatusFlag(StrEnum):
     NewRef = "*"
     Rejected = "!"
     UpToDate = "="
+
+
+def getGitVersion(gitPath="/usr/bin/git"):
+    process = QProcess(None)
+    process.setProgram(gitPath)
+    process.setArguments(["version"])
+    process.start()
+    process.waitForFinished()
+    text = process.readAllStandardOutput().data().decode(errors="replace")
+    text = text.removeprefix("git version")
+    text = text.strip()
+    return text
 
 
 def readTable(pattern, stdout, linesep="\n", strict=True):

@@ -490,8 +490,10 @@ class RepoTask(QObject):
             *args: str,
             remote="",
     ) -> QProcess:
+        from gitfourchette import settings
+
         process = QProcess(self.parentWidget())
-        process.setProgram("/usr/bin/git")  # TODO: read path from prefs
+        process.setProgram(settings.prefs.gitPath)
         if self.repo is not None:
             process.setWorkingDirectory(self.repo.workdir)
 
