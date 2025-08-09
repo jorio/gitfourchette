@@ -163,18 +163,12 @@ class ToolCommands:
         # - If detaching, don't set --watch-bus, and don't use QProcess.startDetached!
         #   (Can't get return code otherwise.)
         if FLATPAK:
-            spawner = [
-                "flatpak-spawn", "--host", f"--directory={directory}",
-                "/usr/bin/env", "--"
-            ]
-            if not detached:
-                spawner.insert(1, "--watch-bus")
-            tokens = spawner + tokens
+            tokens = cls.wrapFlatpakSpawn(tokens, directory, detached)
 
         return tokens, directory
 
     @classmethod
-    def isFlatpakInstalled(cls, flatpakRef, parent) -> bool:
+    def isFlatpakInstalled(cls, flatpakRef: str, parent: QObject) -> bool:
         tokens = ["flatpak", "info", "--show-ref", flatpakRef]
         if FLATPAK:
             tokens = ["flatpak-spawn", "--host", "--"] + tokens
@@ -186,7 +180,17 @@ class ToolCommands:
         return process.exitCode() == 0
 
     @classmethod
-    def makeTerminalScript(cls, workdir: str, command: str, shell: str = ""):
+    def wrapFlatpakSpawn(cls, tokens: list[str], directory="", detached=False) -> list[str]:
+        spawner = ["flatpak-spawn", "--host"]
+        if not detached:
+            spawner += ["--watch-bus"]
+        if directory:
+            spawner += [f"--directory={directory}"]
+        spawner += ["/usr/bin/env", "--"]
+        return spawner + tokens
+
+    @classmethod
+    def makeTerminalScript(cls, workdir: str, command: str) -> str:
         # While we could simply export the parameters as environment variables
         # then run termcmd.sh from the static assets, this approach fails if
         # the terminal is a Flatpak (custom env vars always seem to be erased).

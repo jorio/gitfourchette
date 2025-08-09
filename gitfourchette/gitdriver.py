@@ -7,6 +7,7 @@
 import re
 from enum import StrEnum
 
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.qt import *
 
 
@@ -21,9 +22,13 @@ class VanillaFetchStatusFlag(StrEnum):
 
 
 def getGitVersion(gitPath="/usr/bin/git"):
+    tokens = [gitPath, "version"]
+    if FLATPAK:
+        tokens = ToolCommands.wrapFlatpakSpawn(tokens, detached=False)
+
     process = QProcess(None)
-    process.setProgram(gitPath)
-    process.setArguments(["version"])
+    process.setProgram(tokens[0])
+    process.setArguments(tokens[1:])
     process.start()
     process.waitForFinished()
     text = process.readAllStandardOutput().data().decode(errors="replace")

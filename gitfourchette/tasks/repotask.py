@@ -491,11 +491,13 @@ class RepoTask(QObject):
             remote="",
     ) -> QProcess:
         from gitfourchette import settings
+        from gitfourchette.exttools.toolcommands import ToolCommands
+
+        workdir = self.repo.workdir if self.repo is not None else ""
 
         process = QProcess(self.parentWidget())
-        process.setProgram(settings.prefs.gitPath)
-        if self.repo is not None:
-            process.setWorkingDirectory(self.repo.workdir)
+
+        tokens = list(args)
 
         if remote:
             from gitfourchette.repoprefs import RepoPrefs
@@ -507,9 +509,18 @@ class RepoTask(QObject):
                 else:
                     sshCommandTokens = ["/usr/bin/ssh"]
                 sshCommand = shlex.join(sshCommandTokens + ["-i", remoteKeyFile])
-                args = ("-c", f"core.sshCommand={sshCommand}") + args
+                tokens = ["-c", f"core.sshCommand={sshCommand}"] + tokens
 
-        process.setArguments(args)
+        tokens = [settings.prefs.gitPath] + tokens
+
+        if FLATPAK:
+            tokens = ToolCommands.wrapFlatpakSpawn(tokens, workdir, detached=False)
+
+        process.setProgram(tokens[0])
+        process.setArguments(tokens[1:])
+        if workdir:
+            process.setWorkingDirectory(workdir)
+
         process.readyReadStandardError.connect(self.onProcessStderrReady)
         return process
 
