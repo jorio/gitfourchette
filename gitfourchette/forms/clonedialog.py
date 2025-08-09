@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import logging
 import re
 import shlex
 import traceback
@@ -17,6 +18,7 @@ from pygit2.enums import RepositoryOpenFlag
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
+from gitfourchette.gitdriver import readGitProgress
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo, pygit2_version_at_least, RepoContext
 from gitfourchette.qt import *
@@ -25,6 +27,8 @@ from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
+
+logger = logging.getLogger(__name__)
 
 
 def _projectNameFromUrl(url: str) -> str:
@@ -322,9 +326,6 @@ class CloneTask(RepoTask):
     cloneDialog: CloneDialog
     remoteLink: RemoteLink
 
-    def abort(self):
-        self.remoteLink.raiseAbortFlag()
-
     def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
         self.cloneDialog = dialog
         self.remoteLink = RemoteLink(self)
@@ -391,20 +392,26 @@ class CloneTaskVanillaGit(RepoTask):
     """
 
     cloneDialog: CloneDialog
-    remoteLink: RemoteLink
+    aborting: bool
 
     def abort(self):
-        self.remoteLink.raiseAbortFlag()
+        if self.aborting:
+            return
+
+        self.aborting = True
+        self.cloneDialog.ui.statusForm.setProgressMessage(_("Aborting remote operation…"))
+        self.cloneDialog.ui.statusForm.setProgressValue(0, 0)
+
+        if self.currentProcess is not None:
+            self.currentProcess.terminate()
 
     def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
+        self.aborting = False
         self.cloneDialog = dialog
-        self.remoteLink = RemoteLink(self)
-        self.remoteLink.message.connect(dialog.ui.statusForm.setProgressMessage)
-        self.remoteLink.progress.connect(dialog.ui.statusForm.setProgressValue)
         dialog.ui.statusGroupBox.setTitle(_("Cloning…"))
 
         dialog.enableInputs(False)
-        dialog.aboutToReject.connect(self.remoteLink.raiseAbortFlag)
+        dialog.aboutToReject.connect(self.abort)
 
         # Prepare clone command
         args = []
@@ -419,7 +426,7 @@ class CloneTaskVanillaGit(RepoTask):
             sshCommand = shlex.join(sshCommandTokens + ["-i", privKeyPath])
             args += ["-c", f"core.sshCommand={sshCommand}"]
 
-        args += ["clone"]
+        args += ["clone", "--progress"]
 
         if recursive:
             args += ["--recurse-submodules"]
@@ -450,6 +457,19 @@ class CloneTaskVanillaGit(RepoTask):
 
         # When the task runner wraps up, tell dialog to finish
         dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
+
+    def onProcessStderrReady(self):
+        if self.aborting:
+            return
+
+        raw = bytes(self.currentProcess.readAllStandardError())
+        logger.debug(f"Git stderr: {raw}")
+
+        text, num, denom = readGitProgress(raw)
+        if text:
+            self.cloneDialog.ui.statusForm.setProgressMessage(text)
+        if num >= 0 and denom >= 0:
+            self.cloneDialog.ui.statusForm.setProgressValue(num, denom)
 
     def onError(self, exc: BaseException):
         traceback.print_exception(exc.__class__, exc, exc.__traceback__)

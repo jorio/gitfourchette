@@ -37,3 +37,26 @@ def readTable(pattern, stdout, linesep="\n", strict=True):
         table.append(match.groups())
 
     return table
+
+
+def readGitProgress(stderr):
+    text = ""
+    num = -1
+    denom = -1
+
+    if isinstance(stderr, bytes):
+        stderr = stderr.decode(errors="replace")
+    lines = stderr.splitlines()
+
+    if lines:
+        # Report last line
+        text = lines[-1]
+
+        # Look for a fraction, e.g. "(50/1000)"
+        for line in lines:
+            fractionMatch = re.search(r"\((\d+)/(\d+)\)", line)
+            if fractionMatch:
+                num = int(fractionMatch.group(1))
+                denom = int(fractionMatch.group(2))
+
+    return (text, num, denom)

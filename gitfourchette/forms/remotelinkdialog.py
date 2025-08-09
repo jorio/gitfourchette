@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import settings
 from gitfourchette.forms.ui_remotelinkdialog import Ui_RemoteLinkDialog
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -12,6 +13,8 @@ from gitfourchette.toolbox import *
 
 
 class RemoteLinkDialog(QDialog):
+    abortButtonClicked = Signal()
+
     def __init__(self, title: str, parent: QWidget):
         super().__init__(parent)
         self.statusPrefix = ""
@@ -33,13 +36,19 @@ class RemoteLinkDialog(QDialog):
         self.setStatusText(title)
         self.beginRemote("", "...")
 
+        if settings.prefs.vanillaGit:
+            self.ui.remoteLabel.setVisible(False)
+
         self.resize(self.width(), 1)
         self.show()
 
-        self.remoteLink = RemoteLink(self)
-        self.remoteLink.message.connect(self.setStatusText)
-        self.remoteLink.progress.connect(self.onRemoteLinkProgress)
-        self.remoteLink.beginRemote.connect(self.beginRemote)
+        if settings.prefs.vanillaGit:
+            self.remoteLink = None
+        else:
+            self.remoteLink = RemoteLink(self)
+            self.remoteLink.message.connect(self.setStatusText)
+            self.remoteLink.progress.connect(self.onRemoteLinkProgress)
+            self.remoteLink.beginRemote.connect(self.beginRemote)
 
     @property
     def abortButton(self) -> QPushButton:
@@ -67,6 +76,13 @@ class RemoteLinkDialog(QDialog):
         self.ui.statusLabel.setText(text)
 
     def reject(self):  # bound to abort button
+        if settings.prefs.vanillaGit:
+            self.abortButton.setEnabled(False)
+            self.abortButton.setText(_("Aborting"))
+            self.onRemoteLinkProgress(0, 0)
+            self.abortButtonClicked.emit()
+            return
+
         if not self.remoteLink.isBusy():  # allow close()
             super().reject()
             return

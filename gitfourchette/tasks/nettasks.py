@@ -9,6 +9,7 @@ Remote access tasks.
 """
 
 import logging
+import re
 import traceback
 from contextlib import suppress
 
@@ -16,7 +17,7 @@ from gitfourchette import settings
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotelinkdialog import RemoteLinkDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
-from gitfourchette.gitdriver import readTable, VanillaFetchStatusFlag
+from gitfourchette.gitdriver import readTable, VanillaFetchStatusFlag, readGitProgress
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -33,15 +34,18 @@ logger = logging.getLogger(__name__)
 
 class _BaseNetTask(RepoTask):
     remoteLinkDialog: RemoteLinkDialog | None
+    aborting: bool
 
     def __init__(self, parent):
         super().__init__(parent)
         self.remoteLinkDialog = None
+        self.aborting = False
 
     def _showRemoteLinkDialog(self, title: str = ""):
         assert not self.remoteLinkDialog
         assert onAppThread()
         self.remoteLinkDialog = RemoteLinkDialog(title, self.parentWidget())
+        self.remoteLinkDialog.abortButtonClicked.connect(self.abortCurrentProcess)
 
     def cleanup(self):
         assert onAppThread()
@@ -52,6 +56,7 @@ class _BaseNetTask(RepoTask):
 
     @property
     def remoteLink(self) -> RemoteLink:
+        assert not settings.prefs.vanillaGit, "can't get RemoteLink with vanilla git backend"
         assert self.remoteLinkDialog is not None, "can't get RemoteLink without a RemoteLinkDialog"
         return self.remoteLinkDialog.remoteLink
 
@@ -65,6 +70,24 @@ class _BaseNetTask(RepoTask):
             raise AbortTask(message)
 
         return branch.upstream
+
+    def onProcessStderrReady(self):
+        raw = bytes(self.currentProcess.readAllStandardError())
+        logger.debug(f"Git stderr ({self.aborting}): {raw}")
+
+        if self.aborting:
+            return
+
+        text, num, denom = readGitProgress(raw)
+        if text:
+            self.remoteLinkDialog.setStatusText(text)
+        if num >= 0 and denom >= 0:
+            self.remoteLinkDialog.onRemoteLinkProgress(num, denom)
+
+    def abortCurrentProcess(self):
+        self.aborting = True
+        if self.currentProcess:
+            self.currentProcess.terminate()
 
 
 class DeleteRemoteBranch(_BaseNetTask):
@@ -262,7 +285,8 @@ class FetchRemotes(_BaseNetTask):
             yield from self.flowConfirm(title, errorMessage, detailList=errors, canCancel=False, icon='warning')
 
     def _withGit(self, title: str, singleRemoteName: str = ""):
-        args = ["fetch", "--porcelain", "--verbose", "--prune"]
+        # TODO: postStatus?
+        args = ["fetch", "--porcelain", "--verbose", "--prune", "--progress"]
 
         if singleRemoteName:
             args += ["--no-all", singleRemoteName]

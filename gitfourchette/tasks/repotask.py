@@ -199,6 +199,9 @@ class RepoTask(QObject):
     effects: TaskEffects
     """ Which parts of the UI should be refreshed when this task completes. """
 
+    currentProcess: QProcess | None
+    """ External process that this task is currently waiting on (via flowStartProcess). """
+
     _postStatus: str
     """ Display this message in the status bar after completion (user code should use the getter/setter). """
 
@@ -232,6 +235,7 @@ class RepoTask(QObject):
         self.setObjectName(self.__class__.__name__)
         self.jumpTo = NavLocator()
         self.effects = TaskEffects.Nothing
+        self.currentProcess = None
         self._postStatus = ""
         self._postStatusLocked = False
         self._taskStack = [self]
@@ -336,7 +340,16 @@ class RepoTask(QObject):
             excMessageBox(exc, title=self.name(), message=message, parent=self.parentWidget())
 
     def prereqs(self) -> TaskPrereqs:
+        """
+        Can be overridden by your task.
+        """
         return TaskPrereqs.Nothing
+
+    def onProcessStderrReady(self):
+        """
+        Can be overridden by your task.
+        """
+        pass
 
     def flowEnterWorkerThread(self):
         """
@@ -448,6 +461,7 @@ class RepoTask(QObject):
 
     def flowStartProcess(self, process: QProcess, autoFail=True) -> Generator[FlowControlToken, None, None]:
         assert self._isRunningOnAppThread(), "start processes from UI thread"
+        assert self.currentProcess is None, "a process is already running in this task"
 
         commandLine = shlex.join([process.program()] + process.arguments())
         logger.info(f"Starting process: {commandLine}")
@@ -456,10 +470,13 @@ class RepoTask(QObject):
             self.uiReady.emit()
 
         process.finished.connect(onProcessFinished)
+        self.currentProcess = process
         process.start()
 
         waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
         yield waitToken
+
+        self.currentProcess = None
 
         if autoFail and process.exitCode() != 0:
             stderr = process.readAllStandardError().data().decode(errors="replace")
@@ -468,12 +485,11 @@ class RepoTask(QObject):
             message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
             raise AbortTask(message)
 
-    def flowCallGit(
+    def createGitProcess(
             self,
             *args: str,
-            autoFail=True,
             remote="",
-    ) -> Generator[FlowControlToken, None, QProcess]:
+    ) -> QProcess:
         process = QProcess(self.parentWidget())
         process.setProgram("/usr/bin/git")  # TODO: read path from prefs
         if self.repo is not None:
@@ -492,6 +508,16 @@ class RepoTask(QObject):
                 args = ("-c", f"core.sshCommand={sshCommand}") + args
 
         process.setArguments(args)
+        process.readyReadStandardError.connect(self.onProcessStderrReady)
+        return process
+
+    def flowCallGit(
+            self,
+            *args: str,
+            autoFail=True,
+            remote="",
+    ) -> Generator[FlowControlToken, None, QProcess]:
+        process = self.createGitProcess(*args, remote=remote)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 
