@@ -454,17 +454,12 @@ class CloneTaskVanillaGit(RepoTask):
         # When the task runner wraps up, tell dialog to finish
         dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
 
-    def onProcessStderrReady(self):
-        if self.aborting:
-            return
+    def onGitProgressMessage(self, message: str):
+        if not self.aborting:
+            self.cloneDialog.ui.statusForm.setProgressMessage(message)
 
-        raw = bytes(self.currentProcess.readAllStandardError())
-        logger.debug(f"Git stderr: {raw}")
-
-        text, num, denom = GitDriver.parseProgress(raw)
-        if text:
-            self.cloneDialog.ui.statusForm.setProgressMessage(text)
-        if num >= 0 and denom >= 0:
+    def onGitProgressFraction(self, num: int, denom: int):
+        if not self.aborting:
             self.cloneDialog.ui.statusForm.setProgressValue(num, denom)
 
     def onError(self, exc: BaseException):

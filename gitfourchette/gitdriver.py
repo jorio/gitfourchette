@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import io
 import re
 import shlex
 from enum import StrEnum
@@ -23,9 +24,12 @@ class VanillaFetchStatusFlag(StrEnum):
     UpToDate = "="
 
 
-class GitDriver:
+class GitDriver(QProcess):
     _gitPath = "/usr/bin/git"
     _cachedGitVersion = ""
+
+    progressMessage = Signal(str)
+    progressFraction = Signal(int, int)
 
     @classmethod
     def setGitPath(cls, gitPath: str):
@@ -120,3 +124,25 @@ class GitDriver:
             sshCommandTokens = ["/usr/bin/ssh"]
         sshCommand = shlex.join(sshCommandTokens + ["-i", keyFilePath])
         return ["-c", f"core.sshCommand={sshCommand}"]
+
+    def __init__(self, parent: QObject | None = None):
+        super().__init__(parent)
+        self.readyReadStandardError.connect(self._onReadyReadStandardError)
+        self._stderrScrollback = io.BytesIO()
+
+    def _onReadyReadStandardError(self):
+        raw = self.readAllStandardError().data()
+        self._stderrScrollback.write(raw)
+
+        text, num, denom = GitDriver.parseProgress(raw)
+        if text:
+            self.progressMessage.emit(text)
+        if num >= 0 and denom >= 0:
+            self.progressFraction.emit(num, denom)
+
+    def stderrScrollback(self) -> str:
+        return '\n'.join(
+            line.rstrip().decode(errors="replace")
+            for line in self._stderrScrollback.getvalue().splitlines(keepends=True)
+            if not line.endswith(b"\r")
+        )

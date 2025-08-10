@@ -70,17 +70,12 @@ class _BaseNetTask(RepoTask):
 
         return branch.upstream
 
-    def onProcessStderrReady(self):
-        raw = bytes(self.currentProcess.readAllStandardError())
-        logger.debug(f"Git stderr ({self.aborting}): {raw}")
+    def onGitProgressMessage(self, message: str):
+        if not self.aborting and self.remoteLinkDialog:
+            self.remoteLinkDialog.setStatusText(message)
 
-        if self.aborting:
-            return
-
-        text, num, denom = GitDriver.readProgress(raw)
-        if text:
-            self.remoteLinkDialog.setStatusText(text)
-        if num >= 0 and denom >= 0:
+    def onGitProgressFraction(self, num: int, denom: int):
+        if not self.aborting and self.remoteLinkDialog:
             self.remoteLinkDialog.onRemoteLinkProgress(num, denom)
 
     def abortCurrentProcess(self):

@@ -346,7 +346,13 @@ class RepoTask(QObject):
         """
         return TaskPrereqs.Nothing
 
-    def onProcessStderrReady(self):
+    def onGitProgressMessage(self, message: str):
+        """
+        Can be overridden by your task.
+        """
+        pass
+
+    def onGitProgressFraction(self, num: int, denom: int):
         """
         Can be overridden by your task.
         """
@@ -480,8 +486,12 @@ class RepoTask(QObject):
         self.currentProcess = None
 
         if autoFail and process.exitCode() != 0:
-            stderr = process.readAllStandardError().data().decode(errors="replace")
-            message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
+            if isinstance(process, GitDriver):
+                stderr = process.stderrScrollback()
+                message = _("Git command exited with code {0}.", process.exitCode())
+            else:
+                stderr = process.readAllStandardError().data().decode(errors="replace")
+                message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
             message += f"<p style='font-size: small'><code>{escape(commandLine)}</p>"
             message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
             raise AbortTask(message)
@@ -490,13 +500,13 @@ class RepoTask(QObject):
             self,
             *args: str,
             remote="",
-    ) -> QProcess:
+    ) -> GitDriver:
         from gitfourchette import settings
         from gitfourchette.exttools.toolcommands import ToolCommands
 
         workdir = self.repo.workdir if self.repo is not None else ""
 
-        process = QProcess(self.parentWidget())
+        process = GitDriver(self.parentWidget())
 
         tokens = list(args)
 
@@ -517,7 +527,8 @@ class RepoTask(QObject):
         if workdir:
             process.setWorkingDirectory(workdir)
 
-        process.readyReadStandardError.connect(self.onProcessStderrReady)
+        process.progressMessage.connect(self.onGitProgressMessage)
+        process.progressFraction.connect(self.onGitProgressFraction)
         return process
 
     def flowCallGit(
@@ -525,7 +536,7 @@ class RepoTask(QObject):
             *args: str,
             autoFail=True,
             remote="",
-    ) -> Generator[FlowControlToken, None, QProcess]:
+    ) -> Generator[FlowControlToken, None, GitDriver]:
         process = self.createGitProcess(*args, remote=remote)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
