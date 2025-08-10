@@ -5,9 +5,11 @@
 # -----------------------------------------------------------------------------
 
 import re
+import shlex
 from enum import StrEnum
 
 from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.porcelain import version_to_tuple
 from gitfourchette.qt import *
 
 
@@ -21,61 +23,100 @@ class VanillaFetchStatusFlag(StrEnum):
     UpToDate = "="
 
 
-def getGitVersion(gitPath="/usr/bin/git"):
-    tokens = [gitPath, "version"]
-    if FLATPAK:
-        tokens = ToolCommands.wrapFlatpakSpawn(tokens, detached=False)
+class GitDriver:
+    _gitPath = "/usr/bin/git"
+    _cachedGitVersion = ""
 
-    process = QProcess(None)
-    process.setProgram(tokens[0])
-    process.setArguments(tokens[1:])
-    process.start()
-    process.waitForFinished()
-    text = process.readAllStandardOutput().data().decode(errors="replace")
-    text = text.removeprefix("git version")
-    text = text.strip()
-    return text
+    @classmethod
+    def setGitPath(cls, gitPath: str):
+        cls._gitPath = gitPath
+        cls._cachedGitVersion = ""
 
+    @classmethod
+    def gitVersion(cls) -> str:
+        if cls._cachedGitVersion:
+            return cls._cachedGitVersion
 
-def readTable(pattern, stdout, linesep="\n", strict=True):
-    table = []
+        tokens = [cls._gitPath, "version"]
+        if FLATPAK:
+            tokens = ToolCommands.wrapFlatpakSpawn(tokens, detached=False)
 
-    if isinstance(stdout, bytes):
-        stdout = stdout.decode("utf-8", errors="replace")
-    stdout = stdout.removesuffix(linesep)
+        process = QProcess(None)
+        process.setProgram(tokens[0])
+        process.setArguments(tokens[1:])
+        process.start()
+        process.waitForFinished()
+        text = process.readAll().data().decode(errors="replace")
+        text = text.removeprefix("git version")
+        text = text.strip()
+        cls._cachedGitVersion = text
+        return text
 
-    for line in stdout.split(linesep):
-        match = re.match(pattern, line)
+    @classmethod
+    def gitVersionTuple(cls) -> tuple[int, ...]:
+        text = cls.gitVersion()
+        try:
+            numberStr = text.split(maxsplit=1)[0]
+        except IndexError:
+            numberStr = "0"
+        return version_to_tuple(numberStr)
 
-        if match is None:
-            if strict:
-                raise ValueError("table line does not match pattern: " + line)
-            else:
-                continue
+    @classmethod
+    def supportsFetchPorcelain(cls) -> bool:
+        # fetch --porcelain is only available since git 2.41 (June 2023)
+        # Ubuntu 22.04 LTS ships with git 2.34.1.
+        # macOS 15 ships with git 2.39.5.
+        return cls.gitVersionTuple() >= (2, 41)
 
-        table.append(match.groups())
+    @classmethod
+    def parseTable(cls, pattern: str, stdout: bytes | str, linesep="\n", strict=True) -> list:
+        table = []
 
-    return table
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        stdout = stdout.removesuffix(linesep)
 
+        for line in stdout.split(linesep):
+            match = re.match(pattern, line)
 
-def readGitProgress(stderr):
-    text = ""
-    num = -1
-    denom = -1
+            if match is None:
+                if strict:
+                    raise ValueError("table line does not match pattern: " + line)
+                else:
+                    continue
 
-    if isinstance(stderr, bytes):
-        stderr = stderr.decode(errors="replace")
-    lines = stderr.splitlines()
+            table.append(match.groups())
 
-    if lines:
-        # Report last line
-        text = lines[-1]
+        return table
 
-        # Look for a fraction, e.g. "(50/1000)"
-        for line in lines:
-            fractionMatch = re.search(r"\((\d+)/(\d+)\)", line)
-            if fractionMatch:
-                num = int(fractionMatch.group(1))
-                denom = int(fractionMatch.group(2))
+    @classmethod
+    def parseProgress(cls, stderr: bytes | str) -> tuple[str, int, int]:
+        text = ""
+        num = -1
+        denom = -1
 
-    return (text, num, denom)
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode(errors="replace")
+        lines = stderr.splitlines()
+
+        if lines:
+            # Report last line
+            text = lines[-1]
+
+            # Look for a fraction, e.g. "(50/1000)"
+            for line in lines:
+                fractionMatch = re.search(r"\((\d+)/(\d+)\)", line)
+                if fractionMatch:
+                    num = int(fractionMatch.group(1))
+                    denom = int(fractionMatch.group(2))
+
+        return text, num, denom
+
+    @classmethod
+    def customSshKeyPreamble(cls, keyFilePath: str, sshCommandBase: str = ""):
+        if sshCommandBase:
+            sshCommandTokens = shlex.split(sshCommandBase, posix=True)
+        else:
+            sshCommandTokens = ["/usr/bin/ssh"]
+        sshCommand = shlex.join(sshCommandTokens + ["-i", keyFilePath])
+        return ["-c", f"core.sshCommand={sshCommand}"]

@@ -9,7 +9,6 @@ Remote access tasks.
 """
 
 import logging
-import re
 import traceback
 from contextlib import suppress
 
@@ -17,7 +16,7 @@ from gitfourchette import settings
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotelinkdialog import RemoteLinkDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
-from gitfourchette.gitdriver import readTable, VanillaFetchStatusFlag, readGitProgress
+from gitfourchette.gitdriver import GitDriver, VanillaFetchStatusFlag
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -78,7 +77,7 @@ class _BaseNetTask(RepoTask):
         if self.aborting:
             return
 
-        text, num, denom = readGitProgress(raw)
+        text, num, denom = GitDriver.readProgress(raw)
         if text:
             self.remoteLinkDialog.setStatusText(text)
         if num >= 0 and denom >= 0:
@@ -201,17 +200,8 @@ class RenameRemoteBranch(_BaseNetTask):
         logger.info(f"Rename remote branch: remote: {remoteName}; refspec: {[refspec1, refspec2]}; "
                     f"adjust upstreams: {adjustUpstreams}")
 
-        # For safety, make sure we're up to date
-        yield from self.flowCallGit(
-            "fetch",
-            "--porcelain",  # output tabular data on stdout
-            "--progress",   # output progress info on stderr
-            "--no-tags",
-            "--verbose",    # show status of up-to-date refs
-            remoteName,
-            oldBranchName,
-            remote=remoteName,
-        )
+        # For safety, make sure we're up to date on this branch
+        yield from self.flowSubtask(FetchRemoteBranch, oldShorthand)
 
         # Then go ahead with the push
         yield from self.flowCallGit(
@@ -286,7 +276,10 @@ class FetchRemotes(_BaseNetTask):
 
     def _withGit(self, title: str, singleRemoteName: str = ""):
         # TODO: postStatus?
-        args = ["fetch", "--porcelain", "--verbose", "--prune", "--progress"]
+        args = ["fetch", "--verbose", "--prune", "--progress"]
+
+        if GitDriver.supportsFetchPorcelain():
+            args += ["--porcelain"]
 
         if singleRemoteName:
             args += ["--no-all", singleRemoteName]
@@ -355,18 +348,21 @@ class FetchRemoteBranch(_BaseNetTask):
 
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
-        # WARNING: fetch --porcelain is only available since git 2.41 (June 2023)
-        # Ubuntu 22.04 LTS ships with git 2.34.1; macOS 15 ships with git 2.39.5
-        driver = yield from self.flowCallGit(
-            "fetch",
-            "--porcelain",  # output tabular data on stdout
-            "--progress",   # output progress info on stderr
-            "--no-tags",
-            "--verbose",    # show status of up-to-date refs
-            remoteName,
-            remoteBranch)
+        args = ["fetch", "--progress", "--no-tags", "--verbose"]
+        if GitDriver.supportsFetchPorcelain():
+            args += ["--porcelain"]  # output tabular data on stdout
+            # Combined with --verbose, shows status of up-to-date refs
+        args += [remoteName, remoteBranch]
+
+        driver = yield from self.flowCallGit(*args, remote=remoteName)
+
+        # Old git: don't attempt to parse the result
+        if not GitDriver.supportsFetchPorcelain():
+            self.cleanup()
+            return
+
         stdout = driver.readAll().data()
-        table = readTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$", stdout)
+        table = GitDriver.parseTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$", stdout)
 
         updatedTips = {
             localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
@@ -581,13 +577,16 @@ class PushBranch(RepoTask):
         # ---------------
         # Debrief
 
-        # Capture summary for the last pushed branch.
         # Output format: "<flag> \t <from(local)>:<to(remote)> \t <summary> (<reason>)"
         # But the first and last lines may contain other junk,
         # so skip lines that don't match the pattern (strict=False).
-        summary = ""
-        for _flag, _localRef, _remoteRef, summary in readTable("(.)\t(.+):(.+)\t(.+)", stdout, strict=False):
-            pass
+        table = GitDriver.parseTable("(.)\t(.+):(.+)\t(.+)", stdout, strict=False)
+
+        # Capture summary for the last pushed branch.
+        try:
+            summary = table[-1][-1]
+        except IndexError:
+            summary = ""
 
         errorExplainer = ""
         if "(stale info)" in summary:

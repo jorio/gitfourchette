@@ -11,7 +11,7 @@ from textwrap import dedent
 import pygit2
 
 from gitfourchette.forms.ui_aboutdialog import Ui_AboutDialog
-from gitfourchette.gitdriver import getGitVersion
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.syntax import pygmentsVersion
@@ -91,9 +91,11 @@ class AboutDialog(QDialog):
 
         if settings.prefs.vanillaGit:
             gitPath = settings.prefs.gitPath
-            gitInfo = f"<b>git</b> {getGitVersion(gitPath)} <small>({gitPath})</small>"
+            gitVersion = GitDriver.gitVersion() or _("(unknown version)")
+            gitInfo = f"<b>git</b> {gitVersion} <small>({gitPath})</small>"
         else:
-            gitInfo = _("Vanilla git backend not in use. You can enable it in Settings &rarr; Advanced.")
+            gitInfo = _("System git not in use. You can enable it in {0}.",
+                        f"{_('Settings')} &rarr; {_p('Prefs', 'External Tools')}")
 
         self.ui.componentsBlurb.setText(dedent(f"""<html>\
             {appName} {appVersion}

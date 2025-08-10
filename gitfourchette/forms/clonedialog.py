@@ -6,7 +6,6 @@
 
 import logging
 import re
-import shlex
 import traceback
 import urllib.parse
 from contextlib import suppress
@@ -18,7 +17,7 @@ from pygit2.enums import RepositoryOpenFlag
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
-from gitfourchette.gitdriver import readGitProgress
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo, pygit2_version_at_least, RepoContext
 from gitfourchette.qt import *
@@ -418,13 +417,10 @@ class CloneTaskVanillaGit(RepoTask):
 
         if privKeyPath:
             driver = yield from self.flowCallGit("config", "--get", "core.sshCommand", autoFail=False)
+            sshCommandBase = ""
             if driver.exitCode() == 0:
                 sshCommandBase = bytes(driver.readAllStandardOutput()).decode()
-                sshCommandTokens = shlex.split(sshCommandBase, posix=True)
-            else:
-                sshCommandTokens = ["/usr/bin/ssh"]
-            sshCommand = shlex.join(sshCommandTokens + ["-i", privKeyPath])
-            args += ["-c", f"core.sshCommand={sshCommand}"]
+            args += GitDriver.customSshKeyPreamble(privKeyPath, sshCommandBase)
 
         args += ["clone", "--progress"]
 
@@ -465,7 +461,7 @@ class CloneTaskVanillaGit(RepoTask):
         raw = bytes(self.currentProcess.readAllStandardError())
         logger.debug(f"Git stderr: {raw}")
 
-        text, num, denom = readGitProgress(raw)
+        text, num, denom = GitDriver.parseProgress(raw)
         if text:
             self.cloneDialog.ui.statusForm.setProgressMessage(text)
         if num >= 0 and denom >= 0:

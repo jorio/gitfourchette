@@ -14,6 +14,7 @@ import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.manualgc import gcHint
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
@@ -504,12 +505,7 @@ class RepoTask(QObject):
             remoteKeyFile = RepoPrefs.getRemoteKeyFileForRepo(self.repo, remote)
             if remoteKeyFile:
                 sshCommandBase = self.repo.get_config_value(("core", "sshCommand"))
-                if sshCommandBase:
-                    sshCommandTokens = shlex.split(sshCommandBase, posix=True)
-                else:
-                    sshCommandTokens = ["/usr/bin/ssh"]
-                sshCommand = shlex.join(sshCommandTokens + ["-i", remoteKeyFile])
-                tokens = ["-c", f"core.sshCommand={sshCommand}"] + tokens
+                tokens = GitDriver.customSshKeyPreamble(remoteKeyFile, sshCommandBase) + tokens
 
         tokens = [settings.prefs.gitPath] + tokens
 

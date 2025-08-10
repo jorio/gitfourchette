@@ -21,6 +21,7 @@ from gitfourchette.forms.deletetagdialog import DeleteTagDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.mainwindow import NoRepoWidgetError
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -274,10 +275,13 @@ def testFetchRemoteBranch(tempDir, mainWindow, gitBackend):
     node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "fetch")
-    assert re.search(
-        fr"localfs/master.+{str(oldHead)[:7]}.+{str(newHead)[:7]}",
-        mainWindow.statusBar().currentMessage(),
-        re.I)
+
+    # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
+    if gitBackend != "git" or GitDriver.supportsFetchPorcelain():
+        assert re.search(
+            fr"localfs/master.+{str(oldHead)[:7]}.+{str(newHead)[:7]}",
+            mainWindow.statusBar().currentMessage(),
+            re.I)
 
     # The position of the remote's master branch should be up to date now
     assert rw.repo.branches.remote["localfs/master"].target == newHead
@@ -335,7 +339,11 @@ def testFetchRemoteBranchNoChange(tempDir, mainWindow, gitBackend):
     node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "fetch")
-    assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
+
+    # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
+    if gitBackend != "git" or GitDriver.supportsFetchPorcelain():
+        assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
+
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 

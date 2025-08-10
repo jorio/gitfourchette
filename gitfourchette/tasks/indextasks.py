@@ -11,7 +11,7 @@ from contextlib import suppress
 
 from gitfourchette import reverseunidiff, settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import readTable
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -429,7 +429,7 @@ class ApplyPatchFile(RepoTask):
         driver = yield from self.flowCallGit(*command)
         stdout = driver.readAll().data()
 
-        table = readTable(r"^(-|\d+)\t(-|\d+)\t(.+)$", stdout, "\0")
+        table = GitDriver.parseTable(r"^(-|\d+)\t(-|\d+)\t(.+)$", stdout, "\0")
         details = []
         firstFile = ""
         for adds, dels, patchFile in table:

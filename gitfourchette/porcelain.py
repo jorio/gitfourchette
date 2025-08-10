@@ -241,6 +241,19 @@ class StashApplyBreakdown(StashApplyCallbacks, CheckoutBreakdown):
         _logger.info(f"stash apply progress: {pr}")
 
 
+def version_to_tuple(s: str) -> tuple[int, ...]:
+    v = []
+    for n in s.split("."):
+        try:
+            v.append(int(n))
+        except ValueError:
+            v.append(0)
+    # Trim trailing zeros to ease comparison
+    while v and v[-1] == 0:
+        v.pop()
+    return tuple(v)
+
+
 def _version_at_least(
         package_name: str,
         required_version_string: str,
@@ -248,18 +261,6 @@ def _version_at_least(
         raise_error=True,
         feature_name="This feature"
 ):
-    def version_to_tuple(s: str):
-        v = []
-        for n in s.split("."):
-            try:
-                v.append(int(n))
-            except ValueError:
-                v.append(0)
-        # Trim trailing zeros to ease comparison
-        while v and v[-1] == 0:
-            v.pop()
-        return tuple(v)
-
     required_version = version_to_tuple(required_version_string)
     current_version = version_to_tuple(current_version_string)
 

@@ -28,6 +28,7 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.forms.welcomewidget import WelcomeWidget
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -1063,6 +1064,8 @@ class MainWindow(QMainWindow):
 
         if "maxRecentRepos" in prefDiff:
             self.fillRecentMenu()
+
+        GitDriver.setGitPath(settings.prefs.gitPath)
 
         self.statusBar2.setVisible(settings.prefs.showStatusBar)
         self.statusBar2.enableMemoryIndicator(APP_DEBUG)
