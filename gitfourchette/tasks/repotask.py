@@ -527,6 +527,11 @@ class RepoTask(QObject):
         if workdir:
             process.setWorkingDirectory(workdir)
 
+        # Force Git output in English
+        processEnvironment = QProcessEnvironment.systemEnvironment()
+        processEnvironment.insert("LC_ALL", "C")
+        process.setProcessEnvironment(processEnvironment)
+
         process.progressMessage.connect(self.onGitProgressMessage)
         process.progressFraction.connect(self.onGitProgressFraction)
         return process
