@@ -62,7 +62,7 @@ def testStageEmptyUntrackedFile(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testDiscardUntrackedFile(tempDir, mainWindow, method):
+def testDiscardUntrackedFile(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     touchFile(F"{wd}/SomeNewFile.txt")
     rw = mainWindow.openRepo(wd)
@@ -97,7 +97,7 @@ def testDiscardUnstagedFileModification(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow, method):
+def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
     rw = mainWindow.openRepo(wd)
@@ -153,7 +153,7 @@ def testUnstageModeChange(tempDir, mainWindow):
     assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB
 
 
-def testDiscardUntrackedTree(tempDir, mainWindow):
+def testDiscardUntrackedTree(tempDir, mainWindow, gitBackend):
     outerWd = unpackRepo(tempDir, renameTo="outer")
     innerWd = unpackRepo(tempDir, renameTo="inner")
     innerWd = shutil.move(innerWd, outerWd)

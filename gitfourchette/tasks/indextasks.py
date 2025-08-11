@@ -177,6 +177,28 @@ class DiscardFiles(_BaseStagingTask):
 
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="git-discard")
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(patches, submos)
+
+        self.postStatus = _n("File discarded.", "{n} files discarded.", len(patches))
+
+    def restoreSubmodule(self, patch: Patch):
+        path = patch.delta.new_file.path
+        submodule = self.repo.submodules[path]
+
+        if patch.delta.status == DeltaStatus.DELETED:
+            didRestore = self.repo.restore_submodule_gitlink(path)
+            if not didRestore:
+                raise AbortTask(_("Couldn’t restore gitlink file for submodule {0}.", lquo(path)))
+
+        with RepoContext(self.repo.in_workdir(path), RepositoryOpenFlag.NO_SEARCH) as subRepo:
+            # Reset HEAD to the target commit
+            subRepo.reset(submodule.head_id, ResetMode.HARD)
+            # Nuke uncommitted files as well
+            subRepo.checkout_head(strategy=CheckoutStrategy.REMOVE_UNTRACKED | CheckoutStrategy.FORCE | CheckoutStrategy.RECREATE_MISSING)
+            # TODO: Recurse?
+
+    def _withLibgit2(self, patches: list[Patch], submos: list[Patch]):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
 
@@ -203,23 +225,34 @@ class DiscardFiles(_BaseStagingTask):
             for patch in submos:
                 self.restoreSubmodule(patch)
 
-        self.postStatus = _n("File discarded.", "{n} files discarded.", len(patches))
+    def _withGit(self, patches: list[Patch], submos: list[Patch]):
+        self.effects |= TaskEffects.Workdir
+        if submos:
+            self.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
 
-    def restoreSubmodule(self, patch: Patch):
-        path = patch.delta.new_file.path
-        submodule = self.repo.submodules[path]
+        # Back up discarded patches
+        if patches:
+            yield from self.flowEnterWorkerThread()
+            Trash.instance().backupPatches(self.repo.workdir, patches)
+            yield from self.flowEnterUiThread()
 
-        if patch.delta.status == DeltaStatus.DELETED:
-            didRestore = self.repo.restore_submodule_gitlink(path)
-            if not didRestore:
-                raise AbortTask(_("Couldn’t restore gitlink file for submodule {0}.", lquo(path)))
+        deltas = [patch.delta for patch in patches]
 
-        with RepoContext(self.repo.in_workdir(path), RepositoryOpenFlag.NO_SEARCH) as subRepo:
-            # Reset HEAD to the target commit
-            subRepo.reset(submodule.head_id, ResetMode.HARD)
-            # Nuke uncommitted files as well
-            subRepo.checkout_head(strategy=CheckoutStrategy.REMOVE_UNTRACKED | CheckoutStrategy.FORCE | CheckoutStrategy.RECREATE_MISSING)
-            # TODO: Recurse?
+        tracked = [d.new_file.path for d in deltas if d.status != DeltaStatus.UNTRACKED]
+        untrackedFiles = [d.new_file.path for d in deltas if d.status == DeltaStatus.UNTRACKED and d.new_file.mode != FileMode.TREE]
+        untrackedTrees = [d.new_file.path for d in deltas if d.status == DeltaStatus.UNTRACKED and d.new_file.mode == FileMode.TREE]
+
+        # Discard untracked trees. They have already been backed up above,
+        # but restore_files_from_index isn't capable of removing trees.
+        for untrackedTree in untrackedTrees:
+            untrackedTreePath = self.repo.in_workdir(untrackedTree)
+            assert os.path.isdir(untrackedTreePath)
+            shutil.rmtree(untrackedTreePath)
+
+        if untrackedFiles:
+            yield from self.flowCallGit("clean", "--force", "--", *untrackedFiles)
+        if tracked:
+            yield from self.flowCallGit("checkout", "--", *tracked)
 
 
 class UnstageFiles(_BaseStagingTask):

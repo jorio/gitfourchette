@@ -103,7 +103,7 @@ def testSubmoduleHeadUpdate(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button", "link"])
-def testSubmoduleDirty(tempDir, mainWindow, method):
+def testSubmoduleDirty(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
     writeFile(f"{subWd}/dirty.txt", "coucou")
