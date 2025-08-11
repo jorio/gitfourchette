@@ -500,11 +500,13 @@ class RepoTask(QObject):
             self,
             *args: str,
             remote="",
+            workdir="",
     ) -> GitDriver:
         from gitfourchette import settings
         from gitfourchette.exttools.toolcommands import ToolCommands
 
-        workdir = self.repo.workdir if self.repo is not None else ""
+        if not workdir:
+            workdir = self.repo.workdir if self.repo is not None else ""
 
         process = GitDriver(self.parentWidget())
 
@@ -541,8 +543,9 @@ class RepoTask(QObject):
             *args: str,
             autoFail=True,
             remote="",
+            workdir="",
     ) -> Generator[FlowControlToken, None, GitDriver]:
-        process = self.createGitProcess(*args, remote=remote)
+        process = self.createGitProcess(*args, remote=remote, workdir=workdir)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 

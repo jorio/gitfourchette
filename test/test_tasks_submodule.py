@@ -106,7 +106,8 @@ def testSubmoduleHeadUpdate(tempDir, mainWindow, method, gitBackend):
 def testSubmoduleDirty(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
-    writeFile(f"{subWd}/dirty.txt", "coucou")
+    writeFile(f"{subWd}/dirty.txt", "hello untracked")
+    writeFile(f"{subWd}/master.txt", "hello tracked")
 
     rw = mainWindow.openRepo(wd)
 
@@ -114,13 +115,15 @@ def testSubmoduleDirty(tempDir, mainWindow, method, gitBackend):
     assert qlvClickNthRow(rw.dirtyFiles, 0)
 
     special = rw.specialDiffView
-    assert special.isVisibleTo(rw)
+    assert special.isVisible()
     assert qteFind(special, r"submodule.+submo.+contains changes")
     assert qteFind(special, r"uncommitted changes")
 
+    # Attempt to stage the submodule; this shouldn't do anything
     QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)  # attempt to stage it
     acceptQMessageBox(rw, "can.+t be staged from the parent repo")
-    assert rw.repo.status() == {"submodir": FileStatus.WT_MODIFIED}  # shouldn't do anything (the actual app will emit a beep)
+    QTest.qWait(0)
+    assert rw.repo.status() == {"submodir": FileStatus.WT_MODIFIED}  # shouldn't do anything
 
     if method == "link":
         qteClickLink(special, r"reset")

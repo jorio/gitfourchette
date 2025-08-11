@@ -254,6 +254,15 @@ class DiscardFiles(_BaseStagingTask):
         if tracked:
             yield from self.flowCallGit("checkout", "--", *tracked)
 
+        if submos:
+            submoPaths = [patch.delta.new_file.path for patch in submos]
+
+            for submo in submoPaths:
+                subWd = os.path.join(self.repo.workdir, submo)
+                yield from self.flowCallGit("clean", "-d", "--force", workdir=subWd)
+
+            yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", "--", *submoPaths)
+
 
 class UnstageFiles(_BaseStagingTask):
     def flow(self, patches: list[Patch]):
