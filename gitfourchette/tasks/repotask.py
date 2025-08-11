@@ -471,19 +471,30 @@ class RepoTask(QObject):
         assert self.currentProcess is None, "a process is already running in this task"
 
         commandLine = shlex.join([process.program()] + process.arguments())
-        logger.info(f"Starting process: {commandLine}")
+        logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
 
-        def onProcessFinished(exitCode: int, exitStatus: QProcess.ExitStatus):
-            self.uiReady.emit()
-
-        process.finished.connect(onProcessFinished)
         self.currentProcess = process
+
+        def onProcessError():
+            nonlocal processError
+            processError = True
+        processError = False
+
+        process.errorOccurred.connect(onProcessError)
+        process.finished.connect(self.uiReady)
         process.start()
 
-        waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
-        yield waitToken
+        if process.state() != QProcess.ProcessState.NotRunning:
+            process.errorOccurred.connect(self.uiReady)
+            waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+            yield waitToken
 
         self.currentProcess = None
+
+        if processError:
+            message = _("Process failed to start ({0}).", process.error())
+            message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
+            raise AbortTask(message)
 
         if autoFail and process.exitCode() != 0:
             if isinstance(process, GitDriver):
@@ -492,7 +503,7 @@ class RepoTask(QObject):
             else:
                 stderr = process.readAllStandardError().data().decode(errors="replace")
                 message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
-            message += f"<p style='font-size: small'><code>{escape(commandLine)}</p>"
+            message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
             message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
             raise AbortTask(message)
 

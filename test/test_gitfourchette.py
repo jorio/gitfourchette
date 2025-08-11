@@ -750,3 +750,17 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     mainWindow.closeAllTabs()
     pause(3)
     assert readFile(scratchPath).decode().strip() == "about to sleep"
+
+
+def testFailedToStartGitProcess(tempDir, mainWindow):
+    mainWindow.onAcceptPrefsDialog({
+        "vanillaGit": True,
+        "gitPath": "/tmp/supposedly-a-git-executable-but-it-doesnt-exist"
+    })
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "stage me")
+
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.stageButton.click()
+    acceptQMessageBox(rw, "failed to start")
