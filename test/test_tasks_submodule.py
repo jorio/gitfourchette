@@ -79,7 +79,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testSubmoduleHeadUpdate(tempDir, mainWindow, method):
+def testSubmoduleHeadUpdate(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
     subHead = Oid(hex='49322bb17d3acc9146f98c97d078513228bbf3c0')
@@ -236,7 +236,7 @@ def testAbsorbSubmodule(tempDir, mainWindow):
     assert rw is mainWindow.tabs.currentWidget()  # back to first tab
 
 
-def testSubmoduleStagingSuggestions(tempDir, mainWindow):
+def testSubmoduleStagingSuggestions(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "submoroot")
     subWd = unpackRepo(wd, renameTo="newsubmo")
 

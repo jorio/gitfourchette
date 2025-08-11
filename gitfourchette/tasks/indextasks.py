@@ -71,14 +71,24 @@ class StageFiles(_BaseStagingTask):
 
         self.denyConflicts(patches, PatchPurpose.Stage)
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(patches)
+
+        yield from self.debriefPostStage(patches)
+
+        self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
+
+    def _withLibgit2(self, patches: list[Patch]):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
 
         self.repo.stage_files(patches)
 
-        yield from self.debriefPostStage(patches)
+    def _withGit(self, patches: list[Patch]):
+        paths = [patch.delta.new_file.path for patch in patches]
 
-        self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
+        self.effects |= TaskEffects.Workdir
+        yield from self.flowCallGit("add", "--", *paths)
 
     def debriefPostStage(self, patches: list[Patch]):
         debrief = {}
