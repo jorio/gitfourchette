@@ -172,7 +172,7 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method):
+def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)

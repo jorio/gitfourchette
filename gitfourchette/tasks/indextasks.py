@@ -228,12 +228,21 @@ class UnstageFiles(_BaseStagingTask):
             QApplication.beep()
             raise AbortTask()
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
-
-        self.repo.unstage_files(patches)
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(patches)
 
         self.postStatus = _n("File unstaged.", "{n} files unstaged.", len(patches))
+
+    def _withLibgit2(self, patches: list[Patch]):
+        yield from self.flowEnterWorkerThread()
+        self.effects |= TaskEffects.Workdir
+        self.repo.unstage_files(patches)
+
+    def _withGit(self, patches: list[Patch]):
+        paths = [patch.delta.new_file.path for patch in patches]
+        self.effects |= TaskEffects.Workdir
+        # Not using 'restore --staged' because it doesn't work in an empty repo
+        yield from self.flowCallGit("reset", "--", *paths)
 
 
 class DiscardModeChanges(_BaseStagingTask):
