@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import html
 import io
 import re
 import shlex
@@ -115,6 +116,33 @@ class GitDriver(QProcess):
                     denom = int(fractionMatch.group(2))
 
         return text, num, denom
+
+    @classmethod
+    def reformatHintText(cls, stderr: bytes | str):
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode(errors="replace")
+
+        previousTag = ""
+        parts = []
+
+        for stderrLine in stderr.splitlines():
+            try:
+                tag, text = stderrLine.split(":", 1)
+                tag = html.escape(tag)
+                text = html.escape(text)
+            except ValueError:
+                tag, text = "", stderrLine
+
+            if tag != previousTag:
+                if parts:
+                    parts.append("<br>")
+                if tag:
+                    parts.append(f"<b>{tag}:</b>")
+
+            parts.append(text)
+            previousTag = tag
+
+        return "".join(parts)
 
     @classmethod
     def customSshKeyPreamble(cls, keyFilePath: str, sshCommandBase: str = ""):

@@ -565,9 +565,6 @@ class PushBranch(RepoTask):
 
         driver = yield from self.flowCallGit(*args, autoFail=False, remote=remote.name)
         stdout = driver.readAll().data().decode(errors="replace")
-        stderr = driver.readAllStandardError().data().decode(errors="replace")
-        logger.debug("Push stdout:\n" + stdout)
-        logger.debug("Push stderr:\n" + stderr)
 
         # ---------------
         # Debrief
@@ -583,14 +580,18 @@ class PushBranch(RepoTask):
         except IndexError:
             summary = ""
 
-        errorExplainer = ""
-        if "(stale info)" in summary:
-            errorExplainer = _(
-                "<b>Rejected:</b> Your repository’s knowledge of remote branch {branch} is out of date. "
+        errorText = "<p style='white-space: pre-wrap'>"
+        if "[rejected]" in summary:
+            reason = summary.removeprefix("[rejected]").strip()
+            errorText += btag(_("The push was rejected: {0}.", reason)) + "<br>"
+        if "(stale info)" in summary:  # Git doesn't provide a hint about this, so add our own
+            errorText += _(
+                "Your repository’s knowledge of remote branch {branch} is out of date. "
                 "The force-push was rejected to prevent data loss. "
                 "Please fetch remote {remote} before pushing again.",
                 branch=hquo(dialog.currentRemoteBranchFullName),
                 remote=hquo(remote.name))
+        errorText += GitDriver.reformatHintText(driver.stderrScrollback())
 
         dialog.setRemoteLink(None)
         dialog.saveShadowUpstream()
@@ -599,7 +600,7 @@ class PushBranch(RepoTask):
         if driver.exitCode() != 0:
             QApplication.beep()
             QApplication.alert(dialog, 500)
-            dialog.ui.statusForm.setBlurb(errorExplainer + f"<p style='white-space: pre-wrap'>{escape(stderr)}")
+            dialog.ui.statusForm.setBlurb(errorText)
         else:
             # self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
             self.postStatus = _("Push complete.") + " " + summary
