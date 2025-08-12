@@ -400,7 +400,7 @@ def testCommitDialogCtrlReturn(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["graphkey", "graphcm"])
-def testCheckoutCommitDetachHead(tempDir, mainWindow, method):
+def testCheckoutCommitDetachHead(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -410,6 +410,7 @@ def testCheckoutCommitDetachHead(tempDir, mainWindow, method):
                 ]:
         rw.jump(loc, check=True)
         rw.activateWindow()
+        QTest.qWait(0)
 
         if method == "graphcm":
             triggerContextMenuAction(rw.graphView.viewport(), r"check.?out")

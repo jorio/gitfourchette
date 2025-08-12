@@ -517,6 +517,11 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow, gitBackend):
     initialCommit = Oid(hex="2b6471b8999e560c9601ffaa0a5b8376ac403ce4")
 
     wd = unpackRepo(tempDir, "submoroot")
+
+    # TODO: Figure out why this specific test needs this
+    if gitBackend == "git":
+        subprocess.call([GitDriver._gitPath, "update-index", "--really-refresh"], cwd=wd+"/submosub")
+
     rw = mainWindow.openRepo(wd)
 
     assert 1 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)

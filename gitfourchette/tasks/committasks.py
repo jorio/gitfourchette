@@ -273,7 +273,6 @@ class CheckoutCommit(RepoTask):
         return TaskPrereqs.NoConflicts
 
     def flow(self, oid: Oid):
-        from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
         from gitfourchette.tasks.branchtasks import SwitchBranch, NewBranchFromCommit, ResetHead, MergeBranch
 
         refs = self.repo.listall_refs_pointing_at(oid)
@@ -311,17 +310,11 @@ class CheckoutCommit(RepoTask):
                       "if you carry on checking out another commit ({0}).", shortHash(oid)))
                 yield from self.flowConfirm(text=text, icon='warning')
 
-            yield from self.flowEnterWorkerThread()
-            self.repo.checkout_commit(oid)
-
-            self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
+            impl = self._detachWithGit if settings.prefs.vanillaGit else self._detachWithLibgit2
+            yield from impl(oid, wantSubmodules)
 
             # Force sidebar to select detached HEAD
             self.jumpTo = NavLocator.inRef("HEAD")
-
-            if wantSubmodules:
-                yield from self.flowEnterUiThread()
-                yield from self.flowSubtask(UpdateSubmodulesRecursive)
 
         elif dlg.ui.switchRadioButton.isChecked():
             branchName = dlg.ui.switchComboBox.currentText()
@@ -338,6 +331,31 @@ class CheckoutCommit(RepoTask):
 
         else:
             raise NotImplementedError("Unsupported CheckoutCommitDialog outcome")
+
+    def _detachWithLibgit2(self, oid: Oid, wantSubmodules: bool):
+        from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
+
+        yield from self.flowEnterWorkerThread()
+        self.repo.checkout_commit(oid)
+
+        self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
+
+        # Force sidebar to select detached HEAD
+        self.jumpTo = NavLocator.inRef("HEAD")
+
+        if wantSubmodules:
+            yield from self.flowEnterUiThread()
+            yield from self.flowSubtask(UpdateSubmodulesRecursive)
+
+    def _detachWithGit(self, oid: Oid, wantSubmodules: bool):
+        yield from self.flowCallGit(
+            "checkout",
+            "--progress",
+            "--detach",
+            *argsIf(wantSubmodules, "--recurse-submodules"),
+            str(oid))
+
+        self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
 
 
 class NewTag(RepoTask):
