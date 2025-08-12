@@ -620,7 +620,7 @@ def testSwitchToCurrentBranch(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["direct", "checkoutdialog"])
-def testResetHeadToCommit(tempDir, mainWindow, method):
+def testResetHeadToCommit(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -650,7 +650,7 @@ def testResetHeadToCommit(tempDir, mainWindow, method):
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testResetHeadRecurseSubmodules(tempDir, mainWindow):
+def testResetHeadRecurseSubmodules(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "submoroot")
     uncommittedPath = f"{wd}/submosub/subhello.txt"
     uncommittedContents = "uncommitted change in submodule"

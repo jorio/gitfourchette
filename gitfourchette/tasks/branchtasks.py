@@ -435,6 +435,10 @@ class ResetHead(RepoTask):
         resetMode = dlg.activeMode
         recurseSubmodules = dlg.recurseSubmodules()
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(onto, resetMode, recurseSubmodules, branchName)
+
+    def _withLibgit2(self, onto, resetMode, recurse, branchName):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
@@ -442,12 +446,27 @@ class ResetHead(RepoTask):
         self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
                             tquo(branchName), tquo(shortHash(onto)), mode=resetMode.name.lower())
 
-        if hasSubmodules and recurseSubmodules:
+        if recurse:
             for submodule in self.repo.recurse_submodules():
                 subOnto = submodule.head_id
                 logger.info(f"Reset {repr(resetMode)}: Submodule '{submodule.name}' --> {shortHash(subOnto)}")
                 with RepoContext(submodule.open()) as subRepo:
                     subRepo.reset(subOnto, resetMode)
+
+    def _withGit(self, onto, resetMode, recurse, branchName):
+        self.effects |= TaskEffects.Refs | TaskEffects.Workdir
+
+        modeArg = "--" + resetMode.name.lower()
+        assert modeArg in ["--hard", "--mixed", "--soft"]
+
+        yield from self.flowCallGit(
+            "reset",
+            modeArg,
+            *argsIf(recurse, "--recurse-submodules"),
+            str(onto))
+
+        self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
+                            tquo(branchName), tquo(shortHash(onto)), mode=modeArg)
 
 
 class FastForwardBranch(RepoTask):
