@@ -6,6 +6,7 @@
 
 import os
 import shutil
+import subprocess
 
 import pygit2
 import pytest
@@ -13,6 +14,7 @@ from pygit2.enums import SubmoduleStatus
 
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from . import reposcenario
@@ -458,23 +460,20 @@ def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method, gi
 @pytest.mark.parametrize("recurse", [True, False])
 @pytest.mark.parametrize("method", ["switch1", "switch2", "detach", "newbranch"])
 def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse, gitBackend):
-    oid = Oid(hex="ea953d3ba4c5326d530dc09b4ca9781b01c18e00")
     contentsHead = b"hello from submodule\nan update!\n"
     contentsOld = b"hello from submodule\n"
 
     wd = unpackRepo(tempDir, "submoroot")
 
-    # Workaround for git backend - it absolutely needs an URL for the submodule
-    GitConfig(wd + "/.gitmodules")["submodule.submosub.url"] = ""
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_from_commit("old", oid)
+    # TODO: Figure out why this specific test needs this
+    if recurse and gitBackend == "git":
+        subprocess.call([GitDriver._gitPath, "update-index", "--really-refresh"], cwd=wd+"/submosub")
 
     rw = mainWindow.openRepo(wd)
     assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
 
-    node = rw.sidebar.findNodeByRef("refs/heads/old")
-    rw.jump(NavLocator.inCommit(oid))
+    node = rw.sidebar.findNodeByRef("refs/heads/just-added-submodule")
+    rw.jump(NavLocator.inRef("refs/heads/just-added-submodule"))
 
     if method == "switch1":
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch")

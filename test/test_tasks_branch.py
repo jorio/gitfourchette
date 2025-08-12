@@ -557,7 +557,7 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "graphmenu", "graphkey"])
-def testSwitchBranch(tempDir, mainWindow, method):
+def testSwitchBranch(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
@@ -657,8 +657,8 @@ def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     writeFile(uncommittedPath, uncommittedContents)
     rw = mainWindow.openRepo(wd)
 
-    rootId1 = Oid(hex="6d2168f6dcd314050ed1f6ad70b867aafa25a186")
-    rootId2 = Oid(hex="ea953d3ba4c5326d530dc09b4ca9781b01c18e00")
+    rootId1 = Oid(hex="76f07b5767ec7a1a5acbc8777ebc29e317795093")
+    rootId2 = Oid(hex="401dde0371830c00869fabeac7debd27b1abe709")
     subId1 = Oid(hex="db85fb4ffb94ad4e2ea1d3a6881dc5ec1cfbce92")
     subId2 = Oid(hex="6c138ceb12d6fc505ebe9015dcc48a0616e1de23")
 
@@ -669,7 +669,7 @@ def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(rootId2))
     triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
 
-    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+ea953d3")
+    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+" + id7(rootId2))
     dlg.modeButtons[ResetMode.HARD].click()
     assert dlg.ui.recurseCheckBox.isVisible()
     dlg.ui.recurseCheckBox.setChecked(True)
@@ -696,7 +696,7 @@ def testSwitchBranchBlockedByConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "fix merge conflicts before performing this action")
 
 
-def testSwitchBranchWorkdirConflicts(tempDir, mainWindow):
+def testSwitchBranchWorkdirConflicts(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
 
     writeFile(f"{wd}/c/c1.txt", "la menuiserie et toute la clique")
@@ -712,7 +712,10 @@ def testSwitchBranchWorkdirConflicts(tempDir, mainWindow):
     triggerMenuAction(menu, "switch to")
     acceptQMessageBox(rw, "switch to.+no-parent")
 
-    acceptQMessageBox(rw, "conflict.+with.+file")  # this will fail if the messagebox doesn't show up
+    if gitBackend == "libgit2":
+        acceptQMessageBox(rw, "conflict.+with.+file")
+    else:
+        acceptQMessageBox(rw, "your local changes to the following files would be overwritten by checkout")
 
     assert not localBranches['no-parent'].is_checked_out()  # still not checked out
     assert localBranches['master'].is_checked_out()
@@ -992,7 +995,7 @@ def testMergeCausesConflicts(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
-def testMightLoseDetachedHead(tempDir, mainWindow, method):
+def testMightLoseDetachedHead(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -1027,7 +1030,7 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
     assert looseOid not in rw.repoModel.graph.commitRows
 
 
-def testCreateBranchOnDetachedHead(tempDir, mainWindow):
+def testCreateBranchOnDetachedHead(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:

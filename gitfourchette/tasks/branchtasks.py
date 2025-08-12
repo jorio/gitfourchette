@@ -6,6 +6,7 @@
 
 import logging
 
+from gitfourchette import settings
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
@@ -53,9 +54,12 @@ class SwitchBranch(RepoTask):
                 _("You might lose track of this commit if you carry on switching to {0}.", hquo(newBranch)))
             yield from self.flowConfirm(text=text, icon='warning')
 
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(newBranch, recurseSubmodules)
+
+    def _withLibgit2(self, newBranch: str, recurseSubmodules: bool):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Head
-
         self.repo.checkout_local_branch(newBranch)
 
         self.postStatus = _("Switched to branch {0}.", tquo(newBranch))
@@ -64,6 +68,18 @@ class SwitchBranch(RepoTask):
             from gitfourchette.tasks import UpdateSubmodulesRecursive
             yield from self.flowEnterUiThread()
             yield from self.flowSubtask(UpdateSubmodulesRecursive)
+
+    def _withGit(self, newBranch: str, recurseSubmodules: bool):
+        self.effects |= TaskEffects.Refs | TaskEffects.Head
+
+        args = ["checkout", "--progress", "--no-guess"]
+        if recurseSubmodules:
+            args += ["--recurse-submodules"]
+        args += [newBranch]
+
+        yield from self.flowCallGit(*args)
+
+        self.postStatus = _("Switched to branch {0}.", tquo(newBranch))
 
 
 class RenameBranch(RepoTask):
@@ -169,6 +185,7 @@ class RenameBranchFolder(RepoTask):
                 + " "
                 + _n("{n} branch affected.", "{n} branches affected.", len(folderBranches))
         )
+
 
 class DeleteBranch(RepoTask):
     def flow(self, localBranchName: str):
