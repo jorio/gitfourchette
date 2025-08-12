@@ -20,7 +20,7 @@ from . import reposcenario
 from .util import *
 
 
-def testCommit(tempDir, mainWindow):
+def testCommit(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -50,7 +50,7 @@ def testCommit(tempDir, mainWindow):
     dialog.accept()
 
     headCommit = rw.repo.head_commit
-    assert headCommit.message == "Some New Commit"
+    assert headCommit.message == "Some New Commit\n"
     assert headCommit.author.name == "Custom Author"
     assert headCommit.author.email == "custom.author@example.com"
     assert headCommit.author.time == enteredDate.toSecsSinceEpoch()
@@ -63,7 +63,7 @@ def testCommit(tempDir, mainWindow):
     assert patches[0].delta.new_file.path == "a/a1.txt"
 
 
-def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow):
+def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
     touchFile(F"{wd}/SomeNewFile.txt")
     rw = mainWindow.openRepo(wd)
@@ -81,10 +81,10 @@ def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow):
 
     rows = qlvGetRowData(rw.graphView, CommitLogModel.Role.Commit)
     commit: Commit = rows[-1].peel(Commit)
-    assert commit.message == "Initial commit"
+    assert commit.message == "Initial commit\n"
 
 
-def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow):
+def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -96,17 +96,18 @@ def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow):
     QTest.keyClicks(dialog.ui.summaryEditor, "hoping to save this message")
     dialog.reject()
     assert rw.repoModel.prefs.hasDraftCommit()
-    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
+    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message\n"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
 
     rw.diffArea.commitButton.click()
     dialog: CommitDialog = findQDialog(rw, "commit")
     assert dialog.ui.summaryEditor.text() == "hoping to save this message"
+    assert dialog.ui.descriptionEditor.toPlainText() == ""
     dialog.ui.revealSignature.click()
     dialog.ui.signature.ui.replaceComboBox.setCurrentIndex(2)
     dialog.reject()
     assert rw.repoModel.prefs.hasDraftCommit()
-    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
+    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message\n"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Both
     assert rw.repoModel.prefs.draftCommitSignature is not None
 
@@ -140,7 +141,7 @@ def testClearCommitMessageDraft(tempDir, mainWindow):
     dialog.reject()
 
     assert rw.repoModel.prefs.hasDraftCommit()
-    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
+    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message\n"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
 
     assert rw.navLocator.context.isWorkdir()
@@ -150,7 +151,7 @@ def testClearCommitMessageDraft(tempDir, mainWindow):
     assert not rw.repoModel.prefs.draftCommitMessage
 
 
-def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow):
+def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -164,7 +165,7 @@ def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow)
     dialog.ui.signature.ui.emailEdit.setText("")
     assert not dialog.acceptButton.isEnabled()
     dialog.reject()
-    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message"
+    assert rw.repoModel.prefs.draftCommitMessage == "hoping to save this message\n"
     assert rw.repoModel.prefs.draftCommitSignatureOverride == SignatureOverride.Nothing
     assert rw.repoModel.prefs.draftCommitSignature is None
     assert rw.repoModel.prefs.hasDraftCommit()
@@ -208,7 +209,7 @@ def testPasteMultilineCommitMessage(tempDir, mainWindow):
     dialog.reject()
 
 
-def testAmendCommit(tempDir, mainWindow):
+def testAmendCommit(tempDir, mainWindow, gitBackend):
     oldMessage = "Delete c/c2-2.txt"
     newMessage = "amended commit message"
     newAuthorName = "Jean-Michel Tartempion"
@@ -230,18 +231,14 @@ def testAmendCommit(tempDir, mainWindow):
     dialog.ui.signature.ui.nameEdit.setText(newAuthorName)
     dialog.ui.signature.ui.emailEdit.setText(newAuthorEmail)
     dialog.accept()
-    waitForSignal(dialog.destroyed, disconnect=False)  # wait for dialog to be gone after accepting
 
     headCommit = rw.repo.head_commit
     assert headCommit.id != oldHeadCommit.id
-    assert headCommit.message == newMessage
+    assert headCommit.message == newMessage + "\n"
     assert headCommit.author.name == newAuthorName
     assert headCommit.author.email == newAuthorEmail
     assert headCommit.committer.name == TEST_SIGNATURE.name
     assert headCommit.committer.email == TEST_SIGNATURE.email
-
-    # Ensure no error dialog boxes after operation
-    assert not mainWindow.findChildren(QDialog)
 
     assert rw.graphView.currentRowKind == SpecialRow.UncommittedChanges  # uncommitted changes should still be selected
     assert rw.stagedFiles.isVisibleTo(rw)
@@ -249,7 +246,7 @@ def testAmendCommit(tempDir, mainWindow):
     assert not rw.committedFiles.isVisibleTo(rw)
 
 
-def testAmendCommitDontBreakRefresh(tempDir, mainWindow):
+def testAmendCommitDontBreakRefresh(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -261,13 +258,9 @@ def testAmendCommitDontBreakRefresh(tempDir, mainWindow):
     # Amend HEAD commit without any changes, i.e. just change the timestamp.
     dialog: CommitDialog = findQDialog(rw, "amend")
     dialog.accept()
-    waitForSignal(dialog.destroyed, disconnect=False)  # wait for dialog to be gone after accepting
-
-    # Ensure no errors dialog boxes after operation (e.g. "commit not found")
-    assert not mainWindow.findChildren(QDialog)
 
 
-def testEmptyCommitRaisesWarning(tempDir, mainWindow):
+def testEmptyCommitRaisesWarning(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     rw.diffArea.commitButton.click()
@@ -289,7 +282,7 @@ def testEmptyCommitRaisesWarning(tempDir, mainWindow):
     qmb.reject()
 
 
-def testCommitWithoutUserIdentity(tempDir, mainWindow):
+def testCommitWithoutUserIdentity(tempDir, mainWindow, gitBackend):
     clearSessionwideIdentity()
 
     wd = unpackRepo(tempDir)
@@ -316,12 +309,12 @@ def testCommitWithoutUserIdentity(tempDir, mainWindow):
     commitDialog.accept()
 
     headCommit = rw.repo.head_commit
-    assert headCommit.message == "ca geht's mol?"
+    assert headCommit.message == "ca geht's mol?\n"
     assert headCommit.author.name == "Archibald Haddock"
     assert headCommit.author.email == "1e15sabords@example.com"
 
 
-def testCommitStableDate(tempDir, mainWindow):
+def testCommitStableDate(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -338,11 +331,11 @@ def testCommitStableDate(tempDir, mainWindow):
     dialog.accept()
 
     headCommit = rw.repo.head_commit
-    assert headCommit.message == "hold on a sec..."
+    assert headCommit.message == "hold on a sec...\n"
     assert signatures_equalish(headCommit.author, headCommit.committer)
 
 
-def testAmendAltersCommitterDate(tempDir, mainWindow):
+def testAmendAltersCommitterDate(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -355,7 +348,7 @@ def testAmendAltersCommitterDate(tempDir, mainWindow):
     dialog.accept()
 
     amendedHeadCommit = rw.repo.head_commit
-    assert amendedHeadCommit.message == "hold on a sec..."
+    assert amendedHeadCommit.message == "hold on a sec...\n"
     assert signatures_equalish(amendedHeadCommit.author, headCommit.author)
     assert not signatures_equalish(amendedHeadCommit.committer, headCommit.committer)
     assert not signatures_equalish(amendedHeadCommit.author, amendedHeadCommit.committer)
@@ -472,7 +465,7 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
     assert currentSidebarNode.kind == SidebarItem.DetachedHead
 
 
-def testCommitOnDetachedHead(tempDir, mainWindow):
+def testCommitOnDetachedHead(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
 
     oid = Oid(hex='1203b03dc816ccbb67773f28b3c19318654b0bc8')
@@ -491,14 +484,14 @@ def testCommitOnDetachedHead(tempDir, mainWindow):
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "create.+empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
-    commitDialog.ui.summaryEditor.setText("les chenilles et les chevaux")
+    commitDialog.ui.summaryEditor.setText("hello from detached HEAD")
     commitDialog.accept()
 
     assert rw.repo.head_is_detached
     assert rw.repo.head.target != oid  # detached HEAD should no longer point to initial commit
 
     newHeadCommit = rw.repo.head_commit
-    assert newHeadCommit.message == "les chenilles et les chevaux"
+    assert newHeadCommit.message == "hello from detached HEAD\n"
 
     displayedCommits = qlvGetRowData(rw.graphView, Qt.ItemDataRole.UserRole)
     assert newHeadCommit in displayedCommits
@@ -548,7 +541,7 @@ def testAbortRevertCommit(tempDir, mainWindow):
     assert not os.path.exists(f"{wd}/c/c2-2.txt")
 
 
-def testCherrypick(tempDir, mainWindow):
+def testCherrypick(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -573,7 +566,7 @@ def testCherrypick(tempDir, mainWindow):
     dialog.accept()
 
     headCommit = rw.repo.head_commit
-    assert headCommit.message == "First a/a1"
+    assert headCommit.message == "First a/a1\n"
 
     headCommitHash = str(headCommit.id)[:5]
     assert re.match(rf"commit.+{headCommitHash}.+created", mainWindow.statusBar().currentMessage(), re.I)

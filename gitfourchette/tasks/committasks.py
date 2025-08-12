@@ -7,6 +7,7 @@
 import logging
 from contextlib import suppress
 
+from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
@@ -102,14 +103,50 @@ class NewCommit(RepoTask):
 
         cd.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        newOid = self.repo.create_commit_on_head(message, author, committer)
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        newOid = yield from impl(message, author, committer)
 
         yield from self.flowEnterUiThread()
         uiPrefs.clearDraftCommit()
 
         self.postStatus = _("Commit {0} created.", tquo(shortHash(newOid)))
+
+    def _withLibgit2(self, message: str, author: Signature | None, committer: Signature | None):
+        yield from self.flowEnterWorkerThread()
+        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        return self.repo.create_commit_on_head(message, author, committer)
+
+    def _withGit(self, message: str, author: Signature | None, committer: Signature | None):
+        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        args, env = NewCommit.prepareGitCommand(message, author, committer)
+        yield from self.flowCallGit(*args, env=env)
+        return self.repo.head_commit_id
+
+    @staticmethod
+    def prepareGitCommand(message: str, author: Signature | None, committer: Signature | None, amend=False):
+        def signatureEnvironmentVariables(sig: Signature, infix: str) -> dict[str, str]:
+            return {
+                f"GIT_{infix}_NAME": sig.name,
+                f"GIT_{infix}_EMAIL": sig.email,
+                f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
+            }
+
+        args = ["commit", "--allow-empty", "--no-edit", f"--message={message}"]
+
+        if amend:
+            args += ["--amend"]
+
+        env = {}
+
+        if author is not None:
+            if amend:
+                args += ["--reset-author"]
+            env |= signatureEnvironmentVariables(author, "AUTHOR")
+
+        if committer is not None:
+            env |= signatureEnvironmentVariables(committer, "COMMITTER")
+
+        return args, env
 
 
 class AmendCommit(RepoTask):
@@ -162,16 +199,25 @@ class AmendCommit(RepoTask):
         author = cd.getOverriddenAuthorSignature()  # no "or fallback" here - leave author intact for amending
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-
-        newOid = self.repo.amend_commit_on_head(message, author, committer)
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        newOid = yield from impl(message, author, committer)
 
         yield from self.flowEnterUiThread()
         self.repoModel.prefs.clearDraftAmend()
 
         self.postStatus = _("Commit {0} amended. New hash: {1}.",
                             tquo(shortHash(headCommit.id)), tquo(shortHash(newOid)))
+
+    def _withLibgit2(self, message: str, author: Signature | None, committer: Signature | None):
+        yield from self.flowEnterWorkerThread()
+        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        return self.repo.amend_commit_on_head(message, author, committer)
+
+    def _withGit(self, message: str, author: Signature | None, committer: Signature | None):
+        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True)
+        yield from self.flowCallGit(*args, env=env)
+        return self.repo.head_commit_id
 
 
 class SetUpGitIdentity(RepoTask):

@@ -137,16 +137,26 @@ class CommitDialog(QDialog):
         else:
             return _("Cannot be empty.")
 
-    def getFullMessage(self):
+    def getFullMessage(self) -> str:
         summary = self.ui.summaryEditor.text()
         details = self.ui.descriptionEditor.toPlainText()
 
         hasDetails = bool(details.strip())
 
         if not hasDetails:
-            return summary
+            message = summary
+        else:
+            message = f"{summary}\n\n{details}"
 
-        return F"{summary}\n\n{details}"
+        if not message:
+            return ""
+
+        # Vanilla git enforces a final newline in commit messages whether we want it or not,
+        # so just add one ourselves so that we get the same outcome with libgit2.
+        if not message.endswith("\n"):
+            message += "\n"
+
+        return message
 
     def getOverriddenSignatureKind(self):
         if self.ui.revealSignature.isChecked() and self.ui.signature.getSignature():

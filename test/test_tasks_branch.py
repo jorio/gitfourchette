@@ -920,7 +920,7 @@ def testAbortMerge(tempDir, mainWindow):
     assert not rw.repoModel.prefs.draftCommitMessage
 
 
-def testMergeConcludedByCommit(tempDir, mainWindow):
+def testMergeConcludedByCommit(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     node = rw.sidebar.findNodeByRef("refs/heads/pep8-fixes")
@@ -945,7 +945,7 @@ def testMergeConcludedByCommit(tempDir, mainWindow):
     assert rw.repo.status() == {}
 
 
-def testMergeCausesConflicts(tempDir, mainWindow):
+def testMergeCausesConflicts(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     conflictUI = rw.conflictView.ui
@@ -983,7 +983,7 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    assert "Merge branch 'branch-conflicts' into 'master'" == commitDialog.getFullMessage()
+    assert "Merge branch 'branch-conflicts' into 'master'\n" == commitDialog.getFullMessage()
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 

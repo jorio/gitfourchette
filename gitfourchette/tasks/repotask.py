@@ -470,7 +470,10 @@ class RepoTask(QObject):
         assert self._isRunningOnAppThread(), "start processes from UI thread"
         assert self.currentProcess is None, "a process is already running in this task"
 
-        commandLine = shlex.join([process.program()] + process.arguments())
+        pe, se = process.processEnvironment(), QProcessEnvironment.systemEnvironment()
+        envStrs = [f"{key}={pe.value(key)}" for key in pe.keys() if pe.value(key) != se.value(key)]
+
+        commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
         logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
 
         self.currentProcess = process
@@ -512,6 +515,7 @@ class RepoTask(QObject):
             *args: str,
             remote="",
             workdir="",
+            env: dict[str, str] | None = None,
     ) -> GitDriver:
         from gitfourchette import settings
         from gitfourchette.exttools.toolcommands import ToolCommands
@@ -540,9 +544,13 @@ class RepoTask(QObject):
         if workdir:
             process.setWorkingDirectory(workdir)
 
-        # Force Git output in English
         processEnvironment = QProcessEnvironment.systemEnvironment()
+        # Force Git output in English
         processEnvironment.insert("LC_ALL", "C")
+        # Forward custom environment variables
+        if env:
+            for k, v in env.items():
+                processEnvironment.insert(k, v)
         process.setProcessEnvironment(processEnvironment)
 
         process.progressMessage.connect(self.onGitProgressMessage)
@@ -555,8 +563,9 @@ class RepoTask(QObject):
             autoFail=True,
             remote="",
             workdir="",
+            env: dict[str, str] | None = None,
     ) -> Generator[FlowControlToken, None, GitDriver]:
-        process = self.createGitProcess(*args, remote=remote, workdir=workdir)
+        process = self.createGitProcess(*args, remote=remote, workdir=workdir, env=env)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 

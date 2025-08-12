@@ -141,7 +141,7 @@ def testSkipRenameDetection(tempDir, mainWindow):
     assert not rw.diffBanner.isVisible()
 
 
-def testNewRepo(tempDir, mainWindow):
+def testNewRepo(tempDir, mainWindow, gitBackend):
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
 
     path = os.path.realpath(tempDir.name + "/valoche3000")
@@ -303,7 +303,7 @@ def testRepoNickname(tempDir, mainWindow):
 
 @pytest.mark.parametrize("name", ["Zhack Sheerack", ""])
 @pytest.mark.parametrize("email", ["chichi@example.com", ""])
-def testCustomRepoIdentity(tempDir, mainWindow, name, email):
+def testCustomRepoIdentity(tempDir, mainWindow, name, email, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -346,8 +346,6 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
     assert headCommit.author.email == (email or TEST_SIGNATURE.email)
     assert headCommit.committer.name == headCommit.author.name
     assert headCommit.committer.email == headCommit.author.email
-
-    dlg.accept()
 
 
 @pytest.mark.parametrize("withGC", [True, False])
