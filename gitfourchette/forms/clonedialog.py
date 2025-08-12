@@ -17,7 +17,7 @@ from pygit2.enums import RepositoryOpenFlag
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
-from gitfourchette.gitdriver import GitDriver
+from gitfourchette.gitdriver import GitDriver, argsIf
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo, pygit2_version_at_least, RepoContext
 from gitfourchette.qt import *
@@ -405,6 +405,8 @@ class CloneTaskVanillaGit(RepoTask):
             self.currentProcess.terminate()
 
     def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
+        shallow = depth != 0
+
         self.aborting = False
         self.cloneDialog = dialog
         dialog.ui.statusGroupBox.setTitle(_("Cloning…"))
@@ -412,35 +414,27 @@ class CloneTaskVanillaGit(RepoTask):
         dialog.enableInputs(False)
         dialog.aboutToReject.connect(self.abort)
 
-        # Prepare clone command
-        args = []
-
+        # Use custom key
+        customKeyPreamble = []
         if privKeyPath:
             driver = yield from self.flowCallGit("config", "--get", "core.sshCommand", autoFail=False)
             sshCommandBase = ""
             if driver.exitCode() == 0:
                 sshCommandBase = bytes(driver.readAllStandardOutput()).decode()
-            args += GitDriver.customSshKeyPreamble(privKeyPath, sshCommandBase)
-
-        args += ["clone", "--progress"]
-
-        if recursive:
-            args += ["--recurse-submodules"]
-
-        if depth != 0:
-            if recursive:
-                args += ["--shallow-submodules"]
-            args += [
-                "--depth",
-                str(depth),
-                "--no-single-branch",   # for compatibility with libgit2 backend's behavior
-                "--no-tags",            # for compatibility with libgit2 backend's behavior
-            ]
-
-        args += ["--", url, path]
+            customKeyPreamble = GitDriver.customSshKeyPreamble(privKeyPath, sshCommandBase)
 
         # Clone the repo
-        yield from self.flowCallGit(*args)
+        yield from self.flowCallGit(
+            *customKeyPreamble,
+            "clone",
+            "--progress",
+            *argsIf(recursive, "--recurse-submodules"),
+            *argsIf(shallow and recursive, "--shallow-submodules"),
+            *argsIf(shallow, "--depth", str(depth)),
+            *argsIf(shallow, "--no-single-branch", "--no-tags"),  # match what libgit2 backend does
+            "--",
+            url,
+            path)
 
         # Successfully cloned
         settings.history.addCloneUrl(url)

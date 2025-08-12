@@ -15,6 +15,7 @@ from gitfourchette.forms.deletetagdialog import DeleteTagDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -131,16 +132,18 @@ class NewCommit(RepoTask):
                 f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
             }
 
-        args = ["commit", "--allow-empty", "--no-edit", f"--message={message}"]
-
-        if amend:
-            args += ["--amend"]
+        args = [
+            "commit",
+            *argsIf(amend, "--amend"),
+            *argsIf(amend and author, "--reset-author"),
+            "--allow-empty",
+            "--no-edit",
+            f"--message={message}"
+        ]
 
         env = {}
 
         if author is not None:
-            if amend:
-                args += ["--reset-author"]
             env |= signatureEnvironmentVariables(author, "AUTHOR")
 
         if committer is not None:

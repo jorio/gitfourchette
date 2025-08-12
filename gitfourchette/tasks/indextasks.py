@@ -11,7 +11,7 @@ from contextlib import suppress
 
 from gitfourchette import reverseunidiff, settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import GitDriver
+from gitfourchette.gitdriver import GitDriver, argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -484,10 +484,13 @@ class ApplyPatchFile(RepoTask):
 
     def _withGit(self, reverse: bool, path: str, title: str, verb: str):
         # Do a dry run first.
-        command = ["apply", "-z", "--numstat", "--check", path]
-        if reverse:
-            command.append("--reverse")
-        driver = yield from self.flowCallGit(*command)
+        driver = yield from self.flowCallGit(
+            "apply",
+            "-z",
+            "--numstat",
+            "--check",
+            path,
+            *argsIf(reverse, "--reverse"))
         stdout = driver.readAll().data()
 
         table = GitDriver.parseTable(r"^(-|\d+)\t(-|\d+)\t(.+)$", stdout, "\0")
@@ -512,10 +515,10 @@ class ApplyPatchFile(RepoTask):
         # Dry run confirmed, go ahead
         self.effects |= TaskEffects.Workdir
 
-        command = ["apply", path]
-        if reverse:
-            command.append("--reverse")
-        yield from self.flowCallGit(*command)
+        yield from self.flowCallGit(
+            "apply",
+            path,
+            *argsIf(reverse, "--reverse"))
 
         self.jumpTo = NavLocator.inUnstaged(firstFile)
 

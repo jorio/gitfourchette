@@ -16,7 +16,7 @@ from gitfourchette import settings
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotelinkdialog import RemoteLinkDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
-from gitfourchette.gitdriver import GitDriver, VanillaFetchStatusFlag
+from gitfourchette.gitdriver import GitDriver, VanillaFetchStatusFlag, argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -271,18 +271,15 @@ class FetchRemotes(_BaseNetTask):
 
     def _withGit(self, title: str, singleRemoteName: str = ""):
         # TODO: postStatus?
-        args = ["fetch", "--verbose", "--prune", "--progress"]
-
-        if GitDriver.supportsFetchPorcelain():
-            args += ["--porcelain"]
-
-        if singleRemoteName:
-            args += ["--no-all", singleRemoteName]
-        else:
-            args += ["--all"]
-
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
-        yield from self.flowCallGit(*args, remote=singleRemoteName)
+        yield from self.flowCallGit(
+            "fetch",
+            "--prune",
+            "--progress",
+            *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
+            *argsIf(singleRemoteName, "--no-all", singleRemoteName),
+            *argsIf(not singleRemoteName, "--all"),
+            remote=singleRemoteName)
 
 
 class FetchRemoteBranch(_BaseNetTask):
@@ -343,13 +340,14 @@ class FetchRemoteBranch(_BaseNetTask):
 
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
-        args = ["fetch", "--progress", "--no-tags", "--verbose"]
-        if GitDriver.supportsFetchPorcelain():
-            args += ["--porcelain"]  # output tabular data on stdout
-            # Combined with --verbose, shows status of up-to-date refs
-        args += [remoteName, remoteBranch]
-
-        driver = yield from self.flowCallGit(*args, remote=remoteName)
+        driver = yield from self.flowCallGit(
+            "fetch",
+            "--progress",
+            "--no-tags",
+            *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
+            remoteName,
+            remoteBranch,
+            remote=remoteName)
 
         # Old git: don't attempt to parse the result
         if not GitDriver.supportsFetchPorcelain():
@@ -442,12 +440,13 @@ class UpdateSubmodule(_BaseNetTask):
                 subrepo.checkout_tree(tree)
 
         if settings.prefs.vanillaGit:
-            args = ["submodule", "update"]
-            if init:
-                args += ["--init"]
-            args += ["--", submodulePath]
             yield from self.flowEnterUiThread()
-            yield from self.flowCallGit(*args)
+            yield from self.flowCallGit(
+                "submodule",
+                "update",
+                *argsIf(init, "--init"),
+                "--",
+                submodulePath)
         else:
             # Wrap update operation with RemoteLinkKeyFileContext: we need the keys
             # if the submodule uses an SSH connection.
@@ -553,17 +552,16 @@ class PushBranch(RepoTask):
         if resetTrackingReference:
             self.effects |= TaskEffects.Upstreams
 
-        args = ["push", "--porcelain", "--progress"]
-
-        if dialog.willForcePush:
-            args += ["--force-with-lease"]
-
-        if resetTrackingReference:
-            args += ["--set-upstream"]
-
-        args += [remote.name, refspec]
-
-        driver = yield from self.flowCallGit(*args, autoFail=False, remote=remote.name)
+        driver = yield from self.flowCallGit(
+            "push",
+            "--porcelain",
+            "--progress",
+            *argsIf(dialog.willForcePush, "--force-with-lease"),
+            *argsIf(resetTrackingReference, "--set-upstream"),
+            remote.name,
+            refspec,
+            autoFail=False,
+            remote=remote.name)
         stdout = driver.readAll().data().decode(errors="replace")
 
         # ---------------

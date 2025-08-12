@@ -10,6 +10,7 @@ from gitfourchette import settings
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -72,12 +73,12 @@ class SwitchBranch(RepoTask):
     def _withGit(self, newBranch: str, recurseSubmodules: bool):
         self.effects |= TaskEffects.Refs | TaskEffects.Head
 
-        args = ["checkout", "--progress", "--no-guess"]
-        if recurseSubmodules:
-            args += ["--recurse-submodules"]
-        args += [newBranch]
-
-        yield from self.flowCallGit(*args)
+        yield from self.flowCallGit(
+            "checkout",
+            "--progress",
+            "--no-guess",
+            *argsIf(recurseSubmodules, "--recurse-submodules"),
+            newBranch)
 
         self.postStatus = _("Switched to branch {0}.", tquo(newBranch))
 

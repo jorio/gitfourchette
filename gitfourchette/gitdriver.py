@@ -15,6 +15,13 @@ from gitfourchette.porcelain import version_to_tuple
 from gitfourchette.qt import *
 
 
+def argsIf(condition: bool, *args: str) -> tuple[str, ...]:
+    if condition:
+        return args
+    else:
+        return ()
+
+
 class VanillaFetchStatusFlag(StrEnum):
     FastForward = " "
     ForcedUpdate = "+"
