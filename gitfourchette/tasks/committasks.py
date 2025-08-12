@@ -6,6 +6,7 @@
 
 import logging
 from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
@@ -497,10 +498,10 @@ class CherrypickCommit(RepoTask):
         return TaskPrereqs.NoConflicts | TaskPrereqs.NoStagedChanges
 
     def flow(self, oid: Oid):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
         commit = self.repo.peel_commit(oid)
-        self.repo.cherrypick(oid)
+
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        yield from impl(oid)
 
         anyConflicts = self.repo.any_conflicts
         dud = not anyConflicts and not self.repo.any_staged_changes
@@ -535,3 +536,20 @@ class CherrypickCommit(RepoTask):
                 verb=_p("verb", "Commit"),
                 cancelText=_("Review changes"))
             yield from self.flowSubtask(NewCommit)
+
+    def _withLibgit2(self, oid: Oid):
+        yield from self.flowEnterWorkerThread()
+        self.effects |= TaskEffects.Workdir
+        self.repo.cherrypick(oid)
+
+    def _withGit(self, oid: Oid):
+        self.effects |= TaskEffects.Workdir
+        yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
+
+        # Force cherry-picking state for compatibility with libgit2 backend
+        cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD"))
+        cherryPickHead.write_text(str(oid) + "\n")
+
+        # Refresh libgit2 index for conflict analysis
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()

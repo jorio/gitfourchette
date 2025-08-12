@@ -576,7 +576,7 @@ def testCherrypick(tempDir, mainWindow, gitBackend):
     assert qlvGetRowData(rw.committedFiles) == ["a/a1.txt"]
 
 
-def testCherrypickDud(tempDir, mainWindow):
+def testCherrypickDud(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -586,7 +586,7 @@ def testCherrypickDud(tempDir, mainWindow):
     acceptQMessageBox(rw, "nothing to cherry.?pick.+already")
 
 
-def testAbortCherrypick(tempDir, mainWindow):
+def testAbortCherrypick(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
