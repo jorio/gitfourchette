@@ -456,12 +456,16 @@ class RevertCommit(RepoTask):
             _("You will have an opportunity to review the affected files in your working directory."))
         yield from self.flowConfirm(text=text)
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
         repoModel = self.repoModel
         repo = self.repo
-        commit = repo.peel_commit(oid)
-        repo.revert(commit)
+
+        if settings.prefs.vanillaGit:
+            yield from self._withGit(oid)
+        else:
+            yield from self.flowEnterWorkerThread()
+            self.effects |= TaskEffects.Workdir
+            commit = repo.peel_commit(oid)
+            repo.revert(commit)
 
         anyConflicts = repo.any_conflicts
         dud = not anyConflicts and not repo.any_staged_changes
@@ -490,6 +494,16 @@ class RevertCommit(RepoTask):
             text = _("Reverting {0} was successful. Do you want to commit the result now?", bquo(shortHash(oid)))
             yield from self.flowConfirm(text=text, verb=_p("verb", "Commit"), cancelText=_("Review changes"))
             yield from self.flowSubtask(NewCommit)
+
+    def _withGit(self, oid: Oid):
+        self.effects |= TaskEffects.Workdir
+
+        # Don't raise AbortTask if git returns non-0
+        yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
+
+        # Refresh libgit2 index for conflict analysis
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()
 
 
 class CherrypickCommit(RepoTask):

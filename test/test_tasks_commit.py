@@ -499,7 +499,7 @@ def testCommitOnDetachedHead(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testRevertCommit(tempDir, mainWindow):
+def testRevertCommit(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -521,7 +521,7 @@ def testRevertCommit(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testAbortRevertCommit(tempDir, mainWindow):
+def testAbortRevertCommit(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
