@@ -483,14 +483,30 @@ class RepoTask(QObject):
             processError = True
         processError = False
 
+        # Intercept errorOccurred before the process starts so that we can
+        # report that the command was not found. Disconnect errorOccurred as
+        # soon as the program has started so that sending SIGTERM manually
+        # won't cause a "ProcessCrashed" message box.
         process.errorOccurred.connect(onProcessError)
+        process.started.connect(lambda: process.errorOccurred.disconnect(onProcessError))
+
+        # Continue the coroutine when the process is ready.
         process.finished.connect(self.uiReady)
+
+        # Start the process.
         process.start()
 
+        # The process is supposed to be Starting or Running by now.
         if process.state() != QProcess.ProcessState.NotRunning:
+            # Pause the coroutine until the process is ready.
             process.errorOccurred.connect(self.uiReady)
             waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
             yield waitToken
+        else:
+            # If it's NotRunning immediately after start(), that means the process
+            # couldn't be started for some reason (e.g. working directory missing).
+            # The errorOccurred signal should have called onProcessError.
+            pass
 
         self.currentProcess = None
 
@@ -534,7 +550,8 @@ class RepoTask(QObject):
                 sshCommandBase = self.repo.get_config_value(("core", "sshCommand"))
                 tokens = GitDriver.customSshKeyPreamble(remoteKeyFile, sshCommandBase) + tokens
 
-        tokens = [settings.prefs.gitPath] + tokens
+        gitExecutableTokens = shlex.split(settings.prefs.gitPath, posix=True)
+        tokens = gitExecutableTokens + tokens
 
         if FLATPAK:
             tokens = ToolCommands.wrapFlatpakSpawn(tokens, workdir, detached=False)
