@@ -18,11 +18,11 @@ jobs:
         include:
         # Legacy configs
         # pytest 8.3.5 is the last version without a mandatory requirement for pygments
-        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pytest==8.3.5 && pip uninstall -y pygments'}
-        - {name: '310-pyqt5-outdated', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12'}
+        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pytest==8.3.5 && pip uninstall -y pygments', downgrade-git: true}
+        - {name: '310-pyqt5-outdated', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12', downgrade-git: true}
         # Semi-legacy configs
-        - {name: '311-pyqt6', os: ubuntu-latest, py: '3.11', qt: pyqt6}
-        - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6}
+        - {name: '311-pyqt6', os: ubuntu-latest, py: '3.11', qt: pyqt6, downgrade-git: true}
+        - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
         # Up-to-date configs
         - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, args: '--with-flatpak'}
         - {name: '313-pyside6', os: ubuntu-latest, py: '3.13', qt: pyside6, args: '--with-flatpak', coverage: true}
@@ -37,6 +37,17 @@ jobs:
       run: |
         sudo apt update
         sudo apt install ${{ matrix.qt == 'pyqt5' && 'libqt5gui5' || 'libqt6gui6' }}
+
+    - name: Downgrade git
+      if: ${{ matrix.downgrade-git }}
+      run: |
+        sudo apt remove git git-man
+        sudo apt install git
+
+    - name: Git version
+      run: |
+        which git
+        git version
 
     - name: Set up Python
       uses: actions/setup-python@v5
