@@ -184,7 +184,7 @@ def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
     assert "conflicts need fixing" in rw.mergeBanner.label.text().lower()
 
 
-def testResetIndexWithConflicts(tempDir, mainWindow):
+def testResetIndexWithConflicts(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.statelessConflictingChange(wd)
 

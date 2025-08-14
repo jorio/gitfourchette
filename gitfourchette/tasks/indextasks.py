@@ -663,18 +663,22 @@ class AbortMerge(RepoTask):
             clause = _("abort the ongoing cherry-pick")
             title = _("Abort cherry-pick")
             postStatus = _("Cherry-pick aborted.")
+            gitCommand = ["cherry-pick", "--abort"]
         elif isMerging:
             clause = _("abort the ongoing merge")
             title = _("Abort merge")
             postStatus = _("Merge aborted.")
+            gitCommand = ["merge", "--abort"]
         elif isReverting:
             clause = _("abort the ongoing revert")
             title = _("Abort revert")
             postStatus = _("Revert aborted.")
+            gitCommand = ["revert", "--abort"]
         else:
             clause = _("reset the index")
             title = _("Reset index")
             postStatus = _("Index reset.")
+            gitCommand = ["reset", "--merge"]
 
         try:
             abortList = self.repo.get_reset_merge_file_list()
@@ -702,8 +706,11 @@ class AbortMerge(RepoTask):
 
         self.effects |= TaskEffects.DefaultRefresh
 
-        self.repo.reset_merge()
-        self.repo.state_cleanup()
+        if settings.prefs.vanillaGit:
+            yield from self.flowCallGit(*gitCommand)
+        else:
+            self.repo.reset_merge()
+            self.repo.state_cleanup()
 
         self.postStatus = postStatus
 
