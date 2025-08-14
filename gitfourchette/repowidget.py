@@ -18,6 +18,7 @@ from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
+from gitfourchette.forms.processdialog import ProcessDialog
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogmodel import SpecialRow
@@ -91,6 +92,10 @@ class RepoWidget(QWidget):
         self.taskRunner.progress.connect(self.onRepoTaskProgress)
         self.taskRunner.repoGone.connect(self.onRepoGone)
         self.taskRunner.requestAttention.connect(self.requestAttention)
+
+        # Report progress in long-running background processes
+        self.processDialog = ProcessDialog(self)
+        self.taskRunner.processStarted.connect(self.processDialog.install)
 
         self.repoModel = repoModel
         self.pendingLocator = NavLocator()

@@ -233,7 +233,10 @@ def triggerMenuAction(menu: QMenu | QMenuBar, pattern: str):
 def triggerContextMenuAction(widget: QWidget, pattern: str):
     menu = summonContextMenu(widget)
     triggerMenuAction(menu, pattern)
-    menu.close()
+    try:
+        menu.close()
+    except RuntimeError:
+        pass
 
 
 def qteFind(qte: QTextEdit, pattern: str, plainText=False):

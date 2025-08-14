@@ -200,8 +200,10 @@ class RepoTask(QObject):
     effects: TaskEffects
     """ Which parts of the UI should be refreshed when this task completes. """
 
-    currentProcess: QProcess | None
-    """ External process that this task is currently waiting on (via flowStartProcess). """
+    _currentProcess: QProcess | None
+    """ External process that this task is currently waiting on (via flowStartProcess).
+    This is only valid in the root task in the stack (non-root tasks are allowed
+    to set the root task's current process). """
 
     _postStatus: str
     """ Display this message in the status bar after completion (user code should use the getter/setter). """
@@ -236,7 +238,7 @@ class RepoTask(QObject):
         self.setObjectName(self.__class__.__name__)
         self.jumpTo = NavLocator()
         self.effects = TaskEffects.Nothing
-        self.currentProcess = None
+        self._currentProcess = None
         self._postStatus = ""
         self._postStatusLocked = False
         self._taskStack = [self]
@@ -250,6 +252,10 @@ class RepoTask(QObject):
     @property
     def isRootTask(self) -> bool:
         return self.rootTask is self
+
+    @property
+    def currentProcess(self) -> QProcess | None:
+        return self.rootTask._currentProcess
 
     def parentWidget(self) -> QWidget:
         return findParentWidget(self)
@@ -271,9 +277,20 @@ class RepoTask(QObject):
 
     def canKill(self, task: RepoTask) -> bool:
         """
+        Meant to be overridden by your task.
         Return true if this task is allowed to take precedence over the given running task.
+        The default implementation will not attempt to kill any other tasks.
         """
         return False
+
+    def broadcastProcesses(self) -> bool:
+        """
+        Meant to be overridden by your task.
+        Returns whether this task should emit the `processStarted` signal when
+        `flowStartProcess` starts a process. This enables automatic progress
+        reporting via ProcessDialog.
+        """
+        return True
 
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
@@ -476,7 +493,7 @@ class RepoTask(QObject):
         commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
         logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
 
-        self.currentProcess = process
+        self.rootTask._currentProcess = process
 
         def onProcessError():
             nonlocal processError
@@ -508,7 +525,7 @@ class RepoTask(QObject):
             # The errorOccurred signal should have called onProcessError.
             pass
 
-        self.currentProcess = None
+        self.rootTask._currentProcess = None
 
         if processError:
             message = _("Process failed to start ({0}).", process.error())
@@ -761,6 +778,7 @@ class RepoTaskRunner(QObject):
     repoGone = Signal()
     ready = Signal()
     requestAttention = Signal()
+    processStarted = Signal(QProcess, str)
     _aboutToProcessToken = Signal()
 
     _continueFlow = Signal(FlowControlToken)
@@ -952,6 +970,10 @@ class RepoTaskRunner(QObject):
         elif tk == TK.WaitProcessReady:
             busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
+
+            if task.broadcastProcesses():
+                process = task.currentProcess
+                self.processStarted.emit(process, task.name())
 
             # In unit tests, block until the process has completed
             if RepoTaskRunner.ForceSerial:

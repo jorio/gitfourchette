@@ -33,18 +33,16 @@ logger = logging.getLogger(__name__)
 
 class _BaseNetTask(RepoTask):
     remoteLinkDialog: RemoteLinkDialog | None
-    aborting: bool
 
     def __init__(self, parent):
         super().__init__(parent)
         self.remoteLinkDialog = None
-        self.aborting = False
 
     def _showRemoteLinkDialog(self, title: str = ""):
+        assert not settings.prefs.vanillaGit, "don't use RemoteLinkDialog with vanilla git backend"
         assert not self.remoteLinkDialog
         assert onAppThread()
         self.remoteLinkDialog = RemoteLinkDialog(title, self.parentWidget())
-        self.remoteLinkDialog.abortButtonClicked.connect(self.abortCurrentProcess)
 
     def cleanup(self):
         assert onAppThread()
@@ -70,19 +68,6 @@ class _BaseNetTask(RepoTask):
 
         return branch.upstream
 
-    def onGitProgressMessage(self, message: str):
-        if not self.aborting and self.remoteLinkDialog:
-            self.remoteLinkDialog.setStatusText(message)
-
-    def onGitProgressFraction(self, num: int, denom: int):
-        if not self.aborting and self.remoteLinkDialog:
-            self.remoteLinkDialog.onRemoteLinkProgress(num, denom)
-
-    def abortCurrentProcess(self):
-        self.aborting = True
-        if self.currentProcess:
-            self.currentProcess.terminate()
-
 
 class DeleteRemoteBranch(_BaseNetTask):
     def flow(self, remoteBranchShorthand: str):
@@ -97,14 +82,14 @@ class DeleteRemoteBranch(_BaseNetTask):
         verb = _("Delete on remote")
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="SP_DialogDiscardButton")
 
-        self._showRemoteLinkDialog()
-
         impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
         yield from impl(remoteBranchShorthand, remoteName, branchNameOnRemote)
 
         self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
 
     def _withLibgit2(self, remoteBranchShorthand: str, remoteName: str, branchNameOnRemote: str):
+        self._showRemoteLinkDialog()
+
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
@@ -150,14 +135,14 @@ class RenameRemoteBranch(_BaseNetTask):
         # Naked name, NOT prefixed with the name of the remote
         newBranchName = dlg.lineEdit.text()
 
-        self._showRemoteLinkDialog(self.name())
-
         impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
         yield from impl(remoteName, remoteBranchShorthand, newBranchName)
 
         self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchShorthand), tquo(newBranchName))
 
     def _withLibgit2(self, remoteName: str, remoteBranchShorthand: str, newBranchName: str):
+        self._showRemoteLinkDialog(self.name())
+
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
@@ -233,14 +218,14 @@ class FetchRemotes(_BaseNetTask):
         else:
             title = _("Fetch {n} remotes", n=len(remotes))
 
-        self._showRemoteLinkDialog(title)
-
         if settings.prefs.vanillaGit:
             yield from self._withGit(title, singleRemoteName)
         else:
             yield from self._withLibgit2(title, remotes)
 
     def _withLibgit2(self, title: str, remotes: list[Remote]):
+        self._showRemoteLinkDialog(title)
+
         errors = []
         for remote in remotes:
             # Bail if user clicked Abort button
@@ -331,9 +316,6 @@ class FetchRemoteBranch(_BaseNetTask):
         if not shorthand:
             upstream = self._autoDetectUpstream()
             shorthand = upstream.shorthand
-
-        title = _("Fetch remote branch {0}", tquoe(shorthand))
-        self._showRemoteLinkDialog(title)
 
         remoteName, remoteBranch = split_remote_branch_shorthand(shorthand)
         fullRemoteRef = RefPrefix.REMOTES + shorthand
@@ -426,7 +408,6 @@ class PullBranch(_BaseNetTask):
 
 class UpdateSubmodule(_BaseNetTask):
     def flow(self, submoduleName: str, init=True):
-        self._showRemoteLinkDialog()
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
 
@@ -448,6 +429,7 @@ class UpdateSubmodule(_BaseNetTask):
                 "--",
                 submodulePath)
         else:
+            self._showRemoteLinkDialog()
             # Wrap update operation with RemoteLinkKeyFileContext: we need the keys
             # if the submodule uses an SSH connection.
             with self.remoteLink.remoteContext(submodule.url or ""):
@@ -479,12 +461,12 @@ class PushRefspecs(_BaseNetTask):
         else:
             remotes = [self.repo.remotes[remoteName]]
 
-        self._showRemoteLinkDialog()
-
         impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
         yield from impl(remotes, refspecs)
 
     def _withLibgit2(self, remotes: list[Remote], refspecs: list[str]):
+        self._showRemoteLinkDialog()
+
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs
 
@@ -500,6 +482,9 @@ class PushRefspecs(_BaseNetTask):
 
 
 class PushBranch(RepoTask):
+    def broadcastProcesses(self) -> bool:
+        return False
+
     def flow(self, branchName: str = ""):
         if len(self.repo.remotes) == 0:
             text = paragraphs(
