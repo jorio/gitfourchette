@@ -591,29 +591,15 @@ class MergeBranch(RepoTask):
         # -----------------------------------------------------------
         # Actually perform the fast-forward or the merge
 
-        yield from self.flowEnterWorkerThread()
+        if settings.prefs.vanillaGit:
+            yield from self._withGit(wantMergeCommit, theirShorthand)
+        else:
+            yield from self._withLibgit2(wantMergeCommit, myShorthand, theirBranch, theirBranchIsRemote, theirShorthand, target)
 
-        self.effects |= TaskEffects.Refs
         if wantMergeCommit:
-            # Create merge commit
-            self.effects |= TaskEffects.Workdir
             self.jumpTo = NavLocator.inWorkdir()
-
-            if pygit2_version_at_least("1.18.0", raise_error=False, feature_name="git_annotated_commit_from_ref"):
-                self.repo.merge(theirBranch)
-            else:  # pragma: no cover
-                self.repo.merge(target)
-
-            # Set a better message than libgit2 (it uses the longform ref name when merging remote branches)
-            # TODO: If we ever add the ability to merge tags, add mergeWhat="tag"
-            mergeWhat = "remote-tracking branch" if theirBranchIsRemote else "branch"
-            self.repo.set_message(f"Merge {mergeWhat} '{theirShorthand}' into '{myShorthand}'")
-            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
-
             self.postStatus = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))
         else:
-            # Fast-forward
-            self.repo.fast_forward_branch(myShorthand, theirBranch.name)
             self.postStatus = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
 
     def confirmFastForward(self, myShorthand: str, theirShorthand: str, target: Oid, autoFastForwardOptionName: str):
@@ -637,6 +623,46 @@ class MergeBranch(RepoTask):
         # Also checking for Accepted so that unit tests can do qmb.accept().
         wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
         return wantMergeCommit
+
+    def _withLibgit2(self, wantMergeCommit, myShorthand, theirBranch, theirBranchIsRemote, theirShorthand, target):
+        yield from self.flowEnterWorkerThread()
+
+        self.effects |= TaskEffects.Refs
+        if wantMergeCommit:
+            # Create merge commit
+            self.effects |= TaskEffects.Workdir
+
+            if pygit2_version_at_least("1.18.0", raise_error=False, feature_name="git_annotated_commit_from_ref"):
+                self.repo.merge(theirBranch)
+            else:  # pragma: no cover
+                self.repo.merge(target)
+
+            # Set a better message than libgit2 (it uses the longform ref name when merging remote branches)
+            # TODO: If we ever add the ability to merge tags, add mergeWhat="tag"
+            mergeWhat = "remote-tracking branch" if theirBranchIsRemote else "branch"
+            self.repo.set_message(f"Merge {mergeWhat} '{theirShorthand}' into '{myShorthand}'")
+            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
+        else:
+            # Fast-forward
+            self.repo.fast_forward_branch(myShorthand, theirBranch.name)
+
+    def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
+        self.effects |= TaskEffects.Refs | TaskEffects.Workdir
+
+        yield from self.flowCallGit(
+            "merge",
+            "--no-commit",
+            "--no-edit",
+            "--progress",
+            "--verbose",
+            *argsIf(wantMergeCommit, "--no-ff"),
+            *argsIf(not wantMergeCommit, "--ff-only"),
+            theirShorthand,
+            autoFail=False  # don't abort the task if process returns non-0 (= conflicts)
+        )
+
+        if wantMergeCommit:
+            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
 
 
 class RecallCommit(RepoTask):

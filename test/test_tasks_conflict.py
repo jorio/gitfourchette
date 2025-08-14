@@ -365,7 +365,7 @@ def testFake3WayMerge(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
-def testMergeToolInBackground(tempDir, mainWindow):
+def testMergeToolInBackground(tempDir, mainWindow, gitBackend):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})

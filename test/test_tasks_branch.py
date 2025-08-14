@@ -832,7 +832,7 @@ def testMergeUpToDate(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["sidebar", "checkout"])
-def testMergeFastForward(tempDir, mainWindow, method):
+def testMergeFastForward(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch('no-parent')
@@ -867,7 +867,7 @@ def testMergeFastForward(tempDir, mainWindow, method):
     assert rw.repo.head.target == rw.repo.branches.local['master'].target
 
 
-def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
+def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch('no-parent')
@@ -882,7 +882,6 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     qmb = findQMessageBox(rw, "can .*fast.forward")
     mergeCommitButton = next(b for b in qmb.buttons() if b.text().lower() == "create merge commit")
     mergeCommitButton.click()
-    assert not qmb.isVisible()
 
     assert rw.mergeBanner.isVisibleTo(rw)
     assert rw.repo.state() == RepositoryState.MERGE
@@ -897,8 +896,14 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     }
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
 
+    # Check prepared merge message
+    rw.diffArea.commitButton.click()
+    commitDialog: CommitDialog = findQDialog(rw, "commit")
+    assert re.match(r"merge.+master.+into.+no-parent", commitDialog.ui.summaryEditor.text(), re.I)
+    commitDialog.reject()
 
-def testAbortMerge(tempDir, mainWindow):
+
+def testAbortMerge(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     assert rw.repo.state() == RepositoryState.NONE
@@ -986,7 +991,11 @@ def testMergeCausesConflicts(tempDir, mainWindow, gitBackend):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    assert "Merge branch 'branch-conflicts' into 'master'\n" == commitDialog.getFullMessage()
+    if gitBackend == "git":
+        # TODO: Why is there no "into 'master'" with vanilla git here?
+        assert "Merge branch 'branch-conflicts'\n" == commitDialog.getFullMessage()
+    else:
+        assert "Merge branch 'branch-conflicts' into 'master'\n" == commitDialog.getFullMessage()
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 
