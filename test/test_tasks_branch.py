@@ -740,7 +740,7 @@ def testRecallCommit(tempDir, mainWindow):
     assert rw.navLocator.commit == lostId
 
 
-def testFastForwardCurrentBranch(tempDir, mainWindow):
+def testFastForwardCurrentBranch(tempDir, mainWindow, gitBackend):
     targetCommit = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
 
     wd = unpackRepo(tempDir)
@@ -767,7 +767,7 @@ def testFastForwardCurrentBranch(tempDir, mainWindow):
     assert rw.navLocator.commit == targetCommit
 
 
-def testFastForwardOtherBranch(tempDir, mainWindow):
+def testFastForwardOtherBranch(tempDir, mainWindow, gitBackend):
     targetCommit = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
 
     wd = unpackRepo(tempDir)
@@ -797,7 +797,7 @@ def testFastForwardOtherBranch(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("branch", ["master", "no-parent"])
-def testFastForwardNotNecessary(tempDir, mainWindow, branch):
+def testFastForwardNotNecessary(tempDir, mainWindow, branch, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -808,7 +808,7 @@ def testFastForwardNotNecessary(tempDir, mainWindow, branch):
     acceptQMessageBox(rw, "(is ahead of)|(already up.to.date)")
 
 
-def testFastForwardDivergent(tempDir, mainWindow):
+def testFastForwardDivergent(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch("no-parent")
@@ -821,7 +821,7 @@ def testFastForwardDivergent(tempDir, mainWindow):
     acceptQMessageBox(rw, "can.+t fast.forward.+branches are divergent")
 
 
-def testMergeUpToDate(tempDir, mainWindow):
+def testMergeUpToDate(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 

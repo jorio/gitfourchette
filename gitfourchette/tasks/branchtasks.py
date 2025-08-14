@@ -483,10 +483,8 @@ class FastForwardBranch(RepoTask):
 
         remoteBranchName = upstream.shorthand
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
-
-        upToDate = self.repo.fast_forward_branch(localBranchName, remoteBranchName)
+        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
+        upToDate = yield from impl(branch)
 
         ahead = False
         if upToDate:
@@ -495,7 +493,6 @@ class FastForwardBranch(RepoTask):
         self.jumpTo = NavLocator.inRef(RefPrefix.HEADS + localBranchName)
 
         yield from self.flowEnterUiThread()
-
         if upToDate:
             lines = [_("No fast-forwarding necessary.")]
             if ahead:
@@ -524,6 +521,46 @@ class FastForwardBranch(RepoTask):
                 mergeButton.clicked.connect(lambda: MergeBranch.invoke(parentWidget, rb.name))
         else:
             super().onError(exc)
+
+    def _withLibgit2(self, branch: Branch):
+        yield from self.flowEnterWorkerThread()
+        self.effects |= TaskEffects.Refs | TaskEffects.Head
+        upToDate = self.repo.fast_forward_branch(branch.shorthand, branch.upstream.shorthand)
+        return upToDate
+
+    def _withGit(self, branch: Branch):
+        # Perform merge analysis with libgit2 first
+        yield from self.flowEnterWorkerThread()
+        upstream = branch.upstream
+        analysis, _mergePref = self.repo.merge_analysis(branch.upstream.target, branch.name)
+
+        if analysis & MergeAnalysis.UP_TO_DATE:
+            # Local branch is up to date with remote branch, nothing to do.
+            return True
+        elif analysis == (MergeAnalysis.NORMAL | MergeAnalysis.FASTFORWARD):
+            # Go ahead and fast-forward.
+            pass
+        elif analysis == MergeAnalysis.NORMAL:
+            # Can't FF. Divergent branches?
+            raise DivergentBranchesError(branch, upstream)
+        else:
+            # Unborn or something...
+            raise NotImplementedError(f"Cannot fast-forward with {repr(analysis)}.")
+
+        self.effects |= TaskEffects.Refs
+        if branch.is_checked_out():
+            self.effects |= TaskEffects.Head | TaskEffects.Workdir
+            args = ["merge", "--ff-only", "--progress", branch.upstream_name]
+        else:
+            args = ["push", ".", f"{branch.upstream_name}:{branch.name}"]
+
+        yield from self.flowEnterUiThread()
+        driver = yield from self.flowCallGit(*args, autoFail=False)
+
+        if driver.exitCode() != 0:
+            raise DivergentBranchesError(branch, branch.upstream)
+
+        return False
 
 
 class MergeBranch(RepoTask):
