@@ -1058,3 +1058,22 @@ def testCreateBranchOnDetachedHead(tempDir, mainWindow, gitBackend):
 
     # Create the branch without complaining about losing detached HEAD
     assert "hellobranch" in rw.repo.branches.local
+
+
+def testRefreshLibgit2IndexAfterTaskAffectsHead(tempDir, mainWindow, gitBackend):
+    # Make sure that libgit2's index is properly refreshed after HEAD changes.
+    # In this example, SwitchBranch will modify HEAD; then, CherrypickCommit's prereqs should pass.
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/SomeNewFile.txt", "hello untracked file")
+
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to.+no-parent")
+    acceptQMessageBox(rw, "do you want to switch to.+no-parent")
+
+    cherrypickOid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
+    rw.jump(NavLocator.inCommit(cherrypickOid, "a/a1"), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry.?pick")
+    rejectQMessageBox(rw, "cherry.?pick.+successful")

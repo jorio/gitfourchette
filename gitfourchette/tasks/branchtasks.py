@@ -549,7 +549,7 @@ class FastForwardBranch(RepoTask):
 
         self.effects |= TaskEffects.Refs
         if branch.is_checked_out():
-            self.effects |= TaskEffects.Head | TaskEffects.Workdir
+            self.effects |= TaskEffects.Head
             args = ["merge", "--ff-only", "--progress", branch.upstream_name]
         else:
             args = ["push", ".", f"{branch.upstream_name}:{branch.name}"]

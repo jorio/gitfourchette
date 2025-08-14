@@ -498,6 +498,11 @@ class RefreshRepo(RepoTask):
         upstreamsChanged = False
         homeBranchChanged = False
 
+        if effectFlags & TaskEffects.Head:
+            # Refresh the index. Useful in vanilla git mode: git may have touched
+            # the index file during the task, so make libgit2 aware of it.
+            repoModel.repo.refresh_index()
+
         if effectFlags & (TaskEffects.Head | TaskEffects.Workdir):
             submodulesChanged = repoModel.syncSubmodules()
 
