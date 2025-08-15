@@ -25,7 +25,12 @@ class SwitchBranch(RepoTask):
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoConflicts
 
-    def flow(self, newBranch: str, askForConfirmation: bool = True, recurseSubmodules: bool = False):
+    def flow(
+            self,
+            newBranch: str,
+            askForConfirmation: bool = True,
+            recurseSubmodules: bool = False,
+            refreshUnderDetachedWarning: bool = False):
         assert not newBranch.startswith(RefPrefix.HEADS)
 
         branchObj: Branch = self.repo.branches.local[newBranch]
@@ -50,10 +55,16 @@ class SwitchBranch(RepoTask):
 
         headId = self.repoModel.headCommitId
         if self.repoModel.dangerouslyDetachedHead() and branchObj.target != headId:
+            if refreshUnderDetachedWarning:  # Refresh GraphView underneath dialog
+                from gitfourchette.tasks import RefreshRepo
+                yield from self.flowSubtask(RefreshRepo)
+
             text = paragraphs(
                 _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
-                _("You might lose track of this commit if you carry on switching to {0}.", hquo(newBranch)))
-            yield from self.flowConfirm(text=text, icon='warning')
+                _("You might lose track of this commit if you switch to {0}.", hquo(newBranch)))
+            yesText = _("Switch to {0}", lquoe(newBranch))
+            noText = _("Don’t Switch")
+            yield from self.flowConfirm(text=text, icon='warning', verb=yesText, cancelText=noText)
 
         impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
         yield from impl(newBranch, recurseSubmodules)
@@ -334,7 +345,7 @@ class NewBranchFromCommit(RepoTask):
 
         # Create local branch
         repo.create_branch_from_commit(localName, tip)
-        self.effects |= TaskEffects.Refs | TaskEffects.Head | TaskEffects.Upstreams
+        self.effects |= TaskEffects.Refs | TaskEffects.Upstreams
         self.postStatus = _("Branch {0} created on commit {1}.", tquo(localName), tquo(shortHash(tip)))
 
         # Optionally make it track a remote branch
@@ -343,25 +354,14 @@ class NewBranchFromCommit(RepoTask):
 
         # Switch to it last (if user wants to)
         if switchTo:
-            headId = self.repoModel.headCommitId
-            if self.repoModel.dangerouslyDetachedHead() and tip != headId:
-                yield from self.flowEnterUiThread()
-
-                # Refresh GraphView underneath dialog
-                from gitfourchette.tasks import RefreshRepo
-                yield from self.flowSubtask(RefreshRepo)
-
-                text = paragraphs(
-                    _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
-                    _("You might lose track of this commit if you switch to the new branch."))
-                yield from self.flowConfirm(text=text, icon='warning', verb=_("Switch to {0}", lquoe(localName)), cancelText=_("Don’t Switch"))
-
-            repo.checkout_local_branch(localName)
-
-            if recurseSubmodules:
-                from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
-                yield from self.flowEnterUiThread()
-                yield from self.flowSubtask(UpdateSubmodulesRecursive)
+            self.effects |= TaskEffects.Head
+            yield from self.flowEnterUiThread()
+            yield from self.flowSubtask(
+                SwitchBranch,
+                localName,
+                askForConfirmation=False,
+                recurseSubmodules=recurseSubmodules,
+                refreshUnderDetachedWarning=True)
 
 
 class NewBranchFromHead(RepoTask):

@@ -21,7 +21,7 @@ from .util import *
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick", "shortcut"])
 @pytest.mark.parametrize("switch", [False, True])
-def testNewBranch(tempDir, mainWindow, method, switch):
+def testNewBranch(tempDir, mainWindow, method, switch, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -59,7 +59,7 @@ def testNewBranch(tempDir, mainWindow, method, switch):
         assert repo.head_branch_shorthand == 'master'
 
 
-def testNewBranchThenSwitchBlockedByConflicts(tempDir, mainWindow):
+def testNewBranchThenSwitchBlockedByConflicts(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     reposcenario.statelessConflictingChange(wd)
 
@@ -388,7 +388,7 @@ def testDeleteBranchFolderContainingCurrentBranch(tempDir, mainWindow):
     assert "folder1/master" in repo.branches.local
 
 
-def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow):
+def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -410,7 +410,7 @@ def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow):
     assert repo.branches.local["newmaster"].upstream == repo.branches.remote["origin/master"]
 
 
-def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow):
+def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -434,7 +434,7 @@ def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["graphstart", "graphcheckout"])
-def testNewBranchFromCommit(tempDir, mainWindow, method):
+def testNewBranchFromCommit(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
@@ -472,7 +472,7 @@ def testNewBranchFromCommit(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "graphstart", "graphcheckout"])
-def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
+def testNewBranchFromDetachedHead(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     oid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
 
@@ -517,7 +517,7 @@ def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["sidebar", "graphstart", "graphcheckout"])
-def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
+def testNewBranchFromLocalBranch(tempDir, mainWindow, method, gitBackend):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
