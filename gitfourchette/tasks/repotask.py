@@ -571,7 +571,7 @@ class RepoTask(QObject):
         tokens = gitExecutableTokens + tokens
 
         if FLATPAK:
-            tokens = ToolCommands.wrapFlatpakSpawn(tokens, workdir, detached=False)
+            tokens = ToolCommands.wrapFlatpakSpawn(tokens, workdir, detached=False, environment=env)
 
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])

@@ -114,7 +114,7 @@ class ToolProcess(QProcess):
     PrefKeyDiffTool = "externalDiff"
     PrefKeyMergeTool = "externalMerge"
 
-    def __init__(self, parent: QWidget, tokens: list[str], directory: str, detached: bool, prefKey: str):
+    def __init__(self, parent: QWidget, tokens: list[str], directory: str, detached: bool, prefKey: str, environment: dict[str, str] | None = None):
         super().__init__(parent)
 
         self.detached = detached
@@ -125,6 +125,12 @@ class ToolProcess(QProcess):
         if not FLATPAK:  # In Flatpaks, workdir was set via flatpak-spawn
             self.setWorkingDirectory(directory)
         self.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
+
+        if environment:
+            processEnvironment = QProcessEnvironment.systemEnvironment()
+            for k, v in environment.items():
+                processEnvironment.insert(k, v)
+            self.setProcessEnvironment(processEnvironment)
 
         # Listen for process completion.
         self.finished.connect(self.onFinished)
@@ -198,6 +204,7 @@ class ToolProcess(QProcess):
             allowQDesktopFallback: bool = False,
             directory: str = "",
             detached: bool = False,
+            environment: dict[str, str] | None = None
     ) -> ToolProcess | None:
         assert isinstance(parent, QWidget)
 
@@ -227,7 +234,7 @@ class ToolProcess(QProcess):
                 onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
                 return None
 
-        process = ToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey)
+        process = ToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey, environment=environment)
         return process
 
     @classmethod

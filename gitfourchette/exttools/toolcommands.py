@@ -163,7 +163,7 @@ class ToolCommands:
         # - If detaching, don't set --watch-bus, and don't use QProcess.startDetached!
         #   (Can't get return code otherwise.)
         if FLATPAK:
-            tokens = cls.wrapFlatpakSpawn(tokens, directory, detached)
+            tokens = cls.wrapFlatpakSpawn(tokens, directory, detached, environment)
 
         return tokens, directory
 
@@ -180,12 +180,15 @@ class ToolCommands:
         return process.exitCode() == 0
 
     @classmethod
-    def wrapFlatpakSpawn(cls, tokens: list[str], directory="", detached=False) -> list[str]:
+    def wrapFlatpakSpawn(cls, tokens: list[str], directory="", detached=False, environment: dict[str, str] | None = None) -> list[str]:
         spawner = ["flatpak-spawn", "--host"]
         if not detached:
             spawner += ["--watch-bus"]
         if directory:
             spawner += [f"--directory={directory}"]
+        if environment:
+            for k, v in environment.items():
+                spawner += [f"--env={k}={v}"]
         spawner += ["/usr/bin/env", "--"]
         return spawner + tokens
 
