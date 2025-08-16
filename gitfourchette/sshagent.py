@@ -18,14 +18,11 @@ logger = logging.getLogger(__name__)
 class SshAgent(QProcess):
     def __init__(self, parent: QObject):
         super().__init__(parent)
-        process = self
-
         tokens = ["ssh-agent", "-c", "-D"]
-        if FLATPAK:
-            tokens = ToolCommands.wrapFlatpakSpawn(tokens, detached=False)
-
+        process = self
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
+        ToolCommands.wrapFlatpakCommand(process)
         process.start()
         if not process.waitForStarted():
             raise RuntimeError("ssh-agent did not start")

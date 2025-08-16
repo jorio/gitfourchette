@@ -14,6 +14,7 @@ import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.askpassdialog import AskpassDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.manualgc import gcHint
@@ -495,9 +496,7 @@ class RepoTask(QObject):
         assert self._isRunningOnAppThread(), "start processes from UI thread"
         assert self.currentProcess is None, "a process is already running in this task"
 
-        pe, se = process.processEnvironment(), QProcessEnvironment.systemEnvironment()
-        envStrs = [f"{key}={pe.value(key)}" for key in pe.keys() if pe.value(key) != se.value(key)]
-
+        envStrs = [f"{k}={v}" for k, v in ToolCommands.filterQProcessEnvironment(process).items()]
         commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
         simpleCommandLine = shlex.join([process.program()] + process.arguments())
         logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
@@ -564,7 +563,6 @@ class RepoTask(QObject):
     ) -> Generator[FlowControlToken, None, GitDriver]:
         from gitfourchette import settings
         from gitfourchette.application import GFApplication
-        from gitfourchette.exttools.toolcommands import ToolCommands
         from gitfourchette.repoprefs import RepoPrefs
         from gitfourchette.porcelain import GitConfigHelper
 
@@ -615,21 +613,14 @@ class RepoTask(QObject):
 
         tokens = gitProgram + list(args)
 
-        if FLATPAK:
-            tokens = ToolCommands.wrapFlatpakSpawn(tokens, workdir, detached=False, environment=env)
-
         process = GitDriver(self.parentWidget())
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
         if workdir:
             process.setWorkingDirectory(workdir)
+        ToolCommands.setQProcessEnvironment(process, env)
 
-        # Forward custom environment variables
-        processEnvironment = QProcessEnvironment.systemEnvironment()
-        if env:
-            for k, v in env.items():
-                processEnvironment.insert(k, v)
-        process.setProcessEnvironment(processEnvironment)
+        ToolCommands.wrapFlatpakCommand(process)
 
         process.progressMessage.connect(self.onGitProgressMessage)
         process.progressFraction.connect(self.onGitProgressFraction)

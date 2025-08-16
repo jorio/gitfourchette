@@ -122,15 +122,11 @@ class ToolProcess(QProcess):
 
         self.setProgram(tokens[0])
         self.setArguments(tokens[1:])
-        if not FLATPAK:  # In Flatpaks, workdir was set via flatpak-spawn
-            self.setWorkingDirectory(directory)
+        self.setWorkingDirectory(directory)
         self.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
+        ToolCommands.setQProcessEnvironment(self, environment)
 
-        if environment:
-            processEnvironment = QProcessEnvironment.systemEnvironment()
-            for k, v in environment.items():
-                processEnvironment.insert(k, v)
-            self.setProcessEnvironment(processEnvironment)
+        ToolCommands.wrapFlatpakCommand(self, detached=detached)
 
         # Listen for process completion.
         self.finished.connect(self.onFinished)
@@ -148,7 +144,7 @@ class ToolProcess(QProcess):
         else:
             startDetached = detached
 
-        logger.info("Process starting: " + shlex.join(tokens))
+        logger.info("Process starting: " + shlex.join([self.program()] + self.arguments()))
         if startDetached:
             self.startDetached()
         else:

@@ -49,12 +49,10 @@ class GitDriver(QProcess):
             return cls._cachedGitVersion
 
         tokens = [cls._gitPath, "version"]
-        if FLATPAK:
-            tokens = ToolCommands.wrapFlatpakSpawn(tokens, detached=False)
-
         process = QProcess(None)
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
+        ToolCommands.wrapFlatpakCommand(process)
         process.start()
         process.waitForFinished()
         text = process.readAll().data().decode(errors="replace")
