@@ -7,7 +7,6 @@
 import html
 import io
 import re
-import shlex
 from enum import StrEnum
 
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -150,15 +149,6 @@ class GitDriver(QProcess):
             previousTag = tag
 
         return "".join(parts)
-
-    @classmethod
-    def customSshKeyPreamble(cls, keyFilePath: str, sshCommandBase: str = ""):
-        if sshCommandBase:
-            sshCommandTokens = shlex.split(sshCommandBase, posix=True)
-        else:
-            sshCommandTokens = ["/usr/bin/ssh"]
-        sshCommand = shlex.join(sshCommandTokens + ["-i", keyFilePath])
-        return ["-c", f"core.sshCommand={sshCommand}"]
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)

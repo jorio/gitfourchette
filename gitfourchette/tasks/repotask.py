@@ -553,17 +553,20 @@ class RepoTask(QObject):
                 message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
             raise AbortTask(message, details=commandLine)
 
-    def createGitProcess(
+    def flowCallGit(
             self,
             *args: str,
             remote="",
+            customKey="",
             workdir="",
             env: dict[str, str] | None = None,
-    ) -> GitDriver:
+            autoFail=True,
+    ) -> Generator[FlowControlToken, None, GitDriver]:
         from gitfourchette import settings
         from gitfourchette.application import GFApplication
         from gitfourchette.exttools.toolcommands import ToolCommands
         from gitfourchette.repoprefs import RepoPrefs
+        from gitfourchette.porcelain import GitConfigHelper
 
         repo = self.repo
 
@@ -590,16 +593,19 @@ class RepoTask(QObject):
         # Custom remote key file
         if remote:
             assert repo is not None
-            remoteKeyFile = RepoPrefs.getRemoteKeyFileForRepo(repo, remote)
-            if remoteKeyFile:
-                sshOptions += ["-i", remoteKeyFile]
+            assert not customKey
+            customKey = RepoPrefs.getRemoteKeyFileForRepo(repo, remote)
+
+        if customKey:
+            sshOptions += ["-i", customKey]
 
         # Apply any custom OpenSSH options
         if sshOptions:
             # Get original ssh command
-            sshCommand = ""
             if repo is not None:
-                sshCommand = repo.get_config_value(("core", "sshCommand"))
+                sshCommand = repo.get_config_value("core.sshCommand")
+            else:
+                sshCommand = GitConfigHelper.get_default_value("core.sshCommand")
             sshCommand = sshCommand or "/usr/bin/ssh"
             # Add custom options and join back into a string
             sshCommandTokens = shlex.split(sshCommand, posix=True) + sshOptions
@@ -627,17 +633,6 @@ class RepoTask(QObject):
 
         process.progressMessage.connect(self.onGitProgressMessage)
         process.progressFraction.connect(self.onGitProgressFraction)
-        return process
-
-    def flowCallGit(
-            self,
-            *args: str,
-            autoFail=True,
-            remote="",
-            workdir="",
-            env: dict[str, str] | None = None,
-    ) -> Generator[FlowControlToken, None, GitDriver]:
-        process = self.createGitProcess(*args, remote=remote, workdir=workdir, env=env)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 

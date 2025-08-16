@@ -17,7 +17,7 @@ from pygit2.enums import RepositoryOpenFlag
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
-from gitfourchette.gitdriver import GitDriver, argsIf
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo, pygit2_version_at_least, RepoContext
 from gitfourchette.qt import *
@@ -414,18 +414,8 @@ class CloneTaskVanillaGit(RepoTask):
         dialog.enableInputs(False)
         dialog.aboutToReject.connect(self.abort)
 
-        # Use custom key
-        customKeyPreamble = []
-        if privKeyPath:
-            driver = yield from self.flowCallGit("config", "--get", "core.sshCommand", autoFail=False)
-            sshCommandBase = ""
-            if driver.exitCode() == 0:
-                sshCommandBase = bytes(driver.readAllStandardOutput()).decode()
-            customKeyPreamble = GitDriver.customSshKeyPreamble(privKeyPath, sshCommandBase)
-
         # Clone the repo
         yield from self.flowCallGit(
-            *customKeyPreamble,
             "clone",
             "--progress",
             *argsIf(recursive, "--recurse-submodules"),
@@ -434,7 +424,8 @@ class CloneTaskVanillaGit(RepoTask):
             *argsIf(shallow, "--no-single-branch", "--no-tags"),  # match what libgit2 backend does
             "--",
             url,
-            path)
+            path,
+            customKey=privKeyPath)
 
         # Successfully cloned
         settings.history.addCloneUrl(url)
