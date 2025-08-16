@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from gitfourchette.settings import Session
     from gitfourchette.tasks import RepoTask, TaskInvocation
     from gitfourchette.porcelain import GitConfig
+    from gitfourchette.sshagent import SshAgent
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class GFApplication(QApplication):
     tempDir: QTemporaryDir
     sessionwideGitConfigPath: str
     sessionwideGitConfig: GitConfig
+    sshAgent: SshAgent | None
 
     @staticmethod
     def instance() -> GFApplication:
@@ -67,6 +69,7 @@ class GFApplication(QApplication):
         self.commandLinePaths = []
         self.installedLocale = None
         self.qtbaseTranslator = QTranslator(self)
+        self.sshAgent = None
 
         # Don't use app.setOrganizationName because it changes QStandardPaths.
         self.setApplicationName(APP_SYSTEM_NAME)  # used by QStandardPaths
@@ -201,6 +204,7 @@ class GFApplication(QApplication):
             settings.prefs.write()
         if settings.history.isDirty():
             settings.history.write()
+        self.stopSshAgent()
         LexJobCache.clear()  # don't cache lexed files across sessions (for unit testing)
         RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
@@ -226,6 +230,8 @@ class GFApplication(QApplication):
         if not GNOME:  # Skip this on GNOME (issue #50)
             self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
         self.mainWindow.show()
+
+        self.applySshAgentPref()
 
         # Restore session then consume it
         self.mainWindow.restoreSession(self.initialSession, self.commandLinePaths)
@@ -387,6 +393,34 @@ class GFApplication(QApplication):
         from gitfourchette import settings
 
         logging.root.setLevel(settings.prefs.verbosity.value)
+
+    def applySshAgentPref(self):
+        from gitfourchette import settings
+        from gitfourchette.sshagent import SshAgent
+        from gitfourchette.toolbox import showWarning, paragraphs
+
+        hasAgent = bool(self.sshAgent)
+        wantAgent = settings.prefs.ownSshAgent and settings.prefs.vanillaGit
+
+        if wantAgent and not hasAgent:
+            try:
+                self.sshAgent = SshAgent(self)
+            except Exception as exc:
+               showWarning(
+                   self.mainWindow,
+                   _("SSH agent"),
+                   paragraphs(
+                       _("Failed to start {0} ({1}).", "ssh-agent", str(exc)),
+                       _("Make sure you have installed OpenSSH."),
+                   ))
+        elif not wantAgent and hasAgent:
+            self.stopSshAgent()
+
+    def stopSshAgent(self):
+        if self.sshAgent:
+            self.sshAgent.kill()
+            self.sshAgent.deleteLater()
+            self.sshAgent = None
 
     # -------------------------------------------------------------------------
 

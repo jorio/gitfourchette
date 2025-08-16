@@ -561,42 +561,65 @@ class RepoTask(QObject):
             env: dict[str, str] | None = None,
     ) -> GitDriver:
         from gitfourchette import settings
+        from gitfourchette.application import GFApplication
         from gitfourchette.exttools.toolcommands import ToolCommands
+        from gitfourchette.repoprefs import RepoPrefs
+
+        repo = self.repo
 
         if not workdir:
-            workdir = self.repo.workdir if self.repo is not None else ""
-
-        process = GitDriver(self.parentWidget())
+            workdir = repo.workdir if repo is not None else ""
 
         env = env or {}
+        sshOptions = []
+        gitProgram = shlex.split(settings.prefs.gitPath, posix=True)
 
+        env["LC_ALL"] = "C.UTF-8"  # force Git output in English
+
+        # SSH_ASKPASS
         if settings.prefs.ownAskpass:
-            env.update(AskpassDialog.environmentForChildProcess())
+            env |= AskpassDialog.environmentForChildProcess()
 
-        tokens = list(args)
+        # Use internal ssh-agent
+        if settings.prefs.ownSshAgent:
+            sshAgent = GFApplication.instance().sshAgent
+            if sshAgent:
+                env |= sshAgent.environment()
+                sshOptions += ["-o", "AddKeysToAgent=yes"]
 
+        # Custom remote key file
         if remote:
-            from gitfourchette.repoprefs import RepoPrefs
-            remoteKeyFile = RepoPrefs.getRemoteKeyFileForRepo(self.repo, remote)
+            assert repo is not None
+            remoteKeyFile = RepoPrefs.getRemoteKeyFileForRepo(repo, remote)
             if remoteKeyFile:
-                sshCommandBase = self.repo.get_config_value(("core", "sshCommand"))
-                tokens = GitDriver.customSshKeyPreamble(remoteKeyFile, sshCommandBase) + tokens
+                sshOptions += ["-i", remoteKeyFile]
 
-        gitExecutableTokens = shlex.split(settings.prefs.gitPath, posix=True)
-        tokens = gitExecutableTokens + tokens
+        # Apply any custom OpenSSH options
+        if sshOptions:
+            # Get original ssh command
+            sshCommand = ""
+            if repo is not None:
+                sshCommand = repo.get_config_value(("core", "sshCommand"))
+            sshCommand = sshCommand or "/usr/bin/ssh"
+            # Add custom options and join back into a string
+            sshCommandTokens = shlex.split(sshCommand, posix=True) + sshOptions
+            sshCommand = shlex.join(sshCommandTokens)
+            # Pass to git (note: it's also possible to pass '-c core.sshCommand={sshCommand}')
+            env["GIT_SSH_COMMAND"] = sshCommand
+
+        tokens = gitProgram + list(args)
 
         if FLATPAK:
             tokens = ToolCommands.wrapFlatpakSpawn(tokens, workdir, detached=False, environment=env)
 
+        process = GitDriver(self.parentWidget())
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
         if workdir:
             process.setWorkingDirectory(workdir)
 
-        processEnvironment = QProcessEnvironment.systemEnvironment()
-        # Force Git output in English
-        processEnvironment.insert("LC_ALL", "C")
         # Forward custom environment variables
+        processEnvironment = QProcessEnvironment.systemEnvironment()
         if env:
             for k, v in env.items():
                 processEnvironment.insert(k, v)

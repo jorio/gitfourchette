@@ -118,6 +118,7 @@ class Prefs(PrefsFile):
     vanillaGit                  : bool                  = False
     gitPath                     : str                   = "/usr/bin/git"
     ownAskpass                  : bool                  = True
+    ownSshAgent                 : bool                  = True
 
     _category_userCommands      : int                   = 0
     commands                    : str                   = ""

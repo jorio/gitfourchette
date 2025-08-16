@@ -482,6 +482,12 @@ class TrTables:
             "ownAskpass_help": paragraphs(
                 _("Tick this to have OpenSSH use {app} to ask for passphrases."),
                 _("Untick this if you’ve set up another program in the {0} environment variable (such as {1}).", tquo("SSH_ASKPASS"), tquo("ksshaskpass"))),
+            "ownSshAgent": _("Automatically remember passphrases with {0}", tquo("ssh-agent")),
+            "ownSshAgent_help": paragraphs(
+                _("Tick this to start an instance of {0} for the duration of your {app} session.", tquo("ssh-agent"), app=APP_DISPLAY_NAME),
+                _("This will save you from retyping the same passphrase over and over until you quit the application."),
+                _("Untick this if you don’t want credentials to be remembered, or if you’ve already set up your own SSH agent on your system."),
+            ),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",

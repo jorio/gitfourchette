@@ -1059,6 +1059,9 @@ class MainWindow(QMainWindow):
             app.applyLanguagePref()
             self.fillGlobalMenuBar()
 
+        if "ownSshAgent" in prefDiff or "vanillaGit" in prefDiff:  # ownSshAgent only applies with vanillaGit
+            app.applySshAgentPref()
+
         if "commands" in prefDiff or "confirmCommands" in prefDiff:
             self.fillGlobalMenuBar()
 
