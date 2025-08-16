@@ -330,6 +330,7 @@ class TrTables:
     def _init_prefKeys():
         from gitfourchette.toolbox.textutils import paragraphs, tquo
         from gitfourchette.exttools.usercommand import UserCommand
+        from gitfourchette.appconsts import APP_DISPLAY_NAME
 
         return {
             "general": _p("Prefs", "General"),
@@ -477,6 +478,10 @@ class TrTables:
                 "but this is still experimental."
             ),
             "gitPath": _("Git"),
+            "ownAskpass": _("Ask for SSH passphrases with {app}", app=APP_DISPLAY_NAME),
+            "ownAskpass_help": paragraphs(
+                _("Tick this to have OpenSSH use {app} to ask for passphrases."),
+                _("Untick this if you’ve set up another program in the {0} environment variable (such as {1}).", tquo("SSH_ASKPASS"), tquo("ksshaskpass"))),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",

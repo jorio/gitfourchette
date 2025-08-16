@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 class GFApplication(QApplication):
+    AskpassEnvKey = "_GITFOURCHETTE_START_IN_ASKPASS_MODE"
+
     restyle = Signal()
     prefsChanged = Signal()
     regainForeground = Signal()
@@ -48,6 +50,10 @@ class GFApplication(QApplication):
         me = QApplication.instance()
         assert isinstance(me, GFApplication)
         return me
+
+    @classmethod
+    def standaloneAskpassMode(cls) -> bool:
+        return os.environ.get(cls.AskpassEnvKey, "") not in ["", "0"]
 
     def __init__(self, argv: list[str], bootScriptPath: str = "", ):
         super().__init__(argv)
@@ -84,6 +90,10 @@ class GFApplication(QApplication):
         # Install translators for system language
         # (for command line parser to display localized text)
         self.installTranslators()
+
+        # If starting in standalone askpass mode, we've initialized enough things
+        if self.standaloneAskpassMode():
+            return
 
         # Process command line
         parser = QCommandLineParser()
@@ -127,6 +137,11 @@ class GFApplication(QApplication):
         self.commandLinePaths = commandLinePaths
 
     def beginSession(self, bootUi=True):
+        if self.standaloneAskpassMode():
+            from gitfourchette.forms.askpassdialog import AskpassDialog
+            AskpassDialog.run()
+            return
+
         from gitfourchette.toolbox.messageboxes import NonCriticalOperation
         from gitfourchette.porcelain import GitConfig
         from gitfourchette import settings

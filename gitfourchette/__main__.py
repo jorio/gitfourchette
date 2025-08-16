@@ -51,7 +51,8 @@ def main():
     app.beginSession()
 
     # Keep the app running
-    app.exec()
+    returnCode = app.exec()
+    sys.exit(returnCode)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,10 @@ NET_TIMEOUT = 30_000
 
 
 @pytest.fixture
-def useAskpassShim():
+def useAskpassShim(mainWindow):
+    # Turn off our "own" askpass because it starts an external process - we can't control it from the unit test
+    mainWindow.onAcceptPrefsDialog({"ownAskpass": False})
+
     backup = dict(os.environ)
 
     os.environ.update({

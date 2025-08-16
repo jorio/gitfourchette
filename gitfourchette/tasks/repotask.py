@@ -14,6 +14,7 @@ import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
+from gitfourchette.forms.askpassdialog import AskpassDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.manualgc import gcHint
 from gitfourchette.localization import *
@@ -566,6 +567,11 @@ class RepoTask(QObject):
             workdir = self.repo.workdir if self.repo is not None else ""
 
         process = GitDriver(self.parentWidget())
+
+        env = env or {}
+
+        if settings.prefs.ownAskpass:
+            env.update(AskpassDialog.environmentForChildProcess())
 
         tokens = list(args)
 
