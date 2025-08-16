@@ -171,10 +171,17 @@ class FlowWorkerThread(QThread):
 class AbortTask(Exception):
     """ To bail from a coroutine early, we must raise an exception to ensure that
     any active context managers exit deterministically."""
-    def __init__(self, text: str = "", icon: MessageBoxIconName = "warning", asStatusMessage: bool = False):
+    def __init__(
+            self,
+            text: str = "",
+            icon: MessageBoxIconName = "warning",
+            asStatusMessage: bool = False,
+            details: str = ""
+    ):
         super().__init__(text)
         self.icon = icon
         self.asStatusMessage = asStatusMessage
+        self.details = details
 
 
 class RepoGoneError(FileNotFoundError):
@@ -491,6 +498,7 @@ class RepoTask(QObject):
         envStrs = [f"{key}={pe.value(key)}" for key in pe.keys() if pe.value(key) != se.value(key)]
 
         commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
+        simpleCommandLine = shlex.join([process.program()] + process.arguments())
         logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
 
         self.rootTask._currentProcess = process
@@ -539,9 +547,10 @@ class RepoTask(QObject):
             else:
                 stderr = process.readAllStandardError().data().decode(errors="replace")
                 message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
-            message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
-            message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
-            raise AbortTask(message)
+            message += f"<p style='font-size: small'>{escape(simpleCommandLine)}</p>"
+            if stderr.strip():
+                message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
+            raise AbortTask(message, details=commandLine)
 
     def createGitProcess(
             self,
@@ -1068,6 +1077,8 @@ class RepoTaskRunner(QObject):
             self.progress.emit("\u26a0 " + message, False)
         elif message:
             qmb = asyncMessageBox(self.parent(), exception.icon, task.name(), message)
+            if exception.details:
+                qmb.setDetailedText(exception.details)
             qmb.show()
 
 
