@@ -116,12 +116,14 @@ class GFApplication(QApplication):
         from gitfourchette.tasks import TaskBook, TaskInvocation
 
         # Prepare session-wide temporary directory
-        if FLATPAK:
+        if os.environ.get("GITFOURCHETTE_TEMPDIR", ""):
+            tempDirPath = Path(os.environ["GITFOURCHETTE_TEMPDIR"])
+        elif FLATPAK:
             # Flatpak guarantees that "/run/user/1000/app/org.gitfourchette.gitfourchette" sits on a tmpfs,
             # and "/tmp" actually resolves to "/run/user/1000/app/org.gitfourchette.gitfourchette/tmp".
             # Use the real path instead of "/tmp" (QDir.tempPath() default value)
             # so that we can pass it to external tools outside our sandbox.
-            tempDirPath = Path(os.environ["XDG_RUNTIME_DIR"], "app", os.environ["FLATPAK_ID"])
+            tempDirPath = Path(XDG_RUNTIME_DIR, "app", FLATPAK_ID)
             assert tempDirPath.exists(), f"Expected to find Flatpak temp dir at: {tempDirPath}"
         else:
             tempDirPath = QDir.tempPath()

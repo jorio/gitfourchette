@@ -90,7 +90,11 @@ def qapp_cls():
 
 @pytest.fixture
 def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
-    td = tempfile.TemporaryDirectory(prefix="gitfourchettetest-")
+    # When running as a Flatpak, we want to override the temp dir's location
+    # to make it easier to send repository paths out of the sandbox.
+    location = os.environ.get("GITFOURCHETTE_TEMPDIR", None)
+
+    td = tempfile.TemporaryDirectory(prefix="gitfourchettetest-", dir=location)
     yield td
     td.cleanup()
 

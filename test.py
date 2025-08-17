@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+
 def run():
     thisFile = Path(__file__)
     os.chdir(thisFile.parent)
@@ -34,7 +35,7 @@ def run():
     if args.with_network:
         os.environ["TESTNET"] = "1"
 
-    if args.with_flatpak:
+    if args.with_flatpak or os.environ.get("FLATPAK_ID", ""):
         os.environ["TESTFLATPAK"] = "1"
 
     if not args.single:
@@ -46,6 +47,7 @@ def run():
     os.environ["PYTEST_QT_API"] = args.qt
     exitCode = pytest.main(forwardArgs)
     sys.exit(exitCode)
+
 
 if __name__ == '__main__':
     run()

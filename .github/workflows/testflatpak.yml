@@ -1,0 +1,51 @@
+name: Test as Flatpak
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-flatpak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Get Date
+      id: get-date
+      run: |
+        echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Restore flatpak cache
+      id: cache-flatpak-restore
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          /home/runner/.local/share/flatpak
+        key: flatpak-install-${{ runner.os }}-${{ steps.get-date.outputs.date }}
+
+    # Note: not caching APT packages because this causes an error with /var/lib/flatpak/repo down the line.
+    - name: Prepare flatpak (APT)
+      run: |
+        sudo apt update
+        sudo apt install flatpak dbus-x11
+
+    - name: Install app flatpak
+      run: |
+        flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user flathub --assumeyes --or-update org.gitfourchette.gitfourchette
+        flatpak list
+
+    - name: Save flatpak cache
+      if: steps.cache-flatpak-restore.outputs.cache-hit != 'true'
+      id: cache-flatpak-save
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          /home/runner/.local/share/flatpak
+        key: ${{ steps.cache-flatpak-restore.outputs.cache-primary-key }}
+
+    - name: Run tests
+      run: dbus-launch ./pkg/flatpak/test_as_flatpak.sh --with-net

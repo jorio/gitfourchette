@@ -2,10 +2,10 @@ name: Tests
 
 on:
   pull_request:
+  workflow_dispatch:
   push:
-    paths-ignore:
-    - '**.md'
-    - '**.po'
+    branches: ['master', 'next']
+    paths-ignore: ['**.md', '**.po', '**.mo', '**.pot']
 
 jobs:
   tests:
@@ -30,7 +30,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Qt dependencies
       if: ${{ runner.os == 'Linux' }}

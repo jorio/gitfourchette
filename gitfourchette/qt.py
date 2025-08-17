@@ -122,6 +122,8 @@ MACOS = KERNEL == "darwin"
 WINDOWS = KERNEL == "winnt"
 FREEDESKTOP = not MACOS and not WINDOWS
 FLATPAK = FREEDESKTOP and _os.path.exists("/.flatpak-info")
+FLATPAK_ID = _os.environ.get("FLATPAK_ID", "")
+XDG_RUNTIME_DIR = _os.environ.get("XDG_RUNTIME_DIR", "")
 GNOME = "GNOME" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")  # e.g. "ubuntu:GNOME"
 KDE = "KDE" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 WAYLAND = _os.environ.get("XDG_SESSION_TYPE", "").upper() == "WAYLAND"
