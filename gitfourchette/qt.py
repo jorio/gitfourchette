@@ -128,6 +128,7 @@ GNOME = "GNOME" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 KDE = "KDE" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 WAYLAND = _os.environ.get("XDG_SESSION_TYPE", "").upper() == "WAYLAND"
 OFFSCREEN = _os.environ.get("QT_QPA_PLATFORM", "").upper() == "OFFSCREEN"
+INITIAL_ENVIRONMENT = _os.environ.copy()
 
 # -----------------------------------------------------------------------------
 # Try to import optional modules

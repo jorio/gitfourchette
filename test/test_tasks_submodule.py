@@ -467,7 +467,10 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse, gitBackend)
 
     # TODO: Figure out why this specific test needs this
     if recurse and gitBackend == "git":
-        subprocess.call([GitDriver._gitPath, "update-index", "--really-refresh"], cwd=wd+"/submosub")
+        command = [GitDriver._gitPath, "update-index", "--really-refresh"]
+        if FLATPAK:
+            command = ["flatpak-spawn", "--host"] + command
+        subprocess.call(command, cwd=wd+"/submosub")
 
     rw = mainWindow.openRepo(wd)
     assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
@@ -520,7 +523,10 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow, gitBackend):
 
     # TODO: Figure out why this specific test needs this
     if gitBackend == "git":
-        subprocess.call([GitDriver._gitPath, "update-index", "--really-refresh"], cwd=wd+"/submosub")
+        command = [GitDriver._gitPath, "update-index", "--really-refresh"]
+        if FLATPAK:
+            command = ["flatpak-spawn", "--host"] + command
+        subprocess.call(command, cwd=wd+"/submosub")
 
     rw = mainWindow.openRepo(wd)
 

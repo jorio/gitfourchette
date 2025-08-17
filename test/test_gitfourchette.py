@@ -171,11 +171,11 @@ def testNewRepo(tempDir, mainWindow, gitBackend):
 
 
 def testNewRepoFromExistingSources(tempDir, mainWindow):
-    triggerMenuAction(mainWindow.menuBar(), "file/new repo")
-
     path = os.path.realpath(tempDir.name + "/valoche3000")
     os.makedirs(path)
     writeFile(f"{path}/existing.txt", "file was here before repo inited\n")
+
+    triggerMenuAction(mainWindow.menuBar(), "file/new repo")
 
     acceptQFileDialog(mainWindow, "new repo", path)
     acceptQMessageBox(mainWindow, r"are you sure.+valoche3000.+isn.t empty")
@@ -761,4 +761,10 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     rw.diffArea.stageButton.click()
-    acceptQMessageBox(rw, "failed to start")
+
+    if FLATPAK:
+        # flatpak-spawn always starts successfully, so the errorOccurred callback won't run.
+        # Instead, look for return code 127 from /usr/bin/env.
+        acceptQMessageBox(rw, "code 127")
+    else:
+        acceptQMessageBox(rw, "failed to start")

@@ -57,6 +57,10 @@ def setUpGitConfigSearchPaths(prefix=""):
     os.environ["GIT_CONFIG_SYSTEM"] = vanillaGitConfigPath(ConfigLevel.SYSTEM)
     os.environ["GIT_CONFIG_GLOBAL"] = vanillaGitConfigPath(ConfigLevel.GLOBAL)
 
+    from gitfourchette.qt import INITIAL_ENVIRONMENT
+    assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_SYSTEM", None) != os.environ["GIT_CONFIG_SYSTEM"]
+    assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_GLOBAL", None) != os.environ["GIT_CONFIG_GLOBAL"]
+
 
 @pytest.fixture(scope='session', autouse=True)
 def maskHostGitConfig():

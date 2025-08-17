@@ -163,12 +163,12 @@ class ToolCommands:
     @classmethod
     def filterQProcessEnvironment(cls, process: QProcess) -> dict[str, str]:
         processEnvironment = process.processEnvironment()
-        systemEnvironment = QProcessEnvironment.systemEnvironment()
-        return {
-            key: processEnvironment.value(key)
-            for key in processEnvironment.keys()
-            if processEnvironment.value(key) != systemEnvironment.value(key)
-        }
+        env = {}
+        for key in processEnvironment.keys():
+            value = processEnvironment.value(key)
+            if value != INITIAL_ENVIRONMENT.get(key, None):
+                env[key] = value
+        return env
 
     @classmethod
     def isFlatpakInstalled(cls, flatpakRef: str, parent: QObject) -> bool:
