@@ -99,6 +99,13 @@ class PrefsDialog(QDialog):
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 2)
 
+        # Gray out vanilla git options if vanilla git is off
+        masterControl: QCheckBox = self.findChild(QCheckBox, "prefctl_vanillaGit")
+        for controlName in ["gitPath", "ownAskpass", "ownSshAgent"]:
+            controlWidget = self.findChild(QWidget, f"prefctl_{controlName}")
+            controlWidget.setEnabled(masterControl.isChecked())
+            masterControl.toggled.connect(controlWidget.setEnabled)
+
         if not focusOn:
             # Restore last category
             self.setCategory(PrefsDialog.lastCategory)
