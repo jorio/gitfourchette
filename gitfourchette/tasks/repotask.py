@@ -585,7 +585,7 @@ class RepoTask(QObject):
         if settings.prefs.ownSshAgent:
             sshAgent = GFApplication.instance().sshAgent
             if sshAgent:
-                env |= sshAgent.environment()
+                env |= sshAgent.environment
                 sshOptions += ["-o", "AddKeysToAgent=yes"]
 
         # Custom remote key file

@@ -16,8 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 class SshAgent(QProcess):
+    environment: dict[str, str]
+
     def __init__(self, parent: QObject):
         super().__init__(parent)
+
         tokens = ["ssh-agent", "-c", "-D"]
         process = self
         process.setProgram(tokens[0])
@@ -27,17 +30,23 @@ class SshAgent(QProcess):
         if not process.waitForStarted():
             raise RuntimeError("ssh-agent did not start")
         process.waitForReadyRead()
+
         output = process.readAll().data().decode("utf-8", errors="replace")
-        match = re.match(r"setenv SSH_AUTH_SOCK (.+);", output)
-        if not match:
-            raise ValueError("didn't find SSH_AUTH_SOCK")
-        sshAuthSock = match.group(1)
-        self.sshAuthSock = sshAuthSock
+
+        pidMatch = re.search(r"Agent pid (.+);", output, re.I)
+        sockMatch = re.search(r"setenv SSH_AUTH_SOCK (.+);", output)
+        if not sockMatch or not pidMatch:
+            raise ValueError("didn't find SSH_AUTH_SOCK or agent PID")
+
+        # It's tempting to get the PID via QProcess instead of parsing stdout,
+        # but remember that we may be launching ssh-agent via flatpak-spawn
+        # (which has a separate PID).
+        sshAgentPid = pidMatch.group(1)
+        sshAuthSock = sockMatch.group(1)
+
+        self.environment = {
+            "SSH_AUTH_SOCK": sshAuthSock,
+            "SSH_AGENT_PID": sshAgentPid,
+        }
 
         logger.info(f"ssh-agent started ({sshAuthSock})")
-
-    def environment(self):
-        return {
-            "SSH_AGENT_PID": str(self.processId()),
-            "SSH_AUTH_SOCK": self.sshAuthSock,
-        }
