@@ -497,8 +497,11 @@ class RepoTask(QObject):
         assert self.currentProcess is None, "a process is already running in this task"
 
         envStrs = [f"{k}={v}" for k, v in ToolCommands.filterQProcessEnvironment(process).items()]
-        commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
         simpleCommandLine = shlex.join([process.program()] + process.arguments())
+        if FLATPAK:
+            commandLine = simpleCommandLine
+        else:
+            commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
         logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
 
         self.rootTask._currentProcess = process
@@ -539,6 +542,8 @@ class RepoTask(QObject):
             message = _("Process failed to start ({0}).", process.error())
             message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
             raise AbortTask(message)
+
+        logger.info(f"Process exited with code {process.exitCode()}")
 
         if autoFail and process.exitCode() != 0:
             if isinstance(process, GitDriver):

@@ -686,7 +686,7 @@ class MergeBranch(RepoTask):
     def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
         self.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
-        yield from self.flowCallGit(
+        driver = yield from self.flowCallGit(
             "merge",
             "--no-commit",
             "--no-edit",
@@ -697,6 +697,9 @@ class MergeBranch(RepoTask):
             theirShorthand,
             autoFail=False  # don't abort the task if process returns non-0 (= conflicts)
         )
+
+        if driver.exitCode() != 0:
+            logger.warning(f"git merge error scrollback: {driver.stderrScrollback()}")
 
         if wantMergeCommit:
             self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
