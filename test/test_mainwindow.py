@@ -43,11 +43,12 @@ def testOpenSameRepoTwice(tempDir, mainWindow):
     assert mainWindow.currentRepoWidget() == rw4
 
 
-def testFileListFocusPolicy(tempDir, mainWindow):
+def testFileListFocusPolicy(tempDir, mainWindow, gitBackend):
     wd = unpackRepo(tempDir, renameTo="repo1")
     writeFile(f"{wd}/untracked.txt", "hello")
 
     rw = mainWindow.openRepo(wd)
+    rw.activateWindow()
 
     # GraphView -> TAB -> DirtyFiles
     rw.graphView.setFocus()
@@ -69,6 +70,8 @@ def testFileListFocusPolicy(tempDir, mainWindow):
     # Stage the file; DirtyFiles becomes empty but it still has focus
     qlvClickNthRow(rw.diffArea.dirtyFiles, 0)
     QTest.keyClick(rw.diffArea.dirtyFiles, Qt.Key.Key_Return)
+    rw.activateWindow()  # If task progress dialog came up, make sure main window has focus again
+    QTest.qWait(0)
     assert rw.diffArea.dirtyFiles.isEmpty()
     assert rw.diffArea.dirtyFiles.hasFocus()
 
