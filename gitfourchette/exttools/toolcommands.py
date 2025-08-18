@@ -23,6 +23,8 @@ _logger = logging.getLogger(__name__)
 
 _placeholderPattern = re.compile(r"\$[_a-zA-Z0-9]+")
 
+_whichPath = None
+
 
 class ToolCommands:
     @staticmethod
@@ -247,6 +249,14 @@ class ToolCommands:
         if process.exitCode() != 0:
             return ""
         return process.readAll().data().decode(errors="replace")
+
+    @classmethod
+    def which(cls, name: str):
+        global _whichPath
+        if FLATPAK and _whichPath is None:
+            # Cache host's $PATH
+            _whichPath = cls.runSync("sh", "-c", "echo $PATH").rstrip()
+        return shutil.which(name, path=_whichPath)
 
     @classmethod
     def makeTerminalScript(cls, workdir: str, command: str) -> str:

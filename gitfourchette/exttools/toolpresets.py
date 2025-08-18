@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import os
-import shutil
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.qt import *
@@ -132,8 +131,11 @@ class ToolPresets:
             cls.Terminals.update(cls._freedesktopTerminals)
 
             terminalScores = dict.fromkeys(cls._freedesktopTerminals, 0)
-            terminalScores["Ptyxis"]         = [-2, 2][GNOME]  # Fedora
-            terminalScores["GNOME Terminal"] = [-1, 1][GNOME]
+            terminalScores |= {
+                "Ptyxis"        : 2 if GNOME else -2,  # Fedora default
+                "GNOME Terminal": 1 if GNOME else -1,
+                "xterm"         : -4 if WAYLAND else -3,
+            }
 
             defaultDiffPreset = "Meld"
             defaultMergePreset = "Meld"
@@ -164,14 +166,15 @@ class ToolPresets:
         cls.DefaultTerminalCommand = cls._postProcessDefaultPreset(defaultTerminalPreset, cls.Terminals)
 
     @classmethod
-    def _findBestPreset(cls, presets, scores, fallback):
-        assert set(scores.keys()) == set(presets.keys())
+    def _findBestPreset(cls, presets: dict[str, str], scores: dict[str, int], fallback: str) -> str:
+        assert fallback in presets
+        assert set(scores.keys()) == set(presets.keys()), "scores and presets must have the same keys!"
 
-        sortedScores = sorted(scores.items(), key=lambda pair: pair[1], reverse=True)
+        sortedKeys = sorted(scores.keys(), key=lambda k: scores[k], reverse=True)
 
-        for key, _dummyScore in sortedScores:
+        for key in sortedKeys:
             program = presets[key].split()[0]
-            if shutil.which(presets[program]):
+            if ToolCommands.which(program):
                 return key
 
         return fallback
