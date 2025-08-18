@@ -25,8 +25,8 @@ requiresNetwork = pytest.mark.skipif(
     reason="Requires network - rerun with TESTNET=1 environment variable")
 
 requiresFlatpak = pytest.mark.skipif(
-    os.environ.get("TESTFLATPAK", "0").lower() in {"0", ""},
-    reason="Requires flatpak - rerun with TESTFLATPAK=1 environment variable")
+    not FREEDESKTOP or not shutil.which("flatpak"),
+    reason="Requires flatpak")
 
 
 @pytest.fixture(params=["git", "libgit2"])

@@ -24,8 +24,8 @@ jobs:
         - {name: '311-pyqt6', os: ubuntu-latest, py: '3.11', qt: pyqt6, downgrade-git: true}
         - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
         # Up-to-date configs
-        - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, args: '--with-flatpak'}
-        - {name: '313-pyside6', os: ubuntu-latest, py: '3.13', qt: pyside6, args: '--with-flatpak', coverage: true}
+        - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6}
+        - {name: '313-pyside6', os: ubuntu-latest, py: '3.13', qt: pyside6, coverage: true}
         - {name: '313-pyqt6-mac', os: macos-latest, py: '3.13', qt: pyqt6}
 
     steps:
@@ -63,7 +63,7 @@ jobs:
     - run: ruff check
 
     - name: Unit tests
-      run: ./test.py --qt=${{ matrix.qt }} --with-network ${{ matrix.args }} ${{ matrix.coverage && '--cov' }}
+      run: ./test.py --qt=${{ matrix.qt }} --with-network ${{ matrix.coverage && '--cov' }}
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
