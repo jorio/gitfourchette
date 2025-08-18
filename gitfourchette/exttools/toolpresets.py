@@ -169,9 +169,10 @@ class ToolPresets:
 
         sortedScores = sorted(scores.items(), key=lambda pair: pair[1], reverse=True)
 
-        for candidate, _dummyScore in sortedScores:
-            if shutil.which(presets[candidate]):
-                return candidate
+        for key, _dummyScore in sortedScores:
+            program = presets[key].split()[0]
+            if shutil.which(presets[program]):
+                return key
 
         return fallback
 
