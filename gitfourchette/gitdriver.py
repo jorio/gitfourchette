@@ -48,16 +48,8 @@ class GitDriver(QProcess):
         if cls._cachedGitVersion:
             return cls._cachedGitVersion
 
-        tokens = [cls._gitPath, "version"]
-        process = QProcess(None)
-        process.setProgram(tokens[0])
-        process.setArguments(tokens[1:])
-        ToolCommands.wrapFlatpakCommand(process)
-        process.start()
-        process.waitForFinished()
-        text = process.readAll().data().decode(errors="replace")
-        text = text.removeprefix("git version")
-        text = text.strip()
+        text = ToolCommands.runSync(cls._gitPath, "version")
+        text = text.removeprefix("git version").strip()
         cls._cachedGitVersion = text
         return text
 

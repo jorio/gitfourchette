@@ -226,7 +226,7 @@ class ToolProcess(QProcess):
             # Check 'isFlatpakRunCommand' on unfiltered tokens (compileCommand may have added a wrapper)
             unfilteredTokens = ToolCommands.splitCommandTokens(command)
             flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(unfilteredTokens)
-            if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex], parent):
+            if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex]):
                 onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
                 return None
 

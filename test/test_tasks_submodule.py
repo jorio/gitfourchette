@@ -6,12 +6,12 @@
 
 import os
 import shutil
-import subprocess
 
 import pygit2
 import pytest
 from pygit2.enums import SubmoduleStatus
 
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
 from gitfourchette.gitdriver import GitDriver
@@ -467,10 +467,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse, gitBackend)
 
     # TODO: Figure out why this specific test needs this
     if recurse and gitBackend == "git":
-        command = [GitDriver._gitPath, "update-index", "--really-refresh"]
-        if FLATPAK:
-            command = ["flatpak-spawn", "--host"] + command
-        subprocess.call(command, cwd=wd+"/submosub")
+        ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
     assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
@@ -523,10 +520,7 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow, gitBackend):
 
     # TODO: Figure out why this specific test needs this
     if gitBackend == "git":
-        command = [GitDriver._gitPath, "update-index", "--really-refresh"]
-        if FLATPAK:
-            command = ["flatpak-spawn", "--host"] + command
-        subprocess.call(command, cwd=wd+"/submosub")
+        ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
 

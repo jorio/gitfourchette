@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import itertools
+import logging
 import os
 import re
 import shlex
@@ -16,6 +17,9 @@ from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
+from gitfourchette.toolbox.benchmark import benchmark
+
+_logger = logging.getLogger(__name__)
 
 _placeholderPattern = re.compile(r"\$[_a-zA-Z0-9]+")
 
@@ -171,16 +175,11 @@ class ToolCommands:
         return env
 
     @classmethod
-    def isFlatpakInstalled(cls, flatpakRef: str, parent: QObject) -> bool:
-        tokens = ["flatpak", "info", "--show-ref", flatpakRef]
-        if FLATPAK:
-            tokens = ["flatpak-spawn", "--host", "--"] + tokens
-        process = QProcess(parent)
-        process.setProgram(tokens.pop(0))
-        process.setArguments(tokens)
-        process.start(mode=QProcess.OpenModeFlag.Unbuffered)
-        process.waitForFinished()
-        return process.exitCode() == 0
+    def isFlatpakInstalled(cls, flatpakRef: str) -> bool:
+        if not FREEDESKTOP:
+            return False
+        text = cls.runSync("flatpak", "info", "--show-ref", flatpakRef)
+        return bool(text.strip())
 
     @classmethod
     def wrapFlatpakCommand(cls, process: QProcess, detached=False):
@@ -232,6 +231,22 @@ class ToolCommands:
 
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
+
+    @classmethod
+    @benchmark
+    def runSync(cls, *args: str, directory: str = "") -> str:
+        process = QProcess(None)
+        process.setProgram(args[0])
+        process.setArguments(args[1:])
+        if directory:
+            process.setWorkingDirectory(directory)
+        cls.wrapFlatpakCommand(process)
+        _logger.info(f"runSync: {shlex.join([process.program()] + process.arguments())}")
+        process.start()
+        process.waitForFinished()
+        if process.exitCode() != 0:
+            return ""
+        return process.readAll().data().decode(errors="replace")
 
     @classmethod
     def makeTerminalScript(cls, workdir: str, command: str) -> str:
