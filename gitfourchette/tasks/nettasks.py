@@ -336,7 +336,7 @@ class FetchRemoteBranch(_BaseNetTask):
             self.cleanup()
             return
 
-        stdout = driver.readAll().data()
+        stdout = driver.readAll().data().decode(errors="replace")
         table = GitDriver.parseTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$", stdout)
 
         updatedTips = {

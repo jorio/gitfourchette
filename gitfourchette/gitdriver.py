@@ -70,11 +70,9 @@ class GitDriver(QProcess):
         return cls.gitVersionTuple() >= (2, 41)
 
     @classmethod
-    def parseTable(cls, pattern: str, stdout: bytes | str, linesep="\n", strict=True) -> list:
+    def parseTable(cls, pattern: str, stdout: str, linesep="\n", strict=True) -> list:
         table = []
 
-        if isinstance(stdout, bytes):
-            stdout = stdout.decode("utf-8", errors="replace")
         stdout = stdout.removesuffix(linesep)
 
         for line in stdout.split(linesep):

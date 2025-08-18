@@ -491,7 +491,7 @@ class ApplyPatchFile(RepoTask):
             "--check",
             path,
             *argsIf(reverse, "--reverse"))
-        stdout = driver.readAll().data()
+        stdout = driver.readAll().data().decode(errors="replace")
 
         table = GitDriver.parseTable(r"^(-|\d+)\t(-|\d+)\t(.+)$", stdout, "\0")
         details = []
