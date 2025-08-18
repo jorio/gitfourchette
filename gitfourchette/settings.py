@@ -11,6 +11,7 @@ import os
 from contextlib import suppress
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
@@ -116,7 +117,7 @@ class Prefs(PrefsFile):
     externalMerge               : str                   = ToolPresets.DefaultMergeCommand
     _spacer1                    : int                   = 0
     vanillaGit                  : bool                  = False
-    gitPath                     : str                   = "/usr/bin/git"
+    gitPath                     : str                   = ToolPresets.flatpakBuiltInGit() or "/usr/bin/git"
     ownAskpass                  : bool                  = True
     ownSshAgent                 : bool                  = True
 
@@ -186,6 +187,9 @@ class Prefs(PrefsFile):
 
     def syntaxHighlightingScheme(self):
         return ColorScheme.resolve(self.syntaxHighlighting)
+
+    def isGitSandboxed(self):
+        return self.gitPath.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
 
 
 @dataclasses.dataclass

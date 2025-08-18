@@ -584,7 +584,7 @@ class RepoTask(QObject):
 
         # SSH_ASKPASS
         if settings.prefs.ownAskpass:
-            env |= AskpassDialog.environmentForChildProcess()
+            env |= AskpassDialog.environmentForChildProcess(settings.prefs.isGitSandboxed())
 
         # Use internal ssh-agent
         if settings.prefs.ownSshAgent:

@@ -56,14 +56,14 @@ class AskpassDialog(TextInputDialog):
         return dialog
 
     @classmethod
-    def environmentForChildProcess(cls):
-        launcherScript = Path(qTempDir()) / "askpass.sh"
+    def environmentForChildProcess(cls, sandbox: bool = False):
+        launcherScript = Path(qTempDir()) / ("askpass_sandboxed.sh" if sandbox else "askpass.sh")
 
         if not launcherScript.exists():
             script = "#!/usr/bin/env bash\n"
             script += f"export {GFApplication.AskpassEnvKey}=1\n"
 
-            if FLATPAK:
+            if FLATPAK and not sandbox:
                 tokens = ["flatpak", "run", os.environ["FLATPAK_ID"]]
             else:
                 script += f"export PYTHONPATH={shlex.quote(':'.join(sys.path))}\n"

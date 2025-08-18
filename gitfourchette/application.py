@@ -401,22 +401,31 @@ class GFApplication(QApplication):
         from gitfourchette.sshagent import SshAgent
         from gitfourchette.toolbox import showWarning, paragraphs
 
-        hasAgent = bool(self.sshAgent)
         wantAgent = settings.prefs.ownSshAgent and settings.prefs.vanillaGit
+        sandbox = settings.prefs.isGitSandboxed()
 
-        if wantAgent and not hasAgent:
-            try:
-                self.sshAgent = SshAgent(self)
-            except Exception as exc:
-               showWarning(
-                   self.mainWindow,
-                   _("SSH agent"),
-                   paragraphs(
-                       _("Failed to start {0} ({1}).", "ssh-agent", str(exc)),
-                       _("Make sure you have installed OpenSSH."),
-                   ))
-        elif not wantAgent and hasAgent:
+        if not wantAgent:
             self.stopSshAgent()
+            return
+
+        if self.sshAgent and sandbox != self.sshAgent.isSandboxed():
+            # Sandboxed state of the current agent isn't what we want, restart it
+            self.stopSshAgent()
+
+        if self.sshAgent:
+            # Already have an agent
+            return
+
+        try:
+            self.sshAgent = SshAgent(self, sandbox=sandbox)
+        except Exception as exc:
+           showWarning(
+               self.mainWindow,
+               _("SSH agent"),
+               paragraphs(
+                   _("Failed to start {0} ({1}).", "ssh-agent", str(exc)),
+                   _("Make sure you have installed OpenSSH."),
+               ))
 
     def stopSshAgent(self):
         if self.sshAgent:

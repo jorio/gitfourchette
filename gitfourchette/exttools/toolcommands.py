@@ -27,6 +27,8 @@ _whichPath = None
 
 
 class ToolCommands:
+    FlatpakSandboxedCommandPrefix = "flatpak:"
+
     @staticmethod
     def splitCommandTokens(command: str) -> list[str]:
         # Treat command as POSIX even on Windows!
@@ -188,7 +190,14 @@ class ToolCommands:
         if not FREEDESKTOP:  # pragma: no cover
             return
 
-        tokens = [process.program()] + process.arguments()
+        program = process.program()
+
+        if FLATPAK and program.startswith(cls.FlatpakSandboxedCommandPrefix):
+            program = program.removeprefix(cls.FlatpakSandboxedCommandPrefix)
+            process.setProgram(program)
+            return
+
+        tokens = [program] + process.arguments()
         directory = process.workingDirectory()
 
         # If we're running a "flatpak run" command, add --env, --cwd, and --filesystem.
@@ -204,7 +213,7 @@ class ToolCommands:
 
         # If GitFourchette itself is running as a Flatpak, launch the command with "flatpak-spawn".
         if FLATPAK:
-            assert process.program() != "flatpak-spawn", "process already flatpak-spawn compatible"
+            assert program != "flatpak-spawn", "process already flatpak-spawn compatible"
 
             # Run external tool via flatpak-spawn --host (outside flatpak sandbox).
             extra = ["flatpak-spawn", "--host"]

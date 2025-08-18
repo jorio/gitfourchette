@@ -223,5 +223,12 @@ class ToolPresets:
 
         return name
 
+    @classmethod
+    def flatpakBuiltInGit(cls) -> str:
+        builtInGitPath = "/app/bin/git"
+        if FLATPAK and os.path.exists(builtInGitPath):
+            return ToolCommands.FlatpakSandboxedCommandPrefix + builtInGitPath
+        return ""
+
 
 ToolPresets._filterToolPresets()

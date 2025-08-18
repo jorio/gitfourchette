@@ -18,10 +18,15 @@ logger = logging.getLogger(__name__)
 class SshAgent(QProcess):
     environment: dict[str, str]
 
-    def __init__(self, parent: QObject):
+    def __init__(self, parent: QObject, sandbox: bool = False):
         super().__init__(parent)
 
-        tokens = ["ssh-agent", "-c", "-D"]
+        program = "ssh-agent"
+
+        if FLATPAK and sandbox:
+            program = ToolCommands.FlatpakSandboxedCommandPrefix + program
+
+        tokens = [program, "-c", "-D"]
         process = self
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
@@ -49,4 +54,4 @@ class SshAgent(QProcess):
             "SSH_AGENT_PID": sshAgentPid,
         }
 
-        logger.info(f"ssh-agent started ({sshAuthSock})")
+        logger.info(f"ssh-agent started on PID {sshAgentPid} ({sshAuthSock})")

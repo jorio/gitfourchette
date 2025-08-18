@@ -341,9 +341,12 @@ class PrefsDialog(QDialog):
             control.setSpecialValueText("\u221E")  # infinity
             return control
         elif key == "gitPath":
-            return self.strControlWithPresets(key, value, {
-                "Default": "/usr/bin/git",
-            })
+            presets = {}
+            builtInGit = ToolPresets.flatpakBuiltInGit()
+            if builtInGit:
+                presets[_("Built-in git (sandboxed)")] = builtInGit
+            presets[_("Auto-detected system git")] = ToolCommands.which("git") or "/usr/bin/git"
+            return self.strControlWithPresets(key, value, presets)
         elif issubclass(valueType, enum.Enum):
             return self.enumControl(key, value, type(value))
         elif valueType is int:
