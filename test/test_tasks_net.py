@@ -831,3 +831,43 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     with RepoContext(wd) as repo:
         repo.fetch_remote("remote2", None)
         assert repo.branches.remote["remote2/master"].target == oldOid
+
+
+def testAbortPullInProgress(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)#False)
+
+    with RepoContext(bareCopy) as bareRepo:
+        _unknownCommitId = bareRepo.create_commit(
+            "refs/heads/master",
+            TEST_SIGNATURE,
+            TEST_SIGNATURE,
+            "new commit on remote that local copy doesn't have yet",
+            bareRepo.head_tree.id,
+            [bareRepo.head_commit_id])
+
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+        oldHead = repo.head_commit_id
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead
+
+    QTest.qWait(0)
+    triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+
+    waitForSignal(rw.processDialog.becameVisible)
+    assert rw.processDialog.isVisible()
+
+    assert rw.processDialog.abortButton.isEnabled()
+    rw.processDialog.abortButton.click()
+    assert not rw.processDialog.abortButton.isEnabled()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    waitForQMessageBox(rw, "git.+exited with.+sigterm")
+    rejectQMessageBox(rw, "git.+exited with.+sigterm")
+
+    rw.refreshRepo()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead

@@ -17,6 +17,8 @@ from gitfourchette.toolbox import *
 class ProcessDialog(QDialog):
     PopUpDelay = 200
 
+    becameVisible = Signal()
+
     trackedProcess: QProcess | None
 
     def __init__(self, parent: QWidget):
@@ -87,6 +89,7 @@ class ProcessDialog(QDialog):
             process.progressFraction.connect(self.setProgress)
 
         self.show()
+        self.becameVisible.emit()
         self.abortButton.clearFocus()
 
     def disconnectProcess(self):
