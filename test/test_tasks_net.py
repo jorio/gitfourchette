@@ -30,7 +30,7 @@ from .util import *
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testCloneRepoWithSubmodules(tempDir, mainWindow, gitBackend):
+def testCloneRepoWithSubmodules(tempDir, mainWindow):
     wd = unpackRepo(tempDir, renameTo="unpacked-repo")
     subWd, _dummy = reposcenario.submodule(wd, True)  # spice it up with a submodule
     bare = makeBareCopy(wd, addAsRemote="", preFetch=False)
@@ -130,7 +130,7 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow, gitBackend):
     cloneDialog.reject()
 
 
-def testFetchNewRemoteBranches(tempDir, mainWindow, gitBackend):
+def testFetchNewRemoteBranches(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=False)
     rw = mainWindow.openRepo(wd)
@@ -147,7 +147,7 @@ def testFetchNewRemoteBranches(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
-def testDeleteRemoteBranch(tempDir, mainWindow, method, gitBackend):
+def testDeleteRemoteBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
     rw = mainWindow.openRepo(wd)
@@ -173,22 +173,19 @@ def testDeleteRemoteBranch(tempDir, mainWindow, method, gitBackend):
         rw.sidebar.findNodeByRef("refs/remotes/localfs/no-parent")
 
 
-def testRenameRemoteBranch(tempDir, mainWindow, gitBackend):
+def testRenameRemoteBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
 
-    # TODO: It would be great to have this part of the test work with libgit2,
-    #       but this causes an "object is not a committish" error during the fetch.
-    if gitBackend == "git":
-        with RepoContext(bareCopy) as bareRepo:
-            bareBranch = bareRepo.branches.local["no-parent"]
-            unknownCommitId = bareRepo.create_commit(
-                "refs/heads/no-parent",
-                TEST_SIGNATURE,
-                TEST_SIGNATURE,
-                "new commit on remote that local copy doesn't have yet",
-                bareRepo.head_tree.id, # bareBranch.peel(Tree).id,
-                [bareBranch.peel(Commit).id])
+    with RepoContext(bareCopy) as bareRepo:
+        bareBranch = bareRepo.branches.local["no-parent"]
+        unknownCommitId = bareRepo.create_commit(
+            "refs/heads/no-parent",
+            TEST_SIGNATURE,
+            TEST_SIGNATURE,
+            "new commit on remote that local copy doesn't have yet",
+            bareRepo.head_tree.id, # bareBranch.peel(Tree).id,
+            [bareBranch.peel(Commit).id])
 
     rw = mainWindow.openRepo(wd)
 
@@ -211,12 +208,11 @@ def testRenameRemoteBranch(tempDir, mainWindow, gitBackend):
 
     assert rw.repo.branches.local["no-parent"].upstream_name == "refs/remotes/localfs/new-name"
 
-    if gitBackend == "git":
-        assert rw.repo.branches.remote["localfs/new-name"].target == unknownCommitId
+    assert rw.repo.branches.remote["localfs/new-name"].target == unknownCommitId
 
 
 @pytest.mark.parametrize("method", ["sidebar", "toolbar"])
-def testFetchRemote(tempDir, mainWindow, method, gitBackend):
+def testFetchRemote(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
 
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
@@ -250,7 +246,7 @@ def testFetchRemote(tempDir, mainWindow, method, gitBackend):
         x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
 
-def testFetchRemoteBranch(tempDir, mainWindow, gitBackend):
+def testFetchRemoteBranch(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     newHead = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
 
@@ -277,7 +273,7 @@ def testFetchRemoteBranch(tempDir, mainWindow, gitBackend):
     triggerMenuAction(menu, "fetch")
 
     # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
-    if gitBackend != "git" or GitDriver.supportsFetchPorcelain():
+    if GitDriver.supportsFetchPorcelain():
         assert re.search(
             fr"localfs/master.+{str(oldHead)[:7]}.+{str(newHead)[:7]}",
             mainWindow.statusBar().currentMessage(),
@@ -288,7 +284,7 @@ def testFetchRemoteBranch(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("pull", [False, True])
-def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull, gitBackend):
+def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
 
@@ -316,19 +312,19 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull, gitBackend):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "pull")
 
-    if gitBackend == "libgit2":
-        acceptQMessageBox(rw, "localfs/master.+disappeared")
+    # if gitBackend == "libgit2":
+    #     acceptQMessageBox(rw, "localfs/master.+disappeared")
+    #
+    #     # It's gone
+    #     assert "localfs/master" not in rw.repo.branches.remote
+    #     with pytest.raises(KeyError):
+    #         rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
 
-        # It's gone
-        assert "localfs/master" not in rw.repo.branches.remote
-        with pytest.raises(KeyError):
-            rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
-    else:
-        acceptQMessageBox(rw, "couldn.+t find remote ref master")
-        # TODO: Should we automatically prune the branch in this case?
+    acceptQMessageBox(rw, "couldn.+t find remote ref master")
+    # TODO: Should we automatically prune the branch in this case?
 
 
-def testFetchRemoteBranchNoChange(tempDir, mainWindow, gitBackend):
+def testFetchRemoteBranchNoChange(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
@@ -341,13 +337,13 @@ def testFetchRemoteBranchNoChange(tempDir, mainWindow, gitBackend):
     triggerMenuAction(menu, "fetch")
 
     # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
-    if gitBackend != "git" or GitDriver.supportsFetchPorcelain():
+    if GitDriver.supportsFetchPorcelain():
         assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
 
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
-def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow, gitBackend):
+def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, "localfs", preFetch=True)
@@ -362,7 +358,7 @@ def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow, gitBackend):
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
-def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow, gitBackend):
+def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow):
     originWd = unpackRepo(tempDir)
     wd = tempDir.name + "/newrepo"
 
@@ -381,7 +377,7 @@ def testFetchRemoteHistoryWithUnbornHead(tempDir, mainWindow, gitBackend):
         rw.sidebar.findNodeByKind(SidebarItem.LocalBranch)
 
 
-def testFetchRemoteBranchNoUpstream(tempDir, mainWindow, gitBackend):
+def testFetchRemoteBranchNoUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.edit_upstream_branch("master", "")
@@ -392,7 +388,7 @@ def testFetchRemoteBranchNoUpstream(tempDir, mainWindow, gitBackend):
     assert not findMenuAction(menu, "fetch").isEnabled()
 
 
-def testFetchRemoteBranchUnbornHead(tempDir, mainWindow, gitBackend):
+def testFetchRemoteBranchUnbornHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
     upstreamWd = unpackRepo(tempDir)
 
@@ -415,7 +411,6 @@ def testFetchRemoteBranchUnbornHead(tempDir, mainWindow, gitBackend):
     assert masterTip == rw.repo.branches.remote["origin/master"].target
 
 
-# gitBackend parametrization not needed here
 def testPullRemoteBranchNoUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
@@ -429,7 +424,7 @@ def testPullRemoteBranchNoUpstream(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("remoteNeedsFetching", [True, False])
-def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching, gitBackend):
+def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching):
     newTip = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
@@ -460,7 +455,7 @@ def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching
     rw.repoModel.graph.getCommitRow(newTip)  # must not raise
 
 
-def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow, gitBackend):
+def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow):
     newTip = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
@@ -487,7 +482,7 @@ def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow,
     rw.repoModel.graph.getCommitRow(newTip)  # must not raise
 
 
-def testPullRemoteBranchCausesConflict(tempDir, mainWindow, gitBackend):
+def testPullRemoteBranchCausesConflict(tempDir, mainWindow):
     wd = unpackRepo(tempDir, testRepoName="testrepoformerging")
     makeBareCopy(wd, "localfs", True)
 
@@ -524,7 +519,7 @@ def testPullRemoteBranchCausesConflict(tempDir, mainWindow, gitBackend):
 @pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
                     reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 @pytest.mark.parametrize("asNewBranch", [False, True])
-def testPush(tempDir, mainWindow, asNewBranch, gitBackend):
+def testPush(tempDir, mainWindow, asNewBranch):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
 
     wd = unpackRepo(tempDir)
@@ -588,7 +583,7 @@ def testPush(tempDir, mainWindow, asNewBranch, gitBackend):
 
 @pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
                     reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
-def testShadowUpstream(tempDir, mainWindow, gitBackend):
+def testShadowUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, keepOldUpstream=True)
 
@@ -662,7 +657,7 @@ def testPushNoRemotes(tempDir, mainWindow):
     acceptQMessageBox(rw, "add a remote")
 
 
-def testPushTagOnCreate(tempDir, mainWindow, gitBackend):
+def testPushTagOnCreate(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, keepOldUpstream=True)
 
@@ -688,7 +683,7 @@ def testPushTagOnCreate(tempDir, mainWindow, gitBackend):
         assert "etiquette" in bareRepo.listall_tags()
 
 
-def testPushExistingTag(tempDir, mainWindow, gitBackend):
+def testPushExistingTag(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, keepOldUpstream=True)
 
@@ -706,7 +701,7 @@ def testPushExistingTag(tempDir, mainWindow, gitBackend):
         assert "etiquette" in bareRepo.listall_tags()
 
 
-def testPushAllTags(tempDir, mainWindow, gitBackend):
+def testPushAllTags(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
 
@@ -730,7 +725,7 @@ def testPushAllTags(tempDir, mainWindow, gitBackend):
         assert "etiquette3" in bareRepo.listall_tags()
 
 
-def testPushDeleteTag(tempDir, mainWindow, gitBackend):
+def testPushDeleteTag(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.create_reference("refs/tags/etiquette", repo.head_commit_id)
@@ -753,8 +748,7 @@ def testPushDeleteTag(tempDir, mainWindow, gitBackend):
         assert "etiquette" not in bareRepo.listall_tags()
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.18.2"), reason="old pygit2")
-def testForcePushWithLeasePass(tempDir, mainWindow, gitBackend):
+def testForcePushWithLeasePass(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
 
@@ -771,8 +765,7 @@ def testForcePushWithLeasePass(tempDir, mainWindow, gitBackend):
     assert rw.repo.branches.remote["remote2/master"].target == newOid
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.18.2"), reason="old pygit2")
-def testForcePushWithLeaseRejected(tempDir, mainWindow, gitBackend):
+def testForcePushWithLeaseRejected(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     bareCopy = makeBareCopy(wd, addAsRemote="remote2", preFetch=True)

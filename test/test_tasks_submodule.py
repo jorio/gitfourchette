@@ -81,7 +81,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testSubmoduleHeadUpdate(tempDir, mainWindow, method, gitBackend):
+def testSubmoduleHeadUpdate(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
     subHead = Oid(hex='49322bb17d3acc9146f98c97d078513228bbf3c0')
@@ -105,7 +105,7 @@ def testSubmoduleHeadUpdate(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button", "link"])
-def testSubmoduleDirty(tempDir, mainWindow, method, gitBackend):
+def testSubmoduleDirty(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
     writeFile(f"{subWd}/dirty.txt", "hello untracked")
@@ -241,7 +241,7 @@ def testAbsorbSubmodule(tempDir, mainWindow):
     assert rw is mainWindow.tabs.currentWidget()  # back to first tab
 
 
-def testSubmoduleStagingSuggestions(tempDir, mainWindow, gitBackend):
+def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
     subWd = unpackRepo(wd, renameTo="newsubmo")
 
@@ -309,7 +309,7 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow, gitBackend):
     assert qteFind(rw.specialDiffView, r"to complete the removal.+commit \.gitmodules")
 
 
-def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow, gitBackend):
+def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd, absorb=True)
 
@@ -342,7 +342,7 @@ def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow, gitBackend):
     triggerMenuAction(menu, "update")
 
 
-def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow, gitBackend):
+def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow):
     sm = "submosub"
 
     # Unpack full-blown repo (complete with submodule) as our upstream
@@ -390,7 +390,7 @@ def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow, gitBackend):
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 @pytest.mark.parametrize("method", ["single", "recurse"])
-def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method, gitBackend):
+def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method):
     sm = "submosub"
 
     # Unpack full-blown repo (complete with submodule) as our upstream
@@ -459,14 +459,13 @@ def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method, gi
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 @pytest.mark.parametrize("recurse", [True, False])
 @pytest.mark.parametrize("method", ["switch1", "switch2", "detach", "newbranch"])
-def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse, gitBackend):
+def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
     contentsHead = b"hello from submodule\nan update!\n"
     contentsOld = b"hello from submodule\n"
 
     wd = unpackRepo(tempDir, "submoroot")
 
-    # TODO: Figure out why this specific test needs this
-    if recurse and gitBackend == "git":
+    if recurse:  # TODO: Figure out why this specific test needs this
         ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
@@ -513,14 +512,13 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse, gitBackend)
         assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
 
 
-def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow, gitBackend):
+def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     initialCommit = Oid(hex="2b6471b8999e560c9601ffaa0a5b8376ac403ce4")
 
     wd = unpackRepo(tempDir, "submoroot")
 
     # TODO: Figure out why this specific test needs this
-    if gitBackend == "git":
-        ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
+    ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
 

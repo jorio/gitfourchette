@@ -11,17 +11,13 @@ import urllib.parse
 from contextlib import suppress
 from pathlib import Path
 
-import pygit2
-from pygit2.enums import RepositoryOpenFlag
-
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
 from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
-from gitfourchette.porcelain import Repo, pygit2_version_at_least, RepoContext
+from gitfourchette.porcelain import pygit2_version_at_least, RepoContext, RepositoryOpenFlag
 from gitfourchette.qt import *
-from gitfourchette.remotelink import RemoteLink
 from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
 from gitfourchette.toolbox import *
@@ -298,8 +294,7 @@ class CloneDialog(QDialog):
             depth = self.ui.shallowCloneDepthSpinBox.value()
 
         self.ui.statusForm.initProgress(_("Contacting remote host…"))
-        cloneTaskClass = CloneTaskVanillaGit if settings.prefs.vanillaGit else CloneTask
-        call = TaskInvocation(self.taskRunner, cloneTaskClass,
+        call = TaskInvocation(self.taskRunner, CloneTask,
                               dialog=self, url=self.url, path=self.path, depth=depth,
                               privKeyPath=privKeyPath, recursive=recursive)
         self.taskRunner.put(call)
@@ -315,76 +310,6 @@ class CloneDialog(QDialog):
 
 
 class CloneTask(RepoTask):
-    """
-    Even though we don't have a Repository yet, this is a RepoTask so we can
-    easily run the clone operation in a background thread.
-    """
-
-    stickyStatus = Signal(str)
-
-    cloneDialog: CloneDialog
-    remoteLink: RemoteLink
-
-    def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
-        self.cloneDialog = dialog
-        self.remoteLink = RemoteLink(self)
-        self.remoteLink.message.connect(dialog.ui.statusForm.setProgressMessage)
-        self.remoteLink.progress.connect(dialog.ui.statusForm.setProgressValue)
-        self.stickyStatus.connect(dialog.ui.statusGroupBox.setTitle)
-
-        dialog.enableInputs(False)
-        dialog.aboutToReject.connect(self.remoteLink.raiseAbortFlag)
-
-        # Enter worker thread
-        yield from self.flowEnterWorkerThread()
-
-        # Set private key
-        # (This requires passing resetParams=False to remoteContext())
-        if privKeyPath:
-            self.remoteLink.forceCustomKeyFile(privKeyPath)
-
-        # Clone the repo
-        self.stickyStatus.emit(_("Cloning…"))
-        with self.remoteLink.remoteContext(url, resetParams=False):
-            repo = pygit2.clone_repository(url, path, callbacks=self.remoteLink, depth=depth)
-
-        # Convert to our extended Repo class
-        repo = Repo(repo.workdir, RepositoryOpenFlag.NO_SEARCH)
-
-        # Store custom key (if any) in cloned repo config
-        if privKeyPath:
-            RepoPrefs.setRemoteKeyFileForRepo(repo, repo.remotes[0].name, privKeyPath)
-
-        # Recurse into submodules
-        if recursive:
-            self.recurseIntoSubmodules(repo, depth=depth)
-
-        # Done, back to UI thread
-        yield from self.flowEnterUiThread()
-        settings.history.addCloneUrl(url)
-        settings.history.setDirty()
-
-        # When the task runner wraps up, tell dialog to finish
-        dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
-
-    def recurseIntoSubmodules(self, repo: Repo, depth: int):
-        for i, submodule in enumerate(repo.recurse_submodules(), 1):
-            stickyStatus = _("Initializing submodule {0}: {1}…", i, lquoe(submodule.name))
-            self.stickyStatus.emit(stickyStatus)
-
-            with self.remoteLink.remoteContext(submodule.url or ""):
-                submodule.update(init=True, callbacks=self.remoteLink, depth=depth)
-
-    def onError(self, exc: BaseException):
-        traceback.print_exception(exc.__class__, exc, exc.__traceback__)
-        dialog = self.cloneDialog
-        QApplication.beep()
-        QApplication.alert(dialog, 500)
-        dialog.enableInputs(True)
-        dialog.ui.statusForm.setBlurb(f"<span style='white-space: pre;'><b>{TrTables.exceptionName(exc)}:</b> {escape(str(exc))}")
-
-
-class CloneTaskVanillaGit(RepoTask):
     """
     Even though we don't have a Repository yet, this is a RepoTask so we can
     easily run the clone operation in a background thread.

@@ -11,7 +11,6 @@ from gitfourchette.forms.ui_pushdialog import Ui_PushDialog
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.remotelink import RemoteLink
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.toolbox import *
 
@@ -19,14 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class PushDialog(QDialog):
-    remoteLink: RemoteLink | None
-    """
-    The RemoteLink for an ongoing push operation.
-    None when no push is in progress.
-    Inputs are disabled during a push.
-    Call `setRemoteLink()` to set.
-    """
-
     def onPickLocalBranch(self):
         localBranch = self.currentLocalBranch
 
@@ -213,8 +204,6 @@ class PushDialog(QDialog):
         self.repoModel = repoModel
         self.reservedRemoteBranchNames = repo.listall_remote_branches()
 
-        self.remoteLink = None  # Set by PushBranch task while a push is in progress
-
         self.ui = Ui_PushDialog()
         self.ui.setupUi(self)
         self.ui.trackingLabel.setMinimumHeight(self.ui.trackingLabel.height())
@@ -246,8 +235,7 @@ class PushDialog(QDialog):
 
         self.ui.forcePushCheckBox.clicked.connect(self.setOkButtonText)
 
-        if RemoteLink.supportsLease():
-            self.ui.forcePushCheckBox.setText(self.ui.forcePushCheckBox.text() + " " + _("(with lease)"))
+        self.ui.forcePushCheckBox.setText(self.ui.forcePushCheckBox.text() + " " + _("(with lease)"))
 
         self.setOkButtonText()
 
@@ -302,16 +290,11 @@ class PushDialog(QDialog):
             for w, enableW in zip(widgets, self.enableInputsBackup, strict=True):
                 w.setEnabled(enableW)
 
-    def reject(self):
-        if self.remoteLink is not None:
-            self.remoteLink.raiseAbortFlag()
-        else:
-            super().reject()
-
-    def setRemoteLink(self, link: RemoteLink | None):
-        pushInProgress = link is not None
-        self.remoteLink = link
-        self.enableInputs(not pushInProgress)
+    # def reject(self):
+    #     if self.remoteLink is not None:
+    #         self.remoteLink.raiseAbortFlag()
+    #     else:
+    #         super().reject()
 
     def saveShadowUpstream(self):
         branch = self.currentLocalBranch

@@ -201,14 +201,13 @@ class GFApplication(QApplication):
     def endSession(self, clearTempDir=True):
         from gitfourchette import settings
         from gitfourchette.syntax import LexJobCache
-        from gitfourchette.remotelink import RemoteLink
         if settings.prefs.isDirty():
             settings.prefs.write()
         if settings.history.isDirty():
             settings.history.write()
         self.stopSshAgent()
         LexJobCache.clear()  # don't cache lexed files across sessions (for unit testing)
-        RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
+        # RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
         if clearTempDir:
             self.tempDir.remove()
@@ -401,7 +400,7 @@ class GFApplication(QApplication):
         from gitfourchette.sshagent import SshAgent
         from gitfourchette.toolbox import showWarning, paragraphs
 
-        wantAgent = settings.prefs.ownSshAgent and settings.prefs.vanillaGit
+        wantAgent = settings.prefs.ownSshAgent
         sandbox = settings.prefs.isGitSandboxed()
 
         if not wantAgent:

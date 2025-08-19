@@ -45,7 +45,7 @@ def doUnstage(rw, method):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testStageEmptyUntrackedFile(tempDir, mainWindow, method, gitBackend):
+def testStageEmptyUntrackedFile(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     touchFile(F"{wd}/SomeNewFile.txt")
     rw = mainWindow.openRepo(wd)
@@ -62,7 +62,7 @@ def testStageEmptyUntrackedFile(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testDiscardUntrackedFile(tempDir, mainWindow, method, gitBackend):
+def testDiscardUntrackedFile(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     touchFile(F"{wd}/SomeNewFile.txt")
     rw = mainWindow.openRepo(wd)
@@ -97,7 +97,7 @@ def testDiscardUnstagedFileModification(tempDir, mainWindow, method):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow, method, gitBackend):
+def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
     rw = mainWindow.openRepo(wd)
@@ -153,7 +153,7 @@ def testUnstageModeChange(tempDir, mainWindow):
     assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB
 
 
-def testDiscardUntrackedTree(tempDir, mainWindow, gitBackend):
+def testDiscardUntrackedTree(tempDir, mainWindow):
     outerWd = unpackRepo(tempDir, renameTo="outer")
     innerWd = unpackRepo(tempDir, renameTo="inner")
     innerWd = shutil.move(innerWd, outerWd)
@@ -172,7 +172,7 @@ def testDiscardUntrackedTree(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
-def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method, gitBackend):
+def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -189,7 +189,7 @@ def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method, gitBackend):
     assert rw.repo.status() == {"SomeNewFile.txt": FileStatus.WT_NEW}
 
 
-def testStagingBlockedBySafeCrlf(tempDir, mainWindow, gitBackend):
+def testStagingBlockedBySafeCrlf(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.config["core.autocrlf"] = "input"
@@ -201,18 +201,18 @@ def testStagingBlockedBySafeCrlf(tempDir, mainWindow, gitBackend):
     rw.dirtyFiles.selectAll()
     rw.diffArea.stageButton.click()
 
-    if gitBackend == "libgit2":
-        # Note: Two lookups for a single qmb here because we're looking for parts of the message in different QLabels.
-        findQMessageBox(rw, "hello0.+contains CRLF.+will not be replaced by LF.+safecrlf")
-        acceptQMessageBox(rw, "stage files.+ran into an issue with 1 file.+1 other file was successful")
-        assert rw.repo.status() == {'hello1.txt': FileStatus.INDEX_NEW, 'hello0.txt': FileStatus.WT_NEW}
-    else:
-        acceptQMessageBox(rw, "CRLF would be replaced by LF")
-        # With vanilla git, the add operation is atomic, so nothing should be staged
-        assert rw.repo.status() == {'hello0.txt': FileStatus.WT_NEW, 'hello1.txt': FileStatus.WT_NEW}
+    # if gitBackend == "libgit2":
+    #     # Note: Two lookups for a single qmb here because we're looking for parts of the message in different QLabels.
+    #     findQMessageBox(rw, "hello0.+contains CRLF.+will not be replaced by LF.+safecrlf")
+    #     acceptQMessageBox(rw, "stage files.+ran into an issue with 1 file.+1 other file was successful")
+    #     assert rw.repo.status() == {'hello1.txt': FileStatus.INDEX_NEW, 'hello0.txt': FileStatus.WT_NEW}
+
+    acceptQMessageBox(rw, "CRLF would be replaced by LF")
+    # With vanilla git, the add operation is atomic, so nothing should be staged
+    assert rw.repo.status() == {'hello0.txt': FileStatus.WT_NEW, 'hello1.txt': FileStatus.WT_NEW}
 
 
-def testStagingBlockedByConflicts(tempDir, mainWindow, gitBackend):
+def testStagingBlockedByConflicts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.statelessConflictingChange(wd)
 

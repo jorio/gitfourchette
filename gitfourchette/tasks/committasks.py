@@ -8,7 +8,6 @@ import logging
 from contextlib import suppress
 from pathlib import Path
 
-from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
@@ -105,24 +104,14 @@ class NewCommit(RepoTask):
 
         cd.deleteLater()
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        newOid = yield from impl(message, author, committer)
-
-        yield from self.flowEnterUiThread()
-        uiPrefs.clearDraftCommit()
-
-        self.postStatus = _("Commit {0} created.", tquo(shortHash(newOid)))
-
-    def _withLibgit2(self, message: str, author: Signature | None, committer: Signature | None):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        return self.repo.create_commit_on_head(message, author, committer)
-
-    def _withGit(self, message: str, author: Signature | None, committer: Signature | None):
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(message, author, committer)
         yield from self.flowCallGit(*args, env=env)
-        return self.repo.head_commit_id
+
+        uiPrefs.clearDraftCommit()
+
+        newOid = self.repo.head_commit_id
+        self.postStatus = _("Commit {0} created.", tquo(shortHash(newOid)))
 
     @staticmethod
     def prepareGitCommand(message: str, author: Signature | None, committer: Signature | None, amend=False):
@@ -203,25 +192,16 @@ class AmendCommit(RepoTask):
         author = cd.getOverriddenAuthorSignature()  # no "or fallback" here - leave author intact for amending
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        newOid = yield from impl(message, author, committer)
+        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True)
+        yield from self.flowCallGit(*args, env=env)
 
         yield from self.flowEnterUiThread()
         self.repoModel.prefs.clearDraftAmend()
 
+        newOid = self.repo.head_commit_id
         self.postStatus = _("Commit {0} amended. New hash: {1}.",
                             tquo(shortHash(headCommit.id)), tquo(shortHash(newOid)))
-
-    def _withLibgit2(self, message: str, author: Signature | None, committer: Signature | None):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        return self.repo.amend_commit_on_head(message, author, committer)
-
-    def _withGit(self, message: str, author: Signature | None, committer: Signature | None):
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True)
-        yield from self.flowCallGit(*args, env=env)
-        return self.repo.head_commit_id
 
 
 class SetUpGitIdentity(RepoTask):
@@ -311,8 +291,14 @@ class CheckoutCommit(RepoTask):
                       "if you carry on checking out another commit ({0}).", shortHash(oid)))
                 yield from self.flowConfirm(text=text, icon='warning')
 
-            impl = self._detachWithGit if settings.prefs.vanillaGit else self._detachWithLibgit2
-            yield from impl(oid, wantSubmodules)
+            yield from self.flowCallGit(
+                "checkout",
+                "--progress",
+                "--detach",
+                *argsIf(wantSubmodules, "--recurse-submodules"),
+                str(oid))
+
+            self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
 
             # Force sidebar to select detached HEAD
             self.jumpTo = NavLocator.inRef("HEAD")
@@ -332,31 +318,6 @@ class CheckoutCommit(RepoTask):
 
         else:
             raise NotImplementedError("Unsupported CheckoutCommitDialog outcome")
-
-    def _detachWithLibgit2(self, oid: Oid, wantSubmodules: bool):
-        from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
-
-        yield from self.flowEnterWorkerThread()
-        self.repo.checkout_commit(oid)
-
-        self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
-
-        # Force sidebar to select detached HEAD
-        self.jumpTo = NavLocator.inRef("HEAD")
-
-        if wantSubmodules:
-            yield from self.flowEnterUiThread()
-            yield from self.flowSubtask(UpdateSubmodulesRecursive)
-
-    def _detachWithGit(self, oid: Oid, wantSubmodules: bool):
-        yield from self.flowCallGit(
-            "checkout",
-            "--progress",
-            "--detach",
-            *argsIf(wantSubmodules, "--recurse-submodules"),
-            str(oid))
-
-        self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
 
 
 class NewTag(RepoTask):
@@ -448,9 +409,6 @@ class RevertCommit(RepoTask):
         return TaskPrereqs.NoConflicts | TaskPrereqs.NoStagedChanges
 
     def flow(self, oid: Oid):
-        # TODO: Remove this when we can stop supporting pygit2 <= 1.15.0
-        pygit2_version_at_least("1.15.1")
-
         text = paragraphs(
             _("Do you want to revert commit {0}?", btag(shortHash(oid))),
             _("You will have an opportunity to review the affected files in your working directory."))
@@ -459,13 +417,14 @@ class RevertCommit(RepoTask):
         repoModel = self.repoModel
         repo = self.repo
 
-        if settings.prefs.vanillaGit:
-            yield from self._withGit(oid)
-        else:
-            yield from self.flowEnterWorkerThread()
-            self.effects |= TaskEffects.Workdir
-            commit = repo.peel_commit(oid)
-            repo.revert(commit)
+        self.effects |= TaskEffects.Workdir
+
+        # Don't raise AbortTask if git returns non-0
+        yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
+
+        # Refresh libgit2 index for conflict analysis
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()
 
         anyConflicts = repo.any_conflicts
         dud = not anyConflicts and not repo.any_staged_changes
@@ -495,16 +454,6 @@ class RevertCommit(RepoTask):
             yield from self.flowConfirm(text=text, verb=_p("verb", "Commit"), cancelText=_("Review changes"))
             yield from self.flowSubtask(NewCommit)
 
-    def _withGit(self, oid: Oid):
-        self.effects |= TaskEffects.Workdir
-
-        # Don't raise AbortTask if git returns non-0
-        yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
-
-        # Refresh libgit2 index for conflict analysis
-        yield from self.flowEnterWorkerThread()
-        self.repo.refresh_index()
-
 
 class CherrypickCommit(RepoTask):
     def prereqs(self):
@@ -514,8 +463,16 @@ class CherrypickCommit(RepoTask):
     def flow(self, oid: Oid):
         commit = self.repo.peel_commit(oid)
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(oid)
+        self.effects |= TaskEffects.Workdir
+        yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
+
+        # Force cherry-picking state for compatibility with libgit2 backend
+        cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD"))
+        cherryPickHead.write_text(str(oid) + "\n")
+
+        # Refresh libgit2 index for conflict analysis
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()
 
         anyConflicts = self.repo.any_conflicts
         dud = not anyConflicts and not self.repo.any_staged_changes
@@ -550,20 +507,3 @@ class CherrypickCommit(RepoTask):
                 verb=_p("verb", "Commit"),
                 cancelText=_("Review changes"))
             yield from self.flowSubtask(NewCommit)
-
-    def _withLibgit2(self, oid: Oid):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
-        self.repo.cherrypick(oid)
-
-    def _withGit(self, oid: Oid):
-        self.effects |= TaskEffects.Workdir
-        yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
-
-        # Force cherry-picking state for compatibility with libgit2 backend
-        cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD"))
-        cherryPickHead.write_text(str(oid) + "\n")
-
-        # Refresh libgit2 index for conflict analysis
-        yield from self.flowEnterWorkerThread()
-        self.repo.refresh_index()

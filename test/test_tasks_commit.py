@@ -20,7 +20,7 @@ from . import reposcenario
 from .util import *
 
 
-def testCommit(tempDir, mainWindow, gitBackend):
+def testCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -63,7 +63,7 @@ def testCommit(tempDir, mainWindow, gitBackend):
     assert patches[0].delta.new_file.path == "a/a1.txt"
 
 
-def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow, gitBackend):
+def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
     touchFile(F"{wd}/SomeNewFile.txt")
     rw = mainWindow.openRepo(wd)
@@ -84,7 +84,7 @@ def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow, gitBackend):
     assert commit.message == "Initial commit\n"
 
 
-def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow, gitBackend):
+def testCommitMessageDraftSavedOnCancel(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -151,7 +151,7 @@ def testClearCommitMessageDraft(tempDir, mainWindow):
     assert not rw.repoModel.prefs.draftCommitMessage
 
 
-def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow, gitBackend):
+def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -209,7 +209,7 @@ def testPasteMultilineCommitMessage(tempDir, mainWindow):
     dialog.reject()
 
 
-def testAmendCommit(tempDir, mainWindow, gitBackend):
+def testAmendCommit(tempDir, mainWindow):
     oldMessage = "Delete c/c2-2.txt"
     newMessage = "amended commit message"
     newAuthorName = "Jean-Michel Tartempion"
@@ -246,7 +246,7 @@ def testAmendCommit(tempDir, mainWindow, gitBackend):
     assert not rw.committedFiles.isVisibleTo(rw)
 
 
-def testAmendCommitDontBreakRefresh(tempDir, mainWindow, gitBackend):
+def testAmendCommitDontBreakRefresh(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
@@ -260,7 +260,7 @@ def testAmendCommitDontBreakRefresh(tempDir, mainWindow, gitBackend):
     dialog.accept()
 
 
-def testEmptyCommitRaisesWarning(tempDir, mainWindow, gitBackend):
+def testEmptyCommitRaisesWarning(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     rw.diffArea.commitButton.click()
@@ -282,7 +282,7 @@ def testEmptyCommitRaisesWarning(tempDir, mainWindow, gitBackend):
     qmb.reject()
 
 
-def testCommitWithoutUserIdentity(tempDir, mainWindow, gitBackend):
+def testCommitWithoutUserIdentity(tempDir, mainWindow):
     clearSessionwideIdentity()
 
     wd = unpackRepo(tempDir)
@@ -314,7 +314,7 @@ def testCommitWithoutUserIdentity(tempDir, mainWindow, gitBackend):
     assert headCommit.author.email == "1e15sabords@example.com"
 
 
-def testCommitStableDate(tempDir, mainWindow, gitBackend):
+def testCommitStableDate(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -335,7 +335,7 @@ def testCommitStableDate(tempDir, mainWindow, gitBackend):
     assert signatures_equalish(headCommit.author, headCommit.committer)
 
 
-def testAmendAltersCommitterDate(tempDir, mainWindow, gitBackend):
+def testAmendAltersCommitterDate(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -400,7 +400,7 @@ def testCommitDialogCtrlReturn(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["graphkey", "graphcm"])
-def testCheckoutCommitDetachHead(tempDir, mainWindow, method, gitBackend):
+def testCheckoutCommitDetachHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -466,7 +466,7 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
     assert currentSidebarNode.kind == SidebarItem.DetachedHead
 
 
-def testCommitOnDetachedHead(tempDir, mainWindow, gitBackend):
+def testCommitOnDetachedHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     oid = Oid(hex='1203b03dc816ccbb67773f28b3c19318654b0bc8')
@@ -498,8 +498,7 @@ def testCommitOnDetachedHead(tempDir, mainWindow, gitBackend):
     assert newHeadCommit in displayedCommits
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testRevertCommit(tempDir, mainWindow, gitBackend):
+def testRevertCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -520,8 +519,7 @@ def testRevertCommit(tempDir, mainWindow, gitBackend):
     assert rw.repo.status() == {"c/c2-2.txt": FileStatus.INDEX_NEW}
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testAbortRevertCommit(tempDir, mainWindow, gitBackend):
+def testAbortRevertCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -542,7 +540,7 @@ def testAbortRevertCommit(tempDir, mainWindow, gitBackend):
     assert not os.path.exists(f"{wd}/c/c2-2.txt")
 
 
-def testCherrypick(tempDir, mainWindow, gitBackend):
+def testCherrypick(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -576,7 +574,7 @@ def testCherrypick(tempDir, mainWindow, gitBackend):
     assert qlvGetRowData(rw.committedFiles) == ["a/a1.txt"]
 
 
-def testCherrypickDud(tempDir, mainWindow, gitBackend):
+def testCherrypickDud(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -586,7 +584,7 @@ def testCherrypickDud(tempDir, mainWindow, gitBackend):
     acceptQMessageBox(rw, "nothing to cherry.?pick.+already")
 
 
-def testAbortCherrypick(tempDir, mainWindow, gitBackend):
+def testAbortCherrypick(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:

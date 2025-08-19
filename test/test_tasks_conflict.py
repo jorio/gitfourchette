@@ -153,15 +153,15 @@ def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
     rw.refreshRepo()
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "b/b1.txt"]
     assert qlvGetRowData(rw.stagedFiles) == []
-    qlvClickNthRow(rw.dirtyFiles, 1)
-    QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)
+    rw.jump(NavLocator.inUnstaged("b/b1.txt"), check=True)
+    rw.diffArea.stageButton.click()
     assert qlvGetRowData(rw.stagedFiles) == ["b/b1.txt"]
 
     writeFile(f"{wd}/b/b1.txt", "b1\nb1\nunstaged change\nstaged change\n")
     rw.refreshRepo()
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "b/b1.txt"]
-    qlvClickNthRow(rw.dirtyFiles, 1)
-    QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Delete)
+    rw.jump(NavLocator.inUnstaged("b/b1.txt"), check=True)
+    rw.diffArea.discardButton.click()
     acceptQMessageBox(rw, r"really discard changes.+b1\.txt")
 
     assert readFile(f"{wd}/b/b1.txt").decode() == "b1\nb1\nstaged change\n"
@@ -184,7 +184,7 @@ def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
     assert "conflicts need fixing" in rw.mergeBanner.label.text().lower()
 
 
-def testResetIndexWithConflicts(tempDir, mainWindow, gitBackend):
+def testResetIndexWithConflicts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.statelessConflictingChange(wd)
 
@@ -365,7 +365,7 @@ def testFake3WayMerge(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
-def testMergeToolInBackground(tempDir, mainWindow, gitBackend):
+def testMergeToolInBackground(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})

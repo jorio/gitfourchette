@@ -43,7 +43,7 @@ def testOpenSameRepoTwice(tempDir, mainWindow):
     assert mainWindow.currentRepoWidget() == rw4
 
 
-def testFileListFocusPolicy(tempDir, mainWindow, gitBackend):
+def testFileListFocusPolicy(tempDir, mainWindow):
     wd = unpackRepo(tempDir, renameTo="repo1")
     writeFile(f"{wd}/untracked.txt", "hello")
 

@@ -21,7 +21,7 @@ from .util import *
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick", "shortcut"])
 @pytest.mark.parametrize("switch", [False, True])
-def testNewBranch(tempDir, mainWindow, method, switch, gitBackend):
+def testNewBranch(tempDir, mainWindow, method, switch):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -59,7 +59,7 @@ def testNewBranch(tempDir, mainWindow, method, switch, gitBackend):
         assert repo.head_branch_shorthand == 'master'
 
 
-def testNewBranchThenSwitchBlockedByConflicts(tempDir, mainWindow, gitBackend):
+def testNewBranchThenSwitchBlockedByConflicts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.statelessConflictingChange(wd)
 
@@ -388,7 +388,7 @@ def testDeleteBranchFolderContainingCurrentBranch(tempDir, mainWindow):
     assert "folder1/master" in repo.branches.local
 
 
-def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow, gitBackend):
+def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -410,7 +410,7 @@ def testNewBranchTrackingRemoteBranch1(tempDir, mainWindow, gitBackend):
     assert repo.branches.local["newmaster"].upstream == repo.branches.remote["origin/master"]
 
 
-def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow, gitBackend):
+def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -434,7 +434,7 @@ def testNewBranchTrackingRemoteBranch2(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["graphstart", "graphcheckout"])
-def testNewBranchFromCommit(tempDir, mainWindow, method, gitBackend):
+def testNewBranchFromCommit(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
@@ -472,7 +472,7 @@ def testNewBranchFromCommit(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "graphstart", "graphcheckout"])
-def testNewBranchFromDetachedHead(tempDir, mainWindow, method, gitBackend):
+def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     oid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
 
@@ -517,7 +517,7 @@ def testNewBranchFromDetachedHead(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["sidebar", "graphstart", "graphcheckout"])
-def testNewBranchFromLocalBranch(tempDir, mainWindow, method, gitBackend):
+def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
@@ -557,7 +557,7 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "graphmenu", "graphkey"])
-def testSwitchBranch(tempDir, mainWindow, method, gitBackend):
+def testSwitchBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
@@ -620,7 +620,7 @@ def testSwitchToCurrentBranch(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["direct", "checkoutdialog"])
-def testResetHeadToCommit(tempDir, mainWindow, method, gitBackend):
+def testResetHeadToCommit(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -650,7 +650,7 @@ def testResetHeadToCommit(tempDir, mainWindow, method, gitBackend):
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
-def testResetHeadRecurseSubmodules(tempDir, mainWindow, gitBackend):
+def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
     uncommittedPath = f"{wd}/submosub/subhello.txt"
     uncommittedContents = "uncommitted change in submodule"
@@ -696,7 +696,7 @@ def testSwitchBranchBlockedByConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "fix merge conflicts before performing this action")
 
 
-def testSwitchBranchWorkdirConflicts(tempDir, mainWindow, gitBackend):
+def testSwitchBranchWorkdirConflicts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     writeFile(f"{wd}/c/c1.txt", "la menuiserie et toute la clique")
@@ -712,10 +712,7 @@ def testSwitchBranchWorkdirConflicts(tempDir, mainWindow, gitBackend):
     triggerMenuAction(menu, "switch to")
     acceptQMessageBox(rw, "switch to.+no-parent")
 
-    if gitBackend == "libgit2":
-        acceptQMessageBox(rw, "conflict.+with.+file")
-    else:
-        acceptQMessageBox(rw, "your local changes to the following files would be overwritten by checkout")
+    acceptQMessageBox(rw, "your local changes to the following files would be overwritten by checkout")
 
     assert not localBranches['no-parent'].is_checked_out()  # still not checked out
     assert localBranches['master'].is_checked_out()
@@ -740,7 +737,7 @@ def testRecallCommit(tempDir, mainWindow):
     assert rw.navLocator.commit == lostId
 
 
-def testFastForwardCurrentBranch(tempDir, mainWindow, gitBackend):
+def testFastForwardCurrentBranch(tempDir, mainWindow):
     targetCommit = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
 
     wd = unpackRepo(tempDir)
@@ -767,7 +764,7 @@ def testFastForwardCurrentBranch(tempDir, mainWindow, gitBackend):
     assert rw.navLocator.commit == targetCommit
 
 
-def testFastForwardOtherBranch(tempDir, mainWindow, gitBackend):
+def testFastForwardOtherBranch(tempDir, mainWindow):
     targetCommit = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
 
     wd = unpackRepo(tempDir)
@@ -797,7 +794,7 @@ def testFastForwardOtherBranch(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("branch", ["master", "no-parent"])
-def testFastForwardNotNecessary(tempDir, mainWindow, branch, gitBackend):
+def testFastForwardNotNecessary(tempDir, mainWindow, branch):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -808,7 +805,7 @@ def testFastForwardNotNecessary(tempDir, mainWindow, branch, gitBackend):
     acceptQMessageBox(rw, "(is ahead of)|(already up.to.date)")
 
 
-def testFastForwardDivergent(tempDir, mainWindow, gitBackend):
+def testFastForwardDivergent(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch("no-parent")
@@ -821,7 +818,7 @@ def testFastForwardDivergent(tempDir, mainWindow, gitBackend):
     acceptQMessageBox(rw, "can.+t fast.forward.+branches are divergent")
 
 
-def testMergeUpToDate(tempDir, mainWindow, gitBackend):
+def testMergeUpToDate(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -832,7 +829,7 @@ def testMergeUpToDate(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["sidebar", "checkout"])
-def testMergeFastForward(tempDir, mainWindow, method, gitBackend):
+def testMergeFastForward(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch('no-parent')
@@ -867,7 +864,7 @@ def testMergeFastForward(tempDir, mainWindow, method, gitBackend):
     assert rw.repo.head.target == rw.repo.branches.local['master'].target
 
 
-def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow, gitBackend):
+def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.checkout_local_branch('no-parent')
@@ -903,7 +900,7 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow, gitBacke
     commitDialog.reject()
 
 
-def testAbortMerge(tempDir, mainWindow, gitBackend):
+def testAbortMerge(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     assert rw.repo.state() == RepositoryState.NONE
@@ -928,7 +925,7 @@ def testAbortMerge(tempDir, mainWindow, gitBackend):
     assert not rw.repoModel.prefs.draftCommitMessage
 
 
-def testMergeConcludedByCommit(tempDir, mainWindow, gitBackend):
+def testMergeConcludedByCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     node = rw.sidebar.findNodeByRef("refs/heads/pep8-fixes")
@@ -953,7 +950,7 @@ def testMergeConcludedByCommit(tempDir, mainWindow, gitBackend):
     assert rw.repo.status() == {}
 
 
-def testMergeCausesConflicts(tempDir, mainWindow, gitBackend):
+def testMergeCausesConflicts(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
     conflictUI = rw.conflictView.ui
@@ -991,11 +988,8 @@ def testMergeCausesConflicts(tempDir, mainWindow, gitBackend):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    if gitBackend == "git":
-        # TODO: Why is there no "into 'master'" with vanilla git here?
-        assert "Merge branch 'branch-conflicts'\n" == commitDialog.getFullMessage()
-    else:
-        assert "Merge branch 'branch-conflicts' into 'master'\n" == commitDialog.getFullMessage()
+    # TODO: Why is there no "into 'master'" with vanilla git here?
+    assert "Merge branch 'branch-conflicts'\n" == commitDialog.getFullMessage()
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 
@@ -1004,7 +998,7 @@ def testMergeCausesConflicts(tempDir, mainWindow, gitBackend):
 
 
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
-def testMightLoseDetachedHead(tempDir, mainWindow, method, gitBackend):
+def testMightLoseDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -1039,7 +1033,7 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method, gitBackend):
     assert looseOid not in rw.repoModel.graph.commitRows
 
 
-def testCreateBranchOnDetachedHead(tempDir, mainWindow, gitBackend):
+def testCreateBranchOnDetachedHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -1060,7 +1054,7 @@ def testCreateBranchOnDetachedHead(tempDir, mainWindow, gitBackend):
     assert "hellobranch" in rw.repo.branches.local
 
 
-def testRefreshLibgit2IndexAfterTaskAffectsHead(tempDir, mainWindow, gitBackend):
+def testRefreshLibgit2IndexAfterTaskAffectsHead(tempDir, mainWindow):
     # Make sure that libgit2's index is properly refreshed after HEAD changes.
     # In this example, SwitchBranch will modify HEAD; then, CherrypickCommit's prereqs should pass.
 

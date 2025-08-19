@@ -9,7 +9,7 @@ import os
 import shutil
 from contextlib import suppress
 
-from gitfourchette import reverseunidiff, settings
+from gitfourchette import reverseunidiff
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.gitdriver import GitDriver, argsIf
 from gitfourchette.localization import *
@@ -71,24 +71,14 @@ class StageFiles(_BaseStagingTask):
 
         self.denyConflicts(patches, PatchPurpose.Stage)
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(patches)
-
-        yield from self.debriefPostStage(patches)
-
-        self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
-
-    def _withLibgit2(self, patches: list[Patch]):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
-
-        self.repo.stage_files(patches)
-
-    def _withGit(self, patches: list[Patch]):
         paths = [patch.delta.new_file.path for patch in patches]
 
         self.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("add", "--", *paths)
+
+        yield from self.debriefPostStage(patches)
+
+        self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
 
     def debriefPostStage(self, patches: list[Patch]):
         debrief = {}
@@ -177,53 +167,9 @@ class DiscardFiles(_BaseStagingTask):
 
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="git-discard")
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(patches, submos)
+        yield from self._withGit(patches, submos)
 
         self.postStatus = _n("File discarded.", "{n} files discarded.", len(patches))
-
-    def restoreSubmodule(self, patch: Patch):
-        path = patch.delta.new_file.path
-        submodule = self.repo.submodules[path]
-
-        if patch.delta.status == DeltaStatus.DELETED:
-            didRestore = self.repo.restore_submodule_gitlink(path)
-            if not didRestore:
-                raise AbortTask(_("Couldn’t restore gitlink file for submodule {0}.", lquo(path)))
-
-        with RepoContext(self.repo.in_workdir(path), RepositoryOpenFlag.NO_SEARCH) as subRepo:
-            # Reset HEAD to the target commit
-            subRepo.reset(submodule.head_id, ResetMode.HARD)
-            # Nuke uncommitted files as well
-            subRepo.checkout_head(strategy=CheckoutStrategy.REMOVE_UNTRACKED | CheckoutStrategy.FORCE | CheckoutStrategy.RECREATE_MISSING)
-            # TODO: Recurse?
-
-    def _withLibgit2(self, patches: list[Patch], submos: list[Patch]):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
-
-        paths = [patch.delta.new_file.path for patch in patches
-                 if patch not in submos]
-
-        # Restore files from index
-        if paths:
-            Trash.instance().backupPatches(self.repo.workdir, patches)
-            self.repo.restore_files_from_index(paths)
-
-        # Discard untracked trees. They have already been backed up above,
-        # but restore_files_from_index isn't capable of removing trees.
-        untrackedTrees = [patch.delta.new_file.path for patch in patches
-                          if patch.delta.status == DeltaStatus.UNTRACKED and patch.delta.new_file.mode == FileMode.TREE]
-        for untrackedTree in untrackedTrees:
-            untrackedTreePath = self.repo.in_workdir(untrackedTree)
-            assert os.path.isdir(untrackedTreePath)
-            shutil.rmtree(untrackedTreePath)
-
-        # Restore submodules
-        if submos:
-            self.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
-            for patch in submos:
-                self.restoreSubmodule(patch)
 
     def _withGit(self, patches: list[Patch], submos: list[Patch]):
         self.effects |= TaskEffects.Workdir
@@ -270,21 +216,12 @@ class UnstageFiles(_BaseStagingTask):
             QApplication.beep()
             raise AbortTask()
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(patches)
-
-        self.postStatus = _n("File unstaged.", "{n} files unstaged.", len(patches))
-
-    def _withLibgit2(self, patches: list[Patch]):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
-        self.repo.unstage_files(patches)
-
-    def _withGit(self, patches: list[Patch]):
         paths = [patch.delta.new_file.path for patch in patches]
         self.effects |= TaskEffects.Workdir
         # Not using 'restore --staged' because it doesn't work in an empty repo
         yield from self.flowCallGit("reset", "--", *paths)
+
+        self.postStatus = _n("File unstaged.", "{n} files unstaged.", len(patches))
 
 
 class DiscardModeChanges(_BaseStagingTask):
@@ -477,10 +414,6 @@ class ApplyPatchFile(RepoTask):
 
             path = yield from self.flowFileDialog(qfd)
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(reverse, path, title, verb)
-
-    def _withGit(self, reverse: bool, path: str, title: str, verb: str):
         # Do a dry run first.
         driver = yield from self.flowCallGit(
             "apply",
@@ -519,46 +452,6 @@ class ApplyPatchFile(RepoTask):
             *argsIf(reverse, "--reverse"))
 
         self.jumpTo = NavLocator.inUnstaged(firstFile)
-
-    def _withLibgit2(self, reverse: bool, path: str, title: str, verb: str):
-        yield from self.flowEnterWorkerThread()
-
-        with open(path, encoding='utf-8') as patchFile:
-            patchData = patchFile.read()
-
-        # May raise:
-        # - OSError
-        # - GitError
-        # - UnicodeDecodeError (if passing in a random binary file)
-        # - KeyError ('no patch found')
-        loadedDiff: Diff = Diff.parse_diff(patchData)
-
-        # Reverse the patch if user wants to.
-        if reverse:
-            patchData = reverseunidiff.reverseUnidiff(loadedDiff.patch)
-            loadedDiff = Diff.parse_diff(patchData)
-
-        # Do a dry run first so we don't litter the workdir with a patch that failed halfway through.
-        # If the patch doesn't apply, this raises a MultiFileError.
-        diff = self.repo.applies_breakdown(patchData)
-        deltas = list(diff.deltas)
-
-        yield from self.flowEnterUiThread()
-
-        text = paragraphs(
-            _("Do you want to {verb} patch file {path}?",
-              verb=btag(verb.lower()), path=bquoe(os.path.basename(path))),
-            _n("<b>{n}</b> file will be modified in your working directory:",
-               "<b>{n}</b> files will be modified in your working directory:", n=len(deltas))
-        )
-        details = [f"({d.status_char()}) {escape(d.new_file.path)}" for d in deltas]
-
-        yield from self.flowConfirm(title, text, verb=verb, detailList=details)
-
-        self.effects |= TaskEffects.Workdir
-
-        self.repo.apply(loadedDiff, ApplyLocation.WORKDIR)
-        self.jumpTo = NavLocator.inUnstaged(deltas[0].new_file.path)
 
 
 class ApplyPatchFileReverse(ApplyPatchFile):
@@ -704,11 +597,9 @@ class AbortMerge(RepoTask):
 
         self.effects |= TaskEffects.DefaultRefresh
 
-        if settings.prefs.vanillaGit:
-            yield from self.flowCallGit(*gitCommand)
-        else:
-            self.repo.reset_merge()
-            self.repo.state_cleanup()
+        yield from self.flowCallGit(*gitCommand)
+        # self.repo.reset_merge()
+        # self.repo.state_cleanup()
 
         self.postStatus = postStatus
 

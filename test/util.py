@@ -8,7 +8,6 @@ import os
 import re
 import shutil
 import tempfile
-import typing
 from pathlib import Path
 
 import pygit2
@@ -27,13 +26,6 @@ requiresNetwork = pytest.mark.skipif(
 requiresFlatpak = pytest.mark.skipif(
     not FREEDESKTOP or not shutil.which("flatpak"),
     reason="Requires flatpak")
-
-
-@pytest.fixture(params=["git", "libgit2"])
-def gitBackend(request, mainWindow) -> typing.Literal["git", "libgit2"]:
-    backendName = request.param
-    mainWindow.onAcceptPrefsDialog({"vanillaGit": backendName == "git"})
-    return backendName
 
 
 def pause(seconds: int = 3):

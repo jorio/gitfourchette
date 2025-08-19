@@ -449,8 +449,6 @@ class MainWindow(QMainWindow):
                 chain.append("TESTMODE")
             if APP_NOTHREADS:
                 chain.append("NOTHREADS")
-            if settings.prefs.vanillaGit:
-                chain.append("vanillaGit")
             title = f"{title} ({' '.join(chain)})"
 
         super().setWindowTitle(title)
@@ -1059,7 +1057,7 @@ class MainWindow(QMainWindow):
             app.applyLanguagePref()
             self.fillGlobalMenuBar()
 
-        if "ownSshAgent" in prefDiff or "vanillaGit" in prefDiff:  # ownSshAgent only applies with vanillaGit
+        if "ownSshAgent" in prefDiff:
             app.applySshAgentPref()
 
         if "commands" in prefDiff or "confirmCommands" in prefDiff:

@@ -89,13 +89,9 @@ class AboutDialog(QDialog):
 
         qtBindingSuffix = ""
 
-        if settings.prefs.vanillaGit:
-            gitPath = settings.prefs.gitPath
-            gitVersion = GitDriver.gitVersion() or _("(unknown version)")
-            gitInfo = f"<b>git</b> {gitVersion} <small>({gitPath})</small>"
-        else:
-            gitInfo = _("System git not in use. You can enable it in {0}.",
-                        f"{_('Settings')} &rarr; {_p('Prefs', 'External Tools')}")
+        gitPath = settings.prefs.gitPath
+        gitVersion = GitDriver.gitVersion() or _("(unknown version)")
+        gitInfo = f"<b>git</b> {gitVersion} <small>({gitPath})</small>"
 
         self.ui.componentsBlurb.setText(dedent(f"""<html>\
             {appName} {appVersion}

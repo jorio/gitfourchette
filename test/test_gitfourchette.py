@@ -141,7 +141,7 @@ def testSkipRenameDetection(tempDir, mainWindow):
     assert not rw.diffBanner.isVisible()
 
 
-def testNewRepo(tempDir, mainWindow, gitBackend):
+def testNewRepo(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
 
     path = os.path.realpath(tempDir.name + "/valoche3000")
@@ -303,7 +303,7 @@ def testRepoNickname(tempDir, mainWindow):
 
 @pytest.mark.parametrize("name", ["Zhack Sheerack", ""])
 @pytest.mark.parametrize("email", ["chichi@example.com", ""])
-def testCustomRepoIdentity(tempDir, mainWindow, name, email, gitBackend):
+def testCustomRepoIdentity(tempDir, mainWindow, name, email):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -752,7 +752,6 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 
 def testFailedToStartGitProcess(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({
-        "vanillaGit": True,
         "gitPath": "/tmp/supposedly-a-git-executable-but-it-doesnt-exist"
     })
 

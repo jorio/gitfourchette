@@ -38,7 +38,7 @@ def testExportPatchFromWorkdir(tempDir, mainWindow):
 
     triggerMenuAction(mainWindow.menuBar(), "file/revert patch")
     acceptQFileDialog(rw, "revert patch", f"{wd}/workdir.patch")
-    acceptQMessageBox(rw, "revert patch.+ran into issues")
+    acceptQMessageBox(rw, "patch does not apply")
 
     triggerMenuAction(mainWindow.menuBar(), "file/apply patch")
     acceptQFileDialog(rw, "apply patch", f"{wd}/workdir.patch")

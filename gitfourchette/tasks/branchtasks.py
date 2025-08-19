@@ -6,7 +6,6 @@
 
 import logging
 
-from gitfourchette import settings
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
@@ -66,22 +65,6 @@ class SwitchBranch(RepoTask):
             noText = _("Don’t Switch")
             yield from self.flowConfirm(text=text, icon='warning', verb=yesText, cancelText=noText)
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(newBranch, recurseSubmodules)
-
-    def _withLibgit2(self, newBranch: str, recurseSubmodules: bool):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
-        self.repo.checkout_local_branch(newBranch)
-
-        self.postStatus = _("Switched to branch {0}.", tquo(newBranch))
-
-        if recurseSubmodules:
-            from gitfourchette.tasks import UpdateSubmodulesRecursive
-            yield from self.flowEnterUiThread()
-            yield from self.flowSubtask(UpdateSubmodulesRecursive)
-
-    def _withGit(self, newBranch: str, recurseSubmodules: bool):
         self.effects |= TaskEffects.Refs | TaskEffects.Head
 
         yield from self.flowCallGit(
@@ -435,25 +418,6 @@ class ResetHead(RepoTask):
         resetMode = dlg.activeMode
         recurseSubmodules = dlg.recurseSubmodules()
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        yield from impl(onto, resetMode, recurseSubmodules, branchName)
-
-    def _withLibgit2(self, onto, resetMode, recurse, branchName):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs | TaskEffects.Workdir
-
-        self.repo.reset(onto, resetMode)
-        self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
-                            tquo(branchName), tquo(shortHash(onto)), mode=resetMode.name.lower())
-
-        if recurse:
-            for submodule in self.repo.recurse_submodules():
-                subOnto = submodule.head_id
-                logger.info(f"Reset {repr(resetMode)}: Submodule '{submodule.name}' --> {shortHash(subOnto)}")
-                with RepoContext(submodule.open()) as subRepo:
-                    subRepo.reset(subOnto, resetMode)
-
-    def _withGit(self, onto, resetMode, recurse, branchName):
         self.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
         modeArg = "--" + resetMode.name.lower()
@@ -462,7 +426,7 @@ class ResetHead(RepoTask):
         yield from self.flowCallGit(
             "reset",
             modeArg,
-            *argsIf(recurse, "--recurse-submodules"),
+            *argsIf(recurseSubmodules, "--recurse-submodules"),
             str(onto))
 
         self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
@@ -483,8 +447,7 @@ class FastForwardBranch(RepoTask):
 
         remoteBranchName = upstream.shorthand
 
-        impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
-        upToDate = yield from impl(branch)
+        upToDate = yield from self._withGit(branch)
 
         ahead = False
         if upToDate:
@@ -521,12 +484,6 @@ class FastForwardBranch(RepoTask):
                 mergeButton.clicked.connect(lambda: MergeBranch.invoke(parentWidget, rb.name))
         else:
             super().onError(exc)
-
-    def _withLibgit2(self, branch: Branch):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
-        upToDate = self.repo.fast_forward_branch(branch.shorthand, branch.upstream.shorthand)
-        return upToDate
 
     def _withGit(self, branch: Branch):
         # Perform merge analysis with libgit2 first
@@ -628,10 +585,7 @@ class MergeBranch(RepoTask):
         # -----------------------------------------------------------
         # Actually perform the fast-forward or the merge
 
-        if settings.prefs.vanillaGit:
-            yield from self._withGit(wantMergeCommit, theirShorthand)
-        else:
-            yield from self._withLibgit2(wantMergeCommit, myShorthand, theirBranch, theirBranchIsRemote, theirShorthand, target)
+        yield from self._withGit(wantMergeCommit, theirShorthand)
 
         if wantMergeCommit:
             self.jumpTo = NavLocator.inWorkdir()
@@ -660,28 +614,6 @@ class MergeBranch(RepoTask):
         # Also checking for Accepted so that unit tests can do qmb.accept().
         wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
         return wantMergeCommit
-
-    def _withLibgit2(self, wantMergeCommit, myShorthand, theirBranch, theirBranchIsRemote, theirShorthand, target):
-        yield from self.flowEnterWorkerThread()
-
-        self.effects |= TaskEffects.Refs
-        if wantMergeCommit:
-            # Create merge commit
-            self.effects |= TaskEffects.Workdir
-
-            if pygit2_version_at_least("1.18.0", raise_error=False, feature_name="git_annotated_commit_from_ref"):
-                self.repo.merge(theirBranch)
-            else:  # pragma: no cover
-                self.repo.merge(target)
-
-            # Set a better message than libgit2 (it uses the longform ref name when merging remote branches)
-            # TODO: If we ever add the ability to merge tags, add mergeWhat="tag"
-            mergeWhat = "remote-tracking branch" if theirBranchIsRemote else "branch"
-            self.repo.set_message(f"Merge {mergeWhat} '{theirShorthand}' into '{myShorthand}'")
-            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
-        else:
-            # Fast-forward
-            self.repo.fast_forward_branch(myShorthand, theirBranch.name)
 
     def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
         self.effects |= TaskEffects.Refs | TaskEffects.Workdir
