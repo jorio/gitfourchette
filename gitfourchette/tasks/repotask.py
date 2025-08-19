@@ -652,8 +652,11 @@ class RepoTask(QObject):
         if proceedSignal:
             proceedSignal.connect(self.uiReady)
 
-        dialog.show()
-        installDialogReturnShortcut(dialog)
+        # Only show the dialog if not made visible by the task already
+        # (re-showing may reset its position on the screen)
+        if not dialog.isVisible():
+            dialog.show()
+            installDialogReturnShortcut(dialog)
 
         yield waitToken
 
