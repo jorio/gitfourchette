@@ -140,6 +140,7 @@ class GitDriver(QProcess):
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
+        self.setObjectName("GitDriver")
         self.readyReadStandardError.connect(self._onReadyReadStandardError)
         self._stderrScrollback = io.BytesIO()
 

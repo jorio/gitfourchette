@@ -618,7 +618,7 @@ class RepoTask(QObject):
 
         tokens = gitProgram + list(args)
 
-        process = GitDriver(self.parentWidget())
+        process = GitDriver(self)
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:])
         if workdir:
