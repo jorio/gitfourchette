@@ -475,9 +475,7 @@ class ApplyPatchFile(RepoTask):
             qfd = PersistentFileDialog.openFile(
                 self.parentWidget(), "OpenPatch", title, filter=F"{patchFileCaption} (*.patch);;{allFilesCaption} (*)")
 
-            yield from self.flowDialog(qfd)
-
-            path = qfd.selectedFiles()[0]
+            path = yield from self.flowFileDialog(qfd)
 
         impl = self._withGit if settings.prefs.vanillaGit else self._withLibgit2
         yield from impl(reverse, path, title, verb)

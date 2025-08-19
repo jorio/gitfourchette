@@ -24,9 +24,7 @@ class NewRepo(RepoTask):
         fileDialog.setFileMode(QFileDialog.FileMode.Directory)
         fileDialog.setLabelText(QFileDialog.DialogLabel.Accept, _("&Create repo here"))
         fileDialog.setWindowModality(Qt.WindowModality.WindowModal)
-        yield from self.flowDialog(fileDialog)
-
-        path = fileDialog.selectedFiles()[0]
+        path = yield from self.flowFileDialog(fileDialog)
 
         # macOS's native file picker may return a directory that doesn't exist yet
         # (it expects us to create it ourselves). libgit2 won't detect the parent repo

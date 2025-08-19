@@ -673,6 +673,16 @@ class RepoTask(QObject):
             dialog.deleteLater()
             raise AbortTask("")
 
+    def flowFileDialog(self, dialog: QFileDialog) -> Generator[FlowControlToken, None, str]:
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+        yield from self.flowDialog(dialog)
+
+        files = dialog.selectedFiles()
+        path = files[0]
+
+        dialog.deleteLater()
+        return path
+
     def flowConfirm(
             self,
             title: str = "",
