@@ -506,39 +506,32 @@ class RepoTask(QObject):
 
         self.rootTask._currentProcess = process
 
-        def onProcessError():
-            nonlocal processError
-            processError = True
-        processError = False
+        didStart = False
+        def onStateChanged(newState: QProcess.ProcessState):
+            nonlocal didStart
+            if newState == QProcess.ProcessState.Running and not didStart:
+                didStart = True
+                process.errorOccurred.disconnect(self.uiReady)
+            elif newState == QProcess.ProcessState.NotRunning and didStart:
+                self.uiReady.emit()
+            # If NotRunning but never started, let onErrorOccurred (which is
+            # emitted AFTER stateChange) move coroutine along
 
-        # Intercept errorOccurred before the process starts so that we can
-        # report that the command was not found. Disconnect errorOccurred as
-        # soon as the program has started so that sending SIGTERM manually
-        # won't cause a "ProcessCrashed" message box.
-        process.errorOccurred.connect(onProcessError)
-        process.started.connect(lambda: process.errorOccurred.disconnect(onProcessError))
-
-        # Continue the coroutine when the process is ready.
-        process.finished.connect(self.uiReady)
-
-        # Start the process.
+        process.stateChanged.connect(onStateChanged)
+        process.errorOccurred.connect(self.uiReady)
         process.start()
 
-        # The process is supposed to be Starting or Running by now.
-        if process.state() != QProcess.ProcessState.NotRunning:
-            # Pause the coroutine until the process is ready.
-            process.errorOccurred.connect(self.uiReady)
-            waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
-            yield waitToken
-        else:
-            # If it's NotRunning immediately after start(), that means the process
-            # couldn't be started for some reason (e.g. working directory missing).
-            # The errorOccurred signal should have called onProcessError.
-            pass
+        # Wait for process to go NotRunning, or errorOccurred to be emitted
+        waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+        yield waitToken
+
+        process.stateChanged.disconnect(onStateChanged)
+        if not didStart:
+            process.errorOccurred.disconnect(self.uiReady)
 
         self.rootTask._currentProcess = None
 
-        if processError:
+        if not didStart:
             message = _("Process failed to start ({0}).", process.error())
             message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
             raise AbortTask(message)
@@ -548,7 +541,7 @@ class RepoTask(QObject):
         if autoFail and process.exitCode() != 0:
             if isinstance(process, GitDriver):
                 stderr = process.stderrScrollback()
-                message = _("Git command exited with code {0}.", process.exitCode())
+                message = _("Git command exited with code {0}.", process.formatExitCode())
             else:
                 stderr = process.readAllStandardError().data().decode(errors="replace")
                 message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())

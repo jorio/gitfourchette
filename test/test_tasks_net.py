@@ -798,3 +798,36 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
     pushDialog.reject()
 
     assert rw.repo.branches.remote["remote2/master"].target != newOid
+
+
+def testAbortPushInProgress(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+        oldOid = repo.head_commit_id
+        newOid = repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    assert rw.repo.branches.local["master"].target == newOid
+    assert rw.repo.branches.remote["remote2/master"].target == oldOid
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog: PushDialog = waitForQDialog(rw, "push.+branch")
+    pushDialog.okButton().click()
+    assert not pushDialog.okButton().isEnabled()
+    assert pushDialog.ui.statusForm.progressMessage.isVisible()
+    assert re.search(r"contacting remote host", pushDialog.ui.statusForm.progressMessage.text(), re.I)
+    pushDialog.cancelButton().click()
+    waitUntilTrue(pushDialog.okButton().isEnabled)
+    assert pushDialog.ui.statusForm.blurbLabel.isVisible()
+    assert re.search(r"git.+exited with.+sigterm", pushDialog.ui.statusForm.blurbLabel.text(), re.I)
+    pushDialog.reject()
+
+    assert rw.repo.branches.remote["remote2/master"].target == oldOid
+    with RepoContext(wd) as repo:
+        repo.fetch_remote("remote2", None)
+        assert repo.branches.remote["remote2/master"].target == oldOid

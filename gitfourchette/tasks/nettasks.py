@@ -365,12 +365,20 @@ class PushBranch(RepoTask):
 
         dialog = PushDialog(self.repoModel, branch, self.parentWidget())
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.abortRequested.connect(self.onAbortRequested)
+        self.dialog = dialog
 
         tryAgain = True
         while tryAgain:
             tryAgain = yield from self.attempt(dialog)
 
         dialog.accept()
+
+    def onGitProgressMessage(self, message: str):
+        self.dialog.ui.statusForm.setProgressMessage(message)
+
+    def onGitProgressFraction(self, num: int, denom: int):
+        self.dialog.ui.statusForm.setProgressValue(num, denom)
 
     def attempt(self, dialog: PushDialog):
         yield from self.flowDialog(dialog, proceedSignal=dialog.startOperationButton.clicked)
@@ -386,8 +394,8 @@ class PushBranch(RepoTask):
 
         resetTrackingReference = dialog.ui.trackCheckBox.isEnabled() and dialog.ui.trackCheckBox.isChecked()
 
-        # Look at the state of the checkboxes BEFORE calling this --  it'll disable the checkboxes!
-        dialog.enableInputs(False)
+        # Look at the state of the checkboxes BEFORE calling this -- it'll disable the checkboxes!
+        dialog.setBusy(True)
 
         # ----------------
         # Task meat
@@ -406,6 +414,8 @@ class PushBranch(RepoTask):
             refspec,
             autoFail=False,
             remote=remote.name)
+
+        gitFailed = driver.exitCode() != 0
         stdout = driver.readAll().data().decode(errors="replace")
 
         # ---------------
@@ -423,6 +433,8 @@ class PushBranch(RepoTask):
             summary = ""
 
         errorText = "<p style='white-space: pre-wrap'>"
+        if gitFailed:
+            errorText += _("Git command exited with code {0}.", driver.formatExitCode()) + "<br>"
         if "[rejected]" in summary:
             reason = summary.removeprefix("[rejected]").strip()
             errorText += btag(_("The push was rejected: {0}.", reason)) + "<br>"
@@ -435,10 +447,10 @@ class PushBranch(RepoTask):
                 remote=hquo(remote.name))
         errorText += GitDriver.reformatHintText(driver.stderrScrollback())
 
-        dialog.enableInputs(True)
+        dialog.setBusy(False)
         dialog.saveShadowUpstream()
 
-        if driver.exitCode() != 0:
+        if gitFailed:
             QApplication.beep()
             QApplication.alert(dialog, 500)
             dialog.ui.statusForm.setBlurb(errorText)
@@ -446,5 +458,9 @@ class PushBranch(RepoTask):
             # self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
             self.postStatus = _("Push complete.") + " " + summary
 
-        return driver.exitCode() != 0
+        return gitFailed
 
+    def onAbortRequested(self):
+        process = self.currentProcess
+        if process:
+            process.terminate()

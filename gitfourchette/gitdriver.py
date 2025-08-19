@@ -7,6 +7,7 @@
 import html
 import io
 import re
+import signal
 from enum import StrEnum
 
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -160,3 +161,11 @@ class GitDriver(QProcess):
             for line in self._stderrScrollback.getvalue().splitlines(keepends=True)
             if not line.endswith(b"\r")
         )
+
+    def formatExitCode(self) -> str:
+        code = self.exitCode()
+        try:
+            s = signal.Signals(code)
+            return f"{code} ({s.name})"
+        except ValueError:
+            return f"{code}"

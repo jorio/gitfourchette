@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class PushDialog(QDialog):
+    abortRequested = Signal()
+
     def onPickLocalBranch(self):
         localBranch = self.currentLocalBranch
 
@@ -203,6 +205,7 @@ class PushDialog(QDialog):
         repo = repoModel.repo
         self.repoModel = repoModel
         self.reservedRemoteBranchNames = repo.listall_remote_branches()
+        self.widgetsWereEnabled = []
 
         self.ui = Ui_PushDialog()
         self.ui.setupUi(self)
@@ -246,6 +249,9 @@ class PushDialog(QDialog):
     def okButton(self) -> QPushButton:
         return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
 
+    def cancelButton(self) -> QPushButton:
+        return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
+
     def setOkButtonText(self):
         icon = "git-push"
         tip = ""
@@ -273,7 +279,10 @@ class PushDialog(QDialog):
         return nameValidationMessage(name, reservedNames,
                                      _("This name is already taken by another branch on this remote."))
 
-    def enableInputs(self, on: bool):
+    def isBusy(self) -> bool:
+        return len(self.widgetsWereEnabled) > 0
+
+    def setBusy(self, busy: bool):
         widgets = [self.ui.remoteBranchEdit,
                    self.ui.localBranchEdit,
                    self.ui.newRemoteBranchNameEdit,
@@ -281,20 +290,23 @@ class PushDialog(QDialog):
                    self.ui.trackCheckBox,
                    self.startOperationButton]
 
-        if not on:
+        if busy:
             # Remember which widgets were disabled already
-            self.enableInputsBackup = [w.isEnabled() for w in widgets]
+            self.widgetsWereEnabled = [w.isEnabled() for w in widgets]
             for w in widgets:
                 w.setEnabled(False)
         else:
-            for w, enableW in zip(widgets, self.enableInputsBackup, strict=True):
+            for w, enableW in zip(widgets, self.widgetsWereEnabled, strict=True):
                 w.setEnabled(enableW)
+            self.widgetsWereEnabled.clear()
 
-    # def reject(self):
-    #     if self.remoteLink is not None:
-    #         self.remoteLink.raiseAbortFlag()
-    #     else:
-    #         super().reject()
+    def reject(self):
+        if self.isBusy():
+            self.ui.statusForm.setProgressMessage(_("Canceling…"))
+            self.ui.statusForm.setProgressValue(0, 0)
+            self.abortRequested.emit()
+        else:
+            super().reject()
 
     def saveShadowUpstream(self):
         branch = self.currentLocalBranch
