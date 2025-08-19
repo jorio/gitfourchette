@@ -5,9 +5,11 @@
 # -----------------------------------------------------------------------------
 
 import logging
+import shlex
 
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_pushdialog import Ui_PushDialog
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -246,6 +248,13 @@ class PushDialog(QDialog):
 
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
+        self.ui.forcePushCheckBox.toggled.connect(self.updateCommandPreview)
+        self.ui.trackCheckBox.toggled.connect(self.updateCommandPreview)
+        self.ui.localBranchEdit.activated.connect(self.updateCommandPreview)
+        self.ui.remoteBranchEdit.activated.connect(self.updateCommandPreview)
+        self.ui.newRemoteBranchNameEdit.textEdited.connect(self.updateCommandPreview)
+        self.updateCommandPreview()
+
     def okButton(self) -> QPushButton:
         return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
 
@@ -295,6 +304,7 @@ class PushDialog(QDialog):
             self.widgetsWereEnabled = [w.isEnabled() for w in widgets]
             for w in widgets:
                 w.setEnabled(False)
+            self.ui.statusForm.initProgress(_("Contacting remote host…"))
         else:
             for w, enableW in zip(widgets, self.widgetsWereEnabled, strict=True):
                 w.setEnabled(enableW)
@@ -314,3 +324,29 @@ class PushDialog(QDialog):
             self.repoModel.prefs.setShadowUpstream(branch.branch_name, "")
         else:
             self.repoModel.prefs.setShadowUpstream(branch.branch_name, self.currentRemoteBranchFullName)
+
+    def updateCommandPreview(self):
+        tokens = self.buildCommand(pretty=True)
+        command = "git " + shlex.join(tokens)
+
+        pushCaption = stripAccelerators(_("&Push"))
+        message = _("Click {0} to run:", tquo(pushCaption)) + "<p style='white-space: pre-wrap;'><small>" + escape(command)
+        self.ui.statusForm.setBlurb(message)
+
+    def buildCommand(self, pretty: bool = False):
+        # To build the command, we rely on whether trackCheckBox is enabled.
+        # This may be inaccurate when PushDialog is busy (all inputs disabled).
+        assert not self.isBusy(), "buildCommand while PushDialog is busy!"
+
+        refspec = self.refspec(withForcePrefix=False)  # no '+' prefix -- we control force via arguments to git
+        resetTrackingReference = self.ui.trackCheckBox.isEnabled() and self.ui.trackCheckBox.isChecked()
+
+        return [
+            "push",
+            *argsIf(not pretty, "--porcelain"),
+            *argsIf(not pretty, "--progress"),
+            *argsIf(self.willForcePush, "--force-with-lease"),
+            *argsIf(resetTrackingReference, "--set-upstream"),
+            self.currentRemoteName,
+            refspec
+        ]

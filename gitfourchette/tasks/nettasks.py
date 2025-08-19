@@ -381,39 +381,23 @@ class PushBranch(RepoTask):
         self.dialog.ui.statusForm.setProgressValue(num, denom)
 
     def attempt(self, dialog: PushDialog):
+        # ---------------
+        # Show dialog
+
         yield from self.flowDialog(dialog, proceedSignal=dialog.startOperationButton.clicked)
 
         # ---------------
-        # Push clicked
+        # Perform the push
 
-        remote = self.repo.remotes[dialog.currentRemoteName]
-        refspec = dialog.refspec(withForcePrefix=False)  # no '+' prefix -- we control force via arguments to git
-        logger.info(f"Will push to: {refspec} ({remote.name})")
+        command = dialog.buildCommand()
+        remoteName = dialog.currentRemoteName
 
-        dialog.ui.statusForm.initProgress(_("Contacting remote host…"))
-
-        resetTrackingReference = dialog.ui.trackCheckBox.isEnabled() and dialog.ui.trackCheckBox.isChecked()
-
-        # Look at the state of the checkboxes BEFORE calling this -- it'll disable the checkboxes!
-        dialog.setBusy(True)
-
-        # ----------------
-        # Task meat
+        dialog.setBusy(True)  # Call setBusy *after* buildCommand
 
         self.effects |= TaskEffects.Refs
-        if resetTrackingReference:
+        if "--set-upstream" in command:
             self.effects |= TaskEffects.Upstreams
-
-        driver = yield from self.flowCallGit(
-            "push",
-            "--porcelain",
-            "--progress",
-            *argsIf(dialog.willForcePush, "--force-with-lease"),
-            *argsIf(resetTrackingReference, "--set-upstream"),
-            remote.name,
-            refspec,
-            autoFail=False,
-            remote=remote.name)
+        driver = yield from self.flowCallGit(*command, autoFail=False, remote=remoteName)
 
         gitFailed = driver.exitCode() != 0
         stdout = driver.readAll().data().decode(errors="replace")
@@ -444,7 +428,7 @@ class PushBranch(RepoTask):
                 "The force-push was rejected to prevent data loss. "
                 "Please fetch remote {remote} before pushing again.",
                 branch=hquo(dialog.currentRemoteBranchFullName),
-                remote=hquo(remote.name))
+                remote=hquo(remoteName))
         errorText += GitDriver.reformatHintText(driver.stderrScrollback())
 
         dialog.setBusy(False)
