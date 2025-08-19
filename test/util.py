@@ -41,7 +41,12 @@ def pause(seconds: int = 3):
 
 
 def pygit2OlderThan(version: str):
-    return not pygit2_version_at_least(version, raise_error=False)
+    try:
+        pygit2_version_at_least(version)
+        return False  # We have this version or newer
+    except NotImplementedError:
+        # Catch error instead of passing raise_error=False to silence the warning
+        return True  # Our version is older
 
 
 def getTestDataPath(name):
