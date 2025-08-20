@@ -5,11 +5,13 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import shlex
 from contextlib import suppress
 
 import pytest
 from pytestqt.qtbot import QtBot
 
+from gitfourchette.forms.processdialog import ProcessDialog
 from .util import *
 
 from gitfourchette.application import GFApplication
@@ -767,3 +769,30 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
         acceptQMessageBox(rw, "code 127")
     else:
         acceptQMessageBox(rw, "failed to start")
+
+
+def testGitProcessStuck(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "stage me")
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    mainWindow.onAcceptPrefsDialog({
+        "gitPath": shlex.join([getTestDataPath("delay-cmd.py"), "/usr/bin/git"]),
+    })
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    rw.diffArea.stageButton.click()
+    processDialog: ProcessDialog = waitForQDialog(rw, "stage files", timeout=1000)
+    assert isinstance(processDialog, ProcessDialog)
+    assert re.search(r"delaying.+git.+for.+seconds", processDialog.ui.statusLabel.text(), re.I)
+
+    assert "Abort" in processDialog.abortButton.text()
+    processDialog.abortButton.click()
+
+    waitUntilTrue(lambda: "SIGKILL" in processDialog.abortButton.text(), timeout=250)
+    processDialog.abortButton.click()
+
+    waitUntilTrue(processDialog.isHidden, timeout=1000)
+    waitForQMessageBox(rw, r"git.+exited.+with code.+sigkill").reject()

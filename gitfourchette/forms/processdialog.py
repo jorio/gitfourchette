@@ -20,11 +20,13 @@ class ProcessDialog(QDialog):
     becameVisible = Signal()
 
     trackedProcess: QProcess | None
+    sentSigterm: bool
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
         self.trackedProcess = None
+        self.sentSigterm = False
 
         self.ui = Ui_ProcessDialog()
         self.ui.setupUi(self)
@@ -82,7 +84,9 @@ class ProcessDialog(QDialog):
         self.setMessage(_("Please wait…"))
         self.setProgress(0, 0)
 
-        self.abortButton.setEnabled(True)
+        self.abortButton.setText(_("Abort"))
+        self.abortButton.setIcon(stockIcon("SP_DialogCloseButton"))
+        self.sentSigterm = False
 
         if isinstance(process, GitDriver):
             process.progressMessage.connect(self.setMessage)
@@ -125,13 +129,19 @@ class ProcessDialog(QDialog):
     def setMessage(self, text: str):
         self.ui.statusLabel.setText(text)
 
-    def reject(self):  # bound to abort button
-        self.abortButton.setEnabled(False)
+    def reject(self):  # bound to abort button and ESC key
         self.ui.statusLabel.setText(_("Aborting…"))
         self.setProgress(0, 0)
 
+        self.abortButton.setText("SIGKILL")
+        self.abortButton.setIcon(stockIcon("sigkill"))
+
         if self.trackedProcess:
-            self.trackedProcess.terminate()
+            if not self.sentSigterm:
+                self.trackedProcess.terminate()
+                self.sentSigterm = True
+            else:
+                self.trackedProcess.kill()
 
     def onProcessFinished(self):
         self.disconnectProcess()
