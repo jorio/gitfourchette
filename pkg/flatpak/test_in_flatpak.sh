@@ -13,6 +13,10 @@ cd "$here/../.."
 
 export PYTHONPYCACHEPREFIX=/tmp/__DONT_POLLUTE_HOST_PYCACHE__
 
-python -m ensurepip
+VENVDIR="$XDG_CACHE_HOME/__TEST_IN_FLATPAK_VENV__"
+
+python -m venv "$VENVDIR"
+source "$VENVDIR/bin/activate"
+#python -m ensurepip
 python -m pip --disable-pip-version-check install --upgrade --force-reinstall '.[test,pygments]'
 ./test.py "$@"
