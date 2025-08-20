@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -22,12 +23,16 @@ class AskpassDialog(TextInputDialog):
     def __init__(self, parent: QWidget | None, prompt: str):
         super().__init__(parent, _("Enter SSH credentials"), "<html>" + escape(prompt))
 
-        self.lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
         self.lineEdit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
 
-        self.echoModeAction = self.lineEdit.addAction(stockIcon("view-visible"), QLineEdit.ActionPosition.TrailingPosition)
-        self.echoModeAction.setToolTip(_("Reveal passphrase"))
-        self.echoModeAction.triggered.connect(self.onToggleEchoMode)
+        # When connecting to an HTTPS remote with user/pass, the username is requested first.
+        clearText = re.search("^Username(:| for )", prompt)
+
+        if not clearText:
+            self.lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
+            self.echoModeAction = self.lineEdit.addAction(stockIcon("view-visible"), QLineEdit.ActionPosition.TrailingPosition)
+            self.echoModeAction.setToolTip(_("Reveal passphrase"))
+            self.echoModeAction.triggered.connect(self.onToggleEchoMode)
 
         self.finished.connect(self.onFinish)
 
