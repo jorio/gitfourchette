@@ -60,6 +60,7 @@ class NewCommit(RepoTask):
 
         fallbackSignature = self.repo.default_signature
         initialMessage = uiPrefs.draftCommitMessage
+        gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
 
         cd = CommitDialog(
             initialText=initialMessage,
@@ -69,6 +70,8 @@ class NewCommit(RepoTask):
             detachedHead=self.repo.head_is_detached,
             repositoryState=self.repo.state(),
             emptyCommit=emptyCommit,
+            gpgFlag=gpgFlag,
+            gpgKey=gpgKey,
             parent=self.parentWidget())
 
         if uiPrefs.draftCommitSignatureOverride == SignatureOverride.Nothing:
@@ -89,6 +92,8 @@ class NewCommit(RepoTask):
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
         overriddenSignatureKind = cd.getOverriddenSignatureKind()
         signatureIsOverridden = overriddenSignatureKind != SignatureOverride.Nothing
+        explicitGpgSign = cd.explicitGpgSign()
+        explicitNoGpgSign = cd.explicitNoGpgSign()
 
         # Save commit message/signature as draft now,
         # so we don't lose it if the commit operation fails or is rejected.
@@ -98,14 +103,16 @@ class NewCommit(RepoTask):
             uiPrefs.draftCommitSignatureOverride = overriddenSignatureKind
             uiPrefs.setDirty()
 
-        if cd.result() == QDialog.DialogCode.Rejected:
-            cd.deleteLater()
-            raise AbortTask()
-
         cd.deleteLater()
 
+        if cd.result() == QDialog.DialogCode.Rejected:
+            raise AbortTask()
+
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        args, env = NewCommit.prepareGitCommand(message, author, committer)
+        args, env = NewCommit.prepareGitCommand(
+            message, author, committer,
+            explicitGpgSign=explicitGpgSign,
+            explicitNoGpgSign=explicitNoGpgSign)
         yield from self.flowCallGit(*args, env=env)
 
         uiPrefs.clearDraftCommit()
@@ -114,7 +121,22 @@ class NewCommit(RepoTask):
         self.postStatus = _("Commit {0} created.", tquo(shortHash(newOid)))
 
     @staticmethod
-    def prepareGitCommand(message: str, author: Signature | None, committer: Signature | None, amend=False):
+    def getGpgConfig(repo: Repo) -> tuple[bool, str]:
+        gpgFlag, gpgKey = False, ""
+        with suppress(KeyError):
+            gpgFlag = repo.config.get_bool("commit.gpgSign")
+        with suppress(KeyError):
+            gpgKey = repo.config["user.signingKey"]
+        return gpgFlag, gpgKey
+
+    @staticmethod
+    def prepareGitCommand(
+            message: str,
+            author: Signature | None,
+            committer: Signature | None,
+            amend=False,
+            explicitGpgSign=False,
+            explicitNoGpgSign=False):
         def signatureEnvironmentVariables(sig: Signature, infix: str) -> dict[str, str]:
             return {
                 f"GIT_{infix}_NAME": sig.name,
@@ -124,6 +146,8 @@ class NewCommit(RepoTask):
 
         args = [
             "commit",
+            *argsIf(explicitGpgSign, "--gpg-sign"),
+            *argsIf(explicitNoGpgSign, "--no-gpg-sign"),
             *argsIf(amend, "--amend"),
             *argsIf(amend and author, "--reset-author"),
             "--allow-empty",
@@ -163,6 +187,7 @@ class AmendCommit(RepoTask):
 
         headCommit = self.repo.head_commit
         fallbackSignature = self.repo.default_signature
+        gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
 
         # TODO: Retrieve draft message
         cd = CommitDialog(
@@ -173,6 +198,8 @@ class AmendCommit(RepoTask):
             detachedHead=self.repo.head_is_detached,
             repositoryState=self.repo.state(),
             emptyCommit=False,
+            gpgFlag=gpgFlag,
+            gpgKey=gpgKey,
             parent=self.parentWidget())
 
         cd.setWindowModality(Qt.WindowModality.WindowModal)
@@ -191,9 +218,12 @@ class AmendCommit(RepoTask):
 
         author = cd.getOverriddenAuthorSignature()  # no "or fallback" here - leave author intact for amending
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
+        explicitGpgSign = cd.explicitGpgSign()
+        explicitNoGpgSign = cd.explicitNoGpgSign()
 
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True)
+        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True,
+                                                explicitGpgSign=explicitGpgSign, explicitNoGpgSign=explicitNoGpgSign)
         yield from self.flowCallGit(*args, env=env)
 
         yield from self.flowEnterUiThread()

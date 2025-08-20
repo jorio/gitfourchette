@@ -245,7 +245,7 @@ class ToolCommands:
 
     @classmethod
     @benchmark
-    def runSync(cls, *args: str, directory: str = "") -> str:
+    def runSync(cls, *args: str, directory: str = "", strict=False) -> str:
         process = QProcess(None)
         process.setProgram(args[0])
         process.setArguments(args[1:])
@@ -253,10 +253,19 @@ class ToolCommands:
             process.setWorkingDirectory(directory)
         cls.wrapFlatpakCommand(process)
         _logger.info(f"runSync: {shlex.join([process.program()] + process.arguments())}")
+        process.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedErrorChannel)
         process.start()
-        process.waitForFinished()
-        if process.exitCode() != 0:
+        didFinish = process.waitForFinished()
+
+        if strict:
+            if not didFinish:
+                raise ChildProcessError(f"process did not finish ({process.error()})")
+            elif process.exitCode() != 0:
+                raise ChildProcessError(f"process exited with code {process.exitCode()}")
+
+        if not didFinish or process.exitCode() != 0:
             return ""
+
         return process.readAll().data().decode(errors="replace")
 
     @classmethod

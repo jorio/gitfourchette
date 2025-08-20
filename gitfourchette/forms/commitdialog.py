@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import colors
 from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.forms.ui_commitdialog import Ui_CommitDialog
 from gitfourchette.localization import *
@@ -28,6 +29,8 @@ class CommitDialog(QDialog):
             detachedHead: bool,
             repositoryState: RepositoryState,
             emptyCommit: bool,
+            gpgFlag: bool,
+            gpgKey: str,
             parent: QWidget):
         super().__init__(parent)
 
@@ -36,6 +39,8 @@ class CommitDialog(QDialog):
 
         self.ui = Ui_CommitDialog()
         self.ui.setupUi(self)
+
+        self.setupGpgControls(gpgFlag, gpgKey)
 
         self.ui.signatureButton.setIcon(stockIcon("view-visible"))
 
@@ -106,6 +111,44 @@ class CommitDialog(QDialog):
 
         # Focus on summary editor before showing
         self.ui.summaryEditor.setFocus()
+
+    def setupGpgControls(self, want: bool, key: str):
+        hasKey = bool(key)
+
+        if want and key:
+            icon = stockIcon("gpgkey", f"gray={colors.olive.name()}")
+            tip = _("This commit will be GPG-signed with key {yourkey}.")
+        elif not want and key:
+            icon = stockIcon("gpgkey")
+            tip = _("Your signing key is set ({yourkey}), but your configuration "
+                    "does not call for GPG-signing automatically.")
+        elif want and not key:
+            bg = self.palette().window().color().name()
+            fg = self.palette().text().color().name()
+            icon = stockIcon("gpgkey-what", f"black={fg} white={bg}")
+            tip = _("Git is configured to GPG-sign commits ({flagconf}), "
+                    "but your signing key ({keyconf}) is not set.")
+        else:
+            icon = stockIcon("gpgkey-no")
+            tip = _("This commit will not be GPG-signed because your Git configuration doesn’t set {keyconf}.")
+
+        tip = tip.format(flagconf=btag("commit.gpgSign"), keyconf=btag("user.signingKey"), yourkey=escape(key))
+
+        button = self.ui.gpgButton
+        label = self.ui.gpgLabel
+        check = self.ui.gpgCheckBox
+
+        button.setIcon(icon)
+        button.setToolTip(tip)
+
+        label.setToolTip(tip)
+        label.setVisible(not key)
+
+        check.setToolTip(tip)
+        check.setVisible(hasKey)
+        check.setEnabled(hasKey)
+        check.setChecked(hasKey and want)
+        check.toggled.connect(lambda t: button.setIcon(stockIcon("gpgkey", f"gray={colors.olive.name() if t else 'gray'}")))
 
     def sanitizeLineBreaksInSummary(self, text: str):
         if '\n' not in text:
@@ -200,3 +243,11 @@ class CommitDialog(QDialog):
 
         self.ui.signatureButton.setToolTip(tt)
         self.ui.revealSignature.setToolTip(tt)
+
+    def explicitNoGpgSign(self):
+        check = self.ui.gpgCheckBox
+        return check.isEnabled() and not check.isChecked()
+
+    def explicitGpgSign(self):
+        check = self.ui.gpgCheckBox
+        return check.isEnabled() and check.isChecked()

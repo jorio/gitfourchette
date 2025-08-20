@@ -27,6 +27,10 @@ requiresFlatpak = pytest.mark.skipif(
     not FREEDESKTOP or not shutil.which("flatpak"),
     reason="Requires flatpak")
 
+requiresGpg = pytest.mark.skipif(
+    not shutil.which("gpg"),
+    reason="Requires gpg")
+
 
 def pause(seconds: int = 3):
     QTest.qWait(seconds * 1000)
