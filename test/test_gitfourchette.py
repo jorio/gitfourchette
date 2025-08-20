@@ -786,7 +786,7 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread):
     rw.diffArea.stageButton.click()
     processDialog: ProcessDialog = waitForQDialog(rw, "stage files", timeout=1000)
     assert isinstance(processDialog, ProcessDialog)
-    assert re.search(r"delaying.+git.+for.+seconds", processDialog.ui.statusLabel.text(), re.I)
+    assert re.search(r"delaying.+git.+for.+seconds", processDialog.statusForm.ui.statusLabel.text(), re.I)
 
     assert "Abort" in processDialog.abortButton.text()
     processDialog.abortButton.click()

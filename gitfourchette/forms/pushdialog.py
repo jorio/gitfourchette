@@ -20,8 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class PushDialog(QDialog):
-    abortRequested = Signal()
-
     def onPickLocalBranch(self):
         localBranch = self.currentLocalBranch
 
@@ -213,6 +211,7 @@ class PushDialog(QDialog):
         self.ui.setupUi(self)
         self.ui.trackingLabel.setMinimumHeight(self.ui.trackingLabel.height())
         self.ui.trackingLabel.setMaximumHeight(self.ui.trackingLabel.height())
+        self.ui.statusForm.connectAbortButton(self.cancelButton())
 
         self.startOperationButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         self.startOperationButton.setText(_("&Push"))
@@ -312,9 +311,7 @@ class PushDialog(QDialog):
 
     def reject(self):
         if self.isBusy():
-            self.ui.statusForm.setProgressMessage(_("Canceling…"))
-            self.ui.statusForm.setProgressValue(0, 0)
-            self.abortRequested.emit()
+            self.ui.statusForm.requestAbort()
         else:
             super().reject()
 

@@ -789,12 +789,9 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
     pushDialog.ui.forcePushCheckBox.click()
     pushDialog.okButton().click()
 
-    assert pushDialog.ui.statusForm.isVisible()
-    assert pushDialog.ui.statusForm.blurbLabel.isVisible()
-    assert re.search(
-        r"force.push.+rejected to prevent data loss",
-        pushDialog.ui.statusForm.blurbLabel.text(),
-        re.I)
+    blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
+    assert blurbLabel.isVisible()
+    assert re.search(r"force.push.+rejected to prevent data loss", blurbLabel.text(), re.I)
     pushDialog.reject()
 
     assert rw.repo.branches.remote["remote2/master"].target != newOid
@@ -819,12 +816,12 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     pushDialog: PushDialog = waitForQDialog(rw, "push.+branch")
     pushDialog.okButton().click()
     assert not pushDialog.okButton().isEnabled()
-    assert pushDialog.ui.statusForm.progressMessage.isVisible()
-    assert re.search(r"contacting remote host", pushDialog.ui.statusForm.progressMessage.text(), re.I)
+    assert pushDialog.ui.statusForm.ui.statusLabel.isVisible()
+    assert re.search(r"please wait", pushDialog.ui.statusForm.ui.statusLabel.text(), re.I)
     pushDialog.cancelButton().click()
     waitUntilTrue(pushDialog.okButton().isEnabled)
-    assert pushDialog.ui.statusForm.blurbLabel.isVisible()
-    assert re.search(r"git.+exited with.+sigterm", pushDialog.ui.statusForm.blurbLabel.text(), re.I)
+    assert pushDialog.ui.statusForm.ui.blurbLabel.isVisible()
+    assert re.search(r"git.+exited with.+sigterm", pushDialog.ui.statusForm.ui.blurbLabel.text(), re.I)
     pushDialog.reject()
 
     assert rw.repo.branches.remote["remote2/master"].target == oldOid
@@ -862,8 +859,9 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     assert rw.processDialog.isVisible()
 
     assert rw.processDialog.abortButton.isEnabled()
+    assert "Abort" in rw.processDialog.abortButton.text()
     rw.processDialog.abortButton.click()
-    assert not rw.processDialog.abortButton.isEnabled()
+    assert "SIGKILL" in rw.processDialog.abortButton.text()
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     waitForQMessageBox(rw, "git.+exited with.+sigterm")
     rejectQMessageBox(rw, "git.+exited with.+sigterm")

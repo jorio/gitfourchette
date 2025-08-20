@@ -111,10 +111,19 @@ def adjustedWidgetFontSize(widget: QWidget, relativeSize: int = 100):
     return round(widget.font().pointSize() * relativeSize / 100.0)
 
 
-def tweakWidgetFont(widget: QWidget, relativeSize: int = 100, bold: bool = False):
+def tweakWidgetFont(
+        widget: QWidget,
+        relativeSize: int = 100,
+        bold: bool = False,
+        tabularNumbers: bool = False
+):
     font: QFont = widget.font()
-    font.setPointSize(round(font.pointSize() * relativeSize / 100.0))
-    font.setBold(bold)
+    if relativeSize != 100:
+        font.setPointSize(round(font.pointSize() * relativeSize / 100.0))
+    if bold:
+        font.setBold(bold)
+    if tabularNumbers:
+        setFontFeature(font, "tnum")
     widget.setFont(font)
     return font
 

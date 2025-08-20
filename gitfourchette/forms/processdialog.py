@@ -4,14 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import shlex
-from contextlib import suppress
-
-from gitfourchette.forms.ui_processdialog import Ui_ProcessDialog
-from gitfourchette.gitdriver import GitDriver
-from gitfourchette.localization import *
+from gitfourchette.forms.statusform import StatusForm
 from gitfourchette.qt import *
-from gitfourchette.toolbox import *
 
 
 class ProcessDialog(QDialog):
@@ -28,8 +22,16 @@ class ProcessDialog(QDialog):
         self.trackedProcess = None
         self.sentSigterm = False
 
-        self.ui = Ui_ProcessDialog()
-        self.ui.setupUi(self)
+        # Set up UI
+        layout = QVBoxLayout(self)
+        self.statusForm = StatusForm(self)
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.abortButton = self.buttonBox.addButton(QDialogButtonBox.StandardButton.Abort)
+        layout.addWidget(self.statusForm)
+        layout.addWidget(self.buttonBox)
 
         # Delay popup to avoid flashing when the process finishes fast enough.
         # (In unit tests, show it immediately for code coverage.)
@@ -37,12 +39,6 @@ class ProcessDialog(QDialog):
         self.delayPopUp.timeout.connect(self.popUp)
         self.delayPopUp.setSingleShot(True)
         self.delayPopUp.setInterval(ProcessDialog.PopUpDelay if not APP_TESTMODE else 0)
-
-        statusFont = self.ui.statusLabel.font()
-        setFontFeature(statusFont, "tnum")
-        self.ui.statusLabel.setFont(statusFont)
-        tweakWidgetFont(self.ui.titleLabel, bold=True)
-        tweakWidgetFont(self.ui.commandLabel, 88)
 
         self.setMinimumWidth(self.fontMetrics().horizontalAdvance("W" * 40))
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)  # hide close button
@@ -54,7 +50,9 @@ class ProcessDialog(QDialog):
         # The user can still press the Escape key to abort.
         self.abortButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-    def install(self, process: QProcess, title: str):
+        self.statusForm.connectAbortButton(self.abortButton)
+
+    def connectProcess(self, process: QProcess, title: str):
         # Forget existing process
         self.disconnectProcess()
 
@@ -73,76 +71,32 @@ class ProcessDialog(QDialog):
             self.delayPopUp.start()
 
     def popUp(self):
-        process = self.trackedProcess
-        if not process:
+        if self.trackedProcess is None:
             return
 
-        commandLine = shlex.join([process.program()] + process.arguments())
-        self.ui.commandLabel.setText(commandLine)
-
-        self.ui.titleLabel.setText(self.windowTitle())
-        self.setMessage(_("Please wait…"))
-        self.setProgress(0, 0)
-
-        self.abortButton.setText(_("Abort"))
-        self.abortButton.setIcon(stockIcon("SP_DialogCloseButton"))
-        self.sentSigterm = False
-
-        if isinstance(process, GitDriver):
-            process.progressMessage.connect(self.setMessage)
-            process.progressFraction.connect(self.setProgress)
-
+        self.statusForm.connectProcess(self.trackedProcess)
         self.show()
         self.becameVisible.emit()
-        self.abortButton.clearFocus()
 
     def disconnectProcess(self):
         self.delayPopUp.stop()
+        self.setVisible(False)
 
-        process = self.trackedProcess
-        if not process:
+        if self.trackedProcess is None:
             return
 
+        process = self.trackedProcess
         self.trackedProcess = None
 
         process.errorOccurred.disconnect(self.onProcessFinished)
         process.finished.disconnect(self.onProcessFinished)
 
-        if isinstance(process, GitDriver):
-            with suppress(TypeError, RuntimeError):
-                process.progressMessage.disconnect(self.setMessage)
-            with suppress(TypeError, RuntimeError):
-                process.progressFraction.disconnect(self.setProgress)
-
     def close(self) -> bool:
         self.disconnectProcess()
         return super().close()
 
-    @property
-    def abortButton(self) -> QPushButton:
-        return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Abort)
-
-    def setProgress(self, value: int, maximum: int):
-        self.ui.progressBar.setMaximum(maximum)
-        self.ui.progressBar.setValue(value)
-
-    def setMessage(self, text: str):
-        self.ui.statusLabel.setText(text)
-
     def reject(self):  # bound to abort button and ESC key
-        self.ui.statusLabel.setText(_("Aborting…"))
-        self.setProgress(0, 0)
-
-        self.abortButton.setText("SIGKILL")
-        self.abortButton.setIcon(stockIcon("sigkill"))
-
-        if self.trackedProcess:
-            if not self.sentSigterm:
-                self.trackedProcess.terminate()
-                self.sentSigterm = True
-            else:
-                self.trackedProcess.kill()
+        self.statusForm.requestAbort()
 
     def onProcessFinished(self):
         self.disconnectProcess()
-        self.setVisible(False)

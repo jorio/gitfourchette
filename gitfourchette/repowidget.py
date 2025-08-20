@@ -95,7 +95,7 @@ class RepoWidget(QWidget):
 
         # Report progress in long-running background processes
         self.processDialog = ProcessDialog(self)
-        self.taskRunner.processStarted.connect(self.processDialog.install)
+        self.taskRunner.processStarted.connect(self.processDialog.connectProcess)
 
         self.repoModel = repoModel
         self.pendingLocator = NavLocator()

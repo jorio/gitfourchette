@@ -26,6 +26,7 @@ from gitfourchette.repomodel import RepoModel
 from gitfourchette.toolbox import *
 
 if TYPE_CHECKING:
+    from gitfourchette.forms.statusform import StatusForm
     from gitfourchette.repowidget import RepoWidget
 
 _lineEndingReplacementPattern = re.compile("(LF|CRLF) would be replaced by (LF|CRLF) in '.+'")
@@ -372,18 +373,6 @@ class RepoTask(QObject):
         """
         return TaskPrereqs.Nothing
 
-    def onGitProgressMessage(self, message: str):
-        """
-        Can be overridden by your task.
-        """
-        pass
-
-    def onGitProgressFraction(self, num: int, denom: int):
-        """
-        Can be overridden by your task.
-        """
-        pass
-
     def flowEnterWorkerThread(self):
         """
         Move the task to a non-UI thread.
@@ -540,11 +529,9 @@ class RepoTask(QObject):
 
         if autoFail and process.exitCode() != 0:
             if isinstance(process, GitDriver):
-                stderr = process.stderrScrollback()
-                message = _("Git command exited with code {0}.", process.formatExitCode())
-            else:
-                stderr = process.readAllStandardError().data().decode(errors="replace")
-                message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
+                raise AbortTask(process.htmlErrorText(), details=commandLine)
+            stderr = process.readAllStandardError().data().decode(errors="replace")
+            message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
             message += f"<p style='font-size: small'>{escape(simpleCommandLine)}</p>"
             if stderr.strip():
                 message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
@@ -558,6 +545,7 @@ class RepoTask(QObject):
             workdir="",
             env: dict[str, str] | None = None,
             autoFail=True,
+            statusForm: StatusForm | None = None,
     ) -> Generator[FlowControlToken, None, GitDriver]:
         from gitfourchette import settings
         from gitfourchette.application import GFApplication
@@ -620,8 +608,9 @@ class RepoTask(QObject):
 
         ToolCommands.wrapFlatpakCommand(process)
 
-        process.progressMessage.connect(self.onGitProgressMessage)
-        process.progressFraction.connect(self.onGitProgressFraction)
+        if statusForm is not None:
+            statusForm.connectProcess(process)
+
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 

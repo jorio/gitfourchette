@@ -6,7 +6,6 @@
 
 import logging
 import re
-import traceback
 import urllib.parse
 from contextlib import suppress
 from pathlib import Path
@@ -21,7 +20,6 @@ from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +36,6 @@ def _projectNameFromUrl(url: str) -> str:
 
 class CloneDialog(QDialog):
     cloneSuccessful = Signal(str)
-    aboutToReject = Signal()
 
     urlEditUserDataClearHistory = "CLEAR_HISTORY"
 
@@ -76,6 +73,7 @@ class CloneDialog(QDialog):
         self.cancelButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
         self.cancelButton.setAutoDefault(False)
 
+        self.ui.statusForm.connectAbortButton(self.cancelButton)
         self.ui.statusForm.setBlurb(_("Hit {0} when ready.", tquo(self.cloneButton.text().replace("&", ""))))
 
         self.ui.shallowCloneDepthSpinBox.valueChanged.connect(self.onShallowCloneDepthChanged)
@@ -219,12 +217,11 @@ class CloneDialog(QDialog):
         self.ui.shallowCloneCheckBox.setText(parts[0].strip())
         self.ui.shallowCloneSuffix.setText(parts[1].strip())
 
-    def reject(self):
-        # Emit "aboutToReject" before destroying the dialog so TaskRunner has time to wrap up.
-        self.aboutToReject.emit()
-        self.taskRunner.killCurrentTask()
-        self.taskRunner.joinZombieTask()
-        super().reject()  # destroys the dialog then emits the "rejected" signal
+    def reject(self):  # connected to abort button and ESC key
+        if self.taskRunner.isBusy():
+            self.ui.statusForm.requestAbort()
+        else:
+            super().reject()  # destroys the dialog then emits the "rejected" signal
 
     @property
     def url(self):
@@ -315,32 +312,13 @@ class CloneTask(RepoTask):
     easily run the clone operation in a background thread.
     """
 
-    cloneDialog: CloneDialog
-    aborting: bool
-
-    def abort(self):
-        if self.aborting:
-            return
-
-        self.aborting = True
-        self.cloneDialog.ui.statusForm.setProgressMessage(_("Aborting remote operation…"))
-        self.cloneDialog.ui.statusForm.setProgressValue(0, 0)
-
-        if self.currentProcess is not None:
-            self.currentProcess.terminate()
-
     def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
         shallow = depth != 0
 
-        self.aborting = False
-        self.cloneDialog = dialog
-        dialog.ui.statusGroupBox.setTitle(_("Cloning…"))
-
         dialog.enableInputs(False)
-        dialog.aboutToReject.connect(self.abort)
 
         # Clone the repo
-        yield from self.flowCallGit(
+        driver = yield from self.flowCallGit(
             "clone",
             "--progress",
             *argsIf(recursive, "--recurse-submodules"),
@@ -350,7 +328,16 @@ class CloneTask(RepoTask):
             "--",
             url,
             path,
-            customKey=privKeyPath)
+            customKey=privKeyPath,
+            autoFail=False,
+            statusForm=dialog.ui.statusForm)
+
+        if driver.exitCode() != 0:
+            QApplication.beep()
+            QApplication.alert(dialog, 500)
+            dialog.enableInputs(True)
+            dialog.ui.statusForm.setBlurb(driver.htmlErrorText())
+            return
 
         # Successfully cloned
         settings.history.addCloneUrl(url)
@@ -363,20 +350,3 @@ class CloneTask(RepoTask):
 
         # When the task runner wraps up, tell dialog to finish
         dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
-
-    def onGitProgressMessage(self, message: str):
-        if not self.aborting:
-            self.cloneDialog.ui.statusForm.setProgressMessage(message)
-
-    def onGitProgressFraction(self, num: int, denom: int):
-        if not self.aborting:
-            self.cloneDialog.ui.statusForm.setProgressValue(num, denom)
-
-    def onError(self, exc: BaseException):
-        traceback.print_exception(exc.__class__, exc, exc.__traceback__)
-        dialog = self.cloneDialog
-        QApplication.beep()
-        QApplication.alert(dialog, 500)
-        dialog.enableInputs(True)
-        # Don't escape() exception text because flowStartProcess already formats it as HTML for us
-        dialog.ui.statusForm.setBlurb(f"<span style='white-space: pre-wrap;'><b>{TrTables.exceptionName(exc)}:</b> {exc}")

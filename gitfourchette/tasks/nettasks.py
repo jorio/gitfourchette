@@ -365,20 +365,12 @@ class PushBranch(RepoTask):
 
         dialog = PushDialog(self.repoModel, branch, self.parentWidget())
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        dialog.abortRequested.connect(self.onAbortRequested)
-        self.dialog = dialog
 
         tryAgain = True
         while tryAgain:
             tryAgain = yield from self.attempt(dialog)
 
         dialog.accept()
-
-    def onGitProgressMessage(self, message: str):
-        self.dialog.ui.statusForm.setProgressMessage(message)
-
-    def onGitProgressFraction(self, num: int, denom: int):
-        self.dialog.ui.statusForm.setProgressValue(num, denom)
 
     def attempt(self, dialog: PushDialog):
         # ---------------
@@ -397,7 +389,9 @@ class PushBranch(RepoTask):
         self.effects |= TaskEffects.Refs
         if "--set-upstream" in command:
             self.effects |= TaskEffects.Upstreams
-        driver = yield from self.flowCallGit(*command, autoFail=False, remote=remoteName)
+
+        driver = yield from self.flowCallGit(
+            *command, remote=remoteName, autoFail=False, statusForm=dialog.ui.statusForm)
 
         gitFailed = driver.exitCode() != 0
         stdout = driver.readAll().data().decode(errors="replace")
@@ -416,35 +410,25 @@ class PushBranch(RepoTask):
         except IndexError:
             summary = ""
 
-        errorText = "<p style='white-space: pre-wrap'>"
-        if gitFailed:
-            errorText += _("Git command exited with code {0}.", driver.formatExitCode()) + "<br>"
-        if "[rejected]" in summary:
-            reason = summary.removeprefix("[rejected]").strip()
-            errorText += btag(_("The push was rejected: {0}.", reason)) + "<br>"
-        if "(stale info)" in summary:  # Git doesn't provide a hint about this, so add our own
-            errorText += _(
-                "Your repository’s knowledge of remote branch {branch} is out of date. "
-                "The force-push was rejected to prevent data loss. "
-                "Please fetch remote {remote} before pushing again.",
-                branch=hquo(dialog.currentRemoteBranchFullName),
-                remote=hquo(remoteName))
-        errorText += GitDriver.reformatHintText(driver.stderrScrollback())
-
         dialog.setBusy(False)
         dialog.saveShadowUpstream()
 
-        if gitFailed:
-            QApplication.beep()
-            QApplication.alert(dialog, 500)
-            dialog.ui.statusForm.setBlurb(errorText)
-        else:
+        if not gitFailed:
             # self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
             self.postStatus = _("Push complete.") + " " + summary
+            return gitFailed
 
+        QApplication.beep()
+        QApplication.alert(dialog, 500)
+
+        subtitle = ""
+        if "[rejected]" in summary:
+            subtitle += _("{0} &mdash; The push was rejected.", btag(summary))
+        if "(stale info)" in summary:  # Git doesn't provide a hint about this, so add our own
+            subtitle += paragraphs(
+                _("Your repository’s knowledge of remote branch {0} is out of date. "
+                  "The force-push was rejected to prevent data loss.", hquo(dialog.currentRemoteBranchFullName)),
+                _("Please fetch remote {0} before pushing again.", hquo(remoteName)))
+        errorText = driver.htmlErrorText(subtitle, reformatHintText=True)
+        dialog.ui.statusForm.setBlurb(errorText)
         return gitFailed
-
-    def onAbortRequested(self):
-        process = self.currentProcess
-        if process:
-            process.terminate()

@@ -113,10 +113,7 @@ class GitDriver(QProcess):
         return text, num, denom
 
     @classmethod
-    def reformatHintText(cls, stderr: bytes | str):
-        if isinstance(stderr, bytes):
-            stderr = stderr.decode(errors="replace")
-
+    def reformatHintText(cls, stderr: str):
         previousTag = ""
         parts = []
 
@@ -169,3 +166,26 @@ class GitDriver(QProcess):
             return f"{code} ({s.name})"
         except ValueError:
             return f"{code}"
+
+    def htmlErrorText(self, subtitle: str = "", reformatHintText=False) -> str:
+        from gitfourchette.localization import _
+        from gitfourchette.toolbox import escape
+
+        stderr = self.stderrScrollback().strip()
+        if reformatHintText:
+            stderr = self.reformatHintText(stderr)
+        elif stderr:
+            stderr = escape(stderr)
+
+        if subtitle:
+            subtitle = f"<p>{subtitle}</p>"
+
+        return "".join([
+            "<html style='white-space: pre-wrap;'>"
+            "<p style='color: red;'>",
+            _("Git command exited with code {0}.", self.formatExitCode()),
+            "</p>",
+            subtitle,
+            stderr,
+            "</html>"
+        ])
