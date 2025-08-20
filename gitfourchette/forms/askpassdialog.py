@@ -14,6 +14,7 @@ from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.qt import *
+from gitfourchette.sshagent import SshAgent
 from gitfourchette.toolbox import escape, stockIcon
 
 
@@ -21,7 +22,14 @@ class AskpassDialog(TextInputDialog):
     secret = Signal(str)
 
     def __init__(self, parent: QWidget | None, prompt: str):
-        super().__init__(parent, _("Enter SSH credentials"), "<html>" + escape(prompt))
+        subtitle = ""
+
+        builtInAgentPid = os.environ.get(SshAgent.EnvBuiltInAgentPid, "")
+        if builtInAgentPid:
+            subtitle = _("{app}’s SSH agent (PID {pid}) will remember this credential "
+                         "until you quit the application.", app=qAppName(), pid=builtInAgentPid)
+
+        super().__init__(parent, _("Enter SSH credentials"), "<html>" + escape(prompt), subtitle, multilineSubtitle=True)
 
         self.lineEdit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
 
