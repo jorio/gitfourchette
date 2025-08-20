@@ -20,6 +20,7 @@ class SshAgent(QProcess):
 
     def __init__(self, parent: QObject, sandbox: bool = False):
         super().__init__(parent)
+        self.setObjectName("SshAgent")
 
         program = "ssh-agent"
 
@@ -55,3 +56,14 @@ class SshAgent(QProcess):
         }
 
         logger.info(f"ssh-agent started on PID {sshAgentPid} ({sshAuthSock})")
+
+    def stopAndWait(self, msec: int = 500):
+        if self.state() != QProcess.ProcessState.Running:
+            return
+
+        for stop, name in (self.terminate, "SIGTERM"), (self.kill, "SIGKILL"):
+            stop()
+            if self.waitForFinished(msec):
+                logger.info(f"ssh-agent stopped ({name})")
+                break
+            logger.warning(f"ssh-agent didn't respond to {name} after {msec} ms")

@@ -418,17 +418,14 @@ class GFApplication(QApplication):
         try:
             self.sshAgent = SshAgent(self, sandbox=sandbox)
         except Exception as exc:
-           showWarning(
-               self.mainWindow,
-               _("SSH agent"),
-               paragraphs(
-                   _("Failed to start {0} ({1}).", "ssh-agent", str(exc)),
-                   _("Make sure you have installed OpenSSH."),
-               ))
+            message = paragraphs(
+                _("Couldn’t start {0} ({1}).", "ssh-agent", str(exc)),
+                _("Please make sure OpenSSH is installed on your system."))
+            showWarning(self.mainWindow, _("SSH agent"), message)
 
     def stopSshAgent(self):
         if self.sshAgent:
-            self.sshAgent.kill()
+            self.sshAgent.stopAndWait()
             self.sshAgent.deleteLater()
             self.sshAgent = None
 
