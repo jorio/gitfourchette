@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import pytest
+
 from gitfourchette.application import GFApplication
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
@@ -14,8 +16,19 @@ from .util import *
 NET_TIMEOUT = 30_000
 
 
+@pytest.fixture
+def passphraseProtectedKey(tempDir):
+    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
+    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
+    privKeyCopy = tempDir.name + "/HelloTestKey"
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+    os.chmod(privKeyCopy, 0o600)
+    return pubKeyCopy
+
+
 class AskpassShim:
-    def __init__(self, password="empty"):
+    def __init__(self, password="empty", cancel=False):
         app = GFApplication.instance()
         self.password = password
         self.dumpFile = Path(app.tempDir.path()) / "askpass-dumpfile.txt"
@@ -30,6 +43,9 @@ class AskpassShim:
             "GFTEST_ASKPASS_SHIM_PASSWORD": self.password,
             "GFTEST_ASKPASS_SHIM_DUMPFILE": str(self.dumpFile),
         })
+
+        if cancel:
+            os.environ["GFTEST_ASKPASS_SHIM_CANCEL"] = "1"
 
     def __enter__(self):
         return self
@@ -55,7 +71,7 @@ def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testSshCloneRepo(tempDir, mainWindow, taskThread):
+def testSshCloneRepo(tempDir, mainWindow, taskThread, passphraseProtectedKey):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
@@ -69,15 +85,8 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread):
     assert protocolButton.text() == "ssh"
     assert cloneDialog.ui.urlEdit.lineEdit().text() == "git@github.com:libgit2/TestGitRepository"
 
-    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
-    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
-    privKeyCopy = tempDir.name + "/HelloTestKey"
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
-    os.chmod(privKeyCopy, 0o600)
-
     # Set custom passphrase-protected key
-    cloneDialog.ui.keyFilePicker.setPath(pubKeyCopy)
+    cloneDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
 
     # Clone
     with AskpassShim() as askpassShim:
@@ -92,6 +101,28 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread):
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
     assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
+
+
+@requiresNetwork
+def testSshCloneRepoCancelAskpass(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+    triggerMenuAction(mainWindow.menuBar(), "file/clone")
+    cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
+    cloneDialog.ui.urlEdit.setEditText("git@github.com:libgit2/TestGitRepository")
+    cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
+
+    # Set custom passphrase-protected key
+    cloneDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
+
+    # Attempt to clone but cancel askpass
+    with AskpassShim(cancel=True):
+        cloneDialog.cloneButton.click()
+
+    waitUntilTrue(lambda: not cloneDialog.taskRunner.isBusy(), timeout=NET_TIMEOUT)
+
+    assert cloneDialog.ui.statusForm.ui.blurbLabel.isVisible()
+    assert "passphrase input canceled from unit test" in cloneDialog.ui.statusForm.ui.blurbLabel.text()
+
+    cloneDialog.reject()
 
 
 @requiresNetwork
@@ -138,14 +169,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
-    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
-    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
-    privKeyCopy = tempDir.name + "/HelloTestKey"
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
-    os.chmod(privKeyCopy, 0o600)
-
+def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, passphraseProtectedKey):
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
     mainWindow.openRepo(wd)
@@ -158,7 +182,7 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
     remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
     remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
     remoteDialog.ui.nameEdit.setText("origin")
-    remoteDialog.ui.keyFilePicker.setPath(pubKeyCopy)
+    remoteDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
     assert remoteDialog.ui.fetchAfterAddCheckBox.isChecked()
 
     # Accept "add remote", kicking off a fetch
