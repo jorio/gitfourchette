@@ -114,6 +114,15 @@ else:
     _bail("No Qt binding found. Please install PyQt6 or PySide6.")
 
 # -----------------------------------------------------------------------------
+# Tweak initial environment variables
+
+# Keep Qt from faking bold face with some variable fonts (see issue #10).
+# This looks nicer out of the box in Ubuntu 24.10 and Fedora 41 (KDE spin).
+# This is supposedly fixed in Qt 6.7 (https://bugreports.qt.io/browse/QTBUG-112136)
+# but I've seen it occur with Qt 6.8 still.
+_os.environ["QT_NO_SYNTHESIZED_BOLD"] = "1"
+
+# -----------------------------------------------------------------------------
 # Set up platform constants
 
 QT_BINDING_BOOTPREF = _qtBindingBootPref
@@ -128,6 +137,9 @@ GNOME = "GNOME" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 KDE = "KDE" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 WAYLAND = _os.environ.get("XDG_SESSION_TYPE", "").upper() == "WAYLAND"
 OFFSCREEN = _os.environ.get("QT_QPA_PLATFORM", "").upper() == "OFFSCREEN"
+
+# Capture environment variables that were set on boot.
+# These values will not be forwarded explicitly to subprocess environments.
 INITIAL_ENVIRONMENT = _os.environ.copy()
 
 # -----------------------------------------------------------------------------
@@ -172,12 +184,6 @@ except ImportError:
 
 # -----------------------------------------------------------------------------
 # Patch some holes and incompatibilities in Qt bindings
-
-# Keep Qt from faking bold face with some variable fonts (see issue #10).
-# This looks nicer out of the box in Ubuntu 24.10 and Fedora 41 (KDE spin).
-# This is supposedly fixed in Qt 6.7 (https://bugreports.qt.io/browse/QTBUG-112136)
-# but I've seen it occur with Qt 6.8 still.
-_os.environ["QT_NO_SYNTHESIZED_BOLD"] = "1"
 
 # Match PyQt signal/slot names with PySide6
 if PYQT5 or PYQT6:
