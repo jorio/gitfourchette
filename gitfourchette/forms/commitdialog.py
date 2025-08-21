@@ -113,42 +113,56 @@ class CommitDialog(QDialog):
         self.ui.summaryEditor.setFocus()
 
     def setupGpgControls(self, want: bool, key: str):
+        willSign = bool(want and key)
+
+        self.ui.gpgCheckBox.setChecked(willSign)
+        self.ui.gpgCheckBox.toggled.connect(lambda t: self.updateGpgConfig(want, key, t))
+        self.updateGpgConfig(want, key, willSign)
+
+    def updateGpgConfig(self, flag, key, willSign):
         hasKey = bool(key)
+        lines = []
 
-        if want and key:
-            icon = stockIcon("gpgkey", f"gray={colors.olive.name()}")
-            tip = _("This commit will be GPG-signed with key {yourkey}.")
-        elif not want and key:
-            icon = stockIcon("gpgkey")
-            tip = _("Your signing key is set ({yourkey}), but your configuration "
-                    "does not call for GPG-signing automatically.")
-        elif want and not key:
-            bg = self.palette().window().color().name()
-            fg = self.palette().text().color().name()
-            icon = stockIcon("gpgkey-what", f"black={fg} white={bg}")
-            tip = _("Git is configured to GPG-sign commits ({flagconf}), "
-                    "but your signing key ({keyconf}) is not set.")
+        if willSign:
+            lines.append(tagify(_("This commit [will be GPG-signed] with your key {yourkey} (configured in {keyconf})."), "<b>"))
         else:
-            icon = stockIcon("gpgkey-no")
-            tip = _("This commit will not be GPG-signed because your Git configuration doesn’t set {keyconf}.")
+            lines.append(tagify(_("This commit will [not] be GPG-signed."), "<b>"))
 
-        tip = tip.format(flagconf=btag("commit.gpgSign"), keyconf=btag("user.signingKey"), yourkey=escape(key))
+        if willSign:
+            pass
+        elif key:
+            lines.append(_("Tick the box to GPG-sign the commit with your key {yourkey} (configured in {keyconf})."))
+        else:
+            lines.append(_("Your signing key isn’t configured in {keyconf}."))
+
+        if not key:
+            pass
+        elif flag:
+            lines.append(_("This repository is configured to GPG-sign commits automatically ({flagconf})."))
+        else:
+            lines.append(_("Tip: You can configure {flagconf} if you want to GPG-sign every commit."))
+
+        tip = "<html style='white-space: pre-wrap;'>" + paragraphs(lines).format(
+            flagconf="<i>commit.gpgSign</i>", keyconf="<i>user.signingKey</i>", yourkey=escape(key))
 
         button = self.ui.gpgButton
         label = self.ui.gpgLabel
         check = self.ui.gpgCheckBox
 
+        if willSign:
+            icon = stockIcon("gpg-key", f"gray={colors.olive.name()}")
+        else:
+            icon = stockIcon("gpg-key-fail")
+
         button.setIcon(icon)
         button.setToolTip(tip)
 
         label.setToolTip(tip)
-        label.setVisible(not key)
+        label.setVisible(not hasKey)
 
         check.setToolTip(tip)
         check.setVisible(hasKey)
         check.setEnabled(hasKey)
-        check.setChecked(hasKey and want)
-        check.toggled.connect(lambda t: button.setIcon(stockIcon("gpgkey", f"gray={colors.olive.name() if t else 'gray'}")))
 
     def sanitizeLineBreaksInSummary(self, text: str):
         if '\n' not in text:
