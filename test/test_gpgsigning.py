@@ -12,6 +12,7 @@ from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.nav import NavLocator
+from gitfourchette.toolbox import stripAccelerators
 from .util import *
 
 
@@ -68,8 +69,14 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
 
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     commitDialog.ui.summaryEditor.setText("TEST GPG-SIGNED COMMIT")
-    assert commitDialog.ui.gpgCheckBox.isVisible()
-    assert commitDialog.ui.gpgCheckBox.isChecked()
+
+    signAction = commitDialog.ui.gpg.actions()[0]
+    assert re.search(r"enable gpg", stripAccelerators(signAction.text()), re.I)
+    assert signAction.isEnabled()
+    assert signAction.isChecked()
+    keyDisplay = commitDialog.ui.gpg.actions()[1]
+    assert re.search(rf"key:\s+{aliceFpr}", keyDisplay.text())
+
     commitDialog.accept()
 
     commit = rw.repo.head_commit

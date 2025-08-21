@@ -92,8 +92,8 @@ class NewCommit(RepoTask):
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
         overriddenSignatureKind = cd.getOverriddenSignatureKind()
         signatureIsOverridden = overriddenSignatureKind != SignatureOverride.Nothing
-        explicitGpgSign = cd.explicitGpgSign()
-        explicitNoGpgSign = cd.explicitNoGpgSign()
+        explicitGpgSign = cd.ui.gpg.explicitSign()
+        explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
 
         # Save commit message/signature as draft now,
         # so we don't lose it if the commit operation fails or is rejected.
@@ -218,8 +218,8 @@ class AmendCommit(RepoTask):
 
         author = cd.getOverriddenAuthorSignature()  # no "or fallback" here - leave author intact for amending
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
-        explicitGpgSign = cd.explicitGpgSign()
-        explicitNoGpgSign = cd.explicitNoGpgSign()
+        explicitGpgSign = cd.ui.gpg.explicitSign()
+        explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
 
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True,
