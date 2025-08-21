@@ -116,7 +116,7 @@ class Prefs(PrefsFile):
     externalDiff                : str                   = ToolPresets.DefaultDiffCommand
     externalMerge               : str                   = ToolPresets.DefaultMergeCommand
     _spacer1                    : int                   = 0
-    gitPath                     : str                   = ToolPresets.flatpakBuiltInGit() or "/usr/bin/git"
+    gitPath                     : str                   = ToolPresets.defaultGit()
     ownAskpass                  : bool                  = True
     ownSshAgent                 : bool                  = True
 

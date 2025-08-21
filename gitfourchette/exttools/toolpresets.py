@@ -230,5 +230,9 @@ class ToolPresets:
             return ToolCommands.FlatpakSandboxedCommandPrefix + builtInGitPath
         return ""
 
+    @classmethod
+    def defaultGit(cls) -> str:
+        return cls.flatpakBuiltInGit() or ToolCommands.which("git") or "/usr/bin/git"
+
 
 ToolPresets._filterToolPresets()
