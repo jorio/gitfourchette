@@ -183,12 +183,23 @@ class VerifyGpgSignature(RepoTask):
         if fail:
             paras = [_("Commit {0} is GPG-signed, but it couldn’t be verified.", prettyHash)]
 
-            match = re.search(r"^\[GNUPG:]\s+NO_PUBKEY\s+(.+)$", driver.stderrScrollback(), re.M)
-            if match:
-                fpr = match.group(1)
-                paras.append(_("Hint: Public key {0} isn’t in your keyring. "
-                               "You can try to import it from a trusted source, then verify this commit again.",
-                               btag(fpr)))
+            tokenParsers = {
+                "VALIDSIG": _("The signature itself is good, but verification failed."),
+                "NO_PUBKEY": _("Hint: Public key {capture} isn’t in your keyring. "
+                               "You can try to import it from a trusted source, then verify this commit again."),
+                "EXPKEYSIG": _("Key has expired: {capture}"),
+            }
+            foundTokens = set()
+
+            for token, hint in tokenParsers.items():
+                match = re.search(rf"^\[GNUPG:]\s+{token}($|\s+.+$)", driver.stderrScrollback(), re.M)
+                if match:
+                    foundTokens.add(token)
+                    capture = match.group(1)
+                    paras.append(hint.format(capture=f"<i>{escape(capture)}</i>"))
+
+            if "VALIDSIG" in foundTokens and "EXPKEYSIG" in foundTokens:
+                self.repoModel.gpgStatusCache[oid] = GpgStatus.Expired
 
             raise AbortTask(paragraphs(paras), details=driver.stderrScrollback())
 

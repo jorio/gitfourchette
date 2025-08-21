@@ -284,7 +284,9 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             if gpgStatus >= GpgStatus.Unverified:
                 rect.setRight(leftBoundName + 16)
-                icon = stockIcon("gpg-verify-good" if gpgStatus == GpgStatus.Good else "gpg-verify-unknown")
+                icon = stockIcon("gpg-verify-good" if gpgStatus == GpgStatus.Good else
+                                 "gpg-verify-expired" if gpgStatus == GpgStatus.Expired else
+                                 "gpg-verify-unknown")
                 icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 rect.setLeft(rect.right() + 0)
 

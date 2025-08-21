@@ -40,7 +40,8 @@ class GpgStatus(enum.IntEnum):
     Unknown = -1
     Unsigned = 0
     Unverified = 1
-    Good = 2
+    Expired = 2
+    Good = 3
 
 
 class RepoModel:
