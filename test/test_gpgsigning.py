@@ -11,6 +11,7 @@ import pytest
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
+from gitfourchette.nav import NavLocator
 from .util import *
 
 
@@ -80,3 +81,20 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
 
     with pytest.raises(ChildProcessError, match=r"process exited with code 1"):
         ToolCommands.runSync(settings.prefs.gitPath, "verify-commit", "-v", str(commit.id), directory=wd, strict=True)
+
+
+@requiresGpg
+def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
+    wd = unpackRepo(tempDir)
+
+    output = ToolCommands.runSync(
+        settings.prefs.gitPath, "-c", "core.abbrev=no",
+        "commit", "--allow-empty", f"-S{aliceFpr}", "-mGPG-Signed Commit",
+        directory=wd, strict=True)
+    commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "verify gpg")
+    acceptQMessageBox(rw, "verified successfully.+alice lovelace")

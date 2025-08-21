@@ -16,7 +16,7 @@ from gitfourchette.graphview.graphpaint import paintGraphFrame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel
+from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel, GpgStatus
 from gitfourchette.toolbox import *
 
 
@@ -163,6 +163,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # Get the info we need about the commit
         commit: Commit | None = index.data(CommitLogModel.Role.Commit)
+        gpgStatus = GpgStatus.NotSigned
         if commit and commit.id != UC_FAKEID:
             oid = commit.id
             author = commit.author
@@ -178,6 +179,8 @@ class CommitLogDelegate(QStyledItemDelegate):
                     authorText += "*"
                 if author.time != committer.time:
                     dateText += "*"
+
+            gpgStatus = self.repoModel.getCachedGpgStatus(commit, settings.prefs.showGpgStatus)
 
             if self.searchBar:
                 searchTerm: str = self.searchBar.searchTerm
@@ -279,6 +282,13 @@ class CommitLogDelegate(QStyledItemDelegate):
         # ------ Author
         if authorWidth != 0:
             rect.setLeft(leftBoundName)
+
+            if gpgStatus != GpgStatus.NotSigned:
+                rect.setRight(leftBoundName + 16)
+                icon = stockIcon("gpg-verify-good" if gpgStatus == GpgStatus.Good else "gpg-verify-unknown")
+                icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                rect.setLeft(rect.right() + 0)
+
             rect.setRight(leftBoundDate - XMARGIN)
             FittedText.draw(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
 

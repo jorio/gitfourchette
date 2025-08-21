@@ -44,6 +44,7 @@ from gitfourchette.tasks.exporttasks import (
 from gitfourchette.tasks.misctasks import (
     EditRepoSettings,
     GetCommitInfo,
+    VerifyGpgSignature,
     NewIgnorePattern,
 )
 from gitfourchette.tasks.jumptasks import (

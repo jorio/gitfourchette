@@ -98,6 +98,7 @@ class TaskBook:
             tasks.UpdateSubmodulesRecursive: _("Update submodules recursively"),
             tasks.UnstageFiles: _("Unstage files"),
             tasks.UnstageModeChanges: _("Unstage mode changes"),
+            tasks.VerifyGpgSignature: _("Verify GPG signature"),
         }
 
         cls.toolbarNames = {

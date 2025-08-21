@@ -146,6 +146,9 @@ class GraphView(QListView):
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
 
+            commit = self.repoModel.repo.peel_commit(oid)
+            gpgStatus = self.repoModel.getCachedGpgStatus(commit, settings.prefs.showGpgStatus)
+
             actions = [
                 *mergeActions,
                 ActionDef.SEPARATOR,
@@ -162,6 +165,8 @@ class GraphView(QListView):
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
+                TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != gpgStatus.NotSigned,
+                                icon="gpg-verify-unknown"),
                 *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
             ]
 

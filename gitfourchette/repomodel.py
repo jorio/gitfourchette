@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import enum
 import logging
 from collections.abc import Generator, Iterable
 
@@ -33,6 +34,12 @@ def toggleSetElement(s: set, element):
     except KeyError:
         s.add(element)
         return True
+
+
+class GpgStatus(enum.IntEnum):
+    NotSigned = 0
+    Unverified = 1
+    Good = 2
 
 
 class RepoModel:
@@ -87,6 +94,8 @@ class RepoModel:
     hiddenCommits: set[Oid]
     "All cached commit oids that are hidden."
 
+    gpgStatusCache: dict[Oid, GpgStatus]
+
     workdirStale: bool
     "Flag indicating that the workdir should be refreshed before use."
 
@@ -134,6 +143,8 @@ class RepoModel:
         self.hiddenCommits = set()
         self.hideSeeds = set()
         self.localSeeds = set()
+
+        self.gpgStatusCache = {}
 
         self.repo = repo
 
@@ -505,3 +516,15 @@ class RepoModel:
             for ref, oid in self.refs.items():
                 if ref.startswith(refPattern):
                     yield oid
+
+    def getCachedGpgStatus(self, commit: Commit, updateCache) -> GpgStatus:
+        try:
+            return self.gpgStatusCache[commit.id]
+        except KeyError:
+            if updateCache:
+                sig, _payload = commit.gpg_signature
+                status = GpgStatus.Unverified if sig else GpgStatus.NotSigned
+                self.gpgStatusCache[commit.id] = status
+            else:
+                status = GpgStatus.NotSigned
+            return status

@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
+import re
 from contextlib import suppress
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID, GpgStatus
 from gitfourchette.tasks import TaskEffects
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
@@ -162,6 +163,45 @@ class GetCommitInfo(RepoTask):
         # a non-MainWindow (like BlameWindow). We still need a dummy yield here
         # to satisfy the requirement that `flow` be a generator.
         yield from self.flowEnterUiThread()
+
+
+class VerifyGpgSignature(RepoTask):
+    def flow(self, oid: Oid, dialogParent: QWidget | None = None):
+        prettyHash = hquo(shortHash(oid))
+        commit = self.repo.peel_commit(oid)
+
+        gpgSignature, gpgPayload = commit.gpg_signature
+        if not gpgSignature:
+            raise AbortTask(_("Commit {0} is not GPG-signed, so it cannot be verified.", prettyHash))
+
+        driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+        fail = driver.exitCode() != 0
+
+        # Update gpg status cache
+        self.repoModel.gpgStatusCache[oid] = GpgStatus.Unverified if fail else GpgStatus.Good
+
+        if fail:
+            paras = [_("Commit {0} is GPG-signed, but it couldn’t be verified.", prettyHash)]
+
+            match = re.search(r"^\[GNUPG:]\s+NO_PUBKEY\s+(.+)$", driver.stderrScrollback(), re.M)
+            if match:
+                fpr = match.group(1)
+                paras.append(_("Hint: Public key {0} isn’t in your keyring. "
+                               "You can try to import it from a trusted source, then verify this commit again.",
+                               btag(fpr)))
+
+            raise AbortTask(paragraphs(paras), details=driver.stderrScrollback())
+
+        message = "<html>"
+        message += _("GPG-signed commit {0} verified successfully.", prettyHash)
+
+        match = re.search(r"^\[GNUPG:]\s+GOODSIG\s+.+$", driver.stderrScrollback(), re.M)
+        if match:
+            message += "<br><br><small>" + escape(match.group(0))
+
+        qmb = asyncMessageBox(self.parentWidget(), "information", self.name(), message)
+        qmb.setDetailedText(driver.stderrScrollback())
+        yield from self.flowDialog(qmb)
 
 
 class NewIgnorePattern(RepoTask):
