@@ -1079,7 +1079,7 @@ class MainWindow(QMainWindow):
         self.showMenuBarAction.setCheckable(True)
         self.showMenuBarAction.setChecked(settings.prefs.showMenuBar)
 
-        app.prefsChanged.emit()
+        app.prefsChanged.emit(list(prefDiff))
 
     def onAcceptPrefsDialog(self, prefDiff: dict):
         # Early out if the prefs didn't change

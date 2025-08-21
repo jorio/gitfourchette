@@ -773,7 +773,10 @@ class RepoWidget(QWidget):
         message = _("Repository folder went missing:") + "\n" + escamp(self.workdir)
         self.replaceWithStub(message=message)
 
-    def refreshPrefs(self, *prefDiff: str):
+    def refreshPrefs(self, prefDiff: list[str]):
+        if "showGpgStatus" in prefDiff:
+            self.repoModel.clearUnverifiedGpgStatusCacheEntries()
+
         self.diffView.refreshPrefs()
         self.specialDiffView.refreshPrefs()
         self.graphView.refreshPrefs()

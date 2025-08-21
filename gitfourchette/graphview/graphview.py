@@ -18,7 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID, GpgStatus
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
@@ -146,8 +146,9 @@ class GraphView(QListView):
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
 
-            commit = self.repoModel.repo.peel_commit(oid)
-            gpgStatus = self.repoModel.getCachedGpgStatus(commit, settings.prefs.showGpgStatus)
+            gpgLookAtCommit = self.repoModel.repo.peel_commit(oid)
+            gpgStatus = self.repoModel.getCachedGpgStatus(oid, gpgLookAtCommit, updateCache=False)
+            gpgIcon = "gpg-verify-good" if gpgStatus == GpgStatus.Good else "gpg-verify-unknown"
 
             actions = [
                 *mergeActions,
@@ -165,8 +166,7 @@ class GraphView(QListView):
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
-                TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != gpgStatus.NotSigned,
-                                icon="gpg-verify-unknown"),
+                TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != GpgStatus.Unsigned, icon=gpgIcon, accel="G"),
                 *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
             ]
 

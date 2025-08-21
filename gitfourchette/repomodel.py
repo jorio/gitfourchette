@@ -37,7 +37,8 @@ def toggleSetElement(s: set, element):
 
 
 class GpgStatus(enum.IntEnum):
-    NotSigned = 0
+    Unknown = -1
+    Unsigned = 0
     Unverified = 1
     Good = 2
 
@@ -517,14 +518,22 @@ class RepoModel:
                 if ref.startswith(refPattern):
                     yield oid
 
-    def getCachedGpgStatus(self, commit: Commit, updateCache) -> GpgStatus:
+    def getCachedGpgStatus(self, oid: Oid, lookInsideCommit: Commit | None = None, updateCache = True) -> GpgStatus:
         try:
-            return self.gpgStatusCache[commit.id]
+            return self.gpgStatusCache[oid]
         except KeyError:
+            pass
+
+        if lookInsideCommit is not None:
+            assert lookInsideCommit.id == oid
+            sig, _payload = lookInsideCommit.gpg_signature
+            status = GpgStatus.Unverified if sig else GpgStatus.Unsigned
             if updateCache:
-                sig, _payload = commit.gpg_signature
-                status = GpgStatus.Unverified if sig else GpgStatus.NotSigned
-                self.gpgStatusCache[commit.id] = status
-            else:
-                status = GpgStatus.NotSigned
-            return status
+                self.gpgStatusCache[oid] = status
+        else:
+            status = GpgStatus.Unknown
+
+        return status
+
+    def clearUnverifiedGpgStatusCacheEntries(self):
+        self.gpgStatusCache = {k: v for k, v in self.gpgStatusCache.items() if v != GpgStatus.Unverified}

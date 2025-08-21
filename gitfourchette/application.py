@@ -32,7 +32,7 @@ class GFApplication(QApplication):
     AskpassEnvKey = "_GITFOURCHETTE_START_IN_ASKPASS_MODE"
 
     restyle = Signal()
-    prefsChanged = Signal()
+    prefsChanged = Signal(list)
     regainForeground = Signal()
     fileDraggedToDockIcon = Signal(str)
     mouseSideButtonPressed = Signal(bool)
