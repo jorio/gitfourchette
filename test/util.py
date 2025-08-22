@@ -8,13 +8,15 @@ import os
 import re
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
 import pygit2
 import pytest
 
 from gitfourchette.porcelain import *
-from gitfourchette.toolbox import QPoint_zero
+from gitfourchette.toolbox import QPoint_zero, stripAccelerators
 from . import *
 
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
@@ -30,6 +32,10 @@ requiresFlatpak = pytest.mark.skipif(
 requiresGpg = pytest.mark.skipif(
     not shutil.which("gpg"),
     reason="Requires gpg")
+
+_T = TypeVar("_T")
+_TInheritsQWidget = TypeVar("_TInheritsQWidget", bound=QWidget)
+_TInheritsQDialog = TypeVar("_TInheritsQDialog", bound=QDialog)
 
 
 def pause(seconds: int = 3):
@@ -323,9 +329,13 @@ def findWindow(pattern: str) -> QWidget:
     raise KeyError(f"did not find widget window matching \"{pattern}\"")
 
 
-def findQDialog(parent: QWidget, pattern: str) -> QDialog:
+def findQDialog(
+        parent: QWidget,
+        pattern: str,
+        t: type[_TInheritsQDialog] = QDialog
+) -> _TInheritsQDialog:
     dlg: QDialog
-    for dlg in parent.findChildren(QDialog):
+    for dlg in parent.findChildren(t):
         if not dlg.isEnabled() or dlg.isHidden():
             continue
         if re.search(pattern, dlg.windowTitle(), re.IGNORECASE):
@@ -334,7 +344,24 @@ def findQDialog(parent: QWidget, pattern: str) -> QDialog:
     raise KeyError(f"did not find qdialog matching \"{pattern}\"")
 
 
-def waitUntilTrue(callback, timeout=5000):
+def waitForQDialog(
+        parent: QWidget,
+        pattern: str,
+        timeout: int = 5000,
+        t: type[_TInheritsQDialog] = QDialog
+) -> _TInheritsQDialog:
+    def tryFind():
+        try:
+            return findQDialog(parent, pattern, t)
+        except KeyError:
+            return None
+    return waitUntilTrue(tryFind, timeout=timeout)
+
+
+def waitUntilTrue(
+        callback: Callable[[], _T],
+        timeout: int = 5000
+) -> _T:
     interval = 100
     assert timeout >= interval
     for _ in range(0, timeout, interval):
@@ -343,15 +370,6 @@ def waitUntilTrue(callback, timeout=5000):
             return result
         QTest.qWait(interval)
     raise TimeoutError(f"retry failed after {timeout} ms timeout")
-
-
-def waitForQDialog(parent: QWidget, pattern: str, timeout=5000) -> QDialog:
-    def tryFind():
-        try:
-            return findQDialog(parent, pattern)
-        except KeyError:
-            return None
-    return waitUntilTrue(tryFind, timeout=timeout)
 
 
 def waitForSignal(signal: SignalInstance, timeout=5000, disconnect=True):
@@ -447,11 +465,25 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggested
     return path
 
 
-def findQToolButton(parent: QToolButton, textPattern: str) -> QToolButton:
-    for button in parent.findChildren(QToolButton):
-        if re.search(textPattern, button.text(), re.IGNORECASE | re.DOTALL):
-            return button
-    raise KeyError(f"did not find QToolButton \"{textPattern}\"")
+def findChildWithText(
+        parent: QWidget,
+        pattern: str,
+        t: type[_TInheritsQWidget]
+) -> _TInheritsQWidget:
+    for widget in parent.findChildren(t):
+        if findTextInWidget(widget, pattern):
+            return widget
+    raise KeyError(f"did not find {t} \"{pattern}\"")
+
+
+def findTextInWidget(
+        widget: QLabel | QAbstractButton,
+        pattern: str
+) -> re.Match[str] | None:
+    text = widget.text()
+    if "<" not in text:  # unlikely to be HTML
+        text = stripAccelerators(text)
+    return re.search(pattern, text, re.I | re.M)
 
 
 def postMouseWheelEvent(target: QWidget, angleDelta: int, point=QPoint_zero, modifiers=Qt.KeyboardModifier.NoModifier):

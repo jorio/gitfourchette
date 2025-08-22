@@ -237,7 +237,7 @@ def testFetchRemote(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "fetch")
     elif method == "toolbar":
-        findQToolButton(mainWindow.mainToolBar, "fetch").click()
+        findChildWithText(mainWindow.mainToolBar, "fetch", QToolButton).click()
     else:
         raise NotImplementedError(f"Unsupported method {method}")
 

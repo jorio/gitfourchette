@@ -784,14 +784,13 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread):
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
     rw.diffArea.stageButton.click()
-    processDialog: ProcessDialog = waitForQDialog(rw, "stage files", timeout=1000)
-    assert isinstance(processDialog, ProcessDialog)
-    assert re.search(r"delaying.+git.+for.+seconds", processDialog.statusForm.ui.statusLabel.text(), re.I)
+    processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
+    waitUntilTrue(lambda: findTextInWidget(processDialog.statusForm.ui.statusLabel, r"delaying.+git.+for.+seconds"))
 
     assert "Abort" in processDialog.abortButton.text()
     processDialog.abortButton.click()
 
-    waitUntilTrue(lambda: "SIGKILL" in processDialog.abortButton.text(), timeout=250)
+    waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
     processDialog.abortButton.click()
 
     waitUntilTrue(processDialog.isHidden, timeout=1000)
