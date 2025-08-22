@@ -62,6 +62,8 @@ def testCommit(tempDir, mainWindow):
     assert len(patches) == 1
     assert patches[0].delta.new_file.path == "a/a1.txt"
 
+    assert findTextInWidget(mainWindow.statusBar2, rf"commit.+{id7(headCommit)}.+created")
+
 
 def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
@@ -244,6 +246,8 @@ def testAmendCommit(tempDir, mainWindow):
     assert rw.stagedFiles.isVisibleTo(rw)
     assert rw.dirtyFiles.isVisibleTo(rw)
     assert not rw.committedFiles.isVisibleTo(rw)
+
+    assert findTextInWidget(mainWindow.statusBar2, rf"commit.+{id7(oldHeadCommit)}.+amended.+{id7(headCommit)}")
 
 
 def testAmendCommitDontBreakRefresh(tempDir, mainWindow):

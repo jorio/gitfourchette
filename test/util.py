@@ -477,10 +477,13 @@ def findChildWithText(
 
 
 def findTextInWidget(
-        widget: QLabel | QAbstractButton,
+        widget: QLabel | QAbstractButton | QStatusBar,
         pattern: str
 ) -> re.Match[str] | None:
-    text = widget.text()
+    if isinstance(widget, QStatusBar):
+        text = widget.currentMessage()
+    else:
+        text = widget.text()
     if "<" not in text:  # unlikely to be HTML
         text = stripAccelerators(text)
     return re.search(pattern, text, re.I | re.M)

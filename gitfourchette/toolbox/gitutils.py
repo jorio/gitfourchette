@@ -92,7 +92,7 @@ def abbreviatePerson(sig: Signature, style: AuthorDisplayStyle = AuthorDisplaySt
     return sig.email
 
 
-def shortHash(oid: Oid) -> str:
+def shortHash(oid: Oid | str) -> str:
     from gitfourchette.settings import prefs
     return str(oid)[:prefs.shortHashChars]
 

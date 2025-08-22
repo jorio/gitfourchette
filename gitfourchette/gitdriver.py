@@ -97,7 +97,7 @@ class GitDriver(QProcess):
         denom = -1
 
         if isinstance(stderr, bytes):
-            stderr = stderr.decode(errors="replace")
+            stderr = stderr.decode("utf-8", errors="replace")
         lines = stderr.splitlines()
 
         if lines:
@@ -142,6 +142,7 @@ class GitDriver(QProcess):
         self.setObjectName("GitDriver")
         self.readyReadStandardError.connect(self._onReadyReadStandardError)
         self._stderrScrollback = io.BytesIO()
+        self._stdout = None
 
     def _onReadyReadStandardError(self):
         raw = self.readAllStandardError().data()
@@ -155,10 +156,27 @@ class GitDriver(QProcess):
 
     def stderrScrollback(self) -> str:
         return '\n'.join(
-            line.rstrip().decode(errors="replace")
+            line.rstrip().decode("utf-8", errors="replace")
             for line in self._stderrScrollback.getvalue().splitlines(keepends=True)
             if not line.endswith(b"\r")
         )
+
+    def stdoutScrollback(self) -> str:
+        if self._stdout is None:
+            self._stdout = self.readAllStandardOutput().data().decode("utf-8", errors="replace")
+        return self._stdout
+
+    def readPostCommitInfo(self) -> tuple[str, str]:
+        # [master 123abc]
+        # [master (root-commit) 123abc]
+        # [detached HEAD 123abc]
+        stdout = self.stdoutScrollback()
+        match = re.match(r"^\[(.+)\s+([\da-f]+)]", stdout, re.I)
+        if not match:
+            raise ValueError("couldn't parse post-commit stdout: " + stdout.splitlines()[0])
+        branchName = match.group(1)
+        commitHash = match.group(2)
+        return branchName, commitHash
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

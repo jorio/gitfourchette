@@ -113,12 +113,13 @@ class NewCommit(RepoTask):
             message, author, committer,
             explicitGpgSign=explicitGpgSign,
             explicitNoGpgSign=explicitNoGpgSign)
-        yield from self.flowCallGit(*args, env=env)
+        driver = yield from self.flowCallGit(*args, env=env)
+
+        branchName, newHash = driver.readPostCommitInfo()
 
         uiPrefs.clearDraftCommit()
 
-        newOid = self.repo.head_commit_id
-        self.postStatus = _("Commit {0} created.", tquo(shortHash(newOid)))
+        self.postStatus = _("Commit {0} created on {1}.", tquo(shortHash(newHash)), branchName)
 
     @staticmethod
     def getGpgConfig(repo: Repo) -> tuple[bool, str]:
@@ -145,6 +146,7 @@ class NewCommit(RepoTask):
             }
 
         args = [
+            "-c", "core.abbrev=no",
             "commit",
             *argsIf(explicitGpgSign, "--gpg-sign"),
             *argsIf(explicitNoGpgSign, "--no-gpg-sign"),
@@ -224,14 +226,15 @@ class AmendCommit(RepoTask):
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True,
                                                 explicitGpgSign=explicitGpgSign, explicitNoGpgSign=explicitNoGpgSign)
-        yield from self.flowCallGit(*args, env=env)
+        driver = yield from self.flowCallGit(*args, env=env)
 
-        yield from self.flowEnterUiThread()
+        branchName, newHash = driver.readPostCommitInfo()
+
         self.repoModel.prefs.clearDraftAmend()
 
-        newOid = self.repo.head_commit_id
         self.postStatus = _("Commit {0} amended. New hash: {1}.",
-                            tquo(shortHash(headCommit.id)), tquo(shortHash(newOid)))
+                            tquo(shortHash(headCommit.id)),
+                            tquo(shortHash(newHash)))
 
 
 class SetUpGitIdentity(RepoTask):
