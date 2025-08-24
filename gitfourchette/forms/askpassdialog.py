@@ -8,6 +8,7 @@ import os
 import re
 import shlex
 import sys
+from enum import StrEnum
 from pathlib import Path
 
 from gitfourchette.application import GFApplication
@@ -18,9 +19,30 @@ from gitfourchette.sshagent import SshAgent
 from gitfourchette.toolbox import escape, stockIcon
 
 
-class AskpassDialog(TextInputDialog):
-    secret = Signal(str)
+class AskpassPrompt(StrEnum):
+    """
+    AskpassDialog behaviors driven by the SSH_ASKPASS_PROMPT environment variable.
+    """
 
+    Entry = ""
+    """
+    Normal text input with ok/cancel buttons.
+    """
+
+    Confirm = "confirm"
+    """
+    No text input, yes/no buttons, exit code 0 if yes (e.g. `ssh -o AddKeysToAgent=ask`).
+    Per `man ssh-add`: "Successful confirmation is signaled by a zero exit
+    status from ssh-askpass, rather than text entered into the requester."
+    """
+
+    Message = "none"
+    """
+    No text input, just a dismiss button.
+    """
+
+
+class AskpassDialog(TextInputDialog):
     ClearTextPatterns = [
         # When connecting to an HTTPS remote with user/pass, the username is requested first.
         r"^Username(:| for )",
@@ -33,17 +55,24 @@ class AskpassDialog(TextInputDialog):
     ]
 
     def __init__(self, parent: QWidget | None, prompt: str):
-        subtitle = ""
+        promptKind = os.environ.get("SSH_ASKPASS_PROMPT", AskpassPrompt.Entry)
+        self.promptKind = promptKind
 
-        title = _("Enter SSH credentials")
+        if promptKind == AskpassPrompt.Confirm:
+            title = _("SSH is asking for your confirmation")
+        elif promptKind == AskpassPrompt.Message:
+            title = _("Message from SSH")
+        else:
+            title = _("Enter SSH credentials")
 
-        # When connecting to an HTTPS remote with user/pass, the username is requested first.
-        clearText = re.search(r"^Username(:| for )", prompt)
+        clearText = any(re.search(pattern, prompt) for pattern in self.ClearTextPatterns)
 
         builtInAgentPid = os.environ.get(SshAgent.EnvBuiltInAgentPid, "")
-        if not clearText and builtInAgentPid:
+        if promptKind == AskpassPrompt.Entry and not clearText and builtInAgentPid:
             subtitle = _("{app}’s SSH agent (PID {pid}) will remember this credential "
                          "until you quit the application.", app=qAppName(), pid=builtInAgentPid)
+        else:
+            subtitle = ""
 
         htmlPrompt = f"<html style='white-space: pre-wrap;'>{escape(prompt)}"
 
@@ -59,6 +88,15 @@ class AskpassDialog(TextInputDialog):
 
         self.finished.connect(self.onFinish)
 
+        if promptKind == AskpassPrompt.Confirm:
+
+            self.okButton.setText(_("Yes"))
+            self.cancelButton.setText(_("No"))
+            self.lineEdit.setVisible(False)
+        elif promptKind == AskpassPrompt.Message:
+            self.cancelButton.setVisible(False)
+            self.lineEdit.setVisible(False)
+
     def onToggleEchoMode(self):
         passwordMode = self.lineEdit.echoMode() == QLineEdit.EchoMode.Password
         passwordMode = not passwordMode
@@ -67,19 +105,22 @@ class AskpassDialog(TextInputDialog):
         self.echoModeAction.setToolTip(_("Reveal passphrase") if passwordMode else _("Hide passphrase"))
         self.echoModeAction.setChecked(not passwordMode)
 
-    def onFinish(self, result):
+    def onFinish(self, result: int):
         if not result:
+            QApplication.instance().exit(1)
             return
-        secret = self.lineEdit.text()
-        self.secret.emit(secret)
+
+        if self.promptKind == AskpassPrompt.Entry:
+            secret = self.lineEdit.text()
+            print(secret)
+
+        QApplication.instance().exit(0)
 
     @classmethod
     def run(cls, prompt: str = ""):
         app = QApplication.instance()
         prompt = prompt or " ".join(app.arguments()[1:])
         dialog = AskpassDialog(None, prompt)
-        dialog.rejected.connect(lambda: app.exit(1))
-        dialog.secret.connect(print)
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.show()
         return dialog

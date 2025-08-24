@@ -70,6 +70,10 @@ class TextInputDialog(QDialog):
     def okButton(self) -> QPushButton:
         return self.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
 
+    @property
+    def cancelButton(self) -> QPushButton:
+        return self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
+
     def show(self):
         super().show()
         self.setMaximumHeight(self.height())
