@@ -107,7 +107,7 @@ def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
 def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     from gitfourchette import qt, trash, porcelain, tasks
     from gitfourchette.appconsts import APP_TESTMODE
-    from .util import TEST_SIGNATURE, waitUntilTrue
+    from .util import TEST_SIGNATURE, waitUntilTrue, getTestDataPath
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert APP_TESTMODE
@@ -132,7 +132,7 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     # Let vanilla git clone submodules from filesystem remotes (for offline tests)
     globalGitConfig["protocol.file.allow"] = "always"
     # Prevent OpenSSH from looking at host user's key files
-    globalGitConfig["core.sshCommand"] = "/usr/bin/ssh -F none -o 'IdentityFile none'"
+    globalGitConfig["core.sshCommand"] = getTestDataPath("isolated-ssh.sh")
 
     # Boot the UI
     assert app.mainWindow is None
