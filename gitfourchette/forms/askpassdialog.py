@@ -21,6 +21,17 @@ from gitfourchette.toolbox import escape, stockIcon
 class AskpassDialog(TextInputDialog):
     secret = Signal(str)
 
+    ClearTextPatterns = [
+        # When connecting to an HTTPS remote with user/pass, the username is requested first.
+        r"^Username(:| for )",
+
+        # First time connecting to a host that's not in ~/.ssh/known_hosts
+        r"Are you sure you want to continue connecting \(yes/no",
+
+        # Follow-up question to the above
+        r"Please type 'yes'"
+    ]
+
     def __init__(self, parent: QWidget | None, prompt: str):
         subtitle = ""
 

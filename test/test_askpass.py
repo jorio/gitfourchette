@@ -55,3 +55,17 @@ def testAskpassDialogCancel(tempDir, mainWindow, capfd, monkeypatch):
     out, _err = capfd.readouterr()
     assert out == ""
     assert exitCalls == [1]
+
+
+def testAskpassDialogAddToKnownHosts(tempDir, mainWindow, capfd):
+    dialog = AskpassDialog.run(
+        "The authenticity of host '[0.0.0.0]:8888 ([0.0.0.0]:8888)' can't be established.\n"
+        "ED25519 key fingerprint is SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.\n"
+        "This key is not known by any other names.\n"
+        "Are you sure you want to continue connecting (yes/no/[fingerprint])? ")
+
+    assert dialog.lineEdit.echoMode() == QLineEdit.EchoMode.Normal
+    dialog.lineEdit.setText("yes")
+    dialog.accept()
+    out, _err = capfd.readouterr()
+    assert out == "yes\n"
