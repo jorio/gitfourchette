@@ -457,6 +457,23 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
 
+def testFileListShowInFolder(tempDir, mainWindow, mockDesktopServices):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt"), check=True)
+    assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
+    rejectQMessageBox(rw, "file doesn.t exist at this path anymore")
+
+    rw.jump(NavLocator.inCommit(Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44"), "a/a1"), check=True)
+    assert ["a/a1"] == qlvGetRowData(rw.committedFiles)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
+    url = mockDesktopServices.urls[-1]
+    assert url.isLocalFile()
+    assert url.toLocalFile() == wd + "a"
+
+
 def testMiddleClickToStageFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)

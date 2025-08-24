@@ -32,7 +32,10 @@ def showInFolder(path: str):  # pragma: no cover (platform-specific)
     path = os.path.abspath(path)
     isdir = os.path.isdir(path)
 
-    if FREEDESKTOP and HAS_QTDBUS:
+    if APP_TESTMODE:
+        pass
+
+    elif FREEDESKTOP and HAS_QTDBUS:
         # https://www.freedesktop.org/wiki/Specifications/file-manager-interface
         iface = QDBusInterface("org.freedesktop.FileManager1", "/org/freedesktop/FileManager1")
         if iface.isValid():
