@@ -24,17 +24,21 @@ class AskpassDialog(TextInputDialog):
     def __init__(self, parent: QWidget | None, prompt: str):
         subtitle = ""
 
+        title = _("Enter SSH credentials")
+
+        # When connecting to an HTTPS remote with user/pass, the username is requested first.
+        clearText = re.search(r"^Username(:| for )", prompt)
+
         builtInAgentPid = os.environ.get(SshAgent.EnvBuiltInAgentPid, "")
-        if builtInAgentPid:
+        if not clearText and builtInAgentPid:
             subtitle = _("{app}’s SSH agent (PID {pid}) will remember this credential "
                          "until you quit the application.", app=qAppName(), pid=builtInAgentPid)
 
-        super().__init__(parent, _("Enter SSH credentials"), "<html>" + escape(prompt), subtitle, multilineSubtitle=True)
+        htmlPrompt = f"<html style='white-space: pre-wrap;'>{escape(prompt)}"
+
+        super().__init__(parent, title, htmlPrompt, subtitle, multilineSubtitle=True)
 
         self.lineEdit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-
-        # When connecting to an HTTPS remote with user/pass, the username is requested first.
-        clearText = re.search("^Username(:| for )", prompt)
 
         if not clearText:
             self.lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
@@ -59,12 +63,13 @@ class AskpassDialog(TextInputDialog):
         self.secret.emit(secret)
 
     @classmethod
-    def run(cls):
+    def run(cls, prompt: str = ""):
         app = QApplication.instance()
-        prompt = " ".join(app.arguments()[1:])
+        prompt = prompt or " ".join(app.arguments()[1:])
         dialog = AskpassDialog(None, prompt)
         dialog.rejected.connect(lambda: app.exit(1))
         dialog.secret.connect(print)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.show()
         return dialog
 
