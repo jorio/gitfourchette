@@ -145,7 +145,7 @@ class GraphView(QListView):
             checkoutAction.shortcuts = self.checkoutShortcut.key()
 
             gpgLookAtCommit = self.repoModel.repo.peel_commit(oid)
-            gpgStatus = self.repoModel.getCachedGpgStatus(oid, gpgLookAtCommit, updateCache=False)
+            gpgStatus = self.repoModel.getCachedGpgStatus(gpgLookAtCommit)
             gpgIcon = "gpg-verify-good" if gpgStatus == GpgStatus.Good else "gpg-verify-unknown"
 
             actions = [

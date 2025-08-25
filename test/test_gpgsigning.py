@@ -82,6 +82,16 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
     commit = rw.repo.head_commit
     assert commit.message.strip() == "TEST GPG-SIGNED COMMIT"
 
+    # The commit we've just created should be auto-trusted.
+    # Look for GPG signing information in GraphView tooltip
+    toolTip = summonToolTip(rw.graphView.viewport(), QPoint(rw.graphView.viewport().width() - 16, 30))
+    assert "signed; verified" in toolTip.lower()
+
+    # Look for GPG signing information in GetCommitInfo dialog
+    triggerMenuAction(mainWindow.menuBar(), "view/go to head")
+    triggerContextMenuAction(rw.graphView.viewport(), "get info")
+    findQMessageBox(rw, "signature:.+signed; verified").reject()
+
     ToolCommands.runSync(settings.prefs.gitPath, "verify-commit", "-v", str(commit.id), directory=wd, strict=True)
 
     ToolCommands.runSync("gpg", "--batch", "--yes", "--delete-secret-and-public-keys", aliceFpr, directory=wd, strict=True)

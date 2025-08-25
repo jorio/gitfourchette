@@ -173,7 +173,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             hashText = shortHash(commit.id)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
-            gpgStatus = self.repoModel.getCachedGpgStatus(commit.id, commit if settings.prefs.showGpgStatus else None)
+            gpgStatus = self.repoModel.getCachedGpgStatus(commit)
 
             if settings.prefs.authorDiffAsterisk:
                 if author.email != committer.email:
@@ -282,11 +282,14 @@ class CommitLogDelegate(QStyledItemDelegate):
         if authorWidth != 0:
             rect.setLeft(leftBoundName)
 
-            if gpgStatus >= GpgStatus.Unverified:
+            if settings.prefs.showGpgStatus:
+                showGpgIcon = gpgStatus >= GpgStatus.UnverifiedLazy
+            else:
+                showGpgIcon = gpgStatus > GpgStatus.Unverified
+
+            if showGpgIcon:
                 rect.setRight(leftBoundName + 16)
-                icon = stockIcon("gpg-verify-good" if gpgStatus == GpgStatus.Good else
-                                 "gpg-verify-expired" if gpgStatus == GpgStatus.Expired else
-                                 "gpg-verify-unknown")
+                icon = stockIcon(gpgStatus.iconName())
                 icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 rect.setLeft(rect.right() + 0)
 

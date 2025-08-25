@@ -10,8 +10,9 @@ from typing import Literal
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID, RepoModel
+from gitfourchette.repomodel import UC_FAKEID, RepoModel, GpgStatus
 from gitfourchette.toolbox import *
+from gitfourchette.trtables import TrTables
 
 
 @dataclass
@@ -134,11 +135,13 @@ class CommitLogModel(QAbstractListModel):
                 elif zone.kind == "message":
                     tip = commitMessageTooltip(commit)
                 elif zone.kind == "author":
-                    tip = commitAuthorTooltip(commit)
+                    gpg = self.repoModel.getCachedGpgStatus(commit)
+                    tip = commitAuthorTooltip(commit, gpg)
                 break
 
             if self._authorColumnX <= 0:  # author hidden in narrow window
-                tip += commitAuthorTooltip(commit)
+                gpg = self.repoModel.getCachedGpgStatus(commit)
+                tip += commitAuthorTooltip(commit, gpg)
 
             return tip
 
@@ -165,7 +168,7 @@ class CommitLogModel(QAbstractListModel):
         return False
 
 
-def commitAuthorTooltip(commit: Commit) -> str:
+def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus) -> str:
     def formatTime(sig: Signature):
         return escape(signatureDateFormat(sig))
 
@@ -190,6 +193,11 @@ def commitAuthorTooltip(commit: Commit) -> str:
         markup += (f"<small><br>{formatTime(author)}"
                    f"<br><br>* {committedBy}"
                    f"<br><small>{formatTime(committer)}")
+    markup += "</p>"
+
+    if gpgStatus != GpgStatus.Unsigned:
+        gpgText = _("GPG-signed; {0}", TrTables.enum(gpgStatus))
+        markup += f"<p><img src='assets:icons/{gpgStatus.iconName()}' style='vertical-align: bottom'/> {gpgText}</p>"
 
     return markup
 

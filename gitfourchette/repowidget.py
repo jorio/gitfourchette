@@ -763,9 +763,6 @@ class RepoWidget(QWidget):
         self.replaceWithStub(message=message)
 
     def refreshPrefs(self, prefDiff: list[str]):
-        if "showGpgStatus" in prefDiff:
-            self.repoModel.clearUnverifiedGpgStatusCacheEntries()
-
         self.diffView.refreshPrefs()
         self.specialDiffView.refreshPrefs()
         self.graphView.refreshPrefs()

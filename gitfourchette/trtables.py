@@ -104,6 +104,7 @@ class TrTables:
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
         from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
+        from gitfourchette.repomodel import GpgStatus
 
         NVERule = NameValidationError.Rule
 
@@ -230,6 +231,14 @@ class TrTables:
                 RefSort.AlphaAsc                : _p("sort refs alphabetically, ascending", "Name, A-Z"),
                 RefSort.AlphaDesc               : _p("sort refs alphabetically, descending", "Name, Z-A"),
                 RefSort.UseGlobalPref           : "",
+            },
+
+            GpgStatus: {
+                GpgStatus.Unsigned              : _("Not GPG-signed"),
+                GpgStatus.UnverifiedLazy        : _("Not verified yet"),
+                GpgStatus.Unverified            : _("Verification failed"),
+                GpgStatus.Good                  : _("Verified"),
+                GpgStatus.Expired               : _("Expired"),
             }
         }
 

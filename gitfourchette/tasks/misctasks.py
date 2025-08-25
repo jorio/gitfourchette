@@ -20,6 +20,7 @@ from gitfourchette.repomodel import UC_FAKEID, GpgStatus
 from gitfourchette.tasks import TaskEffects
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
+from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +96,20 @@ class GetCommitInfo(RepoTask):
         else:
             committerMarkup = self.formatSignature(commit.committer)
 
+        # GPG
+        gpg = self.repoModel.getCachedGpgStatus(commit)
+        if not gpg:
+            gpgMarkup = tagify(_("(not GPG-signed)"), "<i>")
+        else:
+            gpgIcon = f"<img src='assets:icons/{gpg.iconName()}' style='vertical-align: bottom'/> "
+            gpgMarkup = gpgIcon + _("GPG-signed; {0}", TrTables.enum(gpg))
+
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
         table += tableRow(parentTitle, parentMarkup)
         table += tableRow(_("Author"), self.formatSignature(commit.author))
         table += tableRow(_("Committer"), committerMarkup)
+        table += tableRow(_("Trust"), gpgMarkup)
 
         # Graph debug info
         if withDebugInfo:
