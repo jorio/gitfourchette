@@ -49,6 +49,8 @@ class GpgStatus(enum.IntEnum):
             return "gpg-verify-good"
         elif self == self.Expired:
             return "gpg-verify-expired"
+        elif self == self.Unverified:
+            return "gpg-verify-unverified"
         else:
             return "gpg-verify-unknown"
 

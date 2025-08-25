@@ -428,7 +428,7 @@ class TrTables:
             "alternatingRowColors": _("Draw rows using alternating background colors"),
             "refBoxMaxWidth": _("Ref indicators"),
             "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
-            "showGpgStatus": _("Show padlock icon next to signed commits pending verification"),
+            "showGpgStatus": _("Show “seal” icon next to signed commits pending verification"),
 
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),
             "maxTrashFileKB": _("Patches bigger than # KB won’t be salvaged"),

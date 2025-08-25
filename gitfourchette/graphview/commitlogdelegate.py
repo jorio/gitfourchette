@@ -291,7 +291,7 @@ class CommitLogDelegate(QStyledItemDelegate):
                 rect.setRight(leftBoundName + 16)
                 icon = stockIcon(gpgStatus.iconName())
                 icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                rect.setLeft(rect.right() + 0)
+                rect.setLeft(rect.right() + 4)
 
             rect.setRight(leftBoundDate - XMARGIN)
             FittedText.draw(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
