@@ -20,6 +20,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import GpgStatus
 from gitfourchette.tasks.jumptasks import RefreshRepo
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskPrereqs, TaskEffects
 from gitfourchette.toolbox import *
@@ -116,6 +117,11 @@ class NewCommit(RepoTask):
         driver = yield from self.flowCallGit(*args, env=env)
 
         branchName, newHash = driver.readPostCommitInfo()
+        newOid = Oid(hex=newHash)
+
+        # Trust this commit if we've just signed it
+        if explicitGpgSign:
+            self.repoModel.gpgStatusCache[newOid] = GpgStatus.Good
 
         uiPrefs.clearDraftCommit()
 
@@ -229,6 +235,11 @@ class AmendCommit(RepoTask):
         driver = yield from self.flowCallGit(*args, env=env)
 
         branchName, newHash = driver.readPostCommitInfo()
+        newOid = Oid(hex=newHash)
+
+        # Trust this commit if we've just signed it
+        if explicitGpgSign:
+            self.repoModel.gpgStatusCache[newOid] = GpgStatus.Good
 
         self.repoModel.prefs.clearDraftAmend()
 
