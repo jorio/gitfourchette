@@ -102,7 +102,7 @@ class Ui_CommitDialog(object):
         self.summaryEditor.setPlaceholderText(_p("CommitDialog", "Enter commit summary"))
         self.counterLabel.setToolTip(_p("CommitDialog", "<p>Length of the summary. Convention is to stay under 50 characters and avoid going over 72. If that’s not enough, use the long-form description.</p>"))
         self.descriptionEditor.setPlaceholderText(_p("CommitDialog", "Long-form description (optional)"))
-        self.revealSignature.setText(_p("CommitDialog", "Customi&ze Signature"))
+        self.revealSignature.setText(_p("CommitDialog", "&Edit Author"))
         self.signatureButton.setText(_p("CommitDialog", "Preview"))
 from gitfourchette.forms.gpgbutton import GpgButton
 from gitfourchette.forms.signatureform import SignatureForm

@@ -477,7 +477,7 @@ def findChildWithText(
 
 
 def findTextInWidget(
-        widget: QLabel | QAbstractButton | QStatusBar,
+        widget: QLabel | QAbstractButton | QStatusBar | QAction,
         pattern: str
 ) -> re.Match[str] | None:
     if isinstance(widget, QStatusBar):

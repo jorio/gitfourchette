@@ -12,7 +12,6 @@ from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.nav import NavLocator
-from gitfourchette.toolbox import stripAccelerators
 from .util import *
 
 
@@ -71,7 +70,7 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
     commitDialog.ui.summaryEditor.setText("TEST GPG-SIGNED COMMIT")
 
     signAction = commitDialog.ui.gpg.actions()[0]
-    assert re.search(r"enable gpg", stripAccelerators(signAction.text()), re.I)
+    assert findTextInWidget(signAction, r"enable sign")
     assert signAction.isEnabled()
     assert signAction.isChecked()
     keyDisplay = commitDialog.ui.gpg.actions()[1]
@@ -113,5 +112,5 @@ def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
 
-    triggerContextMenuAction(rw.graphView.viewport(), "verify gpg")
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, "verified successfully.+alice lovelace")

@@ -118,7 +118,7 @@
      <item>
       <widget class="QCheckBox" name="revealSignature">
        <property name="text">
-        <string>Customi&amp;ze Signature</string>
+        <string>&amp;Edit Author</string>
        </property>
        <property name="checked">
         <bool>false</bool>

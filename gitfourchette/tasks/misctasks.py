@@ -99,17 +99,17 @@ class GetCommitInfo(RepoTask):
         # GPG
         gpg = self.repoModel.getCachedGpgStatus(commit)
         if not gpg:
-            gpgMarkup = tagify(_("(not GPG-signed)"), "<i>")
+            gpgMarkup = tagify(_("(not signed)"), "<i>")
         else:
             gpgIcon = f"<img src='assets:icons/{gpg.iconName()}' style='vertical-align: bottom'/> "
-            gpgMarkup = gpgIcon + _("GPG-signed; {0}", TrTables.enum(gpg))
+            gpgMarkup = gpgIcon + _("Signed; {0}", TrTables.enum(gpg))
 
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
         table += tableRow(parentTitle, parentMarkup)
         table += tableRow(_("Author"), self.formatSignature(commit.author))
         table += tableRow(_("Committer"), committerMarkup)
-        table += tableRow(_("Trust"), gpgMarkup)
+        table += tableRow(_("Signature"), gpgMarkup)
 
         # Graph debug info
         if withDebugInfo:
@@ -182,7 +182,7 @@ class VerifyGpgSignature(RepoTask):
 
         gpgSignature, gpgPayload = commit.gpg_signature
         if not gpgSignature:
-            raise AbortTask(_("Commit {0} is not GPG-signed, so it cannot be verified.", prettyHash))
+            raise AbortTask(_("Commit {0} is not signed, so it cannot be verified.", prettyHash))
 
         driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
         fail = driver.exitCode() != 0
@@ -191,7 +191,7 @@ class VerifyGpgSignature(RepoTask):
         self.repoModel.gpgStatusCache[oid] = GpgStatus.Unverified if fail else GpgStatus.Good
 
         if fail:
-            paras = [_("Commit {0} is GPG-signed, but it couldn’t be verified.", prettyHash)]
+            paras = [_("Commit {0} is signed, but it couldn’t be verified.", prettyHash)]
 
             tokenParsers = {
                 "VALIDSIG": _("The signature itself is good, but verification failed."),
@@ -214,7 +214,7 @@ class VerifyGpgSignature(RepoTask):
             raise AbortTask(paragraphs(paras), details=driver.stderrScrollback())
 
         message = "<html>"
-        message += _("GPG-signed commit {0} verified successfully.", prettyHash)
+        message += _("Signature verified successfully in commit {0}.", prettyHash)
 
         match = re.search(r"^\[GNUPG:]\s+GOODSIG\s+.+$", driver.stderrScrollback(), re.M)
         if match:
