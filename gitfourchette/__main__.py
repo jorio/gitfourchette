@@ -36,9 +36,9 @@ def main():
 
     # Quit app cleanly on Ctrl+C (all repos and associated file handles will be freed)
     def onSigint(*_dummy):
-        # Posting an event to be processed on the next event loop
-        # is more stable than just calling app.quit() at any time.
-        app.postEvent(app, QEvent(QEvent.Type.Quit))
+        # Deferring the quit to the next event loop gives the application
+        # some time to wrap up the session.
+        QTimer.singleShot(0, app.quit)
     signal.signal(signal.SIGINT, onSigint)
 
     # Force Python interpreter to run every now and then so it can run the Ctrl+C signal handler
