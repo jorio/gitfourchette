@@ -18,7 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID, GpgStatus
+from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
@@ -46,14 +46,16 @@ class GraphView(QListView):
                 m = _("This commit isn’t shown in the graph.")
             return m
 
-    def __init__(self, parent):
+    def __init__(self, repoModel: RepoModel, parent):
         super().__init__(parent)
+
+        self.repoModel = repoModel
 
         # Use tabular numbers (ISO dates look better with Inter, Cantarell, etc.)
         self.setFont(setFontFeature(self.font(), "tnum"))
 
-        self.clModel = CommitLogModel(self)
-        self.clFilter = CommitLogFilter(self)
+        self.clModel = CommitLogModel(repoModel, self)
+        self.clFilter = CommitLogFilter(repoModel, self)
         self.clFilter.setSourceModel(self.clModel)
 
         self.setModel(self.clFilter)
@@ -86,10 +88,6 @@ class GraphView(QListView):
         self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
         self.copyMessageShortcut = makeWidgetShortcut(self, self.copyCommitMessageToClipboard, "Ctrl+Shift+C")
         self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
-
-    @property
-    def repoModel(self):
-        return self.repoWidget.repoModel
 
     def makeContextMenu(self) -> QMenu:
         kind = self.currentRowKind
@@ -180,9 +178,6 @@ class GraphView(QListView):
         if menu is not None:
             menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
             menu.popup(self.mapToGlobal(point))
-
-    def clear(self):
-        self.clModel.clear()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         currentIndex = self.currentIndex()

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,7 +10,7 @@ from typing import Literal
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID, RepoModel
 from gitfourchette.toolbox import *
 
 
@@ -42,38 +42,33 @@ class CommitLogModel(QAbstractListModel):
         SpecialRow      = Qt.ItemDataRole.UserRole + 4
         TraceNode       = Qt.ItemDataRole.UserRole + 5  # for BlameScrubber
 
-    # Reference to RepoState.commitSequence
-    _commitSequence: list[Commit]
+    repoModel: RepoModel
     _extraRow: SpecialRow
-
     _authorColumnX: int
     _toolTipZones: dict[int, list[CommitToolTipZone]]
 
-    def __init__(self, parent):
+    def __init__(self, repoModel: RepoModel, parent: QWidget):
         super().__init__(parent)
-        self._commitSequence = []
-        self._extraRow = SpecialRow.Invalid
+
+        self.repoModel = repoModel
         self._authorColumnX = -1
         self._toolTipZones = {}
 
-    @property
-    def isValid(self):
-        return self._commitSequence is not None
+        if repoModel.truncatedHistory:
+            self._extraRow = SpecialRow.TruncatedHistory
+        elif repoModel.repo.is_shallow:
+            self._extraRow = SpecialRow.EndOfShallowHistory
+        else:
+            self._extraRow = SpecialRow.Invalid
 
-    def clear(self):
-        self.setCommitSequence([])
-        self._toolTipZones.clear()
-        self._extraRow = SpecialRow.Invalid
+    def resetCommitSequence(self, nRemovedRows: int = -1, nAddedRows: int = 0):
+        if nRemovedRows < 0:
+            # Replace log wholesale
+            self.beginResetModel()
+            self.endResetModel()
+            return
 
-    def setCommitSequence(self, newCommitSequence: list[Commit]):
-        self.beginResetModel()
-        self._commitSequence = newCommitSequence
-        self.endResetModel()
-
-    def mendCommitSequence(self, nRemovedRows: int, nAddedRows: int, newCommitSequence: list[Commit]):
-        parent = QModelIndex()  # it's not a tree model so there's no parent
-
-        self._commitSequence = newCommitSequence
+        parent = QModelIndex_default  # it's not a tree model so there's no parent
 
         # DON'T interleave beginRemoveRows/beginInsertRows!
         # It'll crash with QSortFilterProxyModel!
@@ -86,18 +81,12 @@ class CommitLogModel(QAbstractListModel):
             self.endInsertRows()
 
     def rowCount(self, *args, **kwargs) -> int:
-        if not self.isValid:
-            return 0
-        else:
-            n = len(self._commitSequence)
-            if self._extraRow != SpecialRow.Invalid:
-                n += 1
-            return n
+        n = len(self.repoModel.commitSequence)
+        if self._extraRow != SpecialRow.Invalid:
+            n += 1
+        return n
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
-        if not self.isValid:
-            return None
-
         row = index.row()
 
         if role == Qt.ItemDataRole.DisplayRole:
@@ -105,13 +94,13 @@ class CommitLogModel(QAbstractListModel):
 
         elif role == CommitLogModel.Role.Commit:
             try:
-                return self._commitSequence[row]
+                return self.repoModel.commitSequence[row]
             except IndexError:
                 pass
 
         elif role == CommitLogModel.Role.Oid:
             try:
-                commit = self._commitSequence[row]
+                commit = self.repoModel.commitSequence[row]
                 if commit is not None:
                     return commit.id
             except IndexError:
@@ -120,7 +109,7 @@ class CommitLogModel(QAbstractListModel):
         elif role == CommitLogModel.Role.SpecialRow:
             if row == 0:
                 return SpecialRow.UncommittedChanges
-            elif row < len(self._commitSequence):
+            elif row < len(self.repoModel.commitSequence):
                 return SpecialRow.Commit
             else:
                 return self._extraRow
@@ -129,7 +118,7 @@ class CommitLogModel(QAbstractListModel):
             tip = ""
 
             try:
-                commit = self._commitSequence[row]
+                commit = self.repoModel.commitSequence[row]
                 zones = self._toolTipZones[row]
             except (IndexError, KeyError):
                 return tip

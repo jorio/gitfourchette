@@ -21,7 +21,6 @@ from gitfourchette.forms.banner import Banner
 from gitfourchette.forms.processdialog import ProcessDialog
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.localization import *
 from gitfourchette.nav import NavHistory, NavLocator, NavContext
@@ -224,16 +223,6 @@ class RepoWidget(QWidget):
         # Prime GraphView
 
         with QSignalBlockerContext(self.graphView):
-            if repoModel.truncatedHistory:
-                extraRow = SpecialRow.TruncatedHistory
-            elif repoModel.repo.is_shallow:
-                extraRow = SpecialRow.EndOfShallowHistory
-            else:
-                extraRow = SpecialRow.Invalid
-
-            self.graphView.clFilter.setHiddenCommits(repoModel.hiddenCommits)
-            self.graphView.clModel._extraRow = extraRow
-            self.graphView.clModel.setCommitSequence(repoModel.commitSequence)
             self.graphView.selectRowForLocator(NavLocator.inWorkdir(), force=True)
 
         # ----------------------------------
@@ -272,7 +261,7 @@ class RepoWidget(QWidget):
     # Initial layout
 
     def _makeGraphContainer(self):
-        graphView = GraphView(self)
+        graphView = GraphView(self.repoModel, self)
         graphView.searchBar.notFoundMessage = self.commitNotFoundMessage
 
         container = QWidget()
@@ -598,7 +587,7 @@ class RepoWidget(QWidget):
     def toggleHideRefPattern(self, refPattern: str, allButThis: bool = False):
         assert refPattern.startswith("refs/")
         self.repoModel.toggleHideRefPattern(refPattern, allButThis)
-        self.graphView.clFilter.setHiddenCommits(self.repoModel.hiddenCommits)
+        self.graphView.clFilter.updateHiddenCommits()
 
         # Hide/draw refboxes for commits that are shared by non-hidden refs
         self.graphView.viewport().update()

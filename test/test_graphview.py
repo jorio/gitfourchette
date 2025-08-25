@@ -8,6 +8,7 @@ import pygit2.enums
 import pytest
 
 from gitfourchette.graphview.commitlogmodel import SpecialRow
+from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -382,3 +383,20 @@ def testCommitAmendedOutsideAppVanishesFromGraph(tempDir, mainWindow):
 
     rw.refreshRepo()
     assert rw.navLocator.commit == newHeadId
+
+
+def testRestoreHiddenBranchOnBoot(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.checkout_local_branch("no-parent")
+    Path(f"{wd}/.git/gitfourchette_testmode.json").write_text('{ "hidePatterns": ["refs/heads/master"] }')
+
+    rw = mainWindow.openRepo(wd)
+
+    hiddenOid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+    with pytest.raises(GraphView.SelectCommitError, match="hidden branch"):
+        rw.graphView.getFilterIndexForCommit(hiddenOid)
+
+    visibleOid = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
+    assert rw.graphView.getFilterIndexForCommit(visibleOid)

@@ -613,11 +613,7 @@ class RefreshRepo(RepoTask):
         with QSignalBlockerContext(graphView):
             # Hidden commits may have changed in RepoState.syncTopOfGraph!
             # If new commits are part of a hidden branch, we've got to invalidate the CommitFilter.
-            clFilter.setHiddenCommits(repoModel.hiddenCommits)
+            clFilter.updateHiddenCommits()
 
-            if gsl.numRowsRemoved >= 0:
-                # Sync top of graphview
-                clModel.mendCommitSequence(gsl.numRowsRemoved, gsl.numRowsAdded, repoModel.commitSequence)
-            else:
-                # Replace graph wholesale
-                clModel.setCommitSequence(repoModel.commitSequence)
+            # Sync top of graphview
+            clModel.resetCommitSequence(gsl.numRowsRemoved, gsl.numRowsAdded)
