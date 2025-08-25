@@ -237,6 +237,7 @@ class TrTables:
                 GpgStatus.Unsigned              : _("Not signed"),
                 GpgStatus.UnverifiedLazy        : _("Not verified yet"),
                 GpgStatus.Unverified            : _("Verification failed"),
+                GpgStatus.Bad                   : _("INVALID!"),
                 GpgStatus.Good                  : _("Verified"),
                 GpgStatus.Expired               : _("Expired"),
             }

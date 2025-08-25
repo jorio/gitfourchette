@@ -198,6 +198,7 @@ class VerifyGpgSignature(RepoTask):
                 "NO_PUBKEY": _("Hint: Public key {capture} isn’t in your keyring. "
                                "You can try to import it from a trusted source, then verify this commit again."),
                 "EXPKEYSIG": _("Key has expired: {capture}"),
+                "BADSIG": _("The signature is INVALID!"),
             }
             foundTokens = set()
 
@@ -210,6 +211,9 @@ class VerifyGpgSignature(RepoTask):
 
             if "VALIDSIG" in foundTokens and "EXPKEYSIG" in foundTokens:
                 self.repoModel.gpgStatusCache[oid] = GpgStatus.Expired
+
+            if "BADSIG" in foundTokens:
+                self.repoModel.gpgStatusCache[oid] = GpgStatus.Bad
 
             raise AbortTask(paragraphs(paras), details=driver.stderrScrollback())
 

@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import textwrap
 
 import pytest
 
@@ -114,3 +115,34 @@ def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, "verified successfully.+alice lovelace")
+
+
+@requiresGpg
+def testCommitGpgBadSignature(tempDir, mainWindow, tempGpgHome):
+    # This signature was made by Alice. We have her key in the test
+    # environment's keyring, so we're able to verify it. However, it was made
+    # for an unrelated commit, so gpg should say BADSIG.
+    aliceRandomSignature = textwrap.dedent("""\
+        -----BEGIN PGP SIGNATURE-----
+
+        iHUEABYKAB0WIQTrhbtfozp14V6UTmPyMVUMT0fjjgUCaKzZTwAKCRDyMVUMT0fj
+        jl9SAQD9jP2eAIgs1hHyFPCzKsMvMFl4dWfcbv8WEqBreyaxkwD+OBMDvlL5dR2G
+        e9tA1G0KHSPP2wgayb6rVUFmNFLD1Qo=
+        =Lfmm
+        -----END PGP SIGNATURE-----
+        """)
+
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        commitString = repo.create_commit_string(
+            TEST_SIGNATURE, TEST_SIGNATURE, "BAD GPG SIGNATURE!",
+            repo.head_tree.id, [repo.head_commit_id])
+        oid = repo.create_commit_with_signature(commitString, aliceRandomSignature)
+        repo.create_branch_from_commit("BadGPG", oid)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid, ""), check=True)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    acceptQMessageBox(rw, "INVALID!")

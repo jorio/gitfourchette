@@ -37,12 +37,13 @@ def toggleSetElement(s: set, element):
 
 
 class GpgStatus(enum.IntEnum):
-    Unknown = -1
-    Unsigned = 0
-    UnverifiedLazy = 1
-    Unverified = 2
-    Expired = 3
-    Good = 4
+    Unknown         = -1
+    Unsigned        = 0
+    UnverifiedLazy  = enum.auto()
+    Unverified      = enum.auto()
+    Bad             = enum.auto()
+    Expired         = enum.auto()
+    Good            = enum.auto()
 
     def iconName(self):
         if self == self.Good:
@@ -51,6 +52,8 @@ class GpgStatus(enum.IntEnum):
             return "gpg-verify-expired"
         elif self == self.Unverified:
             return "gpg-verify-unverified"
+        elif self == self.Bad:
+            return "gpg-verify-bad"
         else:
             return "gpg-verify-unknown"
 
