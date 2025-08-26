@@ -37,10 +37,8 @@ def toggleSetElement(s: set, element):
 
 
 class GpgStatus(enum.IntEnum):
-    Unknown         = -1
     Unsigned        = 0
-    UnverifiedLazy  = enum.auto()
-    UnverifiedBusy  = enum.auto()
+    VerifyPending   = enum.auto()
     Unverified      = enum.auto()
     GOODSIG         = enum.auto()
     EXPSIG          = enum.auto()
@@ -56,8 +54,7 @@ class GpgStatus(enum.IntEnum):
 
 
 _GpgStatusIconTable = {
-    GpgStatus.UnverifiedBusy: "gpg-verify-unknown",
-    GpgStatus.UnverifiedLazy: "gpg-verify-unknown",
+    GpgStatus.VerifyPending: "gpg-verify-unknown",
     GpgStatus.GOODSIG     : "gpg-verify-good",
     GpgStatus.EXPSIG      : "gpg-verify-expired",
     GpgStatus.EXPKEYSIG   : "gpg-verify-good",#"gpg-verify-expired",
@@ -549,13 +546,12 @@ class RepoModel:
             pass
 
         sig, _payload = commit.gpg_signature
-        status = GpgStatus.UnverifiedLazy if sig else GpgStatus.Unsigned
+        status = GpgStatus.VerifyPending if sig else GpgStatus.Unsigned
         self.gpgStatusCache[commit.id] = status
         return status
 
     def queueGpgVerification(self, oid: Oid):
         if not settings.prefs.verifyGpgOnTheFly:
             return
-        assert self.gpgStatusCache[oid] == GpgStatus.UnverifiedLazy
-        self.gpgStatusCache[oid] = GpgStatus.UnverifiedBusy
+        assert self.gpgStatusCache[oid] == GpgStatus.VerifyPending
         self.gpgVerificationQueue.add(oid)

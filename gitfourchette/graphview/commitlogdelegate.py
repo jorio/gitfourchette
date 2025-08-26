@@ -165,7 +165,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # Get the info we need about the commit
         commit: Commit | None = index.data(CommitLogModel.Role.Commit)
-        gpgStatus = GpgStatus.Unknown
+        gpgStatus = GpgStatus.Unsigned
         if commit and commit.id != UC_FAKEID:
             oid = commit.id
             author = commit.author
@@ -177,9 +177,8 @@ class CommitLogDelegate(QStyledItemDelegate):
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
             gpgStatus = self.repoModel.getCachedGpgStatus(commit)
 
-            if gpgStatus == GpgStatus.UnverifiedLazy and settings.prefs.verifyGpgOnTheFly:
+            if gpgStatus == GpgStatus.VerifyPending and settings.prefs.verifyGpgOnTheFly:
                 self.requestSignatureVerification.emit(oid)
-                gpgStatus = GpgStatus.UnverifiedBusy
 
             if settings.prefs.authorDiffAsterisk:
                 if author.email != committer.email:
@@ -288,12 +287,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         if authorWidth != 0:
             rect.setLeft(leftBoundName)
 
-            if settings.prefs.showGpgStatus:
-                showGpgIcon = gpgStatus >= GpgStatus.UnverifiedLazy
-            else:
-                showGpgIcon = gpgStatus >= GpgStatus.UnverifiedBusy
-
-            if showGpgIcon:
+            if gpgStatus >= GpgStatus.VerifyPending:
                 rect.setRight(leftBoundName + 16)
                 icon = stockIcon(gpgStatus.iconName())
                 icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)

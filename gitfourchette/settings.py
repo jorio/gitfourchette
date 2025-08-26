@@ -107,7 +107,6 @@ class Prefs(PrefsFile):
     shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
-    showGpgStatus               : bool                  = True
     verifyGpgOnTheFly           : bool                  = False
     alternatingRowColors        : bool                  = False
 

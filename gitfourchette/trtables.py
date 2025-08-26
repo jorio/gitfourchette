@@ -235,8 +235,7 @@ class TrTables:
 
             GpgStatus: {
                 GpgStatus.Unsigned              : _("Not signed"),
-                GpgStatus.UnverifiedLazy        : _("Not verified yet"),
-                GpgStatus.UnverifiedBusy        : _("Verification in progress"),
+                GpgStatus.VerifyPending         : _("Not verified yet"),
                 GpgStatus.Unverified            : _("Couldn’t verify"),
                 GpgStatus.GOODSIG               : _("Valid"),
                 GpgStatus.EXPSIG                : _("Signature expired"),
@@ -433,12 +432,11 @@ class TrTables:
             "alternatingRowColors": _("Draw rows using alternating background colors"),
             "refBoxMaxWidth": _("Ref indicators"),
             "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
-            "showGpgStatus": _("Always draw “seal” icon if a commit contains a signature"),
             "verifyGpgOnTheFly": _("Verify signed commits on the fly"),
             "verifyGpgOnTheFly_help": _("As commits scroll into view, call {0} automatically to verify their signatures. "
                                         "The verification status is materialized by a seal icon next to the author’s name:", tquo("git verify-commit")
                                         ) + _tokenReferenceTable({
-                GpgStatus.UnverifiedLazy.iconHtml() : _("Verification pending"),
+                GpgStatus.VerifyPending.iconHtml()  : _("Verification pending"),
                 GpgStatus.Unverified.iconHtml()     : _("Verification failed"),
                 GpgStatus.GOODSIG.iconHtml()        : _("Verified"),
                 GpgStatus.EXPSIG.iconHtml()         : _("Signature expired"),

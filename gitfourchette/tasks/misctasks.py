@@ -274,13 +274,13 @@ class VerifyGpgQueue(RepoTask):
         while repoModel.gpgVerificationQueue:
             oid = repoModel.gpgVerificationQueue.pop()
 
-            currentStatus = repoModel.gpgStatusCache.get(oid, GpgStatus.Unknown)
-            if currentStatus != GpgStatus.UnverifiedBusy:
+            currentStatus = repoModel.gpgStatusCache.get(oid, GpgStatus.Unsigned)
+            if currentStatus != GpgStatus.VerifyPending:
                 continue
 
             visibleIndex = self.visibleIndex(oid)
             if visibleIndex is None:
-                repoModel.gpgStatusCache[oid] = GpgStatus.UnverifiedLazy
+                repoModel.gpgStatusCache[oid] = GpgStatus.VerifyPending
                 continue
 
             driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
