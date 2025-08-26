@@ -99,6 +99,7 @@ class TaskBook:
             tasks.UnstageFiles: _("Unstage files"),
             tasks.UnstageModeChanges: _("Unstage mode changes"),
             tasks.VerifyGpgSignature: _("Verify signature"),
+            tasks.VerifyGpgQueue: _("Verifying signatures"),
         }
 
         cls.toolbarNames = {

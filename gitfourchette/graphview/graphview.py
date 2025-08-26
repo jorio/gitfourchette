@@ -146,7 +146,7 @@ class GraphView(QListView):
 
             gpgLookAtCommit = self.repoModel.repo.peel_commit(oid)
             gpgStatus = self.repoModel.getCachedGpgStatus(gpgLookAtCommit)
-            gpgIcon = "gpg-verify-good" if gpgStatus == GpgStatus.Good else "gpg-verify-unknown"
+            gpgIcon = gpgStatus.iconName()
 
             actions = [
                 *mergeActions,

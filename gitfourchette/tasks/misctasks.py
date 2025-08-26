@@ -176,57 +176,142 @@ class GetCommitInfo(RepoTask):
 
 
 class VerifyGpgSignature(RepoTask):
+    GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)(|\s+.+)$")
+
+    GnupgStatusTable = {
+        "GOODSIG"   : GpgStatus.GOODSIG,
+        "EXPSIG"    : GpgStatus.EXPSIG,
+        "EXPKEYSIG" : GpgStatus.EXPKEYSIG,
+        "REVKEYSIG" : GpgStatus.REVKEYSIG,
+        "BADSIG"    : GpgStatus.BADSIG,
+    }
+
     def flow(self, oid: Oid, dialogParent: QWidget | None = None):
-        prettyHash = hquo(shortHash(oid))
         commit = self.repo.peel_commit(oid)
 
-        gpgSignature, gpgPayload = commit.gpg_signature
+        gpgSignature, _gpgPayload = commit.gpg_signature
         if not gpgSignature:
-            raise AbortTask(_("Commit {0} is not signed, so it cannot be verified.", prettyHash))
+            raise AbortTask(_("Commit {0} is not signed, so it cannot be verified.", tquo(shortHash(oid))))
 
         driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
         fail = driver.exitCode() != 0
 
+        status, report = self.parseGpgScrollback(driver.stderrScrollback())
+
         # Update gpg status cache
-        self.repoModel.gpgStatusCache[oid] = GpgStatus.Unverified if fail else GpgStatus.Good
+        self.repoModel.gpgStatusCache[oid] = status
 
-        if fail:
-            paras = [_("Commit {0} is signed, but it couldn’t be verified.", prettyHash)]
+        paras = [f"{status.iconHtml()} {TrTables.enum(status)}"]
 
-            tokenParsers = {
-                "VALIDSIG": _("The signature itself is good, but verification failed."),
-                "NO_PUBKEY": _("Hint: Public key {capture} isn’t in your keyring. "
-                               "You can try to import it from a trusted source, then verify this commit again."),
-                "EXPKEYSIG": _("Key has expired: {capture}"),
-                "BADSIG": _("The signature is INVALID!"),
-            }
-            foundTokens = set()
+        keyId = ""
+        if "NO_PUBKEY" in report:
+            keyId = report["NO_PUBKEY"].strip()
+            paras.append(_("Hint: Public key {0} isn’t in your GPG keyring. "
+                           "You can try to import it from a trusted source, "
+                           "then verify this commit again.", f"<em>{escape(keyId)}</em>"))
 
-            for token, hint in tokenParsers.items():
-                match = re.search(rf"^\[GNUPG:]\s+{token}($|\s+.+$)", driver.stderrScrollback(), re.M)
-                if match:
-                    foundTokens.add(token)
-                    capture = match.group(1)
-                    paras.append(hint.format(capture=f"<i>{escape(capture)}</i>"))
+        with suppress(StopIteration):
+            interestingToken = next(k for k in self.GnupgStatusTable if k in report)
+            paras.append(f"<small>{escape(report[interestingToken])}</small>")
 
-            if "VALIDSIG" in foundTokens and "EXPKEYSIG" in foundTokens:
-                self.repoModel.gpgStatusCache[oid] = GpgStatus.Expired
-
-            if "BADSIG" in foundTokens:
-                self.repoModel.gpgStatusCache[oid] = GpgStatus.Bad
-
-            raise AbortTask(paragraphs(paras), details=driver.stderrScrollback())
-
-        message = "<html>"
-        message += _("Signature verified successfully in commit {0}.", prettyHash)
-
-        match = re.search(r"^\[GNUPG:]\s+GOODSIG\s+.+$", driver.stderrScrollback(), re.M)
-        if match:
-            message += "<br><br><small>" + escape(match.group(0))
-
-        qmb = asyncMessageBox(self.parentWidget(), "information", self.name(), message)
+        title = _("Verify signature in commit {0}", tquo(shortHash(oid)))
+        mbIcon = ("information" if not fail else
+                  "critical" if "BADSIG" in report else
+                  "warning")
+        qmb = asyncMessageBox(self.parentWidget(), mbIcon, title, paragraphs(paras),
+                              QMessageBox.StandardButton.Ok)# | QMessageBox.StandardButton.Help)
         qmb.setDetailedText(driver.stderrScrollback())
+
+        if keyId:
+            hintButton = QPushButton(qmb)
+            qmb.addButton(hintButton, QMessageBox.ButtonRole.HelpRole)
+            hintButton.setText(_("Copy &Key ID"))
+            hintButton.clicked.disconnect()  # Qt internally wires the button to close the dialog; undo that.
+
+            def onCopyClicked():
+                QApplication.clipboard().setText(keyId)
+                QToolTip.showText(QCursor.pos(), _("{0} copied to clipboard.", tquo(keyId)))
+            hintButton.clicked.connect(onCopyClicked)
+
+
         yield from self.flowDialog(qmb)
+
+    @classmethod
+    def parseGpgScrollback(cls, scrollback: str):
+        # https://github.com/gpg/gnupg/blob/master/doc/DETAILS#general-status-codes
+        # https://github.com/git/git/blob/v2.51.0/gpg-interface.c#L184
+        # Warning: this returns Unverified for SSH signatures!
+
+        report = {}
+        for line in scrollback.splitlines():
+            match = cls.GnupgLinePattern.match(line)
+            if not match:
+                continue
+            token = match.group(1)
+            blurb = match.group(2)
+            report[token] = blurb
+
+        try:
+            status = next(value for name, value in cls.GnupgStatusTable.items() if name in report)
+        except StopIteration:
+            status = GpgStatus.Unverified
+
+        if "KEYREVOKED" in report:
+            status = GpgStatus.REVKEYSIG
+
+        return status, report
+
+
+class VerifyGpgQueue(RepoTask):
+    def isFreelyInterruptible(self) -> bool:
+        return True
+
+    def flow(self):
+        self.effects = TaskEffects.Nothing
+        graphView = self.rw.graphView
+        repoModel = self.repoModel
+
+        while repoModel.gpgVerificationQueue:
+            oid = repoModel.gpgVerificationQueue.pop()
+
+            currentStatus = repoModel.gpgStatusCache.get(oid, GpgStatus.Unknown)
+            if currentStatus != GpgStatus.UnverifiedBusy:
+                continue
+
+            visibleIndex = self.visibleIndex(oid)
+            if visibleIndex is None:
+                repoModel.gpgStatusCache[oid] = GpgStatus.UnverifiedLazy
+                continue
+
+            driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+
+            stderr = driver.stderrScrollback()
+
+            status, report = VerifyGpgSignature.parseGpgScrollback(stderr)
+            repoModel.gpgStatusCache[oid] = status
+            graphView.update(visibleIndex)
+
+    def visibleIndex(self, oid: Oid):
+        from gitfourchette.graphview.graphview import GraphView
+
+        graphView = self.rw.graphView
+
+        with suppress(GraphView.SelectCommitError):
+            index = graphView.getFilterIndexForCommit(oid)
+
+        if not index.isValid():
+            return None
+
+        top = graphView.indexAt(QPoint_zero)
+        bottom = graphView.indexAt(graphView.rect().bottomLeft())
+
+        topRow = top.row() if top.isValid() else 0
+        bottomRow = bottom.row() if bottom.isValid() else 0x3FFFFFFF
+
+        if topRow <= index.row() <= bottomRow:
+            return index
+
+        return None
 
 
 class NewIgnorePattern(RepoTask):

@@ -236,11 +236,14 @@ class TrTables:
             GpgStatus: {
                 GpgStatus.Unsigned              : _("Not signed"),
                 GpgStatus.UnverifiedLazy        : _("Not verified yet"),
-                GpgStatus.Unverified            : _("Verification failed"),
-                GpgStatus.Bad                   : _("INVALID!"),
-                GpgStatus.Good                  : _("Verified"),
-                GpgStatus.Expired               : _("Expired"),
-            }
+                GpgStatus.UnverifiedBusy        : _("Verification in progress"),
+                GpgStatus.Unverified            : _("Couldn’t verify"),
+                GpgStatus.GOODSIG               : _("Valid"),
+                GpgStatus.EXPSIG                : _("Signature expired"),
+                GpgStatus.EXPKEYSIG             : _("Valid (the key has expired)"),
+                GpgStatus.REVKEYSIG             : _("Key revoked"),
+                GpgStatus.BADSIG                : _("INVALID!"),
+            },
         }
 
     @staticmethod
@@ -341,6 +344,7 @@ class TrTables:
         from gitfourchette.toolbox.textutils import paragraphs, tquo
         from gitfourchette.exttools.usercommand import UserCommand
         from gitfourchette.appconsts import APP_DISPLAY_NAME
+        from gitfourchette.repomodel import GpgStatus
 
         return {
             "general": _p("Prefs", "General"),
@@ -429,7 +433,17 @@ class TrTables:
             "alternatingRowColors": _("Draw rows using alternating background colors"),
             "refBoxMaxWidth": _("Ref indicators"),
             "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
-            "showGpgStatus": _("Show “seal” icon next to signed commits pending verification"),
+            "showGpgStatus": _("Always draw “seal” icon if a commit contains a signature"),
+            "verifyGpgOnTheFly": _("Verify signed commits on the fly"),
+            "verifyGpgOnTheFly_help": _("As commits scroll into view, call {0} automatically to verify their signatures. "
+                                        "The verification status is materialized by a seal icon next to the author’s name:", tquo("git verify-commit")
+                                        ) + _tokenReferenceTable({
+                GpgStatus.UnverifiedLazy.iconHtml() : _("Verification pending"),
+                GpgStatus.Unverified.iconHtml()     : _("Verification failed"),
+                GpgStatus.GOODSIG.iconHtml()        : _("Verified"),
+                GpgStatus.EXPSIG.iconHtml()         : _("Signature expired"),
+                GpgStatus.BADSIG.iconHtml()         : _("Key revoked or invalid signature"),
+            }) + "<br>" + _("(No seal = Commit isn’t signed)"),
 
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),
             "maxTrashFileKB": _("Patches bigger than # KB won’t be salvaged"),

@@ -30,6 +30,7 @@ from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskEffects, TaskBook
+from gitfourchette.tasks.misctasks import VerifyGpgQueue
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -185,6 +186,8 @@ class RepoWidget(QWidget):
 
         self.graphView.linkActivated.connect(self.processInternalLink)
         self.graphView.statusMessage.connect(self.statusMessage)
+        self.graphView.clDelegate.requestSignatureVerification.connect(self.repoModel.queueGpgVerification)
+        self.graphView.clDelegate.requestSignatureVerification.connect(self.scheduleFlushGpgVerificationQueue)
 
         self.diffArea.committedFiles.openDiffInNewWindow.connect(self.loadPatchInNewWindow)
         self.diffArea.conflictView.openPrefs.connect(self.openPrefs)
@@ -868,3 +871,14 @@ class RepoWidget(QWidget):
                     ActionDef("exclude", lambda: proxy().openLocalExclude()),
                 ]),
         ]
+
+    @CallbackAccumulator.deferredMethod(250)
+    def scheduleFlushGpgVerificationQueue(self):
+        if self.taskRunner.isBusy():
+            # Thanks to the deferredMethod decorator, this will reschedule
+            # the call (instead of recursing).
+            logger.debug("Rescheduling VerifyGpgQueue...")
+            self.scheduleFlushGpgVerificationQueue()
+            return
+
+        VerifyGpgQueue.invoke(self)

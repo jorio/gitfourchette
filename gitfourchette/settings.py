@@ -108,6 +108,7 @@ class Prefs(PrefsFile):
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
     showGpgStatus               : bool                  = True
+    verifyGpgOnTheFly           : bool                  = False
     alternatingRowColors        : bool                  = False
 
     _category_external          : int                   = 0

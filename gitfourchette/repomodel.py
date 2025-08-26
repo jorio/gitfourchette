@@ -40,22 +40,30 @@ class GpgStatus(enum.IntEnum):
     Unknown         = -1
     Unsigned        = 0
     UnverifiedLazy  = enum.auto()
+    UnverifiedBusy  = enum.auto()
     Unverified      = enum.auto()
-    Bad             = enum.auto()
-    Expired         = enum.auto()
-    Good            = enum.auto()
+    GOODSIG         = enum.auto()
+    EXPSIG          = enum.auto()
+    EXPKEYSIG       = enum.auto()
+    REVKEYSIG       = enum.auto()
+    BADSIG          = enum.auto()
 
     def iconName(self):
-        if self == self.Good:
-            return "gpg-verify-good"
-        elif self == self.Expired:
-            return "gpg-verify-expired"
-        elif self == self.Unverified:
-            return "gpg-verify-unverified"
-        elif self == self.Bad:
-            return "gpg-verify-bad"
-        else:
-            return "gpg-verify-unknown"
+        return _GpgStatusIconTable.get(self, "gpg-verify-unverified")
+
+    def iconHtml(self):
+        return f"<img src='assets:icons/{self.iconName()}' style='vertical-align: bottom'/>"
+
+
+_GpgStatusIconTable = {
+    GpgStatus.UnverifiedBusy: "gpg-verify-unknown",
+    GpgStatus.UnverifiedLazy: "gpg-verify-unknown",
+    GpgStatus.GOODSIG     : "gpg-verify-good",
+    GpgStatus.EXPSIG      : "gpg-verify-expired",
+    GpgStatus.EXPKEYSIG   : "gpg-verify-good",#"gpg-verify-expired",
+    GpgStatus.REVKEYSIG   : "gpg-verify-bad",
+    GpgStatus.BADSIG      : "gpg-verify-bad",
+}
 
 
 class RepoModel:
@@ -161,6 +169,7 @@ class RepoModel:
         self.localSeeds = set()
 
         self.gpgStatusCache = {}
+        self.gpgVerificationQueue = set()
 
         self.repo = repo
 
@@ -543,3 +552,10 @@ class RepoModel:
         status = GpgStatus.UnverifiedLazy if sig else GpgStatus.Unsigned
         self.gpgStatusCache[commit.id] = status
         return status
+
+    def queueGpgVerification(self, oid: Oid):
+        if not settings.prefs.verifyGpgOnTheFly:
+            return
+        assert self.gpgStatusCache[oid] == GpgStatus.UnverifiedLazy
+        self.gpgStatusCache[oid] = GpgStatus.UnverifiedBusy
+        self.gpgVerificationQueue.add(oid)

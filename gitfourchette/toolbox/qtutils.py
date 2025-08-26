@@ -308,18 +308,20 @@ class CallbackAccumulator(QTimer):
         self.timeout.connect(callback)
 
     @staticmethod
-    def deferredMethod(callback: Callable):
-        attr = f"__callbackaccumulator_{id(callback)}"
+    def deferredMethod(delay: int = 0):
+        def decorator(callback: Callable):
+            attr = f"__callbackaccumulator_{id(callback)}"
 
-        def wrapper(obj):
-            try:
-                defer = getattr(obj, attr)
-            except AttributeError:
-                defer = CallbackAccumulator(obj, lambda: callback(obj))
-                setattr(obj, attr, defer)
-            defer.start()
+            def wrapper(obj):
+                try:
+                    defer = getattr(obj, attr)
+                except AttributeError:
+                    defer = CallbackAccumulator(obj, lambda: callback(obj), delay)
+                    setattr(obj, attr, defer)
+                defer.start()
 
-        return wrapper
+            return wrapper
+        return decorator
 
 
 def makeInternalLink(urlAuthority: str, urlPath: str = "", urlFragment: str = "", **urlQueryItems) -> str:

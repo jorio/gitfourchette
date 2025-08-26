@@ -85,12 +85,12 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
     # The commit we've just created should be auto-trusted.
     # Look for GPG signing information in GraphView tooltip
     toolTip = summonToolTip(rw.graphView.viewport(), QPoint(rw.graphView.viewport().width() - 16, 30))
-    assert "signed; verified" in toolTip.lower()
+    assert "signed; valid" in toolTip.lower()
 
     # Look for GPG signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    findQMessageBox(rw, "signature:.+signed; verified").reject()
+    findQMessageBox(rw, "signature:.+signed; valid").reject()
 
     ToolCommands.runSync(settings.prefs.gitPath, "verify-commit", "-v", str(commit.id), directory=wd, strict=True)
 
@@ -114,7 +114,7 @@ def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
     rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
-    acceptQMessageBox(rw, "verified successfully.+alice lovelace")
+    acceptQMessageBox(rw, "valid.+alice lovelace")
 
 
 @requiresGpg

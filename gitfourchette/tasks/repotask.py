@@ -285,6 +285,9 @@ class RepoTask(QObject):
     def __str__(self):
         return self.objectName()
 
+    def isFreelyInterruptible(self) -> bool:
+        return False
+
     def canKill(self, task: RepoTask) -> bool:
         """
         Meant to be overridden by your task.
@@ -903,7 +906,7 @@ class RepoTaskRunner(QObject):
             self._currentTask = task
             self._startTask(task)
 
-        elif task.canKill(self._currentTask):
+        elif self._currentTask.isFreelyInterruptible() or task.canKill(self._currentTask):
             logger.info(f"Task {task} killed task {self._currentTask}")
             self.killCurrentTask()
             self._currentTask = task

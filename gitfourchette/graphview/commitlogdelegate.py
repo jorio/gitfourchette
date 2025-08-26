@@ -62,6 +62,8 @@ NARROW_WIDTH = (500, 750)
 
 
 class CommitLogDelegate(QStyledItemDelegate):
+    requestSignatureVerification = Signal(Oid)
+
     def __init__(self, repoModel: RepoModel, searchBar: SearchBar | None=None, parent: QWidget | None=None):
         super().__init__(parent)
 
@@ -170,10 +172,14 @@ class CommitLogDelegate(QStyledItemDelegate):
             committer = commit.committer
 
             summaryText, contd = messageSummary(commit.message, ELISION)
-            hashText = shortHash(commit.id)
+            hashText = shortHash(oid)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
             gpgStatus = self.repoModel.getCachedGpgStatus(commit)
+
+            if gpgStatus == GpgStatus.UnverifiedLazy and settings.prefs.verifyGpgOnTheFly:
+                self.requestSignatureVerification.emit(oid)
+                gpgStatus = GpgStatus.UnverifiedBusy
 
             if settings.prefs.authorDiffAsterisk:
                 if author.email != committer.email:
@@ -285,7 +291,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             if settings.prefs.showGpgStatus:
                 showGpgIcon = gpgStatus >= GpgStatus.UnverifiedLazy
             else:
-                showGpgIcon = gpgStatus > GpgStatus.Unverified
+                showGpgIcon = gpgStatus >= GpgStatus.UnverifiedBusy
 
             if showGpgIcon:
                 rect.setRight(leftBoundName + 16)
