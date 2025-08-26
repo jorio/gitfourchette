@@ -322,7 +322,7 @@ class QTabWidget2(QWidget):
 
     # I don't like deferring ensureCurrentTabVisible to the next event loop,
     # but the new tabbar width doesn't seem to be refreshed immediately in onCurrentChanged.
-    @CallbackAccumulator.deferredMethod
+    @CallbackAccumulator.deferredMethod()
     def ensureCurrentTabVisible(self):
         i = self.currentIndex()
         if i < 0:
@@ -345,7 +345,7 @@ class QTabWidget2(QWidget):
         scrollBar = self.tabScrollArea.horizontalScrollBar()
         scrollBar.setValue(scrollBar.value() - deltaValue)
 
-    @CallbackAccumulator.deferredMethod  # don't update overflow button too often
+    @CallbackAccumulator.deferredMethod()  # don't update overflow button too often
     def updateOverflowDropdown(self):
         if self.tabs.count() <= 1:  # never overflow if there's just one tab
             isOverflowing = False

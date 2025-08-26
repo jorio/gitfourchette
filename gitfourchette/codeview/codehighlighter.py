@@ -92,7 +92,7 @@ class CodeHighlighter(QSyntaxHighlighter):
         self.scheme = scheme
         scheme.primeHighContrastVersion()
 
-    @CallbackAccumulator.deferredMethod
+    @CallbackAccumulator.deferredMethod()
     @benchmark
     def onLexPulse(self):
         self.rehighlight()

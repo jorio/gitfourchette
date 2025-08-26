@@ -309,6 +309,8 @@ class CallbackAccumulator(QTimer):
 
     @staticmethod
     def deferredMethod(delay: int = 0):
+        assert not callable(delay), "did you forget parentheses in '@deferredMethod()'?"
+
         def decorator(callback: Callable):
             attr = f"__callbackaccumulator_{id(callback)}"
 
@@ -321,6 +323,7 @@ class CallbackAccumulator(QTimer):
                 defer.start()
 
             return wrapper
+
         return decorator
 
 
