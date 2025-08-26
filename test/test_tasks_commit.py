@@ -521,6 +521,48 @@ def testRevertCommit(tempDir, mainWindow):
     assert rw.navLocator.context.isWorkdir()
     assert qlvGetRowData(rw.stagedFiles) == ["c/c2-2.txt"]
     assert rw.repo.status() == {"c/c2-2.txt": FileStatus.INDEX_NEW}
+    assert rw.repo.state() == RepositoryState.REVERT
+
+
+def testRevertCommitDud(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid = Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
+    rw.jump(NavLocator.inCommit(oid))
+    triggerContextMenuAction(rw.graphView.viewport(), "revert")
+    acceptQMessageBox(rw, "do you want to revert")
+    acceptQMessageBox(rw, "nothing to revert")
+
+    assert rw.repo.state() == RepositoryState.NONE
+
+
+def testRevertCommitCausesConflicts(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+    rw.jump(NavLocator.inCommit(oid))
+    triggerContextMenuAction(rw.graphView.viewport(), "revert")
+    acceptQMessageBox(rw, "do you want to revert")
+
+    assert rw.repo.state() == RepositoryState.REVERT
+    assert rw.repo.any_conflicts
+    assert rw.conflictView.isVisible()
+    assert rw.mergeBanner.isVisible()
+    assert findTextInWidget(rw.mergeBanner.label, "conflict")
+
+    rw.conflictView.ui.theirsButton.click()
+    assert findTextInWidget(rw.mergeBanner.label, "conclude the revert")
+    assert rw.repo.state() == RepositoryState.REVERT
+
+    rw.diffArea.commitButton.click()
+    commitDialog: CommitDialog = rw.findChild(CommitDialog)
+    assert commitDialog.isVisible()
+    assert findTextInWidget(commitDialog.ui.summaryEditor, r"revert.+rename c.c2.txt.+c.c2-2.txt")
+    commitDialog.accept()
+
+    assert rw.repo.state() == RepositoryState.NONE
 
 
 def testAbortRevertCommit(tempDir, mainWindow):
