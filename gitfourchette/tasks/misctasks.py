@@ -283,7 +283,14 @@ class VerifyGpgQueue(RepoTask):
                 repoModel.gpgStatusCache[oid] = GpgStatus.VerifyPending
                 continue
 
-            driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+            try:
+                driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+            except AbortTask:
+                # This task may be issued repeatedly.
+                # Don't let AbortTask spam dialog boxes if git failed to start.
+                repoModel.gpgStatusCache[oid] = GpgStatus.ProcessError
+                graphView.update(visibleIndex)
+                continue
 
             stderr = driver.stderrScrollback()
 

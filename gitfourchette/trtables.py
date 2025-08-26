@@ -236,12 +236,13 @@ class TrTables:
             GpgStatus: {
                 GpgStatus.Unsigned              : _("Not signed"),
                 GpgStatus.VerifyPending         : _("Not verified yet"),
-                GpgStatus.Unverified            : _("Couldn’t verify"),
+                GpgStatus.Unverified            : _("Unable to verify"),
                 GpgStatus.GOODSIG               : _("Valid"),
                 GpgStatus.EXPSIG                : _("Signature expired"),
                 GpgStatus.EXPKEYSIG             : _("Valid (the key has expired)"),
                 GpgStatus.REVKEYSIG             : _("Key revoked"),
                 GpgStatus.BADSIG                : _("INVALID!"),
+                GpgStatus.ProcessError          : _("Failed to start verification process"),
             },
         }
 

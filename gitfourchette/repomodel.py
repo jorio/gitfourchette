@@ -45,6 +45,7 @@ class GpgStatus(enum.IntEnum):
     EXPKEYSIG       = enum.auto()
     REVKEYSIG       = enum.auto()
     BADSIG          = enum.auto()
+    ProcessError    = enum.auto()
 
     def iconName(self):
         return _GpgStatusIconTable.get(self, "gpg-verify-unverified")
@@ -60,6 +61,7 @@ _GpgStatusIconTable = {
     GpgStatus.EXPKEYSIG   : "gpg-verify-good",#"gpg-verify-expired",
     GpgStatus.REVKEYSIG   : "gpg-verify-bad",
     GpgStatus.BADSIG      : "gpg-verify-bad",
+    GpgStatus.ProcessError: "gpg-verify-unknown",
 }
 
 
