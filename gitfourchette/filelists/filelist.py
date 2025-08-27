@@ -571,7 +571,10 @@ class FileList(QListView):
     def revertPaths(self):
         patches = list(self.selectedPatches())
         assert len(patches) == 1
-        ApplyPatchData.invoke(self, patches[0].text, reverse=True)
+        patchData = patches[0].data
+        ApplyPatchData.invoke(self, patchData, reverse=True,
+                              title=_("Revert changes in file"),
+                              question=_("Do you want to revert this patch?"))
 
     def firstPath(self) -> str:
         index: QModelIndex = self.flModel.index(0)

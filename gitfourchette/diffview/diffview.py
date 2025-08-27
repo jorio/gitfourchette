@@ -22,7 +22,7 @@ from gitfourchette.nav import NavContext, NavFlags, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.subpatch import extractSubpatch
-from gitfourchette.tasks import ApplyPatch, RevertPatch
+from gitfourchette.tasks import ApplyPatch, ApplyPatchData
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -396,9 +396,6 @@ class DiffView(CodeView):
         qfd.fileSelected.connect(dump)
         qfd.show()
 
-    def fireRevert(self, patchData: bytes):
-        RevertPatch.invoke(self, self.currentPatch, patchData)
-
     def fireApplyLines(self, purpose: PatchPurpose):
         purpose |= PatchPurpose.Lines
         reverse = not (purpose & PatchPurpose.Stage)
@@ -438,7 +435,9 @@ class DiffView(CodeView):
 
     def revertSelection(self):
         patchData = self.extractSelection(reverse=True)
-        self.fireRevert(patchData)
+        ApplyPatchData.invoke(self, patchData,
+                              title=_("Revert selected lines"),
+                              question=_("Do you want to revert the selected lines?"))
 
     def stageHunk(self, hunkID: int):
         self.fireApplyHunk(hunkID, PatchPurpose.Stage)
@@ -455,7 +454,9 @@ class DiffView(CodeView):
 
     def revertHunk(self, hunkID: int):
         patchData = self.extractHunk(hunkID, reverse=True)
-        self.fireRevert(patchData)
+        ApplyPatchData.invoke(self, patchData,
+                              title=_("Revert hunk"),
+                              question=_("Do you want to revert this hunk?"))
 
     # ---------------------------------------------
     # Rubberband

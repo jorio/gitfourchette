@@ -290,28 +290,6 @@ class ApplyPatch(RepoTask):
         self.postStatus = TrTables.patchPurposePastTense(purpose)
 
 
-class RevertPatch(RepoTask):
-    def flow(self, fullPatch: Patch, patchData: bytes):
-        if not patchData:
-            raise AbortTask(_("There’s nothing to revert in the selection."))
-
-        diff = self.repo.applies_breakdown(patchData, location=ApplyLocation.WORKDIR)
-        if not diff:
-            raise AbortTask(_("Couldn’t revert this patch.") + "<br>" +
-                            _("The code may have diverged too much from this revision."))
-
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
-
-        diff = self.repo.apply(diff, location=ApplyLocation.WORKDIR)
-
-        # After the task, jump to a NavLocator that points to any file that was modified by the patch
-        for p in diff:
-            if p.delta.status != DeltaStatus.DELETED:
-                self.jumpTo = NavLocator.inUnstaged(p.delta.new_file.path)
-                break
-
-
 class HardSolveConflicts(RepoTask):
     def flow(self, conflictedFiles: dict[str, Oid]):
         yield from self.flowEnterWorkerThread()
@@ -459,11 +437,16 @@ class ApplyPatchFileReverse(ApplyPatchFile):
 
 
 class ApplyPatchData(RepoTask):
-    def flow(self, patchData: str, reverse: bool):
+    def flow(self, patchData: bytes, title: str, question: str, reverse: bool = False):
+        assert isinstance(patchData, bytes)
+
+        if not patchData:
+            raise AbortTask(_("There’s nothing to apply in the selection."))
+
         yield from self.flowEnterWorkerThread()
 
         if reverse:
-            patchData = reverseunidiff.reverseUnidiff(patchData)
+            patchData = reverseunidiff.reverseUnidiff(patchData.decode("utf-8"))
         loadedDiff: Diff = Diff.parse_diff(patchData)
 
         # Do a dry run first so we don't litter the workdir with a patch that failed halfway through.
@@ -473,22 +456,21 @@ class ApplyPatchData(RepoTask):
 
         yield from self.flowEnterUiThread()
 
-        title = _("Revert patch") if reverse else _("Apply patch")
-        verb = _("Revert") if reverse else _("Apply")
-
         text = paragraphs(
-            _("Do you want to {verb} this patch?", verb=btag(verb.lower())),
+            question,
             _n("<b>{n}</b> file will be modified in your working directory:",
-               "<b>{n}</b> files will be modified in your working directory:", n=len(deltas))
-        )
+               "<b>{n}</b> files will be modified in your working directory:", n=len(deltas)))
         details = [stockIconImgTag(f"status_{d.status_char().lower()}") + " " + escape(d.new_file.path)
                    for d in deltas]
 
-        yield from self.flowConfirm(title, text, verb=verb, detailList=details)
+        yield from self.flowConfirm(title, text, verb=_("Apply"), detailList=details)
 
         self.effects |= TaskEffects.Workdir
         self.repo.apply(loadedDiff, ApplyLocation.WORKDIR)
         self.jumpTo = NavLocator.inUnstaged(deltas[0].new_file.path)
+        self.postStatus = _n("{n} file modified in the working directory.",
+                             "{n} files modified in the working directory.",
+                             n=len(deltas))
 
 
 class RestoreRevisionToWorkdir(RepoTask):

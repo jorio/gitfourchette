@@ -839,6 +839,7 @@ def testRevertHunk(tempDir, mainWindow, fromGutter):
     rw.jump(NavLocator.inCommit(oid, "c/c1.txt"))
 
     triggerContextMenuAction(dv.gutter if fromGutter else dv.viewport(), "revert hunk")
+    acceptQMessageBox(rw, "do you want to revert this hunk")
 
     assert NavLocator.inUnstaged("c/c1.txt").isSimilarEnoughTo(rw.navLocator)
     assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"
@@ -858,6 +859,7 @@ def testRevertLineSelection(tempDir, mainWindow,
     rw.jump(NavLocator.inCommit(oid, path), check=True)
     qteSelectBlocks(rw.diffArea.diffView, line1, line2)
     triggerContextMenuAction(rw.diffArea.diffView.gutter, "revert lines")
+    acceptQMessageBox(rw, "do you want to revert the selected lines")
     assert readTextFile(f"{wd}/{path}") == expectedResult
 
 

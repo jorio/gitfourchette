@@ -80,7 +80,6 @@ from gitfourchette.tasks.indextasks import (
     DiscardModeChanges,
     HardSolveConflicts,
     MarkConflictSolved,
-    RevertPatch,
     ApplyPatchData,
     StageFiles,
     UnstageFiles,
