@@ -51,7 +51,7 @@ class GpgStatus(enum.IntEnum):
         return _GpgStatusIconTable.get(self, "gpg-verify-unverified")
 
     def iconHtml(self):
-        return f"<img src='assets:icons/{self.iconName()}' style='vertical-align: bottom'/>"
+        return stockIconImgTag(self.iconName())
 
 
 _GpgStatusIconTable = {

@@ -601,7 +601,7 @@ class SidebarModel(QAbstractItemModel):
                     upstream = self.repoModel.upstreams[branchName]
                     text += "\n" + _("Upstream: {0}", escape(upstream))
                 if branchName == self._checkedOut:
-                    text += f"\n{self._iconTag('git-head')} HEAD " + _("(this is the checked-out branch)")
+                    text += f"\n{stockIconImgTag('git-head')} HEAD " + _("(this is the checked-out branch)")
                 text += self.visibilityToolTip(node)
                 self.cacheToolTip(index, text)
                 return text
@@ -689,8 +689,7 @@ class SidebarModel(QAbstractItemModel):
                 return node.displayName
             elif toolTipRole:
                 prefix, name = RefPrefix.split(refName)
-                text = "<p style='white-space: pre'>"
-                text += self._iconTag("git-folder") + " "
+                text = f"<p style='white-space: pre'>{stockIconImgTag('git-folder')} "
                 if prefix == RefPrefix.REMOTES:
                     text += _("{0} (remote branch folder)", btag(name))
                 elif prefix == RefPrefix.TAGS:
@@ -820,14 +819,14 @@ class SidebarModel(QAbstractItemModel):
 
     def visibilityToolTip(self, node):
         if self.isExplicitlyShown(node):
-            return f"<br>{self._iconTag('view-exclusive')} " + _("Hiding everything but this (middle-click the eye to toggle)")
+            icon = "view-exclusive"
+            text = _("Hiding everything but this (middle-click the eye to toggle)")
         elif self.isExplicitlyHidden(node):
-            return f"<br>{self._iconTag('view-hidden')} " + _("Hidden (click the eye to toggle)")
+            icon = "view-hidden"
+            text = _("Hidden (click the eye to toggle)")
         elif self.isImplicitlyHidden(node):
-            return f"<br>{self._iconTag('view-hidden-indirect')} " + _("Indirectly hidden")
-        return ""
-
-    @staticmethod
-    def _iconTag(iconName: str):
-        return f"<img src='assets:icons/{iconName}' style='vertical-align: bottom'/>"
-
+            icon = "view-hidden-indirect"
+            text = _("Indirectly hidden")
+        else:
+            return ""
+        return f"<br>{stockIconImgTag(icon)} {text}"

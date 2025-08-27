@@ -101,8 +101,7 @@ class GetCommitInfo(RepoTask):
         if not gpg:
             gpgMarkup = tagify(_("(not signed)"), "<i>")
         else:
-            gpgIcon = f"<img src='assets:icons/{gpg.iconName()}' style='vertical-align: bottom'/> "
-            gpgMarkup = gpgIcon + _("Signed; {0}", TrTables.enum(gpg))
+            gpgMarkup = gpg.iconHtml() + " " + _("Signed; {0}", TrTables.enum(gpg))
 
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
@@ -201,7 +200,7 @@ class VerifyGpgSignature(RepoTask):
         # Update gpg status cache
         self.repoModel.gpgStatusCache[oid] = status
 
-        paras = [f"{status.iconHtml()} {TrTables.enum(status)}"]
+        paras = [f"{stockIconImgTag(status.iconName())} {TrTables.enum(status)}"]
 
         keyId = ""
         if "NO_PUBKEY" in report:
