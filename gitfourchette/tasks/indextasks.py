@@ -482,7 +482,8 @@ class ApplyPatchData(RepoTask):
             _n("<b>{n}</b> file will be modified in your working directory:",
                "<b>{n}</b> files will be modified in your working directory:", n=len(deltas))
         )
-        details = [f"({d.status_char()}) {escape(d.new_file.path)}" for d in deltas]
+        details = [stockIconImgTag(f"status_{d.status_char().lower()}") + " " + escape(d.new_file.path)
+                   for d in deltas]
 
         yield from self.flowConfirm(title, text, verb=verb, detailList=details)
 

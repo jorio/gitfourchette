@@ -34,7 +34,7 @@ from .messageboxes import (
     showWarning, showInformation, askConfirmation,
     addULToMessageBox,
     NonCriticalOperation)
-from .iconbank import stockIcon
+from .iconbank import stockIcon, stockIconImgTag
 from .pathutils import PathDisplayStyle, abbreviatePath, compactPath
 from .persistentfiledialog import PersistentFileDialog
 from .qbusyspinner import QBusySpinner
