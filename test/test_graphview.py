@@ -400,3 +400,56 @@ def testRestoreHiddenBranchOnBoot(tempDir, mainWindow):
 
     visibleOid = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
     assert rw.graphView.getFilterIndexForCommit(visibleOid)
+
+
+def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
+    wd = f"{tempDir.name}/hello"
+    pygit2.init_repository(wd)
+
+    with RepoContext(wd) as repo:
+        sig = TEST_SIGNATURE
+
+        def newCommit():
+            nonlocal sig
+            sig = Signature(sig.name, sig.email, sig.time + 60)
+            message = "hello from " + repo.head_branch_shorthand
+            return repo.create_commit_on_head(message, sig, sig)
+
+        repo.create_commit_on_head("root commit", sig, sig)
+        repo.create_branch_on_head("donthide")
+        repo.checkout_local_branch("donthide")
+        newCommit()
+        donthideTip = newCommit()
+        repo.checkout_local_branch("master")
+        newCommit()
+        repo.create_branch_on_head("rebase")
+        newCommit()
+        repo.create_branch_on_head("hidethis")
+        newCommit()
+        hidethisTip = newCommit()
+        repo.checkout_local_branch("rebase")
+        newCommit()
+        newCommit()
+        newCommit()
+        rebaseTip = newCommit()
+        repo.checkout_local_branch("master")
+        repo.delete_local_branch("rebase")
+
+    Path(f"{wd}/.git/gitfourchette_testmode.json").write_text('{ "hidePatterns": ["refs/heads/hidethis"] }')
+    rw = mainWindow.openRepo(wd)
+
+    # Initially, the tip of hidethis is visible because it's part of master
+    index = rw.graphView.getFilterIndexForCommit(hidethisTip)
+    assert index.isValid()
+
+    # Simulate a rebase
+    rw.repo.reset(rebaseTip, ResetMode.HARD)
+    rw.refreshRepo()
+
+    # The tip of donthide must still exist
+    index = rw.graphView.getFilterIndexForCommit(donthideTip)
+    assert index.isValid()
+
+    # Now, hidethis must be gone
+    with pytest.raises(GraphView.SelectCommitError):
+        rw.graphView.getFilterIndexForCommit(hidethisTip)
