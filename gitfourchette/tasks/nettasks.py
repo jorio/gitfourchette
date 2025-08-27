@@ -221,8 +221,7 @@ class FetchRemoteBranch(RepoTask):
             self.cleanup()
             return
 
-        stdout = driver.readAll().data().decode(errors="replace")
-        table = GitDriver.parseTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$", stdout)
+        table = driver.stdoutTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$")
 
         updatedTips = {
             localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
@@ -394,7 +393,6 @@ class PushBranch(RepoTask):
             *command, remote=remoteName, autoFail=False, statusForm=dialog.ui.statusForm)
 
         gitFailed = driver.exitCode() != 0
-        stdout = driver.readAll().data().decode(errors="replace")
 
         # ---------------
         # Debrief
@@ -402,7 +400,7 @@ class PushBranch(RepoTask):
         # Output format: "<flag> \t <from(local)>:<to(remote)> \t <summary> (<reason>)"
         # But the first and last lines may contain other junk,
         # so skip lines that don't match the pattern (strict=False).
-        table = GitDriver.parseTable("(.)\t(.+):(.+)\t(.+)", stdout, strict=False)
+        table = driver.stdoutTable("(.)\t(.+):(.+)\t(.+)", strict=False)
 
         # Capture summary for the last pushed branch.
         try:

@@ -11,7 +11,7 @@ from contextlib import suppress
 
 from gitfourchette import reverseunidiff
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import GitDriver, argsIf
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -422,9 +422,8 @@ class ApplyPatchFile(RepoTask):
             "--check",
             path,
             *argsIf(reverse, "--reverse"))
-        stdout = driver.readAll().data().decode(errors="replace")
 
-        table = GitDriver.parseTable(r"^(-|\d+)\t(-|\d+)\t(.+)$", stdout, "\0")
+        table = driver.stdoutTableNumstatZ()
         details = []
         firstFile = ""
         for adds, dels, patchFile in table:

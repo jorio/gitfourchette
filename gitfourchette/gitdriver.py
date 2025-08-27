@@ -91,6 +91,15 @@ class GitDriver(QProcess):
 
         return table
 
+    def stdoutTable(self, pattern: str, linesep="\n", strict=True) -> list:
+        stdout = self.stdoutScrollback()
+        return self.parseTable(pattern, stdout, linesep, strict)
+
+    def stdoutTableNumstatZ(self, strict=True) -> list[tuple[str, str, str]]:
+        pattern = r"^(-|\d+)\t(-|\d+)\t(.+)$"
+        stdout = self.stdoutScrollback()
+        return self.parseTable(pattern, stdout, "\0", strict)
+
     @classmethod
     def parseProgress(cls, stderr: bytes | str) -> tuple[str, int, int]:
         text = ""
