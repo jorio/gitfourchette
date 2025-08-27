@@ -11,7 +11,7 @@ import shlex
 import signal
 from enum import StrEnum
 
-from gitfourchette import colors
+from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.porcelain import version_to_tuple
 from gitfourchette.qt import *
@@ -203,12 +203,17 @@ class GitDriver(QProcess):
         if subtitle:
             subtitle = f"<p>{subtitle}</p>"
 
-        headerColor = colors.red if self.exitCode() != 0 else colors.olive
+        exitText = self.formatExitCode()
+        if self.exitCode() == 0:
+            exitText = f"<b><add>{exitText}</b></add>"
+        else:
+            exitText = f"<b><del>{exitText}</b></del>"
 
         return "".join([
-            "<html style='white-space: pre-wrap;'>"
-            f"<p style='color: {headerColor.name()};'>",
-            _("Git command exited with code {0}.", self.formatExitCode()),
+            "<html style='white-space: pre-wrap;'>",
+            settings.prefs.addDelColorsStyleTag(),
+            "<p>",
+            _("Git command exited with code {0}.", exitText),
             "</p>",
             subtitle,
             "<small>",

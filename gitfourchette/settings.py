@@ -10,6 +10,7 @@ import logging
 import os
 from contextlib import suppress
 
+from gitfourchette import colors
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolpresets import ToolPresets
@@ -187,6 +188,19 @@ class Prefs(PrefsFile):
 
     def syntaxHighlightingScheme(self):
         return ColorScheme.resolve(self.syntaxHighlighting)
+
+    def addDelColors(self):
+        if self.colorblind:
+            return colors.teal, colors.orange
+        else:
+            return colors.olive, colors.red
+
+    def addDelColorsStyleTag(self):
+        green, red = self.addDelColors()
+        return (f"<style>"
+                f"del {{ color: {red.name()}; }} "
+                f"add {{ color: {green.name()}; }}"
+                f"</style>")
 
     def isGitSandboxed(self):
         return self.gitPath.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
