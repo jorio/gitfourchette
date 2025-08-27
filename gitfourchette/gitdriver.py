@@ -7,6 +7,7 @@
 import html
 import io
 import re
+import shlex
 import signal
 from enum import StrEnum
 
@@ -185,6 +186,9 @@ class GitDriver(QProcess):
             return f"{code} ({s.name})"
         except ValueError:
             return f"{code}"
+
+    def formatCommandLine(self):
+        return shlex.join([self.program()] + self.arguments())
 
     def htmlErrorText(self, subtitle: str = "", reformatHintText=False) -> str:
         from gitfourchette.localization import _
