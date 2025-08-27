@@ -844,6 +844,23 @@ def testRevertHunk(tempDir, mainWindow, fromGutter):
     assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"
 
 
+@pytest.mark.parametrize(
+    ["commitHex", "path", "line1", "line2", "expectedResult"],
+    [
+        ("c070ad8", "a/a1.txt", 1, 1, "a1\n"),
+        ("58be465", "master.txt", 1, 2, "On master\n")
+    ])
+def testRevertLineSelection(tempDir, mainWindow,
+                            commitHex, path, line1, line2, expectedResult):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo[commitHex].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, path), check=True)
+    qteSelectBlocks(rw.diffArea.diffView, line1, line2)
+    triggerContextMenuAction(rw.diffArea.diffView.gutter, "revert lines")
+    assert readTextFile(f"{wd}/{path}") == expectedResult
+
+
 @pytest.mark.parametrize("sampleText", [
     # Sample text is Python comments to ensure that syntax highlighting
     # applies to the entire line.
