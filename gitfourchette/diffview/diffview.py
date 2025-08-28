@@ -434,8 +434,16 @@ class DiffView(CodeView):
         self.exportPatch(patchData)
 
     def revertSelection(self):
+        """ Revert selected lines (typically in an older commit). """
+
+        # Prepare a pre-reverted patch for best results
         patchData = self.extractSelection(reverse=True)
-        ApplyPatchData.invoke(self, patchData,
+
+        # Put a cap on how much context git will look at - this makes the patch
+        # more likely to apply if the files have diverged.
+        # (extractSelection keeps the entire hunk as context, some of which
+        # may be obsolete in an older commit)
+        ApplyPatchData.invoke(self, patchData, context=3,
                               title=_("Revert selected lines"),
                               question=_("Do you want to revert the selected lines?"))
 
@@ -453,8 +461,14 @@ class DiffView(CodeView):
         self.exportPatch(patchData)
 
     def revertHunk(self, hunkID: int):
+        """ Revert a hunk (typically in an older commit). """
+
+        # Prepare a pre-reverted patch for best results
         patchData = self.extractHunk(hunkID, reverse=True)
-        ApplyPatchData.invoke(self, patchData,
+
+        # Put a cap on how much context git will look at - this makes the patch
+        # more likely to apply if the files have diverged.
+        ApplyPatchData.invoke(self, patchData, context=3,
                               title=_("Revert hunk"),
                               question=_("Do you want to revert this hunk?"))
 

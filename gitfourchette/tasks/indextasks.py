@@ -393,11 +393,16 @@ class ApplyPatchFile(RepoTask):
         question = _("Do you want to {verb} patch file {path}?",
                      verb=btag(verb), path=bquoe(os.path.basename(path)))
 
-        yield from ApplyPatchFile.do(self, reverse, path, title, question)
+        yield from ApplyPatchFile.do(self, reverse, -1, path, title, question)
 
     @staticmethod
-    def do(task: RepoTask, reverse: bool, path: str, title: str, question: str):
-        stem = ["apply", *argsIf(reverse, "--reverse"), path]
+    def do(task: RepoTask, reverse: bool, context: int, path: str, title: str, question: str):
+        stem = [
+            "apply",
+            *argsIf(reverse, "--reverse"),
+            *argsIf(context >= 0, f"-C{context}"),
+            path
+        ]
 
         # Do a dry run first.
         driver = yield from task.flowCallGit(*stem, "--numstat", "-z", "--check")
@@ -437,7 +442,7 @@ class ApplyPatchFileReverse(ApplyPatchFile):
 
 
 class ApplyPatchData(RepoTask):
-    def flow(self, patchData: bytes, title: str, question: str, reverse: bool = False):
+    def flow(self, patchData: bytes, title: str, question: str, reverse: bool = False, context: int = -1):
         assert isinstance(patchData, bytes)
 
         if not patchData:
@@ -450,7 +455,7 @@ class ApplyPatchData(RepoTask):
         tempPatch.close()
         path = tempPatch.fileName()
 
-        yield from ApplyPatchFile.do(self, reverse, path, title, question)
+        yield from ApplyPatchFile.do(self, reverse, context, path, title, question)
 
 
 class RestoreRevisionToWorkdir(RepoTask):
