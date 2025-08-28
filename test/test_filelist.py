@@ -181,7 +181,7 @@ def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "c/c2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
-    rejectQMessageBox(rw, "apply patch.+ran into an issue")
+    rejectQMessageBox(rw, r"c2\.txt: no such file or directory")
     assert not os.path.exists(f"{wd}/c/c2.txt")
 
 

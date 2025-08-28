@@ -117,7 +117,7 @@ class TaskBook:
         cls.tips = {
             tasks.AmendCommit: _("Amend the last commit on the current branch with the staged changes in the working directory"),
             tasks.ApplyPatchFile: _("Apply a patch file to the working directory"),
-            tasks.ApplyPatchFileReverse: _("Apply a patch file to the working directory (reverse patch before applying)"),
+            tasks.ApplyPatchFileReverse: _("Apply a patch file (in reverse) to the working directory"),
             tasks.ApplyStash: _("Restore backed up changes to the working directory"),
             tasks.CherrypickCommit: _("Bring the changes introduced by this commit to the current branch"),
             tasks.DeleteBranch: _("Delete this branch locally"),

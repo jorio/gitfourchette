@@ -9,7 +9,7 @@ import os
 import shutil
 from contextlib import suppress
 
-from gitfourchette import reverseunidiff
+from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
@@ -377,58 +377,58 @@ class AcceptMergeConflictResolution(RepoTask):
 class ApplyPatchFile(RepoTask):
     def flow(self, reverse: bool = False, path: str = ""):
         if reverse:
-            title = _("Revert patch file")
-            verb = _("Revert")
+            verb, title = _("revert"), _("Revert patch file")
         else:
-            title = _("Apply patch file")
-            verb = _("Apply")
+            verb, title = _("apply"), _("Apply patch file")
 
         patchFileCaption = _("Patch file")
         allFilesCaption = _("All files")
 
         if not path:
             qfd = PersistentFileDialog.openFile(
-                self.parentWidget(), "OpenPatch", title, filter=F"{patchFileCaption} (*.patch);;{allFilesCaption} (*)")
-
+                self.parentWidget(), "OpenPatch", title,
+                filter=f"{patchFileCaption} (*.patch);;{allFilesCaption} (*)")
             path = yield from self.flowFileDialog(qfd)
 
+        question = _("Do you want to {verb} patch file {path}?",
+                     verb=btag(verb), path=bquoe(os.path.basename(path)))
+
+        yield from ApplyPatchFile.do(self, reverse, path, title, question)
+
+    @staticmethod
+    def do(task: RepoTask, reverse: bool, path: str, title: str, question: str):
+        stem = ["apply", *argsIf(reverse, "--reverse"), path]
+
         # Do a dry run first.
-        driver = yield from self.flowCallGit(
-            "apply",
-            "-z",
-            "--numstat",
-            "--check",
-            path,
-            *argsIf(reverse, "--reverse"))
+        driver = yield from task.flowCallGit(*stem, "--numstat", "-z", "--check")
 
         table = driver.stdoutTableNumstatZ()
+        numFiles = len(table)
         details = []
         firstFile = ""
         for adds, dels, patchFile in table:
             if adds == "-" or dels == "-":
                 details.append(_("(binary)") + " " + escape(patchFile))
             else:
-                details.append(f"(+{adds} -{dels}) {escape(patchFile)}")
+                details.append(f"(<add>+{adds}</add> <del>-{dels}</del>) {escape(patchFile)}")
             firstFile = firstFile or patchFile
 
-        text = paragraphs(
-            _("Do you want to {verb} patch file {path}?",
-              verb=btag(verb.lower()), path=bquoe(os.path.basename(path))),
-            _n("<b>{n}</b> file will be modified in your working directory:",
-               "<b>{n}</b> files will be modified in your working directory:", n=len(details))
-        )
+        addDelStyle = settings.prefs.addDelColorsStyleTag()
+        listIntro = _n("<b>{n}</b> file will be modified in your working directory:",
+                       "<b>{n}</b> files will be modified in your working directory:", n=numFiles)
+        confirmText = addDelStyle + paragraphs(question, listIntro)
 
-        yield from self.flowConfirm(title, text, verb=verb, detailList=details)
+        yield from task.flowConfirm(title, confirmText, verb=_("Apply"), detailList=details)
 
         # Dry run confirmed, go ahead
-        self.effects |= TaskEffects.Workdir
+        task.effects |= TaskEffects.Workdir
 
-        yield from self.flowCallGit(
-            "apply",
-            path,
-            *argsIf(reverse, "--reverse"))
+        yield from task.flowCallGit(*stem)
 
-        self.jumpTo = NavLocator.inUnstaged(firstFile)
+        task.jumpTo = NavLocator.inUnstaged(firstFile)
+        task.postStatus = _n("{n} file modified in the working directory.",
+                             "{n} files modified in the working directory.",
+                             n=numFiles)
 
 
 class ApplyPatchFileReverse(ApplyPatchFile):
@@ -443,34 +443,14 @@ class ApplyPatchData(RepoTask):
         if not patchData:
             raise AbortTask(_("There’s nothing to apply in the selection."))
 
-        yield from self.flowEnterWorkerThread()
+        template = os.path.join(qTempDir(), self.__class__.__name__ + "-XXXXXX.patch")
+        tempPatch = QTemporaryFile(template, self)
+        tempPatch.open()
+        tempPatch.write(patchData)
+        tempPatch.close()
+        path = tempPatch.fileName()
 
-        if reverse:
-            patchData = reverseunidiff.reverseUnidiff(patchData.decode("utf-8"))
-        loadedDiff: Diff = Diff.parse_diff(patchData)
-
-        # Do a dry run first so we don't litter the workdir with a patch that failed halfway through.
-        # If the patch doesn't apply, this raises a MultiFileError.
-        diff = self.repo.applies_breakdown(patchData)
-        deltas = list(diff.deltas)
-
-        yield from self.flowEnterUiThread()
-
-        text = paragraphs(
-            question,
-            _n("<b>{n}</b> file will be modified in your working directory:",
-               "<b>{n}</b> files will be modified in your working directory:", n=len(deltas)))
-        details = [stockIconImgTag(f"status_{d.status_char().lower()}") + " " + escape(d.new_file.path)
-                   for d in deltas]
-
-        yield from self.flowConfirm(title, text, verb=_("Apply"), detailList=details)
-
-        self.effects |= TaskEffects.Workdir
-        self.repo.apply(loadedDiff, ApplyLocation.WORKDIR)
-        self.jumpTo = NavLocator.inUnstaged(deltas[0].new_file.path)
-        self.postStatus = _n("{n} file modified in the working directory.",
-                             "{n} files modified in the working directory.",
-                             n=len(deltas))
+        yield from ApplyPatchFile.do(self, reverse, path, title, question)
 
 
 class RestoreRevisionToWorkdir(RepoTask):
