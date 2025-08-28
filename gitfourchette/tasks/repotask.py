@@ -584,7 +584,7 @@ class RepoTask(QObject):
             customKey = RepoPrefs.getRemoteKeyFileForRepo(repo, remote)
 
         if customKey:
-            sshOptions += ["-i", customKey]
+            sshOptions += ["-i", customKey, "-o", "IdentitiesOnly=yes"]
 
         # Apply any custom OpenSSH options
         if sshOptions:
