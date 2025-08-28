@@ -6,6 +6,7 @@
 
 import pytest
 import re
+import textwrap
 import warnings
 
 from gitfourchette.diffview.diffview import DiffView
@@ -861,6 +862,69 @@ def testRevertLineSelection(tempDir, mainWindow,
     triggerContextMenuAction(rw.diffArea.diffView.gutter, "revert lines")
     acceptQMessageBox(rw, "do you want to revert the selected lines")
     assert readTextFile(f"{wd}/{path}") == expectedResult
+
+
+def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
+    rev1 = textwrap.dedent("""\
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+    """)
+
+    rev2 = textwrap.dedent("""\
+        1 Unrelated change in rev2
+        2 Unrelated change in rev2
+        3
+        4
+        5
+        6 Let's reverse this from rev2
+        7
+    """)
+
+    rev3 = textwrap.dedent("""\
+        1 Unrelated change in rev2
+        2 Another change in rev3 to throw off 'git apply' with too much context
+        3
+        4
+        5
+        6 Let's reverse this from rev2
+        7
+    """)
+
+    expectedResult = textwrap.dedent("""\
+        1 Unrelated change in rev2
+        2 Another change in rev3 to throw off 'git apply' with too much context
+        3
+        4
+        5
+        6
+        7
+    """)
+
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        def createCommit(text):
+            writeFile(f"{wd}/master.txt", text)
+            repo.index.add_all()
+            return repo.create_commit_on_head("test permissive revert")
+        createCommit(rev1)
+        commit2 = createCommit(rev2)
+        createCommit(rev3)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(commit2, "master.txt"), check=True)
+
+    qteSelectBlocks(rw.diffArea.diffView, 8, 9)
+    assert rw.diffArea.diffView.textCursor().selectedText() == "6\u20296 Let's reverse this from rev2"
+
+    triggerContextMenuAction(rw.diffArea.diffView.gutter, "revert lines")
+    acceptQMessageBox(rw, "do you want to revert the selected lines")
+    assert readTextFile(f"{wd}/master.txt") == expectedResult
 
 
 @pytest.mark.parametrize("sampleText", [
