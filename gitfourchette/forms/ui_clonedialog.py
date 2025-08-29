@@ -134,7 +134,7 @@ class Ui_CloneDialog(object):
         self.optionsLabel.setText(_p("CloneDialog", "Options:"))
         self.recurseSubmodulesCheckBox.setText(_p("CloneDialog", "Initialize submodules recursively (if any)"))
         self.shallowCloneCheckBox.setToolTip(_p("CloneDialog", "<p>Tick this to download just the latest commits, not the entire history of the repository."))
-        self.keyFilePicker.setText(_p("CloneDialog", "Log in with custom &key file"))
+        self.keyFilePicker.setText(_p("CloneDialog", "Log in to SSH remotes with custom &key file"))
 from gitfourchette.forms.keyfilepickercheckbox import KeyFilePickerCheckBox
 from gitfourchette.forms.protocolbutton import ProtocolButton
 from gitfourchette.forms.statusform import StatusForm

@@ -165,7 +165,7 @@
    <item row="4" column="1">
     <widget class="KeyFilePickerCheckBox" name="keyFilePicker">
      <property name="text">
-      <string>Log in with custom &amp;key file</string>
+      <string>Log in to SSH remotes with custom &amp;key file</string>
      </property>
     </widget>
    </item>

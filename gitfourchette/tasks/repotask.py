@@ -543,7 +543,7 @@ class RepoTask(QObject):
     def flowCallGit(
             self,
             *args: str,
-            remote="",
+            remote="",  # TODO: remove
             customKey="",
             workdir="",
             env: dict[str, str] | None = None,
@@ -552,7 +552,6 @@ class RepoTask(QObject):
     ) -> Generator[FlowControlToken, None, GitDriver]:
         from gitfourchette import settings
         from gitfourchette.application import GFApplication
-        from gitfourchette.repoprefs import RepoPrefs
         from gitfourchette.porcelain import GitConfigHelper
 
         repo = self.repo
@@ -577,12 +576,9 @@ class RepoTask(QObject):
                 env |= sshAgent.environment
                 sshOptions += ["-o", "AddKeysToAgent=yes"]
 
-        # Custom remote key file
-        if remote:
-            assert repo is not None
-            assert not customKey
-            customKey = RepoPrefs.getRemoteKeyFileForRepo(repo, remote)
-
+        # Custom SSH key file
+        if not customKey and self.repoModel:
+            customKey = self.repoModel.prefs.customKeyFile
         if customKey:
             sshOptions += ["-i", customKey, "-o", "IdentitiesOnly=yes"]
 

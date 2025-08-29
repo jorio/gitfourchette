@@ -9,9 +9,11 @@ Remote management tests.
 """
 
 import pytest
-from .util import *
+
 from gitfourchette.forms.remotedialog import RemoteDialog
+from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from .util import *
 
 
 @pytest.mark.parametrize("method", ["menubar", "sidebarmenu", "sidebarkey"])
@@ -126,23 +128,19 @@ def testDeleteRemote(tempDir, mainWindow, method):
     assert not any("/origin/" in n.data for n in rw.sidebar.findNodesByKind(SidebarItem.RemoteBranch))
 
 
-def testRemoteCustomKeyUI(tempDir, mainWindow):
-    keyfileConfigKey = "remote.origin.gitfourchette-keyfile"
-
+def testCustomKeyUI(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    def openRemoteDialog():
-        node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
-        menu = rw.sidebar.makeNodeMenu(node)
-        triggerMenuAction(menu, "edit remote")
-        dialog: RemoteDialog = findQDialog(rw, "edit remote")
+    def openSettings():
+        triggerMenuAction(mainWindow.menuBar(), "repo/settings")
+        dialog: RepoSettingsDialog = findQDialog(rw, "repo settings", RepoSettingsDialog)
         picker = dialog.ui.keyFilePicker
         return dialog, picker
 
-    assert keyfileConfigKey not in rw.repo.config
+    assert not rw.repoModel.prefs.customKeyFile
 
-    dialog, picker = openRemoteDialog()
+    dialog, picker = openSettings()
     assert not picker.checkBox.isChecked()
     assert not picker.pathLabel.isVisible()
 
@@ -167,10 +165,10 @@ def testRemoteCustomKeyUI(tempDir, mainWindow):
 
     # Save settings
     dialog.accept()
-    assert rw.repo.config[keyfileConfigKey].endswith("keys/simple")
+    assert rw.repoModel.prefs.customKeyFile.endswith("keys/simple")
 
-    # Reopen remote dialog and check that the setting is still set
-    dialog, picker = openRemoteDialog()
+    # Reopen dialog and check that the setting is still set
+    dialog, picker = openSettings()
     assert picker.checkBox.isChecked()
     assert picker.pathLabel.isVisible()
     assert picker.pathLabel.text().endswith("keys/simple" if not WINDOWS else "keys\\simple")
@@ -178,11 +176,11 @@ def testRemoteCustomKeyUI(tempDir, mainWindow):
     assert not picker.warningButton.isVisible()
     dialog.accept()
 
-    # Reopen remote dialog and unset custom key
-    dialog, picker = openRemoteDialog()
+    # Reopen dialog and unset custom key
+    dialog, picker = openSettings()
     picker.checkBox.setChecked(False)
     dialog.accept()
-    assert keyfileConfigKey not in rw.repo.config
+    assert not rw.repoModel.prefs.customKeyFile
 
 
 def testRemoteUrlProtocolSwap(tempDir, mainWindow):

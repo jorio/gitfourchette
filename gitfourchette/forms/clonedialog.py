@@ -346,7 +346,10 @@ class CloneTask(RepoTask):
         # Store custom key (if any) in cloned repo config
         if privKeyPath:
             with RepoContext(path, RepositoryOpenFlag.NO_SEARCH) as repo:
-                RepoPrefs.setRemoteKeyFileForRepo(repo, repo.remotes[0].name, privKeyPath)
+                repoPrefs = RepoPrefs.initForRepo(repo)
+                repoPrefs.customKeyFile = privKeyPath
+                repoPrefs.setDirty()
+                repoPrefs.write()
 
         # When the task runner wraps up, tell dialog to finish
         dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)

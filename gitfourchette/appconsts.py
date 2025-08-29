@@ -54,5 +54,5 @@ Verbose QObject Python destructors (__del__).
 """
 
 if APP_TESTMODE:
-    APP_SYSTEM_NAME += "_testmode"
+    APP_SYSTEM_NAME += "testmode"
     APP_DISPLAY_NAME += "TestMode"

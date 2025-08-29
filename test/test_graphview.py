@@ -390,7 +390,7 @@ def testRestoreHiddenBranchOnBoot(tempDir, mainWindow):
 
     with RepoContext(wd) as repo:
         repo.checkout_local_branch("no-parent")
-    Path(f"{wd}/.git/gitfourchette_testmode.json").write_text('{ "hidePatterns": ["refs/heads/master"] }')
+    Path(f"{wd}/.git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/master"] }')
 
     rw = mainWindow.openRepo(wd)
 
@@ -435,7 +435,7 @@ def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
         repo.checkout_local_branch("master")
         repo.delete_local_branch("rebase")
 
-    Path(f"{wd}/.git/gitfourchette_testmode.json").write_text('{ "hidePatterns": ["refs/heads/hidethis"] }')
+    Path(f"{wd}/.git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/hidethis"] }')
     rw = mainWindow.openRepo(wd)
 
     # Initially, the tip of hidethis is visible because it's part of master

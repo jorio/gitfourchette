@@ -9,6 +9,7 @@ import pytest
 from gitfourchette.application import GFApplication
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
+from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.nav import NavContext
 from .util import *
 
@@ -100,7 +101,7 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, passphraseProtectedKey):
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
-    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
+    assert "HelloTestKey" in rw.repoModel.prefs.customKeyFile
 
 
 @requiresNetwork
@@ -176,13 +177,20 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, pass
     rw = waitForRepoWidget(mainWindow)
 
     # -------------------------------------------
-    # Add remote with passphrase-protected keyfile
+    # Set passphrase-protected keyfile
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/settings")
+    repoSettings = findQDialog(rw, "repo settings", RepoSettingsDialog)
+    repoSettings.ui.keyFilePicker.setPath(passphraseProtectedKey)
+    repoSettings.accept()
+
+    # -------------------------------------------
+    # Add remote
 
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
-    remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
+    remoteDialog = findQDialog(rw, "add remote", RemoteDialog)
     remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
     remoteDialog.ui.nameEdit.setText("origin")
-    remoteDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
     assert remoteDialog.ui.fetchAfterAddCheckBox.isChecked()
 
     # Accept "add remote", kicking off a fetch

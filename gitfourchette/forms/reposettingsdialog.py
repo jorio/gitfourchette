@@ -11,6 +11,7 @@ from gitfourchette.forms.ui_reposettingsdialog import Ui_RepoSettingsDialog
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo, GitConfigHelper
 from gitfourchette.qt import *
+from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.toolbox import *
 
 
@@ -21,7 +22,7 @@ def validateSigPart(x: str):
 
 
 class RepoSettingsDialog(QDialog):
-    def __init__(self, repo: Repo, parent):
+    def __init__(self, repo: Repo, repoPrefs: RepoPrefs, parent: QWidget):
         super().__init__(parent)
         ui = Ui_RepoSettingsDialog()
         ui.setupUi(self)
@@ -57,6 +58,8 @@ class RepoSettingsDialog(QDialog):
         ui.localIdentityCheckBox.checkStateChanged.connect(self.onLocalIdentityCheckStateChanged)
         ui.localIdentityCheckBox.setChecked(not useLocalIdentity)  # hack to trigger enablement
         ui.localIdentityCheckBox.setChecked(useLocalIdentity)
+
+        ui.keyFilePicker.setPath(repoPrefs.customKeyFile)
 
         validator.run()
 

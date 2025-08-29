@@ -27,27 +27,37 @@ logger = logging.getLogger(__name__)
 
 class EditRepoSettings(RepoTask):
     def flow(self):
-        dlg = RepoSettingsDialog(self.repo, self.parentWidget())
+        repo = self.repo
+        repoPrefs = self.repoModel.prefs
+
+        dlg = RepoSettingsDialog(repo, repoPrefs, self.parentWidget())
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         yield from self.flowDialog(dlg)
 
         localName, localEmail = dlg.localIdentity()
         nickname = dlg.ui.nicknameEdit.text()
+        customKeyFile = dlg.ui.keyFilePicker.privateKeyPath()
         dlg.deleteLater()
 
-        configObject = self.repo.config
+        configObject = repo.config
         for key, value in [("user.name", localName), ("user.email", localEmail)]:
             if value:
                 configObject[key] = value
             else:
                 with suppress(KeyError):
                     del configObject[key]
-        self.repo.scrub_empty_config_section("user")
+        repo.scrub_empty_config_section("user")
+
+        if customKeyFile != repoPrefs.customKeyFile:
+            repoPrefs.customKeyFile = customKeyFile
+            repoPrefs.setDirty()
 
         if nickname != settings.history.getRepoNickname(self.repo.workdir, strict=True):
             settings.history.setRepoNickname(self.repo.workdir, nickname)
             settings.history.setDirty()
             self.rw.nameChange.emit()
+
+        repoPrefs.write()
 
 
 class GetCommitInfo(RepoTask):

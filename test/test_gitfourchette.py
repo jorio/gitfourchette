@@ -73,7 +73,7 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow, qtbot: QtBot):
 
     rw.repoModel.prefs.draftCommitMessage = "some bogus change to prevent prefs to be written"
     rw.repoModel.prefs.write(force=True)
-    assert os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
+    assert os.path.isfile(f"{wd}/.git/{APP_SYSTEM_NAME}.json")
 
     oldName = os.path.normpath(wd)
     newName = oldName + "-2"
@@ -88,7 +88,7 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow, qtbot: QtBot):
     assert re.search(r"folder.+missing", stub.ui.promptReadyLabel.text(), re.I)
 
     # Make sure we're not writing the prefs to a ghost directory structure upon exiting
-    assert not os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
+    assert not os.path.isfile(f"{wd}/.git/{APP_SYSTEM_NAME}.json")
 
     # Try to reload - this causes a GitError.
     # Normally, RepoTaskRunner re-raises the exception, causing qtbot to fail the unit test.

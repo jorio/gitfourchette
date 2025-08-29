@@ -16,14 +16,14 @@ from gitfourchette.porcelain import *
 from gitfourchette.settings import RefSort
 from gitfourchette.prefsfile import PrefsFile
 
-KEY_PREFIX = "gitfourchette-"
-
 
 @dataclass
 class RepoPrefs(PrefsFile):
     _filename = f"{APP_SYSTEM_NAME}.json"
     _allowMakeDirs = False
     _parentDir = ""
+
+    _GitConfigShadowUpstreamKey = f"{APP_SYSTEM_NAME}-shadow-remote"
 
     _repo: Repo
     draftCommitMessage: str = ""
@@ -37,6 +37,14 @@ class RepoPrefs(PrefsFile):
     sortRemoteBranches: RefSort = RefSort.UseGlobalPref
     sortTags: RefSort = RefSort.UseGlobalPref
     refSortClearTimestamp: int = 0
+    customKeyFile: str = ""
+
+    @classmethod
+    def initForRepo(cls, repo: Repo):
+        repoPrefs = cls(repo)
+        repoPrefs._parentDir = repo.path
+        repoPrefs.load()
+        return repoPrefs
 
     def getParentDir(self):
         return self._parentDir
@@ -54,20 +62,6 @@ class RepoPrefs(PrefsFile):
         self.draftAmendMessage = ""
         self.setDirty()
 
-    def getRemoteKeyFile(self, remote: str) -> str:
-        return RepoPrefs.getRemoteKeyFileForRepo(self._repo, remote)
-
-    def setRemoteKeyFile(self, remote: str, path: str):
-        RepoPrefs.setRemoteKeyFileForRepo(self._repo, remote, path)
-
-    @staticmethod
-    def getRemoteKeyFileForRepo(repo: Repo, remote: str):
-        return repo.get_config_value(("remote", remote, KEY_PREFIX+"keyfile"))
-
-    @staticmethod
-    def setRemoteKeyFileForRepo(repo: Repo, remote: str, path: str):
-        repo.set_config_value(("remote", remote, KEY_PREFIX+"keyfile"),  path)
-
     def clearRefSort(self):
         self.sortBranches = RefSort.UseGlobalPref
         self.sortRemoteBranches = RefSort.UseGlobalPref
@@ -76,7 +70,7 @@ class RepoPrefs(PrefsFile):
         self.setDirty()
 
     def getShadowUpstream(self, localBranchName: str):
-        return self._repo.get_config_value(("branch", localBranchName, KEY_PREFIX+"shadow-remote"))
+        return self._repo.get_config_value(("branch", localBranchName, self._GitConfigShadowUpstreamKey))
 
     def setShadowUpstream(self, localBranchName: str, upstreamName: str):
-        self._repo.set_config_value(("branch", localBranchName, KEY_PREFIX+"shadow-remote"), upstreamName)
+        self._repo.set_config_value(("branch", localBranchName, self._GitConfigShadowUpstreamKey), upstreamName)

@@ -172,9 +172,7 @@ class RepoModel:
 
         self.repo = repo
 
-        self.prefs = RepoPrefs(repo)
-        self.prefs._parentDir = repo.path
-        self.prefs.load()
+        self.prefs = RepoPrefs.initForRepo(repo)
 
         if settings.prefs.refSortClearTimestamp > self.prefs.refSortClearTimestamp:
             self.prefs.clearRefSort()
