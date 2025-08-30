@@ -543,7 +543,6 @@ class RepoTask(QObject):
     def flowCallGit(
             self,
             *args: str,
-            remote="",  # TODO: remove
             customKey="",
             workdir="",
             env: dict[str, str] | None = None,

@@ -86,8 +86,7 @@ class DeleteRemoteBranch(RepoTask):
             "--progress",
             remoteName,
             "--delete",
-            branchNameOnRemote,
-            remote=remoteName)
+            branchNameOnRemote)
 
         self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
 
@@ -152,8 +151,7 @@ class RenameRemoteBranch(RepoTask):
             "--atomic",
             remoteName,
             refspec1,
-            refspec2,
-            remote=remoteName)
+            refspec2)
 
         new_remote_branch = repo.branches.remote[remoteName + "/" + newBranchName]
         for lb in adjustUpstreams:
@@ -191,8 +189,7 @@ class FetchRemotes(RepoTask):
             "--progress",
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
             *argsIf(bool(singleRemoteName), "--no-all", singleRemoteName),
-            *argsIf(not singleRemoteName, "--all"),
-            remote=singleRemoteName)
+            *argsIf(not singleRemoteName, "--all"))
 
 
 class FetchRemoteBranch(RepoTask):
@@ -213,8 +210,7 @@ class FetchRemoteBranch(RepoTask):
             "--no-tags",
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
             remoteName,
-            remoteBranch,
-            remote=remoteName)
+            remoteBranch)
 
         # Old git: don't attempt to parse the result
         if not GitDriver.supportsFetchPorcelain():
@@ -341,7 +337,7 @@ class PushRefspecs(RepoTask):
         self.effects |= TaskEffects.Refs
 
         for remote in remotes:
-            yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", remote.name, *refspecs, remote=remote.name)
+            yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", remote.name, *refspecs)
 
 
 class PushBranch(RepoTask):
@@ -389,8 +385,7 @@ class PushBranch(RepoTask):
         if "--set-upstream" in command:
             self.effects |= TaskEffects.Upstreams
 
-        driver = yield from self.flowCallGit(
-            *command, remote=remoteName, autoFail=False, statusForm=dialog.ui.statusForm)
+        driver = yield from self.flowCallGit(*command, autoFail=False, statusForm=dialog.ui.statusForm)
 
         gitFailed = driver.exitCode() != 0
 
