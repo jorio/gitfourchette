@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-06-12 12:18+0000\n"
-"Last-Translator: 痞子吴 <wgjas2@qq.com>\n"
+"PO-Revision-Date: 2025-08-31 20:01+0000\n"
+"Last-Translator: Iliyas Jorio <iliyas@jor.io>\n"
 "Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/"
 "projects/gitfourchette/gitfourchette/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.12-dev\n"
+"X-Generator: Weblate 5.13.1-dev\n"
 
 #: application.py:86 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -662,10 +662,10 @@ msgid "&Before This Commit"
 msgstr "在此提交之前"
 
 #: filelists/committedfiles.py:60
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "&Open File in {0}"
 msgid_plural "&Open {n} Files in {0}"
-msgstr[0] "在{0}中打开文件"
+msgstr[0] "在{0}中打开{n}个文件"
 
 #: filelists/committedfiles.py:62
 msgid "&Current Revision (Working Copy)"
@@ -677,17 +677,17 @@ msgstr "保存副本…"
 
 #: filelists/committedfiles.py:80 filelists/dirtyfiles.py:94
 #: filelists/stagedfiles.py:54
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Submodule"
 msgid_plural "{n} Submodules"
-msgstr[0] "子模块"
+msgstr[0] "{n}个子模块"
 
 #: filelists/committedfiles.py:85 filelists/dirtyfiles.py:106
 #: filelists/stagedfiles.py:64
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Open Submodule in New Tab"
 msgid_plural "Open {n} Submodules in New Tabs"
-msgstr[0] "在新标签页中打开子模块"
+msgstr[0] "在新标签页中打开{n}个子模块"
 
 #: filelists/committedfiles.py:91 filelists/dirtyfiles.py:114
 #: filelists/stagedfiles.py:70
@@ -757,10 +757,10 @@ msgid "Really open <b>{n} windows</b>?"
 msgstr "真的要打开<b>{n}个窗口</b>吗？"
 
 #: filelists/dirtyfiles.py:43
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "&Stage File"
 msgid_plural "&Stage {n} Files"
-msgstr[0] "&暂存文件"
+msgstr[0] "暂存{n}个文件"
 
 #: filelists/dirtyfiles.py:49
 msgid "&Ignore Untracked File…"
@@ -768,22 +768,22 @@ msgid_plural "&Ignore Untracked Files…"
 msgstr[0] "&忽略未跟踪文件…"
 
 #: filelists/dirtyfiles.py:54
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "&Delete File…"
 msgid_plural "&Delete {n} Files…"
-msgstr[0] "&删除文件…"
+msgstr[0] "删除{n}个文件…"
 
 #: filelists/dirtyfiles.py:56
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "&Discard Changes in File…"
 msgid_plural "&Discard Changes in {n} Files…"
-msgstr[0] "&放弃文件中的更改…"
+msgstr[0] "放弃{n}个文件中的更改…"
 
 #: filelists/dirtyfiles.py:76
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Merge Conflict"
 msgid_plural "{n} Merge Conflicts"
-msgstr[0] "合并冲突"
+msgstr[0] "{n}个合并冲突"
 
 #: filelists/dirtyfiles.py:81
 msgid "Resolve by Accepting “Theirs”"
@@ -794,16 +794,16 @@ msgid "Resolve by Keeping “Ours”"
 msgstr "通过保留“我们的”来解决"
 
 #: filelists/dirtyfiles.py:98
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Stage Submodule"
 msgid_plural "Stage {n} Submodules"
-msgstr[0] "暂存子模块"
+msgstr[0] "暂存{n}个子模块"
 
 #: filelists/dirtyfiles.py:102
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Discard Changes in Submodule"
 msgid_plural "Discard Changes in {n} Submodules"
-msgstr[0] "放弃子模块中的更改"
+msgstr[0] "放弃{n}个子模块中的更改"
 
 #: filelists/dirtyfiles.py:114
 msgid "Can’t stage this selection in bulk."
@@ -814,16 +814,16 @@ msgid "Find a file by path|Find file"
 msgstr "按路径查找文件|查找文件"
 
 #: filelists/filelist.py:239
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Open &Folder"
 msgid_plural "Open {n} &Folders"
-msgstr[0] "打开&文件夹"
+msgstr[0] "打开{n}个文件夹"
 
 #: filelists/filelist.py:245
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "&Copy Path"
 msgid_plural "&Copy {n} Paths"
-msgstr[0] "&复制路径"
+msgstr[0] "复制{n}个路径"
 
 #: filelists/filelist.py:251 trtables.py:349
 msgid "Path display style"
@@ -971,16 +971,16 @@ msgid "Currently viewing diff of unstaged changes in this file; it also has <u>s
 msgstr "当前查看此文件的未暂存更改差异；它还有<u>已暂存</u>更改。"
 
 #: filelists/stagedfiles.py:36
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "&Unstage File"
 msgid_plural "&Unstage {n} Files"
-msgstr[0] "&取消暂存文件"
+msgstr[0] "取消暂存{n}个文件"
 
 #: filelists/stagedfiles.py:59
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Unstage Submodule"
 msgid_plural "Unstage {n} Submodules"
-msgstr[0] "取消暂存子模块"
+msgstr[0] "取消暂存{n}个子模块"
 
 #: filelists/stagedfiles.py:70
 msgid "Can’t unstage this selection in bulk."
@@ -3030,10 +3030,10 @@ msgid_plural "{n} background tabs unloaded."
 msgstr[0] "{n} 个后台标签页已卸载。"
 
 #: mainwindow.py:982
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "The session couldn’t be restored fully because a repository failed to load:"
 msgid_plural "The session couldn’t be restored fully because {n} repositories failed to load:"
-msgstr[0] "会话无法完全恢复，因为一个仓库加载失败："
+msgstr[0] "会话无法完全恢复，因为{n}个仓库加载失败："
 
 #: mainwindow.py:984
 msgid "Restore session"
@@ -3268,16 +3268,16 @@ msgid "{0} not found."
 msgstr "{0} 未找到。"
 
 #: repowidget.py:708
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Note: The search was limited to the top commit because the commit history is truncated."
 msgid_plural "Note: The search was limited to the top {n} commits because the commit history is truncated."
-msgstr[0] "注意：由于提交历史被截断，搜索仅限于顶部提交。"
+msgstr[0] "注意：由于提交历史被截断，搜索仅限于顶部{n}个提交。"
 
 #: repowidget.py:713
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Note: The search was limited to the single commit available in this shallow clone."
 msgid_plural "Note: The search was limited to the {n} commits available in this shallow clone."
-msgstr[0] "注意：由于这是一个浅层克隆，搜索仅限于可用的单个提交。"
+msgstr[0] "注意：由于这是{n}个浅层克隆，搜索仅限于可用的单个提交。"
 
 #: repowidget.py:789
 msgid "Unborn HEAD"
@@ -4069,10 +4069,10 @@ msgid "{app} cannot export binary patches from a hand-picked selection of files.
 msgstr "{app}无法从手工挑选的文件中导出二进制补丁。"
 
 #: tasks/exporttasks.py:61
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Binary file will be omitted from patch file:"
 msgid_plural "{n} binary files will be omitted from patch file:"
-msgstr[0] "二进制文件将从补丁文件中省略："
+msgstr[0] "{n}个二进制文件将从补丁文件中省略："
 
 #: tasks/exporttasks.py:62
 msgid "Proceed"
@@ -4095,16 +4095,16 @@ msgid "uncommitted changes on {commit}"
 msgstr "在{commit}上有未提交的更改"
 
 #: tasks/indextasks.py:44
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "You have selected an unresolved merge conflict."
 msgid_plural "You have selected {n} unresolved merge conflicts."
-msgstr[0] "您选择了一个未解决的合并冲突。"
+msgstr[0] "您选择了{n}个未解决的合并冲突。"
 
 #: tasks/indextasks.py:47
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "There is an unresolved merge conflict among your selection."
 msgid_plural "There are {n} unresolved merge conflicts among your selection."
-msgstr[0] "您的选择中存在未解决的合并冲突。"
+msgstr[0] "您的选择中存在{n}个未解决的合并冲突。"
 
 #: tasks/indextasks.py:51
 msgctxt "please fix (the merge conflicts)"
@@ -4119,10 +4119,10 @@ msgid_plural "Please fix them before discarding:"
 msgstr[0] "请在丢弃前修复："
 
 #: tasks/indextasks.py:80
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "File staged."
 msgid_plural "{n} files staged."
-msgstr[0] "已暂存的文件。"
+msgstr[0] "已暂存的{n}个文件。"
 
 #: tasks/indextasks.py:90
 msgid "You’ve added another Git repo inside your current repo. It is STRONGLY RECOMMENDED to absorb it as a submodule before committing."
@@ -4138,10 +4138,10 @@ msgid "Uncommitted changes in the submodule can’t be staged from the parent re
 msgstr "子模块中的未提交更改无法从父仓库进行暂存。"
 
 #: tasks/indextasks.py:113
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "An item requires your attention after staging:"
 msgid_plural "{n} items require your attention after staging:"
-msgstr[0] "在暂存后，有一个项目需要您注意："
+msgstr[0] "在暂存后，有{n}个项目需要您注意："
 
 #: tasks/indextasks.py:122 tasks/taskbook.py:48
 msgid "Discard changes"
@@ -4182,16 +4182,16 @@ msgid "Really discard changes to {n} files?"
 msgstr "真的要放弃对{n}个文件的更改吗？"
 
 #: tasks/indextasks.py:159
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Any uncommitted changes in the submodule will be <b>cleared</b> and the submodule’s HEAD will be reset."
 msgid_plural "Any uncommitted changes in {n} submodules will be <b>cleared</b> and the submodules’ HEAD will be reset."
-msgstr[0] "子模块中的任何未提交更改将被<b>清除</b>，子模块的HEAD将被重置。"
+msgstr[0] "{n}个子模块中的任何未提交更改将被<b>清除</b>，子模块的HEAD将被重置。"
 
 #: tasks/indextasks.py:195
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "File discarded."
 msgid_plural "{n} files discarded."
-msgstr[0] "已丢弃的文件。"
+msgstr[0] "已丢弃的{n}个文件。"
 
 #: tasks/indextasks.py:204
 #, python-brace-format
@@ -4199,10 +4199,10 @@ msgid "Couldn’t restore gitlink file for submodule {0}."
 msgstr "无法恢复子模块{0}的gitlink文件。"
 
 #: tasks/indextasks.py:225
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "File unstaged."
 msgid_plural "{n} files unstaged."
-msgstr[0] "未暂存的文件。"
+msgstr[0] "未暂存的{n}个文件。"
 
 #: tasks/indextasks.py:237
 #, python-brace-format
@@ -4244,10 +4244,10 @@ msgid "The code may have diverged too much from this revision."
 msgstr "代码可能与这个修订版差异过大。"
 
 #: tasks/indextasks.py:360
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Conflict resolved."
 msgid_plural "{n} conflicts resolved."
-msgstr[0] "冲突已解决。"
+msgstr[0] "{n}个冲突已解决。"
 
 #: tasks/indextasks.py:397
 #, python-brace-format
@@ -4381,10 +4381,10 @@ msgid "Index reset."
 msgstr "索引已重置。"
 
 #: tasks/indextasks.py:577
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Cannot {verb} right now, because a file contains both staged and unstaged changes."
 msgid_plural "Cannot {verb} right now, because {n} files contain both staged and unstaged changes."
-msgstr[0] "现在无法{verb}，因为一个文件同时包含已暂存和未暂存的更改。"
+msgstr[0] "现在无法{verb}，因为{n}个文件同时包含已暂存和未暂存的更改。"
 
 #: tasks/indextasks.py:580
 msgid "Please unstage the changes and try again."
@@ -4408,10 +4408,10 @@ msgid "All <b>staged</b> changes will be lost."
 msgstr "所有<b>已暂存</b>的更改将丢失。"
 
 #: tasks/indextasks.py:592
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "This file will be reset:"
 msgid_plural "{n} files will be reset:"
-msgstr[0] "此文件将被重置："
+msgstr[0] "{n}个文件将被重置："
 
 #: tasks/jumptasks.py:139
 #, python-brace-format
@@ -4546,10 +4546,10 @@ msgid "at {0}"
 msgstr "在 {0}"
 
 #: tasks/misctasks.py:84
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Parent"
 msgid_plural "{n} Parents"
-msgstr[0] "父级"
+msgstr[0] "{n}个父级"
 
 #: tasks/misctasks.py:90
 msgid "You’re working in a shallow clone. This commit may actually have parents in the full history."
@@ -4646,10 +4646,10 @@ msgid "Fetch complete."
 msgstr "获取完成。"
 
 #: tasks/nettasks.py:182
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Couldn’t fetch remote:"
 msgid_plural "Couldn’t fetch {n} remotes:"
-msgstr[0] "无法获取远程源："
+msgstr[0] "无法获取{n}个远程源："
 
 #: tasks/nettasks.py:192
 #, python-brace-format
@@ -4677,10 +4677,10 @@ msgid "Pull"
 msgstr "拉取"
 
 #: tasks/nettasks.py:290 tasks/nettasks.py:301
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Submodule updated."
 msgid_plural "{n} submodules updated."
-msgstr[0] "子模块已更新。"
+msgstr[0] "{n}个子模块已更新。"
 
 #: tasks/nettasks.py:329
 msgid "To push a local branch to a remote, you must first add a remote to your repo."
@@ -4718,17 +4718,17 @@ msgid "Remote {0} removed."
 msgstr "远程 {0} 已移除。"
 
 #: tasks/repotask.py:35
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "Conflicting file"
 msgid_plural "{n} conflicting files"
-msgstr[0] "冲突文件"
+msgstr[0] "{n}个冲突文件"
 
 #: tasks/repotask.py:36
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgctxt "operation conflicts with…"
 msgid "a file"
 msgid_plural "{n} files"
-msgstr[0] "一个文件"
+msgstr[0] "{n}个文件"
 
 #: tasks/repotask.py:40
 #, python-brace-format
@@ -4834,10 +4834,10 @@ msgid "There are no uncommitted changes to stash (submodules cannot be stashed).
 msgstr "没有未提交的更改需要暂存（子模块不能被暂存）。"
 
 #: tasks/stashtasks.py:79
-#, python-brace-format
+#, fuzzy, python-brace-format
 msgid "File stashed."
 msgid_plural "{n} files stashed."
-msgstr[0] "文件已暂存。"
+msgstr[0] "{n}个文件已暂存。"
 
 #: tasks/stashtasks.py:91
 #, python-brace-format
@@ -4882,7 +4882,7 @@ msgstr "由暂存应用引起的冲突"
 #: tasks/stashtasks.py:134
 #, python-brace-format
 msgid "Stash {0} applied and deleted."
-msgstr "已应用并删除暂存 {0}"
+msgstr "已应用并删除暂存 {0}。"
 
 #: tasks/stashtasks.py:142
 #, python-brace-format
@@ -4896,7 +4896,7 @@ msgstr "删除暂存"
 #: tasks/stashtasks.py:151
 #, python-brace-format
 msgid "Stash {0} deleted."
-msgstr "已删除暂存 {0}"
+msgstr "已删除暂存 {0}。"
 
 #: tasks/submoduletasks.py:48
 #, python-brace-format
