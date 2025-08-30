@@ -16,7 +16,7 @@ from gitfourchette.localization import *
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.qt import *
 from gitfourchette.sshagent import SshAgent
-from gitfourchette.toolbox import escape, stockIcon
+from gitfourchette.toolbox import escape, stockIcon, tquo
 
 
 class AskpassPrompt(StrEnum):
@@ -67,12 +67,19 @@ class AskpassDialog(TextInputDialog):
 
         clearText = any(re.search(pattern, prompt) for pattern in self.ClearTextPatterns)
 
-        builtInAgentPid = os.environ.get(SshAgent.EnvBuiltInAgentPid, "")
-        if promptKind == AskpassPrompt.Entry and not clearText and builtInAgentPid:
-            subtitle = _("{app}’s SSH agent (PID {pid}) will remember this credential "
-                         "until you quit the application.", app=qAppName(), pid=builtInAgentPid)
-        else:
-            subtitle = ""
+        subtitle = ""
+        if promptKind == AskpassPrompt.Entry and not clearText:
+            hasBuiltInAgent = bool(os.environ.get(SshAgent.EnvBuiltInAgentPid, ""))
+            hasAgentSocket = os.path.exists(os.environ.get("SSH_AUTH_SOCK", ""))
+            if hasBuiltInAgent:
+                subtitle = _("{app}’s ssh-agent will remember this credential "
+                             "until you quit the application.", app=qAppName())
+            elif hasAgentSocket:
+                subtitle = _("An ssh-agent is running on your system. It will remember this credential "
+                             "if {0} is enabled in your SSH configuration.", tquo("AddKeysToAgent"))
+            else:
+                subtitle = _("This credential will not be remembered "
+                             "because ssh-agent isn’t running on your system.")
 
         htmlPrompt = f"<html style='white-space: pre-wrap;'>{escape(prompt)}"
 
