@@ -111,16 +111,17 @@ class Prefs(PrefsFile):
     verifyGpgOnTheFly           : bool                  = False
     alternatingRowColors        : bool                  = False
 
+    _category_git               : int                   = 0
+    gitPath                     : str                   = ToolPresets.defaultGit()
+    ownAskpass                  : bool                  = True
+    ownSshAgent                 : bool                  = True
+
     _category_external          : int                   = 0
     externalEditor              : str                   = ""
     terminal                    : str                   = ToolPresets.DefaultTerminalCommand
     _spacer0                    : int                   = 0
     externalDiff                : str                   = ToolPresets.DefaultDiffCommand
     externalMerge               : str                   = ToolPresets.DefaultMergeCommand
-    _spacer1                    : int                   = 0
-    gitPath                     : str                   = ToolPresets.defaultGit()
-    ownAskpass                  : bool                  = True
-    ownSshAgent                 : bool                  = True
 
     _category_userCommands      : int                   = 0
     commands                    : str                   = ""

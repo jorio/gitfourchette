@@ -353,6 +353,7 @@ class TrTables:
             "tabs": _p("Prefs", "Tabs"),
             "graph": _p("Prefs", "Commit History"),
             "trash": _p("Prefs", "Trash"),
+            "git": _p("Prefs", "Git Integration"),
             "external": _p("Prefs", "External Tools"),
             "advanced": _p("Prefs", "Advanced"),
             "userCommands": _p("Prefs", "Custom Commands"),
