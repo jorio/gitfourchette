@@ -171,6 +171,8 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
 
 @requiresNetwork
 def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+    mainWindow.onAcceptPrefsDialog({"ownSshAgent": True})
+
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
     mainWindow.openRepo(wd)

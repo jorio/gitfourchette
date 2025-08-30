@@ -113,8 +113,8 @@ class Prefs(PrefsFile):
 
     _category_git               : int                   = 0
     gitPath                     : str                   = ToolPresets.defaultGit()
+    ownSshAgent                 : bool                  = False
     ownAskpass                  : bool                  = True
-    ownSshAgent                 : bool                  = True
 
     _category_external          : int                   = 0
     externalEditor              : str                   = ""

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import textwrap
 from enum import Enum
@@ -341,10 +342,23 @@ class TrTables:
 
     @staticmethod
     def _init_prefKeys():
-        from gitfourchette.toolbox.textutils import paragraphs, tquo
+        from gitfourchette.toolbox.textutils import paragraphs, tquo, escape
         from gitfourchette.exttools.usercommand import UserCommand
         from gitfourchette.appconsts import APP_DISPLAY_NAME
         from gitfourchette.repomodel import GpgStatus
+
+        sshAuthSock = os.environ.get("SSH_AUTH_SOCK", "")
+        if sshAuthSock:
+            sshAuthSockHelp = paragraphs([
+                _("Note: Per {k}, your system is providing an ssh-agent ({v}). "
+                  "It’s recommended to use this one."),
+                _("If your system’s agent isn’t saving any passphrases, "
+                  "make sure you’ve enabled {c} in your SSH configuration."),
+            ])
+        else:
+            sshAuthSockHelp = _("Note: Per {k}, no ssh-agent seems to be running on your system.")
+        sshAuthSockHelp = "<blockquote>" + sshAuthSockHelp.format(
+            k="SSH_AUTH_SOCK", v=escape(sshAuthSock), c="AddKeysToAgent")
 
         return {
             "general": _p("Prefs", "General"),
@@ -495,16 +509,20 @@ class TrTables:
                 _("The {0} placeholder is mandatory. It is automatically substituted for a wrapper script that "
                   "enters your working directory and optionally starts one of your Custom Commands.",
                   "$COMMAND")),
-            "gitPath": _("Git"),
-            "ownAskpass": _("Ask for SSH passphrases with {app}", app=APP_DISPLAY_NAME),
+            "gitPath": "git",
+            "ownAskpass": _("Have OpenSSH ask for passphrases via {app}", app=APP_DISPLAY_NAME),
             "ownAskpass_help": paragraphs(
                 _("Tick this to have OpenSSH use {app} to ask for passphrases."),
                 _("Untick this if you’ve set up another program in the {0} environment variable (such as {1}).", tquo("SSH_ASKPASS"), tquo("ksshaskpass"))),
-            "ownSshAgent": _("Automatically remember passphrases with {0}", tquo("ssh-agent")),
+            "ownSshAgent": "ssh-agent",
+            "ownSshAgent_false": _("Use ssh-agent provided by the system") + " " + "" if sshAuthSock else _("(not detected)"),
+            "ownSshAgent_true": _("Have {app} manage its own ssh-agent", app=APP_DISPLAY_NAME),
             "ownSshAgent_help": paragraphs(
-                _("Tick this to start an instance of {0} for the duration of your {app} session.", tquo("ssh-agent"), app=APP_DISPLAY_NAME),
-                _("This will save you from retyping the same passphrase over and over until you quit the application."),
-                _("Untick this if you don’t want credentials to be remembered, or if you’ve already set up your own SSH agent on your system."),
+                _("“ssh-agent” can save your SSH credentials so you don’t have to retype the same passphrase over and over. "
+                  "Some Linux distributions set up an ssh-agent for you."),
+                _("You can also have {app} start its own instance of ssh-agent "
+                  "for the duration of your session and have it remember passphrases."),
+                sshAuthSockHelp,
             ),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
