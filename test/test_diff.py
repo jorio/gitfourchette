@@ -850,7 +850,9 @@ def testRevertHunk(tempDir, mainWindow, fromGutter):
     ["commitHex", "path", "line1", "line2", "expectedResult"],
     [
         ("c070ad8", "a/a1.txt", 1, 1, "a1\n"),
-        ("58be465", "master.txt", 1, 2, "On master\n")
+        ("c070ad8", "a/a1.txt", 1, 2, ""),
+        ("58be465", "master.txt", 1, 2, "On master\n"),
+        ("c9ed7bf", "c/c2-2.txt", 1, 1, "c2\n"),  # Revert deleted lines in deleted file
     ])
 def testRevertLineSelection(tempDir, mainWindow,
                             commitHex, path, line1, line2, expectedResult):

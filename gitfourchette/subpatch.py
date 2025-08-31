@@ -65,7 +65,13 @@ def getPatchPreamble(delta: DiffDelta, reverse=False):
         of = delta.old_file
         nf = delta.new_file
     else:
-        of = nf = delta.new_file
+        # When reversing some lines within a patch, stick to new_file to avoid
+        # changing the file's name or mode.
+        of = delta.new_file
+        nf = delta.new_file
+        # ...Unless we're reversing lines within a deletion.
+        if nf.id == NULL_OID:
+            nf = delta.old_file
 
     aQuoted = quotePath(b"a/" + of.raw_path)
     bQuoted = quotePath(b"b/" + nf.raw_path)
