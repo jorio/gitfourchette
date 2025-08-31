@@ -85,12 +85,12 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
     # The commit we've just created should be auto-trusted.
     # Look for GPG signing information in GraphView tooltip
     toolTip = summonToolTip(rw.graphView.viewport(), QPoint(rw.graphView.viewport().width() - 16, 30))
-    assert "signed; valid" in toolTip.lower()
+    assert "good signature; key trusted" in toolTip.lower()
 
     # Look for GPG signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    findQMessageBox(rw, "signature:.+signed; valid").reject()
+    findQMessageBox(rw, "signature:.+good signature; key trusted").reject()
 
     ToolCommands.runSync(settings.prefs.gitPath, "verify-commit", "-v", str(commit.id), directory=wd, strict=True)
 
@@ -114,7 +114,12 @@ def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
     rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
-    acceptQMessageBox(rw, "valid.+alice lovelace")
+    acceptQMessageBox(rw, "good signature; key not fully trusted")
+
+    # Tell GPG to trust the key, then verify the signature again
+    writeFile(f"{tempGpgHome}/gpg.conf", f"trusted-key {aliceFpr}\n")
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    acceptQMessageBox(rw, "good signature; key trusted")
 
 
 @requiresGpg
@@ -145,4 +150,4 @@ def testCommitGpgBadSignature(tempDir, mainWindow, tempGpgHome):
     rw.jump(NavLocator.inCommit(oid, ""), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
-    acceptQMessageBox(rw, "INVALID!")
+    acceptQMessageBox(rw, "bad signature")

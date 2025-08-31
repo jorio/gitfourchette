@@ -177,7 +177,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
             gpgStatus = self.repoModel.getCachedGpgStatus(commit)
 
-            if gpgStatus == GpgStatus.VerifyPending and settings.prefs.verifyGpgOnTheFly:
+            if gpgStatus == GpgStatus.Pending and settings.prefs.verifyGpgOnTheFly:
                 self.requestSignatureVerification.emit(oid)
 
             if settings.prefs.authorDiffAsterisk:
@@ -287,7 +287,8 @@ class CommitLogDelegate(QStyledItemDelegate):
         if authorWidth != 0:
             rect.setLeft(leftBoundName)
 
-            if gpgStatus >= GpgStatus.VerifyPending:
+            # Draw seal for signed commits
+            if gpgStatus > GpgStatus.Pending or (settings.prefs.verifyGpgOnTheFly and gpgStatus >= GpgStatus.Pending):
                 rect.setRight(leftBoundName + 16)
                 icon = stockIcon(gpgStatus.iconName())
                 icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)

@@ -236,13 +236,14 @@ class TrTables:
 
             GpgStatus: {
                 GpgStatus.Unsigned              : _("Not signed"),
-                GpgStatus.VerifyPending         : _("Not verified yet"),
-                GpgStatus.Unverified            : _("Unable to verify"),
-                GpgStatus.GOODSIG               : _("Valid"),
-                GpgStatus.EXPSIG                : _("Signature expired"),
-                GpgStatus.EXPKEYSIG             : _("Valid (the key has expired)"),
-                GpgStatus.REVKEYSIG             : _("Key revoked"),
-                GpgStatus.BADSIG                : _("INVALID!"),
+                GpgStatus.Pending               : _("Signature not verified yet"),
+                GpgStatus.CantCheck             : _("Unable to verify signature"),
+                GpgStatus.Trusted               : _("Good signature; Key trusted"),
+                GpgStatus.GOODSIG               : _("Good signature; Key not fully trusted"),
+                GpgStatus.EXPSIG                : _("Good signature; Signature expired"),
+                GpgStatus.EXPKEYSIG             : _("Good signature; Key expired"),
+                GpgStatus.REVKEYSIG             : _("Good signature; Key revoked"),
+                GpgStatus.BADSIG                : _("Bad signature"),
                 GpgStatus.ProcessError          : _("Failed to start verification process"),
             },
         }
@@ -452,11 +453,12 @@ class TrTables:
             "verifyGpgOnTheFly_help": _("As commits scroll into view, call {0} automatically to verify their signatures. "
                                         "The verification status is materialized by a seal icon next to the author’s name:", tquo("git verify-commit")
                                         ) + _tokenReferenceTable({
-                GpgStatus.VerifyPending.iconHtml()  : _("Verification pending"),
-                GpgStatus.Unverified.iconHtml()     : _("Verification failed"),
-                GpgStatus.GOODSIG.iconHtml()        : _("Verified"),
-                GpgStatus.EXPSIG.iconHtml()         : _("Signature expired"),
-                GpgStatus.BADSIG.iconHtml()         : _("Key revoked or invalid signature"),
+                GpgStatus.Pending.iconHtml()        : _("Verification pending"),
+                GpgStatus.CantCheck.iconHtml()      : _("Verification failed (e.g. missing key)"),
+                GpgStatus.Trusted.iconHtml()        : _("Good signature; Key trusted"),
+                GpgStatus.GOODSIG.iconHtml()        : _("Good signature; Key not fully trusted"),
+                GpgStatus.EXPSIG.iconHtml()         : _("Good signature; Key or signature expired"),
+                GpgStatus.BADSIG.iconHtml()         : _("Key revoked or bad signature"),
             }) + "<br>" + _("(No seal = Commit isn’t signed)"),
 
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),

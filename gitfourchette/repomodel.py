@@ -38,8 +38,9 @@ def toggleSetElement(s: set, element):
 
 class GpgStatus(enum.IntEnum):
     Unsigned        = 0
-    VerifyPending   = enum.auto()
-    Unverified      = enum.auto()
+    Pending         = enum.auto()
+    CantCheck       = enum.auto()
+    Trusted         = enum.auto()
     GOODSIG         = enum.auto()
     EXPSIG          = enum.auto()
     EXPKEYSIG       = enum.auto()
@@ -48,20 +49,21 @@ class GpgStatus(enum.IntEnum):
     ProcessError    = enum.auto()
 
     def iconName(self):
-        return _GpgStatusIconTable.get(self, "gpg-verify-unverified")
+        return _GpgStatusIconTable.get(self, "gpg-verify-cantcheck")
 
     def iconHtml(self):
         return stockIconImgTag(self.iconName())
 
 
 _GpgStatusIconTable = {
-    GpgStatus.VerifyPending: "gpg-verify-unknown",
-    GpgStatus.GOODSIG     : "gpg-verify-good",
-    GpgStatus.EXPSIG      : "gpg-verify-expired",
-    GpgStatus.EXPKEYSIG   : "gpg-verify-good",#"gpg-verify-expired",
-    GpgStatus.REVKEYSIG   : "gpg-verify-bad",
-    GpgStatus.BADSIG      : "gpg-verify-bad",
-    GpgStatus.ProcessError: "gpg-verify-unknown",
+    GpgStatus.Pending       : "gpg-verify-pending",
+    GpgStatus.Trusted       : "gpg-verify-good-trusted",
+    GpgStatus.GOODSIG       : "gpg-verify-good-untrusted",
+    GpgStatus.EXPSIG        : "gpg-verify-expired",
+    GpgStatus.EXPKEYSIG     : "gpg-verify-expired",
+    GpgStatus.REVKEYSIG     : "gpg-verify-bad",
+    GpgStatus.BADSIG        : "gpg-verify-bad",
+    GpgStatus.ProcessError  : "gpg-verify-cantcheck",
 }
 
 
@@ -546,12 +548,12 @@ class RepoModel:
             pass
 
         sig, _payload = commit.gpg_signature
-        status = GpgStatus.VerifyPending if sig else GpgStatus.Unsigned
+        status = GpgStatus.Pending if sig else GpgStatus.Unsigned
         self.gpgStatusCache[commit.id] = status
         return status
 
     def queueGpgVerification(self, oid: Oid):
         if not settings.prefs.verifyGpgOnTheFly:
             return
-        assert self.gpgStatusCache[oid] == GpgStatus.VerifyPending
+        assert self.gpgStatusCache[oid] == GpgStatus.Pending
         self.gpgVerificationQueue.add(oid)

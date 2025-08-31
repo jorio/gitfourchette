@@ -196,7 +196,7 @@ def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus) -> str:
     markup += "</p>"
 
     if gpgStatus != GpgStatus.Unsigned:
-        gpgText = _("Signed; {0}", TrTables.enum(gpgStatus))
+        gpgText = TrTables.enum(gpgStatus)
         markup += f"<p>{gpgStatus.iconHtml()} {gpgText}</p>"
 
     return markup

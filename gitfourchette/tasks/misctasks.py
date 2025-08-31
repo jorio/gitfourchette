@@ -111,7 +111,7 @@ class GetCommitInfo(RepoTask):
         if not gpg:
             gpgMarkup = tagify(_("(not signed)"), "<i>")
         else:
-            gpgMarkup = gpg.iconHtml() + " " + _("Signed; {0}", TrTables.enum(gpg))
+            gpgMarkup = f"{gpg.iconHtml()} {TrTables.enum(gpg)}"
 
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
@@ -263,10 +263,13 @@ class VerifyGpgSignature(RepoTask):
         try:
             status = next(value for name, value in cls.GnupgStatusTable.items() if name in report)
         except StopIteration:
-            status = GpgStatus.Unverified
+            status = GpgStatus.CantCheck
 
         if "KEYREVOKED" in report:
             status = GpgStatus.REVKEYSIG
+
+        if status == GpgStatus.GOODSIG and ("TRUST_ULTIMATE" in report) or ("TRUST_FULLY" in report):
+            status = GpgStatus.Trusted
 
         return status, report
 
@@ -284,12 +287,12 @@ class VerifyGpgQueue(RepoTask):
             oid = repoModel.gpgVerificationQueue.pop()
 
             currentStatus = repoModel.gpgStatusCache.get(oid, GpgStatus.Unsigned)
-            if currentStatus != GpgStatus.VerifyPending:
+            if currentStatus != GpgStatus.Pending:
                 continue
 
             visibleIndex = self.visibleIndex(oid)
             if visibleIndex is None:
-                repoModel.gpgStatusCache[oid] = GpgStatus.VerifyPending
+                repoModel.gpgStatusCache[oid] = GpgStatus.Pending
                 continue
 
             try:
