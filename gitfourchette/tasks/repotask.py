@@ -158,6 +158,9 @@ class FlowControlToken:
         return F"FlowControlToken({self.flowControl.name})"
 
 
+FlowControlToken.BootstrapFlow = FlowControlToken()
+
+
 class FlowWorkerThread(QThread):
     tokenReady = Signal(FlowControlToken)
 
@@ -803,9 +806,6 @@ class RepoTaskRunner(QObject):
     processStarted = Signal(QProcess, str)
     _aboutToProcessToken = Signal()
 
-    _continueFlow = Signal(FlowControlToken)
-    "Emitted from worker thread, connected to _iterateFlow."
-
     _workerThread: FlowWorkerThread
 
     _currentTask: RepoTask | None
@@ -833,8 +833,10 @@ class RepoTaskRunner(QObject):
     def currentTask(self):
         return self._currentTask
 
-    def isBusy(self):
-        return self._currentTask is not None or self._zombieTask is not None or self._workerThread.isRunning()
+    def isBusy(self) -> bool:
+        return (self._currentTask is not None
+                or self._zombieTask is not None
+                or self._workerThread.isRunning())
 
     def killCurrentTask(self):
         """
@@ -899,11 +901,16 @@ class RepoTaskRunner(QObject):
 
         if not self._currentTask:
             self._currentTask = task
-            self._startTask(task)
+            self._startCurrentTask()
 
         elif self._currentTask.isFreelyInterruptible() or task.canKill(self._currentTask):
             logger.info(f"Task {task} killed task {self._currentTask}")
+
+            # Move the current task to zombie state.
             self.killCurrentTask()
+
+            # Queue up this task.
+            # Next time _processTokens runs, it will kill off the zombie and boot the new current task.
             self._currentTask = task
 
         else:
@@ -911,19 +918,19 @@ class RepoTaskRunner(QObject):
             message = _("Please wait for the current operation to complete ({0}).", hquo(self._currentTask.name()))
             showInformation(task.parentWidget(), _("Operation in progress"), "<html>" + message)
 
-    def _startTask(self, task: RepoTask):
-        assert self._currentTask == task
+    def _startCurrentTask(self):
+        task = self._currentTask
         assert task._currentFlow
         assert task.isRootTask
+        assert not self._zombieTask, "zombie task should be gone before starting a new task"
 
         logger.debug(f">>> {task}")
 
         self._currentTaskBenchmark.name = str(task)
         self._currentTaskBenchmark.__enter__()
 
-        # Prepare internal signal for coroutine continuation
-        self._continueFlow.connect(lambda result: self._iterateFlow(task, result))
-        task.uiReady.connect(lambda: self._iterateFlow(task, FlowControlToken()))
+        # When the task is ready, continue the coroutine
+        task.uiReady.connect(self._continueFlow)
 
         # Check task prerequisites
         try:
@@ -933,44 +940,47 @@ class RepoTaskRunner(QObject):
             self._releaseTask(task)
             return
 
-        # Prime the flow (i.e. start coroutine)
-        self._iterateFlow(task, FlowControlToken())
+        # Start the coroutine
+        self._continueFlow()
 
-    def _iterateFlow(self, task: RepoTask, token: FlowControlToken):
-        while True:
-            self._aboutToProcessToken.emit()
-
-            assert onAppThread()
-            task._currentIteration += 1
-
-            # Let worker thread wrap up
-            self.joinWorkerThread()
-
-            assert not isinstance(token, Generator), \
-                "You're trying to yield a nested generator. Did you mean 'yield from'?"
-            assert isinstance(token, FlowControlToken), (
-                f"In a RepoTask coroutine, you can only yield FlowControlToken. You yielded: {type(token).__name__}")
-
-            # Wrap up zombie task (task that was interrupted earlier)
-            if task is self._zombieTask:
-                assert task is not self._currentTask
-                self._releaseTask(task)
-                task.deleteLater()
-
-                # Another task is queued up, start it now
-                if self._currentTask:
-                    self._startTask(self._currentTask)
-                return
-
-            nextToken = self._processToken(task, token)
-            if nextToken is None:
-                break
-            token = nextToken
+    def _continueFlow(self, token: FlowControlToken = FlowControlToken.BootstrapFlow):
+        while token is not None:
+            token = self._processToken(token)
 
         if not self.isBusy():  # might've queued up another task...
             self.ready.emit()
 
-    def _processToken(self, task: RepoTask, token: FlowControlToken) -> FlowControlToken | None:
+    def _processToken(self, token: FlowControlToken) -> FlowControlToken | None:
+        assert not isinstance(token, Generator), \
+            "You're trying to yield a nested generator. Did you mean 'yield from'?"
+        assert isinstance(token, FlowControlToken), \
+            f"In a RepoTask coroutine, you can only yield FlowControlToken. You yielded: {type(token).__name__}"
+        assert onAppThread(), "_processToken must be called on UI thread"
+
+        self._aboutToProcessToken.emit()
+
+        task = self._zombieTask or self._currentTask
+        assert task is not None
+        task._currentIteration += 1
+
+        # Let worker thread wrap up
+        self.joinWorkerThread()
+
+        # Wrap up zombie task (task that was interrupted earlier)
+        if task is self._zombieTask:
+            assert task is not self._currentTask
+            self._releaseTask(task)
+            task.deleteLater()
+
+            # Another task is queued up, start it now
+            if self._currentTask:
+                self._startCurrentTask()
+
+            return None
+
+        # ---------------------------------------------------------------------
+        # Process the token
+
         flow = task._currentFlow
         assert flow is not None
         assert task is self._currentTask
@@ -979,15 +989,15 @@ class RepoTaskRunner(QObject):
         TK = FlowControlToken.Kind
 
         if tk == TK.ContinueOnUiThread or (RepoTaskRunner.ForceSerial and tk == TK.ContinueOnWorkThread):
-            # Get next continuation token on this thread then loop to beginning of _iterateFlow
+            # Get next continuation token on this thread then loop to beginning of _continueFlow.
             token = RepoTaskRunner._getNextToken(flow)
             assert token is not None, "Do not yield None from a RepoTask coroutine"
             return token
 
         elif tk == TK.WaitUserReady:
+            # When user is ready, task.uiReady will fire, and we'll re-enter _continueFlow.
             self.progress.emit("", False)
             self.requestAttention.emit()
-            # When user is ready, task.uiReady will fire, and we'll re-enter _iterateFlow
 
         elif tk == TK.WaitProcessReady:
             busyMessage = _("Busy: {0}…", task.name())
@@ -1006,8 +1016,8 @@ class RepoTaskRunner(QObject):
             busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
 
-            # Wrapper around `next(flow)`.
-            # It will, in turn, emit _continueFlow, which will re-enter _iterateFlow.
+            # FlowWorkerThread.run() is a wrapper around `next(flow)`.
+            # It will eventually re-enter _continueFlow.
             assert not self._workerThread.isRunning()
             self._workerThread.flow = flow
             self._workerThread.start()
@@ -1072,7 +1082,6 @@ class RepoTaskRunner(QObject):
         while task._taskStack:
             task._popSubtask()
 
-        self._continueFlow.disconnect()
         task.uiReady.disconnect()
 
         task._currentFlow = None
