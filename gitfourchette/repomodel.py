@@ -25,6 +25,8 @@ UC_FAKEREF = "UC_FAKEREF"
 # Actual refs are either "HEAD" or they start with "refs/",
 # so this name should never collide with user refs.
 
+BEGIN_SSH_SIGNATURE = b"-----BEGIN SSH SIGNATURE-----"
+
 
 def toggleSetElement(s: set, element):
     assert isinstance(s, set)
@@ -552,7 +554,14 @@ class RepoModel:
 
         sig, _payload = commit.gpg_signature
         status = GpgStatus.Pending if sig else GpgStatus.Unsigned
-        keyInfo = ""
+
+        if not sig:
+            status = GpgStatus.Unsigned
+            keyInfo = ""
+        else:
+            isSsh = sig.startswith(BEGIN_SSH_SIGNATURE)
+            keyInfo = "ssh" if isSsh else ""
+
         self.gpgStatusCache[commit.id] = (status, keyInfo)
         return status, keyInfo
 
@@ -562,5 +571,5 @@ class RepoModel:
     def queueGpgVerification(self, oid: Oid):
         if not settings.prefs.verifyGpgOnTheFly:
             return
-        assert self.gpgStatusCache[oid] == (GpgStatus.Pending, "")
+        assert self.gpgStatusCache[oid][0] == GpgStatus.Pending
         self.gpgVerificationQueue.add(oid)

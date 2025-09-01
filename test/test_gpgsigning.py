@@ -13,6 +13,7 @@ from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.nav import NavLocator
+from .test_remotelink import AskpassShim
 from .util import *
 
 
@@ -51,9 +52,32 @@ def tempGpgHome():
     os.environ.update(environBackup)
 
 
+def copySshKey(tempPath: str, testKeyName: str):
+    pubPath = f"{tempPath}/{testKeyName}.pub"
+    privPath = f"{tempPath}/{testKeyName}"
+    shutil.copyfile(getTestDataPath(f"keys/{testKeyName}.pub"), pubPath)
+    shutil.copyfile(getTestDataPath(f"keys/{testKeyName}"), privPath)
+    os.chmod(privPath, 0o600)
+    return pubPath
+
+
+def setUpForSshSigning(tempPath: str, repoWorkdir: str, testKeyName: str = "simple"):
+    pubKeyCopy = copySshKey(tempPath, testKeyName)
+    allowedSigners = f"{tempPath}/allowedSigners"
+    writeFile(allowedSigners, "CriquetteRockwell " + readTextFile(pubKeyCopy))
+
+    with RepoContext(repoWorkdir) as repo:
+        repo.config["gpg.format"] = "ssh"
+        repo.config["commit.gpgSign"] = True
+        repo.config["user.signingKey"] = pubKeyCopy
+        repo.config["gpg.ssh.allowedSignersFile"] = allowedSigners
+
+    return pubKeyCopy, allowedSigners
+
+
 @requiresGpg
 @pytest.mark.parametrize("amend", [False, True])
-def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
+def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -103,7 +127,55 @@ def testCommitGpg(tempDir, mainWindow, tempGpgHome, amend):
 
 
 @requiresGpg
-def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
+@pytest.mark.parametrize("amend", [False, True], ids=["commit", "amend"])
+@pytest.mark.parametrize("passphrase", [False, True], ids=["simple", "passphrase"])
+def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphrase):
+    wd = unpackRepo(tempDir)
+
+    keyName = "simple" if not passphrase else "pygit2_empty"
+    setUpForSshSigning(tempDir.name, wd, keyName)
+
+    rw = mainWindow.openRepo(wd)
+
+    if not amend:
+        rw.diffArea.commitButton.click()
+        acceptQMessageBox(rw, "empty commit")
+    else:
+        triggerMenuAction(mainWindow.menuBar(), "repo/amend last commit")
+
+    commitDialog = findQDialog(rw, "commit", CommitDialog)
+    commitDialog.ui.summaryEditor.setText("TEST SSH-SIGNED COMMIT")
+
+    signAction = commitDialog.ui.gpg.actions()[0]
+    assert findTextInWidget(signAction, r"enable sign")
+    assert signAction.isEnabled()
+    assert signAction.isChecked()
+    keyDisplay = commitDialog.ui.gpg.actions()[1]
+    assert keyName in keyDisplay.text()
+
+    with AskpassShim(password="empty") as askpassShim:
+        commitDialog.accept()
+
+        if passphrase:
+            # Make sure we were prompted to enter the passphrase for the correct key
+            assert re.search("Enter passphrase for.+pygit2_empty", askpassShim.dumpFile.read_text())
+
+    commit = rw.repo.head_commit
+    assert commit.message.strip() == "TEST SSH-SIGNED COMMIT"
+
+    # The commit we've just created should be auto-trusted.
+    # Look for signing information in GraphView tooltip
+    toolTip = summonToolTip(rw.graphView.viewport(), QPoint(rw.graphView.viewport().width() - 16, 30))
+    assert re.search("good signature; key trusted", toolTip, re.I)
+
+    # Look for signing information in GetCommitInfo dialog
+    triggerMenuAction(mainWindow.menuBar(), "view/go to head")
+    triggerContextMenuAction(rw.graphView.viewport(), "get info")
+    findQMessageBox(rw, "signature:.+good signature; key trusted").reject()
+
+
+@requiresGpg
+def testVerifyGoodPgpSignature(tempDir, mainWindow, tempGpgHome):
     wd = unpackRepo(tempDir)
 
     output = ToolCommands.runSync(
@@ -125,28 +197,83 @@ def testVerifyGpgSignature(tempDir, mainWindow, tempGpgHome):
 
 
 @requiresGpg
-def testCommitGpgBadSignature(tempDir, mainWindow, tempGpgHome):
+def testVerifyGoodSshSignature(tempDir, mainWindow, tempGpgHome):
+    wd = unpackRepo(tempDir)
+    _pubKey, allowedSigners = setUpForSshSigning(tempDir.name, wd)
+
+    output = ToolCommands.runSync(
+        settings.prefs.gitPath, "-c", "core.abbrev=no",
+        "commit", "--allow-empty", "-S", "-mSSH-Signed Commit",
+        directory=wd, strict=True)
+    commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    acceptQMessageBox(rw, "good signature; key trusted.+CriquetteRockwell")
+
+    # Clear allowed signers, then verify the signature again
+    writeFile(allowedSigners, "")
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    acceptQMessageBox(rw, "good signature; key not fully trusted")
+
+
+@requiresGpg
+def testVerifyBadPgpSignature(tempDir, mainWindow, tempGpgHome):
     # This signature was made by Alice. We have her key in the test
     # environment's keyring, so we're able to verify it. However, it was made
     # for an unrelated commit, so gpg should say BADSIG.
     aliceRandomSignature = textwrap.dedent("""\
         -----BEGIN PGP SIGNATURE-----
-
         iHUEABYKAB0WIQTrhbtfozp14V6UTmPyMVUMT0fjjgUCaKzZTwAKCRDyMVUMT0fj
         jl9SAQD9jP2eAIgs1hHyFPCzKsMvMFl4dWfcbv8WEqBreyaxkwD+OBMDvlL5dR2G
         e9tA1G0KHSPP2wgayb6rVUFmNFLD1Qo=
         =Lfmm
-        -----END PGP SIGNATURE-----
-        """)
+        -----END PGP SIGNATURE-----""")
 
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
         commitString = repo.create_commit_string(
-            TEST_SIGNATURE, TEST_SIGNATURE, "BAD GPG SIGNATURE!",
+            TEST_SIGNATURE, TEST_SIGNATURE, "BAD PGP SIGNATURE!",
             repo.head_tree.id, [repo.head_commit_id])
         oid = repo.create_commit_with_signature(commitString, aliceRandomSignature)
-        repo.create_branch_from_commit("BadGPG", oid)
+        repo.create_branch_from_commit("BadSignature", oid)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid, ""), check=True)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    acceptQMessageBox(rw, "bad signature")
+
+
+@requiresGpg
+def testVerifyBadSshSignature(tempDir, mainWindow, tempGpgHome):
+    # An allowed signers file is required to verify ssh signatures
+    allowedSigners = tempDir.name + "/allowedSigners"
+    touchFile(allowedSigners)
+
+    # This signature was made with the 'simple.pub' key for an unrelated commit.
+    randomSignature = textwrap.dedent("""\
+        -----BEGIN SSH SIGNATURE-----
+        U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg/QvOXnIKrnSR0vQJxwG/mMfRJs
+        eCjePKmBu0cl8qZZUAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
+        AAAAQMrBf44N5jZsvbUFNPGYYlf7Yw5tFDkAqnRNPjtieWCv1QtW7pgIOzXK6wDVfgwGQT
+        QDVVtGG7Hw6M9M7ga9MQA=
+        -----END SSH SIGNATURE-----""")
+
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        # Verification won't work without this file
+        repo.config["gpg.ssh.allowedSignersFile"] = allowedSigners
+
+        commitString = repo.create_commit_string(
+            TEST_SIGNATURE, TEST_SIGNATURE, "BAD SSH SIGNATURE!",
+            repo.head_tree.id, [repo.head_commit_id])
+        oid = repo.create_commit_with_signature(commitString, randomSignature)
+        repo.create_branch_from_commit("BadSignature", oid)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(oid, ""), check=True)

@@ -16,7 +16,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID, GpgStatus
+from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
 from gitfourchette.tasks import TaskEffects
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
@@ -190,7 +190,7 @@ class VerifyGpgSignature(RepoTask):
     _GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
 
     _GnupgStatusTable = {
-        # The order in this table is significant for parseGpgScrollback
+        # The order in this table is significant for parseGnupgVerification
         "NO_PUBKEY" : GpgStatus.MissingKey,
         "GOODSIG"   : GpgStatus.GoodUntrusted,
         "EXPSIG"    : GpgStatus.ExpiredSig,
@@ -200,6 +200,9 @@ class VerifyGpgSignature(RepoTask):
         "BADSIG"    : GpgStatus.Bad,
     }
 
+    _SshGoodTrustedPattern = re.compile(r'^Good "git" signature for (\S+) with \S+ key (.+)')
+    _SshGoodUntrustedPattern = re.compile(r'^Good "git" signature with \S+ key (.+)')
+
     def flow(self, oid: Oid, dialogParent: QWidget | None = None):
         commit = self.repo.peel_commit(oid)
 
@@ -207,10 +210,13 @@ class VerifyGpgSignature(RepoTask):
         if not gpgSignature:
             raise AbortTask(_("Commit {0} is not signed, so it cannot be verified.", tquo(shortHash(oid))))
 
+        isSsh = gpgSignature.startswith(BEGIN_SSH_SIGNATURE)
+
         driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
         fail = driver.exitCode() != 0
+        stderr = driver.stderrScrollback()
 
-        status, keyInfo = self.parseGpgScrollback(driver.stderrScrollback())
+        status, keyInfo = self.parseScrollback(stderr, isSsh)
 
         # Update gpg status cache
         self.repoModel.cacheGpgStatus(oid, status, keyInfo)
@@ -244,13 +250,22 @@ class VerifyGpgSignature(RepoTask):
                 QToolTip.showText(QCursor.pos(), _("{0} copied to clipboard.", tquo(keyInfo)))
             hintButton.clicked.connect(onCopyClicked)
 
+            # Adding an extra button seems to remove the OK button's Escape key mapping
+            qmb.setEscapeButton(qmb.button(QMessageBox.StandardButton.Ok))
+
         yield from self.flowDialog(qmb)
 
     @classmethod
-    def parseGpgScrollback(cls, scrollback: str) -> tuple[GpgStatus, str]:
+    def parseScrollback(cls, scrollback: str, isSsh: bool) -> tuple[GpgStatus, str]:
+        if isSsh:
+            return cls.parseSshVerification(scrollback)
+        else:
+            return cls.parseGnupgVerification(scrollback)
+
+    @classmethod
+    def parseGnupgVerification(cls, scrollback: str) -> tuple[GpgStatus, str]:
         # https://github.com/gpg/gnupg/blob/master/doc/DETAILS#general-status-codes
         # https://github.com/git/git/blob/v2.51.0/gpg-interface.c#L184
-        # Warning: this returns Unverified for SSH signatures!
 
         report = {}
         for line in scrollback.splitlines():
@@ -283,6 +298,30 @@ class VerifyGpgSignature(RepoTask):
 
         return status, keyInfo
 
+    @classmethod
+    def parseSshVerification(cls, scrollback: str) -> tuple[GpgStatus, str]:
+        lines = scrollback.splitlines()
+
+        if not lines:
+            return GpgStatus.CantCheck, ""
+
+        match = cls._SshGoodTrustedPattern.match(lines[0])
+        if match:
+            assert "No principal matched." not in lines
+            keyInfo = f"{match.group(1)} {match.group(2)}"
+            return GpgStatus.GoodTrusted, keyInfo
+
+        match = cls._SshGoodUntrustedPattern.match(lines[0])
+        if match:
+            assert "No principal matched." in lines
+            keyInfo = _("(Not found in SSH allowed signers file)") + " " + match.group(1)
+            return GpgStatus.GoodUntrusted, keyInfo
+
+        if lines[0].startswith("Could not verify signature."):
+            return GpgStatus.Bad, ""
+
+        return GpgStatus.CantCheck, ""
+
 
 class VerifyGpgQueue(RepoTask):
     def isFreelyInterruptible(self) -> bool:
@@ -296,13 +335,12 @@ class VerifyGpgQueue(RepoTask):
         while repoModel.gpgVerificationQueue:
             oid = repoModel.gpgVerificationQueue.pop()
 
-            currentStatus, _keyInfo = repoModel.gpgStatusCache.get(oid, (GpgStatus.Unsigned, ""))
+            currentStatus, keyInfo = repoModel.gpgStatusCache.get(oid, (GpgStatus.Unsigned, ""))
             if currentStatus != GpgStatus.Pending:
                 continue
 
             visibleIndex = self.visibleIndex(oid)
             if visibleIndex is None:
-                repoModel.cacheGpgStatus(oid, GpgStatus.Pending)
                 continue
 
             try:
@@ -315,8 +353,9 @@ class VerifyGpgQueue(RepoTask):
                 continue
 
             stderr = driver.stderrScrollback()
+            isSsh = keyInfo == "ssh"
 
-            status, keyInfo = VerifyGpgSignature.parseGpgScrollback(stderr)
+            status, keyInfo = VerifyGpgSignature.parseScrollback(stderr, isSsh)
             repoModel.cacheGpgStatus(oid, status, keyInfo)
             graphView.update(visibleIndex)
 
