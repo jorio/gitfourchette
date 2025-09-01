@@ -187,14 +187,17 @@ class GetCommitInfo(RepoTask):
 
 
 class VerifyGpgSignature(RepoTask):
-    GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
+    _GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
 
-    GnupgStatusTable = {
-        "GOODSIG"   : GpgStatus.GOODSIG,
-        "EXPSIG"    : GpgStatus.EXPSIG,
-        "EXPKEYSIG" : GpgStatus.EXPKEYSIG,
-        "REVKEYSIG" : GpgStatus.REVKEYSIG,
-        "BADSIG"    : GpgStatus.BADSIG,
+    _GnupgStatusTable = {
+        # The order in this table is significant for parseGpgScrollback
+        "NO_PUBKEY" : GpgStatus.MissingKey,
+        "GOODSIG"   : GpgStatus.GoodUntrusted,
+        "EXPSIG"    : GpgStatus.ExpiredSig,
+        "EXPKEYSIG" : GpgStatus.ExpiredKey,
+        "REVKEYSIG" : GpgStatus.RevokedKey,
+        "KEYREVOKED": GpgStatus.RevokedKey,
+        "BADSIG"    : GpgStatus.Bad,
     }
 
     def flow(self, oid: Oid, dialogParent: QWidget | None = None):
@@ -207,25 +210,24 @@ class VerifyGpgSignature(RepoTask):
         driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
         fail = driver.exitCode() != 0
 
-        status, keyInfo, report = self.parseGpgScrollback(driver.stderrScrollback())
+        status, keyInfo = self.parseGpgScrollback(driver.stderrScrollback())
 
         # Update gpg status cache
         self.repoModel.cacheGpgStatus(oid, status, keyInfo)
 
         paras = [f"{stockIconImgTag(status.iconName())} {TrTables.enum(status)}"]
 
-        if "NO_PUBKEY" in report:
+        if status == GpgStatus.MissingKey:
             paras.append(_("Hint: Public key {0} isn’t in your GPG keyring. "
                            "You can try to import it from a trusted source, "
                            "then verify this commit again.", f"<em>{escape(keyInfo)}</em>"))
 
-        with suppress(StopIteration):
-            interestingToken = next(k for k in self.GnupgStatusTable if k in report)
-            paras.append(f"<small>{escape(report[interestingToken])}</small>")
+        if keyInfo:
+            paras.append(f"<i>{escape(keyInfo)}</i>")
 
         title = _("Verify signature in commit {0}", tquo(shortHash(oid)))
         mbIcon = ("information" if not fail else
-                  "critical" if "BADSIG" in report else
+                  "critical" if status in [GpgStatus.RevokedKey, GpgStatus.Bad] else
                   "warning")
         qmb = asyncMessageBox(self.parentWidget(), mbIcon, title, paragraphs(paras),
                               QMessageBox.StandardButton.Ok)# | QMessageBox.StandardButton.Help)
@@ -242,41 +244,44 @@ class VerifyGpgSignature(RepoTask):
                 QToolTip.showText(QCursor.pos(), _("{0} copied to clipboard.", tquo(keyInfo)))
             hintButton.clicked.connect(onCopyClicked)
 
-
         yield from self.flowDialog(qmb)
 
     @classmethod
-    def parseGpgScrollback(cls, scrollback: str):
+    def parseGpgScrollback(cls, scrollback: str) -> tuple[GpgStatus, str]:
         # https://github.com/gpg/gnupg/blob/master/doc/DETAILS#general-status-codes
         # https://github.com/git/git/blob/v2.51.0/gpg-interface.c#L184
         # Warning: this returns Unverified for SSH signatures!
 
         report = {}
         for line in scrollback.splitlines():
-            match = cls.GnupgLinePattern.match(line)
+            match = cls._GnupgLinePattern.match(line)
             if not match:
                 continue
             token = match.group(1)
             blurb = match.group(2)
             report[token] = blurb
 
+        # Find the most significant status.
+        # The order of the keys in _GnupgStatusTable is significant!
         try:
-            status = next(value for name, value in cls.GnupgStatusTable.items() if name in report)
+            status = next(status
+                          for token, status in cls._GnupgStatusTable.items()
+                          if token in report)
         except StopIteration:
             status = GpgStatus.CantCheck
 
-        if "KEYREVOKED" in report:
-            status = GpgStatus.REVKEYSIG
+        # Bump GoodUntrusted to GoodTrusted if we trust this
+        if status == GpgStatus.GoodUntrusted and ("TRUST_ULTIMATE" in report) or ("TRUST_FULLY" in report):
+            status = GpgStatus.GoodTrusted
 
-        if status == GpgStatus.GOODSIG and ("TRUST_ULTIMATE" in report) or ("TRUST_FULLY" in report):
-            status = GpgStatus.Trusted
+        # Try to extract a key ID or fingerprint for informative purposes
+        keyInfo = ""
+        for token in cls._GnupgStatusTable:
+            keyInfo = report.get(token, "")
+            if keyInfo:
+                break
 
-        try:
-            keyInfo = next(report[k] for k in ["GOODSIG", "EXPKEYSIG", "NO_PUBKEY"] if k in report)
-        except StopIteration:
-            keyInfo = ""
-
-        return status, keyInfo, report
+        return status, keyInfo
 
 
 class VerifyGpgQueue(RepoTask):
@@ -311,7 +316,7 @@ class VerifyGpgQueue(RepoTask):
 
             stderr = driver.stderrScrollback()
 
-            status, keyInfo, report = VerifyGpgSignature.parseGpgScrollback(stderr)
+            status, keyInfo = VerifyGpgSignature.parseGpgScrollback(stderr)
             repoModel.cacheGpgStatus(oid, status, keyInfo)
             graphView.update(visibleIndex)
 

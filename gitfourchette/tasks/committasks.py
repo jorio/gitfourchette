@@ -121,7 +121,7 @@ class NewCommit(RepoTask):
 
         # Trust this commit if we've just signed it
         if explicitGpgSign:
-            self.repoModel.cacheGpgStatus(newOid, GpgStatus.Trusted, gpgKey)
+            self.repoModel.cacheGpgStatus(newOid, GpgStatus.GoodTrusted, gpgKey)
 
         uiPrefs.clearDraftCommit()
 
@@ -239,7 +239,7 @@ class AmendCommit(RepoTask):
 
         # Trust this commit if we've just signed it
         if explicitGpgSign:
-            self.repoModel.cacheGpgStatus(newOid, GpgStatus.Trusted, gpgKey)
+            self.repoModel.cacheGpgStatus(newOid, GpgStatus.GoodTrusted, gpgKey)
 
         self.repoModel.prefs.clearDraftAmend()
 

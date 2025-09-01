@@ -40,12 +40,13 @@ class GpgStatus(enum.IntEnum):
     Unsigned        = 0
     Pending         = enum.auto()
     CantCheck       = enum.auto()
-    Trusted         = enum.auto()
-    GOODSIG         = enum.auto()
-    EXPSIG          = enum.auto()
-    EXPKEYSIG       = enum.auto()
-    REVKEYSIG       = enum.auto()
-    BADSIG          = enum.auto()
+    MissingKey      = enum.auto()
+    GoodTrusted     = enum.auto()
+    GoodUntrusted   = enum.auto()
+    ExpiredSig      = enum.auto()
+    ExpiredKey      = enum.auto()
+    RevokedKey      = enum.auto()
+    Bad             = enum.auto()
     ProcessError    = enum.auto()
 
     def iconName(self):
@@ -57,12 +58,12 @@ class GpgStatus(enum.IntEnum):
 
 _GpgStatusIconTable = {
     GpgStatus.Pending       : "gpg-verify-pending",
-    GpgStatus.Trusted       : "gpg-verify-good-trusted",
-    GpgStatus.GOODSIG       : "gpg-verify-good-untrusted",
-    GpgStatus.EXPSIG        : "gpg-verify-expired",
-    GpgStatus.EXPKEYSIG     : "gpg-verify-expired",
-    GpgStatus.REVKEYSIG     : "gpg-verify-bad",
-    GpgStatus.BADSIG        : "gpg-verify-bad",
+    GpgStatus.GoodTrusted   : "gpg-verify-good-trusted",
+    GpgStatus.GoodUntrusted : "gpg-verify-good-untrusted",
+    GpgStatus.ExpiredSig    : "gpg-verify-expired",
+    GpgStatus.ExpiredKey    : "gpg-verify-expired",
+    GpgStatus.RevokedKey    : "gpg-verify-bad",
+    GpgStatus.Bad           : "gpg-verify-bad",
     GpgStatus.ProcessError  : "gpg-verify-cantcheck",
 }
 
