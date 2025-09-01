@@ -135,13 +135,11 @@ class CommitLogModel(QAbstractListModel):
                 elif zone.kind == "message":
                     tip = commitMessageTooltip(commit)
                 elif zone.kind == "author":
-                    gpg = self.repoModel.getCachedGpgStatus(commit)
-                    tip = commitAuthorTooltip(commit, gpg)
+                    tip = commitAuthorTooltip(commit, *self.repoModel.getCachedGpgStatus(commit))
                 break
 
             if self._authorColumnX <= 0:  # author hidden in narrow window
-                gpg = self.repoModel.getCachedGpgStatus(commit)
-                tip += commitAuthorTooltip(commit, gpg)
+                tip += commitAuthorTooltip(commit, *self.repoModel.getCachedGpgStatus(commit))
 
             return tip
 
@@ -168,7 +166,7 @@ class CommitLogModel(QAbstractListModel):
         return False
 
 
-def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus) -> str:
+def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
     def formatTime(sig: Signature):
         return escape(signatureDateFormat(sig))
 
@@ -195,9 +193,12 @@ def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus) -> str:
                    f"<br><small>{formatTime(committer)}")
     markup += "</p>"
 
-    if gpgStatus != GpgStatus.Unsigned:
-        gpgText = TrTables.enum(gpgStatus)
-        markup += f"<p>{gpgStatus.iconHtml()} {gpgText}</p>"
+    if gpgStatus == GpgStatus.Unsigned:
+        pass
+    elif gpgKeyInfo:
+        markup += f"<p>{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small></p>"
+    else:
+        markup += f"<p>{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}</p>"
 
     return markup
 

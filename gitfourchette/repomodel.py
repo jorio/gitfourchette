@@ -119,7 +119,7 @@ class RepoModel:
     hiddenCommits: set[Oid]
     "All cached commit oids that are hidden."
 
-    gpgStatusCache: dict[Oid, GpgStatus]
+    gpgStatusCache: dict[Oid, tuple[GpgStatus, str]]
 
     workdirStale: bool
     "Flag indicating that the workdir should be refreshed before use."
@@ -541,19 +541,25 @@ class RepoModel:
                 if ref.startswith(refPattern):
                     yield oid
 
-    def getCachedGpgStatus(self, commit: Commit) -> GpgStatus:
+    def getCachedGpgStatus(self, commit: Commit) -> tuple[GpgStatus, str]:
+        oid = commit.id
+
         try:
-            return self.gpgStatusCache[commit.id]
+            return self.gpgStatusCache[oid]
         except KeyError:
             pass
 
         sig, _payload = commit.gpg_signature
         status = GpgStatus.Pending if sig else GpgStatus.Unsigned
-        self.gpgStatusCache[commit.id] = status
-        return status
+        keyInfo = ""
+        self.gpgStatusCache[commit.id] = (status, keyInfo)
+        return status, keyInfo
+
+    def cacheGpgStatus(self, oid: Oid, status: GpgStatus, keyInfo: str = ""):
+        self.gpgStatusCache[oid] = (status, keyInfo)
 
     def queueGpgVerification(self, oid: Oid):
         if not settings.prefs.verifyGpgOnTheFly:
             return
-        assert self.gpgStatusCache[oid] == GpgStatus.Pending
+        assert self.gpgStatusCache[oid] == (GpgStatus.Pending, "")
         self.gpgVerificationQueue.add(oid)

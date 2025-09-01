@@ -107,11 +107,13 @@ class GetCommitInfo(RepoTask):
             committerMarkup = self.formatSignature(commit.committer)
 
         # GPG
-        gpg = self.repoModel.getCachedGpgStatus(commit)
-        if not gpg:
+        gpgStatus, gpgKeyInfo = self.repoModel.getCachedGpgStatus(commit)
+        if gpgStatus == GpgStatus.Unsigned:
             gpgMarkup = tagify(_("(not signed)"), "<i>")
+        elif gpgKeyInfo:
+            gpgMarkup = f"{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small>"
         else:
-            gpgMarkup = f"{gpg.iconHtml()} {TrTables.enum(gpg)}"
+            gpgMarkup = f"{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}"
 
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
@@ -185,7 +187,7 @@ class GetCommitInfo(RepoTask):
 
 
 class VerifyGpgSignature(RepoTask):
-    GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)(|\s+.+)$")
+    GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
 
     GnupgStatusTable = {
         "GOODSIG"   : GpgStatus.GOODSIG,
@@ -205,19 +207,17 @@ class VerifyGpgSignature(RepoTask):
         driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
         fail = driver.exitCode() != 0
 
-        status, report = self.parseGpgScrollback(driver.stderrScrollback())
+        status, keyInfo, report = self.parseGpgScrollback(driver.stderrScrollback())
 
         # Update gpg status cache
-        self.repoModel.gpgStatusCache[oid] = status
+        self.repoModel.cacheGpgStatus(oid, status, keyInfo)
 
         paras = [f"{stockIconImgTag(status.iconName())} {TrTables.enum(status)}"]
 
-        keyId = ""
         if "NO_PUBKEY" in report:
-            keyId = report["NO_PUBKEY"].strip()
             paras.append(_("Hint: Public key {0} isn’t in your GPG keyring. "
                            "You can try to import it from a trusted source, "
-                           "then verify this commit again.", f"<em>{escape(keyId)}</em>"))
+                           "then verify this commit again.", f"<em>{escape(keyInfo)}</em>"))
 
         with suppress(StopIteration):
             interestingToken = next(k for k in self.GnupgStatusTable if k in report)
@@ -231,15 +231,15 @@ class VerifyGpgSignature(RepoTask):
                               QMessageBox.StandardButton.Ok)# | QMessageBox.StandardButton.Help)
         qmb.setDetailedText(driver.stderrScrollback())
 
-        if keyId:
+        if keyInfo:
             hintButton = QPushButton(qmb)
             qmb.addButton(hintButton, QMessageBox.ButtonRole.HelpRole)
             hintButton.setText(_("Copy &Key ID"))
             hintButton.clicked.disconnect()  # Qt internally wires the button to close the dialog; undo that.
 
             def onCopyClicked():
-                QApplication.clipboard().setText(keyId)
-                QToolTip.showText(QCursor.pos(), _("{0} copied to clipboard.", tquo(keyId)))
+                QApplication.clipboard().setText(keyInfo)
+                QToolTip.showText(QCursor.pos(), _("{0} copied to clipboard.", tquo(keyInfo)))
             hintButton.clicked.connect(onCopyClicked)
 
 
@@ -271,7 +271,12 @@ class VerifyGpgSignature(RepoTask):
         if status == GpgStatus.GOODSIG and ("TRUST_ULTIMATE" in report) or ("TRUST_FULLY" in report):
             status = GpgStatus.Trusted
 
-        return status, report
+        try:
+            keyInfo = next(report[k] for k in ["GOODSIG", "EXPKEYSIG", "NO_PUBKEY"] if k in report)
+        except StopIteration:
+            keyInfo = ""
+
+        return status, keyInfo, report
 
 
 class VerifyGpgQueue(RepoTask):
@@ -286,13 +291,13 @@ class VerifyGpgQueue(RepoTask):
         while repoModel.gpgVerificationQueue:
             oid = repoModel.gpgVerificationQueue.pop()
 
-            currentStatus = repoModel.gpgStatusCache.get(oid, GpgStatus.Unsigned)
+            currentStatus, _keyInfo = repoModel.gpgStatusCache.get(oid, (GpgStatus.Unsigned, ""))
             if currentStatus != GpgStatus.Pending:
                 continue
 
             visibleIndex = self.visibleIndex(oid)
             if visibleIndex is None:
-                repoModel.gpgStatusCache[oid] = GpgStatus.Pending
+                repoModel.cacheGpgStatus(oid, GpgStatus.Pending)
                 continue
 
             try:
@@ -300,14 +305,14 @@ class VerifyGpgQueue(RepoTask):
             except AbortTask:
                 # This task may be issued repeatedly.
                 # Don't let AbortTask spam dialog boxes if git failed to start.
-                repoModel.gpgStatusCache[oid] = GpgStatus.ProcessError
+                repoModel.cacheGpgStatus(oid, GpgStatus.ProcessError)
                 graphView.update(visibleIndex)
                 continue
 
             stderr = driver.stderrScrollback()
 
-            status, report = VerifyGpgSignature.parseGpgScrollback(stderr)
-            repoModel.gpgStatusCache[oid] = status
+            status, keyInfo, report = VerifyGpgSignature.parseGpgScrollback(stderr)
+            repoModel.cacheGpgStatus(oid, status, keyInfo)
             graphView.update(visibleIndex)
 
     def visibleIndex(self, oid: Oid):

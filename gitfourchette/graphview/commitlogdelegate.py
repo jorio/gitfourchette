@@ -175,7 +175,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             hashText = shortHash(oid)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
-            gpgStatus = self.repoModel.getCachedGpgStatus(commit)
+            gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(commit)
 
             if gpgStatus == GpgStatus.Pending and settings.prefs.verifyGpgOnTheFly:
                 self.requestSignatureVerification.emit(oid)
