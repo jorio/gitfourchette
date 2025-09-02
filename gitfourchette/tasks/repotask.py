@@ -714,7 +714,8 @@ class RepoTask(QObject):
         else:
             icon = icon or "information"
 
-        qmb = asyncMessageBox(self.parentWidget(), icon, title, text, buttonMask)
+        qmb = asyncMessageBox(self.parentWidget(), icon, title, text, buttonMask,
+                              deleteOnClose=False)
 
         dontShowAgainCheckBox = None
         if dontShowAgainKey:
@@ -752,15 +753,16 @@ class RepoTask(QObject):
         if detailList:
             addULToMessageBox(qmb, detailList)
 
-        qmb.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         yield from self.flowDialog(qmb)
+        result = qmb.result()
 
         if dontShowAgainKey and dontShowAgainCheckBox.isChecked():
             from gitfourchette import settings
             settings.prefs.dontShowAgain.append(dontShowAgainKey)
             settings.prefs.setDirty()
 
-        return qmb.result()
+        qmb.deleteLater()
+        return result
 
     def checkPrereqs(self, prereqs=TaskPrereqs.Nothing):
         if prereqs == TaskPrereqs.Nothing:
