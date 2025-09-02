@@ -391,7 +391,7 @@ class RepoWidget(QWidget):
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
         self.taskRunner.killCurrentTask()
-        self.taskRunner.joinZombieTask()
+        self.taskRunner.joinKilledTask()
 
         # Save sidebar collapse cache
         newCollapseCache = set()

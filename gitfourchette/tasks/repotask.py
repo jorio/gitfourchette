@@ -807,12 +807,16 @@ class RepoTaskRunner(QObject):
     _aboutToProcessToken = Signal()
 
     _workerThread: FlowWorkerThread
+    "Thread that can execute non-UI sections of the current task's coroutine."
+
+    _interruptCurrentTask: bool
+    "Flag to interrupt the current task."
 
     _currentTask: RepoTask | None
     "Task that is currently running"
 
-    _zombieTask: RepoTask | None
-    "Task that is being interrupted"
+    _pendingTask: RepoTask | None
+    "Task that is interrupting _currentTask"
 
     _currentTaskBenchmark: Benchmark
     "Context manager"
@@ -821,8 +825,9 @@ class RepoTaskRunner(QObject):
         super().__init__(parent)
         self.setObjectName("RepoTaskRunner")
         self._currentTask = None
-        self._zombieTask = None
+        self._pendingTask = None
         self._currentTaskBenchmark = Benchmark("???")
+        self._interruptCurrentTask = False
         self.repoModel = None
 
         self._workerThread = FlowWorkerThread(self)
@@ -835,39 +840,28 @@ class RepoTaskRunner(QObject):
 
     def isBusy(self) -> bool:
         return (self._currentTask is not None
-                or self._zombieTask is not None
+                or self._pendingTask is not None
                 or self._workerThread.isRunning())
 
     def killCurrentTask(self):
         """
         Interrupt current task next time it yields a FlowControlToken.
 
-        The task will not die immediately; use joinZombieTask() after killing
+        The task will not die immediately. Use joinKilledTask() after killing
         the task to block the current thread until the task runner is empty.
+
+        No-op if no task is running.
         """
-        if not self._currentTask:
-            # Nothing to kill.
-            return
+        if self._currentTask:
+            self._interruptCurrentTask = True
 
-        if not self._zombieTask:
-            # Move the currently-running task to zombie mode.
-            # It'll get deleted next time it yields a FlowControlToken.
-            self._zombieTask = self._currentTask
-        else:
-            # There's already a zombie. This means that the current task hasn't
-            # started yet - it's waiting on the zombie to die.
-            # Just overwrite the current task, but let the zombie die cleanly.
-            assert self._currentTask._currentIteration == 0, "_currentTask isn't supposed to have started yet!"
-            self._currentTask.deleteLater()
-
-        self._currentTask = None
-
-    def joinZombieTask(self):
-        """Block UI thread until the current zombie task is dead.
-        Returns immediately if there's no zombie task."""
-
+    def joinKilledTask(self):
+        """
+        Block UI thread until the current task that is being interrupted is dead.
+        Returns immediately if no task is being interrupted.
+        """
         assert onAppThread()
-        while self._zombieTask:
+        while self._interruptCurrentTask:
             QThread.yieldCurrentThread()
             QThread.msleep(30)
             flags = QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
@@ -906,12 +900,19 @@ class RepoTaskRunner(QObject):
         elif self._currentTask.isFreelyInterruptible() or task.canKill(self._currentTask):
             logger.info(f"Task {task} killed task {self._currentTask}")
 
-            # Move the current task to zombie state.
+            # Interrupt the current task.
             self.killCurrentTask()
 
+            if self._pendingTask:
+                # There's already a pending task.
+                # It hasn't started yet - it's waiting on _currentTask to die.
+                # Just replace _pendingTask, but let _currentTask die cleanly.
+                assert self._pendingTask._currentIteration == 0, "_pendingTask isn't supposed to have started yet!"
+                self._pendingTask.deleteLater()
+
             # Queue up this task.
-            # Next time _processTokens runs, it will kill off the zombie and boot the new current task.
-            self._currentTask = task
+            # Next time _processTokens runs, it will kill off the current task and boot the pending task.
+            self._pendingTask = task
 
         else:
             logger.info(f"Task {task} cannot kill task {self._currentTask}")
@@ -922,7 +923,8 @@ class RepoTaskRunner(QObject):
         task = self._currentTask
         assert task._currentFlow
         assert task.isRootTask
-        assert not self._zombieTask, "zombie task should be gone before starting a new task"
+        assert not self._pendingTask, "pending task should be gone before starting a new task"
+        assert not self._interruptCurrentTask, "interrupt flag not reset"
 
         logger.debug(f">>> {task}")
 
@@ -937,7 +939,7 @@ class RepoTaskRunner(QObject):
             task.checkPrereqs()
         except AbortTask as abort:
             self.reportAbortTask(task, abort)
-            self._releaseTask(task)
+            self._releaseCurrentTask()
             return
 
         # Start the coroutine
@@ -959,31 +961,35 @@ class RepoTaskRunner(QObject):
 
         self._aboutToProcessToken.emit()
 
-        task = self._zombieTask or self._currentTask
+        task = self._currentTask
         assert task is not None
         task._currentIteration += 1
 
         # Let worker thread wrap up
         self.joinWorkerThread()
 
-        # Wrap up zombie task (task that was interrupted earlier)
-        if task is self._zombieTask:
-            assert task is not self._currentTask
-            self._releaseTask(task)
+        # Wrap up if we've been interrupted
+        if self._interruptCurrentTask:
+            self._interruptCurrentTask = False
+            self._releaseCurrentTask()
+            assert self._currentTask is None
             task.deleteLater()
 
             # Another task is queued up, start it now
-            if self._currentTask:
+            if self._pendingTask:
+                self._currentTask = self._pendingTask
+                self._pendingTask = None
                 self._startCurrentTask()
 
             return None
+
+        assert not self._pendingTask, "there can't be a pending task without interrupting the current task"
 
         # ---------------------------------------------------------------------
         # Process the token
 
         flow = task._currentFlow
         assert flow is not None
-        assert task is self._currentTask
 
         tk = token.flowControl
         TK = FlowControlToken.Kind
@@ -1031,7 +1037,7 @@ class RepoTaskRunner(QObject):
             self.joinWorkerThread()
 
             # Stop tracking this task
-            self._releaseTask(task)
+            self._releaseCurrentTask()
 
             if isinstance(exception, StopIteration):
                 # No more steps in the flow. Task completed successfully.
@@ -1068,13 +1074,15 @@ class RepoTaskRunner(QObject):
             token = FlowControlToken(FlowControlToken.Kind.InterruptedByException, exception)
         return token
 
-    def _releaseTask(self, task: RepoTask):
+    def _releaseCurrentTask(self):
+        task = self._currentTask
+
         logger.debug(f"<<< {task}")
         self.progress.emit("", False)
         self._currentTaskBenchmark.__exit__(None, None, None)
 
         assert onAppThread()
-        assert task is self._currentTask or task is self._zombieTask
+        assert task is self._currentTask
         assert task.isRootTask
 
         # Clean up all tasks in the stack (remember, we're the root stack)
@@ -1085,13 +1093,7 @@ class RepoTaskRunner(QObject):
         task.uiReady.disconnect()
 
         task._currentFlow = None
-
-        if task is self._currentTask:
-            self._currentTask = None
-        elif task is self._zombieTask:
-            self._zombieTask = None
-        else:
-            raise AssertionError("_releaseTask: task is neither current nor zombie")
+        self._currentTask = None
 
     def reportAbortTask(self, task: RepoTask, exception: AbortTask):
         message = str(exception)
