@@ -515,7 +515,7 @@ class MainWindow(QMainWindow):
             return
 
         menu = self.generateTabContextMenu(i)
-        menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        menu.aboutToHide.connect(menu.deleteLater)
         menu.popup(globalPoint)
 
     def onTabDoubleClicked(self, i: int):

@@ -345,7 +345,7 @@ class CodeView(QPlainTextEdit):
         # Create QMenu
         menu = ActionDef.makeQMenu(self, actions)
         menu.setObjectName("CodeViewContextMenu")
-        menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        menu.aboutToHide.connect(menu.deleteLater)
 
         # The master menu doesn't take ownership of bottomMenu's actions,
         # so bottomMenu must be kept alive until the master menu is closed.

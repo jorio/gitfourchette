@@ -213,7 +213,7 @@ class FileList(QListView):
     def onContextMenuRequested(self, point: QPoint):
         menu = self.makeContextMenu()
         if menu is not None:
-            menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
     def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
