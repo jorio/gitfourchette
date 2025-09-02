@@ -804,7 +804,6 @@ class RepoTaskRunner(QObject):
     ready = Signal()
     requestAttention = Signal()
     processStarted = Signal(QProcess, str)
-    _aboutToProcessToken = Signal()
 
     _workerThread: FlowWorkerThread
     "Thread that can execute non-UI sections of the current task's coroutine."
@@ -833,6 +832,8 @@ class RepoTaskRunner(QObject):
         self._workerThread = FlowWorkerThread(self)
         self._workerThread.flow = None
         self._workerThread.tokenReady.connect(self._continueFlow)
+
+        self._waitForNextToken = QEventLoop(self)
 
     @property
     def currentTask(self):
@@ -876,11 +877,6 @@ class RepoTaskRunner(QObject):
             self._workerThread.wait()
         assert not self._workerThread.isRunning()
         assert not self._workerThread.flow
-
-    def blockUntilNextToken(self):
-        block = QEventLoop()
-        self._aboutToProcessToken.connect(block.quit)
-        block.exec()
 
     def put(self, call: TaskInvocation):
         assert onAppThread()
@@ -946,6 +942,11 @@ class RepoTaskRunner(QObject):
         self._continueFlow()
 
     def _continueFlow(self, token: FlowControlToken = FlowControlToken.BootstrapFlow):
+        if self._waitForNextToken.isRunning():
+            assert token.flowControl == FlowControlToken.Kind.ContinueOnUiThread
+            self._waitForNextToken.quit()
+            return
+
         while token is not None:
             token = self._processToken(token)
 
@@ -958,8 +959,6 @@ class RepoTaskRunner(QObject):
         assert isinstance(token, FlowControlToken), \
             f"In a RepoTask coroutine, you can only yield FlowControlToken. You yielded: {type(token).__name__}"
         assert onAppThread(), "_processToken must be called on UI thread"
-
-        self._aboutToProcessToken.emit()
 
         task = self._currentTask
         assert task is not None
@@ -1015,7 +1014,9 @@ class RepoTaskRunner(QObject):
 
             # In unit tests, block until the process has completed
             if RepoTaskRunner.ForceSerial:
-                self.blockUntilNextToken()
+                assert not self._waitForNextToken.isRunning()
+                self._waitForNextToken.exec()
+                return FlowControlToken.BootstrapFlow
 
         elif tk == TK.ContinueOnWorkThread:
             assert not RepoTaskRunner.ForceSerial

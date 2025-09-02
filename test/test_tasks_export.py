@@ -12,7 +12,6 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 
 
-@pytest.mark.skipif(OFFSCREEN, reason="flaky offscreen")
 def testExportPatchFromWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "some changes\n")
@@ -52,7 +51,6 @@ def testExportPatchFromEmptyWorkdir(tempDir, mainWindow):
     acceptQMessageBox(rw, "patch is empty")
 
 
-@pytest.mark.skipif(OFFSCREEN, reason="flaky offscreen")
 def testExportPatchFromCommit(tempDir, mainWindow):
     oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
@@ -74,7 +72,6 @@ def testExportPatchFromCommit(tempDir, mainWindow):
     assert qlvGetRowData(rw.dirtyFiles) == []
 
 
-@pytest.mark.skipif(OFFSCREEN, reason="flaky offscreen")
 def testExportPatchFromStash(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stashedChange(wd)
@@ -97,7 +94,6 @@ def testExportPatchFromStash(tempDir, mainWindow):
     assert qlvGetRowData(rw.dirtyFiles) == []
 
 
-@pytest.mark.skipif(OFFSCREEN, reason="flaky offscreen")
 @pytest.mark.parametrize("commitHex,path", [
     ("c9ed7bf12c73de26422b7c5a44d74cfce5a8993b", "c/c2-2.txt"),
     ("7f822839a2fe9760f386cbbbcb3f92c5fe81def7", "b/b2.txt"),
