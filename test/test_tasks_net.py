@@ -80,21 +80,14 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
 
     # Set target path in clone dialog
     cloneDialog.ui.browseButton.click()
-    qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
-    assert "clone" in qfd.windowTitle().lower()
-    qfd.selectFile(target)
-    qfd.accept()
+    acceptQFileDialog(cloneDialog, "clone repository into", target)
     assert cloneDialog.ui.pathEdit.text() == target
-    QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Play with key file picker
     assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
     cloneDialog.ui.keyFilePicker.checkBox.click()
-    qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
-    assert "key file" in qfd.windowTitle().lower()
-    qfd.reject()
+    findQDialog(cloneDialog, "key file", QFileDialog).reject()
     assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
-    QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Fire ze missiles
     assert cloneDialog.cloneButton.isEnabled()

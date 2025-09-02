@@ -447,8 +447,13 @@ def rejectQMessageBox(parent: QWidget, textPattern: str):
 
 
 def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggestedName=False):
-    qfd = findQDialog(parent, textPattern)
-    assert isinstance(qfd, QFileDialog)
+    qfd = findQDialog(parent, textPattern, QFileDialog)
+
+    # qfd.selectFile() is finicky when QLineEdit has focus - https://stackoverflow.com/a/53886678
+    assert qfd.focusWidget()
+    assert isinstance(qfd.focusWidget(), QLineEdit)
+    qfd.focusWidget().clearFocus()
+    QTest.qWait(0)
 
     if useSuggestedName:
         suggestedName = os.path.basename(qfd.selectedFiles()[0])
@@ -456,7 +461,6 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggested
     path = os.path.normpath(path)
 
     qfd.selectFile(path)
-    qfd.show()
 
     if MACOS and not OFFSCREEN and os.path.isdir(path):
         qfd.selectFile(path + "/")
