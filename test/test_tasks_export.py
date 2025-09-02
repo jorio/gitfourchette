@@ -51,6 +51,26 @@ def testExportPatchFromEmptyWorkdir(tempDir, mainWindow):
     acceptQMessageBox(rw, "patch is empty")
 
 
+def testExportPatchFromHandPickedSelectionOfBinaryFiles(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "\x00\x01\x02\x03")
+    writeFile(f"{wd}/untracked.txt", "hello")
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
+    rw.dirtyFiles.savePatchAs()
+    acceptQMessageBox(rw, "cannot export binary patches from a hand-picked selection of files")
+
+    rw.dirtyFiles.selectAll()
+    rw.dirtyFiles.savePatchAs()
+    acceptQMessageBox(rw, "cannot export binary patches from a hand-picked selection of files"
+                          ".+binary file will be omitted.+master.txt")
+    acceptQFileDialog(rw, "export patch", f"{wd}/nobinary.patch")
+
+    assert "master.txt" not in readTextFile(f"{wd}/nobinary.patch")
+    assert "untracked.txt" in readTextFile(f"{wd}/nobinary.patch")
+
+
 def testExportPatchFromCommit(tempDir, mainWindow):
     oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
@@ -103,7 +123,7 @@ def testExportPatchFromFileList(tempDir, mainWindow, commitHex, path):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    rw.jump(NavLocator.inCommit(Oid(hex=commitHex), path))
+    rw.jump(NavLocator.inCommit(Oid(hex=commitHex), path), check=True)
     rw.committedFiles.savePatchAs()
     acceptQFileDialog(rw, "export patch", f"{tempDir.name}/foo.patch")
 
