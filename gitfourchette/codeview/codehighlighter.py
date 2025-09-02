@@ -50,10 +50,10 @@ class CodeHighlighter(QSyntaxHighlighter):
         self.lexJobs.clear()
 
     def highlightBlock(self, text: str):
+        if self.scheme and self.lexJobs:
+            self.highlightSyntax(text)
         if self.searchTerm:
             self.highlightSearch(text)
-        elif self.scheme and self.lexJobs:
-            self.highlightSyntax(text)
 
     def highlightSearch(self, text: str):
         # Highlight occurrences of search term
