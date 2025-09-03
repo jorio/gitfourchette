@@ -7,6 +7,7 @@
 from math import ceil
 
 from gitfourchette.qt import *
+from gitfourchette.settings import CondensedFonts
 
 class FittedText:
     enable = True
@@ -44,6 +45,9 @@ class FittedText:
         width = ceil(metrics.horizontalAdvance(text))
         if stretchMaxWidth is None:
             stretchMaxWidth = maxWidth
+        if cls.enable == CondensedFonts.Always:
+            # Stretch as hard as we can -- as though there's no space
+            stretchMaxWidth = 0
 
         if width < 1:
             return text, wideFont, 0

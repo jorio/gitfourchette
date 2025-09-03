@@ -102,7 +102,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, CondensedFonts
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
 
         NVERule = NameValidationError.Rule
@@ -230,6 +230,12 @@ class TrTables:
                 RefSort.AlphaAsc                : _p("sort refs alphabetically, ascending", "Name, A-Z"),
                 RefSort.AlphaDesc               : _p("sort refs alphabetically, descending", "Name, Z-A"),
                 RefSort.UseGlobalPref           : "",
+            },
+
+            CondensedFonts: {
+                CondensedFonts.Never            : _p("never use condensed fonts", "Never"),
+                CondensedFonts.Stretch          : _p("shrink only long text using condensed fonts", "For long text"),
+                CondensedFonts.Always           : _p("use condensed fonts whenever possible", "Always"),
             }
         }
 

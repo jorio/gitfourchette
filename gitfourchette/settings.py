@@ -63,6 +63,13 @@ class QtApiNames(enum.StrEnum):
     PyQt5 = "pyqt5"
 
 
+class CondensedFonts(enum.Enum):
+    # For compatibility with old prefs.json files:
+    Never = False
+    Stretch = True
+    Always = "always"
+
+
 class LoggingLevel(enum.IntEnum):
     Benchmark = BENCHMARK_LOGGING_LEVEL
     Debug = logging.DEBUG
@@ -135,7 +142,7 @@ class Prefs(PrefsFile):
     middleClickToStage          : bool                  = False
     flattenLanes                : bool                  = True
     animations                  : bool                  = True
-    condensedFonts              : bool                  = True
+    condensedFonts              : CondensedFonts        = CondensedFonts.Stretch
     pygmentsPlugins             : bool                  = False
     verbosity                   : LoggingLevel          = LoggingLevel.Debug if APP_TESTMODE else LoggingLevel.Warning
     forceQtApi                  : QtApiNames            = QtApiNames.Automatic
