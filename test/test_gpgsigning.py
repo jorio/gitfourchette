@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import shutil
 import textwrap
 
 import pytest
@@ -194,6 +195,46 @@ def testVerifyGoodPgpSignature(tempDir, mainWindow, tempGpgHome):
     writeFile(f"{tempGpgHome}/gpg.conf", f"trusted-key {aliceFpr}\n")
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, f"good signature; key trusted.+{aliceKeyId}")
+
+
+@requiresGpg
+def testVerifyGoodPgpSignatureWithMissingKey(tempDir, mainWindow, tempGpgHome):
+    wd = unpackRepo(tempDir)
+
+    # Create signed commit with Alice's key
+    output = ToolCommands.runSync(
+        settings.prefs.gitPath, "-c", "core.abbrev=no",
+        "commit", "--allow-empty", f"-S{aliceFpr}", "-mGPG-Signed Commit",
+        directory=wd, strict=True)
+    commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
+
+    # Nuke gnupg home so it won't find Alice's key
+    shutil.rmtree(tempGpgHome)
+    os.makedirs(tempGpgHome)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
+
+    # Verify signature; key not in keyring
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    qmb = findQMessageBox(rw, f"not in your keyring.+{aliceKeyId}")
+
+    # Copy key ID to clipboard
+    copyButton = next(b for b in qmb.buttons() if findTextInWidget(b, "Copy Key ID"))
+    copyButton.click()
+    assert QApplication.clipboard().text() == aliceKeyId
+
+    # Close qmb with escape key. Adding the Copy Key ID button may cause
+    # qmb to stop responding to the Esc key - this tests the workaround.
+    qmb.setFocus()
+    waitUntilTrue(qmb.hasFocus)
+    QTest.keyClick(qmb, Qt.Key.Key_Escape)
+
+    # Import key and verify again
+    ToolCommands.runSync("gpg", "--batch", "--import", getTestDataPath("gpgkeys/alice.key"),
+                         directory=wd, strict=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
+    acceptQMessageBox(rw, f"good signature; key not fully trusted.+{aliceKeyId}")
 
 
 @requiresGpg
