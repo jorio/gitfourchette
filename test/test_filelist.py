@@ -420,26 +420,13 @@ def testFileListToolTip(tempDir, mainWindow):
 
 
 def testFileListCopyPath(tempDir, mainWindow):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
 
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     rw.committedFiles.setFocus()
     QTest.keySequence(rw.committedFiles, "Ctrl+C")
-    clipped = clipboard.text()
+    clipped = QApplication.clipboard().text()
     assert clipped == os.path.normpath(f"{wd}/c/c2-2.txt")
 
 

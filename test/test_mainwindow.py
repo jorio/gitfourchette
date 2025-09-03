@@ -153,11 +153,6 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 
 
 def testTabBarActions(tempDir, mainWindow, mockDesktopServices):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"terminal": f'python3 "{editorPath}" "{scratchPath}" "hello world" $COMMAND'})

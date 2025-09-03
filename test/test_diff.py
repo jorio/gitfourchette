@@ -7,7 +7,6 @@
 import pytest
 import re
 import textwrap
-import warnings
 
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
@@ -348,9 +347,6 @@ def testSearchDiff(tempDir, mainWindow):
 
 def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-
     At some point, Qt 6 used to replace line breaks with U+2029 (PARAGRAPH
     SEPARATOR) when copying text from a QPlainTextEdit. We used to have a
     workaround that scrubbed this character from the clipboard.
@@ -372,14 +368,6 @@ def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     oid = Oid(hex='0966a434eb1a025db6b71485ab63a3bfbea520b6')
     rw.jump(NavLocator.inCommit(oid, path="master.txt"), check=True)
 
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
-
     diffView = rw.diffView
     diffView.setFocus()
     waitUntilTrue(diffView.hasFocus)
@@ -387,7 +375,7 @@ def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     diffView.copy()
     QTest.qWait(1)
 
-    clipped = clipboard.text()
+    clipped = QApplication.clipboard().text()
     assert "\u2029" not in clipped
     assert clipped == (
         "@@ -1 +1,2 @@\n"

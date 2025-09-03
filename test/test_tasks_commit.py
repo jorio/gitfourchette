@@ -180,11 +180,6 @@ def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow)
 
 
 def testPasteMultilineCommitMessage(tempDir, mainWindow):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)

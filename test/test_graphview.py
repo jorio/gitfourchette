@@ -216,19 +216,6 @@ def testUncommittedChangesGraphHotkeys(tempDir, mainWindow):
 
 @pytest.mark.parametrize("method", ["hotkey", "contextmenu"])
 def testCopyCommitHash(tempDir, mainWindow, method):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
-
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -243,24 +230,11 @@ def testCopyCommitHash(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     QTest.qWait(1)
-    assert clipboard.text() == str(oid1)
+    assert QApplication.clipboard().text() == str(oid1)
 
 
 @pytest.mark.parametrize("method", ["hotkey", "contextmenu"])
 def testCopyCommitMessage(tempDir, mainWindow, method):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
-
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -275,7 +249,7 @@ def testCopyCommitMessage(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     QTest.qWait(1)
-    assert clipboard.text() == "Merge branch 'a' into c"
+    assert QApplication.clipboard().text() == "Merge branch 'a' into c"
 
 
 def testRefSortFavorsHeadBranch(tempDir, mainWindow):

@@ -134,6 +134,11 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     # Prevent OpenSSH from looking at host user's key files
     globalGitConfig["core.sshCommand"] = getTestDataPath("isolated-ssh.sh")
 
+    # Clear the clipboard so all tests can assume a fresh clipboard
+    clipboardBackup = app.clipboard().text()
+    app.clipboard().setText("")  # Note: Wayland blocks QClipboard.clear()
+    assert not app.clipboard().text()
+
     # Boot the UI
     assert app.mainWindow is None
     app.bootUi()
@@ -144,6 +149,9 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     yield app.mainWindow
 
     assert app.mainWindow is not None, "mainWindow vanished after the test"
+
+    # Restore the clipboard
+    app.clipboard().setText(clipboardBackup)
 
     # Look for any unclosed dialogs after the test
     leakedWindows = []
