@@ -200,7 +200,7 @@ class SetUpGitIdentity(RepoTask):
                              self.repo.has_local_identity(), self.parentWidget())
 
         if okButtonText:
-            dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText(okButtonText)
+            dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText(okButtonText).setShortcut("Ctrl+Return")
 
         dlg.resize(512, 0)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)

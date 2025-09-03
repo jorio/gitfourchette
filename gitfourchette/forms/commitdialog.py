@@ -17,7 +17,9 @@ class CommitDialog(QDialog):
 
     @property
     def acceptButton(self) -> QPushButton:
-        return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        button = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        button.setShortcut("Ctrl+Return")
+        return button
 
     def __init__(
             self,
@@ -75,6 +77,7 @@ class CommitDialog(QDialog):
         self.ui.infoIcon.setMaximumWidth(self.InfoIconSize)
 
         self.acceptButton.setText(buttonCaption)
+        self.acceptButton.setShortcut("Ctrl+Return")
         self.ui.summaryEditor.setPlaceholderText(prompt)
 
         self.ui.counterLabel.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)

@@ -70,6 +70,7 @@ class CloneDialog(QDialog):
 
         self.cloneButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         self.cloneButton.setText(_("C&lone"))
+        self.cloneButton.setShortcut("Ctrl+Return")
         self.cloneButton.setIcon(QIcon.fromTheme("download"))
         self.cloneButton.clicked.connect(self.onCloneClicked)
 

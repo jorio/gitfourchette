@@ -1136,6 +1136,7 @@ class MainWindow(QMainWindow):
                 _("The new settings won’t take effect fully until you reload the current repositories."),
                 buttons=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
             reloadButton = qmb.button(QMessageBox.StandardButton.Ok)
+            reloadButton.setShortcut("Ctrl+Return")
             reloadButton.setText(_("&Reload"))
             qmb.accepted.connect(lambda: self.unloadOtherTabs())
             qmb.accepted.connect(lambda: self.currentRepoWidget().replaceWithStub())

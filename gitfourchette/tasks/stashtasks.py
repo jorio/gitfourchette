@@ -98,6 +98,7 @@ class ApplyStash(RepoTask):
         def updateButtonText(ticked: bool):
             okButton = qmb.button(QMessageBox.StandardButton.Ok)
             okButton.setText(_("&Apply && Delete") if ticked else _("&Apply && Keep"))
+            okButton.setShortcut("Ctrl+Return")
 
         deleteCheckBox = QCheckBox(_("&Delete the stash if it applies cleanly"), qmb)
         deleteCheckBox.clicked.connect(updateButtonText)

@@ -104,6 +104,7 @@ def setUpToolCommand(parent: QWidget, prefKey: str):
 
     configureButton = qmb.button(QMessageBox.StandardButton.Ok)
     configureButton.setText(_("Set up {tool}", tool=lquo(translatedPrefKey)))
+    configureButton.setShortcut("Ctrl+Return")
 
     qmb.accepted.connect(lambda: GFApplication.instance().openPrefsDialog(prefKey))
     qmb.show()

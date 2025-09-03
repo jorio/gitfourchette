@@ -54,6 +54,7 @@ class StashDialog(QDialog):
             tweakWidgetFont(label, 90)
 
         okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        okButton.setShortcut("Ctrl+Return")
 
         buttonCaptions = [_("Stash && Reset Changes"), _("Stash && Keep Changes")]
         helpCaptions = [

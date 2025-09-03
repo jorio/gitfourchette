@@ -85,5 +85,6 @@ class CheckoutCommitDialog(QDialog):
         def callback():
             ok = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
             ok.setText(okCaption)
+            ok.setShortcut("Ctrl+Return")
             ok.setIcon(stockIcon(okIcon) if okIcon else QIcon())
         radio.clicked.connect(callback)

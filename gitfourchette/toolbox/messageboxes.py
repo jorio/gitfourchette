@@ -264,6 +264,7 @@ def askConfirmation(
             okButton.setText(okButtonText)
         if okButtonIcon:
             okButton.setIcon(okButtonIcon)
+        okButton.setShortcut("Ctrl+Return")
 
     if callback:
         qmb.accepted.connect(callback)

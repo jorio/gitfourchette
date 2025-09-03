@@ -223,6 +223,7 @@ class PushDialog(QDialog):
 
         self.startOperationButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         self.startOperationButton.setText(_("&Push"))
+        self.startOperationButton.setShortcut("Ctrl+Return")
         self.startOperationButton.setIcon(stockIcon("git-push"))
 
         lbComboBox = self.ui.localBranchEdit
@@ -267,6 +268,7 @@ class PushDialog(QDialog):
 
         okButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         okButton.setText(text)
+        okButton.setShortcut("Ctrl+Return")
         okButton.setIcon(stockIcon(icon))
         okButton.setToolTip(tip)
 

@@ -46,6 +46,7 @@ class RegisterSubmoduleDialog(QDialog):
             self.okButton.setText(_("Register submodule"))
             self.setWindowTitle(_("Register submodule"))
 
+        self.okButton.setShortcut("Ctrl+Return")
         validator = ValidatorMultiplexer(self)
         validator.setGatedWidgets(self.okButton)
         validator.connectInput(self.ui.nameEdit, self.validateSubmoduleName)

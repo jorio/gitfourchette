@@ -38,6 +38,7 @@ class NewTagDialog(QDialog):
 
         okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         okButton.setIcon(stockIcon("git-tag"))
+        okButton.setShortcut("Ctrl+Return")
         okCaptions = [_("&Create"), _("&Create && Push")]
         self.ui.pushCheckBox.toggled.connect(lambda push: okButton.setText(okCaptions[push]))
 

@@ -20,6 +20,7 @@ class RemoteDialog(QDialog):
         self.ui = Ui_RemoteDialog()
         self.ui.setupUi(self)
         okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        okButton.setShortcut("Ctrl+Return")
 
         self.ui.urlEdit.setText(url)
         self.ui.nameEdit.setText(name)

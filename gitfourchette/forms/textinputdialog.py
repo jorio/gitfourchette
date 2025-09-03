@@ -68,7 +68,9 @@ class TextInputDialog(QDialog):
 
     @property
     def okButton(self) -> QPushButton:
-        return self.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        okButton = self.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        okButton.setShortcut("Ctrl+Return")
+        return okButton
 
     def show(self):
         super().show()

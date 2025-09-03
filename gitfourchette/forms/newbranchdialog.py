@@ -29,6 +29,7 @@ class NewBranchDialog(QDialog):
 
         self.ui.nameEdit.setText(initialName)
         self.acceptButton.setText(_("&Create"))
+        self.acceptButton.setShortcut("Ctrl+Return")
 
         self.ui.upstreamComboBox.addItems(upstreams)
 
