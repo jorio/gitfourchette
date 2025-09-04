@@ -87,11 +87,11 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
-    def isUpstreamItalic():
+    def isUpstreamBold():
         upstreamNode = rw.sidebar.findNodeByRef(f"refs/remotes/{upstreamName}")
         upstreamIndex = upstreamNode.createIndex(rw.sidebar.sidebarModel)
         upstreamFont: QFont = upstreamIndex.data(Qt.ItemDataRole.FontRole)
-        return upstreamFont is not None and upstreamFont.italic()
+        return upstreamFont is not None and upstreamFont.bold()
 
     branchName, upstreamName = branchSettings
     isCurrentBranch = branchName == "master"
@@ -105,7 +105,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert re.search(rf"{branchName}.+local branch", toolTip, re.I)
     assert (branchName == "master") == bool(re.search(r"checked.out", toolTip, re.I))
     assert re.search(rf"upstream.+{upstreamName}", toolTip, re.I)
-    assert not isCurrentBranch or isUpstreamItalic()
+    assert not isCurrentBranch or isUpstreamBold()
 
     # Clear tracking reference
     menu = rw.sidebar.makeNodeMenu(node)
@@ -114,7 +114,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert originMasterAction.isChecked()
     stopTrackingAction.trigger()
     assert repo.branches.local[branchName].upstream is None
-    assert not isUpstreamItalic()
+    assert not isUpstreamBold()
 
     # Change tracking back to original upstream branch
     menu = rw.sidebar.makeNodeMenu(node)
@@ -124,7 +124,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert notTrackingAction.isChecked()
     originMasterAction.trigger()
     assert repo.branches.local[branchName].upstream == repo.branches.remote[upstreamName]
-    assert not isCurrentBranch or isUpstreamItalic()
+    assert not isCurrentBranch or isUpstreamBold()
 
     # Do that again to cover no-op case
     menu = rw.sidebar.makeNodeMenu(node)
@@ -132,7 +132,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert originMasterAction.isChecked()
     originMasterAction.trigger()
     assert repo.branches.local[branchName].upstream == repo.branches.remote[upstreamName]
-    assert not isCurrentBranch or isUpstreamItalic()
+    assert not isCurrentBranch or isUpstreamBold()
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
