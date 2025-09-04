@@ -607,6 +607,13 @@ class SidebarModel(QAbstractItemModel):
                 return text
             elif iconKeyRole:
                 return "git-branch" if branchName != self._checkedOut else "git-head"
+            elif fontRole:
+                if branchName == self._checkedOut:
+                    font = QFont(self._parentWidget.font())
+                    font.setBold(True)
+                    return font
+                else:
+                    return None
 
         elif item == SidebarItem.UnbornHead:
             target = node.data
@@ -630,6 +637,10 @@ class SidebarModel(QAbstractItemModel):
                 return "HEAD"
             elif iconKeyRole:
                 return "git-head-detached"
+            elif fontRole:
+                font = QFont(self._parentWidget.font())
+                font.setBold(True)
+                return font
 
         elif item == SidebarItem.Remote:
             remoteName = node.data
@@ -665,7 +676,7 @@ class SidebarModel(QAbstractItemModel):
             elif fontRole:
                 if self._checkedOutUpstream == shorthand:
                     font = QFont(self._parentWidget.font())
-                    font.setItalic(True)
+                    font.setBold(True)
                     return font
                 else:
                     return None
