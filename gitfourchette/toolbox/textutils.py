@@ -244,7 +244,4 @@ def naturalSort(text: str):
 
 
 def utf16Length(text: str):
-    length = 0
-    for c in text:
-        length += 1 + (c > '\uffff')
-    return length
+    return len(text.encode('utf-16LE')) // 2
