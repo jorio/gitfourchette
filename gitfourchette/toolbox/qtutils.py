@@ -411,9 +411,7 @@ def installDialogReturnShortcut(dialog: QDialog):
     if not okButton:
         return
 
-    for sequence in ("Return", "Ctrl+Return"):
-        shortcut = QShortcut(sequence, okButton)
-        shortcut.activated.connect(okButton.animateClick)
+    makeWidgetShortcut(okButton, okButton.click, "Ctrl+Return", "Return")
 
 
 class DocumentLinks:
