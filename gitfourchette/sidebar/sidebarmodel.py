@@ -637,6 +637,10 @@ class SidebarModel(QAbstractItemModel):
                 return "HEAD"
             elif iconKeyRole:
                 return "git-head-detached"
+            elif fontRole:
+                font = QFont(self._parentWidget.font())
+                font.setBold(True)
+                return font
 
         elif item == SidebarItem.Remote:
             remoteName = node.data
