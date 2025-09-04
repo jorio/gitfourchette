@@ -368,6 +368,18 @@ def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys,
     return shortcut
 
 
+def installDialogReturnShortcut(dialog: QDialog):
+    buttonBox = dialog.findChild(QDialogButtonBox)
+    if not buttonBox:
+        return
+
+    okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+    if not okButton:
+        return
+
+    makeWidgetShortcut(okButton, okButton.click, "Ctrl+Return", "Return", context=Qt.ShortcutContext.WindowShortcut)
+
+
 def lerp(v1, v2, c=.5, cmin=0.0, cmax=1.0):
     p = (c-cmin) / (cmax-cmin)
     p = max(p, 0)
