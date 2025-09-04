@@ -10,6 +10,7 @@ from gitfourchette.appconsts import *
 from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.syntax import LexJob, ColorScheme
+from gitfourchette.toolbox import utf16Length
 
 logger = logging.getLogger(__name__)
 

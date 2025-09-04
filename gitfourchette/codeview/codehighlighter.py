@@ -9,7 +9,7 @@ import logging
 from gitfourchette import colors
 from gitfourchette.syntax import ColorScheme, LexJob
 from gitfourchette.qt import *
-from gitfourchette.toolbox import benchmark, CallbackAccumulator
+from gitfourchette.toolbox import benchmark, CallbackAccumulator, utf16Length
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,11 @@ class CodeHighlighter(QSyntaxHighlighter):
     def setColorScheme(self, scheme: ColorScheme):
         self.scheme = scheme
         scheme.primeHighContrastVersion()
+
+    def setFormat(self, start: int, size: int, charFormat: QTextCharFormat):
+        text = self.currentBlock().text()
+        # Workaround: setFormat's index counts UTF-16 code units, not characters.
+        super().setFormat(utf16Length(text[:start]), utf16Length(text[start:start + size]), charFormat)
 
     @CallbackAccumulator.deferredMethod
     @benchmark

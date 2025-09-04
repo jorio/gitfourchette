@@ -306,9 +306,11 @@ class DiffDocument:
             cf = style.delCF2 if ld.diffLine.origin == '-' else style.addCF2
             offset = ld.cursorStart
 
+            line = ld.diffLine.content
             for x1, x2 in _invertMatchingBlocks(blocks, useA=aheadOfDoppelganger):
-                cursor.setPosition(offset + x1, QTextCursor.MoveMode.MoveAnchor)
-                cursor.setPosition(offset + x2, QTextCursor.MoveMode.KeepAnchor)
+                # Workaround: setPosition's index counts UTF-16 code units, not characters.
+                cursor.setPosition(offset + utf16Length(line[:x1]), QTextCursor.MoveMode.MoveAnchor)
+                cursor.setPosition(offset + utf16Length(line[:x2]), QTextCursor.MoveMode.KeepAnchor)
                 cursor.setCharFormat(cf)
 
         assert not doppelgangerBlocksQueue, "should've consumed all doppelganger matching blocks!"

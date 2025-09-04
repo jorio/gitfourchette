@@ -241,3 +241,10 @@ def naturalSort(text: str):
     text = text.casefold()
     parts = _naturalSortSplit.split(text)
     return [int(part) if part.isdigit() else part for part in parts]
+
+
+def utf16Length(text: str):
+    length = 0
+    for c in text:
+        length += 1 + (c > '\uffff')
+    return length
