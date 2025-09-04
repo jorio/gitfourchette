@@ -107,6 +107,7 @@ class PrefsDialog(QDialog):
             PrefsDialog.lastCategory = self.stackedWidget.currentIndex()
 
         self.setModal(True)
+        installDialogReturnShortcut(self)
 
     def _fillControls(self, focusOn):
         category = "general"

@@ -402,6 +402,18 @@ def setTabOrder(*args: QWidget):
         QWidget.setTabOrder(widget1, widget2)
 
 
+def installDialogReturnShortcut(dialog: QDialog):
+    buttonBox = dialog.findChild(QDialogButtonBox)
+    if not buttonBox:
+        return
+
+    okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+    if not okButton:
+        return
+
+    okButton.setShortcut(Qt.Key.Key_Return)
+
+
 class DocumentLinks:
     """
     Bundle of ad-hoc links bound to callback functions.
