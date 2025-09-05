@@ -173,7 +173,7 @@ class RepoModel:
         self.localSeeds = set()
 
         self.gpgStatusCache = {}
-        self.gpgVerificationQueue = set()
+        self.gpgVerifyQueue = set()
 
         self.repo = repo
 
@@ -572,4 +572,4 @@ class RepoModel:
         if not settings.prefs.verifyGpgOnTheFly:
             return
         assert self.gpgStatusCache[oid][0] == GpgStatus.Pending
-        self.gpgVerificationQueue.add(oid)
+        self.gpgVerifyQueue.add(oid)

@@ -332,8 +332,8 @@ class VerifyGpgQueue(RepoTask):
         graphView = self.rw.graphView
         repoModel = self.repoModel
 
-        while repoModel.gpgVerificationQueue:
-            oid = repoModel.gpgVerificationQueue.pop()
+        while repoModel.gpgVerifyQueue:
+            oid = repoModel.gpgVerifyQueue.pop()
 
             currentStatus, keyInfo = repoModel.gpgStatusCache.get(oid, (GpgStatus.Unsigned, ""))
             if currentStatus != GpgStatus.Pending:

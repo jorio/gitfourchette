@@ -14,6 +14,9 @@ from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.nav import NavLocator
+from gitfourchette.repomodel import GpgStatus
+from gitfourchette.settings import GraphRowHeight
+from gitfourchette.tasks import VerifyGpgQueue
 from .test_remotelink import AskpassShim
 from .util import *
 
@@ -74,6 +77,15 @@ def setUpForSshSigning(tempPath: str, repoWorkdir: str, testKeyName: str = "simp
         repo.config["gpg.ssh.allowedSignersFile"] = allowedSigners
 
     return pubKeyCopy, allowedSigners
+
+
+def makeSignedCommit(wd: str, keyId: str = "", message: str = "SIGNED COMMIT"):
+    output = ToolCommands.runSync(
+        settings.prefs.gitPath, "-c", "core.abbrev=no",
+        "commit", "--allow-empty", f"-S{keyId}", f"-m{message}",
+        directory=wd, strict=True)
+    commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
+    return Oid(hex=commitHash)
 
 
 @requiresGpg
@@ -179,14 +191,10 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
 def testVerifyGoodPgpSignature(tempDir, mainWindow, tempGpgHome):
     wd = unpackRepo(tempDir)
 
-    output = ToolCommands.runSync(
-        settings.prefs.gitPath, "-c", "core.abbrev=no",
-        "commit", "--allow-empty", f"-S{aliceFpr}", "-mGPG-Signed Commit",
-        directory=wd, strict=True)
-    commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
+    signedOid = makeSignedCommit(wd, aliceFpr)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
+    rw.jump(NavLocator.inCommit(signedOid, ""), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, f"good signature; key not fully trusted.+{aliceKeyId}")
@@ -242,14 +250,10 @@ def testVerifyGoodSshSignature(tempDir, mainWindow, tempGpgHome):
     wd = unpackRepo(tempDir)
     _pubKey, allowedSigners = setUpForSshSigning(tempDir.name, wd)
 
-    output = ToolCommands.runSync(
-        settings.prefs.gitPath, "-c", "core.abbrev=no",
-        "commit", "--allow-empty", "-S", "-mSSH-Signed Commit",
-        directory=wd, strict=True)
-    commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
+    signedOid = makeSignedCommit(wd)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(Oid(hex=commitHash), ""), check=True)
+    rw.jump(NavLocator.inCommit(signedOid, ""), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, "good signature; key trusted.+CriquetteRockwell")
@@ -321,3 +325,70 @@ def testVerifyBadSshSignature(tempDir, mainWindow, tempGpgHome):
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, "bad signature")
+
+
+@requiresGpg
+def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
+    wd = unpackRepo(tempDir)
+    signedOids = [makeSignedCommit(wd, aliceFpr, message=f"Signed commit #{i}") for i in range(10)]
+    topSignedOid = signedOids[-1]
+    bottomSignedOid = signedOids[0]
+
+    # Enable GPG verification queue and make sure the oldest signed commits
+    # remain "below the fold"
+    mainWindow.resize(1024, 512)
+    mainWindow.onAcceptPrefsDialog({"verifyGpgOnTheFly": True, "graphRowHeight": GraphRowHeight.Spacious})
+    QTest.qWait(0)
+
+    rw = mainWindow.openRepo(wd)
+    gpgStatusCache = rw.repoModel.gpgStatusCache
+    gpgVerifyQueue = rw.repoModel.gpgVerifyQueue
+
+    assert not gpgStatusCache
+    assert not gpgVerifyQueue
+
+    waitUntilTrue(lambda: topSignedOid in gpgVerifyQueue)
+    assert gpgStatusCache[topSignedOid] == (GpgStatus.Pending, "")
+    assert topSignedOid in gpgVerifyQueue
+    assert bottomSignedOid not in gpgStatusCache
+    assert bottomSignedOid not in gpgVerifyQueue
+
+    waitUntilTrue(lambda: topSignedOid not in gpgVerifyQueue)
+    assert gpgStatusCache[topSignedOid] == (GpgStatus.GoodUntrusted, f"{aliceKeyId} Alice Lovelace <alice@openpgp.example>")
+
+
+@requiresGpg
+def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
+    wd = unpackRepo(tempDir)
+    _signedOids = [makeSignedCommit(wd, aliceFpr, message=f"Signed commit #{i}") for i in range(40)]
+
+    # Cram as many signed commits on the screen as possible
+    mainWindow.onAcceptPrefsDialog({"verifyGpgOnTheFly": True, "graphRowHeight": GraphRowHeight.Cramped})
+    QTest.qWait(0)
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+    rw.centralSplitter.setSizes([999, 1])
+    gpgVerifyQueue = rw.repoModel.gpgVerifyQueue
+
+    # Wait for VerifyGpgQueue to kick in
+    assert not rw.taskRunner.isBusy()
+    waitUntilTrue(rw.taskRunner.isBusy)
+    assert isinstance(rw.taskRunner.currentTask, VerifyGpgQueue)
+
+    # Start NewCommit.
+    # This should kill VerifyGpgQueue immediately.
+    rw.diffArea.commitButton.click()
+    qmb = waitForQMessageBox(rw, "create an empty commit anyway")
+    assert not isinstance(rw.taskRunner.currentTask, VerifyGpgQueue)
+    frozenQueue = gpgVerifyQueue.copy()
+
+    # Stop NewCommit.
+    qmb.reject()
+
+    # VerifyGpgQueue should be rescheduled.
+    waitUntilTrue(lambda: isinstance(rw.taskRunner.currentTask, VerifyGpgQueue))
+    waitUntilTrue(lambda: gpgVerifyQueue != frozenQueue)
+
+    # Kill any progress dialogs before exiting the test
+    rw.taskRunner.killCurrentTask()
