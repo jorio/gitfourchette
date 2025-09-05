@@ -34,7 +34,9 @@ jobs:
 
     - name: Qt dependencies
       if: ${{ runner.os == 'Linux' }}
-      run: sudo apt install ${{ matrix.qt == 'pyqt5' && 'libqt5gui5' || 'libqt6gui6' }}
+      run: |
+        sudo apt update
+        sudo apt install ${{ matrix.qt == 'pyqt5' && 'libqt5gui5' || 'libqt6gui6' }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
