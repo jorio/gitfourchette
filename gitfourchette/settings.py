@@ -50,6 +50,12 @@ class GraphRowHeight(enum.IntEnum):
     Spacious = 175
 
 
+class CommitHashDisplay(enum.IntEnum):
+    Left = 0
+    Right = 1
+    Hide = 2
+
+
 class GraphRefBoxWidth(enum.IntEnum):
     IconsOnly = 0
     Standard = 120
@@ -103,6 +109,7 @@ class Prefs(PrefsFile):
     graphRowHeight              : GraphRowHeight        = GraphRowHeight.Relaxed
     refBoxMaxWidth              : GraphRefBoxWidth      = GraphRefBoxWidth.Standard
     authorDisplayStyle          : AuthorDisplayStyle    = AuthorDisplayStyle.FullName
+    commitHashDisplay           : CommitHashDisplay     = CommitHashDisplay.Left
     shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
