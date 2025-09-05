@@ -55,14 +55,12 @@ class GetCommitInfo(RepoTask):
         return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
 
     def flow(self, oid: Oid, withDebugInfo=False, dialogParent: QWidget | None = None):
-        links = DocumentLinks()
-
         def commitLink(commitId):
             if commitId == UC_FAKEID:
                 commitLocator = NavLocator.inWorkdir()
             else:
                 commitLocator = NavLocator.inCommit(commitId)
-            link = links.new(lambda invoker: self.saveLocator(commitLocator))
+            link = commitLocator.url()
             html = linkify(shortHash(commitId), link)
             return html
 
@@ -154,8 +152,8 @@ class GetCommitInfo(RepoTask):
         label: QLabel = messageBox.findChild(QLabel, "qt_msgbox_label")
         assert label
         label.setOpenExternalLinks(False)
-        label.linkActivated.connect(lambda url: links.processLink(url, self))
-        label.linkActivated.connect(lambda: messageBox.accept())
+        label.linkActivated.connect(self.rw.processInternalLink)
+        label.linkActivated.connect(messageBox.accept)
 
         messageBox.show()
 
@@ -164,9 +162,6 @@ class GetCommitInfo(RepoTask):
         # a non-MainWindow (like BlameWindow). We still need a dummy yield here
         # to satisfy the requirement that `flow` be a generator.
         yield from self.flowEnterUiThread()
-
-    def saveLocator(self, locator):
-        self.jumpTo = locator
 
 
 class NewIgnorePattern(RepoTask):

@@ -164,7 +164,7 @@ def testCommitInfo(tempDir, mainWindow, method):
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(oid1))
+    rw.jump(NavLocator.inCommit(oid1, "a/a1.txt"), check=True)
 
     if method == "hotkey":
         rw.graphView.setFocus()
@@ -180,6 +180,22 @@ def testCommitInfo(tempDir, mainWindow, method):
     assert str(oid1) in qmb.text()
     assert "A U Thor" in qmb.text()
     qmb.accept()
+
+
+def testCommitInfoJumpToParent(tempDir, mainWindow):
+    oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid1, "a/a1.txt"), check=True)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "get info")
+    qmb = findQMessageBox(rw, "Merge branch 'a' into c")
+
+    # Click on a "parent" link; this should close the message box and jump to another commit
+    label: QLabel = qmb.findChild(QLabel, "qt_msgbox_label")
+    parentLink = re.search(r'<a href="(.*6462e7d\S+)">', label.text(), re.I).group(1)
+    label.linkActivated.emit(parentLink)
+    assert rw.navLocator.commit == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
 
 
 def testUncommittedChangesGraphHotkeys(tempDir, mainWindow):
