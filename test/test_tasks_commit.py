@@ -382,6 +382,30 @@ def testCommitDialogJumpsToWorkdir(tempDir, mainWindow):
     assert NavLocator.inStaged("a/a1.txt").isSimilarEnoughTo(rw.navLocator)
 
 
+def testCommitDialogCtrlReturn(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    triggerMenuAction(mainWindow.menuBar(), r"repo/commit")
+    acceptQMessageBox(rw, "create an empty commit anyway")
+
+    commitDialog: CommitDialog = findQDialog(rw, r"commit")
+
+    # Widget focus is finicky in offscreen tests unless we force the dialog to be active first
+    commitDialog.activateWindow()
+    waitUntilTrue(commitDialog.isActiveWindow)
+
+    commitDialog.ui.summaryEditor.setText("hello from ctrl+return")
+
+    # Make sure the shortcut works even when a QPlainTextEdit (multiline editor) has focus
+    commitDialog.ui.descriptionEditor.setFocus()
+    assert commitDialog.ui.descriptionEditor.hasFocus()
+    QTest.keySequence(commitDialog.focusWidget(), "Ctrl+Return")
+
+    waitForSignal(commitDialog.destroyed, disconnect=False)
+    assert rw.repo.head_commit_message.strip() == "hello from ctrl+return"
+
+
 @pytest.mark.parametrize("method", ["graphkey", "graphcm"])
 def testCheckoutCommitDetachHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
