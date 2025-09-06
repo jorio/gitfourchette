@@ -56,8 +56,8 @@ class Sidebar(QTreeView):
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.customContextMenuRequested.connect(self.onCustomContextMenuRequested)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.onCustomContextMenuRequested)
 
         sidebarModel = SidebarModel(self)
         self.setModel(sidebarModel)
@@ -136,12 +136,7 @@ class Sidebar(QTreeView):
 
         return submenu
 
-    def makeNodeMenu(self, node: SidebarNode, menu: QMenu | None = None):
-        if menu is None:
-            menu = QMenu(self)
-            menu.setObjectName("SidebarContextMenu")
-        menu.setToolTipsVisible(True)
-
+    def makeNodeMenu(self, node: SidebarNode):
         actions = []
 
         model = self.sidebarModel
@@ -171,6 +166,12 @@ class Sidebar(QTreeView):
                 ActionDef.SEPARATOR,
                 ActionDef(_("Sort By"), submenu=self.refSortMenu("sortBranches")),
             ]
+
+            if any(n.kind == SidebarItem.RefFolder for n in node.children):
+                actions += [
+                    ActionDef(_("Collapse All Folders"), lambda: self.collapseChildFolders(node)),
+                    ActionDef(_("Expand All Folders"), lambda: self.expandChildFolders(node)),
+                ]
 
         elif item == SidebarItem.LocalBranch:
             refName = data
@@ -337,14 +338,8 @@ class Sidebar(QTreeView):
             collapseActions = []
             if any(n.kind == SidebarItem.RefFolder for n in node.children):
                 collapseActions = [
-                    ActionDef(
-                        _("Collapse All Folders"),
-                        lambda: self.collapseChildFolders(node),
-                    ),
-                    ActionDef(
-                        _("Expand All Folders"),
-                        lambda: self.expandChildFolders(node),
-                    ),
+                    ActionDef(_("Collapse All Folders"), lambda: self.collapseChildFolders(node)),
+                    ActionDef(_("Expand All Folders"), lambda: self.expandChildFolders(node)),
                 ]
 
             webActions = []
@@ -498,20 +493,29 @@ class Sidebar(QTreeView):
 
         # --------------------
 
-        ActionDef.addToQMenu(menu, *actions)
+        if not actions:
+            return None
 
+        menu = ActionDef.makeQMenu(self, actions)
+        menu.setToolTipsVisible(True)
         return menu
 
-    def onCustomContextMenuRequested(self, localPoint: QPoint):
-        globalPoint = self.mapToGlobal(localPoint)
-        index: QModelIndex = self.indexAt(localPoint)
-        if not index.isValid():
-            return
+    def onCustomContextMenuRequested(self, point: QPoint):
+        if APP_TESTMODE and point == QPoint_zero:
+            # Unit testing hack: spawn context menu on selected item
+            index = self.selectedIndexes()[0]
+        else:
+            # Real world: don't spawn context menu in blank areas/separators
+            index = self.indexAt(point)
+            if not index.isValid():
+                return
+
         node = SidebarNode.fromIndex(index)
         menu = self.makeNodeMenu(node)
-        if menu.actions():
-            menu.exec(globalPoint)
-        menu.deleteLater()
+
+        if menu:
+            menu.aboutToHide.connect(menu.deleteLater)
+            menu.popup(self.mapToGlobal(point))
 
     def refresh(self, repoModel: RepoModel):
         self.sidebarModel.rebuild(repoModel)
@@ -548,9 +552,6 @@ class Sidebar(QTreeView):
         if self.signalsBlocked():  # Don't bother with the jump if our signals are blocked
             return
 
-        if node is None:
-            return
-
         assert isinstance(node, SidebarNode)
 
         item = node.kind
@@ -570,7 +571,7 @@ class Sidebar(QTreeView):
         elif item == SidebarItem.Stash:
             locator = NavLocator.inCommit(Oid(hex=node.data))
         else:
-            return None
+            return
 
         Jump.invoke(self, locator)
 
@@ -919,15 +920,21 @@ class Sidebar(QTreeView):
             frontier.extend(node.children)
 
     def collapseChildFolders(self, node: SidebarNode):
-        for n in node.children:
-            if n.kind == SidebarItem.RefFolder:
-                index = n.createIndex(self.sidebarModel)
+        frontier = node.children[:]
+        while frontier:
+            node = frontier.pop()
+            if node.kind == SidebarItem.RefFolder:
+                frontier.extend(node.children)
+                index = node.createIndex(self.sidebarModel)
                 self.collapse(index)
 
     def expandChildFolders(self, node: SidebarNode):
-        for n in node.children:
-            if n.kind == SidebarItem.RefFolder:
-                index = n.createIndex(self.sidebarModel)
+        frontier = node.children[:]
+        while frontier:
+            node = frontier.pop()
+            if node.kind == SidebarItem.RefFolder:
+                frontier.extend(node.children)
+                index = node.createIndex(self.sidebarModel)
                 self.expand(index)
 
     def copyToClipboard(self, text: str):
