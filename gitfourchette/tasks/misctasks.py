@@ -339,8 +339,9 @@ class VerifyGpgQueue(RepoTask):
             if currentStatus != GpgStatus.Pending:
                 continue
 
-            visibleIndex = self.visibleIndex(oid)
-            if visibleIndex is None:
+            try:
+                visibleIndex = self.visibleIndex(oid)
+            except LookupError:
                 continue
 
             try:
@@ -359,16 +360,11 @@ class VerifyGpgQueue(RepoTask):
             repoModel.cacheGpgStatus(oid, status, keyInfo)
             graphView.update(visibleIndex)
 
-    def visibleIndex(self, oid: Oid):
-        from gitfourchette.graphview.graphview import GraphView
-
+    def visibleIndex(self, oid: Oid) -> QModelIndex:
         graphView = self.rw.graphView
 
-        with suppress(GraphView.SelectCommitError):
-            index = graphView.getFilterIndexForCommit(oid)
-
-        if not index.isValid():
-            return None
+        index = graphView.getFilterIndexForCommit(oid)  # raises SelectCommitError (LookupError) if hidden
+        assert index.isValid()
 
         top = graphView.indexAt(QPoint_zero)
         bottom = graphView.indexAt(graphView.rect().bottomLeft())
@@ -379,7 +375,7 @@ class VerifyGpgQueue(RepoTask):
         if topRow <= index.row() <= bottomRow:
             return index
 
-        return None
+        raise IndexError()
 
 
 class NewIgnorePattern(RepoTask):

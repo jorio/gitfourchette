@@ -295,7 +295,7 @@ class GraphView(QListView):
             raise NotImplementedError(f"unsupported locator context {locator.context}")
         return index
 
-    def getFilterIndexForCommit(self, oid: Oid) -> QModelIndex | None:
+    def getFilterIndexForCommit(self, oid: Oid) -> QModelIndex:
         try:
             rawIndex = self.repoModel.graph.getCommitRow(oid)
         except KeyError as exc:
