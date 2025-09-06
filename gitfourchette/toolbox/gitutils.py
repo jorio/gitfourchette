@@ -137,12 +137,6 @@ def nameValidationMessage(name: str, reservedNames: list[str], nameTakenMessage:
     return ""  # validation passed, no error
 
 
-def simplifyOctalFileMode(m: int):
-    if m in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]:
-        m &= ~0o100000
-    return m
-
-
 def remoteUrlProtocol(url: str):
     # Bail early on Windows-style absolute paths (C:\Whatever) to avoid looking like an ssh url
     if WINDOWS_PATH_PATTERN.match(url):
@@ -166,15 +160,6 @@ def splitRemoteUrl(url: str):
             path = m.group("path")
             return host, path
     return "", ""
-
-
-def stripRemoteUrlPath(url: str):
-    for pattern in REMOTE_URL_PATTERNS:
-        m = pattern.match(url)
-        if m:
-            path = m.group("path")
-            return url.removesuffix(path)
-    return ""
 
 
 def guessRemoteUrlFromText(text: str):

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import enum
 import logging
-import re
 import shlex
 import warnings
 from collections.abc import Generator
@@ -20,7 +19,7 @@ from gitfourchette.gitdriver import GitDriver
 from gitfourchette.manualgc import gcHint
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
-from gitfourchette.porcelain import ConflictError, GitError, MultiFileError, Repo, RepositoryState
+from gitfourchette.porcelain import ConflictError, MultiFileError, Repo, RepositoryState
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.toolbox import *
@@ -28,8 +27,6 @@ from gitfourchette.toolbox import *
 if TYPE_CHECKING:
     from gitfourchette.forms.statusform import StatusForm
     from gitfourchette.repowidget import RepoWidget
-
-_lineEndingReplacementPattern = re.compile("(LF|CRLF) would be replaced by (LF|CRLF) in '.+'")
 
 logger = logging.getLogger(__name__)
 
@@ -72,24 +69,10 @@ def showMultiFileErrorMessage(parent: QWidget, exc: MultiFileError, opName="Oper
                                 "({n} other files were successful.)", n=exc.file_successes)
 
     for path, error in exc.file_exceptions.items():
-        if not error:
+        if error:
+            details.append(f"<b>{escape(path)}</b>{_(':')} {escape(str(error))}")
+        else:
             details.append(escape(path))
-            continue
-
-        m = ""
-
-        # Reword some libgit2 messages
-        if type(error) is GitError:
-            lineEndings = _lineEndingReplacementPattern.match(str(error))
-            if lineEndings:
-                m = _("This file contains {a} line endings. "
-                      "They will not be replaced by {b} because {opt} is enabled.",
-                      a=lineEndings.group(1), b=lineEndings.group(2), opt=hquo("core.safecrlf"))
-
-        if not m:
-            m = escape(str(error))
-
-        details.append(f"<b>{escape(path)}</b>: {m}")
 
     qmb = asyncMessageBox(parent, 'warning', opName, message)
     addULToMessageBox(qmb, details)

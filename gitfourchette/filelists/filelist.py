@@ -558,12 +558,6 @@ class FileList(QListView):
         except IndexError:
             return -1
 
-    def latestSelectedRow(self):
-        try:
-            return list(self.selectedIndexes())[-1].row()
-        except IndexError:
-            return -1
-
     def savePatchAs(self):
         patches = list(self.selectedPatches())
         ExportPatchCollection.invoke(self, patches)
@@ -582,12 +576,6 @@ class FileList(QListView):
             return index.data(FileListModel.Role.FilePath)
         else:
             return ""
-
-    def paths(self) -> Generator[str, None, None]:
-        flModel = self.flModel
-        for row in range(flModel.rowCount()):
-            index = flModel.index(row)
-            yield index.data(FileListModel.Role.FilePath)
 
     def selectFile(self, file: str) -> bool:
         if not file:
