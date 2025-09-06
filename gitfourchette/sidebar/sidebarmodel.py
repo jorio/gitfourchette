@@ -205,7 +205,7 @@ class SidebarModel(QAbstractItemModel):
     _cachedToolTipText: str
 
     collapseCache: set[str]
-    collapseCacheValid: bool
+    mustExpandAll: bool
 
     class Role:
         Ref = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
@@ -223,7 +223,7 @@ class SidebarModel(QAbstractItemModel):
         super().__init__(parent)
 
         self.collapseCache = set()
-        self.collapseCacheValid = False
+        self.mustExpandAll = True
 
         self.clear()
 
@@ -274,8 +274,8 @@ class SidebarModel(QAbstractItemModel):
                 and node.data not in self.repoModel.prefs.hidePatterns)
 
     def isAncestryChainExpanded(self, node: SidebarNode):
-        # Assume everything is expanded if collapse cache is missing (see restoreExpandedItems).
-        if not self.collapseCacheValid:
+        # Everything is expanded if collapseCache is empty.
+        if not self.collapseCache:
             return True
 
         # My collapsed state doesn't matter here - it only affects my children.

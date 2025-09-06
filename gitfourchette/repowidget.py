@@ -235,7 +235,7 @@ class RepoWidget(QWidget):
             collapseCache = repoModel.prefs.collapseCache
             if collapseCache:
                 self.sidebar.sidebarModel.collapseCache = set(collapseCache)
-                self.sidebar.sidebarModel.collapseCacheValid = True
+                self.sidebar.sidebarModel.mustExpandAll = False
             self.sidebar.refresh(repoModel)
 
         # ----------------------------------
@@ -394,13 +394,11 @@ class RepoWidget(QWidget):
         self.taskRunner.joinKilledTask()
 
         # Save sidebar collapse cache
-        newCollapseCache = set()
-        if self.sidebar.sidebarModel.collapseCacheValid:
-            newCollapseCache.update(self.sidebar.sidebarModel.collapseCache)
         with NonCriticalOperation("Write repo prefs"):  # May raise OSError
             uiPrefs = self.repoModel.prefs
-            if newCollapseCache != uiPrefs.collapseCache:
-                uiPrefs.collapseCache = newCollapseCache
+            collapseCache = self.sidebar.sidebarModel.collapseCache
+            if uiPrefs.collapseCache != collapseCache:
+                uiPrefs.collapseCache = collapseCache.copy()
                 uiPrefs.setDirty()
             if uiPrefs.isDirty():
                 uiPrefs.write()

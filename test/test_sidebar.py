@@ -90,6 +90,31 @@ def testSidebarCollapsePersistent(tempDir, mainWindow):
     assert not sm.isAncestryChainExpanded(sb.findNodeByRef("refs/remotes/origin/master"))
 
 
+def testSidebarCollapsedHeaderShowsChildCount(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    sb = rw.sidebar
+    sm = sb.sidebarModel
+
+    remotesHeader = sb.findNodeByKind(SidebarItem.RemotesHeader).createIndex(sm)
+    tagsHeader = sb.findNodeByKind(SidebarItem.TagsHeader).createIndex(sm)
+    stashesHeader = sb.findNodeByKind(SidebarItem.StashesHeader).createIndex(sm)
+    submodulesHeader = sb.findNodeByKind(SidebarItem.SubmodulesHeader).createIndex(sm)
+
+    assert sm.data(remotesHeader) == "Remotes"
+    assert sm.data(tagsHeader) == "Tags"
+    assert sm.data(stashesHeader) == "Stashes"
+    assert sm.data(submodulesHeader) == "Submodules"
+
+    sb.collapseAll()
+
+    assert sm.data(remotesHeader) == "Remotes (1)"
+    assert sm.data(tagsHeader) == "Tags (1)"
+    assert sm.data(stashesHeader) == "Stashes (0)"
+    assert sm.data(submodulesHeader) == "Submodules (0)"
+
+
 def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
