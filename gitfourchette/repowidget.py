@@ -861,8 +861,6 @@ class RepoWidget(QWidget):
 
             ActionDef.SEPARATOR,
 
-            TaskBook.action(invoker, tasks.EditRepoSettings),
-
             ActionDef(
                 _("&Local Config Files"),
                 submenu=[
@@ -870,6 +868,8 @@ class RepoWidget(QWidget):
                     ActionDef("config", lambda: proxy().openLocalConfig()),
                     ActionDef("exclude", lambda: proxy().openLocalExclude()),
                 ]),
+
+            TaskBook.action(invoker, tasks.EditRepoSettings),
         ]
 
     @CallbackAccumulator.deferredMethod(250)
