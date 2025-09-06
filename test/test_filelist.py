@@ -565,3 +565,21 @@ def testIgnorePatternValidation(tempDir, mainWindow, userPattern, isValid):
     dlg.accept()
 
     assert isValid == (relPath not in qlvGetRowData(rw.dirtyFiles))
+
+
+def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
+    editorPath = getTestDataPath("editor-shim.py")
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+
+    wd = unpackRepo(tempDir)
+
+    for i in range(10):
+        writeFile(f"{wd}/batch{i}.txt", f"hello{i}")
+    writeFile(f"{wd}/master.txt", "this one will work")
+
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.dirtyFiles.selectAll()
+    triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor-shim")
+    acceptQMessageBox(rw, "really open.+11 files.+in external diff tool")
+    acceptQMessageBox(rw, "can.t open external diff tool on a new file")
