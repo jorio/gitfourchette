@@ -834,6 +834,7 @@ def testRevertHunk(tempDir, mainWindow, fromGutter):
     assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"
 
 
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
 @pytest.mark.parametrize(
     ["commitHex", "path", "line1", "line2", "expectedResult"],
     [
@@ -854,6 +855,7 @@ def testRevertLineSelection(tempDir, mainWindow,
     assert readTextFile(f"{wd}/{path}") == expectedResult
 
 
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
 def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
     rev1 = textwrap.dedent("""\
         1

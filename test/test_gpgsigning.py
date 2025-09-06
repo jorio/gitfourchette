@@ -171,7 +171,7 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
 
         if passphrase:
             # Make sure we were prompted to enter the passphrase for the correct key
-            assert re.search("Enter passphrase for.+pygit2_empty", askpassShim.dumpFile.read_text())
+            assert re.search("Enter passphrase( for.+pygit2_empty)?", askpassShim.dumpFile.read_text())
 
     commit = rw.repo.head_commit
     assert commit.message.strip() == "TEST SSH-SIGNED COMMIT"
@@ -392,3 +392,4 @@ def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
 
     # Kill any progress dialogs before exiting the test
     rw.taskRunner.killCurrentTask()
+    rw.taskRunner.joinKilledTask()

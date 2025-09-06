@@ -48,6 +48,8 @@ jobs:
       run: |
         which git
         git version
+        which gpg
+        gpg --version
 
     - name: Set up Python
       uses: actions/setup-python@v5
