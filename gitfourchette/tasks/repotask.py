@@ -466,13 +466,13 @@ class RepoTask(QObject):
             nonlocal didReject
             didReject = True
 
-        installDialogReturnShortcut(dialog)
         dialog.rejected.connect(onReject)
         dialog.finished.connect(self.uiReady)
         if proceedSignal:
             proceedSignal.connect(self.uiReady)
 
         dialog.show()
+        installDialogReturnShortcut(dialog)
 
         yield waitToken
 

@@ -356,7 +356,12 @@ def makeMultiShortcut(*args) -> MultiShortcut:
     return shortcuts
 
 
-def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys, context=Qt.ShortcutContext.WidgetShortcut) -> QShortcut:
+def makeWidgetShortcut(
+        parent: QWidget,
+        callback: Callable | SignalInstance,
+        *keys: ShortcutKeys,
+        context: Qt.ShortcutContext = Qt.ShortcutContext.WidgetShortcut,
+) -> QShortcut:
     assert keys, "no shortcut keys given"
     shortcut = QShortcut(parent)
     if QT5:  # Only one key per shortcut in Qt 5
@@ -369,12 +374,36 @@ def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys,
 
 
 def installDialogReturnShortcut(dialog: QDialog):
+    """
+    In KDE, the Return key typically triggers the default button in a QDialog
+    regardless of the widget that has keyboard focus.
+
+    However, in other DEs like GNOME, the Return key triggers the QRadioButton
+    or QCheckBox that has keyboard focus (in addition to the Space key),
+    preventing the QDialog from being accepted. This function overrides this
+    behavior to make dialogs behave more like KDE in these environments.
+
+    Do not call this before the dialog has been shown to avoid conflicts
+    with any shortcuts that the desktop environment may want to install.
+    """
+
+    # Don't tamper with shortcuts in environments where the native behavior is
+    # adequate.
+    if KDE and not OFFSCREEN:
+        return
+
     buttonBox = dialog.findChild(QDialogButtonBox)
     if not buttonBox:
         return
 
     okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
     if not okButton:
+        return
+
+    # Don't conflict with any shortcuts that may have been installed
+    # by the desktop environment after QDialog.show().
+    # For example, KDE installs its own Ctrl+Return shortcut.
+    if okButton.findChild(QShortcut):
         return
 
     makeWidgetShortcut(okButton, okButton.click, "Ctrl+Return", "Return", context=Qt.ShortcutContext.WindowShortcut)

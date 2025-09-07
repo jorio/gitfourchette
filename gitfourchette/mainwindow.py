@@ -775,6 +775,7 @@ class MainWindow(QMainWindow):
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
+        installDialogReturnShortcut(dlg)
 
     def openDialog(self):
         qfd = PersistentFileDialog.openDirectory(self, "NewRepo", _("Open repository"))
@@ -1157,6 +1158,7 @@ class MainWindow(QMainWindow):
         dlg.accepted.connect(lambda: self.onAcceptPrefsDialog(dlg.prefDiff))
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
         dlg.show()
+        installDialogReturnShortcut(dlg)
         return dlg
 
     # -------------------------------------------------------------------------

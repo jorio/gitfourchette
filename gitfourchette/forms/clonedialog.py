@@ -107,8 +107,6 @@ class CloneDialog(QDialog):
             self.ui.recurseSubmodulesCheckBox.setEnabled(False)
             self.ui.recurseSubmodulesCheckBox.setText("Recursing into submodules requires pygit2 1.15.1+")
 
-        installDialogReturnShortcut(self)
-
     def validateUrl(self, url):
         if not url:
             return _("Please fill in this field.")
