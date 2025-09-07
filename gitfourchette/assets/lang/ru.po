@@ -4,22 +4,25 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2025-09-08 18:30+0000\n"
+"Last-Translator: Alex Nadzharov <anadjarov@gmail.com>\n"
+"Language-Team: Russian <https://hosted.weblate.org/projects/gitfourchette/"
+"gitfourchette/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Weblate 5.14-dev\n"
 
 #: application.py:90 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
-msgstr ""
+msgstr "Комфортный пользовательский интерфейс Git для Linux."
 
 #: application.py:93
 msgid "Repository paths to open on launch."
-msgstr ""
+msgstr "Пути репозиториев, которые будут открыты при загрузке."
 
 #: application.py:224
 #, python-brace-format
@@ -37,7 +40,7 @@ msgstr ""
 
 #: application.py:270 toolbox/messageboxes.py:40
 msgid "Please open a repository before performing this action."
-msgstr ""
+msgstr "Пожалуйста, откройте репозиторий перед выполнением этого действия."
 
 #: blameview/blamegutter.py:157 blameview/blamewindow.py:184
 msgid "(Uncommitted)"
@@ -58,15 +61,15 @@ msgstr ""
 
 #: blameview/blamegutter.py:197
 msgid "author"
-msgstr ""
+msgstr "автор"
 
 #: blameview/blamegutter.py:198
 msgid "date"
-msgstr ""
+msgstr "дата"
 
 #: blameview/blamegutter.py:199
 msgid "file name"
-msgstr ""
+msgstr "имя файла"
 
 #: blameview/blamegutter.py:200
 msgid "revision"
@@ -132,7 +135,7 @@ msgstr ""
 
 #: blameview/blamewindow.py:71
 msgid "Back"
-msgstr ""
+msgstr "Назад"
 
 #: blameview/blamewindow.py:73 tasks/taskbook.py:63
 msgid "Navigate back"
