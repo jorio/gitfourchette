@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,8 @@
 import argparse
 import datetime
 import difflib
+import html
+import json
 import os
 import re
 import subprocess
@@ -53,6 +55,9 @@ def makeParser():
 
     loc_group.add_argument("--clean-po", action="store_true",
                            help="remove obsolete strings from .po files")
+
+    loc_group.add_argument("--weblate-credits", default="", metavar="JSON_REPORT",
+                           help="format translator credits from Weblate JSON report (https://hosted.weblate.org/projects/gitfourchette/gitfourchette/#reports)")
 
     ui_group = parser.add_argument_group("UI Designer options")
 
@@ -315,6 +320,39 @@ def compileMoFiles():
     Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages))
 
 
+def formatTranslatorCredits(jsonReportPath: str):
+    blob = Path(jsonReportPath).read_bytes()
+    table = json.loads(blob)
+
+    renameLanguages = {
+        "Chinese (Simplified Han script)": "Chinese (Simpl.)",
+    }
+
+    def formatPerson(person):
+        full = person["full_name"]
+        user = person["username"]
+        if full.casefold() == user.casefold():
+            return html.escape(full)
+        else:
+            return f"{full} ({user})"
+
+    markup = "<table>\n"
+
+    for entry in table:
+        for language, people in entry.items():
+            languageName = renameLanguages.get(language, language)
+            peopleList = "\n\t<br>".join(formatPerson(person)
+                                         for person in people if person["username"] != "jorio")
+            markup += ("<tr>\n"
+                       f"\t<td align=right>{languageName}: </td>\n"
+                       f"\t<td>{peopleList}</td>\n"
+                       "</tr>\n")
+
+    markup += "</table>\n"
+
+    Path(LANG_DIR, "credits.html").write_text(markup)
+
+
 def writeFreezeFile(qtApi: str):
     repo = pygit2.Repository(SRC_DIR)
     headCommit = repo.head.target
@@ -354,7 +392,7 @@ if __name__ == '__main__':
         writeFreezeFile(args.freeze)
         sys.exit(0)
 
-    if not (args.ui or args.pot or args.po or args.mo or args.clean_po):
+    if not (args.ui or args.pot or args.po or args.mo or args.clean_po or args.weblate_credits):
         makeParser().print_usage()
         sys.exit(1)
 
@@ -374,3 +412,6 @@ if __name__ == '__main__':
 
     if args.clean_po:
         cleanUpPoFiles()
+
+    if args.weblate_credits:
+        formatTranslatorCredits(args.weblate_credits)

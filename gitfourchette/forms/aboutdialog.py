@@ -107,7 +107,7 @@ class AboutDialog(QDialog):
 
         try:
             translatorCreditsIntro = _("Brought to your native language by:")
-            translatorCreditsPath = Path(QFile("assets:translators.html").fileName())
+            translatorCreditsPath = Path(QFile("assets:lang/credits.html").fileName())
             translatorCredits = translatorCreditsIntro + "\n" + translatorCreditsPath.read_text("utf-8")
         except OSError:
             # TODO: Temporary until we have actual credits
