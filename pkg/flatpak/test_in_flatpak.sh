@@ -15,8 +15,17 @@ export PYTHONPYCACHEPREFIX=/tmp/__DONT_POLLUTE_HOST_PYCACHE__
 
 VENVDIR="$XDG_CACHE_HOME/__TEST_IN_FLATPAK_VENV__"
 
-python -m venv "$VENVDIR"
-source "$VENVDIR/bin/activate"
-#python -m ensurepip
-python -m pip --disable-pip-version-check install --upgrade --force-reinstall '.[test,pygments]'
+if [ -d "$VENVDIR" ]; then
+    echo "INFO: Test virtual environment already exists. Dependencies will not be reinstalled."
+    echo "INFO: To start with a clean environment, delete this directory:"
+    echo "INFO:     $VENVDIR"
+    echo ""
+    source "$VENVDIR/bin/activate"
+else
+    python -m venv "$VENVDIR"
+    source "$VENVDIR/bin/activate"
+    python -m ensurepip
+    python -m pip --disable-pip-version-check install --upgrade --force-reinstall '.[test,pygments]'
+fi
+
 ./test.py "$@"

@@ -16,7 +16,7 @@ import pygit2
 import pytest
 
 from gitfourchette.porcelain import *
-from gitfourchette.toolbox import QPoint_zero, stripAccelerators
+from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
 from . import *
 
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
@@ -26,7 +26,7 @@ requiresNetwork = pytest.mark.skipif(
     reason="Requires network - rerun with TESTNET=1 environment variable")
 
 requiresFlatpak = pytest.mark.skipif(
-    not FREEDESKTOP or not shutil.which("flatpak"),
+    not FREEDESKTOP or (not FLATPAK and not shutil.which("flatpak")),
     reason="Requires flatpak")
 
 requiresGpg = pytest.mark.skipif(
@@ -418,14 +418,17 @@ def waitForRepoWidget(mainWindow):
 
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
     numBoxesFound = 0
+    haystack = ""
     for qmb in parent.findChildren(QMessageBox):
         if not qmb.isVisibleTo(parent):  # skip zombie QMBs
             continue
         numBoxesFound += 1
         haystack = "\n".join([qmb.windowTitle(), qmb.text(), qmb.informativeText()])
+        haystack = stripHtml(haystack)
         if re.search(textPattern, haystack, re.IGNORECASE | re.DOTALL):
             return qmb
-    raise KeyError(f"did not find \"{textPattern}\" among {numBoxesFound} QMessageBoxes")
+
+    raise KeyError(f"did not find \"{textPattern}\" among {numBoxesFound} QMessageBoxes. Last haystack is: {haystack}")
 
 
 def waitForQMessageBox(parent: QWidget, pattern: str) -> QMessageBox:
@@ -529,6 +532,9 @@ def summonContextMenu(target: QWidget, localPoint=QPoint_zero):
 
 
 def summonToolTip(target: QWidget, localPoint=QPoint_zero):
+    if WAYLAND and not OFFSCREEN:
+        print("*** THIS TEST MUST BE RUN IN OFFSCREEN MODE IN WAYLAND.", file=sys.stderr)
+
     # Move the cursor so that context-sensitive tooltips still work.
     # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
     # but offscreen tests will still work fine.

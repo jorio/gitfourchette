@@ -54,12 +54,20 @@ def setUpGitConfigSearchPaths(prefix=""):
             path += "/.gitconfig"
         return path
 
-    os.environ["GIT_CONFIG_SYSTEM"] = vanillaGitConfigPath(ConfigLevel.SYSTEM)
-    os.environ["GIT_CONFIG_GLOBAL"] = vanillaGitConfigPath(ConfigLevel.GLOBAL)
+    from gitfourchette.qt import INITIAL_ENVIRONMENT, FLATPAK
 
-    from gitfourchette.qt import INITIAL_ENVIRONMENT
-    assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_SYSTEM", None) != os.environ["GIT_CONFIG_SYSTEM"]
+    # Replace userwide gitconfig
+    os.environ["GIT_CONFIG_GLOBAL"] = vanillaGitConfigPath(ConfigLevel.GLOBAL)
     assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_GLOBAL", None) != os.environ["GIT_CONFIG_GLOBAL"]
+
+    # Replace systemwide gitconfig
+    # FLATPAK: Except in a Flatpak environment where we have full control over the systemwide gitconfig
+    if FLATPAK:
+        assert os.environ["GIT_CONFIG_SYSTEM"] == "/app/sandboxed-gitconfig"
+    else:
+        os.environ["GIT_CONFIG_SYSTEM"] = vanillaGitConfigPath(ConfigLevel.SYSTEM)
+        assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_SYSTEM", None) != os.environ["GIT_CONFIG_SYSTEM"]
+
 
 
 @pytest.fixture(scope='session', autouse=True)

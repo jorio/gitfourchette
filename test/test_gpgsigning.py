@@ -10,12 +10,10 @@ import textwrap
 
 import pytest
 
-from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import GpgStatus
-from gitfourchette.settings import GraphRowHeight
 from gitfourchette.tasks import VerifyGpgQueue
 from .test_remotelink import AskpassShim
 from .util import *
@@ -25,29 +23,58 @@ aliceFpr = "EB85BB5FA33A75E15E944E63F231550C4F47E38E"
 aliceKeyId = aliceFpr[-16:]
 
 
+def runGit(*args, directory):
+    from gitfourchette import settings
+    gitProgram = settings.prefs.gitPath
+
+    # FLATPAK: Prevent sandboxed git from using /tmp to pass temp files to gpg on the host
+    if FLATPAK:
+        os.environ["TMPDIR"] = directory
+
+    return ToolCommands.runSync(gitProgram, *args, directory=directory, strict=True)
+
+
+def runGpg(*args, directory):
+    # Honor gpg.program config value because the Flatpak's system config sets it to a special script
+    try:
+        gpgProgram = runGit("config", "gpg.program", directory=directory).strip()
+        if FLATPAK and gpgProgram.startswith("/app"):
+            gpgProgram = f"flatpak:{gpgProgram}"
+    except ChildProcessError:
+        gpgProgram = "gpg"
+
+    return ToolCommands.runSync(gpgProgram, *args, directory=directory, strict=True)
+
+
 @pytest.fixture
-def tempGpgHome():
+def tempGpgHome(tempDir):
     """
     Create an ephemeral GNUPGHOME so we don't touch the host's keyring.
     """
 
     environBackup = os.environ.copy()
 
-    # On macOS, gpg doesn't seem to like when GNUPGHOME exceeds 82 characters.
-    # The base temp path already uses 57+ characters (/private/var/folders/xx/.../T/).
-    # Create a temp dir with as short a path as possible.
-    tempHome = QTemporaryDir(f"{QDir.tempPath()}/GFTestGPG")
+    if MACOS:
+        # On macOS, gpg doesn't seem to like when GNUPGHOME exceeds 82 characters.
+        # The tempDir fixture already uses 57+ characters (/private/var/folders/xx/.../T/).
+        # Create a temp dir with as short a path as possible.
+        tempHome = QTemporaryDir(f"{QDir.tempPath()}/GFTestGPG")
+    else:
+        # Use tempDir fixture outside of macOS.
+        # The Flatpak environment CANNOT use QDir.tempPath()!
+        tempHome = QTemporaryDir(f"{tempDir.name}/EphemeralGpgHome")
+
     path = tempHome.path()
     assert not MACOS or len(path) <= 82, "this path might be too long for GNUPGHOME"
 
     os.environ["GNUPGHOME"] = path
 
-    stdout = ToolCommands.runSync("gpg", "--batch", "--list-keys", directory=path, strict=True)
+    stdout = runGpg("--batch", "--list-keys", directory=path)
     assert stdout.strip() == "", "gpg already found some keys! home not sealed off?"
 
-    ToolCommands.runSync("gpg", "--batch", "--import", getTestDataPath("gpgkeys/alice.key"), directory=path, strict=True)
+    runGpg("--batch", "--import", getTestDataPath("gpgkeys/alice.key"), directory=path)
 
-    stdout = ToolCommands.runSync("gpg", "--batch", "--list-keys", directory=path, strict=True)
+    stdout = runGpg("--batch", "--list-keys", directory=path)
     assert aliceFpr in stdout
 
     yield path
@@ -80,10 +107,7 @@ def setUpForSshSigning(tempPath: str, repoWorkdir: str, testKeyName: str = "simp
 
 
 def makeSignedCommit(wd: str, keyId: str = "", message: str = "SIGNED COMMIT"):
-    output = ToolCommands.runSync(
-        settings.prefs.gitPath, "-c", "core.abbrev=no",
-        "commit", "--allow-empty", f"-S{keyId}", f"-m{message}",
-        directory=wd, strict=True)
+    output = runGit("-c", "core.abbrev=no", "commit", "--allow-empty", f"-S{keyId}", f"-m{message}", directory=wd)
     commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
     return Oid(hex=commitHash)
 
@@ -131,12 +155,12 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
     findQMessageBox(rw, f"signature:.+good signature; key trusted.+{aliceKeyId}").reject()
 
-    ToolCommands.runSync(settings.prefs.gitPath, "verify-commit", "-v", str(commit.id), directory=wd, strict=True)
+    runGit("verify-commit", "-v", str(commit.id), directory=wd)
 
-    ToolCommands.runSync("gpg", "--batch", "--yes", "--delete-secret-and-public-keys", aliceFpr, directory=wd, strict=True)
+    runGpg("--batch", "--yes", "--delete-secret-and-public-keys", aliceFpr, directory=wd)
 
     with pytest.raises(ChildProcessError, match=r"process exited with code 1"):
-        ToolCommands.runSync(settings.prefs.gitPath, "verify-commit", "-v", str(commit.id), directory=wd, strict=True)
+        runGit("verify-commit", "-v", str(commit.id), directory=wd)
 
 
 @requiresGpg
@@ -210,10 +234,7 @@ def testVerifyGoodPgpSignatureWithMissingKey(tempDir, mainWindow, tempGpgHome):
     wd = unpackRepo(tempDir)
 
     # Create signed commit with Alice's key
-    output = ToolCommands.runSync(
-        settings.prefs.gitPath, "-c", "core.abbrev=no",
-        "commit", "--allow-empty", f"-S{aliceFpr}", "-mGPG-Signed Commit",
-        directory=wd, strict=True)
+    output = runGit("-c", "core.abbrev=no", "commit", "--allow-empty", f"-S{aliceFpr}", "-mGPG-Signed Commit", directory=wd)
     commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
 
     # Nuke gnupg home so it won't find Alice's key
@@ -239,8 +260,7 @@ def testVerifyGoodPgpSignatureWithMissingKey(tempDir, mainWindow, tempGpgHome):
     QTest.keyClick(qmb, Qt.Key.Key_Escape)
 
     # Import key and verify again
-    ToolCommands.runSync("gpg", "--batch", "--import", getTestDataPath("gpgkeys/alice.key"),
-                         directory=wd, strict=True)
+    runGpg("--batch", "--import", getTestDataPath("gpgkeys/alice.key"), directory=wd)
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
     acceptQMessageBox(rw, f"good signature; key not fully trusted.+{aliceKeyId}")
 
@@ -329,6 +349,8 @@ def testVerifyBadSshSignature(tempDir, mainWindow, tempGpgHome):
 
 @requiresGpg
 def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
+    from gitfourchette.settings import GraphRowHeight
+
     wd = unpackRepo(tempDir)
     signedOids = [makeSignedCommit(wd, aliceFpr, message=f"Signed commit #{i}") for i in range(10)]
     topSignedOid = signedOids[-1]
@@ -359,6 +381,8 @@ def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
 
 @requiresGpg
 def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
+    from gitfourchette.settings import GraphRowHeight
+
     wd = unpackRepo(tempDir)
     _signedOids = [makeSignedCommit(wd, aliceFpr, message=f"Signed commit #{i}") for i in range(40)]
 

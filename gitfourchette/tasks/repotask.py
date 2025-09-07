@@ -544,11 +544,21 @@ class RepoTask(QObject):
         if not workdir:
             workdir = repo.workdir if repo is not None else ""
 
+        # ---------------------------------------------------------------------
+        # Prepare environment variables
+
         env = env or {}
         sshOptions = []
-        gitProgram = shlex.split(settings.prefs.gitPath, posix=True)
 
-        env["LC_ALL"] = "C.UTF-8"  # force Git output in English
+        # Force Git output in English
+        env["LC_ALL"] = "C.UTF-8"
+
+        # FLATPAK: Some git commands like verify-commit use git_mkstemp to pass
+        # paths to subprocesses like gpg. Files created in the sandbox's /tmp
+        # won't be accessible to programs running on the host. (A typical
+        # scenario is a sandboxed git that starts gpg on the host.)
+        if FLATPAK:
+            env["TMPDIR"] = qTempDir()
 
         # SSH_ASKPASS
         if settings.prefs.ownAskpass:
@@ -581,6 +591,10 @@ class RepoTask(QObject):
             # Pass to git (note: it's also possible to pass '-c core.sshCommand={sshCommand}')
             env["GIT_SSH_COMMAND"] = sshCommand
 
+        # ---------------------------------------------------------------------
+        # Create GitDriver (QProcess)
+
+        gitProgram = shlex.split(settings.prefs.gitPath, posix=True)
         tokens = gitProgram + list(args)
 
         process = GitDriver(self)
@@ -589,7 +603,6 @@ class RepoTask(QObject):
         if workdir:
             process.setWorkingDirectory(workdir)
         ToolCommands.setQProcessEnvironment(process, env)
-
         ToolCommands.wrapFlatpakCommand(process)
 
         if statusForm is not None:
