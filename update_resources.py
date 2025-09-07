@@ -286,14 +286,33 @@ def cleanUpPoFiles():
 
 def compileMoFiles():
     """ Generate .mo files from .po files """
+    wipLanguages = []
+
     for poPath in Path(LANG_DIR).glob("*.po"):
         moPath: Path = poPath.with_suffix(".mo")
 
         call("msgfmt", "-o", str(moPath), str(poPath), capture_output=False)
 
-        if moPath.stat().st_size < 1000:
-            print(f"*** Removing '{moPath.name}' -- looks like a stub.")
+        moSizeKB = moPath.stat().st_size // 1024
+
+        # Remove empty po/mo files
+        if moSizeKB == 0:
+            print(f"*** Removing empty translation '{poPath.name}'")
+            poPath.unlink()
             moPath.unlink()
+            continue
+
+        # Small .mo files are considered stubs and won't be included in builds
+        if moSizeKB < 5:
+            print(f"*** Removing '{moPath.name}' -- looks like a stub ({moSizeKB} KB)")
+            moPath.unlink()
+            continue
+
+        # .mo files below 100 KB are considered incomplete
+        if moSizeKB < 100:
+            wipLanguages += [moPath.stem]
+
+    Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages))
 
 
 def writeFreezeFile(qtApi: str):
