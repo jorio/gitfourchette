@@ -105,16 +105,18 @@ class AboutDialog(QDialog):
         # ---------------------------------------------------------------------
         # Acknowledgments page
 
-        try:
-            translatorCreditsIntro = _("Brought to your native language by:")
-            translatorCreditsPath = Path(QFile("assets:lang/credits.html").fileName())
-            translatorCredits = translatorCreditsIntro + "\n" + translatorCreditsPath.read_text("utf-8")
-        except OSError:
-            # TODO: Temporary until we have actual credits
-            translatorCredits = ""
+        contributorCreditsPath = Path(QFile("assets:/contributors.txt").fileName())
+        contributorCredits = contributorCreditsPath.read_text("utf-8")
+        contributorCredits = contributorCredits.removeprefix("Iliyas Jorio\n")
+        contributorCredits = f"<blockquote style='white-space: pre'>{contributorCredits}</blockquote>"
+
+        translatorCreditsPath = Path(QFile("assets:lang/credits.html").fileName())
+        translatorCredits = translatorCreditsPath.read_text("utf-8")
 
         ackText = [
-            translatorCredits,
+            _("Additional contributions by:") + contributorCredits,
+
+            _("Brought to your native language by:") + translatorCredits,
 
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
 

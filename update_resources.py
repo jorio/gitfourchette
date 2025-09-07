@@ -56,9 +56,6 @@ def makeParser():
     loc_group.add_argument("--clean-po", action="store_true",
                            help="remove obsolete strings from .po files")
 
-    loc_group.add_argument("--weblate-credits", default="", metavar="JSON_REPORT",
-                           help="format translator credits from Weblate JSON report (https://hosted.weblate.org/projects/gitfourchette/gitfourchette/#reports)")
-
     ui_group = parser.add_argument_group("UI Designer options")
 
     ui_group.add_argument("-u", "--ui", action="store_true",
@@ -74,6 +71,14 @@ def makeParser():
 
     pkg_group.add_argument("--freeze", default="", metavar="QT_API",
                            help="write frozen constants to appconsts.py and exit")
+
+    credits_group = parser.add_argument_group("Credits options")
+
+    credits_group.add_argument("--contributors", action="store_true",
+                           help="format code contributor list")
+
+    credits_group.add_argument("--weblate-credits", default="", metavar="JSON_REPORT",
+                           help="format translator credits from Weblate JSON report (https://hosted.weblate.org/projects/gitfourchette/gitfourchette/#reports)")
 
     return parser
 
@@ -353,6 +358,17 @@ def formatTranslatorCredits(jsonReportPath: str):
     Path(LANG_DIR, "credits.html").write_text(markup)
 
 
+def formatContributors():
+    process = call("git", "shortlog", "--summary", ":!gitfourchette/assets/lang")
+
+    contributors = [
+        line.split("\t", 1)[1]
+        for line in process.stdout.splitlines(keepends=True)
+    ]
+
+    Path(ASSETS_DIR, "contributors.txt").write_text("".join(contributors))
+
+
 def writeFreezeFile(qtApi: str):
     repo = pygit2.Repository(SRC_DIR)
     headCommit = repo.head.target
@@ -392,7 +408,7 @@ if __name__ == '__main__':
         writeFreezeFile(args.freeze)
         sys.exit(0)
 
-    if not (args.ui or args.pot or args.po or args.mo or args.clean_po or args.weblate_credits):
+    if not (args.ui or args.pot or args.po or args.mo or args.clean_po or args.weblate_credits or args.contributors):
         makeParser().print_usage()
         sys.exit(1)
 
@@ -415,3 +431,6 @@ if __name__ == '__main__':
 
     if args.weblate_credits:
         formatTranslatorCredits(args.weblate_credits)
+
+    if args.contributors:
+        formatContributors()
