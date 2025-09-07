@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -351,6 +352,8 @@ class PrefsDialog(QDialog):
         control.addItem(defaultCaption, userData="")
         control.insertSeparator(1)
 
+        wipLocales = Path(QFile("assets:lang/wip.txt").fileName()).read_text().strip().splitlines()
+
         langDir = QDir("assets:lang", "*.mo")
         localeCodes = [f.removesuffix(".mo") for f in langDir.entryList()]
 
@@ -363,11 +366,19 @@ class PrefsDialog(QDialog):
         localeCodes.append("en")
 
         localeNames = {code: QLocale(code).nativeLanguageName() for code in localeCodes}
-        localeCodes.sort(key=lambda code: localeNames[code].casefold())
+        localeCodes.sort(key=lambda code: "AZ"[code in wipLocales] + localeNames[code].casefold())
 
+        wipSeparatorInserted = False
         for code in localeCodes:
             name = localeNames[code]
             name = name[0].upper() + name[1:]  # Many languages don't capitalize their name
+
+            if code in wipLocales:
+                name = f"[WIP] {name}"
+                if not wipSeparatorInserted:
+                    control.insertSeparator(control.count())
+                    wipSeparatorInserted = True
+
             control.addItem(name, code)
 
         control.setCurrentIndex(control.findData(prefValue))
