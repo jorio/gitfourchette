@@ -66,6 +66,37 @@
   </keywords>
 
   <releases>
+    <release version="1.5.0" date="2025-09-08" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.5.0</url>
+      <description>
+        <p><em>Major change: Better integration with standard Git tooling.</em> GitFourchette now uses git instead of libgit2 to edit repositories and communicate with remotes. This enables seamless integration into workflows that depend on OpenSSH, hooks, etc.</p>
+        <p>The Flatpak version comes bundled with a Git distribution so you can use it without any additional setup. For more control, you can switch to your system's Git install via <em>Settings → Git Integration</em>.</p>
+        <p>New features:</p>
+        <ul>
+        <li><em>GPG-sign your commits.</em> Look for a little key icon in the Commit Dialog. (#63)</li>
+        <li><em>Verify commit signatures in the commit history.</em> <em>Settings → Commit History → Verify signed commits on the fly</em>. (#59)</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>Force push with lease (#61)</li>
+        <li>Sidebar: Bold current commit and upstream (#60)</li>
+        <li>Sidebar: Allow collapsing/expanding all folders from Local Branches context menu</li>
+        <li>Keep syntax highlighting active while a search term is being highlighted</li>
+        <li>In non-KDE environments (e.g. GNOME), the Return key can now be used to confirm most dialogs regardless of the focused widget (note: KDE already allowed this) (#68)</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix rendering of Unicode surrogate pairs in character-level diffs (#58)</li>
+        <li>Fix parent commit links in Get Commit Info (regression in 1.4.0)</li>
+        </ul>
+        <p>Breaking changes due to integration with Git tooling:</p>
+        <ul>
+        <li>Passphrase saving has been delegated to ssh-agent. Some Linux distros like Ubuntu and Fedora provide an ssh-agent out of the box. As a fallback, you can have GitFourchette spin up an ssh-agent for you via <em>Settings → Git Integration → ssh-agent</em>.</li>
+        <li>Per-remote custom SSH keys aren't supported anymore. You can set per-host keys in <em>~/.ssh/config</em> to achieve the same effect; or, you can set per-repo custom SSH keys in <em>Repo → Repo Settings → Log in to SSH remotes with custom key file</em>.</li>
+        </ul>
+        <p>Note: Although many commands now call git, libgit2 (via pygit2) is still used internally to build a model of the repo.</p>
+      </description>
+    </release>
     <release version="1.4.0" date="2025-07-14" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.4.0</url>
       <description>
