@@ -13,6 +13,7 @@ We use a bare repository on the local filesystem as a "remote server".
 
 import os.path
 import re
+import shlex
 
 import pytest
 
@@ -791,6 +792,10 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
 
 def testAbortPushInProgress(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
 
@@ -806,16 +811,32 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     assert rw.repo.branches.remote["remote2/master"].target == oldOid
 
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
-    pushDialog: PushDialog = waitForQDialog(rw, "push.+branch")
-    pushDialog.okButton().click()
-    assert not pushDialog.okButton().isEnabled()
-    assert pushDialog.ui.statusForm.ui.statusLabel.isVisible()
-    assert re.search(r"please wait", pushDialog.ui.statusForm.ui.statusLabel.text(), re.I)
-    pushDialog.cancelButton().click()
-    waitUntilTrue(pushDialog.okButton().isEnabled)
-    assert pushDialog.ui.statusForm.ui.blurbLabel.isVisible()
-    assert re.search(r"git.+exited with.+sigterm", pushDialog.ui.statusForm.ui.blurbLabel.text(), re.I)
-    pushDialog.reject()
+    pushDialog = waitForQDialog(rw, "push.+branch", t=PushDialog)
+    statusLabel = pushDialog.ui.statusForm.ui.statusLabel
+    blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
+    okButton = pushDialog.okButton()
+    cancelButton = pushDialog.cancelButton()
+
+    okButton.click()
+    assert not okButton.isEnabled()
+    assert statusLabel.isVisible()
+    assert findTextInWidget(statusLabel, "please wait")
+
+    # Wait for wrapper script to actually start
+    waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))
+
+    # Send SIGTERM
+    cancelButton.click()
+    waitUntilTrue(okButton.isEnabled)
+
+    # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
+    # we're running non-sandboxed commands through /usr/bin/env
+    failMessage = "git.+exited with.+" + ("143" if FLATPAK else "SIGTERM")
+    assert findTextInWidget(blurbLabel, failMessage)
+    assert blurbLabel.isVisible()
+
+    # Click cancel button again to dismiss the dialog
+    cancelButton.click()
 
     assert rw.repo.branches.remote["remote2/master"].target == oldOid
     with RepoContext(wd) as repo:
@@ -824,8 +845,12 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
 
 
 def testAbortPullInProgress(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
     wd = unpackRepo(tempDir)
-    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)#False)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
 
     with RepoContext(bareCopy) as bareRepo:
         _unknownCommitId = bareRepo.create_commit(
@@ -856,8 +881,11 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     rw.processDialog.abortButton.click()
     assert "SIGKILL" in rw.processDialog.abortButton.text()
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    waitForQMessageBox(rw, "git.+exited with.+sigterm")
-    rejectQMessageBox(rw, "git.+exited with.+sigterm")
+
+    # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
+    # we're running non-sandboxed commands through /usr/bin/env
+    failMessage = "git.+exited with.+" + ("143" if FLATPAK else "SIGTERM")
+    waitForQMessageBox(rw, failMessage).reject()
 
     rw.refreshRepo()
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())

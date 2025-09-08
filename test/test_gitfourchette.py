@@ -772,15 +772,15 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
 
 
 def testGitProcessStuck(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--block", "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "stage me")
 
     mainWindow.openRepo(wd)
     rw = waitForRepoWidget(mainWindow)
-
-    mainWindow.onAcceptPrefsDialog({
-        "gitPath": shlex.join([getTestDataPath("delay-cmd.py"), "/usr/bin/git"]),
-    })
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
     rw.diffArea.stageButton.click()
