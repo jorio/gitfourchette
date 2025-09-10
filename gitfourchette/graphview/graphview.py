@@ -145,7 +145,7 @@ class GraphView(QListView):
 
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
-            resetLabel = _("&Reset {0} to Here…", lquo(repoModel.homeBranch) if repoMode.homeBranch else "HEAD")
+            resetLabel = _("&Reset {0} to Here…", lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD")
 
             actions = [
                 *mergeActions,
