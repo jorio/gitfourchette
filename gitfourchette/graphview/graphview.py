@@ -143,6 +143,7 @@ class GraphView(QListView):
 
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
+            resetLabel = _("&Reset {0} to Here…", lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD")
 
             gpgLookAtCommit = self.repoModel.repo.peel_commit(oid)
             gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(gpgLookAtCommit)
@@ -155,7 +156,7 @@ class GraphView(QListView):
                 TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid),
                 ActionDef.SEPARATOR,
                 checkoutAction,
-                TaskBook.action(self, ResetHead, _("&Reset HEAD to Here…"), taskArgs=oid),
+                TaskBook.action(self, ResetHead, resetLabel, taskArgs=oid),
                 ActionDef.SEPARATOR,
                 TaskBook.action(self, CherrypickCommit, _("Cherry &Pick…"), taskArgs=oid),
                 TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),
