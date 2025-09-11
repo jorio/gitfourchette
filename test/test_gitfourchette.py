@@ -5,11 +5,13 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import shlex
 from contextlib import suppress
 
 import pytest
 from pytestqt.qtbot import QtBot
 
+from gitfourchette.forms.processdialog import ProcessDialog
 from .util import *
 
 from gitfourchette.application import GFApplication
@@ -71,7 +73,7 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow, qtbot: QtBot):
 
     rw.repoModel.prefs.draftCommitMessage = "some bogus change to prevent prefs to be written"
     rw.repoModel.prefs.write(force=True)
-    assert os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
+    assert os.path.isfile(f"{wd}/.git/{APP_SYSTEM_NAME}.json")
 
     oldName = os.path.normpath(wd)
     newName = oldName + "-2"
@@ -86,7 +88,7 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow, qtbot: QtBot):
     assert re.search(r"folder.+missing", stub.ui.promptReadyLabel.text(), re.I)
 
     # Make sure we're not writing the prefs to a ghost directory structure upon exiting
-    assert not os.path.isfile(f"{wd}/.git/gitfourchette_testmode.json")
+    assert not os.path.isfile(f"{wd}/.git/{APP_SYSTEM_NAME}.json")
 
     # Try to reload - this causes a GitError.
     # Normally, RepoTaskRunner re-raises the exception, causing qtbot to fail the unit test.
@@ -171,11 +173,11 @@ def testNewRepo(tempDir, mainWindow):
 
 
 def testNewRepoFromExistingSources(tempDir, mainWindow):
-    triggerMenuAction(mainWindow.menuBar(), "file/new repo")
-
     path = os.path.realpath(tempDir.name + "/valoche3000")
     os.makedirs(path)
     writeFile(f"{path}/existing.txt", "file was here before repo inited\n")
+
+    triggerMenuAction(mainWindow.menuBar(), "file/new repo")
 
     acceptQFileDialog(mainWindow, "new repo", path)
     acceptQMessageBox(mainWindow, r"are you sure.+valoche3000.+isn.t empty")
@@ -346,8 +348,6 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
     assert headCommit.author.email == (email or TEST_SIGNATURE.email)
     assert headCommit.committer.name == headCommit.author.name
     assert headCommit.committer.email == headCommit.author.email
-
-    dlg.accept()
 
 
 @pytest.mark.parametrize("withGC", [True, False])
@@ -750,3 +750,48 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     mainWindow.closeAllTabs()
     pause(3)
     assert readFile(scratchPath).decode().strip() == "about to sleep"
+
+
+def testFailedToStartGitProcess(tempDir, mainWindow):
+    mainWindow.onAcceptPrefsDialog({
+        "gitPath": "/tmp/supposedly-a-git-executable-but-it-doesnt-exist"
+    })
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "stage me")
+
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.stageButton.click()
+
+    if FLATPAK:
+        # flatpak-spawn always starts successfully, so the errorOccurred callback won't run.
+        # Instead, look for return code 127 from /usr/bin/env.
+        acceptQMessageBox(rw, "code 127")
+    else:
+        acceptQMessageBox(rw, "failed to start")
+
+
+def testGitProcessStuck(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--block", "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "stage me")
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    rw.diffArea.stageButton.click()
+    processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
+    waitUntilTrue(lambda: findTextInWidget(processDialog.statusForm.ui.statusLabel, r"delaying.+git.+for.+seconds"))
+
+    assert "Abort" in processDialog.abortButton.text()
+    processDialog.abortButton.click()
+
+    waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
+    processDialog.abortButton.click()
+
+    waitUntilTrue(processDialog.isHidden, timeout=1000)
+    waitForQMessageBox(rw, r"git.+exited.+with code.+sigkill").reject()

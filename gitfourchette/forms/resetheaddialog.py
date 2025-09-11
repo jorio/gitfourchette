@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -25,9 +25,7 @@ class ResetHeadDialog(QDialog):
         if mode == ResetMode.HARD:
             okButton.setIcon(stockIcon("achtung"))
             okButton.setToolTip(_("Hard reset: Destructive action!"))
-            self.ui.recurseCheckBox.setEnabled(True)
-        else:
-            self.ui.recurseCheckBox.setEnabled(False)
+        self.ui.recurseCheckBox.setEnabled(self.hasSubmodules and mode == ResetMode.HARD)
 
     def recurseSubmodules(self):
         checkBox = self.ui.recurseCheckBox
@@ -39,7 +37,9 @@ class ResetHeadDialog(QDialog):
         self.ui = Ui_ResetHeadDialog()
         self.ui.setupUi(self)
 
+        self.hasSubmodules = hasSubmodules
         self.ui.recurseCheckBox.setVisible(hasSubmodules)
+        self.ui.recurseCheckBox.setEnabled(hasSubmodules)
 
         okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         self.defaultOkIcon = okButton.icon() or QIcon()

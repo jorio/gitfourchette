@@ -12,8 +12,14 @@ from gitfourchette.toolbox import *
 
 
 class RemoteDialog(QDialog):
-    def __init__(self, editExistingRemote: bool, name: str, url: str, customKeyFile: str,
-                 existingRemotes: list[str], parent: QWidget):
+    def __init__(
+            self,
+            editExistingRemote: bool,
+            name: str,
+            url: str,
+            existingRemotes: list[str],
+            parent: QWidget
+    ):
 
         super().__init__(parent)
 
@@ -24,11 +30,6 @@ class RemoteDialog(QDialog):
         self.ui.urlEdit.setText(url)
         self.ui.nameEdit.setText(name)
         self.existingRemotes = existingRemotes
-
-        # Set up key file picker
-        self.ui.keyFilePicker.makeFixedHeight()
-        self.ui.keyFilePicker.setPath(customKeyFile)
-        self.ui.keyFilePicker.checkBox.setChecked(bool(customKeyFile))
 
         # Set up input validator
         nameTaken = _("This name is already taken by another remote.")
@@ -71,10 +72,6 @@ class RemoteDialog(QDialog):
 
         # Run input callback
         validator.run(silenceEmptyWarnings=True)
-
-    @property
-    def privateKeyFilePath(self):
-        return self.ui.keyFilePicker.privateKeyPath()
 
     def onNameChanged(self, name: str):
         # Allow autofilling name again if user has erased it

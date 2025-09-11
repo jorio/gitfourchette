@@ -4,26 +4,24 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import logging
 import re
-import traceback
 import urllib.parse
 from contextlib import suppress
 from pathlib import Path
 
-import pygit2
-from pygit2.enums import RepositoryOpenFlag
-
 from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
-from gitfourchette.porcelain import Repo, pygit2_version_at_least
+from gitfourchette.porcelain import pygit2_version_at_least, RepoContext, RepositoryOpenFlag
 from gitfourchette.qt import *
-from gitfourchette.remotelink import RemoteLink
 from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
+
+logger = logging.getLogger(__name__)
 
 
 def _projectNameFromUrl(url: str) -> str:
@@ -38,7 +36,6 @@ def _projectNameFromUrl(url: str) -> str:
 
 class CloneDialog(QDialog):
     cloneSuccessful = Signal(str)
-    aboutToReject = Signal()
 
     urlEditUserDataClearHistory = "CLEAR_HISTORY"
 
@@ -76,6 +73,7 @@ class CloneDialog(QDialog):
         self.cancelButton: QPushButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
         self.cancelButton.setAutoDefault(False)
 
+        self.ui.statusForm.connectAbortButton(self.cancelButton)
         self.ui.statusForm.setBlurb(_("Hit {0} when ready.", tquo(self.cloneButton.text().replace("&", ""))))
 
         self.ui.shallowCloneDepthSpinBox.valueChanged.connect(self.onShallowCloneDepthChanged)
@@ -219,12 +217,11 @@ class CloneDialog(QDialog):
         self.ui.shallowCloneCheckBox.setText(parts[0].strip())
         self.ui.shallowCloneSuffix.setText(parts[1].strip())
 
-    def reject(self):
-        # Emit "aboutToReject" before destroying the dialog so TaskRunner has time to wrap up.
-        self.aboutToReject.emit()
-        self.taskRunner.killCurrentTask()
-        self.taskRunner.joinZombieTask()
-        super().reject()  # destroys the dialog then emits the "rejected" signal
+    def reject(self):  # connected to abort button and ESC key
+        if self.taskRunner.isBusy():
+            self.ui.statusForm.requestAbort()
+        else:
+            super().reject()  # destroys the dialog then emits the "rejected" signal
 
     @property
     def url(self):
@@ -315,68 +312,44 @@ class CloneTask(RepoTask):
     easily run the clone operation in a background thread.
     """
 
-    stickyStatus = Signal(str)
-
-    cloneDialog: CloneDialog
-    remoteLink: RemoteLink
-
-    def abort(self):
-        self.remoteLink.raiseAbortFlag()
-
     def flow(self, dialog: CloneDialog, url: str, path: str, depth: int, privKeyPath: str, recursive: bool):
-        self.cloneDialog = dialog
-        self.remoteLink = RemoteLink(self)
-        self.remoteLink.message.connect(dialog.ui.statusForm.setProgressMessage)
-        self.remoteLink.progress.connect(dialog.ui.statusForm.setProgressValue)
-        self.stickyStatus.connect(dialog.ui.statusGroupBox.setTitle)
+        shallow = depth != 0
 
         dialog.enableInputs(False)
-        dialog.aboutToReject.connect(self.remoteLink.raiseAbortFlag)
-
-        # Enter worker thread
-        yield from self.flowEnterWorkerThread()
-
-        # Set private key
-        # (This requires passing resetParams=False to remoteContext())
-        if privKeyPath:
-            self.remoteLink.forceCustomKeyFile(privKeyPath)
 
         # Clone the repo
-        self.stickyStatus.emit(_("Cloning…"))
-        with self.remoteLink.remoteContext(url, resetParams=False):
-            repo = pygit2.clone_repository(url, path, callbacks=self.remoteLink, depth=depth)
+        driver = yield from self.flowCallGit(
+            "clone",
+            "--progress",
+            *argsIf(recursive, "--recurse-submodules"),
+            *argsIf(shallow and recursive, "--shallow-submodules"),
+            *argsIf(shallow, "--depth", str(depth)),
+            *argsIf(shallow, "--no-single-branch", "--no-tags"),  # match what libgit2 backend does
+            "--",
+            url,
+            path,
+            customKey=privKeyPath,
+            autoFail=False,
+            statusForm=dialog.ui.statusForm)
 
-        # Convert to our extended Repo class
-        repo = Repo(repo.workdir, RepositoryOpenFlag.NO_SEARCH)
+        if driver.exitCode() != 0:
+            QApplication.beep()
+            QApplication.alert(dialog, 500)
+            dialog.enableInputs(True)
+            dialog.ui.statusForm.setBlurb(driver.htmlErrorText())
+            return
 
-        # Store custom key (if any) in cloned repo config
-        if privKeyPath:
-            RepoPrefs.setRemoteKeyFileForRepo(repo, repo.remotes[0].name, privKeyPath)
-
-        # Recurse into submodules
-        if recursive:
-            self.recurseIntoSubmodules(repo, depth=depth)
-
-        # Done, back to UI thread
-        yield from self.flowEnterUiThread()
+        # Successfully cloned
         settings.history.addCloneUrl(url)
         settings.history.setDirty()
 
+        # Store custom key (if any) in cloned repo config
+        if privKeyPath:
+            with RepoContext(path, RepositoryOpenFlag.NO_SEARCH) as repo:
+                repoPrefs = RepoPrefs.initForRepo(repo)
+                repoPrefs.customKeyFile = privKeyPath
+                repoPrefs.setDirty()
+                repoPrefs.write()
+
         # When the task runner wraps up, tell dialog to finish
         dialog.taskRunner.ready.connect(dialog.onCloneSuccessful)
-
-    def recurseIntoSubmodules(self, repo: Repo, depth: int):
-        for i, submodule in enumerate(repo.recurse_submodules(), 1):
-            stickyStatus = _("Initializing submodule {0}: {1}…", i, lquoe(submodule.name))
-            self.stickyStatus.emit(stickyStatus)
-
-            with self.remoteLink.remoteContext(submodule.url or ""):
-                submodule.update(init=True, callbacks=self.remoteLink, depth=depth)
-
-    def onError(self, exc: BaseException):
-        traceback.print_exception(exc.__class__, exc, exc.__traceback__)
-        dialog = self.cloneDialog
-        QApplication.beep()
-        QApplication.alert(dialog, 500)
-        dialog.enableInputs(True)
-        dialog.ui.statusForm.setBlurb(f"<span style='white-space: pre;'><b>{TrTables.exceptionName(exc)}:</b> {escape(str(exc))}")

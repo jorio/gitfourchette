@@ -11,8 +11,10 @@ import pygit2
 import pytest
 from pygit2.enums import SubmoduleStatus
 
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from . import reposcenario
@@ -106,7 +108,8 @@ def testSubmoduleHeadUpdate(tempDir, mainWindow, method):
 def testSubmoduleDirty(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
-    writeFile(f"{subWd}/dirty.txt", "coucou")
+    writeFile(f"{subWd}/dirty.txt", "hello untracked")
+    writeFile(f"{subWd}/master.txt", "hello tracked")
 
     rw = mainWindow.openRepo(wd)
 
@@ -114,13 +117,15 @@ def testSubmoduleDirty(tempDir, mainWindow, method):
     assert qlvClickNthRow(rw.dirtyFiles, 0)
 
     special = rw.specialDiffView
-    assert special.isVisibleTo(rw)
+    assert special.isVisible()
     assert qteFind(special, r"submodule.+submo.+contains changes")
     assert qteFind(special, r"uncommitted changes")
 
+    # Attempt to stage the submodule; this shouldn't do anything
     QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)  # attempt to stage it
     acceptQMessageBox(rw, "can.+t be staged from the parent repo")
-    assert rw.repo.status() == {"submodir": FileStatus.WT_MODIFIED}  # shouldn't do anything (the actual app will emit a beep)
+    QTest.qWait(0)
+    assert rw.repo.status() == {"submodir": FileStatus.WT_MODIFIED}  # shouldn't do anything
 
     if method == "link":
         qteClickLink(special, r"reset")
@@ -455,20 +460,19 @@ def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method):
 @pytest.mark.parametrize("recurse", [True, False])
 @pytest.mark.parametrize("method", ["switch1", "switch2", "detach", "newbranch"])
 def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
-    oid = Oid(hex="ea953d3ba4c5326d530dc09b4ca9781b01c18e00")
     contentsHead = b"hello from submodule\nan update!\n"
     contentsOld = b"hello from submodule\n"
 
     wd = unpackRepo(tempDir, "submoroot")
 
-    with RepoContext(wd) as repo:
-        repo.create_branch_from_commit("old", oid)
+    if recurse:  # TODO: Figure out why this specific test needs this
+        ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
     assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
 
-    node = rw.sidebar.findNodeByRef("refs/heads/old")
-    rw.jump(NavLocator.inCommit(oid))
+    node = rw.sidebar.findNodeByRef("refs/heads/just-added-submodule")
+    rw.jump(NavLocator.inRef("refs/heads/just-added-submodule"))
 
     if method == "switch1":
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch")
@@ -512,6 +516,10 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     initialCommit = Oid(hex="2b6471b8999e560c9601ffaa0a5b8376ac403ce4")
 
     wd = unpackRepo(tempDir, "submoroot")
+
+    # TODO: Figure out why this specific test needs this
+    ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
+
     rw = mainWindow.openRepo(wd)
 
     assert 1 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)

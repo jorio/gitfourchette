@@ -241,6 +241,19 @@ class StashApplyBreakdown(StashApplyCallbacks, CheckoutBreakdown):
         _logger.info(f"stash apply progress: {pr}")
 
 
+def version_to_tuple(s: str) -> tuple[int, ...]:
+    v = []
+    for n in s.split("."):
+        try:
+            v.append(int(n))
+        except ValueError:
+            v.append(0)
+    # Trim trailing zeros to ease comparison
+    while v and v[-1] == 0:
+        v.pop()
+    return tuple(v)
+
+
 def _version_at_least(
         package_name: str,
         required_version_string: str,
@@ -248,18 +261,6 @@ def _version_at_least(
         raise_error=True,
         feature_name="This feature"
 ):
-    def version_to_tuple(s: str):
-        v = []
-        for n in s.split("."):
-            try:
-                v.append(int(n))
-            except ValueError:
-                v.append(0)
-        # Trim trailing zeros to ease comparison
-        while v and v[-1] == 0:
-            v.pop()
-        return tuple(v)
-
     required_version = version_to_tuple(required_version_string)
     current_version = version_to_tuple(current_version_string)
 
@@ -480,10 +481,29 @@ def parse_submodule_patch(text: str) -> tuple[Oid, Oid, bool]:
 
 
 class GitConfigHelper:
+    # Rough equivalent of git_config_open_default (not available in pygit2 yet)
+    default_config_getters = [
+        (GitConfigLevel.GLOBAL, GitConfig.get_global_config),   # ~/.gitconfig
+        (GitConfigLevel.XDG,    GitConfig.get_xdg_config),      # ~/.config/git/config
+        (GitConfigLevel.SYSTEM, GitConfig.get_system_config),   # /etc/gitconfig
+        # Note: libgit2's git_config_open_default also adds GitConfigLevel.PROGRAMDATA for Windows,
+        # but pygit2 doesn't expose git_config_find_programdata.
+    ]
+    assert (sorted([gcl for gcl, _ in default_config_getters], reverse=True)
+            == [gcl for gcl, _ in default_config_getters]
+            ), "default_config_getters should be sorted by decreasing globality"
+
     class SectionPatterns:
         SUBMODULE = _re.compile(r'^submodule "(.+)"$')
         REMOTE = _re.compile(r'^remote "(.+)"$')
         BRANCH = _re.compile(r'^branch "(.+)"$')
+
+    @staticmethod
+    def sanitize_key(key: str | tuple[str, ...]) -> str:
+        if type(key) is tuple:
+            return ".".join(key)
+        assert type(key) is str
+        return key
 
     @staticmethod
     def path_for_level(level: GitConfigLevel, missing_dir_ok=False):
@@ -612,8 +632,8 @@ class GitConfigHelper:
         _os.rename(temp_path, config_path)
         _os.unlink(backup_path)
 
-    @staticmethod
-    def global_identity() -> tuple[str, str, GitConfigLevel]:
+    @classmethod
+    def global_identity(cls) -> tuple[str, str, GitConfigLevel]:
         """
         Returns the name and email set in the global `.gitconfig` file.
         If the global identity isn't set, this function returns blank strings.
@@ -623,30 +643,34 @@ class GitConfigHelper:
         email = ""
         level = GitConfigLevel.HIGHEST_LEVEL
 
-        getters = [
-            (GitConfigLevel.SYSTEM, GitConfig.get_system_config),
-            (GitConfigLevel.XDG, GitConfig.get_xdg_config),
-            (GitConfigLevel.GLOBAL, GitConfig.get_global_config),
-        ]
-        getters.sort(key=lambda item: item[0], reverse=True)
-
-        for _dummy, getter in getters:
+        for getter_level, getter in cls.default_config_getters:
             try:
                 config = getter()
             except OSError:
-                # "The global file '.gitconfig' doesn't exist: No such file or directory
+                # "The global file '.gitconfig' doesn't exist: No such file or directory"
                 continue
 
             with _suppress(KeyError):
                 name = config["user.name"]
+                level = getter_level
 
             with _suppress(KeyError):
                 email = config["user.email"]
+                level = getter_level
 
             if name and email:
                 break
 
         return name, email, level
+
+    @classmethod
+    def get_default_value(cls, key: str | tuple) -> str:
+        key = cls.sanitize_key(key)
+        for _dummy, getter in cls.default_config_getters:
+            with _suppress(OSError, KeyError):
+                config = getter()
+                return config[key]
+        return ""
 
     @staticmethod
     def unescape(s: str):
@@ -1801,22 +1825,15 @@ class Repo(_VanillaRepository):
             f.write(f"gitdir: {rel_gitdir}\n")
         return True
 
-    @staticmethod
-    def _sanitize_config_key(key: str | tuple) -> str:
-        if type(key) is tuple:
-            key = ".".join(key)
-        assert type(key) is str
-        return key
-
     def get_config_value(self, key: str | tuple):
-        key = self._sanitize_config_key(key)
+        key = GitConfigHelper.sanitize_key(key)
         try:
             return self.config[key]
         except KeyError:
             return ""
 
     def set_config_value(self, key: str | tuple, value: str):
-        key = self._sanitize_config_key(key)
+        key = GitConfigHelper.sanitize_key(key)
         if value:
             self.config[key] = value
         else:

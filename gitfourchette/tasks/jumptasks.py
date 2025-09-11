@@ -498,6 +498,11 @@ class RefreshRepo(RepoTask):
         upstreamsChanged = False
         homeBranchChanged = False
 
+        if effectFlags & TaskEffects.Head:
+            # Refresh the index. Useful in vanilla git mode: git may have touched
+            # the index file during the task, so make libgit2 aware of it.
+            repoModel.repo.refresh_index()
+
         if effectFlags & (TaskEffects.Head | TaskEffects.Workdir):
             submodulesChanged = repoModel.syncSubmodules()
 
@@ -606,13 +611,9 @@ class RefreshRepo(RepoTask):
         gsl = repoModel.syncTopOfGraph(oldRefs)
 
         with QSignalBlockerContext(graphView):
-            # Hidden commits may have changed in RepoState.syncTopOfGraph!
-            # If new commits are part of a hidden branch, we've got to invalidate the CommitFilter.
-            clFilter.setHiddenCommits(repoModel.hiddenCommits)
+            # Sync top of graphview
+            clModel.resetCommitSequence(gsl.numRowsRemoved, gsl.numRowsAdded)
 
-            if gsl.numRowsRemoved >= 0:
-                # Sync top of graphview
-                clModel.mendCommitSequence(gsl.numRowsRemoved, gsl.numRowsAdded, repoModel.commitSequence)
-            else:
-                # Replace graph wholesale
-                clModel.setCommitSequence(repoModel.commitSequence)
+            # Hidden commits may have changed in RepoModel.syncTopOfGraph!
+            # If new commits are part of a hidden branch, we must invalidate CommitLogFilter.
+            clFilter.updateHiddenCommits()

@@ -8,23 +8,25 @@ from __future__ import annotations
 
 import enum
 import logging
-import re
+import shlex
 import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
+from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.forms.askpassdialog import AskpassDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.manualgc import gcHint
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
-from gitfourchette.porcelain import ConflictError, GitError, MultiFileError, Repo, RepositoryState
+from gitfourchette.porcelain import ConflictError, MultiFileError, Repo, RepositoryState
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.toolbox import *
 
 if TYPE_CHECKING:
+    from gitfourchette.forms.statusform import StatusForm
     from gitfourchette.repowidget import RepoWidget
-
-_lineEndingReplacementPattern = re.compile("(LF|CRLF) would be replaced by (LF|CRLF) in '.+'")
 
 logger = logging.getLogger(__name__)
 
@@ -67,24 +69,10 @@ def showMultiFileErrorMessage(parent: QWidget, exc: MultiFileError, opName="Oper
                                 "({n} other files were successful.)", n=exc.file_successes)
 
     for path, error in exc.file_exceptions.items():
-        if not error:
+        if error:
+            details.append(f"<b>{escape(path)}</b>{_(':')} {escape(str(error))}")
+        else:
             details.append(escape(path))
-            continue
-
-        m = ""
-
-        # Reword some libgit2 messages
-        if type(error) is GitError:
-            lineEndings = _lineEndingReplacementPattern.match(str(error))
-            if lineEndings:
-                m = _("This file contains {a} line endings. "
-                      "They will not be replaced by {b} because {opt} is enabled.",
-                      a=lineEndings.group(1), b=lineEndings.group(2), opt=hquo("core.safecrlf"))
-
-        if not m:
-            m = escape(str(error))
-
-        details.append(f"<b>{escape(path)}</b>: {m}")
 
     qmb = asyncMessageBox(parent, 'warning', opName, message)
     addULToMessageBox(qmb, details)
@@ -138,7 +126,8 @@ class FlowControlToken:
     class Kind(enum.IntEnum):
         ContinueOnUiThread = enum.auto()
         ContinueOnWorkThread = enum.auto()
-        WaitReady = enum.auto()
+        WaitUserReady = enum.auto()
+        WaitProcessReady = enum.auto()
         InterruptedByException = enum.auto()
 
     flowControl: Kind
@@ -150,6 +139,9 @@ class FlowControlToken:
 
     def __str__(self):
         return F"FlowControlToken({self.flowControl.name})"
+
+
+FlowControlToken.BootstrapFlow = FlowControlToken()
 
 
 class FlowWorkerThread(QThread):
@@ -168,10 +160,17 @@ class FlowWorkerThread(QThread):
 class AbortTask(Exception):
     """ To bail from a coroutine early, we must raise an exception to ensure that
     any active context managers exit deterministically."""
-    def __init__(self, text: str = "", icon: MessageBoxIconName = "warning", asStatusMessage: bool = False):
+    def __init__(
+            self,
+            text: str = "",
+            icon: MessageBoxIconName = "warning",
+            asStatusMessage: bool = False,
+            details: str = ""
+    ):
         super().__init__(text)
         self.icon = icon
         self.asStatusMessage = asStatusMessage
+        self.details = details
 
 
 class RepoGoneError(FileNotFoundError):
@@ -196,6 +195,11 @@ class RepoTask(QObject):
 
     effects: TaskEffects
     """ Which parts of the UI should be refreshed when this task completes. """
+
+    _currentProcess: QProcess | None
+    """ External process that this task is currently waiting on (via flowStartProcess).
+    This is only valid in the root task in the stack (non-root tasks are allowed
+    to set the root task's current process). """
 
     _postStatus: str
     """ Display this message in the status bar after completion (user code should use the getter/setter). """
@@ -230,6 +234,7 @@ class RepoTask(QObject):
         self.setObjectName(self.__class__.__name__)
         self.jumpTo = NavLocator()
         self.effects = TaskEffects.Nothing
+        self._currentProcess = None
         self._postStatus = ""
         self._postStatusLocked = False
         self._taskStack = [self]
@@ -243,6 +248,10 @@ class RepoTask(QObject):
     @property
     def isRootTask(self) -> bool:
         return self.rootTask is self
+
+    @property
+    def currentProcess(self) -> QProcess | None:
+        return self.rootTask._currentProcess
 
     def parentWidget(self) -> QWidget:
         return findParentWidget(self)
@@ -262,11 +271,25 @@ class RepoTask(QObject):
     def __str__(self):
         return self.objectName()
 
+    def isFreelyInterruptible(self) -> bool:
+        return False
+
     def canKill(self, task: RepoTask) -> bool:
         """
+        Meant to be overridden by your task.
         Return true if this task is allowed to take precedence over the given running task.
+        The default implementation will not attempt to kill any other tasks.
         """
         return False
+
+    def broadcastProcesses(self) -> bool:
+        """
+        Meant to be overridden by your task.
+        Returns whether this task should emit the `processStarted` signal when
+        `flowStartProcess` starts a process. This enables automatic progress
+        reporting via ProcessDialog.
+        """
+        return True
 
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
@@ -334,6 +357,9 @@ class RepoTask(QObject):
             excMessageBox(exc, title=self.name(), message=message, parent=self.parentWidget())
 
     def prereqs(self) -> TaskPrereqs:
+        """
+        Can be overridden by your task.
+        """
         return TaskPrereqs.Nothing
 
     def flowEnterWorkerThread(self):
@@ -439,10 +465,151 @@ class RepoTask(QObject):
         if parentWidget.isVisible():
             return
 
-        token = FlowControlToken(FlowControlToken.Kind.WaitReady)
+        token = FlowControlToken(FlowControlToken.Kind.WaitUserReady)
         parentWidget.becameVisible.connect(self.uiReady)
         yield token
         parentWidget.becameVisible.disconnect(self.uiReady)
+
+    def flowStartProcess(self, process: QProcess, autoFail=True) -> Generator[FlowControlToken, None, None]:
+        assert self._isRunningOnAppThread(), "start processes from UI thread"
+        assert self.currentProcess is None, "a process is already running in this task"
+
+        envStrs = [f"{k}={v}" for k, v in ToolCommands.filterQProcessEnvironment(process).items()]
+        simpleCommandLine = shlex.join([process.program()] + process.arguments())
+        if FLATPAK:
+            commandLine = simpleCommandLine
+        else:
+            commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
+        logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
+
+        self.rootTask._currentProcess = process
+
+        didStart = False
+        def onStateChanged(newState: QProcess.ProcessState):
+            nonlocal didStart
+            if newState == QProcess.ProcessState.Running and not didStart:
+                didStart = True
+                process.errorOccurred.disconnect(self.uiReady)
+            elif newState == QProcess.ProcessState.NotRunning and didStart:
+                self.uiReady.emit()
+            # If NotRunning but never started, let onErrorOccurred (which is
+            # emitted AFTER stateChange) move coroutine along
+
+        process.stateChanged.connect(onStateChanged)
+        process.errorOccurred.connect(self.uiReady)
+        process.start()
+
+        # Wait for process to go NotRunning, or errorOccurred to be emitted
+        waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+        yield waitToken
+
+        process.stateChanged.disconnect(onStateChanged)
+        if not didStart:
+            process.errorOccurred.disconnect(self.uiReady)
+
+        self.rootTask._currentProcess = None
+
+        if not didStart:
+            message = _("Process failed to start ({0}).", process.error())
+            message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
+            raise AbortTask(message)
+
+        logger.info(f"Process exited with code {process.exitCode()}")
+
+        if autoFail and process.exitCode() != 0:
+            if isinstance(process, GitDriver):
+                raise AbortTask(process.htmlErrorText(), details=commandLine)
+            stderr = process.readAllStandardError().data().decode(errors="replace")
+            message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
+            message += f"<p style='font-size: small'>{escape(simpleCommandLine)}</p>"
+            if stderr.strip():
+                message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
+            raise AbortTask(message, details=commandLine)
+
+    def flowCallGit(
+            self,
+            *args: str,
+            customKey="",
+            workdir="",
+            env: dict[str, str] | None = None,
+            autoFail=True,
+            statusForm: StatusForm | None = None,
+    ) -> Generator[FlowControlToken, None, GitDriver]:
+        from gitfourchette import settings
+        from gitfourchette.application import GFApplication
+        from gitfourchette.porcelain import GitConfigHelper
+
+        repo = self.repo
+
+        if not workdir:
+            workdir = repo.workdir if repo is not None else ""
+
+        # ---------------------------------------------------------------------
+        # Prepare environment variables
+
+        env = env or {}
+        sshOptions = []
+
+        # Force Git output in English
+        env["LC_ALL"] = "C.UTF-8"
+
+        # FLATPAK: Some git commands like verify-commit use git_mkstemp to pass
+        # paths to subprocesses like gpg. Files created in the sandbox's /tmp
+        # won't be accessible to programs running on the host. (A typical
+        # scenario is a sandboxed git that starts gpg on the host.)
+        if FLATPAK:
+            env["TMPDIR"] = qTempDir()
+
+        # SSH_ASKPASS
+        if settings.prefs.ownAskpass:
+            env |= AskpassDialog.environmentForChildProcess(settings.prefs.isGitSandboxed())
+
+        # Use internal ssh-agent
+        if settings.prefs.ownSshAgent:
+            sshAgent = GFApplication.instance().sshAgent
+            if sshAgent:
+                env |= sshAgent.environment
+                sshOptions += ["-o", "AddKeysToAgent=yes"]
+
+        # Custom SSH key file
+        if not customKey and self.repoModel:
+            customKey = self.repoModel.prefs.customKeyFile
+        if customKey:
+            sshOptions += ["-i", customKey, "-o", "IdentitiesOnly=yes"]
+
+        # Apply any custom OpenSSH options
+        if sshOptions:
+            # Get original ssh command
+            if repo is not None:
+                sshCommand = repo.get_config_value("core.sshCommand")
+            else:
+                sshCommand = GitConfigHelper.get_default_value("core.sshCommand")
+            sshCommand = sshCommand or "/usr/bin/ssh"
+            # Add custom options and join back into a string
+            sshCommandTokens = shlex.split(sshCommand, posix=True) + sshOptions
+            sshCommand = shlex.join(sshCommandTokens)
+            # Pass to git (note: it's also possible to pass '-c core.sshCommand={sshCommand}')
+            env["GIT_SSH_COMMAND"] = sshCommand
+
+        # ---------------------------------------------------------------------
+        # Create GitDriver (QProcess)
+
+        gitProgram = shlex.split(settings.prefs.gitPath, posix=True)
+        tokens = gitProgram + list(args)
+
+        process = GitDriver(self)
+        process.setProgram(tokens[0])
+        process.setArguments(tokens[1:])
+        if workdir:
+            process.setWorkingDirectory(workdir)
+        ToolCommands.setQProcessEnvironment(process, env)
+        ToolCommands.wrapFlatpakCommand(process)
+
+        if statusForm is not None:
+            statusForm.connectProcess(process)
+
+        yield from self.flowStartProcess(process, autoFail=autoFail)
+        return process
 
     def flowDialog(self, dialog: QDialog, abortTaskIfRejected=True, proceedSignal=None):
         """
@@ -459,7 +626,7 @@ class RepoTask(QObject):
 
         yield from self.flowRequestForegroundUi()
 
-        waitToken = FlowControlToken(FlowControlToken.Kind.WaitReady)
+        waitToken = FlowControlToken(FlowControlToken.Kind.WaitUserReady)
         didReject = False
 
         def onReject():
@@ -471,18 +638,33 @@ class RepoTask(QObject):
         if proceedSignal:
             proceedSignal.connect(self.uiReady)
 
-        dialog.show()
+        # Only show the dialog if not made visible by the task already
+        # (re-showing may reset its position on the screen)
+        if not dialog.isVisible():
+            dialog.show()
+            installDialogReturnShortcut(dialog)
 
         yield waitToken
+
+        if abortTaskIfRejected and didReject:
+            dialog.deleteLater()
+            raise AbortTask("")
 
         dialog.rejected.disconnect(onReject)
         dialog.finished.disconnect(self.uiReady)
         if proceedSignal:
             proceedSignal.disconnect(self.uiReady)
 
-        if abortTaskIfRejected and didReject:
-            dialog.deleteLater()
-            raise AbortTask("")
+    def flowFileDialog(self, dialog: QFileDialog) -> Generator[FlowControlToken, None, str]:
+        yield from self.flowDialog(dialog)
+
+        files = dialog.selectedFiles()
+        path = files[0]
+
+        # Somehow QFileDialog.deleteLater() is flaky here in unit tests, so defer to RepoTask.destroyed.
+        self.destroyed.connect(dialog.deleteLater)
+
+        return path
 
     def flowConfirm(
             self,
@@ -528,7 +710,8 @@ class RepoTask(QObject):
         else:
             icon = icon or "information"
 
-        qmb = asyncMessageBox(self.parentWidget(), icon, title, text, buttonMask)
+        qmb = asyncMessageBox(self.parentWidget(), icon, title, text, buttonMask,
+                              deleteOnClose=False)
 
         dontShowAgainCheckBox = None
         if dontShowAgainKey:
@@ -566,15 +749,16 @@ class RepoTask(QObject):
         if detailList:
             addULToMessageBox(qmb, detailList)
 
-        qmb.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         yield from self.flowDialog(qmb)
+        result = qmb.result()
 
         if dontShowAgainKey and dontShowAgainCheckBox.isChecked():
             from gitfourchette import settings
             settings.prefs.dontShowAgain.append(dontShowAgainKey)
             settings.prefs.setDirty()
 
-        return qmb.result()
+        qmb.deleteLater()
+        return result
 
     def checkPrereqs(self, prereqs=TaskPrereqs.Nothing):
         if prereqs == TaskPrereqs.Nothing:
@@ -618,17 +802,19 @@ class RepoTaskRunner(QObject):
     repoGone = Signal()
     ready = Signal()
     requestAttention = Signal()
-
-    _continueFlow = Signal(FlowControlToken)
-    "Connected to _iterateFlow"
+    processStarted = Signal(QProcess, str)
 
     _workerThread: FlowWorkerThread
+    "Thread that can execute non-UI sections of the current task's coroutine."
+
+    _interruptCurrentTask: bool
+    "Flag to interrupt the current task."
 
     _currentTask: RepoTask | None
     "Task that is currently running"
 
-    _zombieTask: RepoTask | None
-    "Task that is being interrupted"
+    _pendingTask: RepoTask | None
+    "Task that is interrupting _currentTask"
 
     _currentTaskBenchmark: Benchmark
     "Context manager"
@@ -637,51 +823,45 @@ class RepoTaskRunner(QObject):
         super().__init__(parent)
         self.setObjectName("RepoTaskRunner")
         self._currentTask = None
-        self._zombieTask = None
+        self._pendingTask = None
         self._currentTaskBenchmark = Benchmark("???")
+        self._interruptCurrentTask = False
         self.repoModel = None
 
         self._workerThread = FlowWorkerThread(self)
         self._workerThread.flow = None
         self._workerThread.tokenReady.connect(self._continueFlow)
 
+        self._waitForNextToken = QEventLoop(self)
+
     @property
     def currentTask(self):
         return self._currentTask
 
-    def isBusy(self):
-        return self._currentTask is not None or self._zombieTask is not None or self._workerThread.isRunning()
+    def isBusy(self) -> bool:
+        return (self._currentTask is not None
+                or self._pendingTask is not None
+                or self._workerThread.isRunning())
 
     def killCurrentTask(self):
         """
         Interrupt current task next time it yields a FlowControlToken.
 
-        The task will not die immediately; use joinZombieTask() after killing
+        The task will not die immediately. Use joinKilledTask() after killing
         the task to block the current thread until the task runner is empty.
+
+        No-op if no task is running.
         """
-        if not self._currentTask:
-            # Nothing to kill.
-            return
+        if self._currentTask:
+            self._interruptCurrentTask = True
 
-        if not self._zombieTask:
-            # Move the currently-running task to zombie mode.
-            # It'll get deleted next time it yields a FlowControlToken.
-            self._zombieTask = self._currentTask
-        else:
-            # There's already a zombie. This means that the current task hasn't
-            # started yet - it's waiting on the zombie to die.
-            # Just overwrite the current task, but let the zombie die cleanly.
-            assert self._currentTask._currentIteration == 0, "_currentTask isn't supposed to have started yet!"
-            self._currentTask.deleteLater()
-
-        self._currentTask = None
-
-    def joinZombieTask(self):
-        """Block UI thread until the current zombie task is dead.
-        Returns immediately if there's no zombie task."""
-
+    def joinKilledTask(self):
+        """
+        Block UI thread until the current task that is being interrupted is dead.
+        Returns immediately if no task is being interrupted.
+        """
         assert onAppThread()
-        while self._zombieTask:
+        while self._interruptCurrentTask:
             QThread.yieldCurrentThread()
             QThread.msleep(30)
             flags = QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
@@ -710,104 +890,145 @@ class RepoTaskRunner(QObject):
 
         if not self._currentTask:
             self._currentTask = task
-            self._startTask(task)
+            self._startCurrentTask()
 
-        elif task.canKill(self._currentTask):
+        elif self._currentTask.isFreelyInterruptible() or task.canKill(self._currentTask):
             logger.info(f"Task {task} killed task {self._currentTask}")
+
+            # Interrupt the current task.
             self.killCurrentTask()
-            self._currentTask = task
+
+            if self._pendingTask:
+                # There's already a pending task.
+                # It hasn't started yet - it's waiting on _currentTask to die.
+                # Just replace _pendingTask, but let _currentTask die cleanly.
+                assert self._pendingTask._currentIteration == 0, "_pendingTask isn't supposed to have started yet!"
+                self._pendingTask.deleteLater()
+
+            # Queue up this task.
+            # Next time _processTokens runs, it will kill off the current task and boot the pending task.
+            self._pendingTask = task
 
         else:
             logger.info(f"Task {task} cannot kill task {self._currentTask}")
             message = _("Please wait for the current operation to complete ({0}).", hquo(self._currentTask.name()))
             showInformation(task.parentWidget(), _("Operation in progress"), "<html>" + message)
 
-    def _startTask(self, task: RepoTask):
-        assert self._currentTask == task
+    def _startCurrentTask(self):
+        task = self._currentTask
         assert task._currentFlow
         assert task.isRootTask
+        assert not self._pendingTask, "pending task should be gone before starting a new task"
+        assert not self._interruptCurrentTask, "interrupt flag not reset"
 
         logger.debug(f">>> {task}")
 
         self._currentTaskBenchmark.name = str(task)
         self._currentTaskBenchmark.__enter__()
 
-        # Prepare internal signal for coroutine continuation
-        self._continueFlow.connect(lambda result: self._iterateFlow(task, result))
-        task.uiReady.connect(lambda: self._iterateFlow(task, FlowControlToken()))
+        # When the task is ready, continue the coroutine
+        task.uiReady.connect(self._continueFlow)
 
         # Check task prerequisites
         try:
             task.checkPrereqs()
         except AbortTask as abort:
             self.reportAbortTask(task, abort)
-            self._releaseTask(task)
+            self._releaseCurrentTask()
             return
 
-        # Prime the flow (i.e. start coroutine)
-        self._iterateFlow(task, FlowControlToken())
+        # Start the coroutine
+        self._continueFlow()
 
-    def _iterateFlow(self, task: RepoTask, token: FlowControlToken):
-        while True:
-            assert onAppThread()
-            task._currentIteration += 1
+    def _continueFlow(self, token: FlowControlToken = FlowControlToken.BootstrapFlow):
+        if self._waitForNextToken.isRunning():
+            assert token.flowControl == FlowControlToken.Kind.ContinueOnUiThread
+            self._waitForNextToken.quit()
+            return
 
-            # Let worker thread wrap up
-            self.joinWorkerThread()
-
-            assert not isinstance(token, Generator), \
-                "You're trying to yield a nested generator. Did you mean 'yield from'?"
-            assert isinstance(token, FlowControlToken), (
-                f"In a RepoTask coroutine, you can only yield FlowControlToken. You yielded: {type(token).__name__}")
-
-            # Wrap up zombie task (task that was interrupted earlier)
-            if task is self._zombieTask:
-                assert task is not self._currentTask
-                self._releaseTask(task)
-                task.deleteLater()
-
-                # Another task is queued up, start it now
-                if self._currentTask:
-                    self._startTask(self._currentTask)
-                return
-
-            nextToken = self._processToken(task, token)
-            if nextToken is None:
-                break
-            token = nextToken
+        while token is not None:
+            token = self._processToken(token)
 
         if not self.isBusy():  # might've queued up another task...
             self.ready.emit()
 
-    def _processToken(self, task: RepoTask, token: FlowControlToken) -> FlowControlToken | None:
+    def _processToken(self, token: FlowControlToken) -> FlowControlToken | None:
+        assert not isinstance(token, Generator), \
+            "You're trying to yield a nested generator. Did you mean 'yield from'?"
+        assert isinstance(token, FlowControlToken), \
+            f"In a RepoTask coroutine, you can only yield FlowControlToken. You yielded: {type(token).__name__}"
+        assert onAppThread(), "_processToken must be called on UI thread"
+
+        task = self._currentTask
+        assert task is not None
+        task._currentIteration += 1
+
+        # Let worker thread wrap up
+        self.joinWorkerThread()
+
+        # Wrap up if we've been interrupted
+        if self._interruptCurrentTask:
+            self._interruptCurrentTask = False
+            self._releaseCurrentTask()
+            assert self._currentTask is None
+            task.deleteLater()
+
+            # Another task is queued up, start it now
+            if self._pendingTask:
+                self._currentTask = self._pendingTask
+                self._pendingTask = None
+                self._startCurrentTask()
+
+            return None
+
+        assert not self._pendingTask, "there can't be a pending task without interrupting the current task"
+
+        # ---------------------------------------------------------------------
+        # Process the token
+
         flow = task._currentFlow
         assert flow is not None
-        assert task is self._currentTask
 
-        if (token.flowControl == FlowControlToken.Kind.ContinueOnUiThread or
-              (token.flowControl == FlowControlToken.Kind.ContinueOnWorkThread and RepoTaskRunner.ForceSerial)):
-            # Get next continuation token on this thread then loop to beginning of _iterateFlow
+        tk = token.flowControl
+        TK = FlowControlToken.Kind
+
+        if tk == TK.ContinueOnUiThread or (RepoTaskRunner.ForceSerial and tk == TK.ContinueOnWorkThread):
+            # Get next continuation token on this thread then loop to beginning of _continueFlow.
             token = RepoTaskRunner._getNextToken(flow)
             assert token is not None, "Do not yield None from a RepoTask coroutine"
             return token
 
-        elif token.flowControl == FlowControlToken.Kind.WaitReady:
+        elif tk == TK.WaitUserReady:
+            # When user is ready, task.uiReady will fire, and we'll re-enter _continueFlow.
             self.progress.emit("", False)
             self.requestAttention.emit()
-            # When user is ready, task.uiReady will fire, and we'll re-enter _iterateFlow
 
-        elif token.flowControl == FlowControlToken.Kind.ContinueOnWorkThread:
+        elif tk == TK.WaitProcessReady:
+            busyMessage = _("Busy: {0}…", task.name())
+            self.progress.emit(busyMessage, True)
+
+            if task.broadcastProcesses():
+                process = task.currentProcess
+                self.processStarted.emit(process, task.name())
+
+            # In unit tests, block until the process has completed
+            if RepoTaskRunner.ForceSerial:
+                assert not self._waitForNextToken.isRunning()
+                self._waitForNextToken.exec()
+                return FlowControlToken.BootstrapFlow
+
+        elif tk == TK.ContinueOnWorkThread:
             assert not RepoTaskRunner.ForceSerial
             busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
 
-            # Wrapper around `next(flow)`.
-            # It will, in turn, emit _continueFlow, which will re-enter _iterateFlow.
+            # FlowWorkerThread.run() is a wrapper around `next(flow)`.
+            # It will eventually re-enter _continueFlow.
             assert not self._workerThread.isRunning()
             self._workerThread.flow = flow
             self._workerThread.start()
 
-        elif token.flowControl == FlowControlToken.Kind.InterruptedByException:
+        elif tk == TK.InterruptedByException:
             exception = token.exception
             assert exception is not None, "FlowControlToken(InterruptedByException) must provide an exception!"
 
@@ -816,7 +1037,7 @@ class RepoTaskRunner(QObject):
             self.joinWorkerThread()
 
             # Stop tracking this task
-            self._releaseTask(task)
+            self._releaseCurrentTask()
 
             if isinstance(exception, StopIteration):
                 # No more steps in the flow. Task completed successfully.
@@ -853,13 +1074,15 @@ class RepoTaskRunner(QObject):
             token = FlowControlToken(FlowControlToken.Kind.InterruptedByException, exception)
         return token
 
-    def _releaseTask(self, task: RepoTask):
+    def _releaseCurrentTask(self):
+        task = self._currentTask
+
         logger.debug(f"<<< {task}")
         self.progress.emit("", False)
         self._currentTaskBenchmark.__exit__(None, None, None)
 
         assert onAppThread()
-        assert task is self._currentTask or task is self._zombieTask
+        assert task is self._currentTask
         assert task.isRootTask
 
         # Clean up all tasks in the stack (remember, we're the root stack)
@@ -867,17 +1090,10 @@ class RepoTaskRunner(QObject):
         while task._taskStack:
             task._popSubtask()
 
-        self._continueFlow.disconnect()
         task.uiReady.disconnect()
 
         task._currentFlow = None
-
-        if task is self._currentTask:
-            self._currentTask = None
-        elif task is self._zombieTask:
-            self._zombieTask = None
-        else:
-            raise AssertionError("_releaseTask: task is neither current nor zombie")
+        self._currentTask = None
 
     def reportAbortTask(self, task: RepoTask, exception: AbortTask):
         message = str(exception)
@@ -885,6 +1101,8 @@ class RepoTaskRunner(QObject):
             self.progress.emit("\u26a0 " + message, False)
         elif message:
             qmb = asyncMessageBox(self.parent(), exception.icon, task.name(), message)
+            if exception.details:
+                qmb.setDetailedText(exception.details)
             qmb.show()
 
 

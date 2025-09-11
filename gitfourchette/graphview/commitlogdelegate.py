@@ -16,7 +16,7 @@ from gitfourchette.graphview.graphpaint import paintGraphFrame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel
+from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel, GpgStatus
 from gitfourchette.settings import GraphRefBoxWidth
 from gitfourchette.toolbox import *
 
@@ -63,6 +63,8 @@ NARROW_WIDTH = (500, 750)
 
 
 class CommitLogDelegate(QStyledItemDelegate):
+    requestSignatureVerification = Signal(Oid)
+
     def __init__(self, repoModel: RepoModel, searchBar: SearchBar | None=None, parent: QWidget | None=None):
         super().__init__(parent)
 
@@ -164,15 +166,20 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # Get the info we need about the commit
         commit: Commit | None = index.data(CommitLogModel.Role.Commit)
+        gpgStatus = GpgStatus.Unsigned
         if commit and commit.id != UC_FAKEID:
             oid = commit.id
             author = commit.author
             committer = commit.committer
 
             summaryText, contd = messageSummary(commit.message, ELISION)
-            hashText = shortHash(commit.id)
+            hashText = shortHash(oid)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
+            gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(commit)
+
+            if gpgStatus == GpgStatus.Pending and settings.prefs.verifyGpgOnTheFly:
+                self.requestSignatureVerification.emit(oid)
 
             if settings.prefs.authorDiffAsterisk:
                 if author.email != committer.email:
@@ -280,6 +287,14 @@ class CommitLogDelegate(QStyledItemDelegate):
         # ------ Author
         if authorWidth != 0:
             rect.setLeft(leftBoundName)
+
+            # Draw seal for signed commits
+            if gpgStatus > GpgStatus.Pending or (settings.prefs.verifyGpgOnTheFly and gpgStatus >= GpgStatus.Pending):
+                rect.setRight(leftBoundName + 16)
+                icon = stockIcon(gpgStatus.iconName())
+                icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                rect.setLeft(rect.right() + 4)
+
             rect.setRight(leftBoundDate - XMARGIN)
             FittedText.draw(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
 

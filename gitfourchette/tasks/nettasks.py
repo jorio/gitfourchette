@@ -9,67 +9,68 @@ Remote access tasks.
 """
 
 import logging
-import traceback
 from contextlib import suppress
 
 from gitfourchette.forms.pushdialog import PushDialog
-from gitfourchette.forms.remotelinkdialog import RemoteLinkDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.gitdriver import GitDriver, VanillaFetchStatusFlag, argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.remotelink import RemoteLink
 from gitfourchette.tasks import TaskPrereqs, RefreshRepo
 from gitfourchette.tasks.branchtasks import MergeBranch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
 
-class _BaseNetTask(RepoTask):
-    remoteLinkDialog: RemoteLinkDialog | None
+def autoDetectUpstream(repo: Repo, noUpstreamMessage: str = ""):
+    branchName = repo.head_branch_shorthand
+    branch = repo.branches.local[branchName]
 
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.remoteLinkDialog = None
+    if not branch.upstream:
+        message = noUpstreamMessage or _("Can’t fetch new commits on {0} because this branch isn’t tracking an upstream branch.")
+        message = message.format(bquoe(branch.shorthand))
+        raise AbortTask(message)
 
-    def _showRemoteLinkDialog(self, title: str = ""):
-        assert not self.remoteLinkDialog
-        assert onAppThread()
-        self.remoteLinkDialog = RemoteLinkDialog(title, self.parentWidget())
-
-    def cleanup(self):
-        assert onAppThread()
-        if self.remoteLinkDialog:
-            self.remoteLinkDialog.close()
-            self.remoteLinkDialog.deleteLater()
-            self.remoteLinkDialog = None
-
-    @property
-    def remoteLink(self) -> RemoteLink:
-        assert self.remoteLinkDialog is not None, "can't get RemoteLink without a RemoteLinkDialog"
-        return self.remoteLinkDialog.remoteLink
-
-    def _autoDetectUpstream(self, noUpstreamMessage: str = ""):
-        branchName = self.repo.head_branch_shorthand
-        branch = self.repo.branches.local[branchName]
-
-        if not branch.upstream:
-            message = noUpstreamMessage or _("Can’t fetch new commits on {0} because this branch isn’t tracking an upstream branch.")
-            message = message.format(bquoe(branch.shorthand))
-            raise AbortTask(message)
-
-        return branch.upstream
+    return branch.upstream
 
 
-class DeleteRemoteBranch(_BaseNetTask):
+def formatUpdatedTipsMessageFromGitOutput(
+        updatedTips: dict[str, tuple[str, Oid, Oid]],
+        header: str,
+        noNewCommits="",
+        skipUpToDate=False,
+) -> str:
+    messages = []
+    for ref in updatedTips:
+        rp, rb = RefPrefix.split(ref)
+        if not rp:  # no "refs/" prefix, e.g. FETCH_HEAD, etc.
+            continue
+        flag, oldTip, newTip = updatedTips[ref]
+        if flag == VanillaFetchStatusFlag.UpToDate:
+            if skipUpToDate:
+                continue
+            ps = _("{0} is already up to date with {1}.", tquo(rb), tquo(shortHash(oldTip)))
+        elif flag == VanillaFetchStatusFlag.NewRef:
+            ps = _("{0} created: {1}.", tquo(rb), shortHash(newTip))
+        elif flag == VanillaFetchStatusFlag.PrunedRef:
+            ps = _("{0} deleted, was {1}.", tquo(rb), shortHash(oldTip))
+        else:  # ' ' (fast forward), '+' (forced update), '!' (error)
+            ps = _("{0}: {1} → {2}.", tquo(rb), shortHash(oldTip), shortHash(newTip))
+        messages.append(ps)
+    if not messages:
+        messages.append(noNewCommits or _("No new commits."))
+    return " ".join([header] + messages)
+
+
+class DeleteRemoteBranch(RepoTask):
     def flow(self, remoteBranchShorthand: str):
         assert not remoteBranchShorthand.startswith(RefPrefix.REMOTES)
 
-        remoteName, _remoteBranchName = split_remote_branch_shorthand(remoteBranchShorthand)
+        remoteName, branchNameOnRemote = split_remote_branch_shorthand(remoteBranchShorthand)
 
         text = paragraphs(
             _("Really delete branch {0} from the remote repository?", bquo(remoteBranchShorthand)),
@@ -78,22 +79,22 @@ class DeleteRemoteBranch(_BaseNetTask):
         verb = _("Delete on remote")
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="SP_DialogDiscardButton")
 
-        self._showRemoteLinkDialog()
-
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
-
-        remote = self.repo.remotes[remoteName]
-        with self.remoteLink.remoteContext(remote):
-            self.repo.delete_remote_branch(remoteBranchShorthand, self.remoteLink)
+        yield from self.flowCallGit(
+            "push",
+            "--porcelain",
+            "--progress",
+            remoteName,
+            "--delete",
+            branchNameOnRemote)
 
         self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
 
 
-class RenameRemoteBranch(_BaseNetTask):
-    def flow(self, remoteBranchName: str):
-        assert not remoteBranchName.startswith(RefPrefix.REMOTES)
-        remoteName, branchName = split_remote_branch_shorthand(remoteBranchName)
+class RenameRemoteBranch(RepoTask):
+    def flow(self, remoteBranchShorthand: str):
+        assert not remoteBranchShorthand.startswith(RefPrefix.REMOTES)
+        remoteName, branchName = split_remote_branch_shorthand(remoteBranchShorthand)
         newBranchName = branchName  # naked name, NOT prefixed with the name of the remote
 
         reservedNames = self.repo.listall_remote_branches().get(remoteName, [])
@@ -103,7 +104,7 @@ class RenameRemoteBranch(_BaseNetTask):
 
         dlg = TextInputDialog(
             self.parentWidget(),
-            _("Rename remote branch {0}", tquoe(remoteBranchName)),
+            _("Rename remote branch {0}", tquoe(remoteBranchShorthand)),
             _("WARNING: This will rename the branch for all users of the remote!") + "<br>" + _("Enter new name:"))
         dlg.setText(newBranchName)
         dlg.setValidator(lambda name: nameValidationMessage(name, reservedNames, nameTaken))
@@ -115,26 +116,51 @@ class RenameRemoteBranch(_BaseNetTask):
         # Naked name, NOT prefixed with the name of the remote
         newBranchName = dlg.lineEdit.text()
 
-        self._showRemoteLinkDialog(self.name())
+        oldShorthand = remoteBranchShorthand
 
-        yield from self.flowEnterWorkerThread()
+        repo = self.repo
+        _remoteName, oldBranchName = split_remote_branch_shorthand(oldShorthand)
+        oldRemoteRef = RefPrefix.REMOTES + oldShorthand
+
+        # Find local branches using this upstream
+        adjustUpstreams: list[str] = []
+        for lb in repo.branches.local:
+            with suppress(KeyError):  # KeyError if upstream branch doesn't exist
+                if repo.branches.local[lb].upstream_name == oldRemoteRef:
+                    adjustUpstreams.append(lb)
+
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
-        remote: Remote = self.repo.remotes[remoteName]
+        # First, make a new branch pointing to the same ref as the old one
+        refspec1 = f"{RefPrefix.REMOTES}{oldShorthand}:{RefPrefix.HEADS}{newBranchName}"
 
-        # Fetch remote branch first to avoid data loss if we're out of date
-        with self.remoteLink.remoteContext(remote):
-            self.repo.fetch_remote_branch(remoteBranchName, self.remoteLink)
+        # Next, delete the old branch
+        refspec2 = f":{RefPrefix.HEADS}{oldBranchName}"
 
-        # Rename the remote branch
-        # TODO: Can we reuse the connection in a single remoteContext?
-        with self.remoteLink.remoteContext(remote):
-            self.repo.rename_remote_branch(remoteBranchName, newBranchName, self.remoteLink)
+        logger.info(f"Rename remote branch: remote: {remoteName}; refspec: {[refspec1, refspec2]}; "
+                    f"adjust upstreams: {adjustUpstreams}")
 
-        self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchName), tquo(newBranchName))
+        # For safety, make sure we're up to date on this branch
+        yield from self.flowSubtask(FetchRemoteBranch, oldShorthand)
+
+        # Then go ahead with the push
+        yield from self.flowCallGit(
+            "push",
+            "--porcelain",
+            "--progress",
+            "--atomic",
+            remoteName,
+            refspec1,
+            refspec2)
+
+        new_remote_branch = repo.branches.remote[remoteName + "/" + newBranchName]
+        for lb in adjustUpstreams:
+            repo.branches.local[lb].upstream = new_remote_branch
+
+        self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchShorthand), tquo(newBranchName))
 
 
-class FetchRemotes(_BaseNetTask):
+class FetchRemotes(RepoTask):
     def flow(self, singleRemoteName: str = ""):
         remotes: list[Remote] = list(self.repo.remotes)
 
@@ -144,6 +170,7 @@ class FetchRemotes(_BaseNetTask):
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))
             raise AbortTask(text)
 
+        """
         if singleRemoteName:
             remotes = [next(r for r in remotes if r.name == singleRemoteName)]
 
@@ -151,81 +178,74 @@ class FetchRemotes(_BaseNetTask):
             title = _("Fetch remote {0}", lquo(remotes[0].name))
         else:
             title = _("Fetch {n} remotes", n=len(remotes))
+        """
 
-        self._showRemoteLinkDialog(title)
-
-        errors = []
-        for remote in remotes:
-            # Bail if user clicked Abort button
-            yield from self.flowEnterUiThread()
-            assert onAppThread()
-            if self.remoteLink.isAborting():
-                break
-
-            remoteName = remote.name
-
-            self.effects |= TaskEffects.Remotes | TaskEffects.Refs
-            yield from self.flowEnterWorkerThread()
-            try:
-                with self.remoteLink.remoteContext(remote):
-                    self.repo.fetch_remote(remoteName, self.remoteLink)
-            except Exception as e:
-                errors.append(f"<p><b>{escape(remoteName)}</b> — {TrTables.exceptionName(e)}.<br>{escape(str(e))}</p>")
-
-        yield from self.flowEnterUiThread()
-        self.postStatus = self.remoteLink.formatUpdatedTipsMessage(_("Fetch complete."))
-
-        # Clean up RemoteLinkDialog before showing any error text
-        self.cleanup()
-
-        if errors:
-            errorMessage = _n("Couldn’t fetch remote:", "Couldn’t fetch {n} remotes:", len(errors))
-            yield from self.flowConfirm(title, errorMessage, detailList=errors, canCancel=False, icon='warning')
+        # TODO: Use title?
+        # TODO: postStatus?
+        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        yield from self.flowCallGit(
+            "fetch",
+            "--prune",
+            "--progress",
+            *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
+            *argsIf(bool(singleRemoteName), "--no-all", singleRemoteName),
+            *argsIf(not singleRemoteName, "--all"))
 
 
-class FetchRemoteBranch(_BaseNetTask):
+class FetchRemoteBranch(RepoTask):
     def flow(self, remoteBranchName: str = "", debrief: bool = True):
-        if not remoteBranchName:
-            upstream = self._autoDetectUpstream()
-            remoteBranchName = upstream.shorthand
+        shorthand = remoteBranchName
+        if not shorthand:
+            upstream = autoDetectUpstream(self.repo)
+            shorthand = upstream.shorthand
 
-        title = _("Fetch remote branch {0}", tquoe(remoteBranchName))
-        self._showRemoteLinkDialog(title)
+        remoteName, remoteBranch = split_remote_branch_shorthand(shorthand)
+        fullRemoteRef = RefPrefix.REMOTES + shorthand
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
-        remoteName, _remoteBranchName = split_remote_branch_shorthand(remoteBranchName)
-        remote = self.repo.remotes[remoteName]
+        driver = yield from self.flowCallGit(
+            "fetch",
+            "--progress",
+            "--no-tags",
+            *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
+            remoteName,
+            remoteBranch)
 
-        oldTarget = NULL_OID
-        newTarget = NULL_OID
-        with suppress(KeyError):
-            oldTarget = self.repo.branches.remote[remoteBranchName].target
+        # Old git: don't attempt to parse the result
+        if not GitDriver.supportsFetchPorcelain():
+            self.cleanup()
+            return
 
-        with self.remoteLink.remoteContext(remote):
-            self.repo.fetch_remote_branch(remoteBranchName, self.remoteLink)
+        table = driver.stdoutTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$")
 
-        with suppress(KeyError):
-            newTarget = self.repo.branches.remote[remoteBranchName].target
+        updatedTips = {
+            localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
+            for flag, oldHex, newHex, localRef in table
+        }
 
-        yield from self.flowEnterUiThread()
-        self.postStatus = self.remoteLink.formatUpdatedTipsMessage(
-            _("Fetch complete."), noNewCommits=_("No new commits on {0}.", lquo(remoteBranchName)))
+        flag, oldTarget, newTarget = updatedTips[fullRemoteRef]
 
-        # Jump to new commit (if branch didn't vanish)
-        if oldTarget != newTarget and newTarget != NULL_OID:
+        self.postStatus = formatUpdatedTipsMessageFromGitOutput(
+            updatedTips,
+            _("Fetch complete."),
+            noNewCommits=_("No new commits on {0}.", lquo(shorthand)),
+            skipUpToDate=True)
+
+        # Jump to new commit if there was an update and the branch didn't vanish
+        if flag not in [VanillaFetchStatusFlag.UpToDate, VanillaFetchStatusFlag.PrunedRef]:
             self.jumpTo = NavLocator.inCommit(newTarget)
 
         # Clean up RemoteLinkDialog before showing any error text
         self.cleanup()
 
-        if newTarget == NULL_OID:
+        if flag == VanillaFetchStatusFlag.PrunedRef:
             # Raise exception to prevent PullBranch from continuing
-            raise AbortTask(_("{0} has disappeared from the remote server.", bquoe(remoteBranchName)))
+            # TODO: This does not actually occur when fetching a single branch!
+            raise AbortTask(_("{0} has disappeared from the remote server.", bquoe(shorthand)))
 
 
-class PullBranch(_BaseNetTask):
+class PullBranch(RepoTask):
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoUnborn | TaskPrereqs.NoDetached
 
@@ -233,7 +253,7 @@ class PullBranch(_BaseNetTask):
         # Auto-detect the upstream now so we can bail early
         # with a helpful message if there's no upstream.
         noUpstreamMessage = _("Can’t pull new commits into {0} because this branch isn’t tracking an upstream branch.")
-        self._autoDetectUpstream(noUpstreamMessage)
+        autoDetectUpstream(self.repo, noUpstreamMessage)
 
         # First, fetch the remote branch.
         # By default, FetchRemoteBranch will fetch the upstream for the current branch.
@@ -241,7 +261,7 @@ class PullBranch(_BaseNetTask):
 
         # If we're already up to date, bail now.
         # Note that we're re-resolving the upstream branch after fetching so we have a fresh target.
-        upstreamBranch = self._autoDetectUpstream(noUpstreamMessage)
+        upstreamBranch = autoDetectUpstream(self.repo, noUpstreamMessage)
         newUpstreamTarget = upstreamBranch.target
         if self.repo.head_commit_id == newUpstreamTarget:
             self.postStatus = (
@@ -266,9 +286,8 @@ class PullBranch(_BaseNetTask):
                                     silentFastForward=silentFastForward, autoFastForwardOptionName="pull.ff")
 
 
-class UpdateSubmodule(_BaseNetTask):
+class UpdateSubmodule(RepoTask):
     def flow(self, submoduleName: str, init=True):
-        self._showRemoteLinkDialog()
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
 
@@ -281,16 +300,19 @@ class UpdateSubmodule(_BaseNetTask):
                 tree = subrepo[submodule.head_id].peel(Tree)
                 subrepo.checkout_tree(tree)
 
-        # Wrap update operation with RemoteLinkKeyFileContext: we need the keys
-        # if the submodule uses an SSH connection.
-        with self.remoteLink.remoteContext(submodule.url or ""):
-            submodule.update(init=init, callbacks=self.remoteLink)
+        yield from self.flowEnterUiThread()
+        yield from self.flowCallGit(
+            "submodule",
+            "update",
+            *argsIf(init, "--init"),
+            "--",
+            submodulePath)
 
         # The weird construct (n=1) is to stop xgettext from complaining about duplicate singular strings.
         self.postStatus = _n("Submodule updated.", "{n} submodules updated.", 1)
 
 
-class UpdateSubmodulesRecursive(_BaseNetTask):
+class UpdateSubmodulesRecursive(RepoTask):
     def flow(self):
         count = 0
 
@@ -301,7 +323,7 @@ class UpdateSubmodulesRecursive(_BaseNetTask):
         self.postStatus = _n("Submodule updated.", "{n} submodules updated.", count)
 
 
-class PushRefspecs(_BaseNetTask):
+class PushRefspecs(RepoTask):
     def flow(self, remoteName: str, refspecs: list[str]):
         assert remoteName
         assert type(remoteName) is str
@@ -312,17 +334,16 @@ class PushRefspecs(_BaseNetTask):
         else:
             remotes = [self.repo.remotes[remoteName]]
 
-        self._showRemoteLinkDialog()
-
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs
 
         for remote in remotes:
-            with self.remoteLink.remoteContext(remote):
-                remote.push(refspecs, callbacks=self.remoteLink)
+            yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", remote.name, *refspecs)
 
 
 class PushBranch(RepoTask):
+    def broadcastProcesses(self) -> bool:
+        return False
+
     def flow(self, branchName: str = ""):
         if len(self.repo.remotes) == 0:
             text = paragraphs(
@@ -347,58 +368,60 @@ class PushBranch(RepoTask):
         dialog.accept()
 
     def attempt(self, dialog: PushDialog):
+        # ---------------
+        # Show dialog
+
         yield from self.flowDialog(dialog, proceedSignal=dialog.startOperationButton.clicked)
 
         # ---------------
-        # Push clicked
+        # Perform the push
 
-        remote = self.repo.remotes[dialog.currentRemoteName]
-        logger.info(f"Will push to: {dialog.refspec} ({remote.name})")
-        link = RemoteLink(self)
+        command = dialog.buildCommand()
+        remoteName = dialog.currentRemoteName
 
-        dialog.ui.statusForm.initProgress(_("Contacting remote host…"))
-        link.message.connect(dialog.ui.statusForm.setProgressMessage)
-        link.progress.connect(dialog.ui.statusForm.setProgressValue)
+        dialog.setBusy(True)  # Call setBusy *after* buildCommand
 
-        if dialog.ui.trackCheckBox.isEnabled() and dialog.ui.trackCheckBox.isChecked():
-            resetTrackingReference = dialog.currentRemoteBranchFullName
-        else:
-            resetTrackingReference = None
-
-        # Look at the state of the checkboxes BEFORE calling this --  it'll disable the checkboxes!
-        dialog.setRemoteLink(link)
-
-        # ----------------
-        # Task meat
-
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs
-        if resetTrackingReference:
+        if "--set-upstream" in command:
             self.effects |= TaskEffects.Upstreams
 
-        error = None
-        try:
-            with link.remoteContext(remote):
-                remote.push([dialog.refspec], callbacks=link)
-            if resetTrackingReference:
-                self.repo.edit_upstream_branch(dialog.currentLocalBranchName, resetTrackingReference)
-        except Exception as exc:
-            error = exc
+        driver = yield from self.flowCallGit(*command, autoFail=False, statusForm=dialog.ui.statusForm)
+
+        gitFailed = driver.exitCode() != 0
 
         # ---------------
         # Debrief
 
-        yield from self.flowEnterUiThread()
-        dialog.setRemoteLink(None)
+        # Output format: "<flag> \t <from(local)>:<to(remote)> \t <summary> (<reason>)"
+        # But the first and last lines may contain other junk,
+        # so skip lines that don't match the pattern (strict=False).
+        table = driver.stdoutTable("(.)\t(.+):(.+)\t(.+)", strict=False)
+
+        # Capture summary for the last pushed branch.
+        try:
+            summary = table[-1][-1]
+        except IndexError:
+            summary = ""
+
+        dialog.setBusy(False)
         dialog.saveShadowUpstream()
-        link.deleteLater()
 
-        if error:
-            traceback.print_exception(error)
-            QApplication.beep()
-            QApplication.alert(dialog, 500)
-            dialog.ui.statusForm.setBlurb(F"<b>{TrTables.exceptionName(error)}:</b> {escape(str(error))}")
-        else:
-            self.postStatus = link.formatUpdatedTipsMessage(_("Push complete."))
+        if not gitFailed:
+            # self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
+            self.postStatus = _("Push complete.") + " " + summary
+            return gitFailed
 
-        return bool(error)
+        QApplication.beep()
+        QApplication.alert(dialog, 500)
+
+        subtitle = ""
+        if "[rejected]" in summary:
+            subtitle += _("{0} &mdash; The push was rejected.", btag(summary))
+        if "(stale info)" in summary:  # Git doesn't provide a hint about this, so add our own
+            subtitle += paragraphs(
+                _("Your repository’s knowledge of remote branch {0} is out of date. "
+                  "The force-push was rejected to prevent data loss.", hquo(dialog.currentRemoteBranchFullName)),
+                _("Please fetch remote {0} before pushing again.", hquo(remoteName)))
+        errorText = driver.htmlErrorText(subtitle, reformatHintText=True)
+        dialog.ui.statusForm.setBlurb(errorText)
+        return gitFailed

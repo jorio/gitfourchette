@@ -12,6 +12,8 @@ We use a bare repository on the local filesystem as a "remote server".
 """
 
 import os.path
+import re
+import shlex
 
 import pytest
 
@@ -20,6 +22,7 @@ from gitfourchette.forms.deletetagdialog import DeleteTagDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.mainwindow import NoRepoWidgetError
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -78,21 +81,14 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
 
     # Set target path in clone dialog
     cloneDialog.ui.browseButton.click()
-    qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
-    assert "clone" in qfd.windowTitle().lower()
-    qfd.selectFile(target)
-    qfd.accept()
+    acceptQFileDialog(cloneDialog, "clone repository into", target)
     assert cloneDialog.ui.pathEdit.text() == target
-    QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Play with key file picker
     assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
     cloneDialog.ui.keyFilePicker.checkBox.click()
-    qfd: QFileDialog = cloneDialog.findChild(QFileDialog)
-    assert "key file" in qfd.windowTitle().lower()
-    qfd.reject()
+    findQDialog(cloneDialog, "key file", QFileDialog).reject()
     assert not cloneDialog.ui.keyFilePicker.checkBox.isChecked()
-    QTest.qWait(0)  # wait for QFileDialog to be collected
 
     # Fire ze missiles
     assert cloneDialog.cloneButton.isEnabled()
@@ -173,7 +169,18 @@ def testDeleteRemoteBranch(tempDir, mainWindow, method):
 
 def testRenameRemoteBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+
+    with RepoContext(bareCopy) as bareRepo:
+        bareBranch = bareRepo.branches.local["no-parent"]
+        unknownCommitId = bareRepo.create_commit(
+            "refs/heads/no-parent",
+            TEST_SIGNATURE,
+            TEST_SIGNATURE,
+            "new commit on remote that local copy doesn't have yet",
+            bareRepo.head_tree.id, # bareBranch.peel(Tree).id,
+            [bareBranch.peel(Commit).id])
+
     rw = mainWindow.openRepo(wd)
 
     assert "localfs/no-parent" in rw.repo.branches.remote
@@ -195,6 +202,8 @@ def testRenameRemoteBranch(tempDir, mainWindow):
 
     assert rw.repo.branches.local["no-parent"].upstream_name == "refs/remotes/localfs/new-name"
 
+    assert rw.repo.branches.remote["localfs/new-name"].target == unknownCommitId
+
 
 @pytest.mark.parametrize("method", ["sidebar", "toolbar"])
 def testFetchRemote(tempDir, mainWindow, method):
@@ -213,7 +222,8 @@ def testFetchRemote(tempDir, mainWindow, method):
     rw = mainWindow.openRepo(wd)
 
     # We only know about master and no-parent in the remote for now
-    assert {"localfs/master", "localfs/no-parent"} == {x for x in rw.repo.branches.remote if x.startswith("localfs/")}
+    assert {"localfs/master", "localfs/no-parent"} == {
+        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
     # Fetch the remote
     if method == "sidebar":
@@ -221,12 +231,13 @@ def testFetchRemote(tempDir, mainWindow, method):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "fetch")
     elif method == "toolbar":
-        findQToolButton(mainWindow.mainToolBar, "fetch").click()
+        findChildWithText(mainWindow.mainToolBar, "fetch", QToolButton).click()
     else:
         raise NotImplementedError(f"Unsupported method {method}")
 
     # We must see that no-parent is gone and that new-remote-branch appeared
-    assert {"localfs/master", "localfs/new-remote-branch"} == {x for x in rw.repo.branches.remote if x.startswith("localfs/")}
+    assert {"localfs/master", "localfs/new-remote-branch"} == {
+        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
 
 def testFetchRemoteBranch(tempDir, mainWindow):
@@ -254,10 +265,13 @@ def testFetchRemoteBranch(tempDir, mainWindow):
     node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "fetch")
-    assert re.search(
-        fr"localfs/master.+{str(oldHead)[:7]}.+{str(newHead)[:7]}",
-        mainWindow.statusBar().currentMessage(),
-        re.I)
+
+    # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
+    if GitDriver.supportsFetchPorcelain():
+        assert re.search(
+            fr"localfs/master.+{str(oldHead)[:7]}.+{str(newHead)[:7]}",
+            mainWindow.statusBar().currentMessage(),
+            re.I)
 
     # The position of the remote's master branch should be up to date now
     assert rw.repo.branches.remote["localfs/master"].target == newHead
@@ -291,12 +305,17 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
         node = rw.sidebar.findNodeByRef("refs/heads/master")
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "pull")
-    acceptQMessageBox(rw, "localfs/master.+disappeared")
 
-    # It's gone
-    assert "localfs/master" not in rw.repo.branches.remote
-    with pytest.raises(KeyError):
-        rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
+    # if gitBackend == "libgit2":
+    #     acceptQMessageBox(rw, "localfs/master.+disappeared")
+    #
+    #     # It's gone
+    #     assert "localfs/master" not in rw.repo.branches.remote
+    #     with pytest.raises(KeyError):
+    #         rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
+
+    acceptQMessageBox(rw, "couldn.+t find remote ref master")
+    # TODO: Should we automatically prune the branch in this case?
 
 
 def testFetchRemoteBranchNoChange(tempDir, mainWindow):
@@ -310,7 +329,11 @@ def testFetchRemoteBranchNoChange(tempDir, mainWindow):
     node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "fetch")
-    assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
+
+    # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
+    if GitDriver.supportsFetchPorcelain():
+        assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
+
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
@@ -572,7 +595,7 @@ def testShadowUpstream(tempDir, mainWindow):
     qcbSetIndex(pushDialog.ui.remoteBranchEdit, r"new remote branch on.+remote2")
     assert pushDialog.currentRemoteBranchFullName == "remote2/master-2"
     pushDialog.ui.trackCheckBox.setChecked(False)
-    pushDialog.accept()
+    pushDialog.okButton().click()
 
     # Open PushDialog on master again, remote2/master-2 should be automatically selected.
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
@@ -585,7 +608,7 @@ def testShadowUpstream(tempDir, mainWindow):
     assert pushDialog.currentRemoteBranchFullName == "remote2/no-parent"
     pushDialog.ui.forcePushCheckBox.setChecked(True)
     pushDialog.ui.trackCheckBox.setChecked(False)
-    pushDialog.accept()
+    pushDialog.okButton().click()
 
     # Open PushDialog on master again, remote2/no-parent should be automatically selected.
     triggerMenuAction(mainWindow.menuBar(), "repo/push")
@@ -717,3 +740,153 @@ def testPushDeleteTag(tempDir, mainWindow):
 
     with RepoContext(barePath) as bareRepo:
         assert "etiquette" not in bareRepo.listall_tags()
+
+
+def testForcePushWithLeasePass(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+
+    with RepoContext(wd) as repo:
+        newOid = repo.amend_commit_on_head("amended locally", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog: PushDialog = findQDialog(rw, "push.+branch")
+    pushDialog.ui.forcePushCheckBox.click()
+    pushDialog.okButton().click()
+
+    assert rw.repo.branches.remote["remote2/master"].target == newOid
+
+
+def testForcePushWithLeaseRejected(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    bareCopy = makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+
+    with RepoContext(bareCopy) as bareRepo:
+        _unknownCommitId = bareRepo.create_commit(
+            "refs/heads/master",
+            TEST_SIGNATURE,
+            TEST_SIGNATURE,
+            "new commit on remote that local copy doesn't have yet",
+            bareRepo.head_tree.id,
+            [bareRepo.head_commit_id])
+
+    with RepoContext(wd) as repo:
+        newOid = repo.amend_commit_on_head("amended locally", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog: PushDialog = findQDialog(rw, "push.+branch")
+    pushDialog.ui.forcePushCheckBox.click()
+    pushDialog.okButton().click()
+
+    blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
+    assert blurbLabel.isVisible()
+    assert re.search(r"force.push.+rejected to prevent data loss", blurbLabel.text(), re.I)
+    pushDialog.reject()
+
+    assert rw.repo.branches.remote["remote2/master"].target != newOid
+
+
+def testAbortPushInProgress(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+        oldOid = repo.head_commit_id
+        newOid = repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    assert rw.repo.branches.local["master"].target == newOid
+    assert rw.repo.branches.remote["remote2/master"].target == oldOid
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    pushDialog = waitForQDialog(rw, "push.+branch", t=PushDialog)
+    statusLabel = pushDialog.ui.statusForm.ui.statusLabel
+    blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
+    okButton = pushDialog.okButton()
+    cancelButton = pushDialog.cancelButton()
+
+    okButton.click()
+    assert not okButton.isEnabled()
+    assert statusLabel.isVisible()
+    assert findTextInWidget(statusLabel, "please wait")
+
+    # Wait for wrapper script to actually start
+    waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))
+
+    # Send SIGTERM
+    cancelButton.click()
+    waitUntilTrue(okButton.isEnabled)
+
+    # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
+    # we're running non-sandboxed commands through /usr/bin/env
+    failMessage = "git.+exited with.+" + ("143" if FLATPAK else "SIGTERM")
+    assert findTextInWidget(blurbLabel, failMessage)
+    assert blurbLabel.isVisible()
+
+    # Click cancel button again to dismiss the dialog
+    cancelButton.click()
+
+    assert rw.repo.branches.remote["remote2/master"].target == oldOid
+    with RepoContext(wd) as repo:
+        repo.fetch_remote("remote2", None)
+        assert repo.branches.remote["remote2/master"].target == oldOid
+
+
+def testAbortPullInProgress(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
+    wd = unpackRepo(tempDir)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+
+    with RepoContext(bareCopy) as bareRepo:
+        _unknownCommitId = bareRepo.create_commit(
+            "refs/heads/master",
+            TEST_SIGNATURE,
+            TEST_SIGNATURE,
+            "new commit on remote that local copy doesn't have yet",
+            bareRepo.head_tree.id,
+            [bareRepo.head_commit_id])
+
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+        oldHead = repo.head_commit_id
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead
+
+    QTest.qWait(0)
+    triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+
+    waitForSignal(rw.processDialog.becameVisible)
+    assert rw.processDialog.isVisible()
+
+    assert rw.processDialog.abortButton.isEnabled()
+    assert "Abort" in rw.processDialog.abortButton.text()
+    rw.processDialog.abortButton.click()
+    assert "SIGKILL" in rw.processDialog.abortButton.text()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
+    # we're running non-sandboxed commands through /usr/bin/env
+    failMessage = "git.+exited with.+" + ("143" if FLATPAK else "SIGTERM")
+    waitForQMessageBox(rw, failMessage).reject()
+
+    rw.refreshRepo()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead

@@ -9,7 +9,7 @@ import os
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
-from gitfourchette.filelists.filelist import FileList, SelectedFileBatchError
+from gitfourchette.filelists.filelist import FileList
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -126,10 +126,8 @@ class CommittedFiles(FileList):
         RestoreRevisionToWorkdir.invoke(self, patches[0], old=True)
 
     def saveRevisionAsTempFile(self, patch: Patch, beforeCommit: bool = False):
-        try:
-            name, blob, _dummy = self.getFileRevisionInfo(patch, beforeCommit)
-        except FileNotFoundError as fnf:
-            raise SelectedFileBatchError(fnf.filename + ": " + fnf.strerror) from fnf
+        # May raise FileNotFoundError!
+        name, blob, _dummy = self.getFileRevisionInfo(patch, beforeCommit)
 
         tempPath = os.path.join(qTempDir(), name)
 
@@ -159,10 +157,8 @@ class CommittedFiles(FileList):
             os.chmod(path, mode)
 
         def run(patch: Patch):
-            try:
-                name, blob, diffFile = self.getFileRevisionInfo(patch, beforeCommit)
-            except FileNotFoundError as fnf:
-                raise SelectedFileBatchError(fnf.filename + ": " + fnf.strerror) from fnf
+            # May raise FileNotFoundError!
+            name, blob, diffFile = self.getFileRevisionInfo(patch, beforeCommit)
 
             qfd = PersistentFileDialog.saveFile(self, "SaveFile", _("Save file revision as"), name)
             qfd.fileSelected.connect(lambda path: dump(path, diffFile.mode, blob.data))
@@ -198,12 +194,10 @@ class CommittedFiles(FileList):
 
     def openWorkingCopyRevision(self):
         def run(patch: Patch):
-            diffFile = patch.delta.new_file
-            path = self.repo.in_workdir(diffFile.path)
-            if os.path.isfile(path):
-                ToolProcess.startTextEditor(self, path)
-            else:
-                raise SelectedFileBatchError(_("{0}: There’s no file at this path in the working copy.", diffFile.path))
+            path = self.repo.in_workdir(patch.delta.new_file.path)
+            if not os.path.isfile(path):
+                raise FileNotFoundError(_("There’s no file at this path in the working copy."))
+            ToolProcess.startTextEditor(self, path)
 
         self.confirmBatch(run, _("Open working copy revision"), _("Really open <b>{n} files</b>?"))
 

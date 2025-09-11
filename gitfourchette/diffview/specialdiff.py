@@ -307,7 +307,7 @@ class SpecialDiffError(Exception):
             if m:
                 important = _("IMPORTANT")
                 m = m.format(gitmodules=f"<tt>{DOT_GITMODULES}</tt>")
-                m = f"<img src='assets:icons/achtung'> <b>{important}</b> &ndash; {m}"
+                m = f"{stockIconImgTag('achtung')} <b>{important}</b> &ndash; {m}"
                 longformParts.insert(0, m)
 
             # Tell about any uncommitted changes

@@ -19,10 +19,8 @@ from .gitutils import (
     shortHash, dumpTempBlob, nameValidationMessage,
     AuthorDisplayStyle, abbreviatePerson,
     PatchPurpose,
-    simplifyOctalFileMode,
     remoteUrlProtocol,
     splitRemoteUrl,
-    stripRemoteUrlPath,
     guessRemoteUrlFromText,
     formatTimeOffset,
     signatureQDateTime,
@@ -34,7 +32,7 @@ from .messageboxes import (
     showWarning, showInformation, askConfirmation,
     addULToMessageBox,
     NonCriticalOperation)
-from .iconbank import stockIcon
+from .iconbank import stockIcon, stockIconImgTag
 from .pathutils import PathDisplayStyle, abbreviatePath, compactPath
 from .persistentfiledialog import PersistentFileDialog
 from .qbusyspinner import QBusySpinner
@@ -55,6 +53,7 @@ from .qtutils import (
     tweakWidgetFont,
     formatWidgetText,
     formatWidgetTooltip,
+    installDialogReturnShortcut,
     itemViewVisibleRowRange,
     isDarkTheme,
     mutedTextColorHex,
@@ -93,6 +92,7 @@ from .textutils import (
     withUniqueSuffix,
     englishTitleCase,
     naturalSort,
+    qstringLength,
 )
 from .urltooltip import UrlToolTip
 from .validatormultiplexer import ValidatorMultiplexer

@@ -147,6 +147,7 @@ def testLineEndingsChangedWithAutocrlfInputCauseDiffReload(tempDir, mainWindow):
     assert oldPatch is not rw.diffView.currentPatch
 
 
+@pytest.mark.skipif(pygit2OlderThan("1.18.3"), reason="old pygit2 - https://github.com/libgit2/pygit2/pull/1412")
 def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

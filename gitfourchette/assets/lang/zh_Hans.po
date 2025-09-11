@@ -1,0 +1,6293 @@
+# This file is distributed under the same license as the GitFourchette package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: GitFourchette\n"
+"Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
+"PO-Revision-Date: 2025-08-31 20:01+0000\n"
+"Last-Translator: Iliyas Jorio <iliyas@jor.io>\n"
+"Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/"
+"projects/gitfourchette/gitfourchette/zh_Hans/>\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.13.1-dev\n"
+
+#: application.py:86 forms/aboutdialog.py:54
+msgid "The comfortable Git UI for Linux."
+msgstr "适用于Linux的舒适Git用户界面。"
+
+#: application.py:90
+msgid "Turn off multithreading (run all tasks on UI thread)."
+msgstr "关闭多线程（在UI线程上运行所有任务）。"
+
+#: application.py:91
+msgid "Enable expensive assertions and development features."
+msgstr "启用昂贵的断言和开发功能。"
+
+#: application.py:92
+msgid "Prevent loading/saving user settings. (implies --no-threads)"
+msgstr "阻止加载/保存用户设置。（意味着--no-threads）"
+
+#: application.py:94
+msgid "Repository paths to open on launch."
+msgstr "启动时打开的仓库路径。"
+
+#: application.py:234
+#, python-brace-format
+msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
+msgstr "您首选的Qt绑定{0}在这台机器上不可用。改用{1}。"
+
+#: application.py:236
+#, python-brace-format
+msgid "Your preferred Qt binding {0} is not recognized by {app}. Using {1} instead. (Supported values: {known})"
+msgstr "您首选的Qt绑定{0}不被{app}识别。改用{1}。（支持的值：{known}）"
+
+#: application.py:240
+msgid "Qt binding unavailable"
+msgstr "Qt绑定不可用"
+
+#: application.py:278 toolbox/messageboxes.py:40
+msgid "Please open a repository before performing this action."
+msgstr "请在执行此操作前先打开一个仓库。"
+
+#: diffarea.py:109
+msgid "Unstaged files: will not be included in the commit unless you stage them."
+msgstr "未暂存文件：除非您暂存它们，否则不会包含在提交中。"
+
+#: diffarea.py:117
+msgid "Stage"
+msgstr "暂存"
+
+#: diffarea.py:119
+msgid "Stage selected files"
+msgstr "暂存选定的文件"
+
+#: diffarea.py:124 diffview/diffview.py:119
+msgid "Discard"
+msgstr "放弃"
+
+#: diffarea.py:126
+msgid "Discard changes in selected files"
+msgstr "放弃选中文件中的更改"
+
+#: diffarea.py:161
+msgid "Staged files: will be included in the commit."
+msgstr "已暂存文件：将包含在提交中。"
+
+#: diffarea.py:169
+msgid "Unstage"
+msgstr "取消暂存"
+
+#: diffarea.py:171
+msgid "Unstage selected files"
+msgstr "取消暂存选中文件"
+
+#: diffarea.py:176 forms/commitdialog.py:55 tasks/committasks.py:416
+#: tasks/committasks.py:461
+msgctxt "verb"
+msgid "Commit"
+msgstr "提交"
+
+#: diffview/diffdocument.py:191
+msgid "This file contains very long lines."
+msgstr "此文件包含非常长的行。"
+
+#: diffview/diffdocument.py:192 diffview/specialdiff.py:119
+msgid "[Load diff anyway] (this may take a moment)"
+msgstr "[仍然加载差异]（这可能需要一些时间）"
+
+#: diffview/diffdocument.py:269
+msgid "<no newline at end of file>"
+msgstr "文件末尾<缺少换行符>"
+
+#: diffview/diffview.py:80
+msgid "Find text in diff|Find in diff"
+msgstr "在差异中查找文本|在差异中查找"
+
+#: diffview/diffview.py:107
+msgid "Stage Selection"
+msgstr "暂存选择"
+
+#: diffview/diffview.py:109
+msgid "Stage selected lines"
+msgstr "暂存选中行"
+
+#: diffview/diffview.py:113
+msgid "Unstage Selection"
+msgstr "取消暂存选择"
+
+#: diffview/diffview.py:116
+msgid "Unstage selected lines"
+msgstr "取消暂存选中行"
+
+#: diffview/diffview.py:122
+msgid "Discard selected lines"
+msgstr "放弃选中行"
+
+#: diffview/diffview.py:475 diffview/diffview.py:487 diffview/diffview.py:510
+#: diffview/diffview.py:539
+msgid "Export Lines as Patch…"
+msgstr "导出行作为补丁…"
+
+#: diffview/diffview.py:476
+msgid "Revert Lines…"
+msgstr "撤销行…"
+
+#: diffview/diffview.py:480
+#, python-brace-format
+msgid "Export Hunk {0} as Patch…"
+msgstr "导出块 {0} 作为补丁…"
+
+#: diffview/diffview.py:481
+msgid "Revert Hunk…"
+msgstr "撤销块…"
+
+#: diffview/diffview.py:491 diffview/diffview.py:526 diffview/diffview.py:551
+msgid "Export Hunk as Patch…"
+msgstr "导出块作为补丁…"
+
+#: diffview/diffview.py:498
+msgid "Stage Lines"
+msgstr "暂存行"
+
+#: diffview/diffview.py:504
+msgid "Discard Lines"
+msgstr "放弃行"
+
+#: diffview/diffview.py:517
+#, python-brace-format
+msgid "Stage Hunk {0}"
+msgstr "暂存块 {0}"
+
+#: diffview/diffview.py:522
+msgid "Discard Hunk"
+msgstr "放弃块"
+
+#: diffview/diffview.py:533
+msgid "Unstage Lines"
+msgstr "取消暂存行"
+
+#: diffview/diffview.py:546
+#, python-brace-format
+msgid "Unstage Hunk {0}"
+msgstr "取消暂存块 {0}"
+
+#: diffview/diffview.py:558
+msgid "&Word Wrap"
+msgstr "&自动换行"
+
+#: diffview/diffview.py:559
+msgid "Configure Appearance…"
+msgstr "配置外观…"
+
+#: diffview/diffview.py:658
+msgid "Export selected lines"
+msgstr "导出选中行"
+
+#: diffview/diffview.py:903 diffview/diffview.py:904
+msgid "or Middle-Click"
+msgstr "或中键点击"
+
+#: diffview/diffview.py:911
+#, python-brace-format
+msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
+msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
+msgstr[0] "按 {sk} 来暂存 {nl} 行。按 {dk} 来放弃它。"
+
+#: diffview/diffview.py:915
+#, python-brace-format
+msgid "Hit {uk} to unstage {nl} line."
+msgid_plural "Hit {uk} to unstage {nl} lines."
+msgstr[0] "按 {uk} 来取消暂存 {nl} 行。"
+
+#: diffview/diffview.py:958
+msgid "End of diff reached."
+msgstr "已到达差异的末尾。"
+
+#: diffview/diffview.py:959
+msgid "Top of diff reached."
+msgstr "已到达差异的顶部。"
+
+#: diffview/diffview.py:960
+#, python-brace-format
+msgid "No more occurrences of {0} found."
+msgstr "未找到 {0} 的更多匹配项。"
+
+#: diffview/diffview.py:962
+msgid "Find in Diff"
+msgstr "在差异中查找"
+
+#: diffview/diffview.py:962
+msgid "Wrap Around"
+msgstr "环绕搜索"
+
+#: diffview/specialdiff.py:71
+msgid "File contents didn’t change."
+msgstr "文件内容未改变。"
+
+#: diffview/specialdiff.py:82
+msgid "Empty file was deleted."
+msgstr "空文件已被删除。"
+
+#: diffview/specialdiff.py:88
+msgid "New empty file."
+msgstr "新建空文件。"
+
+#: diffview/specialdiff.py:90
+msgid "File is empty."
+msgstr "文件为空。"
+
+#: diffview/specialdiff.py:93
+msgid "Renamed:"
+msgstr "已重命名："
+
+#: diffview/specialdiff.py:97
+msgid "Mode change:"
+msgstr "模式变更："
+
+#: diffview/specialdiff.py:101
+msgid "Canonical file contents unchanged."
+msgstr "规范文件内容未改变。"
+
+#: diffview/specialdiff.py:103
+#, python-brace-format
+msgid "Due to filters such as {filter}, your working copy is not bit-for-bit identical to the file’s canonical state. However, the contents tracked by Git are equivalent after filtering."
+msgstr "由于像 {filter} "
+"这样的过滤器，您的工作副本与文件的规范状态不是逐字节相同的。然而，在过滤后 "
+"Git 跟踪的内容是等效的。"
+
+#: diffview/specialdiff.py:106
+msgid "You can stage the file to dismiss this message; no changes will be recorded."
+msgstr "您可以暂存该文件以关闭此消息；不会记录任何更改。"
+
+#: diffview/specialdiff.py:120
+#, python-brace-format
+msgid "[Configure diff preview limit] (currently: {0})"
+msgstr "【配置差异预览限制】（当前：{0}）"
+
+#: diffview/specialdiff.py:123
+msgid "This diff is very large."
+msgstr "这个差异非常大。"
+
+#: diffview/specialdiff.py:124
+#, python-brace-format
+msgid "Diff size: {0}"
+msgstr "差异大小：{0}"
+
+#: diffview/specialdiff.py:136
+msgid "[Load image anyway] (this may take a moment)"
+msgstr "【仍然加载图片】（这可能需要一些时间）"
+
+#: diffview/specialdiff.py:137
+#, python-brace-format
+msgid "[Configure image preview limit] (currently: {0})"
+msgstr "【配置图片预览限制】（当前：{0}）"
+
+#: diffview/specialdiff.py:140
+msgid "This image is very large."
+msgstr "这张图片非常大。"
+
+#: diffview/specialdiff.py:141
+#, python-brace-format
+msgid "Image size: {0}"
+msgstr "图片大小：{0}"
+
+#: diffview/specialdiff.py:149
+msgid "Old type:"
+msgstr "旧类型："
+
+#: diffview/specialdiff.py:150
+msgid "New type:"
+msgstr "新类型："
+
+#: diffview/specialdiff.py:157
+msgid "This file’s type has changed."
+msgstr "此文件的类型已更改。"
+
+#: diffview/specialdiff.py:176
+msgid "File appears to be binary."
+msgstr "文件似乎是二进制的。"
+
+#: diffview/specialdiff.py:185
+msgid "This untracked subtree is the root of another Git repository."
+msgstr "这个未跟踪的子树是另一个Git仓库的根。"
+
+#: diffview/specialdiff.py:188 repowidget.py:633
+#, python-brace-format
+msgid "Open {0}"
+msgstr "打开{0}"
+
+#: diffview/specialdiff.py:191
+#, python-brace-format
+msgid "Absorb {0} as submodule"
+msgstr "将{0}吸收为子模块"
+
+#: diffview/specialdiff.py:192
+msgid "Recommended action:"
+msgstr "推荐操作："
+
+#: diffview/specialdiff.py:211
+#, python-brace-format
+msgid "Subtree {0} was [removed.]"
+msgstr "子树{0}已被[移除。]"
+
+#: diffview/specialdiff.py:212
+#, python-brace-format
+msgid "Submodule {0} was [removed.]"
+msgstr "子模块{0}已被[移除。]"
+
+#: diffview/specialdiff.py:215
+#, python-brace-format
+msgid "Subtree {0} was [added.]"
+msgstr "子树{0}已被[添加。]"
+
+#: diffview/specialdiff.py:216
+#, python-brace-format
+msgid "Submodule {0} was [added.]"
+msgstr "子模块{0}已被[添加。]"
+
+#: diffview/specialdiff.py:219
+#, python-brace-format
+msgid "Subtree {0} was updated."
+msgstr "子树{0}已更新。"
+
+#: diffview/specialdiff.py:220
+#, python-brace-format
+msgid "Submodule {0} was updated."
+msgstr "子模块{0}已更新。"
+
+#: diffview/specialdiff.py:222
+#, python-brace-format
+msgid "Subtree {0} contains changes."
+msgstr "子树{0}包含更改。"
+
+#: diffview/specialdiff.py:223
+#, python-brace-format
+msgid "Submodule {0} contains changes."
+msgstr "子模块 {0} 包含变更。"
+
+#: diffview/specialdiff.py:231
+msgid "Open submodule"
+msgstr "打开子模块"
+
+#: diffview/specialdiff.py:231
+msgid "Open subtree"
+msgstr "打开子树"
+
+#: diffview/specialdiff.py:233
+#, python-brace-format
+msgid "(path: {0})"
+msgstr "(路径：{0})"
+
+#: diffview/specialdiff.py:268 diffview/specialdiffview.py:103
+msgid "Old:"
+msgstr "旧版："
+
+#: diffview/specialdiff.py:269 diffview/specialdiffview.py:104
+msgid "New:"
+msgstr "新版："
+
+#: diffview/specialdiff.py:275
+msgid "The subtree’s <b>HEAD</b> has moved to another commit."
+msgstr "子树的 <b>HEAD</b> 已移动到另一个提交。"
+
+#: diffview/specialdiff.py:276
+msgid "The submodule’s <b>HEAD</b> has moved to another commit."
+msgstr "子模块的 <b>HEAD</b> 已移动到另一个提交。"
+
+#: diffview/specialdiff.py:278
+msgid "You can stage this update:"
+msgstr "你可以将这个更新加入暂存区："
+
+#: diffview/specialdiff.py:286
+#, python-brace-format
+msgid "To complete the removal of this submodule, <b>remove it from {gitmodules}</b>."
+msgstr "要完成这个子模块的移除，请从 {gitmodules} 中<b>移除它</b>。"
+
+#: diffview/specialdiff.py:288
+#, python-brace-format
+msgid "To complete the removal of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
+msgstr "要完成这个子模块的移除，请确保在移除子模块文件夹的同时<b>提交 "
+"{gitmodules}</b>。"
+
+#: diffview/specialdiff.py:292
+#, python-brace-format
+msgid "To complete the addition of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
+msgstr "要完成这个子模块的添加，请确保在添加子模块文件夹的同时<b>提交 "
+"{gitmodules}</b>。"
+
+#: diffview/specialdiff.py:297
+msgid "<b>This subtree isn’t a submodule yet!</b> You should [absorb this subtree] into the parent repository so it becomes a submodule."
+msgstr "<b>这个子树还不是子模块！</b>你应该将这个子树[吸收到父仓库]"
+"中，使其成为一个子模块。"
+
+#: diffview/specialdiff.py:300
+msgid "To complete the addition of this submodule, you should [absorb the submodule] into the parent repository."
+msgstr "为了完成这个子模块的添加，你应该[将子模块吸收]到父仓库中。"
+
+#: diffview/specialdiff.py:305
+#, python-brace-format
+msgid "To complete the addition of this submodule, [register it in {gitmodules}]."
+msgstr "为了完成这个子模块的添加，[在{gitmodules}中注册它]。"
+
+#: diffview/specialdiff.py:309
+msgid "IMPORTANT"
+msgstr "重要"
+
+#: diffview/specialdiff.py:319
+msgid "The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
+msgstr "子树包含<b>未提交的更改</b>。它们不能从父仓库提交。你可以："
+
+#: diffview/specialdiff.py:320
+msgid "[Open] the subtree and commit the changes."
+msgstr "[打开]子树并提交更改。"
+
+#: diffview/specialdiff.py:321
+msgid "Or, [Reset] the subtree to a clean state."
+msgstr "或者，[重置]子树到一个干净的状态。"
+
+#: diffview/specialdiff.py:323
+msgid "The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
+msgstr "子模块有<b>未提交的更改</b>。它们不能从父仓库提交。你可以："
+
+#: diffview/specialdiff.py:324
+msgid "[Open] the submodule and commit the changes."
+msgstr "[打开]子模块并提交更改。"
+
+#: diffview/specialdiff.py:325
+msgid "Or, [Reset] the submodule to a clean state."
+msgstr "或者，[重置]子模块到一个干净的状态。"
+
+#: diffview/specialdiffview.py:103 diffview/specialdiffview.py:104
+#, python-brace-format
+msgid "{w}×{h} pixels, {size}"
+msgstr "{w}×{h}像素，{size}"
+
+#: diffview/specialdiffview.py:110
+msgid "(<b>deleted file</b> displayed below)"
+msgstr "(<b>已删除的文件</b>显示在下方)"
+
+#: diffview/specialdiffview.py:113
+msgid "(<b>new file</b> displayed below)"
+msgstr "(<b>新文件</b>显示在下方)"
+
+#: exttools/mergedriver.py:123
+#, python-brace-format
+msgid "{0} failed to start."
+msgstr "{0}未能启动。"
+
+#: exttools/mergedriver.py:126
+#, python-brace-format
+msgid "{0} ran into error {1}."
+msgstr "{0}遇到了错误{1}。"
+
+#: exttools/mergedriver.py:137
+#, python-brace-format
+msgid "{0} didn’t complete the merge."
+msgstr "{0}没有完成合并。"
+
+#: exttools/mergedriver.py:138
+#, python-brace-format
+msgid "Exit code: {0}."
+msgstr "退出代码：{0}。"
+
+#: exttools/toolcommands.py:104
+#, python-brace-format
+msgid "Unknown placeholder: {0}"
+msgstr "未知的占位符：{0}"
+
+#: exttools/toolcommands.py:114
+msgid "Missing placeholder:"
+msgid_plural "Missing placeholders:"
+msgstr[0] "缺少占位符："
+
+#: exttools/toolcommands.py:207
+msgid "Command exited with code:"
+msgstr "命令以代码退出："
+
+#: exttools/toolcommands.py:208
+msgid "Continue in a shell?"
+msgstr "在shell中继续？"
+
+#: exttools/toolprocess.py:44
+#, python-brace-format
+msgid "Failed to start {tool}"
+msgstr "无法启动{tool}"
+
+#: exttools/toolprocess.py:47
+#, python-brace-format
+msgid "There is an issue with the {tool} command template in your settings:"
+msgstr "你的设置中的{tool}命令模板存在问题："
+
+#: exttools/toolprocess.py:52
+#, python-brace-format
+msgid "Couldn’t start Flatpak {command} ({tool})."
+msgstr "无法启动Flatpak {command} ({tool})。"
+
+#: exttools/toolprocess.py:54
+#, python-brace-format
+msgid "Couldn’t start {command} ({tool})."
+msgstr "无法启动{command}（{tool}）。"
+
+#: exttools/toolprocess.py:56
+msgid "It might not be installed on your machine."
+msgstr "它可能没有安装在您的机器上。"
+
+#: exttools/toolprocess.py:65
+msgid "Edit Command…"
+msgstr "编辑命令…"
+
+#: exttools/toolprocess.py:69
+#, python-brace-format
+msgid "Locate {tool}…"
+msgstr "定位{tool}…"
+
+#: exttools/toolprocess.py:83
+#, python-brace-format
+msgid "Where is {tool}?"
+msgstr "{tool}在哪里？"
+
+#: exttools/toolprocess.py:101
+#, python-brace-format
+msgid "{tool} isn’t configured in your settings yet."
+msgstr "{tool}尚未在您的设置中配置。"
+
+#: exttools/toolprocess.py:107
+#, python-brace-format
+msgid "Set up {tool}"
+msgstr "设置{tool}"
+
+#: exttools/usercommand.py:100
+msgid "Unknown placeholder token"
+msgstr "未知的占位符标记"
+
+#: exttools/usercommand.py:125
+msgid "A commit must be selected in the history"
+msgstr "必须在历史记录中选择一个提交"
+
+#: exttools/usercommand.py:134
+msgid "HEAD cannot be unborn"
+msgstr "HEAD不能是未初始化的"
+
+#: exttools/usercommand.py:149
+msgid "A ref (local branch, remote branch, or tag) must be selected in the sidebar"
+msgstr "必须在侧边栏选择一个引用（本地分支、远程分支或标签）"
+
+#: exttools/usercommand.py:156 exttools/usercommand.py:163
+msgid "HEAD cannot be unborn or detached"
+msgstr "HEAD不能是未初始化或分离的"
+
+#: exttools/usercommand.py:168
+msgid "Current branch has no upstream"
+msgstr "当前分支没有上游"
+
+#: exttools/usercommand.py:174
+msgid "A file must be selected"
+msgstr "必须选择一个文件"
+
+#: exttools/usercommand.py:201
+msgid "A remote or a remote branch must be selected"
+msgstr "必须选择一个远程或远程分支"
+
+#: exttools/usercommand.py:206
+msgctxt "relative path"
+msgid "(relative)"
+msgstr "（相对）"
+
+#: exttools/usercommand.py:207
+msgctxt "absolute path"
+msgid "(absolute)"
+msgstr "（绝对）"
+
+#: exttools/usercommand.py:209
+msgid "Hash of the selected commit in the history"
+msgstr "历史记录中选定提交的哈希值"
+
+#: exttools/usercommand.py:210 exttools/usercommand.py:211
+msgid "Path to the selected file"
+msgstr "选定文件的路径"
+
+#: exttools/usercommand.py:212 exttools/usercommand.py:213
+msgid "Path to the selected file’s parent directory"
+msgstr "选定文件的父目录路径"
+
+#: exttools/usercommand.py:214
+msgid "Hash of the HEAD commit"
+msgstr "HEAD 提交的哈希值"
+
+#: exttools/usercommand.py:215
+msgid "Ref name of the HEAD branch"
+msgstr "HEAD 分支的引用名称"
+
+#: exttools/usercommand.py:216
+msgid "Ref name of the HEAD branch’s upstream"
+msgstr "HEAD 分支上游的引用名称"
+
+#: exttools/usercommand.py:217
+msgid "Name of the selected ref in the sidebar (local branches, remote branches, tags)"
+msgstr "侧边栏中选定引用的名称（本地分支、远程分支、标签）"
+
+#: exttools/usercommand.py:218
+msgid "Name of the selected remote in the sidebar"
+msgstr "侧边栏中选定的远程名称"
+
+#: exttools/usercommand.py:219
+msgid "Path to the repository’s working directory"
+msgstr "仓库工作目录的路径"
+
+#: filelists/committedfiles.py:36
+msgid "Open Diff in New &Window"
+msgstr "在新窗口中打开差异"
+
+#: filelists/committedfiles.py:45
+msgid "&Revert This Change…"
+msgid_plural "&Revert These Changes…"
+msgstr[0] "撤销此更改…"
+
+#: filelists/committedfiles.py:50
+msgid "Restor&e File Revision…"
+msgstr "恢复文件版本…"
+
+#: filelists/committedfiles.py:52 filelists/committedfiles.py:63
+#: filelists/committedfiles.py:71
+msgid "&As Of This Commit"
+msgstr "以此为准"
+
+#: filelists/committedfiles.py:53 filelists/committedfiles.py:64
+#: filelists/committedfiles.py:72
+msgid "&Before This Commit"
+msgstr "在此提交之前"
+
+#: filelists/committedfiles.py:60
+#, fuzzy, python-brace-format
+msgid "&Open File in {0}"
+msgid_plural "&Open {n} Files in {0}"
+msgstr[0] "在{0}中打开{n}个文件"
+
+#: filelists/committedfiles.py:62
+msgid "&Current Revision (Working Copy)"
+msgstr "当前版本（工作副本）"
+
+#: filelists/committedfiles.py:69
+msgid "&Save a Copy…"
+msgstr "保存副本…"
+
+#: filelists/committedfiles.py:80 filelists/dirtyfiles.py:94
+#: filelists/stagedfiles.py:54
+#, fuzzy, python-brace-format
+msgid "Submodule"
+msgid_plural "{n} Submodules"
+msgstr[0] "{n}个子模块"
+
+#: filelists/committedfiles.py:85 filelists/dirtyfiles.py:106
+#: filelists/stagedfiles.py:64
+#, fuzzy, python-brace-format
+msgid "Open Submodule in New Tab"
+msgid_plural "Open {n} Submodules in New Tabs"
+msgstr[0] "在新标签页中打开{n}个子模块"
+
+#: filelists/committedfiles.py:91 filelists/dirtyfiles.py:114
+#: filelists/stagedfiles.py:70
+msgid "Please review the files individually."
+msgstr "请分别审查文件。"
+
+#: filelists/committedfiles.py:144
+msgid "Open revision before commit"
+msgstr "打开提交前版本"
+
+#: filelists/committedfiles.py:146
+msgid "Open revision at commit"
+msgstr "打开提交时版本"
+
+#: filelists/committedfiles.py:148 filelists/filelist.py:362
+#: filelists/filelist.py:598
+#, python-brace-format
+msgid "Really open <b>{n} files</b> in external editor?"
+msgstr "真的要在外部编辑器中打开<b>{n}个文件</b>吗？"
+
+#: filelists/committedfiles.py:163
+msgid "Save file revision as"
+msgstr "另存文件版本为"
+
+#: filelists/committedfiles.py:168
+msgid "Save revision before commit"
+msgstr "提交前保存修订"
+
+#: filelists/committedfiles.py:170
+msgid "Save revision at commit"
+msgstr "提交时保存修订"
+
+#: filelists/committedfiles.py:172
+#, python-brace-format
+msgid "Really export <b>{n} files</b>?"
+msgstr "真的要导出<b>{n}个文件</b>吗？"
+
+#: filelists/committedfiles.py:178
+msgid "This file didn’t exist before the commit."
+msgstr "这个文件在提交之前不存在。"
+
+#: filelists/committedfiles.py:182
+msgid "This file was deleted by the commit."
+msgstr "这个文件已被提交删除。"
+
+#: filelists/committedfiles.py:202
+#, python-brace-format
+msgid "{0}: There’s no file at this path in the working copy."
+msgstr "{0}：在工作副本中此路径下没有文件。"
+
+#: filelists/committedfiles.py:204
+msgid "Open working copy revision"
+msgstr "打开工作副本版本"
+
+#: filelists/committedfiles.py:204
+#, python-brace-format
+msgid "Really open <b>{n} files</b>?"
+msgstr "真的要打开<b>{n}个文件</b>吗？"
+
+#: filelists/committedfiles.py:210 repowidget.py:568
+msgid "Open diff in new window"
+msgstr "在新窗口中打开差异"
+
+#: filelists/committedfiles.py:210
+#, python-brace-format
+msgid "Really open <b>{n} windows</b>?"
+msgstr "真的要打开<b>{n}个窗口</b>吗？"
+
+#: filelists/dirtyfiles.py:43
+#, fuzzy, python-brace-format
+msgid "&Stage File"
+msgid_plural "&Stage {n} Files"
+msgstr[0] "暂存{n}个文件"
+
+#: filelists/dirtyfiles.py:49
+msgid "&Ignore Untracked File…"
+msgid_plural "&Ignore Untracked Files…"
+msgstr[0] "&忽略未跟踪文件…"
+
+#: filelists/dirtyfiles.py:54
+#, fuzzy, python-brace-format
+msgid "&Delete File…"
+msgid_plural "&Delete {n} Files…"
+msgstr[0] "删除{n}个文件…"
+
+#: filelists/dirtyfiles.py:56
+#, fuzzy, python-brace-format
+msgid "&Discard Changes in File…"
+msgid_plural "&Discard Changes in {n} Files…"
+msgstr[0] "放弃{n}个文件中的更改…"
+
+#: filelists/dirtyfiles.py:76
+#, fuzzy, python-brace-format
+msgid "Merge Conflict"
+msgid_plural "{n} Merge Conflicts"
+msgstr[0] "{n}个合并冲突"
+
+#: filelists/dirtyfiles.py:81
+msgid "Resolve by Accepting “Theirs”"
+msgstr "通过接受“他们的”来解决"
+
+#: filelists/dirtyfiles.py:86
+msgid "Resolve by Keeping “Ours”"
+msgstr "通过保留“我们的”来解决"
+
+#: filelists/dirtyfiles.py:98
+#, fuzzy, python-brace-format
+msgid "Stage Submodule"
+msgid_plural "Stage {n} Submodules"
+msgstr[0] "暂存{n}个子模块"
+
+#: filelists/dirtyfiles.py:102
+#, fuzzy, python-brace-format
+msgid "Discard Changes in Submodule"
+msgid_plural "Discard Changes in {n} Submodules"
+msgstr[0] "放弃{n}个子模块中的更改"
+
+#: filelists/dirtyfiles.py:114
+msgid "Can’t stage this selection in bulk."
+msgstr "无法批量暂存此选择。"
+
+#: filelists/filelist.py:145
+msgid "Find a file by path|Find file"
+msgstr "按路径查找文件|查找文件"
+
+#: filelists/filelist.py:239
+#, fuzzy, python-brace-format
+msgid "Open &Folder"
+msgid_plural "Open {n} &Folders"
+msgstr[0] "打开{n}个文件夹"
+
+#: filelists/filelist.py:245
+#, fuzzy, python-brace-format
+msgid "&Copy Path"
+msgid_plural "&Copy {n} Paths"
+msgstr[0] "复制{n}个路径"
+
+#: filelists/filelist.py:251 trtables.py:349
+msgid "Path display style"
+msgstr "路径显示样式"
+
+#: filelists/filelist.py:267
+msgid "Stas&h Changes…"
+msgstr "暂存&更改…"
+
+#: filelists/filelist.py:274
+msgid "Revert Mode Changes…"
+msgid_plural "Revert Mode Change…"
+msgstr[0] "撤销模式更改…"
+
+#: filelists/filelist.py:287
+msgid "Revert Mode to Non-Executable…"
+msgstr "将模式撤销为非可执行…"
+
+#: filelists/filelist.py:289
+msgid "Revert Mode to Executable…"
+msgstr "将模式撤销为可执行…"
+
+#: filelists/filelist.py:298
+#, python-brace-format
+msgid "Open Diff in {0}"
+msgstr "在{0}中打开差异"
+
+#: filelists/filelist.py:303
+msgid "E&xport Diff As Patch…"
+msgid_plural "E&xport Diffs As Patch…"
+msgstr[0] "E&xport差异为补丁…"
+
+#: filelists/filelist.py:312
+#, python-brace-format
+msgid "&Edit in {tool}"
+msgstr "&在{tool}中编辑"
+
+#: filelists/filelist.py:317
+#, python-brace-format
+msgid "Edit &HEAD Version in {tool}"
+msgid_plural "Edit &HEAD Versions in {tool}"
+msgstr[0] "在{tool}中编辑&HEAD版本"
+
+#: filelists/filelist.py:361
+msgid "Open in external editor"
+msgstr "在外部编辑器中打开"
+
+#: filelists/filelist.py:365
+msgid "Open in external diff tool"
+msgstr "在外部差异工具中打开"
+
+#: filelists/filelist.py:366
+#, python-brace-format
+msgid "Really open <b>{n} files</b> in external diff tool?"
+msgstr "真的要在外部差异工具中打开<b>{n}个文件</b>吗？"
+
+#: filelists/filelist.py:371
+#, python-brace-format
+msgid "{0}: Can’t open external diff tool on a deleted file."
+msgstr "{0}: 不能在已删除的文件上打开外部差异工具。"
+
+#: filelists/filelist.py:375
+#, python-brace-format
+msgid "{0}: Can’t open external diff tool on a new file."
+msgstr "{0}: 不能在新文件上打开外部差异工具。"
+
+#: filelists/filelist.py:402
+#, python-brace-format
+msgid "{0}: This file doesn’t exist at this path anymore."
+msgstr "{0}: 此文件不再存在于该路径。"
+
+#: filelists/filelist.py:405
+msgid "Open paths"
+msgstr "打开路径"
+
+#: filelists/filelist.py:406
+#, python-brace-format
+msgid "Really open <b>{n} folders</b>?"
+msgstr "真的要打开<b>{n}个文件夹</b>吗？"
+
+#: filelists/filelist.py:523
+msgid "This file appears to have been modified by another application. Try refreshing the window."
+msgstr "此文件似乎已被另一个应用程序修改。尝试刷新窗口。"
+
+#: filelists/filelist.py:597
+msgid "Open HEAD version of file"
+msgstr "打开文件的HEAD版本"
+
+#: filelists/filelistmodel.py:61 forms/prefsdialog.py:199 tasks/misctasks.py:70
+#: tasks/nettasks.py:248
+msgid ":"
+msgstr ":"
+
+#: filelists/filelistmodel.py:66
+msgid "old name"
+msgstr "旧名称"
+
+#: filelists/filelistmodel.py:67
+msgid "new name"
+msgstr "新名称"
+
+#: filelists/filelistmodel.py:69
+msgid "name"
+msgstr "名称"
+
+#: filelists/filelistmodel.py:79
+msgid "status"
+msgstr "状态"
+
+#: filelists/filelistmodel.py:83
+msgid "similarity"
+msgstr "相似度"
+
+#: filelists/filelistmodel.py:88 filelists/filelistmodel.py:90
+msgid "file mode"
+msgstr "文件模式"
+
+#: filelists/filelistmodel.py:95 filelists/filelistmodel.py:97
+msgid "size"
+msgstr "大小"
+
+#: filelists/filelistmodel.py:97 filelists/filelistmodel.py:110
+#: filelists/filelistmodel.py:111
+msgid "(not computed)"
+msgstr "（未计算）"
+
+#: filelists/filelistmodel.py:106
+msgid "modified"
+msgstr "已修改"
+
+#: filelists/filelistmodel.py:112
+msgid "blob hash"
+msgstr "Blob哈希值"
+
+#: filelists/filelistmodel.py:112
+msgid "commit hash"
+msgstr "提交哈希值"
+
+#: filelists/filelistmodel.py:117
+msgid "Currently viewing diff of staged changes in this file; it also has <u>unstaged</u> changes."
+msgstr "当前查看此文件的已暂存更改差异；它还有<u>未暂存</u>更改。"
+
+#: filelists/filelistmodel.py:120
+msgid "Currently viewing diff of unstaged changes in this file; it also has <u>staged</u> changes."
+msgstr "当前查看此文件的未暂存更改差异；它还有<u>已暂存</u>更改。"
+
+#: filelists/stagedfiles.py:36
+#, fuzzy, python-brace-format
+msgid "&Unstage File"
+msgid_plural "&Unstage {n} Files"
+msgstr[0] "取消暂存{n}个文件"
+
+#: filelists/stagedfiles.py:59
+#, fuzzy, python-brace-format
+msgid "Unstage Submodule"
+msgid_plural "Unstage {n} Submodules"
+msgstr[0] "取消暂存{n}个子模块"
+
+#: filelists/stagedfiles.py:70
+msgid "Can’t unstage this selection in bulk."
+msgstr "无法批量取消暂存此选择。"
+
+#: forms/aboutdialog.py:68
+#, python-brace-format
+msgid "Version {0}"
+msgstr "版本 {0}"
+
+#: forms/aboutdialog.py:80
+#, python-brace-format
+msgid "If {app} helps you get work done, please consider [making a small donation]."
+msgstr "如果{app}帮助您完成工作，请考虑[进行小额捐赠]。"
+
+#: forms/aboutdialog.py:82
+msgid "Thank you for your support!"
+msgstr "感谢您的支持！"
+
+#: forms/aboutdialog.py:90
+msgid "Powered by:"
+msgstr "技术支持："
+
+#: forms/aboutdialog.py:100
+msgid "(not available)"
+msgstr "（不可用）"
+
+#: forms/aboutdialog.py:109
+msgid "Brought to your native language by:"
+msgstr "本地化语言由以下人员提供："
+
+#: forms/aboutdialog.py:119
+msgid "Special thanks to Marc-Alexandre Espiaut for beta testing."
+msgstr "特别感谢Marc-Alexandre Espiaut进行Beta测试。"
+
+#: forms/aboutdialog.py:121
+#, python-brace-format
+msgid "Portions of this software are based on {lib}, used under {lic}, {copyright}."
+msgstr "本软件部分基于 {lib}，使用 {lic} 许可，{copyright}。"
+
+#: forms/aboutdialog.py:123
+msgid "MIT license"
+msgstr "MIT 许可证"
+
+#: forms/banner.py:50
+msgid "Dismiss"
+msgstr "关闭"
+
+#: forms/checkoutcommitdialog.py:28
+#, python-brace-format
+msgid "Check out commit {0}"
+msgstr "查看提交 {0}"
+
+#: forms/checkoutcommitdialog.py:31
+msgid "Detach HEAD"
+msgstr "分离 HEAD"
+
+#: forms/checkoutcommitdialog.py:33
+msgid "Switch Branch"
+msgstr "切换分支"
+
+#: forms/checkoutcommitdialog.py:35
+msgid "Create Branch…"
+msgstr "创建分支…"
+
+#: forms/clonedialog.py:64
+msgid "Reset default clone location"
+msgstr "重置默认克隆位置"
+
+#: forms/clonedialog.py:72
+msgid "C&lone"
+msgstr "C&lone"
+
+#: forms/clonedialog.py:79
+#, python-brace-format
+msgid "Hit {0} when ready."
+msgstr "准备好时按下 {0}。"
+
+#: forms/clonedialog.py:112
+msgid "Please fill in this field."
+msgstr "请填写此字段。"
+
+#: forms/clonedialog.py:119
+msgid "Please enter an absolute path."
+msgstr "请输入绝对路径。"
+
+#: forms/clonedialog.py:121
+msgid "There’s already a file at this path."
+msgstr "此路径已存在文件。"
+
+#: forms/clonedialog.py:125
+msgid "This directory isn’t empty."
+msgstr "此目录不为空。"
+
+#: forms/clonedialog.py:159
+msgid "Set current location as default clone location"
+msgstr "将当前位置设置为默认克隆位置"
+
+#: forms/clonedialog.py:166
+#, python-brace-format
+msgid "{0} is the default clone location"
+msgstr "{0} 是默认克隆位置"
+
+#: forms/clonedialog.py:169
+#, python-brace-format
+msgid "Set {0} as default clone location"
+msgstr "将 {0} 设置为默认克隆位置"
+
+#: forms/clonedialog.py:185
+msgid "Clear history"
+msgstr "清除历史"
+
+#: forms/clonedialog.py:209
+msgid "&Shallow clone"
+msgstr "&浅克隆"
+
+#: forms/clonedialog.py:215
+#, python-brace-format
+msgid "&Shallow clone: Fetch up to {n} commit per branch"
+msgid_plural "&Shallow clone: Fetch up to {n} commits per branch"
+msgstr[0] "&浅克隆：每个分支最多获取 {n} 次提交"
+
+#: forms/clonedialog.py:253
+msgid "Clone repository into"
+msgstr "克隆仓库到"
+
+#: forms/clonedialog.py:262
+msgid "Clone here"
+msgstr "在此克隆"
+
+#: forms/clonedialog.py:296 tasks/nettasks.py:359
+msgid "Contacting remote host…"
+msgstr "正在联系远程主机…"
+
+#: forms/clonedialog.py:338
+msgid "Cloning…"
+msgstr "正在克隆…"
+
+#: forms/clonedialog.py:362
+#, python-brace-format
+msgid "Initializing submodule {0}: {1}…"
+msgstr "初始化子模块 {0}：{1}…"
+
+#: forms/commitdialog.py:49
+msgid "Amend commit message"
+msgstr "修改提交信息"
+
+#: forms/commitdialog.py:50
+msgid "A&mend"
+msgstr "修&改"
+
+#: forms/commitdialog.py:51
+#, python-brace-format
+msgid "Amend Commit {0}"
+msgstr "修改提交 {0}"
+
+#: forms/commitdialog.py:53
+msgid "Enter commit summary"
+msgstr "输入提交摘要"
+
+#: forms/commitdialog.py:54
+msgid "Co&mmit"
+msgstr "提&交"
+
+#: forms/commitdialog.py:59
+msgid "This commit will conclude the merge."
+msgstr "此提交将完成合并。"
+
+#: forms/commitdialog.py:61
+msgid "This commit will conclude the cherry-pick."
+msgstr "此提交将完成拣选。"
+
+#: forms/commitdialog.py:63
+msgid "This commit will conclude the revert."
+msgstr "此提交将完成撤销。"
+
+#: forms/commitdialog.py:65
+#, python-brace-format
+msgid "You are amending commit {0}."
+msgstr "你正在修改提交 {0}。"
+
+#: forms/commitdialog.py:67
+msgid "<b>Detached HEAD</b> – You are not in any branch! You should create a branch to keep track of your commit."
+msgstr "<b>分离 HEAD</b> —— 你不在任何分支！你应该创建一个分支来跟踪你的提交。"
+
+#: forms/commitdialog.py:70
+msgid "You are creating an empty commit (no staged changes)."
+msgstr "你正在创建一个空提交（没有暂存的更改）。"
+
+#: forms/commitdialog.py:138 forms/registersubmoduledialog.py:68
+#: forms/remotedialog.py:35 trtables.py:117
+msgid "Cannot be empty."
+msgstr "不能为空。"
+
+#: forms/commitdialog.py:181
+msgid "Authored by:"
+msgstr "作者："
+
+#: forms/commitdialog.py:184 forms/commitdialog.py:189
+msgid "(overridden manually)"
+msgstr "（手动覆盖）"
+
+#: forms/commitdialog.py:186
+msgid "Committed by:"
+msgstr "提交者："
+
+#: forms/conflictview.py:225
+#, python-brace-format
+msgid "Waiting for you to finish merging this file in {0} (PID {1})…"
+msgstr "等待你完成合并此文件 {0}（PID {1}）…"
+
+#: forms/conflictview.py:258
+msgid "This file has received changes from both <i>our</i> branch and <i>their</i> branch."
+msgstr "这个文件从<i>我们的</i>分支和<i>他们的</i>分支都收到了更改。"
+
+#: forms/conflictview.py:260 forms/conflictview.py:292
+#: forms/conflictview.py:307 forms/conflictview.py:327
+msgid "Keep OURS"
+msgstr "保留我们的"
+
+#: forms/conflictview.py:261 forms/conflictview.py:317
+#: forms/conflictview.py:328
+msgid "Accept THEIRS"
+msgstr "接受他们的"
+
+#: forms/conflictview.py:263 forms/conflictview.py:279
+#: forms/conflictview.py:330
+msgid "Resolve the conflict by <b>rejecting incoming changes</b>."
+msgstr "通过<b>拒绝传入的更改</b>来解决冲突。"
+
+#: forms/conflictview.py:264 forms/conflictview.py:331
+msgid "The file will remain unchanged from its state in HEAD."
+msgstr "文件将保持与HEAD中的状态不变。"
+
+#: forms/conflictview.py:266 forms/conflictview.py:282
+#: forms/conflictview.py:333
+msgid "Resolve the conflict by <b>accepting incoming changes</b>."
+msgstr "通过<b>接受传入的更改</b>来解决冲突。"
+
+#: forms/conflictview.py:267 forms/conflictview.py:334
+msgid "The file will be <b>replaced</b> with the incoming version."
+msgstr "文件将被<b>替换</b>为传入的版本。"
+
+#: forms/conflictview.py:274
+msgid "This file was deleted from <i>our</i> branch, but <i>their</i> branch kept it and made changes to it."
+msgstr "这个文件从<i>我们的</i>分支中被删除了，但是<i>他们的</i>分支保留了它并对其做"
+"了更改。"
+
+#: forms/conflictview.py:276
+msgid "Keep OUR deletion"
+msgstr "保留我们的删除"
+
+#: forms/conflictview.py:277
+msgid "Accept THEIR version"
+msgstr "接受他们的版本"
+
+#: forms/conflictview.py:280
+msgid "The file won’t be added back to your branch."
+msgstr "文件不会被重新添加到你的分支。"
+
+#: forms/conflictview.py:283
+msgid "The file will be restored to your branch with the incoming changes."
+msgstr "文件将恢复到你的分支，并带有传入的更改。"
+
+#: forms/conflictview.py:290
+msgid "We’ve made changes to this file in <i>our</i> branch, but <i>their</i> branch has deleted it."
+msgstr "我们在<i>我们的</i>分支中对这份文件做了更改，但<i>他们的</i>分支已经删除了它"
+"。"
+
+#: forms/conflictview.py:293
+msgid "Accept deletion"
+msgstr "接受删除"
+
+#: forms/conflictview.py:295
+msgid "Resolve the conflict by <b>rejecting the incoming deletion</b>."
+msgstr "通过<b>拒绝传入的删除</b>来解决冲突。"
+
+#: forms/conflictview.py:296
+msgid "Our version of the file will be kept intact."
+msgstr "我们的文件版本将保持完整。"
+
+#: forms/conflictview.py:298
+msgid "Resolve the conflict by <b>accepting the incoming deletion</b>."
+msgstr "通过<b>接受传入的删除</b>来解决冲突。"
+
+#: forms/conflictview.py:299
+msgid "The file will be deleted."
+msgstr "文件将被删除。"
+
+#: forms/conflictview.py:306 forms/conflictview.py:315
+msgid "No common ancestor."
+msgstr "没有共同的祖先。"
+
+#: forms/conflictview.py:308
+msgid "Delete it"
+msgstr "删除它"
+
+#: forms/conflictview.py:316
+msgid "Don’t add"
+msgstr "不要添加"
+
+#: forms/conflictview.py:324
+msgid "This file has been created in both <i>our</i> branch and <i>their</i> branch, independently from each other. There is no common ancestor."
+msgstr "这份文件在<i>我们的</i>分支和<i>他们的</i>分支中独立创建，没有共同的祖先。"
+
+#: forms/conflictview.py:341
+msgid "The file was deleted from <i>our</i> branch, and <i>their</i> branch has deleted it too."
+msgstr "文件已从<i>我们的</i>分支中删除，<i>他们的</i>分支也删除了它。"
+
+#: forms/contextheader.py:35
+msgid "Maximize"
+msgstr "最大化"
+
+#: forms/contextheader.py:37
+msgid "Maximize the diff area and hide the commit graph"
+msgstr "最大化差异区域并隐藏提交图"
+
+#: forms/contextheader.py:81
+msgctxt "noun"
+msgid "Commit"
+msgstr ""
+
+#: forms/contextheader.py:81
+msgctxt "noun"
+msgid "Stash"
+msgstr "暂存"
+
+#: forms/contextheader.py:85
+msgid "Info"
+msgstr "信息"
+
+#: forms/contextheader.py:86
+msgid "Show details about this commit"
+msgstr "显示此提交的详细信息"
+
+#: forms/contextheader.py:87
+msgid "Show details about this stash"
+msgstr "显示此暂存的详细信息"
+
+#: forms/contextheader.py:90 tasks/indextasks.py:141
+msgid "Delete"
+msgstr "删除"
+
+#: forms/contextheader.py:91
+msgid "Delete this stash"
+msgstr "删除此暂存"
+
+#: forms/contextheader.py:93 tasks/indextasks.py:407 tasks/indextasks.py:481
+msgid "Apply"
+msgstr "应用"
+
+#: forms/contextheader.py:94
+msgid "Apply this stash"
+msgstr "应用此暂存"
+
+#: forms/contextheader.py:97 graphview/commitlogdelegate.py:205
+msgid "Working Directory"
+msgstr "工作目录"
+
+#: forms/deletetagdialog.py:33
+msgid "&Delete Locally"
+msgstr "&本地删除"
+
+#: forms/deletetagdialog.py:33
+msgid "&Delete Locally && Remotely"
+msgstr "&本地删除 && 远程删除"
+
+#: forms/deletetagdialog.py:47
+#, python-brace-format
+msgid "Delete tag {0}"
+msgstr "删除标签 {0}"
+
+#: forms/deletetagdialog.py:48
+#, python-brace-format
+msgid "Tagged commit: {0}"
+msgstr "已标记提交：{0}"
+
+#: forms/identitydialog.py:44
+msgid "This information will be embedded in the commits and tags that you create on this machine."
+msgstr "这些信息将嵌入到您在此台机器上创建的提交和标签中。"
+
+#: forms/identitydialog.py:46
+msgid "Before editing this repository, please set up your identity for Git."
+msgstr "在编辑此仓库之前，请为您的Git设置身份。"
+
+#: forms/ignorepatterndialog.py:40
+#, python-brace-format
+msgid "Based off: {0}"
+msgstr "基于：{0}"
+
+#: forms/ignorepatterndialog.py:69
+msgid "This pattern doesn’t match the file that you selected."
+msgstr "此模式与您选择的文件不匹配。"
+
+#: forms/ignorepatterndialog.py:76
+msgid "Just this specific path"
+msgstr "仅此特定路径"
+
+#: forms/ignorepatterndialog.py:82
+msgid "Everything in this directory"
+msgstr "此目录中的所有内容"
+
+#: forms/ignorepatterndialog.py:87
+#, python-brace-format
+msgid "All {0} files in this directory tree"
+msgstr "此目录树中的所有 {0} 文件"
+
+#: forms/ignorepatterndialog.py:88
+#, python-brace-format
+msgid "Any {0} file"
+msgstr "任何 {0} 文件"
+
+#: forms/ignorepatterndialog.py:90
+msgid "Any file with this exact name"
+msgstr "任何具有这个确切名称的文件"
+
+#: forms/ignorepatterndialog.py:97
+msgid "Share pattern with other contributors"
+msgstr "与其他贡献者共享模式"
+
+#: forms/ignorepatterndialog.py:98
+msgid "Keep pattern private on this machine"
+msgstr "在这台机器上保持模式私有"
+
+#: forms/keyfilepickercheckbox.py:20
+#, python-brace-format
+msgid "{app} normally uses public/private keys in {path} to authenticate you with remote servers."
+msgstr "{app} 通常使用位于 {path} 的公钥/私钥来认证你与远程服务器的连接。"
+
+#: forms/keyfilepickercheckbox.py:22
+msgid "Tick this box if you want to access this remote with a custom key."
+msgstr "如果你想使用自定义密钥访问这个远程服务器，请勾选这个框。"
+
+#: forms/keyfilepickercheckbox.py:29
+msgid "Select public key file for this remote"
+msgstr "为这个远程服务器选择公钥文件"
+
+#: forms/keyfilepickercheckbox.py:30
+msgid "Public key file"
+msgstr "公钥文件"
+
+#: forms/keyfilepickercheckbox.py:40
+msgid "File not found."
+msgstr "文件未找到。"
+
+#: forms/keyfilepickercheckbox.py:45
+msgid "Accompanying private key not found."
+msgstr "未找到相应的私钥。"
+
+#: forms/keyfilepickercheckbox.py:49
+msgid "Accompanying public key not found."
+msgstr "未找到相应的公钥。"
+
+#: forms/maintoolbar.py:36 trtables.py:353
+msgid "Show toolbar"
+msgstr "显示工具栏"
+
+#: forms/maintoolbar.py:57 trtables.py:464
+msgid "Terminal"
+msgstr "终端"
+
+#: forms/maintoolbar.py:59
+msgid "Open a terminal in the repo"
+msgstr "在仓库中打开终端"
+
+#: forms/maintoolbar.py:63
+msgid "Open…"
+msgstr "打开…"
+
+#: forms/maintoolbar.py:65 mainwindow.py:224
+msgid "Open a Git repo on your machine"
+msgstr "在您的机器上打开 Git 仓库"
+
+#: forms/maintoolbar.py:69
+msgid "Settings"
+msgstr "设置"
+
+#: forms/maintoolbar.py:71 mainwindow.py:241
+#, python-brace-format
+msgid "Configure {app}"
+msgstr "配置 {app}"
+
+#: forms/maintoolbar.py:90
+msgid "Reveal"
+msgstr "显示"
+
+#: forms/maintoolbar.py:92
+msgid "Open repo folder in file manager"
+msgstr "在文件管理器中打开仓库文件夹"
+
+#: forms/maintoolbar.py:151
+msgid "Text Position"
+msgstr "文本位置"
+
+#: forms/maintoolbar.py:153 trtables.py:221
+msgid "Icons Only"
+msgstr "仅图标"
+
+#: forms/maintoolbar.py:154
+msgid "Text Only"
+msgstr "仅文本"
+
+#: forms/maintoolbar.py:155
+msgid "Text Alongside Icons"
+msgstr "图标旁显示文本"
+
+#: forms/maintoolbar.py:156
+msgid "Text Under Icons"
+msgstr "图标下的文字"
+
+#: forms/maintoolbar.py:161
+msgid "Icon Size"
+msgstr "图标大小"
+
+#: forms/maintoolbar.py:163
+msgid "Small"
+msgstr "小"
+
+#: forms/maintoolbar.py:164
+msgid "Medium"
+msgstr "中"
+
+#: forms/maintoolbar.py:165
+msgid "Large"
+msgstr "大"
+
+#: forms/maintoolbar.py:166
+msgid "Huge"
+msgstr "巨大"
+
+#: forms/newbranchdialog.py:31 forms/newtagdialog.py:41
+msgid "&Create"
+msgstr "&创建"
+
+#: forms/newbranchdialog.py:48
+msgid "(blocked by conflicts)"
+msgstr "（被冲突阻止）"
+
+#: forms/newbranchdialog.py:51 tasks/branchtasks.py:76
+msgid "This name is already taken by another local branch."
+msgstr "此名称已被另一个本地分支占用。"
+
+#: forms/newbranchdialog.py:57
+msgid "New branch"
+msgstr "新分支"
+
+#: forms/newbranchdialog.py:58
+msgid "Commit at tip:"
+msgstr "提交到尖端："
+
+#: forms/newtagdialog.py:17 sidebar/sidebar.py:978
+msgid "No Remotes"
+msgstr "无远程仓库"
+
+#: forms/newtagdialog.py:19
+msgid "All Remotes"
+msgstr "所有远程仓库"
+
+#: forms/newtagdialog.py:41
+msgid "&Create && Push"
+msgstr "&创建 && 推送"
+
+#: forms/newtagdialog.py:46
+msgid "This name is already taken by another tag."
+msgstr "此名称已被另一个标签占用。"
+
+#: forms/newtagdialog.py:61
+#, python-brace-format
+msgid "New tag on commit {0}"
+msgstr "提交 {0} 上的新标签"
+
+#: forms/openrepoprogress.py:25
+#, python-brace-format
+msgid "Opening {0}…"
+msgstr "正在打开 {0}…"
+
+#: forms/passphrasedialog.py:20
+msgid "Passphrase-protected key file"
+msgstr "受密码保护的密钥文件"
+
+#: forms/passphrasedialog.py:21
+msgid "Enter passphrase to use this key file:"
+msgstr "输入此密钥文件的密码："
+
+#: forms/passphrasedialog.py:29
+msgid "Remember passphrase for this session"
+msgstr "在此会话中记住密码"
+
+#: forms/passphrasedialog.py:36 forms/passphrasedialog.py:50
+msgid "Reveal passphrase"
+msgstr "显示密码"
+
+#: forms/passphrasedialog.py:50
+msgid "Hide passphrase"
+msgstr "隐藏密码"
+
+#: forms/prefsdialog.py:56
+#, python-brace-format
+msgid "{app} Settings"
+msgstr "{app} 设置"
+
+#: forms/prefsdialog.py:224
+#, python-brace-format
+msgid "{0} Handy Reference"
+msgstr "{0} 快捷参考"
+
+#: forms/prefsdialog.py:309
+msgid "Image"
+msgstr "图像"
+
+#: forms/prefsdialog.py:309
+msgid "Text"
+msgstr "文本"
+
+#: forms/prefsdialog.py:349
+msgctxt "system default language setting"
+msgid "System default"
+msgstr "系统默认"
+
+#: forms/prefsdialog.py:398
+msgctxt "hint user to leave the field blank"
+msgid "leave blank"
+msgstr "留空"
+
+#: forms/prefsdialog.py:404
+msgid "Leave blank for system default."
+msgstr "留空以使用系统默认。"
+
+#: forms/prefsdialog.py:433
+#, python-brace-format
+msgid ""
+"# Enter custom terminal commands here.\n"
+"# You can then launch them from the {menu} menu.\n"
+"# Click {button} below for more information."
+msgstr ""
+"# 在这里输入自定义终端命令。\n"
+"# 然后你可以从 {menu} 菜单中启动它们。\n"
+"# 点击下面的 {button} 以获取更多信息。"
+
+#: forms/prefsdialog.py:436 mainwindow.py:363 trtables.py:500
+msgid "&Commands"
+msgstr "&命令"
+
+#: forms/prefsdialog.py:437
+msgid "Handy Reference"
+msgstr "便捷参考"
+
+#: forms/prefsdialog.py:499
+msgctxt "system default theme setting"
+msgid "System default"
+msgstr ""
+
+#: forms/prefsdialog.py:549
+#, python-brace-format
+msgid "This feature requires {0}."
+msgstr "此功能需要 {0}。"
+
+#: forms/prefsdialog.py:553
+#, python-brace-format
+msgctxt "syntax highlighting"
+msgid "Automatic ({name})"
+msgstr "自动 ({name})"
+
+#: forms/prefsdialog.py:554
+msgctxt "syntax highlighting"
+msgid "Off"
+msgstr "关闭"
+
+#: forms/prefsdialog.py:589
+msgid "Red and green"
+msgstr "红色和绿色"
+
+#: forms/prefsdialog.py:590
+msgid "Colorblind-friendly"
+msgstr "色盲友好"
+
+#: forms/protocolbutton.py:19
+msgid "Change URL protocol"
+msgstr "更改URL协议"
+
+#: forms/pushdialog.py:34
+#, python-brace-format
+msgid "tracking {0}"
+msgstr "跟踪 {0}"
+
+#: forms/pushdialog.py:36
+msgid "non-tracking"
+msgstr "非跟踪"
+
+#: forms/pushdialog.py:85
+#, python-brace-format
+msgid "{0} will track {1}."
+msgstr "{0} 将跟踪 {1}。"
+
+#: forms/pushdialog.py:87
+#, python-brace-format
+msgid "{0} currently does not track any remote branch."
+msgstr "{0} 当前没有跟踪任何远程分支。"
+
+#: forms/pushdialog.py:89
+#, python-brace-format
+msgid "{0} already tracks remote branch {1}."
+msgstr "{0} 已经跟踪远程分支 {1}。"
+
+#: forms/pushdialog.py:91
+#, python-brace-format
+msgid "{0} will track {1} instead of {2}."
+msgstr "{0} 将跟踪 {1} 而不是 {2}。"
+
+#: forms/pushdialog.py:93
+#, python-brace-format
+msgid "{0} currently tracks {1}."
+msgstr "{0} 当前跟踪 {1}。"
+
+#: forms/pushdialog.py:200
+msgid "[tracked]"
+msgstr "[已跟踪]"
+
+#: forms/pushdialog.py:207
+#, python-brace-format
+msgid "New remote branch on {0}"
+msgstr "在 {0} 上新建远程分支"
+
+#: forms/pushdialog.py:225 forms/pushdialog.py:266
+msgid "&Push"
+msgstr "&推送"
+
+#: forms/pushdialog.py:260
+msgid "Force &push"
+msgstr "强制 &推送"
+
+#: forms/pushdialog.py:262
+msgid "Force push: Destructive action!"
+msgstr "强制推送：破坏性操作！"
+
+#: forms/pushdialog.py:264
+msgid "&Push new branch"
+msgstr "&推送新分支"
+
+#: forms/pushdialog.py:280 tasks/nettasks.py:102
+msgid "This name is already taken by another branch on this remote."
+msgstr "这个名称已经被此远程的另一个分支占用。"
+
+#: forms/registersubmoduledialog.py:36
+msgid "Reset to default name"
+msgstr "重置为默认名称"
+
+#: forms/registersubmoduledialog.py:42 forms/registersubmoduledialog.py:43
+#: tasks/taskbook.py:33
+msgid "Absorb submodule"
+msgstr "吸收子模块"
+
+#: forms/registersubmoduledialog.py:46 forms/registersubmoduledialog.py:47
+#: tasks/taskbook.py:84
+msgid "Register submodule"
+msgstr "注册子模块"
+
+#: forms/registersubmoduledialog.py:70
+msgid "This name is already taken by another submodule."
+msgstr "这个名称已经被另一个子模块占用。"
+
+#: forms/remotedialog.py:34
+msgid "This name is already taken by another remote."
+msgstr "这个名称已经被另一个远程占用。"
+
+#: forms/remotedialog.py:44
+#, python-brace-format
+msgid "Edit remote {0}"
+msgstr "编辑远程 {0}"
+
+#: forms/remotedialog.py:45 tasks/taskbook.py:51
+msgid "Edit remote"
+msgstr "编辑远程"
+
+#: forms/remotedialog.py:46
+msgid "Save"
+msgstr "保存"
+
+#: forms/remotedialog.py:52 forms/remotedialog.py:53 tasks/taskbook.py:75
+msgid "Add remote"
+msgstr "添加远程"
+
+#: forms/remotedialog.py:54
+msgid "Add"
+msgstr "添加"
+
+#: forms/remotelinkdialog.py:18
+msgid "Remote operation"
+msgstr "远程操作"
+
+#: forms/remotelinkdialog.py:55
+msgid "Connecting…"
+msgstr "正在连接…"
+
+#: forms/remotelinkdialog.py:80
+msgid "Aborting"
+msgstr "中止中"
+
+#: forms/reposettingsdialog.py:43
+msgctxt "RepoSettingsDialog"
+msgid "from global config"
+msgstr "来自全局配置"
+
+#: forms/reposettingsdialog.py:45
+msgctxt "RepoSettingsDialog"
+msgid "global git identity not configured"
+msgstr "全局 Git 身份未配置"
+
+#: forms/resetheaddialog.py:27
+msgid "Hard reset: Destructive action!"
+msgstr "硬重置：破坏性操作！"
+
+#: forms/resetheaddialog.py:77
+#, python-brace-format
+msgid "Reset {0} to {1}"
+msgstr "将 {0} 重置为 {1}"
+
+#: forms/resetheaddialog.py:81
+#, python-brace-format
+msgid "Commit {0}:"
+msgstr "提交 {0}:"
+
+#: forms/searchbar.py:215
+#, python-brace-format
+msgid "{text} not found."
+msgstr "未找到 {text}。"
+
+#: forms/stashdialog.py:58
+msgid "Stash && Keep Changes"
+msgstr "暂存 && 保留更改"
+
+#: forms/stashdialog.py:58
+msgid "Stash && Reset Changes"
+msgstr "暂存 && 重置更改"
+
+#: forms/stashdialog.py:60
+msgid "&Include these files in the stash, then reset them to their unmodified state:"
+msgstr "&将这些文件包含在暂存中，然后将它们重置为未修改状态："
+
+#: forms/stashdialog.py:61
+msgid "&Include these files in the stash:"
+msgstr "&将这些文件包含在暂存中："
+
+#: forms/ui_aboutdialog.py:158
+#, python-brace-format
+msgctxt "AboutDialog"
+msgid "About {0}"
+msgstr "关于 {0}"
+
+#: forms/ui_aboutdialog.py:159
+msgctxt "AboutDialog"
+msgid "About"
+msgstr "关于"
+
+#: forms/ui_aboutdialog.py:160
+msgctxt "AboutDialog"
+msgid "Components"
+msgstr "组件"
+
+#: forms/ui_aboutdialog.py:161
+msgctxt "AboutDialog"
+msgid "Acknowledgments"
+msgstr "致谢"
+
+#: forms/ui_aboutdialog.py:162
+msgctxt "AboutDialog"
+msgid "License"
+msgstr "许可证"
+
+#: forms/ui_checkoutcommitdialog.py:82
+msgctxt "CheckoutCommitDialog"
+msgid "Check out commit"
+msgstr ""
+
+#: forms/ui_checkoutcommitdialog.py:83
+msgctxt "CheckoutCommitDialog"
+msgid "How do you want to check out this commit?"
+msgstr "您想如何查看此提交？"
+
+#: forms/ui_checkoutcommitdialog.py:84
+msgctxt "CheckoutCommitDialog"
+msgid "Switch to &branch:"
+msgstr "切换到&分支："
+
+#: forms/ui_checkoutcommitdialog.py:85
+msgctxt "CheckoutCommitDialog"
+msgid "List of branches that point to this commit."
+msgstr "指向此提交的分支列表。"
+
+#: forms/ui_checkoutcommitdialog.py:86
+msgctxt "CheckoutCommitDialog"
+msgid "Enter &detached HEAD here"
+msgstr "在此输入&分离的HEAD"
+
+#: forms/ui_checkoutcommitdialog.py:87
+msgctxt "CheckoutCommitDialog"
+msgid "Start &new branch here…"
+msgstr "在此开始&新分支…"
+
+#: forms/ui_checkoutcommitdialog.py:88
+msgctxt "CheckoutCommitDialog"
+msgid "After the checkout:"
+msgstr "检出后："
+
+#: forms/ui_checkoutcommitdialog.py:89
+msgctxt "CheckoutCommitDialog"
+msgid "Update submodules recursively"
+msgstr ""
+
+#: forms/ui_clonedialog.py:130
+msgctxt "CloneDialog"
+msgid "Clone repository"
+msgstr "克隆仓库"
+
+#: forms/ui_clonedialog.py:131
+msgctxt "CloneDialog"
+msgid "Remote &URL:"
+msgstr "远程&URL："
+
+#: forms/ui_clonedialog.py:132
+msgctxt "CloneDialog"
+msgid "Clone in&to:"
+msgstr "克隆到&："
+
+#: forms/ui_clonedialog.py:133
+msgctxt "CloneDialog"
+msgid "&Browse…"
+msgstr "&浏览…"
+
+#: forms/ui_clonedialog.py:134
+msgctxt "CloneDialog"
+msgid "Options:"
+msgstr "选项："
+
+#: forms/ui_clonedialog.py:135
+msgctxt "CloneDialog"
+msgid "Initialize submodules recursively (if any)"
+msgstr "递归初始化子模块（如果有）"
+
+#: forms/ui_clonedialog.py:136
+msgctxt "CloneDialog"
+msgid "<p>Tick this to download just the latest commits, not the entire history of the repository."
+msgstr "<p>勾选此项以仅下载最新的提交，而不是整个仓库的历史记录。"
+
+#: forms/ui_clonedialog.py:137
+msgctxt "CloneDialog"
+msgid "Log in with custom &key file"
+msgstr "使用自定义&密钥文件登录"
+
+#: forms/ui_clonedialog.py:138
+msgctxt "CloneDialog"
+msgid "Status"
+msgstr "状态"
+
+#: forms/ui_commitdialog.py:95
+msgctxt "CommitDialog"
+msgid "Commit"
+msgstr ""
+
+#: forms/ui_commitdialog.py:96
+msgctxt "CommitDialog"
+msgid "Enter commit summary"
+msgstr ""
+
+#: forms/ui_commitdialog.py:97
+msgctxt "CommitDialog"
+msgid "<p>Length of the summary. Convention is to stay under 50 characters and avoid going over 72. If that’s not enough, use the long-form description.</p>"
+msgstr "<p>摘要的长度。惯例是不超过50个字符，避免超过72个。如果不够，使用长格式描述。"
+"</p>"
+
+#: forms/ui_commitdialog.py:98
+msgctxt "CommitDialog"
+msgid "Long-form description (optional)"
+msgstr "长格式描述（可选）"
+
+#: forms/ui_commitdialog.py:99
+msgctxt "CommitDialog"
+msgid "Customi&ze Signature"
+msgstr "自定义签名"
+
+#: forms/ui_commitdialog.py:100
+msgctxt "CommitDialog"
+msgid "Preview"
+msgstr "预览"
+
+#: forms/ui_conflictview.py:228
+msgctxt "ConflictView"
+msgid "Merge conflict"
+msgstr "合并冲突"
+
+#: forms/ui_conflictview.py:229
+#, python-brace-format
+msgctxt "ConflictView"
+msgid "Merge conflict on {0}"
+msgstr "在{0}处发生合并冲突"
+
+#: forms/ui_conflictview.py:230
+msgctxt "ConflictView"
+msgid "OUR version"
+msgstr "我们的版本"
+
+#: forms/ui_conflictview.py:231
+msgctxt "ConflictView"
+msgid "or"
+msgstr "或者"
+
+#: forms/ui_conflictview.py:232
+msgctxt "ConflictView"
+msgid "THEIR version"
+msgstr "他们的版本"
+
+#: forms/ui_conflictview.py:233
+msgctxt "ConflictView"
+msgid "Select another external merge tool in the Settings."
+msgstr "在设置中选择另一个外部合并工具。"
+
+#: forms/ui_conflictview.py:234
+msgctxt "ConflictView"
+msgid "Change merge tool…"
+msgstr "更改合并工具…"
+
+#: forms/ui_conflictview.py:235
+#, python-brace-format
+msgctxt "ConflictView"
+msgid "<p>Open {tool} so you can merge both versions by hand. When you are done, save the file and quit {tool} to resolve the conflict."
+msgstr "<p>打开{tool}，以便你可以手动合并两个版本。完成后，保存文件并退出{tool}以解决"
+"冲突。</p>"
+
+#: forms/ui_conflictview.py:236
+#, python-brace-format
+msgctxt "ConflictView"
+msgid "Merge both versions in {tool}"
+msgstr "在{tool}中合并两个版本"
+
+#: forms/ui_conflictview.py:237
+msgctxt "ConflictView"
+msgid "Abort"
+msgstr "中止"
+
+#: forms/ui_conflictview.py:238
+#, python-brace-format
+msgctxt "ConflictView"
+msgid "<p>Ignore the merge that you made in {tool} so that you can start over."
+msgstr "<p>忽略你在{tool}中所做的合并，以便重新开始。</p>"
+
+#: forms/ui_conflictview.py:239
+msgctxt "ConflictView"
+msgid "Discard this merge"
+msgstr "放弃这次合并"
+
+#: forms/ui_conflictview.py:240
+msgctxt "ConflictView"
+msgid "It looks like you’ve finished merging this file."
+msgstr "看起来您已经完成了这个文件的合并。"
+
+#: forms/ui_conflictview.py:241
+#, python-brace-format
+msgctxt "ConflictView"
+msgid "<p>Merge this file in {tool} again, starting where you left off."
+msgstr "<p>再次在{tool}中合并这个文件，从您上次停止的地方开始。"
+
+#: forms/ui_conflictview.py:242
+msgctxt "ConflictView"
+msgid "Merge again"
+msgstr "再次合并"
+
+#: forms/ui_conflictview.py:243
+#, python-brace-format
+msgctxt "ConflictView"
+msgid "<p>Resolve this conflict by accepting the merge that you’ve completed in {tool}."
+msgstr "<p>通过接受您在{tool}中已完成的合并来解决这个冲突。"
+
+#: forms/ui_conflictview.py:244
+msgctxt "ConflictView"
+msgid "Resolve the conflict with your merge"
+msgstr "用您的合并解决冲突"
+
+#: forms/ui_conflictview.py:245
+msgctxt "ConflictView"
+msgid "Confirm deletion"
+msgstr "确认删除"
+
+#: forms/ui_deletetagdialog.py:50
+msgctxt "DeleteTagDialog"
+msgid "Delete tag"
+msgstr ""
+
+#: forms/ui_deletetagdialog.py:51
+#, python-brace-format
+msgctxt "DeleteTagDialog"
+msgid "Really delete tag {0}?"
+msgstr "真的要删除标签{0}吗？"
+
+#: forms/ui_deletetagdialog.py:52
+msgctxt "DeleteTagDialog"
+msgid "&Push deletion to:"
+msgstr "&推送删除到："
+
+#: forms/ui_donateprompt.py:90
+#, python-brace-format
+msgctxt "DonatePrompt"
+msgid ""
+"Hi! I hope you’re enjoying {app}.\n"
+"\n"
+"If {app} helps you get work done, please consider making a small donation! This will encourage me to keep developing it. Thank you!\n"
+"\n"
+"-Iliyas"
+msgstr ""
+"嗨！希望您喜欢{app}。\n"
+"\n"
+"如果{app}帮助您完成了工作，请考虑进行小额捐赠！这将鼓励我继续开发它。谢谢！\n"
+"\n"
+"-Iliyas"
+
+#: forms/ui_donateprompt.py:95
+#, python-brace-format
+msgctxt "DonatePrompt"
+msgid "Donate {amount}"
+msgstr "捐赠{amount}"
+
+#: forms/ui_donateprompt.py:96
+msgctxt "DonatePrompt"
+msgid "Never show this again"
+msgstr "不再显示此信息"
+
+#: forms/ui_donateprompt.py:97
+#, python-brace-format
+msgctxt "DonatePrompt"
+msgid "Remind me in {month}"
+msgstr "在{month}提醒我"
+
+#: forms/ui_donateprompt.py:98
+msgctxt "DonatePrompt"
+msgid "THANK YOU!"
+msgstr "非常感谢！"
+
+#: forms/ui_identitydialog.py:63
+msgctxt "IdentityDialog"
+msgid "Set up your Git identity"
+msgstr "设置您的Git身份"
+
+#: forms/ui_identitydialog.py:64
+msgctxt "IdentityDialog"
+msgid "&Name:"
+msgstr "&姓名："
+
+#: forms/ui_identitydialog.py:65
+msgctxt "IdentityDialog"
+msgid "&Email:"
+msgstr "&电子邮件："
+
+#: forms/ui_identitydialog.py:66
+msgctxt "IdentityDialog"
+msgid "Note: This will not apply to the current repository, because its configuration file defines a custom identity."
+msgstr "注意：这将不适用于当前的仓库，因为其配置文件定义了一个自定义身份。"
+
+#: forms/ui_identitydialog.py:67
+#, python-brace-format
+msgctxt "IdentityDialog"
+msgid "This information will be saved in {0}."
+msgstr "这些信息将被保存在{0}。"
+
+#: forms/ui_ignorepatterndialog.py:54
+msgctxt "IgnorePatternDialog"
+msgid "Ignore file name pattern"
+msgstr "忽略文件名模式"
+
+#: forms/ui_ignorepatterndialog.py:55
+msgctxt "IgnorePatternDialog"
+msgid "&Pattern:"
+msgstr "&模式："
+
+#: forms/ui_ignorepatterndialog.py:56
+msgctxt "IgnorePatternDialog"
+msgid "&Add to:"
+msgstr "&添加到："
+
+#: forms/ui_newbranchdialog.py:81
+msgctxt "NewBranchDialog"
+msgid "New branch"
+msgstr ""
+
+#: forms/ui_newbranchdialog.py:82
+msgctxt "NewBranchDialog"
+msgid "&Name:"
+msgstr ""
+
+#: forms/ui_newbranchdialog.py:83
+msgctxt "NewBranchDialog"
+msgid "Options:"
+msgstr ""
+
+#: forms/ui_newbranchdialog.py:84
+msgctxt "NewBranchDialog"
+msgid "&Switch to branch after creating"
+msgstr "&创建后切换到分支"
+
+#: forms/ui_newbranchdialog.py:85
+msgctxt "NewBranchDialog"
+msgid "&Track upstream branch:"
+msgstr "&跟踪上游分支："
+
+#: forms/ui_newbranchdialog.py:86
+msgctxt "NewBranchDialog"
+msgid "…then update submodules recursively"
+msgstr "…然后递归更新子模块"
+
+#: forms/ui_newtagdialog.py:60
+msgctxt "NewTagDialog"
+msgid "New tag"
+msgstr ""
+
+#: forms/ui_newtagdialog.py:61
+msgctxt "NewTagDialog"
+msgid "&Name:"
+msgstr ""
+
+#: forms/ui_newtagdialog.py:62
+msgctxt "NewTagDialog"
+msgid "Enter tag name"
+msgstr "输入标签名称"
+
+#: forms/ui_newtagdialog.py:63
+msgctxt "NewTagDialog"
+msgid "&Push to:"
+msgstr "&推送到："
+
+#: forms/ui_openrepoprogress.py:45 forms/ui_openrepoprogress.py:46
+msgctxt "OpenRepoProgress"
+msgid "Opening repository…"
+msgstr "打开仓库…"
+
+#: forms/ui_openrepoprogress.py:47
+msgctxt "OpenRepoProgress"
+msgid "Abort"
+msgstr ""
+
+#: forms/ui_pushdialog.py:126
+msgctxt "PushDialog"
+msgid "Push branch"
+msgstr ""
+
+#: forms/ui_pushdialog.py:127
+msgctxt "PushDialog"
+msgid "&Local branch:"
+msgstr "&本地分支："
+
+#: forms/ui_pushdialog.py:128
+msgctxt "PushDialog"
+msgid "Push &to:"
+msgstr "推送&到："
+
+#: forms/ui_pushdialog.py:129
+msgctxt "PushDialog"
+msgid "Branch name on remote"
+msgstr "远程分支名称"
+
+#: forms/ui_pushdialog.py:130
+msgctxt "PushDialog"
+msgid "&Force push"
+msgstr "&强制推送"
+
+#: forms/ui_pushdialog.py:131
+msgctxt "PushDialog"
+msgid "&Track this remote branch after pushing"
+msgstr "&推送后跟踪此远程分支"
+
+#: forms/ui_pushdialog.py:132
+msgctxt "PushDialog"
+msgid "Status"
+msgstr ""
+
+#: forms/ui_registersubmoduledialog.py:96
+msgctxt "RegisterSubmoduleDialog"
+msgid "Register submodule"
+msgstr ""
+
+#: forms/ui_registersubmoduledialog.py:97
+msgctxt "RegisterSubmoduleDialog"
+msgid "Workdir:"
+msgstr "工作目录："
+
+#: forms/ui_registersubmoduledialog.py:98
+msgctxt "RegisterSubmoduleDialog"
+msgid "&Name:"
+msgstr ""
+
+#: forms/ui_registersubmoduledialog.py:99
+msgctxt "RegisterSubmoduleDialog"
+msgid "&Remote:"
+msgstr "&远程："
+
+#: forms/ui_registersubmoduledialog.py:100
+msgctxt "RegisterSubmoduleDialog"
+msgid "<p>This will be the default remote for this submodule. People who clone your repo will use this remote to download the submodule."
+msgstr "<p>这将是这个子模块的默认远程仓库。克隆你的仓库的人将使用这个远程仓库来下载子"
+"模块。"
+
+#: forms/ui_registersubmoduledialog.py:101
+#, python-brace-format
+msgctxt "RegisterSubmoduleDialog"
+msgid "Once absorbed as a submodule, this copy of {sub} cannot be used independently from its superproject, {super}. This cannot be undone!"
+msgstr "一旦作为子模块被吸收，这个副本的{sub}就不能独立于其超项目{super}使用。这不能"
+"撤销！"
+
+#: forms/ui_registersubmoduledialog.py:102
+msgctxt "RegisterSubmoduleDialog"
+msgid "<p>This name uniquely identifies your submodule in “.gitmodules”. It can be anything you like, but common practice is to simply name it after the submodule’s workdir."
+msgstr "<p>这个名字在“.gitmodules”中唯一标识你的子模块。它可以是你喜欢的任何名称，但"
+"常见的做法是简单地以子模块的工作目录来命名。"
+
+#: forms/ui_remotedialog.py:71
+msgctxt "RemoteDialog"
+msgid "Edit remote"
+msgstr ""
+
+#: forms/ui_remotedialog.py:72
+msgctxt "RemoteDialog"
+msgid "&URL:"
+msgstr "&URL:"
+
+#: forms/ui_remotedialog.py:73
+msgctxt "RemoteDialog"
+msgid "&Name:"
+msgstr ""
+
+#: forms/ui_remotedialog.py:74
+msgctxt "RemoteDialog"
+msgid "Log in with custom &key file"
+msgstr ""
+
+#: forms/ui_remotedialog.py:75
+msgctxt "RemoteDialog"
+msgid "&Fetch remote branches after adding"
+msgstr "添加后拉取远程分支"
+
+#: forms/ui_remotelinkdialog.py:58
+msgctxt "RemoteLinkDialog"
+msgid "Remote operation"
+msgstr ""
+
+#: forms/ui_reposettingsdialog.py:65
+#, python-brace-format
+msgctxt "RepoSettingsDialog"
+msgid "Repo Settings for {repo}"
+msgstr "仓库设置{repo}"
+
+#: forms/ui_reposettingsdialog.py:66
+msgctxt "RepoSettingsDialog"
+msgid "Repo Nic&kname:"
+msgstr "仓库昵&称:"
+
+#: forms/ui_reposettingsdialog.py:67
+#, python-brace-format
+msgctxt "RepoSettingsDialog"
+msgid "This nickname will appear within {app} in tab names, menus, etc. It does not change the actual name of the repo’s directory. Leave blank to clear the nickname."
+msgstr "这个昵称将在 {app} "
+"中的标签名称、菜单等地方显示。它不会改变仓库目录的实际名称。留空以清除昵称。"
+
+#: forms/ui_reposettingsdialog.py:68
+msgctxt "RepoSettingsDialog"
+msgid "No nickname"
+msgstr "无昵称"
+
+#: forms/ui_reposettingsdialog.py:69
+msgctxt "RepoSettingsDialog"
+msgid "Create commits under a custom &identity in this repo"
+msgstr "在这个仓库下以自定义的身份创建提交"
+
+#: forms/ui_reposettingsdialog.py:70
+msgctxt "RepoSettingsDialog"
+msgid "&Name:"
+msgstr ""
+
+#: forms/ui_reposettingsdialog.py:71
+msgctxt "RepoSettingsDialog"
+msgid "&Email:"
+msgstr ""
+
+#: forms/ui_resetheaddialog.py:72
+msgctxt "ResetHeadDialog"
+msgid "Reset HEAD"
+msgstr ""
+
+#: forms/ui_resetheaddialog.py:73
+#, python-brace-format
+msgctxt "ResetHeadDialog"
+msgid ""
+"<b>Keep</b> all your files intact.\n"
+"<br><b>Stage</b> any differences between your files and {commit}."
+msgstr ""
+"<b>保持</b>所有文件不变。\n"
+"<br><b>暂存</b>文件与{commit}之间的任何差异。"
+
+#: forms/ui_resetheaddialog.py:75
+#, python-brace-format
+msgctxt "ResetHeadDialog"
+msgid ""
+"<b>Keep</b> all your files intact.\n"
+"<br><b>Unstage</b> any differences between your files and {commit}."
+msgstr ""
+"<b>保持</b>所有文件不变。\n"
+"<br><b>取消暂存</b>文件与{commit}之间的任何差异。"
+
+#: forms/ui_resetheaddialog.py:77
+#, python-brace-format
+msgctxt "ResetHeadDialog"
+msgid ""
+"<b>Wipe</b> all your changes.\n"
+"<br>End result identical to a fresh checkout of {commit}."
+msgstr ""
+"<b>清除</b>所有更改。\n"
+"<br>最终结果与新检出的{commit}相同。"
+
+#: forms/ui_resetheaddialog.py:79
+msgctxt "ResetHeadDialog"
+msgid "&Reset submodules recursively"
+msgstr "&递归重置子模块"
+
+#: forms/ui_searchbar.py:46
+msgctxt "SearchBar"
+msgid "Search"
+msgstr "搜索"
+
+#: forms/ui_searchbar.py:47
+msgctxt "SearchBar"
+msgid "Search…"
+msgstr "搜索…"
+
+#: forms/ui_searchbar.py:48
+msgctxt "SearchBar"
+msgid "Next Occurrence"
+msgstr "下一个出现"
+
+#: forms/ui_searchbar.py:49
+msgctxt "SearchBar"
+msgid "Previous Occurrence"
+msgstr "先前出现"
+
+#: forms/ui_searchbar.py:50
+msgctxt "SearchBar"
+msgid "Close Search Bar"
+msgstr "关闭搜索栏"
+
+#: forms/ui_searchbar.py:51
+msgctxt "SearchBar"
+msgid "Done"
+msgstr "完成"
+
+#: forms/ui_signatureform.py:73
+msgctxt "SignatureForm"
+msgid "Signature"
+msgstr "签名"
+
+#: forms/ui_signatureform.py:74
+msgctxt "SignatureForm"
+msgid "&Override:"
+msgstr "&覆盖："
+
+#: forms/ui_signatureform.py:75
+msgctxt "SignatureForm"
+msgid "&Identity:"
+msgstr "&身份："
+
+#: forms/ui_signatureform.py:76 forms/ui_signatureform.py:77
+msgctxt "SignatureForm"
+msgid "Name"
+msgstr "名称"
+
+#: forms/ui_signatureform.py:78 forms/ui_signatureform.py:79
+msgctxt "SignatureForm"
+msgid "Email"
+msgstr "电子邮件"
+
+#: forms/ui_signatureform.py:80
+msgctxt "SignatureForm"
+msgid "&Time:"
+msgstr "&时间："
+
+#: forms/ui_signatureform.py:81
+msgctxt "SignatureForm"
+msgid "Offset from UTC"
+msgstr "与UTC的偏移量"
+
+#: forms/ui_signatureform.py:82
+msgctxt "SignatureForm"
+msgid "Set to current local time"
+msgstr "设置为当前本地时间"
+
+#: forms/ui_signatureform.py:83
+msgctxt "SignatureForm"
+msgid "Now"
+msgstr "现在"
+
+#: forms/ui_signatureform.py:84
+msgctxt "SignatureForm"
+msgid "<p>Two signatures are recorded in every commit – one for the author, and one for the committer. Select which signature you want to customize."
+msgstr "<p>每次提交都会记录两个签名——一个用于作者，一个用于提交者。选择您想要自定义的"
+"签名。</p>"
+
+#: forms/ui_signatureform.py:85
+msgctxt "SignatureForm"
+msgid "Author’s Signature"
+msgstr "作者签名"
+
+#: forms/ui_signatureform.py:86
+msgctxt "SignatureForm"
+msgid "Committer’s Signature"
+msgstr "提交者签名"
+
+#: forms/ui_signatureform.py:87
+msgctxt "SignatureForm"
+msgid "Both Signatures"
+msgstr "两个签名"
+
+#: forms/ui_stashdialog.py:65
+msgctxt "StashDialog"
+msgid "New stash"
+msgstr "新建暂存"
+
+#: forms/ui_stashdialog.py:66
+msgctxt "StashDialog"
+msgid "Optional stash message"
+msgstr "可选暂存信息"
+
+#: forms/ui_stashdialog.py:67
+msgctxt "StashDialog"
+msgid "Normally, stashed changes are removed from the working directory. Tick this to leave the stashed changes intact instead."
+msgstr "通常，暂存的更改会从工作目录中移除。勾选此项以保留暂存的更改。"
+
+#: forms/ui_stashdialog.py:68
+msgctxt "StashDialog"
+msgid "&Retain stashed changes in working directory"
+msgstr "&在工作目录中保留暂存的更改"
+
+#: forms/ui_stashdialog.py:69
+msgctxt "StashDialog"
+msgid "Warning: Some of the files have both staged and unstaged changes. Those changes will be combined in the stash."
+msgstr "警告：一些文件既有已暂存的也有未暂存的更改。这些更改将合并到暂存中。"
+
+#: forms/ui_unloadedrepoplaceholder.py:57
+msgctxt "UnloadedRepoPlaceholder"
+msgid "Unloaded repository"
+msgstr "未加载的仓库"
+
+#: forms/ui_unloadedrepoplaceholder.py:58
+msgctxt "UnloadedRepoPlaceholder"
+msgid "Ready to load this repository."
+msgstr "准备加载此仓库。"
+
+#: forms/ui_unloadedrepoplaceholder.py:59
+msgctxt "UnloadedRepoPlaceholder"
+msgid "Load"
+msgstr "加载"
+
+#: forms/ui_welcomewidget.py:68
+msgctxt "WelcomeWidget"
+msgid "Welcome"
+msgstr "欢迎"
+
+#: forms/ui_welcomewidget.py:69
+msgctxt "WelcomeWidget"
+msgid "Clone remote repository"
+msgstr "克隆远程仓库"
+
+#: forms/ui_welcomewidget.py:70
+msgctxt "WelcomeWidget"
+msgid "New empty repository"
+msgstr "新建空仓库"
+
+#: forms/ui_welcomewidget.py:71
+msgctxt "WelcomeWidget"
+msgid "Open local repository"
+msgstr "打开本地仓库"
+
+#: forms/ui_welcomewidget.py:72
+msgctxt "WelcomeWidget"
+msgid "Recent repositories"
+msgstr "最近访问的仓库"
+
+#: forms/ui_welcomewidget.py:73
+#, python-brace-format
+msgctxt "WelcomeWidget"
+msgid "Welcome to<br>{app}"
+msgstr "欢迎使用<br>{app}"
+
+#: graphview/commitlogdelegate.py:209
+msgid "(Clean)"
+msgstr "（干净）"
+
+#: graphview/commitlogdelegate.py:211
+#, python-brace-format
+msgid "({n} change)"
+msgid_plural "({n} changes)"
+msgstr[0] "({n} 个更改)"
+
+#: graphview/commitlogdelegate.py:216
+msgid "Commit draft:"
+msgstr "提交草稿："
+
+#: graphview/commitlogdelegate.py:221
+#, python-brace-format
+msgid "History truncated to {0} commits (including hidden branches)"
+msgstr "历史记录截断至 {0} 个提交（包括隐藏分支）"
+
+#: graphview/commitlogdelegate.py:223
+#, python-brace-format
+msgid "History truncated to {0} commits"
+msgstr "历史记录截断至 {0} 个提交"
+
+#: graphview/commitlogdelegate.py:227 tasks/jumptasks.py:202
+msgid "Shallow clone – End of commit history"
+msgstr "浅克隆 – 提交历史的末尾"
+
+#: graphview/commitlogdelegate.py:453 repowidget.py:792
+#: sidebar/sidebarmodel.py:624 sidebar/sidebarmodel.py:627
+msgid "Detached HEAD"
+msgstr "分离HEAD"
+
+#: graphview/commitlogmodel.py:192
+msgctxt "CommitTooltip"
+msgid "(authored)"
+msgstr "（作者）"
+
+#: graphview/commitlogmodel.py:193
+msgctxt "CommitTooltip"
+msgid "(committed)"
+msgstr "（提交）"
+
+#: graphview/commitlogmodel.py:197
+#, python-brace-format
+msgctxt "CommitTooltip"
+msgid "Committed by {0}"
+msgstr "由 {0} 提交"
+
+#: graphview/graphview.py:42
+msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
+msgstr "这个提交在图中没有显示，因为它是隐藏分支的一部分。"
+
+#: graphview/graphview.py:44
+msgid "This commit isn’t shown in the graph because it isn’t part of the truncated commit history."
+msgstr "这次提交没有显示在图表中，因为它不是被截断的提交历史的一部分。"
+
+#: graphview/graphview.py:46
+msgid "This commit isn’t shown in the graph."
+msgstr "这次提交没有显示在图表中。"
+
+#: graphview/graphview.py:72
+msgid "Find a commit by hash, message or author|Find commit"
+msgstr "通过哈希值、消息或作者查找提交|查找提交"
+
+#: graphview/graphview.py:111
+msgid "Clear Draft Message"
+msgstr "清除草稿信息"
+
+#: graphview/graphview.py:124 tasks/jumptasks.py:212
+#, python-brace-format
+msgid "Load up to {0} commits"
+msgstr "加载多达 {0} 次提交"
+
+#: graphview/graphview.py:126
+msgid "Load full commit history"
+msgstr "加载完整的提交历史"
+
+#: graphview/graphview.py:128
+msgid "Change threshold setting"
+msgstr "更改阈值设置"
+
+#: graphview/graphview.py:138 sidebar/sidebar.py:210 sidebar/sidebar.py:306
+#, python-brace-format
+msgid "&Merge into {0}…"
+msgstr "&合并到 {0}…"
+
+#: graphview/graphview.py:143
+msgid "&Check Out…"
+msgstr "&检出…"
+
+#: graphview/graphview.py:149 sidebar/sidebar.py:255 sidebar/sidebar.py:274
+msgid "New &Branch Here…"
+msgstr "在这里新建 &分支…"
+
+#: graphview/graphview.py:150
+msgid "&Tag This Commit…"
+msgstr "&标记这次提交…"
+
+#: graphview/graphview.py:153
+msgid "&Reset HEAD to Here…"
+msgstr "&重置 HEAD 到此处…"
+
+#: graphview/graphview.py:155
+msgid "Cherry &Pick…"
+msgstr "&Cherry Pick…"
+
+#: graphview/graphview.py:156
+msgid "Re&vert…"
+msgstr "Re&vert…"
+
+#: graphview/graphview.py:157
+msgid "E&xport As Patch…"
+msgstr "E&xport As Patch…"
+
+#: graphview/graphview.py:159
+msgid "Copy Commit &Hash"
+msgstr "复制提交 &哈希值"
+
+#: graphview/graphview.py:160
+msgid "Copy Commit M&essage"
+msgstr "复制提交 M&essage"
+
+#: graphview/graphview.py:161
+msgid "Get &Info…"
+msgstr "获取 &信息…"
+
+#: mainwindow.py:195
+msgid "&File"
+msgstr "&文件"
+
+#: mainwindow.py:196
+msgid "&Edit"
+msgstr "&编辑"
+
+#: mainwindow.py:197
+msgid "&View"
+msgstr "&视图"
+
+#: mainwindow.py:198
+msgid "&Repo"
+msgstr "&仓库"
+
+#: mainwindow.py:199
+msgid "&Help"
+msgstr "&帮助"
+
+#: mainwindow.py:212
+msgid "&New Repository…"
+msgstr "&新建仓库…"
+
+#: mainwindow.py:214
+msgid "Create an empty Git repo"
+msgstr "创建一个空的 Git 仓库"
+
+#: mainwindow.py:216
+msgid "C&lone Repository…"
+msgstr "C&lone 仓库…"
+
+#: mainwindow.py:218
+msgid "Download a Git repo and open it"
+msgstr "下载一个 Git 仓库并打开它"
+
+#: mainwindow.py:222
+msgid "&Open Repository…"
+msgstr "&打开仓库…"
+
+#: mainwindow.py:226
+msgid "Open &Recent"
+msgstr "打开 &最近"
+
+#: mainwindow.py:228
+msgid "List of recently opened Git repos"
+msgstr "最近打开的 Git 仓库列表"
+
+#: mainwindow.py:238
+msgid "&Settings…"
+msgstr "&设置…"
+
+#: mainwindow.py:248
+msgid "&Close Tab"
+msgstr "&关闭标签页"
+
+#: mainwindow.py:250
+msgid "Close current repository tab"
+msgstr "关闭当前仓库标签页"
+
+#: mainwindow.py:252
+msgid "&Quit"
+msgstr "&退出"
+
+#: mainwindow.py:254
+#, python-brace-format
+msgid "Quit {app}"
+msgstr "退出 {app}"
+
+#: mainwindow.py:263
+msgid "&Find…"
+msgstr "&查找…"
+
+#: mainwindow.py:265
+msgid "Search for a piece of text in commit messages, the current diff, or the name of a file"
+msgstr "在提交信息、当前差异或文件名中搜索一段文本"
+
+#: mainwindow.py:267
+msgid "Find Next"
+msgstr "查找下一个"
+
+#: mainwindow.py:269
+msgid "Find next occurrence"
+msgstr "查找下一个出现"
+
+#: mainwindow.py:271
+msgid "Find Previous"
+msgstr "查找上一个"
+
+#: mainwindow.py:273
+msgid "Find previous occurrence"
+msgstr "查找上一个出现"
+
+#: mainwindow.py:288 trtables.py:352
+msgid "Show status bar"
+msgstr "显示状态栏"
+
+#: mainwindow.py:289 trtables.py:354
+msgid "Show menu bar"
+msgstr "显示菜单栏"
+
+#: mainwindow.py:294
+msgid "Focus on Sidebar"
+msgstr "聚焦于侧边栏"
+
+#: mainwindow.py:295
+msgid "Focus on Commit Log"
+msgstr "聚焦于提交日志"
+
+#: mainwindow.py:296
+msgid "Focus on File List"
+msgstr "聚焦于文件列表"
+
+#: mainwindow.py:297
+msgid "Focus on Code View"
+msgstr "聚焦于代码视图"
+
+#: mainwindow.py:299
+msgid "Next File"
+msgstr "下一个文件"
+
+#: mainwindow.py:300
+msgid "Previous File"
+msgstr "上一个文件"
+
+#: mainwindow.py:302
+msgid "&Next Tab"
+msgstr "&下一个标签页"
+
+#: mainwindow.py:303
+msgid "&Previous Tab"
+msgstr "&上一个标签页"
+
+#: mainwindow.py:310
+msgid "Navigation Log"
+msgstr "导航日志"
+
+#: mainwindow.py:319
+msgid "&Refresh"
+msgstr "&刷新"
+
+#: mainwindow.py:323
+msgid "Check for changes in the repo (on the local filesystem only – will not fetch remotes)"
+msgstr "检查仓库中的变化（仅限本地文件系统 - 不会获取远程仓库）"
+
+#: mainwindow.py:327
+msgid "Reloa&d"
+msgstr "重载&"
+
+#: mainwindow.py:330
+msgid "Reopen the repo from scratch"
+msgstr "从头开始重新打开仓库"
+
+#: mainwindow.py:355
+msgid "Edit Commands…"
+msgstr "编辑命令…"
+
+#: mainwindow.py:377
+#, python-brace-format
+msgid "&About {0}"
+msgstr "&关于 {0}"
+
+#: mainwindow.py:381
+#, python-brace-format
+msgid "{0} User’s Guide"
+msgstr "{0} 用户指南"
+
+#: mainwindow.py:387
+msgid "Open Trash…"
+msgstr "打开回收站…"
+
+#: mainwindow.py:389
+msgid "Explore changes that you may have discarded by mistake"
+msgstr "探索您可能不小心丢弃的更改"
+
+#: mainwindow.py:391
+msgid "Empty Trash…"
+msgstr "清空废纸篓…"
+
+#: mainwindow.py:392
+msgid "Delete all discarded changes from the trash folder"
+msgstr "从废纸篓中删除所有丢弃的更改"
+
+#: mainwindow.py:423
+msgid "Clear List"
+msgstr "清空列表"
+
+#: mainwindow.py:424
+msgid "Clear the list of recently opened repositories"
+msgstr "清除最近打开的仓库列表"
+
+#: mainwindow.py:433
+msgid "Menu bar hidden"
+msgstr "菜单栏隐藏"
+
+#: mainwindow.py:434
+msgid "The menu bar is now hidden. Press the Alt key to toggle it."
+msgstr "菜单栏现已隐藏。按Alt键切换显示。"
+
+#: mainwindow.py:494
+msgid "Close Tab"
+msgstr "关闭标签页"
+
+#: mainwindow.py:495
+msgid "Close Other Tabs"
+msgstr "关闭其他标签页"
+
+#: mainwindow.py:496
+msgid "Unload Other Tabs"
+msgstr "卸载其他标签页"
+
+#: mainwindow.py:500
+msgid "Configure Tabs…"
+msgstr "配置标签页…"
+
+#: mainwindow.py:529 mainwindow.py:809
+msgid "Open repository"
+msgstr "打开仓库"
+
+#: mainwindow.py:530
+#, python-brace-format
+msgid "Couldn’t open the repository at {0}."
+msgstr "无法在{0}处打开仓库。"
+
+#: mainwindow.py:541
+msgid "There’s nothing at this path."
+msgstr "此路径下无任何内容。"
+
+#: mainwindow.py:549 tasks/loadtasks.py:72
+#, python-brace-format
+msgid "Sorry, {app} doesn’t support bare repositories."
+msgstr "抱歉，{app}不支持裸仓库。"
+
+#: mainwindow.py:680
+msgid "Open trash folder"
+msgstr "打开废纸篓文件夹"
+
+#: mainwindow.py:681
+#, python-brace-format
+msgid "There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet."
+msgstr "没有废纸篓文件夹。或许您还没有使用{0}丢弃任何更改。"
+
+#: mainwindow.py:690 mainwindow.py:705
+msgid "Clear trash folder"
+msgstr "清空废纸篓文件夹"
+
+#: mainwindow.py:691
+msgid "There are no discarded changes to delete."
+msgstr "没有要删除的丢弃更改。"
+
+#: mainwindow.py:697
+#, python-brace-format
+msgid "Do you want to permanently delete <b>{n}</b> discarded patch?"
+msgid_plural "Do you want to permanently delete <b>{n}</b> discarded patches?"
+msgstr[0] "您是否想要永久删除<b>{n}</b>个已丢弃的补丁？"
+
+#: mainwindow.py:699
+#, python-brace-format
+msgid "This will free up {0} on disk."
+msgstr "这将在磁盘上释放{0}空间。"
+
+#: mainwindow.py:700 tasks/branchtasks.py:184 tasks/branchtasks.py:220
+#: tasks/indextasks.py:164 tasks/indextasks.py:240 tasks/indextasks.py:278
+#: tasks/nettasks.py:77 tasks/submoduletasks.py:96
+msgid "This cannot be undone!"
+msgstr "此操作无法撤销！"
+
+#: mainwindow.py:708
+msgid "Delete permanently"
+msgstr "永久删除"
+
+#: mainwindow.py:716 mainwindow.py:747
+msgid "New repository"
+msgstr "新建仓库"
+
+#: mainwindow.py:718
+msgid "&Create repo here"
+msgstr "&在此创建仓库"
+
+#: mainwindow.py:736
+#, python-brace-format
+msgid "Are you sure you want to initialize a Git repository in {0}? This directory isn’t empty."
+msgstr "您确定要在{0}初始化一个Git仓库吗？这个目录不为空。"
+
+#: mainwindow.py:738
+msgid "Directory isn’t empty"
+msgstr "目录不为空"
+
+#: mainwindow.py:746
+#, python-brace-format
+msgid "Couldn’t create an empty repository in {0}."
+msgstr "无法在{0}创建空仓库。"
+
+#: mainwindow.py:758
+msgid "A repository already exists here:"
+msgstr "这里已经存在一个仓库："
+
+#: mainwindow.py:761
+msgid "Repository already exists"
+msgstr "仓库已存在"
+
+#: mainwindow.py:763
+msgid "&Open existing repo"
+msgstr "&打开现有仓库"
+
+#: mainwindow.py:781
+#, python-brace-format
+msgid "An existing repository, {0}, was found in a parent folder of this location:"
+msgstr "在该位置的父文件夹中发现了一个现有的仓库，{0}："
+
+#: mainwindow.py:783
+#, python-brace-format
+msgid "Are you sure you want to create {0} within the existing repo?"
+msgstr "您确定要在现有仓库中创建{0}吗？"
+
+#: mainwindow.py:786
+msgid "Repository found in parent folder"
+msgstr "在父文件夹中发现仓库"
+
+#: mainwindow.py:790
+#, python-brace-format
+msgid "&Open {0}"
+msgstr "&打开{0}"
+
+#: mainwindow.py:794
+#, python-brace-format
+msgid "&Create {0}"
+msgstr "&创建{0}"
+
+#: mainwindow.py:872
+#, python-brace-format
+msgid "{n} background tab unloaded."
+msgid_plural "{n} background tabs unloaded."
+msgstr[0] "{n} 个后台标签页已卸载。"
+
+#: mainwindow.py:982
+#, fuzzy, python-brace-format
+msgid "The session couldn’t be restored fully because a repository failed to load:"
+msgid_plural "The session couldn’t be restored fully because {n} repositories failed to load:"
+msgstr[0] "会话无法完全恢复，因为{n}个仓库加载失败："
+
+#: mainwindow.py:984
+msgid "Restore session"
+msgstr "恢复会话"
+
+#: mainwindow.py:1154 mainwindow.py:1158
+msgid "Apply Settings"
+msgstr "应用设置"
+
+#: mainwindow.py:1155
+#, python-brace-format
+msgid "You may need to restart {app} for the new settings to take effect fully."
+msgstr "您可能需要重启 {app} 以使新设置完全生效。"
+
+#: mainwindow.py:1159
+msgid "The new settings won’t take effect fully until you reload the current repositories."
+msgstr "在您重新加载当前仓库之前，新设置不会完全生效。"
+
+#: mainwindow.py:1162
+msgid "&Reload"
+msgstr "&重新加载"
+
+#: mainwindow.py:1166
+msgid "&Not Now"
+msgstr "&暂不"
+
+#: mainwindow.py:1216
+#, python-brace-format
+msgid "(Command) {0}"
+msgstr "(命令) {0}"
+
+#: nav.py:67
+msgctxt "NavContext"
+msgid "Empty"
+msgstr "空"
+
+#: nav.py:68
+msgctxt "NavContext"
+msgid "Untracked"
+msgstr "未跟踪"
+
+#: nav.py:69
+msgctxt "NavContext"
+msgid "Unstaged"
+msgstr "未暂存"
+
+#: nav.py:70
+msgctxt "NavContext"
+msgid "Staged"
+msgstr "已暂存"
+
+#: nav.py:71
+msgctxt "NavContext"
+msgid "Committed"
+msgstr "已提交"
+
+#: nav.py:73
+msgctxt "NavContext"
+msgid "Unknown"
+msgstr "未知"
+
+#: remotelink.py:93
+msgid "Remote operation interrupted by user."
+msgstr "远程操作被用户中断。"
+
+#: remotelink.py:153
+msgid "Remote-specific public key file not found:"
+msgstr "未找到特定于远程的公钥文件："
+
+#: remotelink.py:156
+msgid "Remote-specific private key file not found:"
+msgstr "未找到特定于远程的私钥文件："
+
+#: remotelink.py:194
+msgid "Aborting remote operation…"
+msgstr "正在中止远程操作…"
+
+#: remotelink.py:228
+msgid "Too many credential retries."
+msgstr "认证重试次数过多。"
+
+#: remotelink.py:236
+msgid "Logging in with key:"
+msgstr "使用密钥登录："
+
+#: remotelink.py:244
+msgid "Unsupported authentication type."
+msgstr "不支持的认证类型。"
+
+#: remotelink.py:245
+#, python-brace-format
+msgid "The remote claims to accept: {0}."
+msgstr "远程声称接受：{0}。"
+
+#: remotelink.py:248
+msgid "Could not find suitable key files for this remote."
+msgstr "无法找到适合此远程的密钥文件。"
+
+#: remotelink.py:249
+msgid "The key files couldn’t be opened (permission issues?)."
+msgstr "无法打开密钥文件（权限问题？）。"
+
+#: remotelink.py:251
+#, python-brace-format
+msgid "The remote has rejected your custom key file ({0})."
+msgstr "远程拒绝了您自定义的密钥文件（{0}）。"
+
+#: remotelink.py:254
+msgid "To change key file settings for this remote, right-click on the remote in the sidebar and pick “Edit Remote”."
+msgstr "要更改此远程的密钥文件设置，请在侧边栏右键单击远程并选择“编辑远程”。"
+
+#: remotelink.py:258
+msgid "Credentials rejected by remote."
+msgstr "远程拒绝了凭据。"
+
+#: remotelink.py:266
+msgid "Downloading…"
+msgstr "正在下载…"
+
+#: remotelink.py:267
+#, python-brace-format
+msgid "Download complete ({0})."
+msgstr "下载完成（{0}）。"
+
+#: remotelink.py:275
+msgid "Uploading…"
+msgstr "正在上传…"
+
+#: remotelink.py:276
+#, python-brace-format
+msgid "Upload complete ({0})."
+msgstr "上传完成（{0}）。"
+
+#: remotelink.py:315
+#, python-brace-format
+msgctxt "download speed"
+msgid "({0}/s)"
+msgstr "({0}/s)"
+
+#: remotelink.py:320
+#, python-brace-format
+msgid "Indexing {0} objects…"
+msgstr "索引{0}个对象…"
+
+#: remotelink.py:331
+msgid "Push update reference:"
+msgstr "推送更新引用："
+
+#: remotelink.py:373
+msgid "Passphrase entry canceled."
+msgstr "密码短语输入已取消。"
+
+#: remotelink.py:390
+#, python-brace-format
+msgid "{0} is already up to date with {1}."
+msgstr "{0}已经与{1}同步更新。"
+
+#: remotelink.py:392
+#, python-brace-format
+msgid "{0} created: {1}."
+msgstr "{0}已创建：{1}。"
+
+#: remotelink.py:394
+#, python-brace-format
+msgid "{0} deleted, was {1}."
+msgstr "{0}已删除，原为{1}。"
+
+#: remotelink.py:396
+#, python-brace-format
+msgid "{0}: {1} → {2}."
+msgstr "{0}：{1} → {2}。"
+
+#: remotelink.py:399
+msgid "No new commits."
+msgstr "没有新的提交。"
+
+#: repowidget.py:558
+msgid "Try to reload"
+msgstr "尝试重新加载"
+
+#: repowidget.py:569
+msgid "Only text diffs may be opened in a separate window."
+msgstr "只有文本差异可以在单独的窗口中打开。"
+
+#: repowidget.py:608 repowidget.py:1046
+msgid "Open Superproject"
+msgstr "打开超级项目"
+
+#: repowidget.py:608
+msgid "This repository does not have a superproject."
+msgstr "此仓库没有超级项目。"
+
+#: repowidget.py:635
+#, python-brace-format
+msgid "File {0} does not exist."
+msgstr "文件 {0} 不存在。"
+
+#: repowidget.py:636
+msgid "Do you want to create it?"
+msgstr "您要创建它吗？"
+
+#: repowidget.py:637
+#, python-brace-format
+msgid "Create {0}"
+msgstr "创建 {0}"
+
+#: repowidget.py:646
+msgid "Run Command"
+msgstr "运行命令"
+
+#: repowidget.py:652
+msgid "The prerequisites for your command are not met:"
+msgstr "您的命令的先决条件未满足："
+
+#: repowidget.py:664
+msgid "Do you want to run this command in a terminal?"
+msgstr "您是否想要在终端中运行此命令？"
+
+#: repowidget.py:666
+#, python-brace-format
+msgid "Do you want to run {0} in a terminal?"
+msgstr "您是否想要在终端中运行 {0}？"
+
+#: repowidget.py:702
+#, python-brace-format
+msgid "{0} not found among the branches that aren’t hidden."
+msgstr "{0} 在未隐藏的分支中未找到。"
+
+#: repowidget.py:704
+#, python-brace-format
+msgid "{0} not found."
+msgstr "{0} 未找到。"
+
+#: repowidget.py:708
+#, fuzzy, python-brace-format
+msgid "Note: The search was limited to the top commit because the commit history is truncated."
+msgid_plural "Note: The search was limited to the top {n} commits because the commit history is truncated."
+msgstr[0] "注意：由于提交历史被截断，搜索仅限于顶部{n}个提交。"
+
+#: repowidget.py:713
+#, fuzzy, python-brace-format
+msgid "Note: The search was limited to the single commit available in this shallow clone."
+msgid_plural "Note: The search was limited to the {n} commits available in this shallow clone."
+msgstr[0] "注意：由于这是{n}个浅层克隆，搜索仅限于可用的单个提交。"
+
+#: repowidget.py:789
+msgid "Unborn HEAD"
+msgstr "未出生HEAD"
+
+#: repowidget.py:840
+#, python-brace-format
+msgid "Merging {0}"
+msgstr "正在合并 {0}"
+
+#: repowidget.py:845
+msgid "All conflicts fixed. Commit to conclude."
+msgstr "所有冲突已解决。提交以结束。"
+
+#: repowidget.py:848 repowidget.py:858 repowidget.py:868
+msgid "Conflicts need fixing."
+msgstr "需要解决冲突。"
+
+#: repowidget.py:850 tasks/indextasks.py:562 tasks/taskbook.py:32
+msgid "Abort merge"
+msgstr "中止合并"
+
+#: repowidget.py:855
+msgid "Commit to conclude the cherry-pick."
+msgstr "提交以结束拣选操作。"
+
+#: repowidget.py:860 tasks/indextasks.py:558
+msgid "Abort cherry-pick"
+msgstr "中止拣选"
+
+#: repowidget.py:865
+msgid "Commit to conclude the revert."
+msgstr "提交以结束撤销操作。"
+
+#: repowidget.py:870 tasks/indextasks.py:566
+msgid "Abort revert"
+msgstr "中止撤销"
+
+#: repowidget.py:875
+msgid "Conflicts"
+msgstr "冲突"
+
+#: repowidget.py:876
+msgid "Fix the conflicts among the uncommitted changes."
+msgstr "解决未提交更改中的冲突。"
+
+#: repowidget.py:877 tasks/indextasks.py:570
+msgid "Reset index"
+msgstr "重置索引"
+
+#: repowidget.py:881
+msgid "Warning"
+msgstr "警告"
+
+#: repowidget.py:883
+#, python-brace-format
+msgid "The repo is currently in state {state}, which {app} doesn’t support yet. Use <code>git</code> on the command line to continue."
+msgstr "仓库当前处于{state}状态，{app}尚不支持。请在命令行中使用<code>git</code>继续"
+"。"
+
+#: repowidget.py:927
+msgid "Repository folder went missing:"
+msgstr "仓库文件夹丢失："
+
+#: repowidget.py:1036
+msgid "&Local Config Files"
+msgstr "&本地配置文件"
+
+#: repowidget.py:1054
+#, python-brace-format
+msgid "Open Superproject {0}"
+msgstr "打开超项目{0}"
+
+#: repowidget.py:1058
+msgid "&Open Repo Folder"
+msgstr "&打开仓库文件夹"
+
+#: repowidget.py:1062
+msgid "Open this repo’s working directory in the system’s file manager"
+msgstr "在系统文件管理器中打开此仓库的工作目录"
+
+#: repowidget.py:1066
+msgid "Open &Terminal"
+msgstr "打开&终端"
+
+#: repowidget.py:1070
+msgid "Open a terminal in the repo’s working directory"
+msgstr "在仓库的工作目录中打开终端"
+
+#: repowidget.py:1074
+msgid "Cop&y Repo Path"
+msgstr "复&制仓库路径"
+
+#: repowidget.py:1076
+msgid "Copy the absolute path to this repo’s working directory to the clipboard"
+msgstr "将此仓库工作目录的绝对路径复制到剪贴板"
+
+#: settings.py:348
+msgid "External editor"
+msgstr "外部编辑器"
+
+#: settings.py:353 trtables.py:450
+msgid "Diff tool"
+msgstr "差异工具"
+
+#: settings.py:358 trtables.py:456
+msgid "Merge tool"
+msgstr "合并工具"
+
+#: sidebar/sidebar.py:169
+msgid "&New Branch…"
+msgstr "新建分支…"
+
+#: sidebar/sidebar.py:171 sidebar/sidebar.py:451
+msgid "Sort By"
+msgstr "排序方式"
+
+#: sidebar/sidebar.py:201
+#, python-brace-format
+msgid "&Switch to {0}…"
+msgstr "切换到{0}…"
+
+#: sidebar/sidebar.py:219
+#, python-brace-format
+msgid "&Fetch {0}"
+msgstr "获取{0}"
+
+#: sidebar/sidebar.py:219
+msgid "Fetch"
+msgstr "获取"
+
+#: sidebar/sidebar.py:226
+#, python-brace-format
+msgid "Pu&ll from {0}…"
+msgstr "从{0}拉取…"
+
+#: sidebar/sidebar.py:226
+msgid "Pull…"
+msgstr "拉取…"
+
+#: sidebar/sidebar.py:232
+#, python-brace-format
+msgid "Fast-Forward to {0}…"
+msgstr "快速前进到{0}…"
+
+#: sidebar/sidebar.py:232
+msgid "Fast-Forward…"
+msgstr "快速前进…"
+
+#: sidebar/sidebar.py:239
+#, python-brace-format
+msgid "&Push to {0}…"
+msgstr "推送到{0}…"
+
+#: sidebar/sidebar.py:239
+msgid "Push…"
+msgstr "推送…"
+
+#: sidebar/sidebar.py:244
+msgid "&Upstream Branch"
+msgstr "上游分支"
+
+#: sidebar/sidebar.py:249
+msgid "Re&name…"
+msgstr "重命名…"
+
+#: sidebar/sidebar.py:251
+msgid "&Delete…"
+msgstr "删除…"
+
+#: sidebar/sidebar.py:259 sidebar/sidebar.py:319 sidebar/sidebar.py:380
+#: sidebar/sidebar.py:410
+msgid "&Hide in Graph"
+msgstr "在图表中隐藏"
+
+#: sidebar/sidebar.py:262
+msgid "Hide this branch from the graph (effective if no other branches/tags point here)"
+msgstr "在图表中隐藏此分支（如果没有其他分支/标签指向这里则有效）"
+
+#: sidebar/sidebar.py:265 sidebar/sidebar.py:324 sidebar/sidebar.py:385
+#: sidebar/sidebar.py:415
+msgid "Hide &All But This"
+msgstr "隐藏全部除了这个"
+
+#: sidebar/sidebar.py:278
+msgid "(no current branch)"
+msgstr "（无当前分支）"
+
+#: sidebar/sidebar.py:291 sidebar/sidebar.py:353
+#, python-brace-format
+msgid "Visit Web Page on {0}"
+msgstr "访问{0}的网页"
+
+#: sidebar/sidebar.py:300
+msgid "New Local &Branch Here…"
+msgstr "在这里新建本地分支…"
+
+#: sidebar/sidebar.py:302
+msgid "&Fetch New Commits"
+msgstr "获取新的提交"
+
+#: sidebar/sidebar.py:340
+msgid "Collapse All Folders"
+msgstr "折叠所有文件夹"
+
+#: sidebar/sidebar.py:344
+msgid "Expand All Folders"
+msgstr "展开所有文件夹"
+
+#: sidebar/sidebar.py:373
+msgid "Copy Remote &URL"
+msgstr "复制远程&URL"
+
+#: sidebar/sidebar.py:398
+msgid "Sort Remote Branches By"
+msgstr "按排序远程分支"
+
+#: sidebar/sidebar.py:404
+msgid "Re&name Folder…"
+msgstr "重命名文件夹…"
+
+#: sidebar/sidebar.py:405
+msgid "&Delete Folder…"
+msgstr "删除文件夹…"
+
+#: sidebar/sidebar.py:440
+msgid "Reveal &Parent Commit"
+msgstr "显示父提交"
+
+#: sidebar/sidebar.py:448
+msgid "&New Tag on HEAD Commit…"
+msgstr "在HEAD提交上新建标签…"
+
+#: sidebar/sidebar.py:449
+msgid "&Push All Tags To"
+msgstr "推送所有标签到"
+
+#: sidebar/sidebar.py:462
+msgid "&Check Out Tagged Commit…"
+msgstr "检出已标记的提交…"
+
+#: sidebar/sidebar.py:463
+msgid "&Delete Tag…"
+msgstr "删除标签…"
+
+#: sidebar/sidebar.py:465
+msgid "Push To"
+msgstr "推送到"
+
+#: sidebar/sidebar.py:480
+msgid "&Open Submodule in New Tab"
+msgstr "在新标签页中打开子模块"
+
+#: sidebar/sidebar.py:483
+msgid "Open Submodule &Folder"
+msgstr "打开子模块文件夹"
+
+#: sidebar/sidebar.py:486
+msgid "Copy &Path"
+msgstr "复制路径"
+
+#: sidebar/sidebar.py:941
+msgid "Not tracking any upstream branch"
+msgstr "没有跟踪任何上游分支"
+
+#: sidebar/sidebar.py:941
+msgid "Stop tracking upstream branch"
+msgstr "停止跟踪上游分支"
+
+#: sidebar/sidebar.py:960
+msgid "No remotes."
+msgstr "没有远程仓库。"
+
+#: sidebar/sidebar.py:962
+msgid "No remote branches found. Try fetching the remotes."
+msgstr "未找到远程分支。尝试获取远程仓库信息。"
+
+#: sidebar/sidebar.py:973
+msgid "&All Remotes"
+msgstr "所有远程仓库"
+
+#: sidebar/sidebarmodel.py:452
+msgid "Submodule not initialized."
+msgstr "子模块未初始化。"
+
+#: sidebar/sidebarmodel.py:598
+#, python-brace-format
+msgid "{0} (local branch)"
+msgstr "{0} （本地分支）"
+
+#: sidebar/sidebarmodel.py:602
+#, python-brace-format
+msgid "Upstream: {0}"
+msgstr "上游：{0}"
+
+#: sidebar/sidebarmodel.py:604
+msgid "(this is the checked-out branch)"
+msgstr "（这是已检出的分支）"
+
+#: sidebar/sidebarmodel.py:614
+msgid "[unborn]"
+msgstr "[未出生]"
+
+#: sidebar/sidebarmodel.py:617
+msgid "Unborn HEAD: does not point to a commit yet."
+msgstr "未出生的HEAD：尚未指向任何提交。"
+
+#: sidebar/sidebarmodel.py:618
+#, python-brace-format
+msgid "Local branch {0} will be created when you create the initial commit."
+msgstr "当你创建初始提交时，将创建本地分支{0}。"
+
+#: sidebar/sidebarmodel.py:659
+#, python-brace-format
+msgid "{0} (remote-tracking branch)"
+msgstr "{0} （远程跟踪分支）"
+
+#: sidebar/sidebarmodel.py:661
+#, python-brace-format
+msgid "Upstream for the checked-out branch ({0})"
+msgstr "已检出分支的上游 ({0})"
+
+#: sidebar/sidebarmodel.py:684
+#, python-brace-format
+msgid "{0} (remote branch folder)"
+msgstr "{0} （远程分支文件夹）"
+
+#: sidebar/sidebarmodel.py:686
+#, python-brace-format
+msgid "{0} (tag folder)"
+msgstr "{0} （标签文件夹）"
+
+#: sidebar/sidebarmodel.py:688
+#, python-brace-format
+msgid "{0} (local branch folder)"
+msgstr "{0} （本地分支文件夹）"
+
+#: sidebar/sidebarmodel.py:706
+#, python-brace-format
+msgid "Tag {0}"
+msgstr "标签 {0}"
+
+#: sidebar/sidebarmodel.py:722
+msgid "date:"
+msgstr "日期："
+
+#: sidebar/sidebarmodel.py:733
+#, python-brace-format
+msgid "{0} (submodule)"
+msgstr "{0} （子模块）"
+
+#: sidebar/sidebarmodel.py:734
+#, python-brace-format
+msgid "Workdir: {0}"
+msgstr "工作目录：{0}"
+
+#: sidebar/sidebarmodel.py:735
+msgid "[not set]"
+msgstr "[未设置]"
+
+#: sidebar/sidebarmodel.py:736
+#, python-brace-format
+msgid "URL: {0}"
+msgstr "URL：{0}"
+
+#: sidebar/sidebarmodel.py:758 tasks/taskbook.py:67
+msgid "Go to Working Directory"
+msgstr "转到工作目录"
+
+#: sidebar/sidebarmodel.py:761
+#, python-brace-format
+msgid "({n} uncommitted change)"
+msgid_plural "({n} uncommitted changes)"
+msgstr[0] "（{n} 未提交更改）"
+
+#: sidebar/sidebarmodel.py:812
+msgid "Hiding everything but this (middle-click the eye to toggle)"
+msgstr "隐藏除此以外的所有内容（中键点击眼睛图标以切换）"
+
+#: sidebar/sidebarmodel.py:814
+msgid "Hidden (click the eye to toggle)"
+msgstr "隐藏（点击眼睛图标以切换）"
+
+#: sidebar/sidebarmodel.py:816
+msgid "Indirectly hidden"
+msgstr "间接隐藏"
+
+#: tasks/branchtasks.py:32
+#, python-brace-format
+msgid "Branch {0} is already checked out."
+msgstr "分支 {0} 已被检出。"
+
+#: tasks/branchtasks.py:36
+#, python-brace-format
+msgid "Do you want to switch to branch {0}?"
+msgstr "您想要切换到分支 {0} 吗？"
+
+#: tasks/branchtasks.py:37
+msgid "Switch"
+msgstr "切换"
+
+#: tasks/branchtasks.py:43 tasks/taskbook.py:98
+msgid "Update submodules recursively"
+msgstr "递归更新子模块"
+
+#: tasks/branchtasks.py:52 tasks/branchtasks.py:337 tasks/committasks.py:256
+#, python-brace-format
+msgid "You are in <b>Detached HEAD</b> mode at commit {0}."
+msgstr "您处于 <b>分离 HEAD</b> 模式，在提交 {0}。"
+
+#: tasks/branchtasks.py:53
+#, python-brace-format
+msgid "You might lose track of this commit if you carry on switching to {0}."
+msgstr "如果您继续切换到 {0}，可能会失去对此次提交的跟踪。"
+
+#: tasks/branchtasks.py:61
+#, python-brace-format
+msgid "Switched to branch {0}."
+msgstr "已切换到分支 {0}。"
+
+#: tasks/branchtasks.py:80 tasks/taskbook.py:86
+msgid "Rename local branch"
+msgstr "重命名本地分支"
+
+#: tasks/branchtasks.py:81 tasks/branchtasks.py:143 tasks/nettasks.py:107
+msgid "Enter new name:"
+msgstr "输入新名称："
+
+#: tasks/branchtasks.py:82
+#, python-brace-format
+msgid "Current name: {0}"
+msgstr "当前名称：{0}"
+
+#: tasks/branchtasks.py:85 tasks/branchtasks.py:147
+msgid "Rename"
+msgstr "重命名"
+
+#: tasks/branchtasks.py:100
+#, python-brace-format
+msgid "Branch {0} renamed to {1}."
+msgstr "分支 {0} 已重命名为 {1}。"
+
+#: tasks/branchtasks.py:128
+#, python-brace-format
+msgid "This name clashes with existing branch {0}."
+msgstr "此名称与现有分支 {0} 冲突。"
+
+#: tasks/branchtasks.py:136
+#, python-brace-format
+msgid "Folder {name} contains {n} branch."
+msgid_plural "Folder {name} contains {n} branches."
+msgstr[0] "文件夹 {name} 包含 {n} 个分支。"
+
+#: tasks/branchtasks.py:142
+msgid "Rename branch folder"
+msgstr "重命名分支文件夹"
+
+#: tasks/branchtasks.py:148
+msgid "Leave blank to move the branches to the root folder."
+msgstr "留空将移动分支到根文件夹。"
+
+#: tasks/branchtasks.py:168
+#, python-brace-format
+msgid "Branch folder {0} renamed to {1}."
+msgstr "分支文件夹 {0} 已重命名为 {1}。"
+
+#: tasks/branchtasks.py:170
+#, python-brace-format
+msgid "{n} branch affected."
+msgid_plural "{n} branches affected."
+msgstr[0] "{n} 个分支受影响。"
+
+#: tasks/branchtasks.py:179
+#, python-brace-format
+msgid "Cannot delete {0} because it is the current branch."
+msgstr "无法删除 {0}，因为它是当前分支。"
+
+#: tasks/branchtasks.py:180 tasks/branchtasks.py:211
+msgid "Before you try again, switch to another branch."
+msgstr "再次尝试前，请切换到另一个分支。"
+
+#: tasks/branchtasks.py:183
+#, python-brace-format
+msgid "Really delete local branch {0}?"
+msgstr "真的要删除本地分支 {0} 吗？"
+
+#: tasks/branchtasks.py:188
+msgid "Delete branch"
+msgstr "删除分支"
+
+#: tasks/branchtasks.py:196
+#, python-brace-format
+msgid "Branch {0} deleted (commit at tip was {1})."
+msgstr "分支 {0} 已删除（尖端的提交是 {1}）。"
+
+#: tasks/branchtasks.py:210
+#, python-brace-format
+msgid "Cannot delete folder {0} because it contains the current branch {1}."
+msgstr "无法删除文件夹 {0}，因为它包含当前分支 {1}。"
+
+#: tasks/branchtasks.py:218
+#, python-brace-format
+msgid "Really delete local branch folder {0}?"
+msgstr "真的要删除本地分支文件夹 {0} 吗？"
+
+#: tasks/branchtasks.py:219
+#, python-brace-format
+msgid "<b>{n}</b> branch will be deleted."
+msgid_plural "<b>{n}</b> branches will be deleted."
+msgstr[0] "<b>{n}</b> 个分支将被删除。"
+
+#: tasks/branchtasks.py:223
+msgid "Delete branch folder"
+msgstr "删除分支文件夹"
+
+#: tasks/branchtasks.py:226
+msgid "Delete folder"
+msgstr "删除文件夹"
+
+#: tasks/branchtasks.py:235
+#, python-brace-format
+msgid "{n} branch deleted in folder {name}."
+msgid_plural "{n} branches deleted in folder {name}."
+msgstr[0] "{n} 个分支在文件夹 {name} 中被删除。"
+
+#: tasks/branchtasks.py:320
+#, python-brace-format
+msgid "Branch {0} created on commit {1}."
+msgstr "分支 {0} 在提交 {1} 上创建。"
+
+#: tasks/branchtasks.py:338
+msgid "You might lose track of this commit if you switch to the new branch."
+msgstr "如果你切换到新分支，可能会丢失对这个提交的跟踪。"
+
+#: tasks/branchtasks.py:339
+msgid "Don’t Switch"
+msgstr "不切换"
+
+#: tasks/branchtasks.py:339
+#, python-brace-format
+msgid "Switch to {0}"
+msgstr "切换到 {0}"
+
+#: tasks/branchtasks.py:396
+#, python-brace-format
+msgid "Branch {0} now tracks {1}."
+msgstr "分支 {0} 现在跟踪 {1}。"
+
+#: tasks/branchtasks.py:398
+#, python-brace-format
+msgid "Branch {0} now tracks no upstream."
+msgstr "分支 {0} 现在没有上游。"
+
+#: tasks/branchtasks.py:424
+#, python-brace-format
+msgid "Branch {0} was reset to {1} ({mode})."
+msgstr "分支 {0} 被重置到 {1}（{mode}模式）。"
+
+#: tasks/branchtasks.py:444
+#, python-brace-format
+msgid "Can’t fast-forward {0} because it isn’t tracking an upstream branch."
+msgstr "无法快进 {0}，因为它没有跟踪上游分支。"
+
+#: tasks/branchtasks.py:463
+msgid "No fast-forwarding necessary."
+msgstr "无需快进。"
+
+#: tasks/branchtasks.py:465
+#, python-brace-format
+msgid "Your local branch {0} is ahead of {1}."
+msgstr "你的本地分支 {0} 超前于 {1}。"
+
+#: tasks/branchtasks.py:467 tasks/nettasks.py:249
+#, python-brace-format
+msgid "Your local branch {0} is already up to date with {1}."
+msgstr "你的本地分支 {0} 已经与 {1} 同步。"
+
+#: tasks/branchtasks.py:479
+#, python-brace-format
+msgid "Can’t fast-forward {0} to {1}."
+msgstr "无法将 {0} 快进到 {1}。"
+
+#: tasks/branchtasks.py:480
+msgid "The branches are divergent."
+msgstr "分支存在分歧。"
+
+#: tasks/branchtasks.py:485
+#, python-brace-format
+msgid "Merge into {0}"
+msgstr "合并到 {0}"
+
+#: tasks/branchtasks.py:517
+msgid "Merging is not possible right now because you have unresolved conflicts."
+msgstr "目前无法合并，因为你有未解决的冲突。"
+
+#: tasks/branchtasks.py:518
+msgid "Fix the conflicts to proceed."
+msgstr "修复冲突以继续。"
+
+#: tasks/branchtasks.py:523
+msgid "Merging is not possible right now because you have staged changes."
+msgstr "现在无法合并，因为你有已暂存的更改。"
+
+#: tasks/branchtasks.py:524
+msgid "Commit your changes or stash them to proceed."
+msgstr "提交你的更改或将它们储藏起来以继续。"
+
+#: tasks/branchtasks.py:529
+msgid "No merge is necessary."
+msgstr "不需要合并。"
+
+#: tasks/branchtasks.py:530
+#, python-brace-format
+msgid "Your branch {0} is already up to date with {1}."
+msgstr "你的分支 {0} 已经与 {1} 同步更新。"
+
+#: tasks/branchtasks.py:534
+msgid "Cannot merge into an unborn head."
+msgstr "不能合并到一个未诞生的头部。"
+
+#: tasks/branchtasks.py:544
+msgid "Merging may cause conflicts"
+msgstr "合并可能会导致冲突"
+
+#: tasks/branchtasks.py:546
+#, python-brace-format
+msgid "Merging {0} into {1} may cause conflicts."
+msgstr "合并 {0} 到 {1} 可能会导致冲突。"
+
+#: tasks/branchtasks.py:547
+msgid "You will need to fix the conflicts, if any. Then, commit the result to conclude the merge."
+msgstr "如果有任何冲突，你需要修复它们。然后，提交结果以完成合并。"
+
+#: tasks/branchtasks.py:548
+msgid "Merge"
+msgstr "合并"
+
+#: tasks/branchtasks.py:576
+#, python-brace-format
+msgid "Merging {0} into {1}."
+msgstr "合并 {0} 到 {1}。"
+
+#: tasks/branchtasks.py:580
+#, python-brace-format
+msgid "Branch {0} fast-forwarded to {1}."
+msgstr "分支 {0} 快速前进到 {1}。"
+
+#: tasks/branchtasks.py:583
+msgid "Fast-forwarding possible"
+msgstr "可以快速前进"
+
+#: tasks/branchtasks.py:584
+#, python-brace-format
+msgid "Your branch {0} can simply be fast-forwarded to {1}."
+msgstr "你的分支 {0} 可以简单地快速前进到 {1}。"
+
+#: tasks/branchtasks.py:587
+#, python-brace-format
+msgid "Automatic fast-forwarding is blocked by the {0} option in your Git config."
+msgstr "由于你的 Git 配置中的 {0} 选项，自动快速前进被阻止。"
+
+#: tasks/branchtasks.py:591
+msgid "<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more recent commit in a linear path, without the need to create a merge commit."
+msgstr "<b>快进</b>意味着你的分支尖端将被移动到一个更近期的提交上，沿着线性路径进行，"
+"无需创建合并提交。"
+
+#: tasks/branchtasks.py:593
+#, python-brace-format
+msgid "In this case, {0} will be fast-forwarded to {1}."
+msgstr "在这种情况下，{0} 将被快进到 {1}。"
+
+#: tasks/branchtasks.py:595
+msgid "Create Merge Commit"
+msgstr "创建合并提交"
+
+#: tasks/branchtasks.py:596
+msgid "Fast-Forward"
+msgstr "快进"
+
+#: tasks/branchtasks.py:609 tasks/taskbook.py:82
+msgid "Recall lost commit"
+msgstr "恢复丢失的提交"
+
+#: tasks/branchtasks.py:610
+#, python-brace-format
+msgid "If you know the hash of a commit that isn’t part of any branches anymore, {app} will try to recall it for you."
+msgstr "如果你知道一个不再属于任何分支的提交的哈希值，{app} 将尝试为你恢复它。"
+
+#: tasks/branchtasks.py:612
+msgid "Recall"
+msgstr "恢复"
+
+#: tasks/committasks.py:42
+msgid "Do you want to create an empty commit anyway?"
+msgstr "你仍然想要创建一个空提交吗？"
+
+#: tasks/committasks.py:42
+msgid "No files are staged for commit."
+msgstr "没有文件被暂存以供提交。"
+
+#: tasks/committasks.py:46
+#, python-brace-format
+msgid "Note: Your working directory contains {n} unstaged file. If you want to commit it, you should <b>stage</b> it first."
+msgid_plural "Note: Your working directory contains {n} unstaged files. If you want to commit them, you should <b>stage</b> them first."
+msgstr[0] "注意：你的工作目录包含 {n} "
+"个未暂存文件。如果你想提交它，你应该先<b>暂存</b>它。"
+
+#: tasks/committasks.py:53
+msgid "Create empty commit"
+msgstr "创建空提交"
+
+#: tasks/committasks.py:54 tasks/jumptasks.py:314
+msgid "Empty commit"
+msgstr "空提交"
+
+#: tasks/committasks.py:57
+msgid "Proceed to Commit"
+msgstr "提交"
+
+#: tasks/committasks.py:112
+#, python-brace-format
+msgid "Commit {0} created."
+msgstr "提交 {0} 已创建。"
+
+#: tasks/committasks.py:132
+msgid "Proceed to Amend Commit"
+msgstr "修改提交"
+
+#: tasks/committasks.py:173
+#, python-brace-format
+msgid "Commit {0} amended. New hash: {1}."
+msgstr "提交 {0} 已修改。新的哈希值：{1}。"
+
+#: tasks/committasks.py:257
+#, python-brace-format
+msgid "You might lose track of this commit if you carry on checking out another commit ({0})."
+msgstr "如果你继续检出另一个提交 ({0})，可能会失去对这个提交的跟踪。"
+
+#: tasks/committasks.py:264
+#, python-brace-format
+msgid "Entered detached HEAD on {0}."
+msgstr "已进入 {0} 的分离 HEAD 状态。"
+
+#: tasks/committasks.py:293
+msgid "Proceed to New Tag"
+msgstr "新建标签"
+
+#: tasks/committasks.py:325
+#, python-brace-format
+msgid "Tag {0} created on commit {1}."
+msgstr "在提交 {1} 上创建了标签 {0}。"
+
+#: tasks/committasks.py:380
+#, python-brace-format
+msgid "Do you want to revert commit {0}?"
+msgstr "你想要撤销提交 {0} 吗？"
+
+#: tasks/committasks.py:381
+msgid "You will have an opportunity to review the affected files in your working directory."
+msgstr "你将有机会在工作目录中查看受影响的文件。"
+
+#: tasks/committasks.py:402
+#, python-brace-format
+msgid "There’s nothing to revert from {0} that the current branch hasn’t already undone."
+msgstr "从 {0} 中没有需要撤销的内容，当前分支已经撤销。"
+
+#: tasks/committasks.py:415
+#, python-brace-format
+msgid "Reverting {0} was successful. Do you want to commit the result now?"
+msgstr "撤销 {0} 成功。你现在想要提交结果吗？"
+
+#: tasks/committasks.py:416 tasks/committasks.py:462
+msgid "Review changes"
+msgstr "审查更改"
+
+#: tasks/committasks.py:445
+#, python-brace-format
+msgid "There’s nothing to cherry-pick from {0} that the current branch doesn’t already have."
+msgstr "从{0}中没有可以挑选的变更，当前分支已经包含了这些变更。"
+
+#: tasks/committasks.py:459
+#, python-brace-format
+msgid "Cherry-picking {0} was successful. Do you want to commit the result now?"
+msgstr "挑选{0}成功。您现在要提交结果吗？"
+
+#: tasks/exporttasks.py:57
+#, python-brace-format
+msgid "{app} cannot export binary patches from a hand-picked selection of files."
+msgstr "{app}无法从手工挑选的文件中导出二进制补丁。"
+
+#: tasks/exporttasks.py:61
+#, fuzzy, python-brace-format
+msgid "Binary file will be omitted from patch file:"
+msgid_plural "{n} binary files will be omitted from patch file:"
+msgstr[0] "{n}个二进制文件将从补丁文件中省略："
+
+#: tasks/exporttasks.py:62
+msgid "Proceed"
+msgstr "继续"
+
+#: tasks/exporttasks.py:65
+msgid "Nothing to export. The patch is empty."
+msgstr "没有内容可以导出。补丁为空。"
+
+#: tasks/exporttasks.py:111
+#, python-brace-format
+msgctxt "patch file name, please keep it short"
+msgid "stashed on {commit}"
+msgstr "在{commit}上暂存"
+
+#: tasks/exporttasks.py:126
+#, python-brace-format
+msgctxt "patch file name, please keep it short"
+msgid "uncommitted changes on {commit}"
+msgstr "在{commit}上有未提交的更改"
+
+#: tasks/indextasks.py:44
+#, fuzzy, python-brace-format
+msgid "You have selected an unresolved merge conflict."
+msgid_plural "You have selected {n} unresolved merge conflicts."
+msgstr[0] "您选择了{n}个未解决的合并冲突。"
+
+#: tasks/indextasks.py:47
+#, fuzzy, python-brace-format
+msgid "There is an unresolved merge conflict among your selection."
+msgid_plural "There are {n} unresolved merge conflicts among your selection."
+msgstr[0] "您的选择中存在{n}个未解决的合并冲突。"
+
+#: tasks/indextasks.py:51
+msgctxt "please fix (the merge conflicts)"
+msgid "Please fix it before staging:"
+msgid_plural "Please fix them before staging:"
+msgstr[0] "请在暂存前修复："
+
+#: tasks/indextasks.py:53
+msgctxt "please fix (the merge conflicts)"
+msgid "Please fix it before discarding:"
+msgid_plural "Please fix them before discarding:"
+msgstr[0] "请在丢弃前修复："
+
+#: tasks/indextasks.py:80
+#, fuzzy, python-brace-format
+msgid "File staged."
+msgid_plural "{n} files staged."
+msgstr[0] "已暂存的{n}个文件。"
+
+#: tasks/indextasks.py:90
+msgid "You’ve added another Git repo inside your current repo. It is STRONGLY RECOMMENDED to absorb it as a submodule before committing."
+msgstr "您已在当前仓库中添加了另一个Git仓库。强烈建议在提交前将其作为子模块吸收。"
+
+#: tasks/indextasks.py:95
+#, python-brace-format
+msgid "Don’t forget to remove the submodule from {0} to complete its deletion."
+msgstr "不要忘记从{0}中移除子模块以完成其删除。"
+
+#: tasks/indextasks.py:98
+msgid "Uncommitted changes in the submodule can’t be staged from the parent repository."
+msgstr "子模块中的未提交更改无法从父仓库进行暂存。"
+
+#: tasks/indextasks.py:113
+#, fuzzy, python-brace-format
+msgid "An item requires your attention after staging:"
+msgid_plural "{n} items require your attention after staging:"
+msgstr[0] "在暂存后，有{n}个项目需要您注意："
+
+#: tasks/indextasks.py:122 tasks/taskbook.py:48
+msgid "Discard changes"
+msgstr "放弃更改"
+
+#: tasks/indextasks.py:139
+#, python-brace-format
+msgid "Really delete {0}?"
+msgstr "真的要删除{0}吗？"
+
+#: tasks/indextasks.py:140
+msgid "Git isn’t tracking this file, so you may not be able to recover it from older commits."
+msgstr "Git没有跟踪此文件，因此您可能无法从旧的提交中恢复它。"
+
+#: tasks/indextasks.py:143
+#, python-brace-format
+msgid "Really discard changes in submodule {0}?"
+msgstr "真的要放弃子模块{0}中的更改吗？"
+
+#: tasks/indextasks.py:145
+#, python-brace-format
+msgid "Really discard changes to {0}?"
+msgstr "真的要放弃对{0}的更改吗？"
+
+#: tasks/indextasks.py:150
+#, python-brace-format
+msgid "Really discard changes in {n} submodules?"
+msgstr "真的要放弃在{n}个子模块中的更改吗？"
+
+#: tasks/indextasks.py:152
+#, python-brace-format
+msgid "Really discard changes to {nf} files and in {ns} submodules?"
+msgstr "真的要放弃对{nf}个文件和{ns}个子模块的更改吗？"
+
+#: tasks/indextasks.py:154
+#, python-brace-format
+msgid "Really discard changes to {n} files?"
+msgstr "真的要放弃对{n}个文件的更改吗？"
+
+#: tasks/indextasks.py:159
+#, fuzzy, python-brace-format
+msgid "Any uncommitted changes in the submodule will be <b>cleared</b> and the submodule’s HEAD will be reset."
+msgid_plural "Any uncommitted changes in {n} submodules will be <b>cleared</b> and the submodules’ HEAD will be reset."
+msgstr[0] "{n}个子模块中的任何未提交更改将被<b>清除</b>，子模块的HEAD将被重置。"
+
+#: tasks/indextasks.py:195
+#, fuzzy, python-brace-format
+msgid "File discarded."
+msgid_plural "{n} files discarded."
+msgstr[0] "已丢弃的{n}个文件。"
+
+#: tasks/indextasks.py:204
+#, python-brace-format
+msgid "Couldn’t restore gitlink file for submodule {0}."
+msgstr "无法恢复子模块{0}的gitlink文件。"
+
+#: tasks/indextasks.py:225
+#, fuzzy, python-brace-format
+msgid "File unstaged."
+msgid_plural "{n} files unstaged."
+msgstr[0] "未暂存的{n}个文件。"
+
+#: tasks/indextasks.py:237
+#, python-brace-format
+msgid "Really discard mode change in {0}?"
+msgstr "真的要放弃{0}的模式更改吗？"
+
+#: tasks/indextasks.py:239
+#, python-brace-format
+msgid "Really discard mode changes in <b>{n} files</b>?"
+msgstr "真的要放弃<b>{n}个文件</b>的模式更改吗？"
+
+#: tasks/indextasks.py:242 tasks/taskbook.py:49
+msgid "Discard mode changes"
+msgstr "放弃模式更改"
+
+#: tasks/indextasks.py:268
+#, python-brace-format
+msgid "Can’t {verb} the selection because no red/green lines are selected."
+msgstr "无法{verb}选择，因为没有选中红/绿线。"
+
+#: tasks/indextasks.py:275
+msgid "Really discard this hunk?"
+msgstr "真的要放弃这个块吗？"
+
+#: tasks/indextasks.py:277
+msgid "Really discard the selected lines?"
+msgstr "真的要放弃选中的行吗？"
+
+#: tasks/indextasks.py:297
+msgid "There’s nothing to revert in the selection."
+msgstr "选择中没有需要还原的内容。"
+
+#: tasks/indextasks.py:301
+msgid "Couldn’t revert this patch."
+msgstr "无法还原这个补丁。"
+
+#: tasks/indextasks.py:302
+msgid "The code may have diverged too much from this revision."
+msgstr "代码可能与这个修订版差异过大。"
+
+#: tasks/indextasks.py:360
+#, fuzzy, python-brace-format
+msgid "Conflict resolved."
+msgid_plural "{n} conflicts resolved."
+msgstr[0] "{n}个冲突已解决。"
+
+#: tasks/indextasks.py:397
+#, python-brace-format
+msgid "Merge conflict resolved in {0}."
+msgstr "在{0}中解决了合并冲突。"
+
+#: tasks/indextasks.py:403 tasks/taskbook.py:39
+msgid "Revert patch file"
+msgstr "撤销补丁文件"
+
+#: tasks/indextasks.py:404 tasks/indextasks.py:481
+msgid "Revert"
+msgstr "撤销"
+
+#: tasks/indextasks.py:406 tasks/taskbook.py:37 tasks/taskbook.py:38
+msgid "Apply patch file"
+msgstr "应用补丁文件"
+
+#: tasks/indextasks.py:409
+msgid "Patch file"
+msgstr "补丁文件"
+
+#: tasks/indextasks.py:410
+msgid "All files"
+msgstr "所有文件"
+
+#: tasks/indextasks.py:445
+#, python-brace-format
+msgid "Do you want to {verb} patch file {path}?"
+msgstr "您想要{verb}补丁文件{path}吗？"
+
+#: tasks/indextasks.py:447 tasks/indextasks.py:485
+#, python-brace-format
+msgid "<b>{n}</b> file will be modified in your working directory:"
+msgid_plural "<b>{n}</b> files will be modified in your working directory:"
+msgstr[0] "<b>{n}</b>文件将在您的工作目录中被修改："
+
+#: tasks/indextasks.py:480
+msgid "Apply patch"
+msgstr "应用补丁"
+
+#: tasks/indextasks.py:480
+msgid "Revert patch"
+msgstr "撤销补丁"
+
+#: tasks/indextasks.py:484
+#, python-brace-format
+msgid "Do you want to {verb} this patch?"
+msgstr "您想要{verb}这个补丁吗？"
+
+#: tasks/indextasks.py:500
+msgctxt "preposition slotted into '...BEFORE this commit'"
+msgid "before"
+msgstr "之前"
+
+#: tasks/indextasks.py:504
+msgctxt "preposition slotted into '...AT this commit'"
+msgid "at"
+msgstr "在"
+
+#: tasks/indextasks.py:512
+#, python-brace-format
+msgid "Your working copy of {path} already matches the revision {preposition} this commit."
+msgstr "您对{path}的工作副本已经与这个提交中的{preposition}修订版匹配。"
+
+#: tasks/indextasks.py:517
+msgid "recreated"
+msgstr "重新创建"
+
+#: tasks/indextasks.py:519
+msgid "deleted"
+msgstr "已删除"
+
+#: tasks/indextasks.py:521
+msgid "overwritten"
+msgstr "已覆盖"
+
+#: tasks/indextasks.py:523
+#, python-brace-format
+msgid "Do you want to restore {path} as it was {preposition} this commit?"
+msgstr "您想要将{path}恢复为这个提交{preposition}时的状态吗？"
+
+#: tasks/indextasks.py:525
+#, python-brace-format
+msgid "This file will be {processed} in your working directory."
+msgstr "这个文件将在您的工作目录中被{processed}。"
+
+#: tasks/indextasks.py:527
+msgid "Restore"
+msgstr "恢复"
+
+#: tasks/indextasks.py:540
+#, python-brace-format
+msgid "File {path} {processed}."
+msgstr "文件{path}已{processed}。"
+
+#: tasks/indextasks.py:554
+msgid "No abortable state is in progress."
+msgstr "没有可中止的状态正在进行。"
+
+#: tasks/indextasks.py:557
+msgid "abort the ongoing cherry-pick"
+msgstr "中止正在进行的拣选操作"
+
+#: tasks/indextasks.py:559
+msgid "Cherry-pick aborted."
+msgstr "拣选操作已中止。"
+
+#: tasks/indextasks.py:561
+msgid "abort the ongoing merge"
+msgstr "中止正在进行的合并操作"
+
+#: tasks/indextasks.py:563
+msgid "Merge aborted."
+msgstr "合并操作已中止。"
+
+#: tasks/indextasks.py:565
+msgid "abort the ongoing revert"
+msgstr "中止正在进行的撤销操作"
+
+#: tasks/indextasks.py:567
+msgid "Revert aborted."
+msgstr "撤销操作已中止。"
+
+#: tasks/indextasks.py:569
+msgid "reset the index"
+msgstr "重置索引"
+
+#: tasks/indextasks.py:571
+msgid "Index reset."
+msgstr "索引已重置。"
+
+#: tasks/indextasks.py:577
+#, fuzzy, python-brace-format
+msgid "Cannot {verb} right now, because a file contains both staged and unstaged changes."
+msgid_plural "Cannot {verb} right now, because {n} files contain both staged and unstaged changes."
+msgstr[0] "现在无法{verb}，因为{n}个文件同时包含已暂存和未暂存的更改。"
+
+#: tasks/indextasks.py:580
+msgid "Please unstage the changes and try again."
+msgstr "请取消暂存更改，然后重试。"
+
+#: tasks/indextasks.py:583
+#, python-brace-format
+msgid "Do you want to {0}?"
+msgstr "您想要{0}吗？"
+
+#: tasks/indextasks.py:586
+msgid "No files are affected."
+msgstr "没有文件受到影响。"
+
+#: tasks/indextasks.py:589
+msgid "All conflicts will be cleared and all <b>staged</b> changes will be lost."
+msgstr "所有冲突将被清除，所有<b>已暂存</b>的更改将丢失。"
+
+#: tasks/indextasks.py:591
+msgid "All <b>staged</b> changes will be lost."
+msgstr "所有<b>已暂存</b>的更改将丢失。"
+
+#: tasks/indextasks.py:592
+#, fuzzy, python-brace-format
+msgid "This file will be reset:"
+msgid_plural "{n} files will be reset:"
+msgstr[0] "{n}个文件将被重置："
+
+#: tasks/jumptasks.py:139
+#, python-brace-format
+msgid "Unstaged ({n})"
+msgid_plural "Unstaged ({n})"
+msgstr[0] "未暂存（{n}）"
+
+#: tasks/jumptasks.py:140
+#, python-brace-format
+msgid "Staged ({n})"
+msgid_plural "Staged ({n})"
+msgstr[0] "已暂存（{n}）"
+
+#: tasks/jumptasks.py:141
+#, python-brace-format
+msgid "Commit {n} file"
+msgid_plural "Commit {n} files"
+msgstr[0] "提交{n}个文件"
+
+#: tasks/jumptasks.py:166
+msgid "The working directory is clean."
+msgstr "工作目录是干净的。"
+
+#: tasks/jumptasks.py:167
+msgid "There aren’t any changes to commit."
+msgstr "没有需要提交的更改。"
+
+#: tasks/jumptasks.py:200
+msgid "Shallow clone – End of available history."
+msgstr "浅层克隆 – 可用历史记录结束。"
+
+#: tasks/jumptasks.py:201
+msgid "More commits may be available in a full clone."
+msgstr "完整克隆中可能有更多提交。"
+
+#: tasks/jumptasks.py:213
+msgid "[Load full commit history] (this may take a moment)"
+msgstr "[加载完整提交历史]（这可能需要一些时间）"
+
+#: tasks/jumptasks.py:214
+#, python-brace-format
+msgid "[Change threshold setting] (currently: {0} commits)"
+msgstr "[更改阈值设置]（当前：{0} 次提交）"
+
+#: tasks/jumptasks.py:217
+#, python-brace-format
+msgid "History truncated to {0} commits."
+msgstr "历史记录截断至 {0} 次提交。"
+
+#: tasks/jumptasks.py:218
+msgid "More commits may be available."
+msgstr "可能有更多提交可用。"
+
+#: tasks/jumptasks.py:220
+msgid "History truncated"
+msgstr "历史记录已截断"
+
+#: tasks/jumptasks.py:242
+#, python-brace-format
+msgid "Unknown reference {0}."
+msgstr "未知引用 {0}。"
+
+#: tasks/jumptasks.py:307
+#, python-brace-format
+msgid "{n} change:|{n} ch.:"
+msgid_plural "{n} changes:|{n} ch.:"
+msgstr[0] "{n} 次更改：|{n} 次更改："
+
+#: tasks/jumptasks.py:316
+msgid "This commit is empty."
+msgstr "此提交为空。"
+
+#: tasks/jumptasks.py:317
+#, python-brace-format
+msgid "Commit {0} doesn’t affect any files."
+msgstr "提交 {0} 未影响任何文件。"
+
+#: tasks/jumptasks.py:323
+msgid "Rename detection was skipped to load this large commit faster."
+msgstr "为了更快加载这个大提交，跳过了重命名检测。"
+
+#: tasks/jumptasks.py:326
+#, python-brace-format
+msgid "{n} rename detected."
+msgid_plural "{n} renames detected."
+msgstr[0] "检测到 {n} 次重命名。"
+
+#: tasks/jumptasks.py:334
+msgid "Detect Renames"
+msgstr "检测重命名"
+
+#: tasks/loadtasks.py:128
+#, python-brace-format
+msgid "{0} commits…"
+msgstr "{0} 次提交…"
+
+#: tasks/loadtasks.py:141
+#, python-brace-format
+msgid "{0} commits (truncated log)."
+msgstr "{0} 次提交（截断日志）。"
+
+#: tasks/loadtasks.py:143
+#, python-brace-format
+msgid "{0} commits total."
+msgstr "总共 {0} 次提交。"
+
+#: tasks/loadtasks.py:307
+msgid "Try to reload the file."
+msgstr "尝试重新加载文件。"
+
+#: tasks/loadtasks.py:311
+#, python-brace-format
+msgid "Consider re-enabling {0} to prevent this issue."
+msgstr "考虑重新启用 {0} 以防止此问题。"
+
+#: tasks/loadtasks.py:315
+msgid "Outdated diff."
+msgstr "过时的差异。"
+
+#: tasks/loadtasks.py:316
+msgid "The file appears to have changed on disk."
+msgstr "文件似乎已在磁盘上更改。"
+
+#: tasks/loadtasks.py:322
+msgid "Patch has no delta!"
+msgstr "补丁没有差异！"
+
+#: tasks/loadtasks.py:360
+#, python-brace-format
+msgctxt "at (specific commit)"
+msgid "at {0}"
+msgstr "在 {0}"
+
+#: tasks/misctasks.py:84
+#, fuzzy, python-brace-format
+msgid "Parent"
+msgid_plural "{n} Parents"
+msgstr[0] "{n}个父级"
+
+#: tasks/misctasks.py:90
+msgid "You’re working in a shallow clone. This commit may actually have parents in the full history."
+msgstr "您正在浅克隆中工作。这个提交实际上在完整历史中可能有父级。"
+
+#: tasks/misctasks.py:95
+msgid "(same as author)"
+msgstr "（与作者相同）"
+
+#: tasks/misctasks.py:100
+msgid "Hash"
+msgstr "哈希"
+
+#: tasks/misctasks.py:102
+msgid "Author"
+msgstr "作者"
+
+#: tasks/misctasks.py:103
+msgid "Committer"
+msgstr "提交者"
+
+#: tasks/misctasks.py:119
+#, python-brace-format
+msgid "Commit info: {0}"
+msgstr "提交信息：{0}"
+
+#: tasks/misctasks.py:188
+#, python-brace-format
+msgid "Added to {file}: {pattern}"
+msgstr "添加到 {file}：{pattern}"
+
+#: tasks/nettasks.py:61
+#, python-brace-format
+msgid "Can’t fetch new commits on {0} because this branch isn’t tracking an upstream branch."
+msgstr "无法在 {0} 上获取新的提交，因为这个分支没有跟踪上游分支。"
+
+#: tasks/nettasks.py:75
+#, python-brace-format
+msgid "Really delete branch {0} from the remote repository?"
+msgstr "真的要从远程仓库中删除分支 {0} 吗？"
+
+#: tasks/nettasks.py:76
+#, python-brace-format
+msgid "The remote branch will disappear for all users of remote {0}."
+msgstr "远程分支将对远程 {0} 的所有用户消失。"
+
+#: tasks/nettasks.py:78
+msgid "Delete on remote"
+msgstr "在远程删除"
+
+#: tasks/nettasks.py:90
+#, python-brace-format
+msgid "Remote branch {0} deleted."
+msgstr "已删除远程分支 {0}。"
+
+#: tasks/nettasks.py:106
+#, python-brace-format
+msgid "Rename remote branch {0}"
+msgstr "重命名远程分支 {0}"
+
+#: tasks/nettasks.py:107
+msgid "WARNING: This will rename the branch for all users of the remote!"
+msgstr "警告：这将为远程的所有用户重命名分支！"
+
+#: tasks/nettasks.py:110
+msgid "Rename on remote"
+msgstr "重命名远程分支"
+
+#: tasks/nettasks.py:134
+#, python-brace-format
+msgid "Remote branch {0} renamed to {1}."
+msgstr "远程分支 {0} 已重命名为 {1}。"
+
+#: tasks/nettasks.py:143
+msgid "To fetch remote branches, you must first add a remote to your repo."
+msgstr "要获取远程分支，您必须首先向您的仓库添加一个远程源。"
+
+#: tasks/nettasks.py:144 tasks/nettasks.py:330
+msgid "You can do so via <i>“Repo &rarr; Add Remote”</i>."
+msgstr "您可以通过<i>“仓库 &rarr; 添加远程”</i>来完成此操作。"
+
+#: tasks/nettasks.py:151
+#, python-brace-format
+msgid "Fetch remote {0}"
+msgstr "获取远程 {0}"
+
+#: tasks/nettasks.py:153
+#, python-brace-format
+msgid "Fetch {n} remotes"
+msgstr "获取 {n} 个远程源"
+
+#: tasks/nettasks.py:176 tasks/nettasks.py:214
+msgid "Fetch complete."
+msgstr "获取完成。"
+
+#: tasks/nettasks.py:182
+#, fuzzy, python-brace-format
+msgid "Couldn’t fetch remote:"
+msgid_plural "Couldn’t fetch {n} remotes:"
+msgstr[0] "无法获取{n}个远程源："
+
+#: tasks/nettasks.py:192
+#, python-brace-format
+msgid "Fetch remote branch {0}"
+msgstr "获取远程分支 {0}"
+
+#: tasks/nettasks.py:214
+#, python-brace-format
+msgid "No new commits on {0}."
+msgstr "{0} 上没有新的提交。"
+
+#: tasks/nettasks.py:225
+#, python-brace-format
+msgid "{0} has disappeared from the remote server."
+msgstr "{0} 已从远程服务器消失。"
+
+#: tasks/nettasks.py:235
+#, python-brace-format
+msgid "Can’t pull new commits into {0} because this branch isn’t tracking an upstream branch."
+msgstr "无法将新提交拉取到 {0}，因为这个分支没有追踪上游分支。"
+
+#: tasks/nettasks.py:248 tasks/taskbook.py:112
+msgctxt "toolbar"
+msgid "Pull"
+msgstr "拉取"
+
+#: tasks/nettasks.py:290 tasks/nettasks.py:301
+#, fuzzy, python-brace-format
+msgid "Submodule updated."
+msgid_plural "{n} submodules updated."
+msgstr[0] "{n}个子模块已更新。"
+
+#: tasks/nettasks.py:329
+msgid "To push a local branch to a remote, you must first add a remote to your repo."
+msgstr "要将本地分支推送到远程，您必须首先向您的仓库添加一个远程源。"
+
+#: tasks/nettasks.py:338 tasks/repotask.py:595
+msgid "Please switch to a local branch before performing this action."
+msgstr "请在执行此操作前切换到本地分支。"
+
+#: tasks/nettasks.py:402
+msgid "Push complete."
+msgstr "推送完成。"
+
+#: tasks/remotetasks.py:46
+#, python-brace-format
+msgid "Remote {0} added."
+msgstr "远程 {0} 已添加。"
+
+#: tasks/remotetasks.py:90
+#, python-brace-format
+msgid "Really remove remote {0}?"
+msgstr "真的要移除远程 {0} 吗？"
+
+#: tasks/remotetasks.py:91
+msgid "This will merely detach the remote from your local repository. The remote server itself will not be affected."
+msgstr "这将仅从您的本地仓库中分离远程。远程服务器本身不会受到影响。"
+
+#: tasks/remotetasks.py:93 tasks/taskbook.py:45
+msgid "Remove remote"
+msgstr "移除远程"
+
+#: tasks/remotetasks.py:100
+#, python-brace-format
+msgid "Remote {0} removed."
+msgstr "远程 {0} 已移除。"
+
+#: tasks/repotask.py:35
+#, fuzzy, python-brace-format
+msgid "Conflicting file"
+msgid_plural "{n} conflicting files"
+msgstr[0] "{n}个冲突文件"
+
+#: tasks/repotask.py:36
+#, fuzzy, python-brace-format
+msgctxt "operation conflicts with…"
+msgid "a file"
+msgid_plural "{n} files"
+msgstr[0] "{n}个文件"
+
+#: tasks/repotask.py:40
+#, python-brace-format
+msgid "Operation {op} conflicts with {files} in the working directory:"
+msgstr "操作 {op} 与工作目录中的 {files} 发生冲突："
+
+#: tasks/repotask.py:42
+#, python-brace-format
+msgid "Operation {op} conflicts with {files} in the commit at HEAD:"
+msgstr "操作 {op} 与 HEAD 中的提交 {files} 发生冲突："
+
+#: tasks/repotask.py:44
+#, python-brace-format
+msgid "Operation {op} has caused a conflict with {files} ({exc}):"
+msgstr "操作 {op} 导致了与 {files} 的冲突 ({exc})："
+
+#: tasks/repotask.py:52
+msgid "Before you try again, you should either commit, stash, or discard your changes."
+msgstr "在您再次尝试之前，您应该提交、暂存或丢弃您的更改。"
+
+#: tasks/repotask.py:62
+#, python-brace-format
+msgid "Operation {op} ran into an issue with {n} file."
+msgid_plural "Operation {op} ran into issues with {n} files."
+msgstr[0] "操作 {op} 遇到了 {n} 个文件的问题。"
+
+#: tasks/repotask.py:66
+#, python-brace-format
+msgid "({n} other file was successful.)"
+msgid_plural "({n} other files were successful.)"
+msgstr[0] "（其他 {n} 个文件成功。）"
+
+#: tasks/repotask.py:80
+#, python-brace-format
+msgid "This file contains {a} line endings. They will not be replaced by {b} because {opt} is enabled."
+msgstr "此文件包含 {a} 行结束符。它们不会被 {b} 替换，因为 {opt} 已启用。"
+
+#: tasks/repotask.py:333 toolbox/messageboxes.py:301
+#, python-brace-format
+msgid "Operation failed: {0}."
+msgstr "操作失败：{0}。"
+
+#: tasks/repotask.py:536
+msgid "Don’t ask me to confirm this again"
+msgstr "不要再让我确认这个"
+
+#: tasks/repotask.py:536
+msgid "Don’t show this again"
+msgstr "不要再显示这个"
+
+#: tasks/repotask.py:585
+msgid "Fix merge conflicts before performing this action."
+msgstr "在执行此操作前，请先解决合并冲突。"
+
+#: tasks/repotask.py:589
+msgid "There are no commits in this repository yet."
+msgstr "此仓库中还没有任何提交。"
+
+#: tasks/repotask.py:590
+msgid "Create the initial commit in this repository before performing this action."
+msgstr "在执行此操作前，请先在此仓库中创建初始提交。"
+
+#: tasks/repotask.py:594
+msgid "You are in “detached HEAD” state."
+msgstr "您当前处于“分离 HEAD”状态。"
+
+#: tasks/repotask.py:599
+msgid "You are in the middle of a cherry-pick."
+msgstr "您正在进行挑选(cherry-pick)操作。"
+
+#: tasks/repotask.py:600
+msgid "Before performing this action, conclude the cherry-pick."
+msgstr "在执行此操作前，请先完成挑选(cherry-pick)。"
+
+#: tasks/repotask.py:604
+msgid "You have staged changes."
+msgstr "您有已暂存的更改。"
+
+#: tasks/repotask.py:605
+msgid "Before performing this action, commit your changes or stash them."
+msgstr "在执行此操作前，请先提交您的更改或将它们储藏。"
+
+#: tasks/repotask.py:724
+#, python-brace-format
+msgid "Please wait for the current operation to complete ({0})."
+msgstr "请等待当前操作完成（{0}）。"
+
+#: tasks/repotask.py:725
+msgid "Operation in progress"
+msgstr "操作进行中"
+
+#: tasks/repotask.py:803
+#, python-brace-format
+msgid "Busy: {0}…"
+msgstr "忙碌：{0}…"
+
+#: tasks/stashtasks.py:49
+msgid "There are no uncommitted changes to stash."
+msgstr "没有未提交的更改需要暂存。"
+
+#: tasks/stashtasks.py:57
+msgid "There are no uncommitted changes to stash (submodules cannot be stashed)."
+msgstr "没有未提交的更改需要暂存（子模块不能被暂存）。"
+
+#: tasks/stashtasks.py:79
+#, fuzzy, python-brace-format
+msgid "File stashed."
+msgid_plural "{n} files stashed."
+msgstr[0] "{n}个文件已暂存。"
+
+#: tasks/stashtasks.py:91
+#, python-brace-format
+msgid "Do you want to apply the changes stashed in {0} to your working directory?"
+msgstr "您是否希望将暂存的更改{0}应用到您的工作目录？"
+
+#: tasks/stashtasks.py:100
+msgid "&Apply && Delete"
+msgstr "&应用 && 删除"
+
+#: tasks/stashtasks.py:100
+msgid "&Apply && Keep"
+msgstr "&应用 && 保留"
+
+#: tasks/stashtasks.py:102
+msgid "&Delete the stash if it applies cleanly"
+msgstr "&如果应用无冲突则删除暂存"
+
+#: tasks/stashtasks.py:118
+#, python-brace-format
+msgid "Stash {0} applied."
+msgstr "暂存{0}已应用。"
+
+#: tasks/stashtasks.py:122
+#, python-brace-format
+msgid "Stash {0} applied, with conflicts."
+msgstr "暂存{0}已应用，存在冲突。"
+
+#: tasks/stashtasks.py:123
+#, python-brace-format
+msgid "Applying the stash {0} has caused merge conflicts because your files have diverged since they were stashed."
+msgstr "应用暂存{0}时产生了合并冲突，因为您的文件自暂存以来已经发生了变化。"
+
+#: tasks/stashtasks.py:126
+msgid "The stash wasn’t deleted in case you need to re-apply it later."
+msgstr "暂存未被删除，以防您之后需要重新应用。"
+
+#: tasks/stashtasks.py:127
+msgid "Conflicts caused by stash application"
+msgstr "由暂存应用引起的冲突"
+
+#: tasks/stashtasks.py:134
+#, python-brace-format
+msgid "Stash {0} applied and deleted."
+msgstr "已应用并删除暂存 {0}。"
+
+#: tasks/stashtasks.py:142
+#, python-brace-format
+msgid "Really delete stash {0}?"
+msgstr "真的要删除暂存 {0} 吗？"
+
+#: tasks/stashtasks.py:143 tasks/taskbook.py:50
+msgid "Delete stash"
+msgstr "删除暂存"
+
+#: tasks/stashtasks.py:151
+#, python-brace-format
+msgid "Stash {0} deleted."
+msgstr "已删除暂存 {0}。"
+
+#: tasks/submoduletasks.py:48
+#, python-brace-format
+msgid "{0} has no remotes."
+msgstr "{0} 没有远程仓库。"
+
+#: tasks/submoduletasks.py:49
+#, python-brace-format
+msgid "Please open {0} and add a remote to it before absorbing it as a submodule."
+msgstr "请先打开 {0} 并添加远程仓库，然后再将其作为子模块吸收。"
+
+#: tasks/submoduletasks.py:66
+#, python-brace-format
+msgid "Settings will be saved in {0}"
+msgstr "设置将保存在 {0}"
+
+#: tasks/submoduletasks.py:93
+#, python-brace-format
+msgid "Really remove submodule {0}?"
+msgstr "真的要移除子模块 {0} 吗？"
+
+#: tasks/submoduletasks.py:94
+#, python-brace-format
+msgid "The submodule will be removed from {0} and its working copy will be deleted."
+msgstr "子模块将从 {0} 中移除，其工作副本也将被删除。"
+
+#: tasks/submoduletasks.py:95
+msgid "Any changes in the submodule that haven’t been pushed will be lost."
+msgstr "子模块中未推送的任何更改将会丢失。"
+
+#: tasks/taskbook.py:34
+msgid "Accept merge conflict resolution"
+msgstr "接受合并冲突解决方案"
+
+#: tasks/taskbook.py:35
+msgid "Amend last commit"
+msgstr "修改上次提交"
+
+#: tasks/taskbook.py:36
+msgid "Apply selected text"
+msgstr "应用选定文本"
+
+#: tasks/taskbook.py:40
+msgid "Apply stash"
+msgstr "应用暂存"
+
+#: tasks/taskbook.py:41
+msgid "Check out commit"
+msgstr "检出提交"
+
+#: tasks/taskbook.py:42
+msgid "Cherry-pick"
+msgstr "拣选"
+
+#: tasks/taskbook.py:43
+msgid "Delete local branch"
+msgstr "删除本地分支"
+
+#: tasks/taskbook.py:44
+msgid "Delete local branch folder"
+msgstr "删除本地分支文件夹"
+
+#: tasks/taskbook.py:46
+msgid "Delete branch on remote"
+msgstr "在远程删除分支"
+
+#: tasks/taskbook.py:47
+msgid "Delete tag"
+msgstr "删除标签"
+
+#: tasks/taskbook.py:52
+msgid "Edit upstream branch"
+msgstr "编辑上游分支"
+
+#: tasks/taskbook.py:53
+msgid "Export commit as patch file"
+msgstr "导出提交为补丁文件"
+
+#: tasks/taskbook.py:54
+msgid "Export patch file"
+msgstr "导出补丁文件"
+
+#: tasks/taskbook.py:55
+msgid "Export stash as patch file"
+msgstr "导出暂存为补丁文件"
+
+#: tasks/taskbook.py:56
+msgid "Export changes as patch file"
+msgstr "导出更改为补丁文件"
+
+#: tasks/taskbook.py:57
+msgid "Fast-forward branch"
+msgstr "快进分支"
+
+#: tasks/taskbook.py:58
+msgid "Fetch remote branches"
+msgstr "获取远程分支"
+
+#: tasks/taskbook.py:59
+msgid "Fetch remote branch"
+msgstr "获取远程分支"
+
+#: tasks/taskbook.py:60
+msgid "Get commit information"
+msgstr "获取提交信息"
+
+#: tasks/taskbook.py:61
+msgid "Accept/reject incoming changes"
+msgstr "接受/拒绝传入更改"
+
+#: tasks/taskbook.py:62
+msgid "Navigate in repo"
+msgstr "在仓库中导航"
+
+#: tasks/taskbook.py:63
+msgid "Navigate back"
+msgstr "向后导航"
+
+#: tasks/taskbook.py:64 tasks/taskbook.py:65
+msgid "Navigate forward"
+msgstr "向前导航"
+
+#: tasks/taskbook.py:66
+msgid "Go to HEAD commit"
+msgstr "转到HEAD提交"
+
+#: tasks/taskbook.py:68
+msgid "Mark conflict solved"
+msgstr "标记冲突已解决"
+
+#: tasks/taskbook.py:69
+msgid "Merge branch"
+msgstr "合并分支"
+
+#: tasks/taskbook.py:70 tasks/taskbook.py:71 tasks/taskbook.py:72
+msgid "New local branch"
+msgstr "新建本地分支"
+
+#: tasks/taskbook.py:73
+msgid "New commit"
+msgstr "新建提交"
+
+#: tasks/taskbook.py:74
+msgid "Ignore a new file name pattern"
+msgstr "忽略一个新的文件名模式"
+
+#: tasks/taskbook.py:76
+msgid "Stash changes"
+msgstr "暂存更改"
+
+#: tasks/taskbook.py:77
+msgid "New tag"
+msgstr "新建标签"
+
+#: tasks/taskbook.py:78
+msgid "Open repo"
+msgstr "打开仓库"
+
+#: tasks/taskbook.py:79
+msgid "Pull remote branch"
+msgstr "拉取远程分支"
+
+#: tasks/taskbook.py:80
+msgid "Push branch"
+msgstr "推送分支"
+
+#: tasks/taskbook.py:81
+msgid "Push refspecs"
+msgstr "推送引用规范"
+
+#: tasks/taskbook.py:83
+msgid "Refresh repo"
+msgstr "刷新仓库"
+
+#: tasks/taskbook.py:85
+msgid "Remove submodule"
+msgstr "移除子模块"
+
+#: tasks/taskbook.py:87
+msgid "Rename local branch folder"
+msgstr "重命名本地分支文件夹"
+
+#: tasks/taskbook.py:88
+msgid "Rename branch on remote"
+msgstr "在远程重命名分支"
+
+#: tasks/taskbook.py:89
+msgid "Reset HEAD"
+msgstr "重置HEAD"
+
+#: tasks/taskbook.py:90
+msgid "Restore file revision"
+msgstr "恢复文件修订"
+
+#: tasks/taskbook.py:91
+msgid "Revert commit"
+msgstr "撤销提交"
+
+#: tasks/taskbook.py:92
+msgid "Revert selected text"
+msgstr "撤销选定文本"
+
+#: tasks/taskbook.py:93
+msgid "Git identity"
+msgstr "Git 身份"
+
+#: tasks/taskbook.py:94
+msgid "Repository settings"
+msgstr "仓库设置"
+
+#: tasks/taskbook.py:95
+msgid "Stage files"
+msgstr "暂存文件"
+
+#: tasks/taskbook.py:96
+msgid "Switch to branch"
+msgstr "切换分支"
+
+#: tasks/taskbook.py:97
+msgid "Update submodule"
+msgstr "更新子模块"
+
+#: tasks/taskbook.py:99
+msgid "Unstage files"
+msgstr "取消暂存文件"
+
+#: tasks/taskbook.py:100
+msgid "Unstage mode changes"
+msgstr "取消暂存模式更改"
+
+#: tasks/taskbook.py:104
+msgctxt "toolbar"
+msgid "Amend"
+msgstr "修改"
+
+#: tasks/taskbook.py:105
+msgctxt "toolbar"
+msgid "Fetch"
+msgstr ""
+
+#: tasks/taskbook.py:106
+msgctxt "toolbar"
+msgid "Back"
+msgstr "后退"
+
+#: tasks/taskbook.py:107
+msgctxt "toolbar"
+msgid "Forward"
+msgstr "前进"
+
+#: tasks/taskbook.py:108
+msgctxt "toolbar"
+msgid "HEAD"
+msgstr "HEAD"
+
+#: tasks/taskbook.py:109
+msgctxt "toolbar"
+msgid "Workdir"
+msgstr "工作目录"
+
+#: tasks/taskbook.py:110
+msgctxt "toolbar"
+msgid "Branch"
+msgstr "分支"
+
+#: tasks/taskbook.py:111
+msgctxt "toolbar"
+msgid "Stash"
+msgstr ""
+
+#: tasks/taskbook.py:113
+msgctxt "toolbar"
+msgid "Push"
+msgstr "推送"
+
+#: tasks/taskbook.py:117
+msgid "Amend the last commit on the current branch with the staged changes in the working directory"
+msgstr "用工作目录中暂存的更改修改当前分支上的最后一次提交"
+
+#: tasks/taskbook.py:118
+msgid "Apply a patch file to the working directory"
+msgstr "将补丁文件应用到工作目录"
+
+#: tasks/taskbook.py:119
+msgid "Apply a patch file to the working directory (reverse patch before applying)"
+msgstr "将补丁文件应用到工作目录（应用前先反转补丁）"
+
+#: tasks/taskbook.py:120
+msgid "Restore backed up changes to the working directory"
+msgstr "将备份的更改恢复到工作目录"
+
+#: tasks/taskbook.py:121
+msgid "Bring the changes introduced by this commit to the current branch"
+msgstr "将此提交引入的更改带到当前分支"
+
+#: tasks/taskbook.py:122
+msgid "Delete this branch locally"
+msgstr "本地删除此分支"
+
+#: tasks/taskbook.py:123
+msgid "Choose the remote branch to be tracked by this local branch"
+msgstr "选择要被此本地分支跟踪的远程分支"
+
+#: tasks/taskbook.py:124
+msgid "Create a patch file from this stash"
+msgstr "从此暂存创建补丁文件"
+
+#: tasks/taskbook.py:125
+msgid "Advance this local branch to the tip of the remote-tracking branch"
+msgstr "将此本地分支推进到远程跟踪分支的顶端"
+
+#: tasks/taskbook.py:126
+msgid "Get the latest commits on all remote branches"
+msgstr "获取所有远程分支上的最新提交"
+
+#: tasks/taskbook.py:127
+msgid "Get the latest commits from the remote server"
+msgstr "从远程服务器获取最新提交"
+
+#: tasks/taskbook.py:128
+msgid "Start a new branch from this commit"
+msgstr "从此次提交开始一个新的分支"
+
+#: tasks/taskbook.py:129
+msgid "Start a new branch from the current HEAD"
+msgstr "从当前HEAD开始一个新的分支"
+
+#: tasks/taskbook.py:130
+msgid "Start a new branch from the tip of this branch"
+msgstr "从该分支的顶端开始一个新的分支"
+
+#: tasks/taskbook.py:131
+msgid "Create a commit of the staged changes in the working directory"
+msgstr "创建工作目录中已暂存更改的提交"
+
+#: tasks/taskbook.py:132
+msgid "Add a remote server to this repo"
+msgstr "为此仓库添加一个远程服务器"
+
+#: tasks/taskbook.py:133
+msgid "Back up uncommitted changes and clean up the working directory"
+msgstr "备份未提交的更改并清理工作目录"
+
+#: tasks/taskbook.py:134
+msgid "Tag this commit with a name"
+msgstr "用名称标记此次提交"
+
+#: tasks/taskbook.py:135
+msgid "Fetch the latest commits from the remote, then integrate them into your local branch"
+msgstr "从远程获取最新提交，然后将它们集成到你的本地分支"
+
+#: tasks/taskbook.py:136
+msgid "Upload your commits on the current branch to the remote server"
+msgstr "将当前分支上的提交上传到远程服务器"
+
+#: tasks/taskbook.py:137
+msgid "Remove this submodule from .gitmodules and delete its working copy from this repo"
+msgstr "从.gitmodules中移除这个子模块，并从这个仓库中删除其工作副本"
+
+#: tasks/taskbook.py:138
+msgid "Rename this branch locally"
+msgstr "本地重命名这个分支"
+
+#: tasks/taskbook.py:139
+msgid "Make HEAD point to another commit"
+msgstr "使HEAD指向另一个提交"
+
+#: tasks/taskbook.py:140
+msgid "Revert the changes introduced by this commit"
+msgstr "撤销这个提交引入的更改"
+
+#: tasks/taskbook.py:141 tasks/taskbook.py:142
+msgid "Set up the identity under which you create commits"
+msgstr "设置你创建提交时使用的身份"
+
+#: tasks/taskbook.py:143
+msgid "Switch to this branch and update the working directory to match it"
+msgstr "切换到这个分支并更新工作目录以匹配它"
+
+#: toolbox/fontpicker.py:32
+#, python-brace-format
+msgid "Hold {key} to show proportional fonts."
+msgstr "按住{key}显示比例字体。"
+
+#: toolbox/fontpicker.py:40
+msgid "pt"
+msgstr "点"
+
+#: toolbox/fontpicker.py:51
+msgid "Reset to system default monospace font"
+msgstr "重置为系统默认的等宽字体"
+
+#: toolbox/messageboxes.py:39
+msgid "No repository"
+msgstr "无仓库"
+
+#: toolbox/messageboxes.py:62
+msgid "Unhandled exception"
+msgstr "未处理的异常"
+
+#: toolbox/messageboxes.py:64
+msgid "An exception was raised."
+msgstr "抛出了一个异常。"
+
+#: toolbox/messageboxes.py:76
+msgid "(MESSAGE TRUNCATED)"
+msgstr "(消息被截断)"
+
+#: toolbox/messageboxes.py:79
+msgid "If you want to file a bug report, please click “Show Details” and copy the <b>entire</b> message."
+msgstr "如果您想提交一个错误报告，请点击“显示详情”并复制<b>整个</b>消息。"
+
+#: toolbox/messageboxes.py:104
+msgid "Quit application"
+msgstr "退出应用程序"
+
+#: toolbox/messageboxes.py:154
+#, python-brace-format
+msgid "Skip {n} more error"
+msgid_plural "Skip {n} more errors"
+msgstr[0] "跳过{n}个更多错误"
+
+#: toolbox/messageboxes.py:280
+#, python-brace-format
+msgid "…and {0} more. Click “Show Details” to view all."
+msgstr "……和{0}个更多。点击“显示详情”查看全部。"
+
+#: toolbox/qfilepickercheckbox.py:26
+msgctxt "button to open a file browser to select a file"
+msgid "Select…"
+msgstr "选择……"
+
+#: toolbox/qhintbutton.py:17
+msgid "Help"
+msgstr "帮助"
+
+#: toolbox/qtabwidget2.py:162
+msgid "List all tabs"
+msgstr "列出所有标签页"
+
+#: toolbox/textutils.py:86
+#, python-brace-format
+msgid "“{0}”"
+msgstr "“{0}”"
+
+#: toolbox/textutils.py:175
+#, python-brace-format
+msgid "{0} copied to clipboard."
+msgstr "{0}已复制到剪贴板。"
+
+#: toolbox/textutils.py:177
+#, python-brace-format
+msgid "{n} lines copied to clipboard."
+msgstr "{n}行已复制到剪贴板。"
+
+#: toolbox/textutils.py:195
+#, python-brace-format
+msgid "…and {0} more"
+msgstr "……和{0}个更多"
+
+#: trtables.py:92
+msgid "Connection refused"
+msgstr "连接被拒绝"
+
+#: trtables.py:93
+msgid "File not found"
+msgstr "文件未找到"
+
+#: trtables.py:94
+msgid "Permission denied"
+msgstr "权限被拒绝"
+
+#: trtables.py:95
+msgid "Git error"
+msgstr "Git错误"
+
+#: trtables.py:96
+msgid "Unsupported feature"
+msgstr "不支持的功能"
+
+#: trtables.py:97
+msgid "Operation interrupted"
+msgstr "操作被中断"
+
+#: trtables.py:112
+msgid "Illegal name."
+msgstr "非法名称。"
+
+#: trtables.py:113
+msgid "Illegal suffix."
+msgstr "非法后缀。"
+
+#: trtables.py:114
+msgid "Illegal prefix."
+msgstr "非法前缀。"
+
+#: trtables.py:115
+msgid "Contains illegal character sequence."
+msgstr "包含非法字符序列。"
+
+#: trtables.py:116
+msgid "Contains illegal character."
+msgstr "包含非法字符。"
+
+#: trtables.py:118
+msgid "This name is discouraged for compatibility with Windows."
+msgstr "出于与Windows兼容性的考虑，不推荐使用此名称。"
+
+#: trtables.py:119
+msgid "This name is already taken."
+msgstr "此名称已被占用。"
+
+#: trtables.py:120
+msgid "This name is already taken by a folder."
+msgstr "这个名字已经被一个文件夹占用了。"
+
+#: trtables.py:124
+msgctxt "FileMode"
+msgid "deleted"
+msgstr ""
+
+#: trtables.py:125
+msgctxt "FileMode"
+msgid "regular file"
+msgstr "普通文件"
+
+#: trtables.py:126
+msgctxt "FileMode"
+msgid "executable file"
+msgstr "可执行文件"
+
+#: trtables.py:127
+msgctxt "FileMode"
+msgid "symbolic link"
+msgstr "符号链接"
+
+#: trtables.py:128
+msgctxt "FileMode"
+msgid "subtree"
+msgstr "子树"
+
+#: trtables.py:129
+msgctxt "FileMode"
+msgid "subtree commit"
+msgstr "子树提交"
+
+#: trtables.py:133
+msgctxt "RepositoryState"
+msgid "None"
+msgstr "无"
+
+#: trtables.py:134
+msgctxt "RepositoryState"
+msgid "Merging"
+msgstr "合并中"
+
+#: trtables.py:135
+msgctxt "RepositoryState"
+msgid "Reverting"
+msgstr "还原"
+
+#: trtables.py:136
+msgctxt "RepositoryState"
+msgid "Reverting (sequence)"
+msgstr "还原（序列）"
+
+#: trtables.py:137
+msgctxt "RepositoryState"
+msgid "Cherry-picking"
+msgstr "拣选"
+
+#: trtables.py:138
+msgctxt "RepositoryState"
+msgid "Cherry-picking (sequence)"
+msgstr "拣选（序列）"
+
+#: trtables.py:139
+msgctxt "RepositoryState"
+msgid "Bisecting"
+msgstr "二分查找"
+
+#: trtables.py:140
+msgctxt "RepositoryState"
+msgid "Rebasing"
+msgstr "变基"
+
+#: trtables.py:141
+msgctxt "RepositoryState"
+msgid "Rebasing (interactive)"
+msgstr "变基（交互式）"
+
+#: trtables.py:142
+msgctxt "RepositoryState"
+msgid "Rebasing (merging)"
+msgstr "变基（合并）"
+
+#: trtables.py:148
+msgctxt "ConflictSides"
+msgid "modified by both sides"
+msgstr "双方均已修改"
+
+#: trtables.py:149
+msgctxt "ConflictSides"
+msgid "deleted by us"
+msgstr "我们这边已删除"
+
+#: trtables.py:150
+msgctxt "ConflictSides"
+msgid "deleted by them"
+msgstr "他们那边已删除"
+
+#: trtables.py:151
+msgctxt "ConflictSides"
+msgid "deleted by both sides"
+msgstr "双方均已删除"
+
+#: trtables.py:152
+msgctxt "ConflictSides"
+msgid "added by us"
+msgstr "我们这边已添加"
+
+#: trtables.py:153
+msgctxt "ConflictSides"
+msgid "added by them"
+msgstr "他们那边已添加"
+
+#: trtables.py:154
+msgctxt "ConflictSides"
+msgid "added by both sides"
+msgstr "双方均已添加"
+
+#: trtables.py:158
+msgctxt "PatchPurpose"
+msgid "Stage"
+msgstr ""
+
+#: trtables.py:159
+msgctxt "PatchPurpose"
+msgid "Unstage"
+msgstr ""
+
+#: trtables.py:160
+msgctxt "PatchPurpose"
+msgid "Discard"
+msgstr ""
+
+#: trtables.py:161
+msgctxt "PatchPurpose"
+msgid "Stage lines"
+msgstr "暂存行"
+
+#: trtables.py:162
+msgctxt "PatchPurpose"
+msgid "Unstage lines"
+msgstr "取消暂存行"
+
+#: trtables.py:163
+msgctxt "PatchPurpose"
+msgid "Discard lines"
+msgstr "放弃行"
+
+#: trtables.py:164
+msgctxt "PatchPurpose"
+msgid "Stage hunk"
+msgstr "暂存块"
+
+#: trtables.py:165
+msgctxt "PatchPurpose"
+msgid "Unstage hunk"
+msgstr "取消暂存块"
+
+#: trtables.py:166
+msgctxt "PatchPurpose"
+msgid "Discard hunk"
+msgstr "放弃块"
+
+#: trtables.py:167
+msgctxt "PatchPurpose"
+msgid "Stage file"
+msgstr "暂存文件"
+
+#: trtables.py:168
+msgctxt "PatchPurpose"
+msgid "Unstage file"
+msgstr "取消暂存文件"
+
+#: trtables.py:169
+msgctxt "PatchPurpose"
+msgid "Discard file"
+msgstr "放弃文件"
+
+#: trtables.py:173
+msgctxt "SidebarModel"
+msgid "Working Directory|Workdir"
+msgstr "工作目录|Workdir"
+
+#: trtables.py:174
+msgctxt "SidebarModel"
+msgid "Local Branches|Branches"
+msgstr "本地分支|Branches"
+
+#: trtables.py:175
+msgctxt "SidebarModel"
+msgid "Stashes"
+msgstr "储藏"
+
+#: trtables.py:176
+msgctxt "SidebarModel"
+msgid "Remotes"
+msgstr "远程仓库"
+
+#: trtables.py:177
+msgctxt "SidebarModel"
+msgid "Tags"
+msgstr "标签"
+
+#: trtables.py:178 trtables.py:186
+msgctxt "SidebarModel"
+msgid "Submodules"
+msgstr "子模块"
+
+#: trtables.py:179
+msgctxt "SidebarModel"
+msgid "Local branch"
+msgstr "本地分支"
+
+#: trtables.py:180
+msgctxt "SidebarModel"
+msgid "Detached HEAD"
+msgstr ""
+
+#: trtables.py:181
+msgctxt "SidebarModel"
+msgid "Unborn HEAD"
+msgstr ""
+
+#: trtables.py:182
+msgctxt "SidebarModel"
+msgid "Remote branch"
+msgstr "远程分支"
+
+#: trtables.py:183
+msgctxt "SidebarModel"
+msgid "Stash"
+msgstr ""
+
+#: trtables.py:184
+msgctxt "SidebarModel"
+msgid "Remote"
+msgstr "远程"
+
+#: trtables.py:185
+msgctxt "SidebarModel"
+msgid "Tag"
+msgstr "标签"
+
+#: trtables.py:191
+msgid "Full paths"
+msgstr "完整路径"
+
+#: trtables.py:192
+msgid "Abbreviate directories"
+msgstr "缩写目录"
+
+#: trtables.py:193
+msgid "Show filename only"
+msgstr "仅显示文件名"
+
+#: trtables.py:197
+msgid "Full name"
+msgstr "全名"
+
+#: trtables.py:198
+msgid "First name"
+msgstr "名字"
+
+#: trtables.py:199
+msgid "Last name"
+msgstr "姓氏"
+
+#: trtables.py:200
+msgid "Initials"
+msgstr "首字母缩写"
+
+#: trtables.py:201
+msgid "Full email"
+msgstr "完整邮箱"
+
+#: trtables.py:202
+msgid "Abbreviated email"
+msgstr "缩写邮箱"
+
+#: trtables.py:206
+msgctxt "row spacing"
+msgid "Cramped"
+msgstr "紧凑"
+
+#: trtables.py:207
+msgctxt "row spacing"
+msgid "Tight"
+msgstr "紧密"
+
+#: trtables.py:208
+msgctxt "row spacing"
+msgid "Relaxed"
+msgstr "宽松"
+
+#: trtables.py:209
+msgctxt "row spacing"
+msgid "Roomy"
+msgstr "宽敞"
+
+#: trtables.py:210
+msgctxt "row spacing"
+msgid "Spacious"
+msgstr "宽敞"
+
+#: trtables.py:214
+msgctxt "Qt binding"
+msgid "Automatic (recommended)"
+msgstr "自动（推荐）"
+
+#: trtables.py:222
+msgid "Truncate long ref names"
+msgstr "截断过长的引用名称"
+
+#: trtables.py:223
+msgid "Show full ref names"
+msgstr "显示完整引用名称"
+
+#: trtables.py:227
+msgctxt "sort refs by date of latest commit, descending"
+msgid "Date, Newest First"
+msgstr "日期，最新的在前"
+
+#: trtables.py:228
+msgctxt "sort refs by date of latest commit, ascending"
+msgid "Date, Oldest First"
+msgstr "日期，最旧的在前"
+
+#: trtables.py:229
+msgctxt "sort refs alphabetically, ascending"
+msgid "Name, A-Z"
+msgstr "名称，A-Z"
+
+#: trtables.py:230
+msgctxt "sort refs alphabetically, descending"
+msgid "Name, Z-A"
+msgstr "名称，Z-A"
+
+#: trtables.py:239 trtables.py:240
+msgctxt "FileStatus"
+msgid "added"
+msgstr "已添加"
+
+#: trtables.py:241
+msgctxt "FileStatus"
+msgid "copied"
+msgstr "已复制"
+
+#: trtables.py:242
+msgctxt "FileStatus"
+msgid "deleted"
+msgstr ""
+
+#: trtables.py:243
+msgctxt "FileStatus"
+msgid "ignored"
+msgstr "已忽略"
+
+#: trtables.py:244
+msgctxt "FileStatus"
+msgid "modified"
+msgstr ""
+
+#: trtables.py:245
+msgctxt "FileStatus"
+msgid "renamed"
+msgstr "已重命名"
+
+#: trtables.py:246
+msgctxt "FileStatus"
+msgid "file type changed"
+msgstr "文件类型更改"
+
+#: trtables.py:247
+msgctxt "FileStatus"
+msgid "merge conflict"
+msgstr "合并冲突"
+
+#: trtables.py:248
+msgctxt "FileStatus"
+msgid "unreadable"
+msgstr "不可读"
+
+#: trtables.py:249
+msgctxt "FileStatus"
+msgid "untracked"
+msgstr "未跟踪"
+
+#: trtables.py:268
+msgctxt "PatchPurpose"
+msgid "Staged."
+msgstr "已暂存。"
+
+#: trtables.py:269
+msgctxt "PatchPurpose"
+msgid "Unstaged."
+msgstr "未暂存。"
+
+#: trtables.py:270
+msgctxt "PatchPurpose"
+msgid "Discarded."
+msgstr "已丢弃。"
+
+#: trtables.py:271
+msgctxt "PatchPurpose"
+msgid "Lines staged."
+msgstr "已暂存的行。"
+
+#: trtables.py:272
+msgctxt "PatchPurpose"
+msgid "Lines unstaged."
+msgstr "未暂存的行。"
+
+#: trtables.py:273
+msgctxt "PatchPurpose"
+msgid "Lines discarded."
+msgstr "已丢弃的行。"
+
+#: trtables.py:274
+msgctxt "PatchPurpose"
+msgid "Hunk staged."
+msgstr "已暂存的块。"
+
+#: trtables.py:275
+msgctxt "PatchPurpose"
+msgid "Hunk unstaged."
+msgstr "未暂存的块。"
+
+#: trtables.py:276
+msgctxt "PatchPurpose"
+msgid "Hunk discarded."
+msgstr "已丢弃的块。"
+
+#: trtables.py:277
+msgctxt "PatchPurpose"
+msgid "File staged."
+msgstr ""
+
+#: trtables.py:278
+msgctxt "PatchPurpose"
+msgid "File unstaged."
+msgstr ""
+
+#: trtables.py:279
+msgctxt "PatchPurpose"
+msgid "File discarded."
+msgstr ""
+
+#: trtables.py:304
+msgctxt "date/time formats"
+msgid "Available formats:"
+msgstr "可用格式："
+
+#: trtables.py:306 trtables.py:307
+msgid "year"
+msgstr "年"
+
+#: trtables.py:309 trtables.py:310
+msgid "month"
+msgstr "月"
+
+#: trtables.py:314 trtables.py:315
+msgid "day"
+msgstr "日"
+
+#: trtables.py:319 trtables.py:320
+msgid "hour"
+msgstr "小时"
+
+#: trtables.py:321
+msgid "minute"
+msgstr "分钟"
+
+#: trtables.py:322
+msgid "second"
+msgstr "秒"
+
+#: trtables.py:334
+msgctxt "Prefs"
+msgid "General"
+msgstr "常规"
+
+#: trtables.py:335
+msgctxt "Prefs"
+msgid "Code"
+msgstr "代码"
+
+#: trtables.py:336
+msgctxt "Prefs"
+msgid "Images"
+msgstr "图像"
+
+#: trtables.py:337
+msgctxt "Prefs"
+msgid "Tabs"
+msgstr "标签页"
+
+#: trtables.py:338
+msgctxt "Prefs"
+msgid "Commit History"
+msgstr "提交历史"
+
+#: trtables.py:339
+msgctxt "Prefs"
+msgid "Trash"
+msgstr "回收站"
+
+#: trtables.py:340
+msgctxt "Prefs"
+msgid "External Tools"
+msgstr "外部工具"
+
+#: trtables.py:341
+msgctxt "Prefs"
+msgid "Advanced"
+msgstr "高级"
+
+#: trtables.py:342
+msgctxt "Prefs"
+msgid "Custom Commands"
+msgstr "自定义命令"
+
+#: trtables.py:344
+msgid "Language"
+msgstr "语言"
+
+#: trtables.py:345
+msgid "Qt style"
+msgstr "Qt风格"
+
+#: trtables.py:346
+msgid "Shorten hashes to # characters"
+msgstr "缩短哈希值到#个字符"
+
+#: trtables.py:347
+msgid "Date/time format"
+msgstr "日期/时间格式"
+
+#: trtables.py:350
+msgid "Author display style"
+msgstr "作者显示风格"
+
+#: trtables.py:351
+msgid "Remember up to # recent repositories"
+msgstr "记住最近#个仓库"
+
+#: trtables.py:355
+msgid "When the menu bar is hidden, press the Alt key to show it again."
+msgstr "当菜单栏被隐藏时，按下Alt键再次显示它。"
+
+#: trtables.py:356
+msgid "Restore all “don’t show this again” messages"
+msgstr "恢复所有“不再显示此消息”的消息"
+
+#: trtables.py:357
+msgid "Middle-click to stage/unstage a file or the selected lines"
+msgstr "中键点击以暂存/取消暂存文件或选中的行"
+
+#: trtables.py:359
+msgid "This option lets you:"
+msgstr "这个选项允许你："
+
+#: trtables.py:360
+msgid "Middle-click a file name in the Unstaged/Staged boxes to stage/unstage this file;"
+msgstr "在未暂存/已暂存框中中键点击文件名以暂存/取消暂存此文件；"
+
+#: trtables.py:361
+msgid "Select lines in the diff, then middle-click to stage/unstage your selection."
+msgstr "在差异视图中选择行，然后中键点击以暂存/取消暂存你的选择。"
+
+#: trtables.py:363
+msgid "Allow third-party Pygments plugins"
+msgstr "允许第三方Pygments插件"
+
+#: trtables.py:364
+#, python-brace-format
+msgid "Let {app} load third-party Pygments plugins installed on your system. These plugins extend syntax highlighting with new languages and color schemes. <b>May incur significant slowdowns.</b>"
+msgstr ""
+"允许 {app} 加载系统上安装的第三方 Pygments "
+"插件。这些插件通过新的语言和配色方案扩展了语法高亮功能。<b>可能会显著降低速度"
+"。</b>"
+
+#: trtables.py:367
+msgid "Sort branches && tags by"
+msgstr "按以下方式排序分支 && 标签"
+
+#: trtables.py:369
+msgid "The default sorting mode for local branches, remote branches, and tags in the sidebar."
+msgstr "在侧边栏中本地分支、远程分支和标签的默认排序方式。"
+
+#: trtables.py:370
+msgid "You can fine-tune this setting in each repo by right-clicking Branches, Remotes, or Tags in the sidebar. (Note that changing the default setting here will clear per-repo tweaks.)"
+msgstr "你可以通过在侧边栏右键点击分支、远程或标签来微调每个仓库的设置。（注意，在这"
+"里更改默认设置将会清除每个仓库的调整。）"
+
+#: trtables.py:373
+msgid "Font"
+msgstr "字体"
+
+#: trtables.py:374
+msgid "One tab is # spaces"
+msgstr "一个制表符等于 # 个空格"
+
+#: trtables.py:375
+msgid "Show up to # context lines"
+msgstr "显示至多 # 行上下文"
+
+#: trtables.py:376
+msgid "Amount of unmodified lines to show around red or green lines in a diff."
+msgstr "在 diff 中显示红色或绿色行周围未修改行的数量。"
+
+#: trtables.py:377
+msgid "Load diffs up to # KB"
+msgstr "加载至 # KB 的差异"
+
+#: trtables.py:378
+msgid "Load images up to # KB"
+msgstr "加载至 # KB 的图片"
+
+#: trtables.py:379
+msgid "Syntax highlighting"
+msgstr "语法高亮"
+
+#: trtables.py:380
+msgid "Word wrap"
+msgstr "自动换行"
+
+#: trtables.py:381
+msgid "Display alien line endings (CRLF)"
+msgstr "显示非标准行结束符（CRLF）"
+
+#: trtables.py:382
+msgid "“-/+” colors"
+msgstr "“-/+”颜色"
+
+#: trtables.py:383
+msgid "Background colors for deleted (-) and added (+) lines."
+msgstr "为删除（-）和添加（+）的行设置背景颜色。"
+
+#: trtables.py:384
+msgid "Treat SVG files as"
+msgstr "将SVG文件视为"
+
+#: trtables.py:386
+msgid "Show tab close button"
+msgstr "显示标签关闭按钮"
+
+#: trtables.py:387
+msgid "Expand tabs to available width"
+msgstr "将标签展开到可用宽度"
+
+#: trtables.py:388
+msgid "Auto-hide tabs if only one repo is open"
+msgstr "如果只打开一个仓库，则自动隐藏标签"
+
+#: trtables.py:389
+msgid "Double-click a tab to open repo folder"
+msgstr "双击标签以打开仓库文件夹"
+
+#: trtables.py:391
+msgid "Sort commits"
+msgstr "排序提交"
+
+#: trtables.py:392
+msgid "Chronologically"
+msgstr "按时间顺序"
+
+#: trtables.py:393
+msgid "Topologically"
+msgstr "按拓扑顺序"
+
+#: trtables.py:395
+msgid "<b>Chronological mode</b> lets you stay on top of the latest activity in the repository. The most recent commits always show up at the top of the graph. However, the graph can get messy when multiple branches receive commits in the same timeframe."
+msgstr ""
+"<b>时间顺序模式</b>可以让您随时掌握仓库中的最新活动。最新的提交总是显示在图表"
+"的最顶部。然而，当多个分支在同一时间段内接收提交时，图表可能会变得混乱。"
+
+#: trtables.py:398
+msgid "<b>Topological mode</b> makes the graph easier to read. It attempts to present sequences of commits within a branch in a linear fashion. Since this is not a strictly chronological mode, you may have to do more scrolling to see the latest changes in various branches."
+msgstr ""
+"<b>拓扑模式</b>使图表更易于阅读。它尝试以线性方式呈现分支内提交的顺序。由于这"
+"不是严格的时间顺序模式，您可能需要滚动更多才能看到各个分支中的最新变化。"
+
+#: trtables.py:402
+msgid "Row spacing"
+msgstr "行间距"
+
+#: trtables.py:403
+msgid "Avoid gaps between branches in the graph"
+msgstr "避免图表中分支之间的空白"
+
+#: trtables.py:404
+msgid "Mark author/committer signature differences"
+msgstr "标记作者/提交者签名差异"
+
+#: trtables.py:406
+msgid "The commit history displays information about a commit’s <b>author</b>—their name and the date at which they made the commit. But in some cases, a commit might have been revised by someone else than the original author—this person is called the <b>committer</b>."
+msgstr ""
+"提交历史显示了关于提交的<b>作者</b>的信息——他们的名字以及他们提交的时间。但在"
+"某些情况下，提交可能已经被除原始作者之外的人修改——这个人被称为<b>提交者</b>。"
+
+#: trtables.py:410
+msgid "If you tick this option, an asterisk (*) will appear after the author’s name and/or date if they differ from the committer’s for any given commit."
+msgstr "如果你勾选这个选项，当作者的名字和/或日期与提交者的不同时，作者的名字和/或日"
+"期后面将出现一个星号(*)。"
+
+#: trtables.py:412
+msgid "Note that you can always hover over the author’s name or date to obtain detailed information about the author and the committer."
+msgstr "请注意，你可以随时将鼠标悬停在作者的名字或日期上，以获取关于作者和提交者的详"
+"细信息。"
+
+#: trtables.py:415
+msgid "Load up to # commits in the history"
+msgstr "在历史记录中加载多达 # 个提交"
+
+#: trtables.py:416
+msgid "Set to 0 to always load the full commit history."
+msgstr "设置为 0 以始终加载完整的提交历史。"
+
+#: trtables.py:417
+msgid "Draw rows using alternating background colors"
+msgstr "使用交替背景颜色绘制行"
+
+#: trtables.py:418
+msgid "Ref indicators"
+msgstr "引用指示器"
+
+#: trtables.py:419
+msgid "You can always hover over an indicator to display the full name of the ref."
+msgstr "您始终可以悬停在指示器上以显示引用的完整名称。"
+
+#: trtables.py:421
+msgid "The trash keeps up to # discarded patches"
+msgstr "垃圾箱最多保留 # 个废弃的补丁"
+
+#: trtables.py:422
+msgid "Patches bigger than # KB won’t be salvaged"
+msgstr "大于 # KB 的补丁不会被回收"
+
+#: trtables.py:424
+#, python-brace-format
+msgid "When you discard changes from the working directory, {app} keeps a temporary copy in a hidden “trash” folder. This gives you a last resort to rescue changes that you have discarded by mistake. You can look around this trash folder via <i>“Help &rarr; Open Trash”</i>."
+msgstr ""
+"当您从工作目录中丢弃更改时，{app} "
+"会在一个隐藏的“垃圾箱”文件夹中保留一个临时副本。这为您提供了一个最后的救援手"
+"段，以恢复您不小心丢弃的更改。您可以通过 <i>“帮助 &rarr; 打开垃圾箱”</i> "
+"查看这个垃圾箱文件夹。"
+
+#: trtables.py:428
+msgid "Logging verbosity"
+msgstr "日志详细程度"
+
+#: trtables.py:429
+msgid "Auto-refresh when app regains focus"
+msgstr "应用重新获得焦点时自动刷新"
+
+#: trtables.py:431
+#, python-brace-format
+msgid "When you return to {app} from another application, it automatically scans for changes in the working directory and local branches. This keeps the interface in sync with the state of your repo on disk."
+msgstr "当您从另一个应用返回到{app}时，它会自动扫描工作目录和本地分支中的更改。这使得"
+"界面与您磁盘上的仓库状态保持同步。"
+
+#: trtables.py:434
+#, python-brace-format
+msgid "If you turn this off, you will need to hit {key} to perform this refresh manually."
+msgstr "如果您关闭此功能，将需要按下{key}来手动执行此刷新。"
+
+#: trtables.py:436
+msgid "We strongly recommend to keep this setting enabled."
+msgstr "我们强烈建议保持此设置为启用状态。"
+
+#: trtables.py:437
+msgid "Animation effects in sidebar"
+msgstr "侧边栏中的动画效果"
+
+#: trtables.py:438
+msgid "Smooth scrolling (where applicable)"
+msgstr "平滑滚动（适用时）"
+
+#: trtables.py:439
+msgid "Preferred Qt binding"
+msgstr "首选的Qt绑定"
+
+#: trtables.py:441
+#, python-brace-format
+msgid "After restarting, {app} will use this Qt binding if available."
+msgstr "重启后，如果可用，{app}将使用此Qt绑定。"
+
+#: trtables.py:442
+msgid "You can also pass the name of a Qt binding via the “QT_API” environment variable."
+msgstr "您也可以通过“QT_API”环境变量传递一个Qt绑定的名称。"
+
+#: trtables.py:444
+msgid "Use condensed fonts"
+msgstr "使用紧凑字体"
+
+#: trtables.py:446
+msgid "When a branch name or author name is too long to fit in its allotted space, condense the font before truncating the text."
+msgstr "当分支名称或作者名称太长而无法适应其分配的空间时，在截断文本之前先压缩字体。"
+
+#: trtables.py:449
+msgid "Text editor"
+msgstr "文本编辑器"
+
+#: trtables.py:452 trtables.py:458 trtables.py:466
+msgid "Argument placeholders:"
+msgstr "参数占位符："
+
+#: trtables.py:453
+msgid "Old / Left"
+msgstr "旧 / 左"
+
+#: trtables.py:454
+msgid "New / Right"
+msgstr "新 / 右"
+
+#: trtables.py:459
+msgid "Ancestor / Base / Center"
+msgstr "祖先 / 基础 / 中心"
+
+#: trtables.py:460
+msgid "Ours / Local / Left"
+msgstr "我们的 / 本地 / 左"
+
+#: trtables.py:461
+msgid "Theirs / Remote / Right"
+msgstr "他们的 / 远程 / 右"
+
+#: trtables.py:462
+msgid "Merged / Output / Result"
+msgstr "合并 / 输出 / 结果"
+
+#: trtables.py:467
+msgid "Command to execute after launching the terminal"
+msgstr "启动终端后执行的命令"
+
+#: trtables.py:468
+#, python-brace-format
+msgid "The {0} placeholder is mandatory. It is automatically substituted for a wrapper script that enters your working directory and optionally starts one of your Custom Commands."
+msgstr "占位符 {0} "
+"是强制性的。它会自动替换为一个包装脚本，该脚本进入您的工作目录，并可选地启动"
+"您的自定义命令之一。"
+
+#: trtables.py:474
+msgid "Ask for confirmation before running any command"
+msgstr "在运行任何命令之前请求确认"
+
+#: trtables.py:476
+#, python-brace-format
+msgid "If you untick this, you can still force a prompt to appear for specific commands by prepending them with {0}. For example: {1}"
+msgstr "如果你取消勾选这个选项，你仍然可以通过在特定命令前加上{0}来强制提示出现。例如"
+"：{1}"
+
+#: trtables.py:498
+#, python-brace-format
+msgid "Feel free to copy the sample below and paste it into the text box. Then, click OK, and explore {menu} in the menu bar."
+msgstr "请随意复制下面的示例并粘贴到文本框中。然后，点击确定，并在菜单栏中探索{menu}"
+"。"
+
+#: trtables.py:503
+msgid "&Interactive Rebase"
+msgstr "&交互式变基"
+
+#: trtables.py:504
+msgid "&Continue Rebase"
+msgstr "&继续变基"
+
+#: trtables.py:505
+msgid "&Abort Rebase"
+msgstr "&中止变基"
+
+#: trtables.py:506
+msgid "Diff Commit With &HEAD"
+msgstr "与&HEAD比较提交"
+
+#: trtables.py:508
+msgid "You may use the following placeholders in your commands:"
+msgstr "你可以在命令中使用以下占位符："
+
+#: trtables.py:510
+msgid "For advanced usage tips, please visit [the user’s guide]."
+msgstr "有关高级使用技巧，请访问[用户指南]。"

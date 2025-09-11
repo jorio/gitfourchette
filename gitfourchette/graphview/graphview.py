@@ -18,7 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
@@ -46,14 +46,16 @@ class GraphView(QListView):
                 m = _("This commit isn’t shown in the graph.")
             return m
 
-    def __init__(self, parent):
+    def __init__(self, repoModel: RepoModel, parent):
         super().__init__(parent)
+
+        self.repoModel = repoModel
 
         # Use tabular numbers (ISO dates look better with Inter, Cantarell, etc.)
         self.setFont(setFontFeature(self.font(), "tnum"))
 
-        self.clModel = CommitLogModel(self)
-        self.clFilter = CommitLogFilter(self)
+        self.clModel = CommitLogModel(repoModel, self)
+        self.clFilter = CommitLogFilter(repoModel, self)
         self.clFilter.setSourceModel(self.clModel)
 
         self.setModel(self.clFilter)
@@ -86,10 +88,6 @@ class GraphView(QListView):
         self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
         self.copyMessageShortcut = makeWidgetShortcut(self, self.copyCommitMessageToClipboard, "Ctrl+Shift+C")
         self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
-
-    @property
-    def repoModel(self):
-        return self.repoWidget.repoModel
 
     def makeContextMenu(self) -> QMenu:
         kind = self.currentRowKind
@@ -145,6 +143,11 @@ class GraphView(QListView):
 
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
+            resetLabel = _("&Reset {0} to Here…", lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD")
+
+            gpgLookAtCommit = self.repoModel.repo.peel_commit(oid)
+            gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(gpgLookAtCommit)
+            gpgIcon = gpgStatus.iconName()
 
             actions = [
                 *mergeActions,
@@ -153,7 +156,7 @@ class GraphView(QListView):
                 TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid),
                 ActionDef.SEPARATOR,
                 checkoutAction,
-                TaskBook.action(self, ResetHead, _("&Reset HEAD to Here…"), taskArgs=oid),
+                TaskBook.action(self, ResetHead, resetLabel, taskArgs=oid),
                 ActionDef.SEPARATOR,
                 TaskBook.action(self, CherrypickCommit, _("Cherry &Pick…"), taskArgs=oid),
                 TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),
@@ -161,6 +164,7 @@ class GraphView(QListView):
                 ActionDef.SEPARATOR,
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
+                TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != GpgStatus.Unsigned, icon=gpgIcon, accel="G"),
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
                 *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
             ]
@@ -173,11 +177,8 @@ class GraphView(QListView):
     def onContextMenuRequested(self, point: QPoint):
         menu = self.makeContextMenu()
         if menu is not None:
-            menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
-
-    def clear(self):
-        self.clModel.clear()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         currentIndex = self.currentIndex()
@@ -295,7 +296,7 @@ class GraphView(QListView):
             raise NotImplementedError(f"unsupported locator context {locator.context}")
         return index
 
-    def getFilterIndexForCommit(self, oid: Oid) -> QModelIndex | None:
+    def getFilterIndexForCommit(self, oid: Oid) -> QModelIndex:
         try:
             rawIndex = self.repoModel.graph.getCommitRow(oid)
         except KeyError as exc:

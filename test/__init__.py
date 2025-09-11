@@ -11,7 +11,7 @@ import sys
 # Verbose logging by default in unit tests
 # Don't override datefmt so we get milliseconds
 logging.basicConfig(
-    stream=sys.stdout,
+    stream=sys.stderr,
     format='%(levelname).1s %(asctime)s %(filename)-24s | %(message)s')
 logging.captureWarnings(True)
 

@@ -28,6 +28,7 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.forms.welcomewidget import WelcomeWidget
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -514,7 +515,7 @@ class MainWindow(QMainWindow):
             return
 
         menu = self.generateTabContextMenu(i)
-        menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        menu.aboutToHide.connect(menu.deleteLater)
         menu.popup(globalPoint)
 
     def onTabDoubleClicked(self, i: int):
@@ -775,6 +776,7 @@ class MainWindow(QMainWindow):
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
+        installDialogReturnShortcut(dlg)
 
     def openDialog(self):
         qfd = PersistentFileDialog.openDirectory(self, "NewRepo", _("Open repository"))
@@ -1055,11 +1057,16 @@ class MainWindow(QMainWindow):
             app.applyLanguagePref()
             self.fillGlobalMenuBar()
 
+        if "ownSshAgent" in prefDiff:
+            app.applySshAgentPref()
+
         if "commands" in prefDiff or "confirmCommands" in prefDiff:
             self.fillGlobalMenuBar()
 
         if "maxRecentRepos" in prefDiff:
             self.fillRecentMenu()
+
+        GitDriver.setGitPath(settings.prefs.gitPath)
 
         self.statusBar2.setVisible(settings.prefs.showStatusBar)
         self.statusBar2.enableMemoryIndicator(APP_DEBUG)
@@ -1072,7 +1079,7 @@ class MainWindow(QMainWindow):
         self.showMenuBarAction.setCheckable(True)
         self.showMenuBarAction.setChecked(settings.prefs.showMenuBar)
 
-        app.prefsChanged.emit()
+        app.prefsChanged.emit(list(prefDiff))
 
     def onAcceptPrefsDialog(self, prefDiff: dict):
         # Early out if the prefs didn't change
@@ -1157,6 +1164,7 @@ class MainWindow(QMainWindow):
         dlg.accepted.connect(lambda: self.onAcceptPrefsDialog(dlg.prefDiff))
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
         dlg.show()
+        installDialogReturnShortcut(dlg)
         return dlg
 
     # -------------------------------------------------------------------------

@@ -12,10 +12,6 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 
 
-# Windows: even if we turn off autocrlf, we get:
-# OSError: could not open 'a/a1.txt' for writing: The requested operation cannot
-# be performed on a file with a user-mapped section open.
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows quirks")
 def testExportPatchFromWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "some changes\n")
@@ -38,7 +34,7 @@ def testExportPatchFromWorkdir(tempDir, mainWindow):
 
     triggerMenuAction(mainWindow.menuBar(), "file/revert patch")
     acceptQFileDialog(rw, "revert patch", f"{wd}/workdir.patch")
-    acceptQMessageBox(rw, "revert patch.+ran into issues")
+    acceptQMessageBox(rw, "patch does not apply")
 
     triggerMenuAction(mainWindow.menuBar(), "file/apply patch")
     acceptQFileDialog(rw, "apply patch", f"{wd}/workdir.patch")
@@ -53,6 +49,26 @@ def testExportPatchFromEmptyWorkdir(tempDir, mainWindow):
     node = rw.sidebar.findNodeByKind(SidebarItem.UncommittedChanges)
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), r"export.+patch")
     acceptQMessageBox(rw, "patch is empty")
+
+
+def testExportPatchFromHandPickedSelectionOfBinaryFiles(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "\x00\x01\x02\x03")
+    writeFile(f"{wd}/untracked.txt", "hello")
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
+    rw.dirtyFiles.savePatchAs()
+    acceptQMessageBox(rw, "cannot export binary patches from a hand-picked selection of files")
+
+    rw.dirtyFiles.selectAll()
+    rw.dirtyFiles.savePatchAs()
+    acceptQMessageBox(rw, "cannot export binary patches from a hand-picked selection of files"
+                          ".+binary file will be omitted.+master.txt")
+    acceptQFileDialog(rw, "export patch", f"{wd}/nobinary.patch")
+
+    assert "master.txt" not in readTextFile(f"{wd}/nobinary.patch")
+    assert "untracked.txt" in readTextFile(f"{wd}/nobinary.patch")
 
 
 def testExportPatchFromCommit(tempDir, mainWindow):
@@ -76,10 +92,6 @@ def testExportPatchFromCommit(tempDir, mainWindow):
     assert qlvGetRowData(rw.dirtyFiles) == []
 
 
-# Windows: even if we turn off autocrlf, the last step of this test fails with:
-# OSError: could not open 'a/a1.txt' for writing: The requested operation cannot
-# be performed on a file with a user-mapped section open.
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows quirks")
 def testExportPatchFromStash(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stashedChange(wd)
@@ -111,7 +123,7 @@ def testExportPatchFromFileList(tempDir, mainWindow, commitHex, path):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    rw.jump(NavLocator.inCommit(Oid(hex=commitHex), path))
+    rw.jump(NavLocator.inCommit(Oid(hex=commitHex), path), check=True)
     rw.committedFiles.savePatchAs()
     acceptQFileDialog(rw, "export patch", f"{tempDir.name}/foo.patch")
 

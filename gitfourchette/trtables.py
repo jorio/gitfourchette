@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import textwrap
 from enum import Enum
@@ -104,6 +105,7 @@ class TrTables:
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
         from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, CondensedFonts
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
+        from gitfourchette.repomodel import GpgStatus
 
         NVERule = NameValidationError.Rule
 
@@ -237,6 +239,20 @@ class TrTables:
                 CondensedFonts.Stretch          : _p("shrink only long text using condensed fonts", "For long text"),
                 CondensedFonts.Always           : _p("use condensed fonts whenever possible", "Always"),
             }
+
+            GpgStatus: {
+                GpgStatus.Unsigned              : _("Not signed"),
+                GpgStatus.Pending               : _("Signature not verified yet"),
+                GpgStatus.CantCheck             : _("Unable to verify signature"),
+                GpgStatus.MissingKey            : _("Can’t verify signature; Key not in your keyring"),
+                GpgStatus.GoodTrusted           : _("Good signature; Key trusted"),
+                GpgStatus.GoodUntrusted         : _("Good signature; Key not fully trusted"),
+                GpgStatus.ExpiredSig            : _("Good signature; Signature expired"),
+                GpgStatus.ExpiredKey            : _("Good signature; Key expired"),
+                GpgStatus.RevokedKey            : _("Good signature; Key revoked"),
+                GpgStatus.Bad                   : _("Bad signature"),
+                GpgStatus.ProcessError          : _("Failed to start verification process"),
+            },
         }
 
     @staticmethod
@@ -334,8 +350,23 @@ class TrTables:
 
     @staticmethod
     def _init_prefKeys():
-        from gitfourchette.toolbox.textutils import paragraphs, tquo
+        from gitfourchette.toolbox.textutils import paragraphs, tquo, escape
         from gitfourchette.exttools.usercommand import UserCommand
+        from gitfourchette.appconsts import APP_DISPLAY_NAME
+        from gitfourchette.repomodel import GpgStatus
+
+        sshAuthSock = os.environ.get("SSH_AUTH_SOCK", "")
+        if sshAuthSock:
+            sshAuthSockHelp = paragraphs([
+                _("Note: Per {k}, your system is providing an ssh-agent ({v}). "
+                  "It’s recommended to use this one."),
+                _("If your system’s agent isn’t saving any passphrases, "
+                  "make sure you’ve enabled {c} in your SSH configuration."),
+            ])
+        else:
+            sshAuthSockHelp = _("Note: Per {k}, no ssh-agent seems to be running on your system.")
+        sshAuthSockHelp = "<blockquote>" + sshAuthSockHelp.format(
+            k="SSH_AUTH_SOCK", v=escape(sshAuthSock), c="AddKeysToAgent")
 
         return {
             "general": _p("Prefs", "General"),
@@ -344,6 +375,7 @@ class TrTables:
             "tabs": _p("Prefs", "Tabs"),
             "graph": _p("Prefs", "Commit History"),
             "trash": _p("Prefs", "Trash"),
+            "git": _p("Prefs", "Git Integration"),
             "external": _p("Prefs", "External Tools"),
             "advanced": _p("Prefs", "Advanced"),
             "userCommands": _p("Prefs", "Custom Commands"),
@@ -424,6 +456,17 @@ class TrTables:
             "alternatingRowColors": _("Draw rows using alternating background colors"),
             "refBoxMaxWidth": _("Ref indicators"),
             "refBoxMaxWidth_help": _("You can always hover over an indicator to display the full name of the ref."),
+            "verifyGpgOnTheFly": _("Verify signed commits on the fly"),
+            "verifyGpgOnTheFly_help": _("As commits scroll into view, call {0} automatically to verify their signatures. "
+                                        "The verification status is materialized by a seal icon next to the author’s name:", tquo("git verify-commit")
+                                        ) + _tokenReferenceTable({
+                GpgStatus.Pending.iconHtml()        : _("Verification pending"),
+                GpgStatus.CantCheck.iconHtml()      : _("Verification failed (e.g. missing key)"),
+                GpgStatus.GoodTrusted.iconHtml()    : _("Good signature; Key trusted"),
+                GpgStatus.GoodUntrusted.iconHtml()  : _("Good signature; Key not fully trusted"),
+                GpgStatus.ExpiredSig.iconHtml()     : _("Good signature; Key or signature expired"),
+                GpgStatus.Bad.iconHtml()            : _("Key revoked or bad signature"),
+            }) + "<br>" + _("(No seal = Commit isn’t signed)"),
 
             "maxTrashFiles": _("The trash keeps up to # discarded patches"),
             "maxTrashFileKB": _("Patches bigger than # KB won’t be salvaged"),
@@ -475,6 +518,21 @@ class TrTables:
                 _("The {0} placeholder is mandatory. It is automatically substituted for a wrapper script that "
                   "enters your working directory and optionally starts one of your Custom Commands.",
                   "$COMMAND")),
+            "gitPath": "git",
+            "ownAskpass": _("Have OpenSSH ask for passphrases via {app}", app=APP_DISPLAY_NAME),
+            "ownAskpass_help": paragraphs(
+                _("Tick this to have OpenSSH use {app} to ask for passphrases."),
+                _("Untick this if you’ve set up another program in the {0} environment variable (such as {1}).", tquo("SSH_ASKPASS"), tquo("ksshaskpass"))),
+            "ownSshAgent": "ssh-agent",
+            "ownSshAgent_false": _("Use ssh-agent provided by the system") + " " + "" if sshAuthSock else _("(not detected)"),
+            "ownSshAgent_true": _("Have {app} manage its own ssh-agent", app=APP_DISPLAY_NAME),
+            "ownSshAgent_help": paragraphs(
+                _("“ssh-agent” can save your SSH credentials so you don’t have to retype the same passphrase over and over. "
+                  "Some Linux distributions set up an ssh-agent for you."),
+                _("You can also have {app} start its own instance of ssh-agent "
+                  "for the duration of your session and have it remember passphrases."),
+                sshAuthSockHelp,
+            ),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",

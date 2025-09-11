@@ -16,6 +16,7 @@ except ImportError:  # pragma: no cover
 from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import benchmark
+from gitfourchette.toolbox.textutils import qstringLength
 
 
 class LexJob(QObject):
@@ -78,7 +79,7 @@ class LexJob(QObject):
                 lqTokens = LexJob._EmptyTokenization
             else:
                 # Perform low-quality lexing and cache the result.
-                lqTokens = [(t, len(v)) for _i, t, v in self.lexer.get_tokens_unprocessed(fallbackText)]
+                lqTokens = [(t, qstringLength(v)) for _i, t, v in self.lexer.get_tokens_unprocessed(fallbackText)]
                 self.lqTokenMap[lineNumber] = lqTokens
         return lqTokens
 
@@ -108,13 +109,12 @@ class LexJob(QObject):
             for _i in range(n):
                 ttype, text = next(lexGen)
 
-                # This looks optimizable, need to benchmark.
                 if '\n' not in text:
-                    tokens.append((ttype, len(text)))
+                    tokens.append((ttype, qstringLength(text)))
                 else:
                     for part in text.split('\n'):
                         if part:
-                            tm[ln].append((ttype, len(part)))
+                            tm[ln].append((ttype, qstringLength(part)))
                         ln += 1
                         tm[ln] = []
                     ln -= 1  # for loop above inserts one too many lines

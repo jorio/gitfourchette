@@ -24,19 +24,50 @@ if TYPE_CHECKING:
 
 
 def setUpGitConfigSearchPaths(prefix=""):
-    # Don't let unit tests access host system's git config
+    """
+    Prevent unit tests from accessing the host system's git config files.
+    This modifies libgit2 search paths and GIT_CONFIG environment variables
+    for vanilla git.
+    """
+    ConfigLevel = pygit2.enums.ConfigLevel
+
     levels = [
-        pygit2.enums.ConfigLevel.GLOBAL,
-        pygit2.enums.ConfigLevel.XDG,
-        pygit2.enums.ConfigLevel.SYSTEM,
-        pygit2.enums.ConfigLevel.PROGRAMDATA,
+        ConfigLevel.GLOBAL,
+        ConfigLevel.XDG,
+        ConfigLevel.SYSTEM,
+        ConfigLevel.PROGRAMDATA,
     ]
+
     for level in levels:
         if prefix:
             path = f"{prefix}_{level.name}"
         else:
             path = ""
         pygit2.settings.search_path[level] = path
+
+    def vanillaGitConfigPath(level):
+        path = pygit2.settings.search_path[level]
+        if path:
+            # When there are no valid config files in the search path, libgit2
+            # will create a file named ".gitconfig" the first time it writes
+            # a config object to disk
+            path += "/.gitconfig"
+        return path
+
+    from gitfourchette.qt import INITIAL_ENVIRONMENT, FLATPAK
+
+    # Replace userwide gitconfig
+    os.environ["GIT_CONFIG_GLOBAL"] = vanillaGitConfigPath(ConfigLevel.GLOBAL)
+    assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_GLOBAL", None) != os.environ["GIT_CONFIG_GLOBAL"]
+
+    # Replace systemwide gitconfig
+    # FLATPAK: Except in a Flatpak environment where we have full control over the systemwide gitconfig
+    if FLATPAK:
+        assert os.environ["GIT_CONFIG_SYSTEM"] == "/app/sandboxed-gitconfig"
+    else:
+        os.environ["GIT_CONFIG_SYSTEM"] = vanillaGitConfigPath(ConfigLevel.SYSTEM)
+        assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_SYSTEM", None) != os.environ["GIT_CONFIG_SYSTEM"]
+
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -71,7 +102,11 @@ def qapp_cls():
 
 @pytest.fixture
 def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
-    td = tempfile.TemporaryDirectory(prefix="gitfourchettetest-")
+    # When running as a Flatpak, we want to override the temp dir's location
+    # to make it easier to send repository paths out of the sandbox.
+    location = os.environ.get("GITFOURCHETTE_TEMPDIR", None)
+
+    td = tempfile.TemporaryDirectory(prefix="gitfourchettetest-", dir=location)
     yield td
     td.cleanup()
 
@@ -80,7 +115,7 @@ def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
 def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     from gitfourchette import qt, trash, porcelain, tasks
     from gitfourchette.appconsts import APP_TESTMODE
-    from .util import TEST_SIGNATURE, waitUntilTrue
+    from .util import TEST_SIGNATURE, waitUntilTrue, getTestDataPath
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert APP_TESTMODE
@@ -102,6 +137,15 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     globalGitConfig = porcelain.GitConfigHelper.ensure_file(porcelain.GitConfigLevel.GLOBAL)
     globalGitConfig["user.name"] = TEST_SIGNATURE.name
     globalGitConfig["user.email"] = TEST_SIGNATURE.email
+    # Let vanilla git clone submodules from filesystem remotes (for offline tests)
+    globalGitConfig["protocol.file.allow"] = "always"
+    # Prevent OpenSSH from looking at host user's key files
+    globalGitConfig["core.sshCommand"] = getTestDataPath("isolated-ssh.sh")
+
+    # Clear the clipboard so all tests can assume a fresh clipboard
+    clipboardBackup = app.clipboard().text()
+    app.clipboard().setText("")  # Note: Wayland blocks QClipboard.clear()
+    assert not app.clipboard().text()
 
     # Boot the UI
     assert app.mainWindow is None
@@ -113,6 +157,9 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     yield app.mainWindow
 
     assert app.mainWindow is not None, "mainWindow vanished after the test"
+
+    # Restore the clipboard
+    app.clipboard().setText(clipboardBackup)
 
     # Look for any unclosed dialogs after the test
     leakedWindows = []

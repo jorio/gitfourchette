@@ -23,13 +23,16 @@ if TYPE_CHECKING:
     from gitfourchette.settings import Session
     from gitfourchette.tasks import RepoTask, TaskInvocation
     from gitfourchette.porcelain import GitConfig
+    from gitfourchette.sshagent import SshAgent
 
 logger = logging.getLogger(__name__)
 
 
 class GFApplication(QApplication):
+    AskpassEnvKey = "_GITFOURCHETTE_START_IN_ASKPASS_MODE"
+
     restyle = Signal()
-    prefsChanged = Signal()
+    prefsChanged = Signal(list)
     regainForeground = Signal()
     fileDraggedToDockIcon = Signal(str)
     mouseSideButtonPressed = Signal(bool)
@@ -42,12 +45,17 @@ class GFApplication(QApplication):
     tempDir: QTemporaryDir
     sessionwideGitConfigPath: str
     sessionwideGitConfig: GitConfig
+    sshAgent: SshAgent | None
 
     @staticmethod
     def instance() -> GFApplication:
         me = QApplication.instance()
         assert isinstance(me, GFApplication)
         return me
+
+    @classmethod
+    def standaloneAskpassMode(cls) -> bool:
+        return os.environ.get(cls.AskpassEnvKey, "") not in ["", "0"]
 
     def __init__(self, argv: list[str], bootScriptPath: str = "", ):
         super().__init__(argv)
@@ -61,6 +69,7 @@ class GFApplication(QApplication):
         self.commandLinePaths = []
         self.installedLocale = None
         self.qtbaseTranslator = QTranslator(self)
+        self.sshAgent = None
 
         # Don't use app.setOrganizationName because it changes QStandardPaths.
         self.setApplicationName(APP_SYSTEM_NAME)  # used by QStandardPaths
@@ -85,6 +94,10 @@ class GFApplication(QApplication):
         # (for command line parser to display localized text)
         self.installTranslators()
 
+        # If starting in standalone askpass mode, we've initialized enough things
+        if self.standaloneAskpassMode():
+            return
+
         # Process command line
         parser = QCommandLineParser()
         parser.setApplicationDescription(qAppName() + " - " + _("The comfortable Git UI for Linux."))
@@ -103,12 +116,14 @@ class GFApplication(QApplication):
         from gitfourchette.tasks import TaskBook, TaskInvocation
 
         # Prepare session-wide temporary directory
-        if FLATPAK:
+        if os.environ.get("GITFOURCHETTE_TEMPDIR", ""):
+            tempDirPath = Path(os.environ["GITFOURCHETTE_TEMPDIR"])
+        elif FLATPAK:
             # Flatpak guarantees that "/run/user/1000/app/org.gitfourchette.gitfourchette" sits on a tmpfs,
             # and "/tmp" actually resolves to "/run/user/1000/app/org.gitfourchette.gitfourchette/tmp".
             # Use the real path instead of "/tmp" (QDir.tempPath() default value)
             # so that we can pass it to external tools outside our sandbox.
-            tempDirPath = Path(os.environ["XDG_RUNTIME_DIR"], "app", os.environ["FLATPAK_ID"])
+            tempDirPath = Path(XDG_RUNTIME_DIR, "app", FLATPAK_ID)
             assert tempDirPath.exists(), f"Expected to find Flatpak temp dir at: {tempDirPath}"
         else:
             tempDirPath = QDir.tempPath()
@@ -127,6 +142,11 @@ class GFApplication(QApplication):
         self.commandLinePaths = commandLinePaths
 
     def beginSession(self, bootUi=True):
+        if self.standaloneAskpassMode():
+            from gitfourchette.forms.askpassdialog import AskpassDialog
+            AskpassDialog.run()
+            return
+
         from gitfourchette.toolbox.messageboxes import NonCriticalOperation
         from gitfourchette.porcelain import GitConfig
         from gitfourchette import settings
@@ -181,13 +201,13 @@ class GFApplication(QApplication):
     def endSession(self, clearTempDir=True):
         from gitfourchette import settings
         from gitfourchette.syntax import LexJobCache
-        from gitfourchette.remotelink import RemoteLink
         if settings.prefs.isDirty():
             settings.prefs.write()
         if settings.history.isDirty():
             settings.history.write()
+        self.stopSshAgent()
         LexJobCache.clear()  # don't cache lexed files across sessions (for unit testing)
-        RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
+        # RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
         if clearTempDir:
             self.tempDir.remove()
@@ -211,6 +231,8 @@ class GFApplication(QApplication):
         if not GNOME:  # Skip this on GNOME (issue #50)
             self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
         self.mainWindow.show()
+
+        self.applySshAgentPref()
 
         # Restore session then consume it
         self.mainWindow.restoreSession(self.initialSession, self.commandLinePaths)
@@ -372,6 +394,40 @@ class GFApplication(QApplication):
         from gitfourchette import settings
 
         logging.root.setLevel(settings.prefs.verbosity.value)
+
+    def applySshAgentPref(self):
+        from gitfourchette import settings
+        from gitfourchette.sshagent import SshAgent
+        from gitfourchette.toolbox import showWarning, paragraphs
+
+        wantAgent = settings.prefs.ownSshAgent
+        sandbox = settings.prefs.isGitSandboxed()
+
+        if not wantAgent:
+            self.stopSshAgent()
+            return
+
+        if self.sshAgent and sandbox != self.sshAgent.isSandboxed():
+            # Sandboxed state of the current agent isn't what we want, restart it
+            self.stopSshAgent()
+
+        if self.sshAgent:
+            # Already have an agent
+            return
+
+        try:
+            self.sshAgent = SshAgent(self, sandbox=sandbox)
+        except Exception as exc:
+            message = paragraphs(
+                _("Couldn’t start {0} ({1}).", "ssh-agent", str(exc)),
+                _("Please make sure OpenSSH is installed on your system."))
+            showWarning(self.mainWindow, _("SSH agent"), message)
+
+    def stopSshAgent(self):
+        if self.sshAgent:
+            self.sshAgent.stopAndWait()
+            self.sshAgent.deleteLater()
+            self.sshAgent = None
 
     # -------------------------------------------------------------------------
 

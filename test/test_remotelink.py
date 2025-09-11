@@ -4,15 +4,56 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import pytest
+
+from gitfourchette.application import GFApplication
 from gitfourchette.forms.clonedialog import CloneDialog
-from gitfourchette.forms.passphrasedialog import PassphraseDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
-from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.nav import NavContext
 from .util import *
 
 
 NET_TIMEOUT = 30_000
+
+
+@pytest.fixture
+def passphraseProtectedKey(tempDir):
+    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
+    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
+    privKeyCopy = tempDir.name + "/HelloTestKey"
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
+    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+    os.chmod(privKeyCopy, 0o600)
+    return pubKeyCopy
+
+
+class AskpassShim:
+    def __init__(self, password="empty", cancel=False):
+        app = GFApplication.instance()
+        self.password = password
+        self.dumpFile = Path(app.tempDir.path()) / "askpass-dumpfile.txt"
+        self.dumpFile.touch(exist_ok=True)
+        self.environBackup = dict(os.environ)
+
+        app.mainWindow.onAcceptPrefsDialog({"ownAskpass": False})
+
+        os.environ.update({
+            "SSH_ASKPASS": getTestDataPath("askpass-shim.py"),
+            "SSH_ASKPASS_REQUIRE": "force",
+            "GFTEST_ASKPASS_SHIM_PASSWORD": self.password,
+            "GFTEST_ASKPASS_SHIM_DUMPFILE": str(self.dumpFile),
+        })
+
+        if cancel:
+            os.environ["GFTEST_ASKPASS_SHIM_CANCEL"] = "1"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        os.environ.clear()
+        os.environ.update(self.environBackup)
 
 
 @requiresNetwork
@@ -31,7 +72,7 @@ def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testSshCloneRepo(tempDir, mainWindow, taskThread):
+def testSshCloneRepo(tempDir, mainWindow, taskThread, passphraseProtectedKey):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
@@ -45,29 +86,44 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread):
     assert protocolButton.text() == "ssh"
     assert cloneDialog.ui.urlEdit.lineEdit().text() == "git@github.com:libgit2/TestGitRepository"
 
-    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
-    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
-    privKeyCopy = tempDir.name + "/HelloTestKey"
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
-
     # Set custom passphrase-protected key
-    cloneDialog.ui.keyFilePicker.setPath(pubKeyCopy)
-    cloneDialog.cloneButton.click()
+    cloneDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
 
-    passphraseDialog: TextInputDialog = waitForQDialog(mainWindow, "passphrase", timeout=NET_TIMEOUT)
-    # Make sure we're prompted to enter the passphrase for the correct key
-    assert any("HelloTestKey" in label.text() for label in passphraseDialog.findChildren(QLabel))
-    # Enter passphrase and accept
-    passphraseDialog.findChild(QLineEdit).setText("empty")
-    passphraseDialog.accept()
-    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
+    # Clone
+    with AskpassShim() as askpassShim:
+        cloneDialog.cloneButton.click()
+        waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
+
+        # Make sure we're prompted to enter the passphrase for the correct key
+        assert re.search("Enter passphrase for key.+HelloTestKey", askpassShim.dumpFile.read_text())
 
     rw = waitForRepoWidget(mainWindow)
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
-    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
+    assert "HelloTestKey" in rw.repoModel.prefs.customKeyFile
+
+
+@requiresNetwork
+def testSshCloneRepoCancelAskpass(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+    triggerMenuAction(mainWindow.menuBar(), "file/clone")
+    cloneDialog: CloneDialog = findQDialog(mainWindow, "clone")
+    cloneDialog.ui.urlEdit.setEditText("git@github.com:libgit2/TestGitRepository")
+    cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
+
+    # Set custom passphrase-protected key
+    cloneDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
+
+    # Attempt to clone but cancel askpass
+    with AskpassShim(cancel=True):
+        cloneDialog.cloneButton.click()
+
+    waitUntilTrue(lambda: not cloneDialog.taskRunner.isBusy(), timeout=NET_TIMEOUT)
+
+    assert cloneDialog.ui.statusForm.ui.blurbLabel.isVisible()
+    assert "passphrase input canceled from unit test" in cloneDialog.ui.statusForm.ui.blurbLabel.text()
+
+    cloneDialog.reject()
 
 
 @requiresNetwork
@@ -114,12 +170,8 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
-    # Copy keyfile to non-default location to make sure we're not automatically picking up another key
-    pubKeyCopy = tempDir.name + "/HelloTestKey.pub"
-    privKeyCopy = tempDir.name + "/HelloTestKey"
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty.pub"), pubKeyCopy)
-    shutil.copyfile(getTestDataPath("keys/pygit2_empty"), privKeyCopy)
+def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+    mainWindow.onAcceptPrefsDialog({"ownSshAgent": True})
 
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
@@ -127,69 +179,39 @@ def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread):
     rw = waitForRepoWidget(mainWindow)
 
     # -------------------------------------------
-    # Add remote with passphrase-protected keyfile
+    # Set passphrase-protected keyfile
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/settings")
+    repoSettings = findQDialog(rw, "repo settings", RepoSettingsDialog)
+    repoSettings.ui.keyFilePicker.setPath(passphraseProtectedKey)
+    repoSettings.accept()
+
+    # -------------------------------------------
+    # Add remote
 
     triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
-    remoteDialog: RemoteDialog = findQDialog(rw, "add remote")
+    remoteDialog = findQDialog(rw, "add remote", RemoteDialog)
     remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
     remoteDialog.ui.nameEdit.setText("origin")
-    remoteDialog.ui.keyFilePicker.setPath(pubKeyCopy)
     assert remoteDialog.ui.fetchAfterAddCheckBox.isChecked()
 
     # Accept "add remote", kicking off a fetch
-    remoteDialog.accept()
+    with AskpassShim() as askpass:
+        remoteDialog.accept()
+        waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
 
-    # -------------------------------------------
-    # Enter passphrase, don't remember it
+        assert askpass.dumpFile.read_text().startswith("Enter passphrase for key ")
+        askpass.dumpFile.write_text("DO NOT LAUNCH ASKPASS AGAIN")
 
-    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file", timeout=NET_TIMEOUT)
-    pd.lineEdit.setText("empty")
-
-    # Make sure it's for the correct key
-    assert "HelloTestKey" in rw.repo.get_config_value(("remote", "origin", "gitfourchette-keyfile"))
-    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
-
-    # Don't remember the passphrase
-    assert pd.rememberCheckBox.isChecked()  # ticked by default
-    pd.rememberCheckBox.setChecked(False)
-
-    # Play with echo mode
-    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
-    pd.lineEdit.actions()[0].trigger()
-    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Normal
-    pd.lineEdit.actions()[0].trigger()
-    assert pd.lineEdit.echoMode() == QLineEdit.EchoMode.Password
-
-    # Accept
-    pd.accept()
-    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
     # -------------------------------------------
-    # Fetch, enter passphrase, remember it, but cancel
+    # Fetch, shouldn't prompt for passphrase again thanks to built-in ssh-agent
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
-    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
-    pd.lineEdit.setText("empty")
-    assert not pd.rememberCheckBox.isChecked()  # we unticked it previously
-    pd.rememberCheckBox.setChecked(True)
-    pd.reject()
-    waitForQMessageBox(mainWindow, "passphrase entry canceled").accept()
+    with AskpassShim() as askpass:
+        triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
+        waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
 
-    # -------------------------------------------
-    # Fetch, enter passphrase, remember it
-
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    pd: PassphraseDialog = waitForQDialog(mainWindow, "passphrase-protected key file")
-    assert any("HelloTestKey" in label.text() for label in pd.findChildren(QLabel))
-    pd.lineEdit.setText("empty")
-    assert pd.rememberCheckBox.isChecked()  # we ticked it previously
-    pd.accept()
-    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
-
-    # -------------------------------------------
-    # Fetch, shouldn't prompt for passphrase again
-
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
+        # Make sure the dump file wasn't overwritten by another invocation of askpass
+        assert askpass.dumpFile.read_text() == "DO NOT LAUNCH ASKPASS AGAIN", \
+            "askpass was invoked again. Is ssh-agent running?"

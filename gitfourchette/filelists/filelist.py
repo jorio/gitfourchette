@@ -20,12 +20,9 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import *
+from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
-
-
-class SelectedFileBatchError(Exception):
-    pass
 
 
 class FileListDelegate(QStyledItemDelegate):
@@ -213,7 +210,7 @@ class FileList(QListView):
     def onContextMenuRequested(self, point: QPoint):
         menu = self.makeContextMenu()
         if menu is not None:
-            menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
     def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
@@ -340,34 +337,36 @@ class FileList(QListView):
         patches = list(self.selectedPatches())
 
         def runBatch():
-            errors = []
+            errors = MultiFileError()
 
             for patch in patches:
                 try:
                     callback(patch)
-                except SelectedFileBatchError as exc:
-                    errors.append(str(exc))
+                    errors.add_file_success()
+                except OSError as exc:  # typically FileNotFoundError
+                    errors.add_file_error(patch.delta.new_file.path, exc)
 
             if errors:
-                showWarning(self, title, "<br>".join(errors))
+                showMultiFileErrorMessage(self, errors, title)
 
         if len(patches) <= threshold:
             runBatch()
-        else:
-            numFiles = len(patches)
+            return
 
-            qmb = askConfirmation(
-                self,
-                title,
-                prompt.format(n=numFiles),
-                runBatch,
-                QMessageBox.StandardButton.YesAll | QMessageBox.StandardButton.Cancel,
-                show=False)
+        numFiles = len(patches)
 
-            addULToMessageBox(qmb, [p.delta.new_file.path for p in patches])
+        qmb = askConfirmation(
+            self,
+            title,
+            prompt.format(n=numFiles),
+            runBatch,
+            QMessageBox.StandardButton.YesAll | QMessageBox.StandardButton.Cancel,
+            show=False)
 
-            qmb.button(QMessageBox.StandardButton.YesAll).clicked.connect(runBatch)
-            qmb.show()
+        addULToMessageBox(qmb, [p.delta.new_file.path for p in patches])
+
+        qmb.button(QMessageBox.StandardButton.YesAll).clicked.connect(runBatch)
+        qmb.show()
 
     def openWorkdirFile(self):
         def run(patch: Patch):
@@ -382,16 +381,14 @@ class FileList(QListView):
                           _("Really open <b>{n} files</b> in external diff tool?"))
 
     def _openInDiffTool(self, patch: Patch):
-        if patch.delta.new_file.id == NULL_OID:
-            raise SelectedFileBatchError(
-                _("{0}: Can’t open external diff tool on a deleted file.", patch.delta.new_file.path))
-
-        if patch.delta.old_file.id == NULL_OID:
-            raise SelectedFileBatchError(
-                _("{0}: Can’t open external diff tool on a new file.", patch.delta.new_file.path))
-
         oldDiffFile = patch.delta.old_file
         newDiffFile = patch.delta.new_file
+
+        if newDiffFile.id == NULL_OID:
+            raise FileNotFoundError(_("Can’t open external diff tool on a deleted file."))
+
+        if oldDiffFile.id == NULL_OID:
+            raise FileNotFoundError(_("Can’t open external diff tool on a new file."))
 
         diffDir = qTempDir()
 
@@ -412,10 +409,11 @@ class FileList(QListView):
 
     def showInFolder(self):
         def run(entry: Patch):
-            path = self.repo.in_workdir(entry.delta.new_file.path)
+            relPath = entry.delta.new_file.path
+            path = self.repo.in_workdir(relPath)
             path = os.path.normpath(path)  # get rid of any trailing slashes (submodules)
             if not os.path.exists(path):  # check exists, not isfile, for submodules
-                raise SelectedFileBatchError(_("{0}: This file doesn’t exist at this path anymore.", entry.delta.new_file.path))
+                raise FileNotFoundError(_("File doesn’t exist at this path anymore."))
             showInFolder(path)
 
         self.confirmBatch(run, _("Open paths"),
@@ -558,12 +556,6 @@ class FileList(QListView):
         except IndexError:
             return -1
 
-    def latestSelectedRow(self):
-        try:
-            return list(self.selectedIndexes())[-1].row()
-        except IndexError:
-            return -1
-
     def savePatchAs(self):
         patches = list(self.selectedPatches())
         ExportPatchCollection.invoke(self, patches)
@@ -571,7 +563,10 @@ class FileList(QListView):
     def revertPaths(self):
         patches = list(self.selectedPatches())
         assert len(patches) == 1
-        ApplyPatchData.invoke(self, patches[0].text, reverse=True)
+        patchData = patches[0].data
+        ApplyPatchData.invoke(self, patchData, reverse=True,
+                              title=_("Revert changes in file"),
+                              question=_("Do you want to revert this patch?"))
 
     def firstPath(self) -> str:
         index: QModelIndex = self.flModel.index(0)
@@ -579,12 +574,6 @@ class FileList(QListView):
             return index.data(FileListModel.Role.FilePath)
         else:
             return ""
-
-    def paths(self) -> Generator[str, None, None]:
-        flModel = self.flModel
-        for row in range(flModel.rowCount()):
-            index = flModel.index(row)
-            yield index.data(FileListModel.Role.FilePath)
 
     def selectFile(self, file: str) -> bool:
         if not file:

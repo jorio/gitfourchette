@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import enum
 import logging
 from collections.abc import Generator, Iterable
 
@@ -24,6 +25,8 @@ UC_FAKEREF = "UC_FAKEREF"
 # Actual refs are either "HEAD" or they start with "refs/",
 # so this name should never collide with user refs.
 
+BEGIN_SSH_SIGNATURE = b"-----BEGIN SSH SIGNATURE-----"
+
 
 def toggleSetElement(s: set, element):
     assert isinstance(s, set)
@@ -33,6 +36,38 @@ def toggleSetElement(s: set, element):
     except KeyError:
         s.add(element)
         return True
+
+
+class GpgStatus(enum.IntEnum):
+    Unsigned        = 0
+    Pending         = enum.auto()
+    CantCheck       = enum.auto()
+    MissingKey      = enum.auto()
+    GoodTrusted     = enum.auto()
+    GoodUntrusted   = enum.auto()
+    ExpiredSig      = enum.auto()
+    ExpiredKey      = enum.auto()
+    RevokedKey      = enum.auto()
+    Bad             = enum.auto()
+    ProcessError    = enum.auto()
+
+    def iconName(self):
+        return _GpgStatusIconTable.get(self, "gpg-verify-cantcheck")
+
+    def iconHtml(self):
+        return stockIconImgTag(self.iconName())
+
+
+_GpgStatusIconTable = {
+    GpgStatus.Pending       : "gpg-verify-pending",
+    GpgStatus.GoodTrusted   : "gpg-verify-good-trusted",
+    GpgStatus.GoodUntrusted : "gpg-verify-good-untrusted",
+    GpgStatus.ExpiredSig    : "gpg-verify-expired",
+    GpgStatus.ExpiredKey    : "gpg-verify-expired",
+    GpgStatus.RevokedKey    : "gpg-verify-bad",
+    GpgStatus.Bad           : "gpg-verify-bad",
+    GpgStatus.ProcessError  : "gpg-verify-cantcheck",
+}
 
 
 class RepoModel:
@@ -87,6 +122,8 @@ class RepoModel:
     hiddenCommits: set[Oid]
     "All cached commit oids that are hidden."
 
+    gpgStatusCache: dict[Oid, tuple[GpgStatus, str]]
+
     workdirStale: bool
     "Flag indicating that the workdir should be refreshed before use."
 
@@ -135,11 +172,12 @@ class RepoModel:
         self.hideSeeds = set()
         self.localSeeds = set()
 
+        self.gpgStatusCache = {}
+        self.gpgVerifyQueue = set()
+
         self.repo = repo
 
-        self.prefs = RepoPrefs(repo)
-        self.prefs._parentDir = repo.path
-        self.prefs.load()
+        self.prefs = RepoPrefs.initForRepo(repo)
 
         if settings.prefs.refSortClearTimestamp > self.prefs.refSortClearTimestamp:
             self.prefs.clearRefSort()
@@ -505,3 +543,33 @@ class RepoModel:
             for ref, oid in self.refs.items():
                 if ref.startswith(refPattern):
                     yield oid
+
+    def getCachedGpgStatus(self, commit: Commit) -> tuple[GpgStatus, str]:
+        oid = commit.id
+
+        try:
+            return self.gpgStatusCache[oid]
+        except KeyError:
+            pass
+
+        sig, _payload = commit.gpg_signature
+        status = GpgStatus.Pending if sig else GpgStatus.Unsigned
+
+        if not sig:
+            status = GpgStatus.Unsigned
+            keyInfo = ""
+        else:
+            isSsh = sig.startswith(BEGIN_SSH_SIGNATURE)
+            keyInfo = "ssh" if isSsh else ""
+
+        self.gpgStatusCache[commit.id] = (status, keyInfo)
+        return status, keyInfo
+
+    def cacheGpgStatus(self, oid: Oid, status: GpgStatus, keyInfo: str = ""):
+        self.gpgStatusCache[oid] = (status, keyInfo)
+
+    def queueGpgVerification(self, oid: Oid):
+        if not settings.prefs.verifyGpgOnTheFly:
+            return
+        assert self.gpgStatusCache[oid][0] == GpgStatus.Pending
+        self.gpgVerifyQueue.add(oid)

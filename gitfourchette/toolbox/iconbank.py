@@ -78,3 +78,7 @@ def stockIcon(iconId: str, colorTable="") -> QIcon:
     # Cache icon
     _stockIconCache[key] = icon
     return icon
+
+
+def stockIconImgTag(iconId: str) -> str:
+    return f"<img src='assets:icons/{iconId}' style='vertical-align: bottom;'/>"

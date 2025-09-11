@@ -181,7 +181,7 @@ def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "c/c2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
-    rejectQMessageBox(rw, "apply patch.+ran into an issue")
+    rejectQMessageBox(rw, r"c2\.txt: no such file or directory")
     assert not os.path.exists(f"{wd}/c/c2.txt")
 
 
@@ -420,26 +420,13 @@ def testFileListToolTip(tempDir, mainWindow):
 
 
 def testFileListCopyPath(tempDir, mainWindow):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
 
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     rw.committedFiles.setFocus()
     QTest.keySequence(rw.committedFiles, "Ctrl+C")
-    clipped = clipboard.text()
+    clipped = QApplication.clipboard().text()
     assert clipped == os.path.normpath(f"{wd}/c/c2-2.txt")
 
 
@@ -455,6 +442,23 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/full")
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
+
+
+def testFileListShowInFolder(tempDir, mainWindow, mockDesktopServices):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt"), check=True)
+    assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
+    rejectQMessageBox(rw, "file doesn.t exist at this path anymore")
+
+    rw.jump(NavLocator.inCommit(Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44"), "a/a1"), check=True)
+    assert ["a/a1"] == qlvGetRowData(rw.committedFiles)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
+    url = mockDesktopServices.urls[-1]
+    assert url.isLocalFile()
+    assert url.toLocalFile() == wd + "a"
 
 
 def testMiddleClickToStageFile(tempDir, mainWindow):
@@ -561,3 +565,21 @@ def testIgnorePatternValidation(tempDir, mainWindow, userPattern, isValid):
     dlg.accept()
 
     assert isValid == (relPath not in qlvGetRowData(rw.dirtyFiles))
+
+
+def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
+    editorPath = getTestDataPath("editor-shim.py")
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+
+    wd = unpackRepo(tempDir)
+
+    for i in range(10):
+        writeFile(f"{wd}/batch{i}.txt", f"hello{i}")
+    writeFile(f"{wd}/master.txt", "this one will work")
+
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.dirtyFiles.selectAll()
+    triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor-shim")
+    acceptQMessageBox(rw, "really open.+11 files.+in external diff tool")
+    acceptQMessageBox(rw, "can.t open external diff tool on a new file")

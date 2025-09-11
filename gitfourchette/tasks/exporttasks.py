@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -73,8 +73,7 @@ class ComposePatch(RepoTask):
             fileName = fileName.replace(c, "_")
 
         qfd = PersistentFileDialog.saveFile(self.parentWidget(), "SaveFile", self.name(), fileName)
-        yield from self.flowDialog(qfd)
-        savePath = qfd.selectedFiles()[0]
+        savePath = yield from self.flowFileDialog(qfd)
 
         yield from self.flowEnterWorkerThread()
         with open(savePath, "wb") as f:

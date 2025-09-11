@@ -7,6 +7,7 @@
 from gitfourchette import colors
 from gitfourchette.qt import *
 from gitfourchette.exttools.usercommand import UserCommand
+from gitfourchette.toolbox.textutils import qstringLength
 
 try:
     from pygments.token import Token
@@ -46,7 +47,7 @@ class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
         isCommandLine = False
 
         for tokenType, token in tokens:
-            tokenLength = len(token)
+            tokenLength = qstringLength(token)
 
             if token.startswith("$"):
                 isValid = token in UserCommand.Token._value2member_map_
@@ -63,6 +64,7 @@ class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
                 accelMatch = UserCommand.AcceleratorPattern.search(token)
                 if accelMatch:
                     matchStart, matchEnd = accelMatch.span()
+                    matchStart, matchEnd = qstringLength(token[:matchStart]), qstringLength(token[:matchEnd])
                     self.setFormat(start + matchStart, matchEnd - matchStart, self.acceleratorFormat)
 
             # Once we've seen at least one text token, we know that's a command line

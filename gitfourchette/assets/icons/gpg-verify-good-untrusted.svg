@@ -1,0 +1,9 @@
+<svg version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="hatch" x1="0" y1="0" x2="2" y2="2" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+    <stop stop-color="#3d9970" offset=".5"/>
+    <stop stop-color="#3d9970" stop-opacity="0" offset=".5"/>
+</linearGradient>
+</defs>
+<path fill="url(#hatch)" stroke="#3d9970" d="m8 .5-2.5 2h-3v3l-2 2.5 2 2.5v3h3l2.5 2 3-2h2.5v-3l2-2.5-2-2.5v-3h-3z"/>
+</svg>

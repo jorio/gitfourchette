@@ -4,41 +4,43 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID, RepoModel
 from gitfourchette.toolbox import *
 
 
 class CommitLogFilter(QSortFilterProxyModel):
-    hiddenIds: set[Oid]
+    repoModel: RepoModel
+    shadowHiddenIds: set[Oid]
 
-    def __init__(self, parent):
+    def __init__(self, repoModel, parent):
         super().__init__(parent)
-        self.hiddenIds = set()
+        self.repoModel = repoModel
+        self.shadowHiddenIds = set()
         self.setDynamicSortFilter(True)
-
-    @property
-    def clModel(self) -> CommitLogModel:
-        return self.sourceModel()
+        self.updateHiddenCommits()  # prime hiddenIds
 
     @benchmark
-    def setHiddenCommits(self, hiddenIds: set[Oid]):
+    def updateHiddenCommits(self):
+        hiddenIds = self.repoModel.hiddenCommits
+
         # Invalidating the filter can be costly, so avoid if possible
-        if self.hiddenIds == hiddenIds:
+        if self.shadowHiddenIds == hiddenIds:
             return
-        # Duplicate the set so we don't prematurely bail from above
-        # if hidden commits change in the same set object
-        self.hiddenIds = set(hiddenIds)
+
+        # Keep a copy so we can detect a change next time we're called
+        self.shadowHiddenIds = set(hiddenIds)
+
+        # Percolate the update to the model
         self.invalidateFilter()
 
     def filterAcceptsRow(self, sourceRow: int, sourceParent: QModelIndex) -> bool:
         try:
-            commit = self.clModel._commitSequence[sourceRow]
+            commit = self.repoModel.commitSequence[sourceRow]
         except IndexError:
             # Probably an extra special row
             return True
         if commit.id == UC_FAKEID:
             return True
-        return commit.id not in self.hiddenIds
+        return commit.id not in self.shadowHiddenIds

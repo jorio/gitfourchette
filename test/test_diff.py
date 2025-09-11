@@ -6,7 +6,7 @@
 
 import pytest
 import re
-import warnings
+import textwrap
 
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
@@ -347,9 +347,6 @@ def testSearchDiff(tempDir, mainWindow):
 
 def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-
     At some point, Qt 6 used to replace line breaks with U+2029 (PARAGRAPH
     SEPARATOR) when copying text from a QPlainTextEdit. We used to have a
     workaround that scrubbed this character from the clipboard.
@@ -371,14 +368,6 @@ def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     oid = Oid(hex='0966a434eb1a025db6b71485ab63a3bfbea520b6')
     rw.jump(NavLocator.inCommit(oid, path="master.txt"), check=True)
 
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
-
     diffView = rw.diffView
     diffView.setFocus()
     waitUntilTrue(diffView.hasFocus)
@@ -386,7 +375,7 @@ def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
     diffView.copy()
     QTest.qWait(1)
 
-    clipped = clipboard.text()
+    clipped = QApplication.clipboard().text()
     assert "\u2029" not in clipped
     assert clipped == (
         "@@ -1 +1,2 @@\n"
@@ -839,6 +828,148 @@ def testRevertHunk(tempDir, mainWindow, fromGutter):
     rw.jump(NavLocator.inCommit(oid, "c/c1.txt"))
 
     triggerContextMenuAction(dv.gutter if fromGutter else dv.viewport(), "revert hunk")
+    acceptQMessageBox(rw, "do you want to revert this hunk")
 
     assert NavLocator.inUnstaged("c/c1.txt").isSimilarEnoughTo(rw.navLocator)
     assert readTextFile(f"{wd}/c/c1.txt") == "c1\n"
+
+
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+@pytest.mark.parametrize(
+    ["commitHex", "path", "line1", "line2", "expectedResult"],
+    [
+        ("c070ad8", "a/a1.txt", 1, 1, "a1\n"),
+        ("c070ad8", "a/a1.txt", 1, 2, ""),
+        ("58be465", "master.txt", 1, 2, "On master\n"),
+        ("c9ed7bf", "c/c2-2.txt", 1, 1, "c2\n"),  # Revert deleted lines in deleted file
+    ])
+def testRevertLineSelection(tempDir, mainWindow,
+                            commitHex, path, line1, line2, expectedResult):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo[commitHex].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, path), check=True)
+    qteSelectBlocks(rw.diffArea.diffView, line1, line2)
+    triggerContextMenuAction(rw.diffArea.diffView.gutter, "revert lines")
+    acceptQMessageBox(rw, "do you want to revert the selected lines")
+    assert readTextFile(f"{wd}/{path}") == expectedResult
+
+
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
+    rev1 = textwrap.dedent("""\
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+    """)
+
+    rev2 = textwrap.dedent("""\
+        1 Unrelated change in rev2
+        2 Unrelated change in rev2
+        3
+        4
+        5
+        6 Let's reverse this from rev2
+        7
+    """)
+
+    rev3 = textwrap.dedent("""\
+        1 Unrelated change in rev2
+        2 Another change in rev3 to throw off 'git apply' with too much context
+        3
+        4
+        5
+        6 Let's reverse this from rev2
+        7
+    """)
+
+    expectedResult = textwrap.dedent("""\
+        1 Unrelated change in rev2
+        2 Another change in rev3 to throw off 'git apply' with too much context
+        3
+        4
+        5
+        6
+        7
+    """)
+
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        def createCommit(text):
+            writeFile(f"{wd}/master.txt", text)
+            repo.index.add_all()
+            return repo.create_commit_on_head("test permissive revert")
+        createCommit(rev1)
+        commit2 = createCommit(rev2)
+        createCommit(rev3)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(commit2, "master.txt"), check=True)
+
+    qteSelectBlocks(rw.diffArea.diffView, 8, 9)
+    assert rw.diffArea.diffView.textCursor().selectedText() == "6\u20296 Let's reverse this from rev2"
+
+    triggerContextMenuAction(rw.diffArea.diffView.gutter, "revert lines")
+    acceptQMessageBox(rw, "do you want to revert the selected lines")
+    assert readTextFile(f"{wd}/master.txt") == expectedResult
+
+
+@pytest.mark.parametrize("sampleText", [
+    # Sample text is Python comments to ensure that syntax highlighting
+    # applies to the entire line.
+
+    # Complex CJK glyph encoded as two UTF-16 surrogates.
+    # The glyph must be kept whole!
+    ("#Hello W\U00030EDErld",
+     "#Hello W\U00030EDDrld"),
+
+    # Blue heart emoji
+    ("#Hello World",
+     "#Hello W\U0001F499rld"),
+
+    # Simple emoji --> complex emoji (single glyph made of many codepoints)
+    ("#Hello W\U0001f504rld",
+     "#Hello W\U0001f486\U0001f3fd\u200d\u2642\ufe0frld"),
+
+    # Skin tone modifier diff. Ideally, this shouldn't be broken into 3 glyphs,
+    # but it's acceptable as long as no U+FFFD placeholders appear.
+    ("#Hello W\U0001f486\U0001f3fd\u200d\u2642\ufe0frld",
+     "#Hello W\U0001f486\U0001f3ff\u200d\u2642\ufe0frld"),
+])
+def testCharacterLevelDiffInUnicodeSurrogatePairs(tempDir, mainWindow, sampleText):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        writeFile(f"{wd}/surrogatepairs.py", f"{sampleText[0]}\n# bogus context\n")
+        repo.index.add_all()
+        repo.create_commit_on_head("TEST SURROGATE PAIRS", TEST_SIGNATURE, TEST_SIGNATURE)
+        writeFile(f"{wd}/surrogatepairs.py", f"{sampleText[1]}\n# bogus context\n")
+
+    rw = mainWindow.openRepo(wd)
+    document: QTextDocument = rw.diffView.document()
+
+    # Let syntax highlighting settle
+    QTest.qWait(0)
+    assert all(job.lexingComplete for job in rw.diffView.highlighter.lexJobs)
+
+    def reconstructLine(lineNumber: int):
+        block = document.findBlockByNumber(lineNumber)
+        text16 = document.toRawText().encode('utf_16_le')
+        slices = []
+        fragment: QTextFragment
+        for fragment in block.fragments():  # this iterator is a qt.py extension
+            start16 = 2 * fragment.position()  # fragment pos is relative to entire text
+            end16 = 2 * (fragment.position() + fragment.length())
+            slice16 = text16[start16: end16]
+            slices.append(slice16.decode('utf_16_le', 'replace'))
+        return "".join(slices)
+
+    assert "\uFFFD" not in reconstructLine(1), "placeholder char - incorrect split?"
+    assert "\uFFFD" not in reconstructLine(2), "placeholder char - incorrect split?"
+    assert reconstructLine(1) == sampleText[0]
+    assert reconstructLine(2) == sampleText[1]

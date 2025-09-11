@@ -18,9 +18,9 @@ from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
+from gitfourchette.forms.processdialog import ProcessDialog
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.localization import *
 from gitfourchette.nav import NavHistory, NavLocator, NavContext
@@ -30,6 +30,7 @@ from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskEffects, TaskBook
+from gitfourchette.tasks.misctasks import VerifyGpgQueue
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -91,6 +92,10 @@ class RepoWidget(QWidget):
         self.taskRunner.progress.connect(self.onRepoTaskProgress)
         self.taskRunner.repoGone.connect(self.onRepoGone)
         self.taskRunner.requestAttention.connect(self.requestAttention)
+
+        # Report progress in long-running background processes
+        self.processDialog = ProcessDialog(self)
+        self.taskRunner.processStarted.connect(self.processDialog.connectProcess)
 
         self.repoModel = repoModel
         self.pendingLocator = NavLocator()
@@ -181,6 +186,8 @@ class RepoWidget(QWidget):
 
         self.graphView.linkActivated.connect(self.processInternalLink)
         self.graphView.statusMessage.connect(self.statusMessage)
+        self.graphView.clDelegate.requestSignatureVerification.connect(self.repoModel.queueGpgVerification)
+        self.graphView.clDelegate.requestSignatureVerification.connect(self.scheduleFlushGpgVerificationQueue)
 
         self.diffArea.committedFiles.openDiffInNewWindow.connect(self.loadPatchInNewWindow)
         self.diffArea.conflictView.openPrefs.connect(self.openPrefs)
@@ -219,16 +226,6 @@ class RepoWidget(QWidget):
         # Prime GraphView
 
         with QSignalBlockerContext(self.graphView):
-            if repoModel.truncatedHistory:
-                extraRow = SpecialRow.TruncatedHistory
-            elif repoModel.repo.is_shallow:
-                extraRow = SpecialRow.EndOfShallowHistory
-            else:
-                extraRow = SpecialRow.Invalid
-
-            self.graphView.clFilter.setHiddenCommits(repoModel.hiddenCommits)
-            self.graphView.clModel._extraRow = extraRow
-            self.graphView.clModel.setCommitSequence(repoModel.commitSequence)
             self.graphView.selectRowForLocator(NavLocator.inWorkdir(), force=True)
 
         # ----------------------------------
@@ -238,7 +235,7 @@ class RepoWidget(QWidget):
             collapseCache = repoModel.prefs.collapseCache
             if collapseCache:
                 self.sidebar.sidebarModel.collapseCache = set(collapseCache)
-                self.sidebar.sidebarModel.collapseCacheValid = True
+                self.sidebar.sidebarModel.mustExpandAll = False
             self.sidebar.refresh(repoModel)
 
         # ----------------------------------
@@ -267,7 +264,7 @@ class RepoWidget(QWidget):
     # Initial layout
 
     def _makeGraphContainer(self):
-        graphView = GraphView(self)
+        graphView = GraphView(self.repoModel, self)
         graphView.searchBar.notFoundMessage = self.commitNotFoundMessage
 
         container = QWidget()
@@ -394,16 +391,14 @@ class RepoWidget(QWidget):
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
         self.taskRunner.killCurrentTask()
-        self.taskRunner.joinZombieTask()
+        self.taskRunner.joinKilledTask()
 
         # Save sidebar collapse cache
-        newCollapseCache = set()
-        if self.sidebar.sidebarModel.collapseCacheValid:
-            newCollapseCache.update(self.sidebar.sidebarModel.collapseCache)
         with NonCriticalOperation("Write repo prefs"):  # May raise OSError
             uiPrefs = self.repoModel.prefs
-            if newCollapseCache != uiPrefs.collapseCache:
-                uiPrefs.collapseCache = newCollapseCache
+            collapseCache = self.sidebar.sidebarModel.collapseCache
+            if uiPrefs.collapseCache != collapseCache:
+                uiPrefs.collapseCache = collapseCache.copy()
                 uiPrefs.setDirty()
             if uiPrefs.isDirty():
                 uiPrefs.write()
@@ -593,7 +588,7 @@ class RepoWidget(QWidget):
     def toggleHideRefPattern(self, refPattern: str, allButThis: bool = False):
         assert refPattern.startswith("refs/")
         self.repoModel.toggleHideRefPattern(refPattern, allButThis)
-        self.graphView.clFilter.setHiddenCommits(self.repoModel.hiddenCommits)
+        self.graphView.clFilter.updateHiddenCommits()
 
         # Hide/draw refboxes for commits that are shared by non-hidden refs
         self.graphView.viewport().update()
@@ -768,7 +763,7 @@ class RepoWidget(QWidget):
         message = _("Repository folder went missing:") + "\n" + escamp(self.workdir)
         self.replaceWithStub(message=message)
 
-    def refreshPrefs(self, *prefDiff: str):
+    def refreshPrefs(self, prefDiff: list[str]):
         self.diffView.refreshPrefs()
         self.specialDiffView.refreshPrefs()
         self.graphView.refreshPrefs()
@@ -864,8 +859,6 @@ class RepoWidget(QWidget):
 
             ActionDef.SEPARATOR,
 
-            TaskBook.action(invoker, tasks.EditRepoSettings),
-
             ActionDef(
                 _("&Local Config Files"),
                 submenu=[
@@ -873,4 +866,17 @@ class RepoWidget(QWidget):
                     ActionDef("config", lambda: proxy().openLocalConfig()),
                     ActionDef("exclude", lambda: proxy().openLocalExclude()),
                 ]),
+
+            TaskBook.action(invoker, tasks.EditRepoSettings),
         ]
+
+    @CallbackAccumulator.deferredMethod(250)
+    def scheduleFlushGpgVerificationQueue(self):
+        if self.taskRunner.isBusy():
+            # Thanks to the deferredMethod decorator, this will reschedule
+            # the call (instead of recursing).
+            logger.debug("Rescheduling VerifyGpgQueue...")
+            self.scheduleFlushGpgVerificationQueue()
+            return
+
+        VerifyGpgQueue.invoke(self)

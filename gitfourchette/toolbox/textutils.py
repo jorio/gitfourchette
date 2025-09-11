@@ -241,3 +241,8 @@ def naturalSort(text: str):
     text = text.casefold()
     parts = _naturalSortSplit.split(text)
     return [int(part) if part.isdigit() else part for part in parts]
+
+
+def qstringLength(text: str) -> int:
+    """ QString-compatible string length. """
+    return len(text.encode("utf-16", "surrogatepass")) // 2 - 1
