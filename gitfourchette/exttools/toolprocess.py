@@ -114,7 +114,7 @@ class ToolProcess(QProcess):
     PrefKeyDiffTool = "externalDiff"
     PrefKeyMergeTool = "externalMerge"
 
-    def __init__(self, parent: QWidget, tokens: list[str], directory: str, detached: bool, prefKey: str):
+    def __init__(self, parent: QWidget, tokens: list[str], directory: str, detached: bool, prefKey: str, environment: dict[str, str] | None = None):
         super().__init__(parent)
 
         self.detached = detached
@@ -122,9 +122,11 @@ class ToolProcess(QProcess):
 
         self.setProgram(tokens[0])
         self.setArguments(tokens[1:])
-        if not FLATPAK:  # In Flatpaks, workdir was set via flatpak-spawn
-            self.setWorkingDirectory(directory)
+        self.setWorkingDirectory(directory)
         self.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
+        ToolCommands.setQProcessEnvironment(self, environment)
+
+        ToolCommands.wrapFlatpakCommand(self, detached=detached)
 
         # Listen for process completion.
         self.finished.connect(self.onFinished)
@@ -142,7 +144,7 @@ class ToolProcess(QProcess):
         else:
             startDetached = detached
 
-        logger.info("Process starting: " + shlex.join(tokens))
+        logger.info("Process starting: " + shlex.join([self.program()] + self.arguments()))
         if startDetached:
             self.startDetached()
         else:
@@ -198,6 +200,7 @@ class ToolProcess(QProcess):
             allowQDesktopFallback: bool = False,
             directory: str = "",
             detached: bool = False,
+            environment: dict[str, str] | None = None
     ) -> ToolProcess | None:
         assert isinstance(parent, QWidget)
 
@@ -223,11 +226,11 @@ class ToolProcess(QProcess):
             # Check 'isFlatpakRunCommand' on unfiltered tokens (compileCommand may have added a wrapper)
             unfilteredTokens = ToolCommands.splitCommandTokens(command)
             flatpakRefTokenIndex = ToolCommands.isFlatpakRunCommand(unfilteredTokens)
-            if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex], parent):
+            if flatpakRefTokenIndex and not ToolCommands.isFlatpakInstalled(unfilteredTokens[flatpakRefTokenIndex]):
                 onExternalToolProcessError(parent, prefKey, isKnownFlatpak=True)
                 return None
 
-        process = ToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey)
+        process = ToolProcess(parent=parent, tokens=tokens, directory=directory, detached=detached, prefKey=prefKey, environment=environment)
         return process
 
     @classmethod

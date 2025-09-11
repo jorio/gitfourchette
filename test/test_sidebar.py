@@ -90,6 +90,63 @@ def testSidebarCollapsePersistent(tempDir, mainWindow):
     assert not sm.isAncestryChainExpanded(sb.findNodeByRef("refs/remotes/origin/master"))
 
 
+def testSidebarCollapsedHeaderShowsChildCount(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    sb = rw.sidebar
+    sm = sb.sidebarModel
+
+    remotesHeader = sb.findNodeByKind(SidebarItem.RemotesHeader).createIndex(sm)
+    tagsHeader = sb.findNodeByKind(SidebarItem.TagsHeader).createIndex(sm)
+    stashesHeader = sb.findNodeByKind(SidebarItem.StashesHeader).createIndex(sm)
+    submodulesHeader = sb.findNodeByKind(SidebarItem.SubmodulesHeader).createIndex(sm)
+
+    assert sm.data(remotesHeader) == "Remotes"
+    assert sm.data(tagsHeader) == "Tags"
+    assert sm.data(stashesHeader) == "Stashes"
+    assert sm.data(submodulesHeader) == "Submodules"
+
+    sb.collapseAll()
+
+    assert sm.data(remotesHeader) == "Remotes (1)"
+    assert sm.data(tagsHeader) == "Tags (1)"
+    assert sm.data(stashesHeader) == "Stashes (0)"
+    assert sm.data(submodulesHeader) == "Submodules (0)"
+
+
+def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("delish/drink/gazpacho")
+        repo.create_branch_on_head("delish/quiche")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sm = rw.sidebar.sidebarModel
+
+    delish = sb.findNode(lambda n: n.data == "refs/heads/delish")
+    drink = sb.findNode(lambda n: n.data == "refs/heads/delish/drink")
+    quiche = sb.findNodeByRef("refs/heads/delish/quiche")
+    gazpacho = sb.findNodeByRef("refs/heads/delish/drink/gazpacho")
+
+    localBranchesNode = sb.findNodeByKind(SidebarItem.LocalBranchesHeader)
+    sb.selectNode(localBranchesNode)
+
+    def reachable():
+        return {n for n in (delish, quiche, drink, gazpacho) if sm.isAncestryChainExpanded(n)}
+
+    triggerContextMenuAction(sb.viewport(), "collapse all folders")
+    assert reachable() == {delish}
+
+    sb.expand(delish.createIndex(sm))
+    assert reachable() == {delish, quiche, drink}
+
+    triggerContextMenuAction(sb.viewport(), "expand all folders")
+    assert reachable() == {delish, quiche, drink, gazpacho}
+
+
 def testRefreshKeepsSidebarNonRefSelection(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)

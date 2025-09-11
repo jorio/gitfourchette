@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import itertools
+import logging
 import os
 import re
 import shlex
@@ -16,11 +17,18 @@ from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
+from gitfourchette.toolbox.benchmark import benchmark
+
+_logger = logging.getLogger(__name__)
 
 _placeholderPattern = re.compile(r"\$[_a-zA-Z0-9]+")
 
+_whichPath = None
+
 
 class ToolCommands:
+    FlatpakSandboxedCommandPrefix = "flatpak:"
+
     @staticmethod
     def splitCommandTokens(command: str) -> list[str]:
         # Treat command as POSIX even on Windows!
@@ -142,12 +150,6 @@ class ToolCommands:
                 if os.path.isdir(directory):
                     break
 
-        # If we're running a Flatpak, expose the working directory to its sandbox.
-        # (Inject '--filesystem=...' argument after 'flatpak run')
-        flatpakRefTokenIndex = cls.isFlatpakRunCommand(tokens)
-        if flatpakRefTokenIndex > 0:
-            tokens.insert(flatpakRefTokenIndex, f"--filesystem={directory}")
-
         # Launch macOS app bundle
         if MACOS and tokens and tokens[0].endswith(".app"):
             flags = "-nF"
@@ -155,38 +157,127 @@ class ToolCommands:
                 flags += "W"
             tokens = ["/usr/bin/open", flags, tokens[0], "--args"] + tokens[1:]
 
-        # Flatpak-specific wrapper:
-        # - Run external tool outside flatpak sandbox.
-        # - Set workdir via flatpak-spawn because QProcess.setWorkingDirectory won't work.
-        # - Run command through `env` to get return code 127 if the command is missing.
-        #   (note that running ANOTHER flatpak via 'flatpak run' won't return 127).
-        # - If detaching, don't set --watch-bus, and don't use QProcess.startDetached!
-        #   (Can't get return code otherwise.)
-        if FLATPAK:
-            spawner = [
-                "flatpak-spawn", "--host", f"--directory={directory}",
-                "/usr/bin/env", "--"
-            ]
-            if not detached:
-                spawner.insert(1, "--watch-bus")
-            tokens = spawner + tokens
-
         return tokens, directory
 
     @classmethod
-    def isFlatpakInstalled(cls, flatpakRef, parent) -> bool:
-        tokens = ["flatpak", "info", "--show-ref", flatpakRef]
-        if FLATPAK:
-            tokens = ["flatpak-spawn", "--host", "--"] + tokens
-        process = QProcess(parent)
-        process.setProgram(tokens.pop(0))
-        process.setArguments(tokens)
-        process.start(mode=QProcess.OpenModeFlag.Unbuffered)
-        process.waitForFinished()
-        return process.exitCode() == 0
+    def setQProcessEnvironment(cls, process: QProcess, environment: dict[str, str] | None):
+        if not environment:
+            return
+        processEnvironment = QProcessEnvironment.systemEnvironment()
+        for k, v in environment.items():
+            processEnvironment.insert(k, v)
+        process.setProcessEnvironment(processEnvironment)
 
     @classmethod
-    def makeTerminalScript(cls, workdir: str, command: str, shell: str = ""):
+    def filterQProcessEnvironment(cls, process: QProcess) -> dict[str, str]:
+        processEnvironment = process.processEnvironment()
+        env = {}
+        for key in processEnvironment.keys():
+            value = processEnvironment.value(key)
+            if value != INITIAL_ENVIRONMENT.get(key, None):
+                env[key] = value
+        return env
+
+    @classmethod
+    def isFlatpakInstalled(cls, flatpakRef: str) -> bool:
+        if not FREEDESKTOP:
+            return False
+        text = cls.runSync("flatpak", "info", "--show-ref", flatpakRef)
+        return bool(text.strip())
+
+    @classmethod
+    def wrapFlatpakCommand(cls, process: QProcess, detached=False):
+        if not FREEDESKTOP:  # pragma: no cover
+            return
+
+        program = process.program()
+
+        if FLATPAK and program.startswith(cls.FlatpakSandboxedCommandPrefix):
+            program = program.removeprefix(cls.FlatpakSandboxedCommandPrefix)
+            process.setProgram(program)
+            return
+
+        tokens = [program] + process.arguments()
+        directory = process.workingDirectory()
+
+        # If we're running a "flatpak run" command, add --env, --cwd, and --filesystem.
+        flatpakRun = cls.isFlatpakRunCommand(tokens)
+        if flatpakRun != 0:
+            extra = [f"--env={k}={v}" for k, v in cls.filterQProcessEnvironment(process).items()]
+
+            # Expose directory
+            if directory:
+                extra += [f"--cwd={directory}", f"--filesystem={directory}"]
+
+            tokens = tokens[:flatpakRun] + extra + tokens[flatpakRun:]
+
+        # If GitFourchette itself is running as a Flatpak, launch the command with "flatpak-spawn".
+        if FLATPAK:
+            assert program != "flatpak-spawn", "process already flatpak-spawn compatible"
+
+            # Run external tool via flatpak-spawn --host (outside flatpak sandbox).
+            extra = ["flatpak-spawn", "--host"]
+
+            # Set --watch-bus if we want the process to die with us.
+            # If detached, don't set --watch-bus and DO NOT USE QProcess.startDetached()!
+            # (Can't get return code otherwise.)
+            if not detached:
+                extra += ["--watch-bus"]
+
+            if directory:
+                extra += [f"--directory={directory}"]
+
+            # Forward environment variables (only needed if not already done in `flatpak run`)
+            if not flatpakRun:
+                extra += [f"--env={k}={v}" for k, v in cls.filterQProcessEnvironment(process).items()]
+
+            # Run command through `env` to get return code 127 if the command is missing.
+            # (Note that running ANOTHER flatpak via 'flatpak run' won't return 127).
+            if not flatpakRun:
+                extra += ["/usr/bin/env"]
+
+            extra += ["--"]
+
+            tokens = extra + tokens
+
+        process.setProgram(tokens[0])
+        process.setArguments(tokens[1:])
+
+    @classmethod
+    @benchmark
+    def runSync(cls, *args: str, directory: str = "", strict=False) -> str:
+        process = QProcess(None)
+        process.setProgram(args[0])
+        process.setArguments(args[1:])
+        if directory:
+            process.setWorkingDirectory(directory)
+        cls.wrapFlatpakCommand(process)
+        _logger.info(f"runSync: {shlex.join([process.program()] + process.arguments())}")
+        process.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedErrorChannel)
+        process.start()
+        didFinish = process.waitForFinished()
+
+        if strict:
+            if not didFinish:
+                raise ChildProcessError(f"process did not finish ({process.error()})")
+            elif process.exitCode() != 0:
+                raise ChildProcessError(f"process exited with code {process.exitCode()}")
+
+        if not didFinish or process.exitCode() != 0:
+            return ""
+
+        return process.readAll().data().decode(errors="replace")
+
+    @classmethod
+    def which(cls, name: str):
+        global _whichPath
+        if FLATPAK and _whichPath is None:
+            # Cache host's $PATH
+            _whichPath = cls.runSync("sh", "-c", "echo $PATH").rstrip()
+        return shutil.which(name, path=_whichPath)
+
+    @classmethod
+    def makeTerminalScript(cls, workdir: str, command: str) -> str:
         # While we could simply export the parameters as environment variables
         # then run termcmd.sh from the static assets, this approach fails if
         # the terminal is a Flatpak (custom env vars always seem to be erased).

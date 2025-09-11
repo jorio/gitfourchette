@@ -23,6 +23,7 @@ import json as _json
 import logging as _logging
 import os as _os
 import sys as _sys
+import typing as _typing
 from contextlib import suppress as _suppress
 
 from gitfourchette.appconsts import *
@@ -113,6 +114,15 @@ else:
     _bail("No Qt binding found. Please install PyQt6 or PySide6.")
 
 # -----------------------------------------------------------------------------
+# Tweak initial environment variables
+
+# Keep Qt from faking bold face with some variable fonts (see issue #10).
+# This looks nicer out of the box in Ubuntu 24.10 and Fedora 41 (KDE spin).
+# This is supposedly fixed in Qt 6.7 (https://bugreports.qt.io/browse/QTBUG-112136)
+# but I've seen it occur with Qt 6.8 still.
+_os.environ["QT_NO_SYNTHESIZED_BOLD"] = "1"
+
+# -----------------------------------------------------------------------------
 # Set up platform constants
 
 QT_BINDING_BOOTPREF = _qtBindingBootPref
@@ -121,9 +131,16 @@ MACOS = KERNEL == "darwin"
 WINDOWS = KERNEL == "winnt"
 FREEDESKTOP = not MACOS and not WINDOWS
 FLATPAK = FREEDESKTOP and _os.path.exists("/.flatpak-info")
+FLATPAK_ID = _os.environ.get("FLATPAK_ID", "")
+XDG_RUNTIME_DIR = _os.environ.get("XDG_RUNTIME_DIR", "")
 GNOME = "GNOME" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")  # e.g. "ubuntu:GNOME"
+KDE = "KDE" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 WAYLAND = _os.environ.get("XDG_SESSION_TYPE", "").upper() == "WAYLAND"
 OFFSCREEN = _os.environ.get("QT_QPA_PLATFORM", "").upper() == "OFFSCREEN"
+
+# Capture environment variables that were set on boot.
+# These values will not be forwarded explicitly to subprocess environments.
+INITIAL_ENVIRONMENT = _os.environ.copy()
 
 # -----------------------------------------------------------------------------
 # Try to import optional modules
@@ -168,12 +185,6 @@ except ImportError:
 # -----------------------------------------------------------------------------
 # Patch some holes and incompatibilities in Qt bindings
 
-# Keep Qt from faking bold face with some variable fonts (see issue #10).
-# This looks nicer out of the box in Ubuntu 24.10 and Fedora 41 (KDE spin).
-# This is supposedly fixed in Qt 6.7 (https://bugreports.qt.io/browse/QTBUG-112136)
-# but I've seen it occur with Qt 6.8 still.
-_os.environ["QT_NO_SYNTHESIZED_BOLD"] = "1"
-
 # Match PyQt signal/slot names with PySide6
 if PYQT5 or PYQT6:
     Signal = pyqtSignal
@@ -210,6 +221,17 @@ if QT5:
 if not hasattr(QCheckBox, 'checkStateChanged'):
     # Note: this forwards an int, not a real CheckState, but the values are the same.
     QCheckBox.checkStateChanged = QCheckBox.stateChanged
+
+# Pythonic iterator for QTextFragments in a QTextBlock. Use this instead of QTextBlock.__iter__,
+# which in PySide6 is an inconvenient QTextBlock::iterator, and in PyQt6 isn't implemented at all.
+def _QTextBlock_fragments(block: QTextBlock) -> _typing.Generator[QTextFragment, None, None]:
+    iterator = block.begin()  # QTextBlock::iterator
+    while not iterator.atEnd():
+        fragment = iterator.fragment()
+        if fragment.isValid():
+            yield iterator.fragment()
+        iterator += 1
+QTextBlock.fragments = _QTextBlock_fragments
 
 # Custom "selected, no focus" icon mode.
 QIcon.Mode.SelectedInactive = QIcon.Mode(4)

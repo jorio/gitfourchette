@@ -7,7 +7,6 @@
 import logging
 from contextlib import suppress
 
-from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
@@ -324,19 +323,13 @@ class LoadPatch(RepoTask):
             return SpecialDiffError(summary, icon="SP_MessageBoxCritical", preformatted=details)
 
     def _makeHeader(self, result, locator):
-        header = "<html>" + escape(locator.path)
+        header = "<html>" + settings.prefs.addDelColorsStyleTag() + escape(locator.path)
 
         if isinstance(result, DiffDocument):
-            if settings.prefs.colorblind:
-                addColor = colors.teal
-                delColor = colors.orange
-            else:
-                addColor = colors.olive
-                delColor = colors.red
             if result.pluses:
-                header += f" <span style='color: {addColor.name()};'>+{result.pluses}</span>"
+                header += f" <add>+{result.pluses}</add>"
             if result.minuses:
-                header += f" <span style='color: {delColor.name()};'>-{result.minuses}</span>"
+                header += f" <del>-{result.minuses}</del>"
 
         locationText = ""
         if locator.context == NavContext.COMMITTED:

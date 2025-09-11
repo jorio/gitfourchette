@@ -48,6 +48,7 @@ def testFileListFocusPolicy(tempDir, mainWindow):
     writeFile(f"{wd}/untracked.txt", "hello")
 
     rw = mainWindow.openRepo(wd)
+    rw.activateWindow()
 
     # GraphView -> TAB -> DirtyFiles
     rw.graphView.setFocus()
@@ -69,6 +70,8 @@ def testFileListFocusPolicy(tempDir, mainWindow):
     # Stage the file; DirtyFiles becomes empty but it still has focus
     qlvClickNthRow(rw.diffArea.dirtyFiles, 0)
     QTest.keyClick(rw.diffArea.dirtyFiles, Qt.Key.Key_Return)
+    rw.activateWindow()  # If task progress dialog came up, make sure main window has focus again
+    QTest.qWait(0)
     assert rw.diffArea.dirtyFiles.isEmpty()
     assert rw.diffArea.dirtyFiles.hasFocus()
 
@@ -150,11 +153,6 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 
 
 def testTabBarActions(tempDir, mainWindow, mockDesktopServices):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"terminal": f'python3 "{editorPath}" "{scratchPath}" "hello world" $COMMAND'})

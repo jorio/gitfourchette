@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,8 @@
 import argparse
 import datetime
 import difflib
+import html
+import json
 import os
 import re
 import subprocess
@@ -69,6 +71,14 @@ def makeParser():
 
     pkg_group.add_argument("--freeze", default="", metavar="QT_API",
                            help="write frozen constants to appconsts.py and exit")
+
+    credits_group = parser.add_argument_group("Credits options")
+
+    credits_group.add_argument("--contributors", action="store_true",
+                           help="format code contributor list")
+
+    credits_group.add_argument("--weblate-credits", default="", metavar="JSON_REPORT",
+                           help="format translator credits from Weblate JSON report (https://hosted.weblate.org/projects/gitfourchette/gitfourchette/#reports)")
 
     return parser
 
@@ -286,14 +296,77 @@ def cleanUpPoFiles():
 
 def compileMoFiles():
     """ Generate .mo files from .po files """
+    wipLanguages = []
+
     for poPath in Path(LANG_DIR).glob("*.po"):
         moPath: Path = poPath.with_suffix(".mo")
 
         call("msgfmt", "-o", str(moPath), str(poPath), capture_output=False)
 
-        if moPath.stat().st_size < 1000:
-            print(f"*** Removing '{moPath.name}' -- looks like a stub.")
+        moSizeKB = moPath.stat().st_size // 1024
+
+        # Remove empty po/mo files
+        if moSizeKB == 0:
+            print(f"*** Removing empty translation '{poPath.name}'")
+            poPath.unlink()
             moPath.unlink()
+            continue
+
+        # Small .mo files are considered stubs and won't be included in builds
+        if moSizeKB < 5:
+            print(f"*** Removing '{moPath.name}' -- looks like a stub ({moSizeKB} KB)")
+            moPath.unlink()
+            continue
+
+        # .mo files below 100 KB are considered incomplete
+        if moSizeKB < 100:
+            wipLanguages += [moPath.stem]
+
+    Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages))
+
+
+def formatTranslatorCredits(jsonReportPath: str):
+    blob = Path(jsonReportPath).read_bytes()
+    table = json.loads(blob)
+
+    renameLanguages = {
+        "Chinese (Simplified Han script)": "Chinese (Simpl.)",
+    }
+
+    def formatPerson(person):
+        full = person["full_name"]
+        user = person["username"]
+        if full.casefold() == user.casefold():
+            return html.escape(full)
+        else:
+            return f"{full} ({user})"
+
+    markup = "<table>\n"
+
+    for entry in table:
+        for language, people in entry.items():
+            languageName = renameLanguages.get(language, language)
+            peopleList = "\n\t<br>".join(formatPerson(person)
+                                         for person in people if person["username"] != "jorio")
+            markup += ("<tr>\n"
+                       f"\t<td align=right>{languageName}: </td>\n"
+                       f"\t<td>{peopleList}</td>\n"
+                       "</tr>\n")
+
+    markup += "</table>\n"
+
+    Path(LANG_DIR, "credits.html").write_text(markup)
+
+
+def formatContributors():
+    process = call("git", "shortlog", "--summary", ":!gitfourchette/assets/lang")
+
+    contributors = [
+        line.split("\t", 1)[1]
+        for line in process.stdout.splitlines(keepends=True)
+    ]
+
+    Path(ASSETS_DIR, "contributors.txt").write_text("".join(contributors))
 
 
 def writeFreezeFile(qtApi: str):
@@ -335,7 +408,7 @@ if __name__ == '__main__':
         writeFreezeFile(args.freeze)
         sys.exit(0)
 
-    if not (args.ui or args.pot or args.po or args.mo or args.clean_po):
+    if not (args.ui or args.pot or args.po or args.mo or args.clean_po or args.weblate_credits or args.contributors):
         makeParser().print_usage()
         sys.exit(1)
 
@@ -355,3 +428,9 @@ if __name__ == '__main__':
 
     if args.clean_po:
         cleanUpPoFiles()
+
+    if args.weblate_credits:
+        formatTranslatorCredits(args.weblate_credits)
+
+    if args.contributors:
+        formatContributors()

@@ -12,7 +12,7 @@ def _envBool(key: str) -> bool:
     return _os.environ.get(key, "") not in ["", "0"]
 
 
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.5.0"
 APP_SYSTEM_NAME = "gitfourchette"
 APP_DISPLAY_NAME = "GitFourchette"
 APP_URL_SCHEME = APP_SYSTEM_NAME
@@ -54,5 +54,5 @@ Verbose QObject Python destructors (__del__).
 """
 
 if APP_TESTMODE:
-    APP_SYSTEM_NAME += "_testmode"
+    APP_SYSTEM_NAME += "testmode"
     APP_DISPLAY_NAME += "TestMode"

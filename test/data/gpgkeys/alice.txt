@@ -1,0 +1,17 @@
+https://www.ietf.org/archive/id/draft-bre-openpgp-samples-01.html
+
+OpenPGP Version: 4
+Fingerprint: EB85 BB5F A33A 75E1 5E94 4E63 F231 550C 4F47 E38E
+Primary key algorithm: Ed25519 [I-D.ietf-openpgp-rfc4880bis]
+Primary key creation date: Tue Jan 22 11:56:25 GMT 2019
+Primary key capabilities: certify, sign
+User ID: Alice Lovelace <alice@openpgp.example>
+Symmetric algorithm preferences: AES-256, AES-192, AES-128, 3DES
+Hash algorithm preferences: SHA512, SHA384, SHA256, SHA224, SHA1
+Compresson algorithm preferences: ZLIB, BZip2, ZIP
+Subkey algorithm: Curve25519
+Subkey capabilities: encrypt
+Subkey creation date: Tue Jan 22 11:56:25 GMT 2019
+There are no expiration dates in the entire certificate
+The secret key material is in the clear (no password)
+All OpenPGP signature packets contain a hashed Issuer Fingerprint subpacket (see [I-D.ietf-openpgp-rfc4880bis]

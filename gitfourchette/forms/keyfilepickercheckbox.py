@@ -19,7 +19,7 @@ class KeyFilePickerCheckBox(QFilePickerCheckBox):
         filePickerTip = paragraphs(
             _("{app} normally uses public/private keys in {path} to authenticate you with remote servers.",
               app=qAppName(), path=KeyFilePickerCheckBox.DefaultSshDir),
-            _("Tick this box if you want to access this remote with a custom key."))
+            _("Tick this box if you want to access remotes in this repo with a custom key."))
         self.checkBox.setToolTip(filePickerTip)
 
     def fileDialog(self):

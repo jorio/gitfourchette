@@ -78,7 +78,7 @@ class RepoStub(QWidget):
         if self.taskRunner.isBusy():
             _logger.debug(f"Interrupting priming task because {self.objectName()} was force closed!")
             self.taskRunner.killCurrentTask()
-            self.taskRunner.joinZombieTask()
+            self.taskRunner.joinKilledTask()
 
         self.closing.emit()
         return super().close()

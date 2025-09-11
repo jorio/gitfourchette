@@ -6,6 +6,7 @@
 
 import logging
 from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
@@ -14,10 +15,12 @@ from gitfourchette.forms.deletetagdialog import DeleteTagDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import GpgStatus
 from gitfourchette.tasks.jumptasks import RefreshRepo
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskPrereqs, TaskEffects
 from gitfourchette.toolbox import *
@@ -58,6 +61,7 @@ class NewCommit(RepoTask):
 
         fallbackSignature = self.repo.default_signature
         initialMessage = uiPrefs.draftCommitMessage
+        gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
 
         cd = CommitDialog(
             initialText=initialMessage,
@@ -67,6 +71,8 @@ class NewCommit(RepoTask):
             detachedHead=self.repo.head_is_detached,
             repositoryState=self.repo.state(),
             emptyCommit=emptyCommit,
+            gpgFlag=gpgFlag,
+            gpgKey=gpgKey,
             parent=self.parentWidget())
 
         if uiPrefs.draftCommitSignatureOverride == SignatureOverride.Nothing:
@@ -87,6 +93,8 @@ class NewCommit(RepoTask):
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
         overriddenSignatureKind = cd.getOverriddenSignatureKind()
         signatureIsOverridden = overriddenSignatureKind != SignatureOverride.Nothing
+        explicitGpgSign = cd.ui.gpg.explicitSign()
+        explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
 
         # Save commit message/signature as draft now,
         # so we don't lose it if the commit operation fails or is rejected.
@@ -96,20 +104,74 @@ class NewCommit(RepoTask):
             uiPrefs.draftCommitSignatureOverride = overriddenSignatureKind
             uiPrefs.setDirty()
 
-        if cd.result() == QDialog.DialogCode.Rejected:
-            cd.deleteLater()
-            raise AbortTask()
-
         cd.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        newOid = self.repo.create_commit_on_head(message, author, committer)
+        if cd.result() == QDialog.DialogCode.Rejected:
+            raise AbortTask()
 
-        yield from self.flowEnterUiThread()
+        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        args, env = NewCommit.prepareGitCommand(
+            message, author, committer,
+            explicitGpgSign=explicitGpgSign,
+            explicitNoGpgSign=explicitNoGpgSign)
+        driver = yield from self.flowCallGit(*args, env=env)
+
+        branchName, newHash = driver.readPostCommitInfo()
+        newOid = Oid(hex=newHash)
+
+        # Trust this commit if we've just signed it
+        if explicitGpgSign:
+            self.repoModel.cacheGpgStatus(newOid, GpgStatus.GoodTrusted, gpgKey)
+
         uiPrefs.clearDraftCommit()
 
-        self.postStatus = _("Commit {0} created.", tquo(shortHash(newOid)))
+        self.postStatus = _("Commit {0} created on {1}.", tquo(shortHash(newHash)), branchName)
+
+    @staticmethod
+    def getGpgConfig(repo: Repo) -> tuple[bool, str]:
+        gpgFlag, gpgKey = False, ""
+        with suppress(KeyError):
+            gpgFlag = repo.config.get_bool("commit.gpgSign")
+        with suppress(KeyError):
+            gpgKey = repo.config["user.signingKey"]
+        return gpgFlag, gpgKey
+
+    @staticmethod
+    def prepareGitCommand(
+            message: str,
+            author: Signature | None,
+            committer: Signature | None,
+            amend=False,
+            explicitGpgSign=False,
+            explicitNoGpgSign=False):
+        def signatureEnvironmentVariables(sig: Signature, infix: str) -> dict[str, str]:
+            return {
+                f"GIT_{infix}_NAME": sig.name,
+                f"GIT_{infix}_EMAIL": sig.email,
+                f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
+            }
+
+        args = [
+            "-c", "core.abbrev=no",
+            "commit",
+            *argsIf(explicitGpgSign, "--gpg-sign"),
+            *argsIf(explicitNoGpgSign, "--no-gpg-sign"),
+            *argsIf(amend, "--amend"),
+            *argsIf(amend and author, "--reset-author"),
+            "--allow-empty",
+            "--no-edit",
+            f"--message={message}"
+        ]
+
+        env = {}
+
+        if author is not None:
+            env |= signatureEnvironmentVariables(author, "AUTHOR")
+
+        if committer is not None:
+            env |= signatureEnvironmentVariables(committer, "COMMITTER")
+
+        return args, env
 
 
 class AmendCommit(RepoTask):
@@ -133,6 +195,7 @@ class AmendCommit(RepoTask):
 
         headCommit = self.repo.head_commit
         fallbackSignature = self.repo.default_signature
+        gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
 
         # TODO: Retrieve draft message
         cd = CommitDialog(
@@ -143,6 +206,8 @@ class AmendCommit(RepoTask):
             detachedHead=self.repo.head_is_detached,
             repositoryState=self.repo.state(),
             emptyCommit=False,
+            gpgFlag=gpgFlag,
+            gpgKey=gpgKey,
             parent=self.parentWidget())
 
         cd.setWindowModality(Qt.WindowModality.WindowModal)
@@ -161,17 +226,26 @@ class AmendCommit(RepoTask):
 
         author = cd.getOverriddenAuthorSignature()  # no "or fallback" here - leave author intact for amending
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
+        explicitGpgSign = cd.ui.gpg.explicitSign()
+        explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True,
+                                                explicitGpgSign=explicitGpgSign, explicitNoGpgSign=explicitNoGpgSign)
+        driver = yield from self.flowCallGit(*args, env=env)
 
-        newOid = self.repo.amend_commit_on_head(message, author, committer)
+        branchName, newHash = driver.readPostCommitInfo()
+        newOid = Oid(hex=newHash)
 
-        yield from self.flowEnterUiThread()
+        # Trust this commit if we've just signed it
+        if explicitGpgSign:
+            self.repoModel.cacheGpgStatus(newOid, GpgStatus.GoodTrusted, gpgKey)
+
         self.repoModel.prefs.clearDraftAmend()
 
         self.postStatus = _("Commit {0} amended. New hash: {1}.",
-                            tquo(shortHash(headCommit.id)), tquo(shortHash(newOid)))
+                            tquo(shortHash(headCommit.id)),
+                            tquo(shortHash(newHash)))
 
 
 class SetUpGitIdentity(RepoTask):
@@ -224,7 +298,6 @@ class CheckoutCommit(RepoTask):
         return TaskPrereqs.NoConflicts
 
     def flow(self, oid: Oid):
-        from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
         from gitfourchette.tasks.branchtasks import SwitchBranch, NewBranchFromCommit, ResetHead, MergeBranch
 
         refs = self.repo.listall_refs_pointing_at(oid)
@@ -262,17 +335,17 @@ class CheckoutCommit(RepoTask):
                       "if you carry on checking out another commit ({0}).", shortHash(oid)))
                 yield from self.flowConfirm(text=text, icon='warning')
 
-            yield from self.flowEnterWorkerThread()
-            self.repo.checkout_commit(oid)
+            yield from self.flowCallGit(
+                "checkout",
+                "--progress",
+                "--detach",
+                *argsIf(wantSubmodules, "--recurse-submodules"),
+                str(oid))
 
             self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
 
             # Force sidebar to select detached HEAD
             self.jumpTo = NavLocator.inRef("HEAD")
-
-            if wantSubmodules:
-                yield from self.flowEnterUiThread()
-                yield from self.flowSubtask(UpdateSubmodulesRecursive)
 
         elif dlg.ui.switchRadioButton.isChecked():
             branchName = dlg.ui.switchComboBox.currentText()
@@ -380,20 +453,22 @@ class RevertCommit(RepoTask):
         return TaskPrereqs.NoConflicts | TaskPrereqs.NoStagedChanges
 
     def flow(self, oid: Oid):
-        # TODO: Remove this when we can stop supporting pygit2 <= 1.15.0
-        pygit2_version_at_least("1.15.1")
-
         text = paragraphs(
             _("Do you want to revert commit {0}?", btag(shortHash(oid))),
             _("You will have an opportunity to review the affected files in your working directory."))
         yield from self.flowConfirm(text=text)
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
         repoModel = self.repoModel
         repo = self.repo
-        commit = repo.peel_commit(oid)
-        repo.revert(commit)
+
+        self.effects |= TaskEffects.Workdir
+
+        # Don't raise AbortTask if git returns non-0
+        yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
+
+        # Refresh libgit2 index for conflict analysis
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()
 
         anyConflicts = repo.any_conflicts
         dud = not anyConflicts and not repo.any_staged_changes
@@ -430,10 +505,18 @@ class CherrypickCommit(RepoTask):
         return TaskPrereqs.NoConflicts | TaskPrereqs.NoStagedChanges
 
     def flow(self, oid: Oid):
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
         commit = self.repo.peel_commit(oid)
-        self.repo.cherrypick(oid)
+
+        self.effects |= TaskEffects.Workdir
+        yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
+
+        # Force cherry-picking state for compatibility with libgit2 backend
+        cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD"))
+        cherryPickHead.write_text(str(oid) + "\n")
+
+        # Refresh libgit2 index for conflict analysis
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()
 
         anyConflicts = self.repo.any_conflicts
         dud = not anyConflicts and not self.repo.any_staged_changes

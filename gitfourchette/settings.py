@@ -10,7 +10,9 @@ import logging
 import os
 from contextlib import suppress
 
+from gitfourchette import colors
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
@@ -113,13 +115,20 @@ class Prefs(PrefsFile):
     shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
+    verifyGpgOnTheFly           : bool                  = False
     alternatingRowColors        : bool                  = False
+
+    _category_git               : int                   = 0
+    gitPath                     : str                   = ToolPresets.defaultGit()
+    ownSshAgent                 : bool                  = False
+    ownAskpass                  : bool                  = True
 
     _category_external          : int                   = 0
     externalEditor              : str                   = ""
+    terminal                    : str                   = ToolPresets.DefaultTerminalCommand
+    _spacer0                    : int                   = 0
     externalDiff                : str                   = ToolPresets.DefaultDiffCommand
     externalMerge               : str                   = ToolPresets.DefaultMergeCommand
-    terminal                    : str                   = ToolPresets.DefaultTerminalCommand
 
     _category_userCommands      : int                   = 0
     commands                    : str                   = ""
@@ -187,6 +196,22 @@ class Prefs(PrefsFile):
 
     def syntaxHighlightingScheme(self):
         return ColorScheme.resolve(self.syntaxHighlighting)
+
+    def addDelColors(self):
+        if self.colorblind:
+            return colors.teal, colors.orange
+        else:
+            return colors.olive, colors.red
+
+    def addDelColorsStyleTag(self):
+        green, red = self.addDelColors()
+        return (f"<style>"
+                f"del {{ color: {red.name()}; }} "
+                f"add {{ color: {green.name()}; }}"
+                f"</style>")
+
+    def isGitSandboxed(self):
+        return self.gitPath.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
 
 
 @dataclasses.dataclass

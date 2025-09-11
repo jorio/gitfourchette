@@ -9,6 +9,7 @@ import logging
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -23,7 +24,12 @@ class SwitchBranch(RepoTask):
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoConflicts
 
-    def flow(self, newBranch: str, askForConfirmation: bool = True, recurseSubmodules: bool = False):
+    def flow(
+            self,
+            newBranch: str,
+            askForConfirmation: bool = True,
+            recurseSubmodules: bool = False,
+            refreshUnderDetachedWarning: bool = False):
         assert not newBranch.startswith(RefPrefix.HEADS)
 
         branchObj: Branch = self.repo.branches.local[newBranch]
@@ -48,22 +54,27 @@ class SwitchBranch(RepoTask):
 
         headId = self.repoModel.headCommitId
         if self.repoModel.dangerouslyDetachedHead() and branchObj.target != headId:
+            if refreshUnderDetachedWarning:  # Refresh GraphView underneath dialog
+                from gitfourchette.tasks import RefreshRepo
+                yield from self.flowSubtask(RefreshRepo)
+
             text = paragraphs(
                 _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
-                _("You might lose track of this commit if you carry on switching to {0}.", hquo(newBranch)))
-            yield from self.flowConfirm(text=text, icon='warning')
+                _("You might lose track of this commit if you switch to {0}.", hquo(newBranch)))
+            yesText = _("Switch to {0}", lquoe(newBranch))
+            noText = _("Don’t Switch")
+            yield from self.flowConfirm(text=text, icon='warning', verb=yesText, cancelText=noText)
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Head
 
-        self.repo.checkout_local_branch(newBranch)
+        yield from self.flowCallGit(
+            "checkout",
+            "--progress",
+            "--no-guess",
+            *argsIf(recurseSubmodules, "--recurse-submodules"),
+            newBranch)
 
         self.postStatus = _("Switched to branch {0}.", tquo(newBranch))
-
-        if recurseSubmodules:
-            from gitfourchette.tasks import UpdateSubmodulesRecursive
-            yield from self.flowEnterUiThread()
-            yield from self.flowSubtask(UpdateSubmodulesRecursive)
 
 
 class RenameBranch(RepoTask):
@@ -169,6 +180,7 @@ class RenameBranchFolder(RepoTask):
                 + " "
                 + _n("{n} branch affected.", "{n} branches affected.", len(folderBranches))
         )
+
 
 class DeleteBranch(RepoTask):
     def flow(self, localBranchName: str):
@@ -316,7 +328,7 @@ class NewBranchFromCommit(RepoTask):
 
         # Create local branch
         repo.create_branch_from_commit(localName, tip)
-        self.effects |= TaskEffects.Refs | TaskEffects.Head | TaskEffects.Upstreams
+        self.effects |= TaskEffects.Refs | TaskEffects.Upstreams
         self.postStatus = _("Branch {0} created on commit {1}.", tquo(localName), tquo(shortHash(tip)))
 
         # Optionally make it track a remote branch
@@ -325,25 +337,14 @@ class NewBranchFromCommit(RepoTask):
 
         # Switch to it last (if user wants to)
         if switchTo:
-            headId = self.repoModel.headCommitId
-            if self.repoModel.dangerouslyDetachedHead() and tip != headId:
-                yield from self.flowEnterUiThread()
-
-                # Refresh GraphView underneath dialog
-                from gitfourchette.tasks import RefreshRepo
-                yield from self.flowSubtask(RefreshRepo)
-
-                text = paragraphs(
-                    _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
-                    _("You might lose track of this commit if you switch to the new branch."))
-                yield from self.flowConfirm(text=text, icon='warning', verb=_("Switch to {0}", lquoe(localName)), cancelText=_("Don’t Switch"))
-
-            repo.checkout_local_branch(localName)
-
-            if recurseSubmodules:
-                from gitfourchette.tasks.nettasks import UpdateSubmodulesRecursive
-                yield from self.flowEnterUiThread()
-                yield from self.flowSubtask(UpdateSubmodulesRecursive)
+            self.effects |= TaskEffects.Head
+            yield from self.flowEnterUiThread()
+            yield from self.flowSubtask(
+                SwitchBranch,
+                localName,
+                askForConfirmation=False,
+                recurseSubmodules=recurseSubmodules,
+                refreshUnderDetachedWarning=True)
 
 
 class NewBranchFromHead(RepoTask):
@@ -417,19 +418,19 @@ class ResetHead(RepoTask):
         resetMode = dlg.activeMode
         recurseSubmodules = dlg.recurseSubmodules()
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
-        self.repo.reset(onto, resetMode)
-        self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
-                            tquo(branchName), tquo(shortHash(onto)), mode=resetMode.name.lower())
+        modeArg = "--" + resetMode.name.lower()
+        assert modeArg in ["--hard", "--mixed", "--soft"]
 
-        if hasSubmodules and recurseSubmodules:
-            for submodule in self.repo.recurse_submodules():
-                subOnto = submodule.head_id
-                logger.info(f"Reset {repr(resetMode)}: Submodule '{submodule.name}' --> {shortHash(subOnto)}")
-                with RepoContext(submodule.open()) as subRepo:
-                    subRepo.reset(subOnto, resetMode)
+        yield from self.flowCallGit(
+            "reset",
+            modeArg,
+            *argsIf(recurseSubmodules, "--recurse-submodules"),
+            str(onto))
+
+        self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
+                            tquo(branchName), tquo(shortHash(onto)), mode=modeArg)
 
 
 class FastForwardBranch(RepoTask):
@@ -446,10 +447,7 @@ class FastForwardBranch(RepoTask):
 
         remoteBranchName = upstream.shorthand
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
-
-        upToDate = self.repo.fast_forward_branch(localBranchName, remoteBranchName)
+        upToDate = yield from self._withGit(branch)
 
         ahead = False
         if upToDate:
@@ -458,7 +456,6 @@ class FastForwardBranch(RepoTask):
         self.jumpTo = NavLocator.inRef(RefPrefix.HEADS + localBranchName)
 
         yield from self.flowEnterUiThread()
-
         if upToDate:
             lines = [_("No fast-forwarding necessary.")]
             if ahead:
@@ -487,6 +484,40 @@ class FastForwardBranch(RepoTask):
                 mergeButton.clicked.connect(lambda: MergeBranch.invoke(parentWidget, rb.name))
         else:
             super().onError(exc)
+
+    def _withGit(self, branch: Branch):
+        # Perform merge analysis with libgit2 first
+        yield from self.flowEnterWorkerThread()
+        upstream = branch.upstream
+        analysis, _mergePref = self.repo.merge_analysis(branch.upstream.target, branch.name)
+
+        if analysis & MergeAnalysis.UP_TO_DATE:
+            # Local branch is up to date with remote branch, nothing to do.
+            return True
+        elif analysis == (MergeAnalysis.NORMAL | MergeAnalysis.FASTFORWARD):
+            # Go ahead and fast-forward.
+            pass
+        elif analysis == MergeAnalysis.NORMAL:
+            # Can't FF. Divergent branches?
+            raise DivergentBranchesError(branch, upstream)
+        else:
+            # Unborn or something...
+            raise NotImplementedError(f"Cannot fast-forward with {repr(analysis)}.")
+
+        self.effects |= TaskEffects.Refs
+        if branch.is_checked_out():
+            self.effects |= TaskEffects.Head
+            args = ["merge", "--ff-only", "--progress", branch.upstream_name]
+        else:
+            args = ["push", ".", f"{branch.upstream_name}:{branch.name}"]
+
+        yield from self.flowEnterUiThread()
+        driver = yield from self.flowCallGit(*args, autoFail=False)
+
+        if driver.exitCode() != 0:
+            raise DivergentBranchesError(branch, branch.upstream)
+
+        return False
 
 
 class MergeBranch(RepoTask):
@@ -554,29 +585,12 @@ class MergeBranch(RepoTask):
         # -----------------------------------------------------------
         # Actually perform the fast-forward or the merge
 
-        yield from self.flowEnterWorkerThread()
+        yield from self._withGit(wantMergeCommit, theirShorthand)
 
-        self.effects |= TaskEffects.Refs
         if wantMergeCommit:
-            # Create merge commit
-            self.effects |= TaskEffects.Workdir
             self.jumpTo = NavLocator.inWorkdir()
-
-            if pygit2_version_at_least("1.18.0", raise_error=False, feature_name="git_annotated_commit_from_ref"):
-                self.repo.merge(theirBranch)
-            else:  # pragma: no cover
-                self.repo.merge(target)
-
-            # Set a better message than libgit2 (it uses the longform ref name when merging remote branches)
-            # TODO: If we ever add the ability to merge tags, add mergeWhat="tag"
-            mergeWhat = "remote-tracking branch" if theirBranchIsRemote else "branch"
-            self.repo.set_message(f"Merge {mergeWhat} '{theirShorthand}' into '{myShorthand}'")
-            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
-
             self.postStatus = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))
         else:
-            # Fast-forward
-            self.repo.fast_forward_branch(myShorthand, theirBranch.name)
             self.postStatus = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
 
     def confirmFastForward(self, myShorthand: str, theirShorthand: str, target: Oid, autoFastForwardOptionName: str):
@@ -600,6 +614,27 @@ class MergeBranch(RepoTask):
         # Also checking for Accepted so that unit tests can do qmb.accept().
         wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
         return wantMergeCommit
+
+    def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
+        self.effects |= TaskEffects.Refs | TaskEffects.Workdir
+
+        driver = yield from self.flowCallGit(
+            "merge",
+            "--no-commit",
+            "--no-edit",
+            "--progress",
+            "--verbose",
+            *argsIf(wantMergeCommit, "--no-ff"),
+            *argsIf(not wantMergeCommit, "--ff-only"),
+            theirShorthand,
+            autoFail=False  # don't abort the task if process returns non-0 (= conflicts)
+        )
+
+        if driver.exitCode() != 0:
+            logger.warning(f"git merge error scrollback: {driver.stderrScrollback()}")
+
+        if wantMergeCommit:
+            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
 
 
 class RecallCommit(RepoTask):

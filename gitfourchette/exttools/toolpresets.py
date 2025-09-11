@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import os
-import shutil
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.qt import *
@@ -132,8 +131,11 @@ class ToolPresets:
             cls.Terminals.update(cls._freedesktopTerminals)
 
             terminalScores = dict.fromkeys(cls._freedesktopTerminals, 0)
-            terminalScores["Ptyxis"]         = [-2, 2][GNOME]  # Fedora
-            terminalScores["GNOME Terminal"] = [-1, 1][GNOME]
+            terminalScores |= {
+                "Ptyxis"        : 2 if GNOME else -2,  # Fedora default
+                "GNOME Terminal": 1 if GNOME else -1,
+                "xterm"         : -4 if WAYLAND else -3,
+            }
 
             defaultDiffPreset = "Meld"
             defaultMergePreset = "Meld"
@@ -164,14 +166,16 @@ class ToolPresets:
         cls.DefaultTerminalCommand = cls._postProcessDefaultPreset(defaultTerminalPreset, cls.Terminals)
 
     @classmethod
-    def _findBestPreset(cls, presets, scores, fallback):
-        assert set(scores.keys()) == set(presets.keys())
+    def _findBestPreset(cls, presets: dict[str, str], scores: dict[str, int], fallback: str) -> str:
+        assert fallback in presets
+        assert set(scores.keys()) == set(presets.keys()), "scores and presets must have the same keys!"
 
-        sortedScores = sorted(scores.items(), key=lambda pair: pair[1], reverse=True)
+        sortedKeys = sorted(scores.keys(), key=lambda k: scores[k], reverse=True)
 
-        for candidate, _dummyScore in sortedScores:
-            if shutil.which(presets[candidate]):
-                return candidate
+        for key in sortedKeys:
+            program = presets[key].split()[0]
+            if ToolCommands.which(program):
+                return key
 
         return fallback
 
@@ -218,6 +222,17 @@ class ToolPresets:
             name = name.removesuffix(".app")
 
         return name
+
+    @classmethod
+    def flatpakBuiltInGit(cls) -> str:
+        builtInGitPath = "/app/bin/git"
+        if FLATPAK and os.path.exists(builtInGitPath):
+            return ToolCommands.FlatpakSandboxedCommandPrefix + builtInGitPath
+        return ""
+
+    @classmethod
+    def defaultGit(cls) -> str:
+        return cls.flatpakBuiltInGit() or ToolCommands.which("git") or "/usr/bin/git"
 
 
 ToolPresets._filterToolPresets()

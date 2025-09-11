@@ -8,13 +8,15 @@ import os
 import re
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
 import pygit2
 import pytest
 
 from gitfourchette.porcelain import *
-from gitfourchette.toolbox import QPoint_zero
+from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
 from . import *
 
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
@@ -24,8 +26,16 @@ requiresNetwork = pytest.mark.skipif(
     reason="Requires network - rerun with TESTNET=1 environment variable")
 
 requiresFlatpak = pytest.mark.skipif(
-    os.environ.get("TESTFLATPAK", "0").lower() in {"0", ""},
-    reason="Requires flatpak - rerun with TESTFLATPAK=1 environment variable")
+    not FREEDESKTOP or (not FLATPAK and not shutil.which("flatpak")),
+    reason="Requires flatpak")
+
+requiresGpg = pytest.mark.skipif(
+    not shutil.which("gpg"),
+    reason="Requires gpg")
+
+_T = TypeVar("_T")
+_TInheritsQWidget = TypeVar("_TInheritsQWidget", bound=QWidget)
+_TInheritsQDialog = TypeVar("_TInheritsQDialog", bound=QDialog)
 
 
 def pause(seconds: int = 3):
@@ -33,7 +43,12 @@ def pause(seconds: int = 3):
 
 
 def pygit2OlderThan(version: str):
-    return not pygit2_version_at_least(version, raise_error=False)
+    try:
+        pygit2_version_at_least(version)
+        return False  # We have this version or newer
+    except NotImplementedError:
+        # Catch error instead of passing raise_error=False to silence the warning
+        return True  # Our version is older
 
 
 def getTestDataPath(name):
@@ -225,7 +240,10 @@ def triggerMenuAction(menu: QMenu | QMenuBar, pattern: str):
 def triggerContextMenuAction(widget: QWidget, pattern: str):
     menu = summonContextMenu(widget)
     triggerMenuAction(menu, pattern)
-    menu.close()
+    try:
+        menu.close()
+    except RuntimeError:
+        pass
 
 
 def qteFind(qte: QTextEdit, pattern: str, plainText=False):
@@ -311,9 +329,13 @@ def findWindow(pattern: str) -> QWidget:
     raise KeyError(f"did not find widget window matching \"{pattern}\"")
 
 
-def findQDialog(parent: QWidget, pattern: str) -> QDialog:
+def findQDialog(
+        parent: QWidget,
+        pattern: str,
+        t: type[_TInheritsQDialog] = QDialog
+) -> _TInheritsQDialog:
     dlg: QDialog
-    for dlg in parent.findChildren(QDialog):
+    for dlg in parent.findChildren(t):
         if not dlg.isEnabled() or dlg.isHidden():
             continue
         if re.search(pattern, dlg.windowTitle(), re.IGNORECASE):
@@ -322,7 +344,24 @@ def findQDialog(parent: QWidget, pattern: str) -> QDialog:
     raise KeyError(f"did not find qdialog matching \"{pattern}\"")
 
 
-def waitUntilTrue(callback, timeout=5000):
+def waitForQDialog(
+        parent: QWidget,
+        pattern: str,
+        timeout: int = 5000,
+        t: type[_TInheritsQDialog] = QDialog
+) -> _TInheritsQDialog:
+    def tryFind():
+        try:
+            return findQDialog(parent, pattern, t)
+        except KeyError:
+            return None
+    return waitUntilTrue(tryFind, timeout=timeout)
+
+
+def waitUntilTrue(
+        callback: Callable[[], _T],
+        timeout: int = 5000
+) -> _T:
     interval = 100
     assert timeout >= interval
     for _ in range(0, timeout, interval):
@@ -331,15 +370,6 @@ def waitUntilTrue(callback, timeout=5000):
             return result
         QTest.qWait(interval)
     raise TimeoutError(f"retry failed after {timeout} ms timeout")
-
-
-def waitForQDialog(parent: QWidget, pattern: str, timeout=5000) -> QDialog:
-    def tryFind():
-        try:
-            return findQDialog(parent, pattern)
-        except KeyError:
-            return None
-    return waitUntilTrue(tryFind, timeout=timeout)
 
 
 def waitForSignal(signal: SignalInstance, timeout=5000, disconnect=True):
@@ -388,14 +418,17 @@ def waitForRepoWidget(mainWindow):
 
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
     numBoxesFound = 0
+    haystack = ""
     for qmb in parent.findChildren(QMessageBox):
         if not qmb.isVisibleTo(parent):  # skip zombie QMBs
             continue
         numBoxesFound += 1
         haystack = "\n".join([qmb.windowTitle(), qmb.text(), qmb.informativeText()])
+        haystack = stripHtml(haystack)
         if re.search(textPattern, haystack, re.IGNORECASE | re.DOTALL):
             return qmb
-    raise KeyError(f"did not find \"{textPattern}\" among {numBoxesFound} QMessageBoxes")
+
+    raise KeyError(f"did not find \"{textPattern}\" among {numBoxesFound} QMessageBoxes. Last haystack is: {haystack}")
 
 
 def waitForQMessageBox(parent: QWidget, pattern: str) -> QMessageBox:
@@ -417,8 +450,13 @@ def rejectQMessageBox(parent: QWidget, textPattern: str):
 
 
 def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggestedName=False):
-    qfd = findQDialog(parent, textPattern)
-    assert isinstance(qfd, QFileDialog)
+    qfd = findQDialog(parent, textPattern, QFileDialog)
+
+    # qfd.selectFile() is finicky when QLineEdit has focus - https://stackoverflow.com/a/53886678
+    assert qfd.focusWidget()
+    assert isinstance(qfd.focusWidget(), QLineEdit)
+    qfd.focusWidget().clearFocus()
+    QTest.qWait(0)
 
     if useSuggestedName:
         suggestedName = os.path.basename(qfd.selectedFiles()[0])
@@ -426,7 +464,6 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggested
     path = os.path.normpath(path)
 
     qfd.selectFile(path)
-    qfd.show()
 
     if MACOS and not OFFSCREEN and os.path.isdir(path):
         qfd.selectFile(path + "/")
@@ -435,11 +472,28 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggested
     return path
 
 
-def findQToolButton(parent: QToolButton, textPattern: str) -> QToolButton:
-    for button in parent.findChildren(QToolButton):
-        if re.search(textPattern, button.text(), re.IGNORECASE | re.DOTALL):
-            return button
-    raise KeyError(f"did not find QToolButton \"{textPattern}\"")
+def findChildWithText(
+        parent: QWidget,
+        pattern: str,
+        t: type[_TInheritsQWidget]
+) -> _TInheritsQWidget:
+    for widget in parent.findChildren(t):
+        if findTextInWidget(widget, pattern):
+            return widget
+    raise KeyError(f"did not find {t} \"{pattern}\"")
+
+
+def findTextInWidget(
+        widget: QLabel | QAbstractButton | QStatusBar | QAction,
+        pattern: str
+) -> re.Match[str] | None:
+    if isinstance(widget, QStatusBar):
+        text = widget.currentMessage()
+    else:
+        text = widget.text()
+    if "<" not in text:  # unlikely to be HTML
+        text = stripAccelerators(text)
+    return re.search(pattern, text, re.I | re.M)
 
 
 def postMouseWheelEvent(target: QWidget, angleDelta: int, point=QPoint_zero, modifiers=Qt.KeyboardModifier.NoModifier):
@@ -478,6 +532,9 @@ def summonContextMenu(target: QWidget, localPoint=QPoint_zero):
 
 
 def summonToolTip(target: QWidget, localPoint=QPoint_zero):
+    if WAYLAND and not OFFSCREEN:
+        print("*** THIS TEST MUST BE RUN IN OFFSCREEN MODE IN WAYLAND.", file=sys.stderr)
+
     # Move the cursor so that context-sensitive tooltips still work.
     # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
     # but offscreen tests will still work fine.

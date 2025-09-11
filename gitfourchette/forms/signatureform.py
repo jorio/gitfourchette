@@ -46,6 +46,9 @@ class SignatureForm(QWidget):
         self.ui.offsetEdit.currentIndexChanged.connect(self.signatureChanged)
         self.ui.nowButton.clicked.connect(self.setDateTimeNow)
 
+        # Qt 6.8.2 inexplicably makes QSpinBoxes super tall with Breeze/Oxygen styles
+        self.ui.timeEdit.setMaximumHeight(32)
+
     def setSignature(self, signature: Signature):
         qdt = signatureQDateTime(signature)
         with QSignalBlockerContext(self):

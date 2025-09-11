@@ -4,7 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.diffdocument import SpecialDiffError
@@ -31,21 +30,7 @@ class SpecialDiffView(QTextBrowser):
         scheme = settings.prefs.syntaxHighlightingScheme()
         styleSheet = scheme.basicQss(self)
         self.setStyleSheet(styleSheet)
-
-        if settings.prefs.colorblind:
-            addColor = colors.teal
-            delColor = colors.orange
-        else:
-            addColor = colors.olive
-            delColor = colors.red
-
-        self.htmlHeader = f"""\
-        <html>
-        <style>
-        del {{ color: {delColor.name()}; }}
-        add {{ color: {addColor.name()}; }}
-        a {{ font-weight: bold; }}
-        </style>"""
+        self.htmlHeader = "<html><style>a { font-weight: bold; }</style>" + settings.prefs.addDelColorsStyleTag()
 
     def onAnchorClicked(self, link: QUrl):
         if self.documentLinks is not None and self.documentLinks.processLink(link, self):

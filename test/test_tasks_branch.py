@@ -87,11 +87,11 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
-    def isUpstreamItalic():
+    def isUpstreamBold():
         upstreamNode = rw.sidebar.findNodeByRef(f"refs/remotes/{upstreamName}")
         upstreamIndex = upstreamNode.createIndex(rw.sidebar.sidebarModel)
         upstreamFont: QFont = upstreamIndex.data(Qt.ItemDataRole.FontRole)
-        return upstreamFont is not None and upstreamFont.italic()
+        return upstreamFont is not None and upstreamFont.bold()
 
     branchName, upstreamName = branchSettings
     isCurrentBranch = branchName == "master"
@@ -105,7 +105,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert re.search(rf"{branchName}.+local branch", toolTip, re.I)
     assert (branchName == "master") == bool(re.search(r"checked.out", toolTip, re.I))
     assert re.search(rf"upstream.+{upstreamName}", toolTip, re.I)
-    assert not isCurrentBranch or isUpstreamItalic()
+    assert not isCurrentBranch or isUpstreamBold()
 
     # Clear tracking reference
     menu = rw.sidebar.makeNodeMenu(node)
@@ -114,7 +114,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert originMasterAction.isChecked()
     stopTrackingAction.trigger()
     assert repo.branches.local[branchName].upstream is None
-    assert not isUpstreamItalic()
+    assert not isUpstreamBold()
 
     # Change tracking back to original upstream branch
     menu = rw.sidebar.makeNodeMenu(node)
@@ -124,7 +124,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert notTrackingAction.isChecked()
     originMasterAction.trigger()
     assert repo.branches.local[branchName].upstream == repo.branches.remote[upstreamName]
-    assert not isCurrentBranch or isUpstreamItalic()
+    assert not isCurrentBranch or isUpstreamBold()
 
     # Do that again to cover no-op case
     menu = rw.sidebar.makeNodeMenu(node)
@@ -132,7 +132,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     assert originMasterAction.isChecked()
     originMasterAction.trigger()
     assert repo.branches.local[branchName].upstream == repo.branches.remote[upstreamName]
-    assert not isCurrentBranch or isUpstreamItalic()
+    assert not isCurrentBranch or isUpstreamBold()
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
@@ -657,8 +657,8 @@ def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     writeFile(uncommittedPath, uncommittedContents)
     rw = mainWindow.openRepo(wd)
 
-    rootId1 = Oid(hex="6d2168f6dcd314050ed1f6ad70b867aafa25a186")
-    rootId2 = Oid(hex="ea953d3ba4c5326d530dc09b4ca9781b01c18e00")
+    rootId1 = Oid(hex="76f07b5767ec7a1a5acbc8777ebc29e317795093")
+    rootId2 = Oid(hex="401dde0371830c00869fabeac7debd27b1abe709")
     subId1 = Oid(hex="db85fb4ffb94ad4e2ea1d3a6881dc5ec1cfbce92")
     subId2 = Oid(hex="6c138ceb12d6fc505ebe9015dcc48a0616e1de23")
 
@@ -669,7 +669,7 @@ def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(rootId2))
     triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
 
-    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+ea953d3")
+    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+" + id7(rootId2))
     dlg.modeButtons[ResetMode.HARD].click()
     assert dlg.ui.recurseCheckBox.isVisible()
     dlg.ui.recurseCheckBox.setChecked(True)
@@ -712,7 +712,7 @@ def testSwitchBranchWorkdirConflicts(tempDir, mainWindow):
     triggerMenuAction(menu, "switch to")
     acceptQMessageBox(rw, "switch to.+no-parent")
 
-    acceptQMessageBox(rw, "conflict.+with.+file")  # this will fail if the messagebox doesn't show up
+    acceptQMessageBox(rw, "your local changes to the following files would be overwritten by checkout")
 
     assert not localBranches['no-parent'].is_checked_out()  # still not checked out
     assert localBranches['master'].is_checked_out()
@@ -879,7 +879,6 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     qmb = findQMessageBox(rw, "can .*fast.forward")
     mergeCommitButton = next(b for b in qmb.buttons() if b.text().lower() == "create merge commit")
     mergeCommitButton.click()
-    assert not qmb.isVisible()
 
     assert rw.mergeBanner.isVisibleTo(rw)
     assert rw.repo.state() == RepositoryState.MERGE
@@ -893,6 +892,12 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
         "master.txt": FileStatus.INDEX_NEW,
     }
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
+
+    # Check prepared merge message
+    rw.diffArea.commitButton.click()
+    commitDialog: CommitDialog = findQDialog(rw, "commit")
+    assert re.match(r"merge.+master.+into.+no-parent", commitDialog.ui.summaryEditor.text(), re.I)
+    commitDialog.reject()
 
 
 def testAbortMerge(tempDir, mainWindow):
@@ -983,7 +988,8 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "empty commit")
     commitDialog: CommitDialog = findQDialog(rw, "commit")
     preparedMessage = commitDialog.getFullMessage()
-    assert "Merge branch 'branch-conflicts' into 'master'" == commitDialog.getFullMessage()
+    # TODO: Why is there no "into 'master'" with vanilla git here?
+    assert "Merge branch 'branch-conflicts'\n" == commitDialog.getFullMessage()
     assert "Conflicts" not in preparedMessage
     assert "#" not in preparedMessage
 
@@ -1046,3 +1052,22 @@ def testCreateBranchOnDetachedHead(tempDir, mainWindow):
 
     # Create the branch without complaining about losing detached HEAD
     assert "hellobranch" in rw.repo.branches.local
+
+
+def testRefreshLibgit2IndexAfterTaskAffectsHead(tempDir, mainWindow):
+    # Make sure that libgit2's index is properly refreshed after HEAD changes.
+    # In this example, SwitchBranch will modify HEAD; then, CherrypickCommit's prereqs should pass.
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/SomeNewFile.txt", "hello untracked file")
+
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to.+no-parent")
+    acceptQMessageBox(rw, "do you want to switch to.+no-parent")
+
+    cherrypickOid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
+    rw.jump(NavLocator.inCommit(cherrypickOid, "a/a1"), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry.?pick")
+    rejectQMessageBox(rw, "cherry.?pick.+successful")

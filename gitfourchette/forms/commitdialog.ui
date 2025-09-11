@@ -118,7 +118,7 @@
      <item>
       <widget class="QCheckBox" name="revealSignature">
        <property name="text">
-        <string>Customi&amp;ze Signature</string>
+        <string>&amp;Edit Author</string>
        </property>
        <property name="checked">
         <bool>false</bool>
@@ -139,7 +139,33 @@
       </widget>
      </item>
      <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="GpgButton" name="gpg">
+       <property name="text">
+        <string notr="true">&amp;GPG</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="standardButtons">
         <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
        </property>
@@ -160,6 +186,12 @@
    <class>QHintButton</class>
    <extends>QToolButton</extends>
    <header>gitfourchette.toolbox.qhintbutton</header>
+  </customwidget>
+  <customwidget>
+   <class>GpgButton</class>
+   <extends>QToolButton</extends>
+   <header>gitfourchette.forms.gpgbutton</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <tabstops>

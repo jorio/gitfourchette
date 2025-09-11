@@ -12,7 +12,7 @@ from gitfourchette.toolbox import ValidatorMultiplexer, setTabOrder
 class TextInputDialog(QDialog):
     textAccepted = Signal(str)
 
-    def __init__(self, parent: QWidget, title: str, label: str, subtitle: str = ""):
+    def __init__(self, parent: QWidget, title: str, label: str, subtitle: str = "", multilineSubtitle: bool = False):
         super().__init__(parent)
 
         self.setWindowTitle(title)
@@ -36,7 +36,7 @@ class TextInputDialog(QDialog):
         # Leave row 2 free for setExtraWidget
         self.contentsLayout = layout
 
-        convertToBrandedDialog(self, subtitleText=subtitle)
+        convertToBrandedDialog(self, subtitleText=subtitle, multilineSubtitle=multilineSubtitle)
 
         self.lineEdit.setFocus()
 
@@ -69,6 +69,10 @@ class TextInputDialog(QDialog):
     @property
     def okButton(self) -> QPushButton:
         return self.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+
+    @property
+    def cancelButton(self) -> QPushButton:
+        return self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
 
     def show(self):
         super().show()

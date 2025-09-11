@@ -1,5 +1,36 @@
 # GitFourchette version history
 
+## 1.5.0 (2025-09-08)
+
+**Major change: Better integration with standard Git tooling.** GitFourchette now uses git instead of libgit2 to edit repositories and communicate with remotes. This enables seamless integration into workflows that depend on OpenSSH, hooks, etc.
+
+The Flatpak version comes bundled with a Git distribution so you can use it without any additional setup. For more control, you can switch to your system's Git install via *Settings → Git Integration*.
+
+New features:
+
+- **GPG-sign your commits.** Look for a little key icon in the Commit Dialog. (#63)
+- **Verify commit signatures in the commit history.** *Settings → Commit History → Verify signed commits on the fly*. (#59)
+
+Quality of life improvements:
+
+- Force push with lease (#61)
+- Sidebar: Bold current commit and upstream (#60)
+- Sidebar: Allow collapsing/expanding all folders from Local Branches context menu
+- Keep syntax highlighting active while a search term is being highlighted
+- In non-KDE environments (e.g. GNOME), the Return key can now be used to confirm most dialogs regardless of the focused widget (note: KDE already allowed this) (#68)
+
+Bug fixes:
+
+- Fix rendering of Unicode surrogate pairs in character-level diffs (#58)
+- Fix parent commit links in Get Commit Info (regression in 1.4.0)
+
+Breaking changes due to integration with Git tooling:
+
+- Passphrase saving has been delegated to ssh-agent. Some Linux distros like Ubuntu and Fedora provide an ssh-agent out of the box. As a fallback, you can have GitFourchette spin up an ssh-agent for you via *Settings → Git Integration → ssh-agent*.
+- Per-remote custom SSH keys aren't supported anymore. You can set per-host keys in *~/.ssh/config* to achieve the same effect; or, you can set per-repo custom SSH keys in *Repo → Repo Settings → Log in to SSH remotes with custom key file*.
+
+Note: Although many commands now call git, libgit2 (via pygit2) is still used internally to build a model of the repo.
+
 ## 1.4.0 (2025-07-14)
 
 New features:

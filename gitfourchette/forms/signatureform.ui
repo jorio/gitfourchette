@@ -120,21 +120,22 @@
    <item row="0" column="1">
     <widget class="QComboBox" name="replaceComboBox">
      <property name="toolTip">
-      <string>&lt;p&gt;Two signatures are recorded in every commit – one for the author, and one for the committer. Select which signature you want to customize.</string>
+      <string>&lt;p&gt;Every commit records information about an author and a committer. They can be the same person.&lt;/p&gt;
+       &lt;p&gt;Select which person you want to override.&lt;/p&gt;</string>
      </property>
      <item>
       <property name="text">
-       <string>Author’s Signature</string>
+       <string>Author</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>Committer’s Signature</string>
+       <string>Committer</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>Both Signatures</string>
+       <string>Both</string>
       </property>
      </item>
     </widget>

@@ -8,6 +8,7 @@ import pygit2.enums
 import pytest
 
 from gitfourchette.graphview.commitlogmodel import SpecialRow
+from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -164,7 +165,7 @@ def testCommitInfo(tempDir, mainWindow, method):
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(oid1))
+    rw.jump(NavLocator.inCommit(oid1, "a/a1.txt"), check=True)
 
     if method == "hotkey":
         rw.graphView.setFocus()
@@ -180,6 +181,22 @@ def testCommitInfo(tempDir, mainWindow, method):
     assert str(oid1) in qmb.text()
     assert "A U Thor" in qmb.text()
     qmb.accept()
+
+
+def testCommitInfoJumpToParent(tempDir, mainWindow):
+    oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid1, "a/a1.txt"), check=True)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "get info")
+    qmb = findQMessageBox(rw, "Merge branch 'a' into c")
+
+    # Click on a "parent" link; this should close the message box and jump to another commit
+    label: QLabel = qmb.findChild(QLabel, "qt_msgbox_label")
+    parentLink = re.search(r'<a href="(.*6462e7d\S+)">', label.text(), re.I).group(1)
+    label.linkActivated.emit(parentLink)
+    assert rw.navLocator.commit == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
 
 
 def testUncommittedChangesGraphHotkeys(tempDir, mainWindow):
@@ -199,19 +216,6 @@ def testUncommittedChangesGraphHotkeys(tempDir, mainWindow):
 
 @pytest.mark.parametrize("method", ["hotkey", "contextmenu"])
 def testCopyCommitHash(tempDir, mainWindow, method):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
-
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -226,24 +230,11 @@ def testCopyCommitHash(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     QTest.qWait(1)
-    assert clipboard.text() == str(oid1)
+    assert QApplication.clipboard().text() == str(oid1)
 
 
 @pytest.mark.parametrize("method", ["hotkey", "contextmenu"])
 def testCopyCommitMessage(tempDir, mainWindow, method):
-    """
-    WARNING: THIS TEST MODIFIES THE SYSTEM'S CLIPBOARD.
-    (No worries if you're running the tests offscreen.)
-    """
-
-    # Make sure the clipboard is clean before we begin
-    clipboard = QGuiApplication.clipboard()
-    if WAYLAND and not OFFSCREEN:
-        warnings.warn("wayland blocks QClipboard.clear()")
-    else:
-        clipboard.clear()
-        assert not clipboard.text()
-
     oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -258,7 +249,7 @@ def testCopyCommitMessage(tempDir, mainWindow, method):
         raise NotImplementedError(f"unknown method {method}")
 
     QTest.qWait(1)
-    assert clipboard.text() == "Merge branch 'a' into c"
+    assert QApplication.clipboard().text() == "Merge branch 'a' into c"
 
 
 def testRefSortFavorsHeadBranch(tempDir, mainWindow):
@@ -366,3 +357,73 @@ def testCommitAmendedOutsideAppVanishesFromGraph(tempDir, mainWindow):
 
     rw.refreshRepo()
     assert rw.navLocator.commit == newHeadId
+
+
+def testRestoreHiddenBranchOnBoot(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.checkout_local_branch("no-parent")
+    Path(f"{wd}/.git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/master"] }')
+
+    rw = mainWindow.openRepo(wd)
+
+    hiddenOid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+    with pytest.raises(GraphView.SelectCommitError, match="hidden branch"):
+        rw.graphView.getFilterIndexForCommit(hiddenOid)
+
+    visibleOid = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
+    assert rw.graphView.getFilterIndexForCommit(visibleOid)
+
+
+def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
+    wd = f"{tempDir.name}/hello"
+    pygit2.init_repository(wd)
+
+    with RepoContext(wd) as repo:
+        sig = TEST_SIGNATURE
+
+        def newCommit():
+            nonlocal sig
+            sig = Signature(sig.name, sig.email, sig.time + 60)
+            message = "hello from " + repo.head_branch_shorthand
+            return repo.create_commit_on_head(message, sig, sig)
+
+        repo.create_commit_on_head("root commit", sig, sig)
+        repo.create_branch_on_head("donthide")
+        repo.checkout_local_branch("donthide")
+        newCommit()
+        donthideTip = newCommit()
+        repo.checkout_local_branch("master")
+        newCommit()
+        repo.create_branch_on_head("rebase")
+        newCommit()
+        repo.create_branch_on_head("hidethis")
+        newCommit()
+        hidethisTip = newCommit()
+        repo.checkout_local_branch("rebase")
+        newCommit()
+        newCommit()
+        newCommit()
+        rebaseTip = newCommit()
+        repo.checkout_local_branch("master")
+        repo.delete_local_branch("rebase")
+
+    Path(f"{wd}/.git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/hidethis"] }')
+    rw = mainWindow.openRepo(wd)
+
+    # Initially, the tip of hidethis is visible because it's part of master
+    index = rw.graphView.getFilterIndexForCommit(hidethisTip)
+    assert index.isValid()
+
+    # Simulate a rebase
+    rw.repo.reset(rebaseTip, ResetMode.HARD)
+    rw.refreshRepo()
+
+    # The tip of donthide must still exist
+    index = rw.graphView.getFilterIndexForCommit(donthideTip)
+    assert index.isValid()
+
+    # Now, hidethis must be gone
+    with pytest.raises(GraphView.SelectCommitError):
+        rw.graphView.getFilterIndexForCommit(hidethisTip)

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -109,29 +109,47 @@ class ApplyStash(RepoTask):
         deleteAfterApply = deleteCheckBox.isChecked()
         qmb.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
         self.jumpTo = NavLocator.inWorkdir()
+        self.effects |= TaskEffects.Workdir
 
-        self.repo.stash_apply_id(stashCommitId)
+        if deleteAfterApply:
+            self.effects |= TaskEffects.Refs
+            backupStash(self.repo, stashCommitId)
 
-        self.postStatus = _("Stash {0} applied.", tquoe(stashMessage))
+        # Although 'git stash apply stash@{<FULL_COMMIT_ID>}' works fine,
+        # 'git stash pop' and 'drop' won't delete the stash if we pass the full
+        # commit id. So, use a stash index instead.
+        stashIndex = self.repo.find_stash_index(stashCommitId)
+        popOrApply = "pop" if deleteAfterApply else "apply"
 
-        if self.repo.index.conflicts:
-            yield from self.flowEnterUiThread()
+        driver = yield from self.flowCallGit("stash", popOrApply, "--index", str(stashIndex), autoFail=False)
+
+        yield from self.flowEnterWorkerThread()
+        self.repo.refresh_index()
+        anyConflicts = self.repo.index.conflicts
+
+        yield from self.flowEnterUiThread()
+
+        if driver.exitCode() == 0:
+            if deleteAfterApply:
+                self.postStatus = _("Stash {0} applied and deleted.", tquoe(stashMessage))
+            else:
+                self.postStatus = _("Stash {0} applied.", tquoe(stashMessage))
+
+        elif anyConflicts:
             self.postStatus = _("Stash {0} applied, with conflicts.", tquoe(stashMessage))
             message = [_("Applying the stash {0} has caused merge conflicts "
                          "because your files have diverged since they were stashed.", bquoe(stashMessage))]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
             showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(message))
-            return
 
-        if deleteAfterApply:
-            self.effects |= TaskEffects.Refs
-            backupStash(self.repo, stashCommitId)
-            self.repo.stash_drop_id(stashCommitId)
-            self.postStatus = _("Stash {0} applied and deleted.", tquoe(stashMessage))
+        else:
+            self.postStatus = _("Stash {0} couldn’t be applied.", tquoe(stashMessage))
+            message = [self.postStatus]
+            if deleteAfterApply:
+                message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
+            raise AbortTask(driver.htmlErrorText(paragraphs(message)), details=driver.formatCommandLine())
 
 
 class DropStash(RepoTask):
@@ -143,9 +161,11 @@ class DropStash(RepoTask):
             verb=_("Delete stash"),
             buttonIcon="SP_DialogDiscardButton")
 
-        yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
-
         backupStash(self.repo, stashCommitId)
-        self.repo.stash_drop_id(stashCommitId)
+
+        self.effects |= TaskEffects.Refs
+        stashIndex = self.repo.find_stash_index(stashCommitId)
+        stashName = f"stash@{{{stashIndex}}}"  # 'git stash drop' doesn't support --index
+        yield from self.flowCallGit("stash", "drop", stashName)
+
         self.postStatus = _("Stash {0} deleted.", tquoe(stashMessage))

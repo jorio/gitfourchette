@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
+import re
 from contextlib import suppress
 from pathlib import Path
 
@@ -15,37 +16,48 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
 from gitfourchette.tasks import TaskEffects
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
+from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
 
 class EditRepoSettings(RepoTask):
     def flow(self):
-        dlg = RepoSettingsDialog(self.repo, self.parentWidget())
+        repo = self.repo
+        repoPrefs = self.repoModel.prefs
+
+        dlg = RepoSettingsDialog(repo, repoPrefs, self.parentWidget())
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         yield from self.flowDialog(dlg)
 
         localName, localEmail = dlg.localIdentity()
         nickname = dlg.ui.nicknameEdit.text()
+        customKeyFile = dlg.ui.keyFilePicker.privateKeyPath()
         dlg.deleteLater()
 
-        configObject = self.repo.config
+        configObject = repo.config
         for key, value in [("user.name", localName), ("user.email", localEmail)]:
             if value:
                 configObject[key] = value
             else:
                 with suppress(KeyError):
                     del configObject[key]
-        self.repo.scrub_empty_config_section("user")
+        repo.scrub_empty_config_section("user")
+
+        if customKeyFile != repoPrefs.customKeyFile:
+            repoPrefs.customKeyFile = customKeyFile
+            repoPrefs.setDirty()
 
         if nickname != settings.history.getRepoNickname(self.repo.workdir, strict=True):
             settings.history.setRepoNickname(self.repo.workdir, nickname)
             settings.history.setDirty()
             self.rw.nameChange.emit()
+
+        repoPrefs.write()
 
 
 class GetCommitInfo(RepoTask):
@@ -55,14 +67,12 @@ class GetCommitInfo(RepoTask):
         return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
 
     def flow(self, oid: Oid, withDebugInfo=False, dialogParent: QWidget | None = None):
-        links = DocumentLinks()
-
         def commitLink(commitId):
             if commitId == UC_FAKEID:
                 commitLocator = NavLocator.inWorkdir()
             else:
                 commitLocator = NavLocator.inCommit(commitId)
-            link = links.new(lambda invoker: self.saveLocator(commitLocator))
+            link = commitLocator.url()
             html = linkify(shortHash(commitId), link)
             return html
 
@@ -96,11 +106,21 @@ class GetCommitInfo(RepoTask):
         else:
             committerMarkup = self.formatSignature(commit.committer)
 
+        # GPG
+        gpgStatus, gpgKeyInfo = self.repoModel.getCachedGpgStatus(commit)
+        if gpgStatus == GpgStatus.Unsigned:
+            gpgMarkup = tagify(_("(not signed)"), "<i>")
+        elif gpgKeyInfo:
+            gpgMarkup = f"{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small>"
+        else:
+            gpgMarkup = f"{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}"
+
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
         table += tableRow(parentTitle, parentMarkup)
         table += tableRow(_("Author"), self.formatSignature(commit.author))
         table += tableRow(_("Committer"), committerMarkup)
+        table += tableRow(_("Signature"), gpgMarkup)
 
         # Graph debug info
         if withDebugInfo:
@@ -154,8 +174,8 @@ class GetCommitInfo(RepoTask):
         label: QLabel = messageBox.findChild(QLabel, "qt_msgbox_label")
         assert label
         label.setOpenExternalLinks(False)
-        label.linkActivated.connect(lambda url: links.processLink(url, self))
-        label.linkActivated.connect(lambda: messageBox.accept())
+        label.linkActivated.connect(self.rw.processInternalLink)
+        label.linkActivated.connect(messageBox.accept)
 
         messageBox.show()
 
@@ -165,8 +185,197 @@ class GetCommitInfo(RepoTask):
         # to satisfy the requirement that `flow` be a generator.
         yield from self.flowEnterUiThread()
 
-    def saveLocator(self, locator):
-        self.jumpTo = locator
+
+class VerifyGpgSignature(RepoTask):
+    _GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
+
+    _GnupgStatusTable = {
+        # The order in this table is significant for parseGnupgVerification
+        "NO_PUBKEY" : GpgStatus.MissingKey,
+        "GOODSIG"   : GpgStatus.GoodUntrusted,
+        "EXPSIG"    : GpgStatus.ExpiredSig,
+        "EXPKEYSIG" : GpgStatus.ExpiredKey,
+        "REVKEYSIG" : GpgStatus.RevokedKey,
+        "KEYREVOKED": GpgStatus.RevokedKey,
+        "BADSIG"    : GpgStatus.Bad,
+    }
+
+    _SshGoodTrustedPattern = re.compile(r'^Good "git" signature for (\S+) with \S+ key (.+)')
+    _SshGoodUntrustedPattern = re.compile(r'^Good "git" signature with \S+ key (.+)')
+
+    def flow(self, oid: Oid, dialogParent: QWidget | None = None):
+        commit = self.repo.peel_commit(oid)
+
+        gpgSignature, _gpgPayload = commit.gpg_signature
+        if not gpgSignature:
+            raise AbortTask(_("Commit {0} is not signed, so it cannot be verified.", tquo(shortHash(oid))))
+
+        isSsh = gpgSignature.startswith(BEGIN_SSH_SIGNATURE)
+
+        driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+        fail = driver.exitCode() != 0
+        stderr = driver.stderrScrollback()
+
+        status, keyInfo = self.parseScrollback(stderr, isSsh)
+
+        # Update gpg status cache
+        self.repoModel.cacheGpgStatus(oid, status, keyInfo)
+
+        paras = [f"{stockIconImgTag(status.iconName())} {TrTables.enum(status)}"]
+
+        if status == GpgStatus.MissingKey:
+            paras.append(_("Hint: Public key {0} isn’t in your GPG keyring. "
+                           "You can try to import it from a trusted source, "
+                           "then verify this commit again.", f"<em>{escape(keyInfo)}</em>"))
+
+        if keyInfo:
+            paras.append(f"<i>{escape(keyInfo)}</i>")
+
+        title = _("Verify signature in commit {0}", tquo(shortHash(oid)))
+        mbIcon = ("information" if not fail else
+                  "critical" if status in [GpgStatus.RevokedKey, GpgStatus.Bad] else
+                  "warning")
+        qmb = asyncMessageBox(self.parentWidget(), mbIcon, title, paragraphs(paras),
+                              QMessageBox.StandardButton.Ok)# | QMessageBox.StandardButton.Help)
+        qmb.setDetailedText(driver.stderrScrollback())
+
+        if keyInfo:
+            hintButton = QPushButton(qmb)
+            qmb.addButton(hintButton, QMessageBox.ButtonRole.HelpRole)
+            hintButton.setText(_("Copy &Key ID"))
+            hintButton.clicked.disconnect()  # Qt internally wires the button to close the dialog; undo that.
+
+            def onCopyClicked():
+                QApplication.clipboard().setText(keyInfo)
+                QToolTip.showText(QCursor.pos(), _("{0} copied to clipboard.", tquo(keyInfo)))
+            hintButton.clicked.connect(onCopyClicked)
+
+            # Adding an extra button seems to remove the OK button's Escape key mapping
+            qmb.setEscapeButton(qmb.button(QMessageBox.StandardButton.Ok))
+
+        yield from self.flowDialog(qmb)
+
+    @classmethod
+    def parseScrollback(cls, scrollback: str, isSsh: bool) -> tuple[GpgStatus, str]:
+        if isSsh:
+            return cls.parseSshVerification(scrollback)
+        else:
+            return cls.parseGnupgVerification(scrollback)
+
+    @classmethod
+    def parseGnupgVerification(cls, scrollback: str) -> tuple[GpgStatus, str]:
+        # https://github.com/gpg/gnupg/blob/master/doc/DETAILS#general-status-codes
+        # https://github.com/git/git/blob/v2.51.0/gpg-interface.c#L184
+
+        report = {}
+        for line in scrollback.splitlines():
+            match = cls._GnupgLinePattern.match(line)
+            if not match:
+                continue
+            token = match.group(1)
+            blurb = match.group(2)
+            report[token] = blurb
+
+        # Find the most significant status.
+        # The order of the keys in _GnupgStatusTable is significant!
+        try:
+            status = next(status
+                          for token, status in cls._GnupgStatusTable.items()
+                          if token in report)
+        except StopIteration:
+            status = GpgStatus.CantCheck
+
+        # Bump GoodUntrusted to GoodTrusted if we trust this
+        if status == GpgStatus.GoodUntrusted and ("TRUST_ULTIMATE" in report) or ("TRUST_FULLY" in report):
+            status = GpgStatus.GoodTrusted
+
+        # Try to extract a key ID or fingerprint for informative purposes
+        keyInfo = ""
+        for token in cls._GnupgStatusTable:
+            keyInfo = report.get(token, "")
+            if keyInfo:
+                break
+
+        return status, keyInfo
+
+    @classmethod
+    def parseSshVerification(cls, scrollback: str) -> tuple[GpgStatus, str]:
+        lines = scrollback.splitlines()
+
+        if not lines:
+            return GpgStatus.CantCheck, ""
+
+        match = cls._SshGoodTrustedPattern.match(lines[0])
+        if match:
+            assert "No principal matched." not in lines
+            keyInfo = f"{match.group(1)} {match.group(2)}"
+            return GpgStatus.GoodTrusted, keyInfo
+
+        match = cls._SshGoodUntrustedPattern.match(lines[0])
+        if match:
+            assert "No principal matched." in lines
+            keyInfo = _("(Not found in SSH allowed signers file)") + " " + match.group(1)
+            return GpgStatus.GoodUntrusted, keyInfo
+
+        if lines[0].startswith("Could not verify signature."):
+            return GpgStatus.Bad, ""
+
+        return GpgStatus.CantCheck, ""
+
+
+class VerifyGpgQueue(RepoTask):
+    def isFreelyInterruptible(self) -> bool:
+        return True
+
+    def flow(self):
+        self.effects = TaskEffects.Nothing
+        graphView = self.rw.graphView
+        repoModel = self.repoModel
+
+        while repoModel.gpgVerifyQueue:
+            oid = repoModel.gpgVerifyQueue.pop()
+
+            currentStatus, keyInfo = repoModel.gpgStatusCache.get(oid, (GpgStatus.Unsigned, ""))
+            if currentStatus != GpgStatus.Pending:
+                continue
+
+            try:
+                visibleIndex = self.visibleIndex(oid)
+            except LookupError:
+                continue
+
+            try:
+                driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+            except AbortTask:
+                # This task may be issued repeatedly.
+                # Don't let AbortTask spam dialog boxes if git failed to start.
+                repoModel.cacheGpgStatus(oid, GpgStatus.ProcessError)
+                graphView.update(visibleIndex)
+                continue
+
+            stderr = driver.stderrScrollback()
+            isSsh = keyInfo == "ssh"
+
+            status, keyInfo = VerifyGpgSignature.parseScrollback(stderr, isSsh)
+            repoModel.cacheGpgStatus(oid, status, keyInfo)
+            graphView.update(visibleIndex)
+
+    def visibleIndex(self, oid: Oid) -> QModelIndex:
+        graphView = self.rw.graphView
+
+        index = graphView.getFilterIndexForCommit(oid)  # raises SelectCommitError (LookupError) if hidden
+        assert index.isValid()
+
+        top = graphView.indexAt(QPoint_zero)
+        bottom = graphView.indexAt(graphView.rect().bottomLeft())
+
+        topRow = top.row() if top.isValid() else 0
+        bottomRow = bottom.row() if bottom.isValid() else 0x3FFFFFFF
+
+        if topRow <= index.row() <= bottomRow:
+            return index
+
+        raise IndexError()
 
 
 class NewIgnorePattern(RepoTask):

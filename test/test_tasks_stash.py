@@ -316,7 +316,7 @@ def testApplyStashWithConflicts(tempDir, mainWindow):
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, r"^apply")
     acceptQMessageBox(rw, "apply.+stash")
-    acceptQMessageBox(rw, "conflicts with.+working dir")
+    acceptQMessageBox(rw, "your local changes to the following files would be overwritten")
 
     # Commit a1.txt
     rw.repo.index.add_all()

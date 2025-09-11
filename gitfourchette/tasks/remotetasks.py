@@ -23,7 +23,6 @@ class NewRemote(RepoTask):
             editExistingRemote=False,
             name="",
             url="",
-            customKeyFile="",
             existingRemotes=existingRemotes,
             parent=self.parentWidget())
 
@@ -34,14 +33,12 @@ class NewRemote(RepoTask):
 
         newRemoteName = dlg.ui.nameEdit.text()
         newRemoteUrl = dlg.ui.urlEdit.text()
-        newRemoteKeyfile = dlg.privateKeyFilePath
         fetchAfterAdd = dlg.ui.fetchAfterAddCheckBox.isChecked()
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.create_remote(newRemoteName, newRemoteUrl)
-        self.repoModel.prefs.setRemoteKeyFile(newRemoteName, newRemoteKeyfile)
 
         self.postStatus = _("Remote {0} added.", tquo(newRemoteName))
 
@@ -63,7 +60,6 @@ class EditRemote(RepoTask):
             editExistingRemote=True,
             name=oldRemoteName,
             url=oldRemoteUrl,
-            customKeyFile=self.repoModel.prefs.getRemoteKeyFile(oldRemoteName),
             existingRemotes=existingRemotes,
             parent=self.parentWidget())
 
@@ -74,13 +70,11 @@ class EditRemote(RepoTask):
 
         newRemoteName = dlg.ui.nameEdit.text()
         newRemoteUrl = dlg.ui.urlEdit.text().strip()
-        newRemoteKeyfile = dlg.privateKeyFilePath
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.edit_remote(oldRemoteName, newRemoteName, newRemoteUrl)
-        self.repoModel.prefs.setRemoteKeyFile(newRemoteName, newRemoteKeyfile)
 
 
 class DeleteRemote(RepoTask):

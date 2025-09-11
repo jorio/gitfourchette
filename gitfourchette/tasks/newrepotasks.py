@@ -24,10 +24,7 @@ class NewRepo(RepoTask):
         fileDialog.setFileMode(QFileDialog.FileMode.Directory)
         fileDialog.setLabelText(QFileDialog.DialogLabel.Accept, _("&Create repo here"))
         fileDialog.setWindowModality(Qt.WindowModality.WindowModal)
-        fileDialog.show()
-        yield from self.flowDialog(fileDialog)
-
-        path = fileDialog.selectedFiles()[0]
+        path = yield from self.flowFileDialog(fileDialog)
 
         # macOS's native file picker may return a directory that doesn't exist yet
         # (it expects us to create it ourselves). libgit2 won't detect the parent repo
@@ -46,6 +43,7 @@ class NewRepo(RepoTask):
                         "This directory isn’t empty.", bquo(path))
             yield from self.flowConfirm(title=_("Directory isn’t empty"), text=message, icon="warning")
 
+        # TODO: With git?
         pygit2.init_repository(path)
         openRepo(path)
 

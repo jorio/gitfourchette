@@ -34,7 +34,7 @@ class TaskBook:
             tasks.AcceptMergeConflictResolution: _("Accept merge conflict resolution"),
             tasks.AmendCommit: _("Amend last commit"),
             tasks.ApplyPatch: _("Apply selected text"),
-            tasks.ApplyPatchData: _("Apply patch file"),
+            tasks.ApplyPatchData: _("Apply patch data"),
             tasks.ApplyPatchFile: _("Apply patch file"),
             tasks.ApplyPatchFileReverse: _("Revert patch file"),
             tasks.ApplyStash: _("Apply stash"),
@@ -89,7 +89,6 @@ class TaskBook:
             tasks.ResetHead: _("Reset HEAD"),
             tasks.RestoreRevisionToWorkdir: _("Restore file revision"),
             tasks.RevertCommit: _("Revert commit"),
-            tasks.RevertPatch: _("Revert selected text"),
             tasks.SetUpGitIdentity: _("Git identity"),
             tasks.EditRepoSettings: _("Repository settings"),
             tasks.StageFiles: _("Stage files"),
@@ -98,6 +97,8 @@ class TaskBook:
             tasks.UpdateSubmodulesRecursive: _("Update submodules recursively"),
             tasks.UnstageFiles: _("Unstage files"),
             tasks.UnstageModeChanges: _("Unstage mode changes"),
+            tasks.VerifyGpgSignature: _("Verify signature"),
+            tasks.VerifyGpgQueue: _("Verifying signatures"),
         }
 
         cls.toolbarNames = {
@@ -116,7 +117,7 @@ class TaskBook:
         cls.tips = {
             tasks.AmendCommit: _("Amend the last commit on the current branch with the staged changes in the working directory"),
             tasks.ApplyPatchFile: _("Apply a patch file to the working directory"),
-            tasks.ApplyPatchFileReverse: _("Apply a patch file to the working directory (reverse patch before applying)"),
+            tasks.ApplyPatchFileReverse: _("Apply a patch file (in reverse) to the working directory"),
             tasks.ApplyStash: _("Restore backed up changes to the working directory"),
             tasks.CherrypickCommit: _("Bring the changes introduced by this commit to the current branch"),
             tasks.DeleteBranch: _("Delete this branch locally"),

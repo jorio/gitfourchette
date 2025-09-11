@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+
 def run():
     thisFile = Path(__file__)
     os.chdir(thisFile.parent)
@@ -23,7 +24,6 @@ def run():
     parser.add_argument("--qt", default="pyqt6", choices=["pyqt6", "pyside6", "pyqt5"], help="Qt bindings to use (pyqt6 by default)")
     parser.add_argument("-1", dest="single", action="store_true", help="run a single test at a time (no parallel tests)")
     parser.add_argument("--with-network", action="store_true", help="run tests that require network access")
-    parser.add_argument("--with-flatpak", action="store_true", help="run tests that require the flatpak executable")
     args, forwardArgs = parser.parse_known_args()
 
     if args.visual:
@@ -34,9 +34,6 @@ def run():
     if args.with_network:
         os.environ["TESTNET"] = "1"
 
-    if args.with_flatpak:
-        os.environ["TESTFLATPAK"] = "1"
-
     if not args.single:
         forwardArgs = ["-n", "auto"] + forwardArgs
 
@@ -46,6 +43,7 @@ def run():
     os.environ["PYTEST_QT_API"] = args.qt
     exitCode = pytest.main(forwardArgs)
     sys.exit(exitCode)
+
 
 if __name__ == '__main__':
     run()

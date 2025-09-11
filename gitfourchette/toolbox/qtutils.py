@@ -32,7 +32,10 @@ def showInFolder(path: str):  # pragma: no cover (platform-specific)
     path = os.path.abspath(path)
     isdir = os.path.isdir(path)
 
-    if FREEDESKTOP and HAS_QTDBUS:
+    if APP_TESTMODE:
+        pass
+
+    elif FREEDESKTOP and HAS_QTDBUS:
         # https://www.freedesktop.org/wiki/Specifications/file-manager-interface
         iface = QDBusInterface("org.freedesktop.FileManager1", "/org/freedesktop/FileManager1")
         if iface.isValid():
@@ -111,10 +114,19 @@ def adjustedWidgetFontSize(widget: QWidget, relativeSize: int = 100):
     return round(widget.font().pointSize() * relativeSize / 100.0)
 
 
-def tweakWidgetFont(widget: QWidget, relativeSize: int = 100, bold: bool = False):
+def tweakWidgetFont(
+        widget: QWidget,
+        relativeSize: int = 100,
+        bold: bool = False,
+        tabularNumbers: bool = False
+):
     font: QFont = widget.font()
-    font.setPointSize(round(font.pointSize() * relativeSize / 100.0))
-    font.setBold(bold)
+    if relativeSize != 100:
+        font.setPointSize(round(font.pointSize() * relativeSize / 100.0))
+    if bold:
+        font.setBold(bold)
+    if tabularNumbers:
+        setFontFeature(font, "tnum")
     widget.setFont(font)
     return font
 
@@ -296,18 +308,23 @@ class CallbackAccumulator(QTimer):
         self.timeout.connect(callback)
 
     @staticmethod
-    def deferredMethod(callback: Callable):
-        attr = f"__callbackaccumulator_{id(callback)}"
+    def deferredMethod(delay: int = 0):
+        assert not callable(delay), "did you forget parentheses in '@deferredMethod()'?"
 
-        def wrapper(obj):
-            try:
-                defer = getattr(obj, attr)
-            except AttributeError:
-                defer = CallbackAccumulator(obj, lambda: callback(obj))
-                setattr(obj, attr, defer)
-            defer.start()
+        def decorator(callback: Callable):
+            attr = f"__callbackaccumulator_{id(callback)}"
 
-        return wrapper
+            def wrapper(obj):
+                try:
+                    defer = getattr(obj, attr)
+                except AttributeError:
+                    defer = CallbackAccumulator(obj, lambda: callback(obj), delay)
+                    setattr(obj, attr, defer)
+                defer.start()
+
+            return wrapper
+
+        return decorator
 
 
 def makeInternalLink(urlAuthority: str, urlPath: str = "", urlFragment: str = "", **urlQueryItems) -> str:
@@ -356,7 +373,12 @@ def makeMultiShortcut(*args) -> MultiShortcut:
     return shortcuts
 
 
-def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys, context=Qt.ShortcutContext.WidgetShortcut) -> QShortcut:
+def makeWidgetShortcut(
+        parent: QWidget,
+        callback: Callable | SignalInstance,
+        *keys: ShortcutKeys,
+        context: Qt.ShortcutContext = Qt.ShortcutContext.WidgetShortcut,
+) -> QShortcut:
     assert keys, "no shortcut keys given"
     shortcut = QShortcut(parent)
     if QT5:  # Only one key per shortcut in Qt 5
@@ -366,6 +388,42 @@ def makeWidgetShortcut(parent: QWidget, callback: Callable, *keys: ShortcutKeys,
     shortcut.setContext(context)
     shortcut.activated.connect(callback)
     return shortcut
+
+
+def installDialogReturnShortcut(dialog: QDialog):
+    """
+    In KDE, the Return key typically triggers the default button in a QDialog
+    regardless of the widget that has keyboard focus.
+
+    However, in other DEs like GNOME, the Return key triggers the QRadioButton
+    or QCheckBox that has keyboard focus (in addition to the Space key),
+    preventing the QDialog from being accepted. This function overrides this
+    behavior to make dialogs behave more like KDE in these environments.
+
+    Do not call this before the dialog has been shown to avoid conflicts
+    with any shortcuts that the desktop environment may want to install.
+    """
+
+    # Don't tamper with shortcuts in environments where the native behavior is
+    # adequate.
+    if KDE and not OFFSCREEN:
+        return
+
+    buttonBox = dialog.findChild(QDialogButtonBox)
+    if not buttonBox:
+        return
+
+    okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+    if not okButton:
+        return
+
+    # Don't conflict with any shortcuts that may have been installed
+    # by the desktop environment after QDialog.show().
+    # For example, KDE installs its own Ctrl+Return shortcut.
+    if okButton.findChild(QShortcut):
+        return
+
+    makeWidgetShortcut(okButton, okButton.click, "Ctrl+Return", "Return", context=Qt.ShortcutContext.WindowShortcut)
 
 
 def lerp(v1, v2, c=.5, cmin=0.0, cmax=1.0):

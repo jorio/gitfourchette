@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -117,6 +118,11 @@ class PrefsDialog(QDialog):
             # Switch category
             if prefKey.startswith("_category_"):
                 category = prefKey.removeprefix("_category_")
+                continue
+
+            if prefKey.startswith("_spacer"):
+                form = categoryForms[category]
+                form.addRow(" ", None)
                 continue
 
             # Skip irrelevant settings
@@ -327,6 +333,13 @@ class PrefsDialog(QDialog):
             control = self.boundedIntControl(key, value, 0, 999_999)
             control.setSpecialValueText("\u221E")  # infinity
             return control
+        elif key == "gitPath":
+            presets = {}
+            builtInGit = ToolPresets.flatpakBuiltInGit()
+            if builtInGit:
+                presets[_("Built-in git (sandboxed)")] = builtInGit
+            presets[_("Auto-detected system git")] = ToolCommands.which("git") or "/usr/bin/git"
+            return self.strControlWithPresets(key, value, presets)
         elif issubclass(valueType, enum.Enum):
             return self.enumControl(key, value, type(value))
         elif valueType is int:
@@ -351,6 +364,8 @@ class PrefsDialog(QDialog):
         control.addItem(defaultCaption, userData="")
         control.insertSeparator(1)
 
+        wipLocales = Path(QFile("assets:lang/wip.txt").fileName()).read_text().strip().splitlines()
+
         langDir = QDir("assets:lang", "*.mo")
         localeCodes = [f.removesuffix(".mo") for f in langDir.entryList()]
 
@@ -363,11 +378,19 @@ class PrefsDialog(QDialog):
         localeCodes.append("en")
 
         localeNames = {code: QLocale(code).nativeLanguageName() for code in localeCodes}
-        localeCodes.sort(key=lambda code: localeNames[code].casefold())
+        localeCodes.sort(key=lambda code: "AZ"[code in wipLocales] + localeNames[code].casefold())
 
+        wipSeparatorInserted = False
         for code in localeCodes:
             name = localeNames[code]
             name = name[0].upper() + name[1:]  # Many languages don't capitalize their name
+
+            if code in wipLocales:
+                name = f"[WIP] {name}"
+                if not wipSeparatorInserted:
+                    control.insertSeparator(control.count())
+                    wipSeparatorInserted = True
+
             control.addItem(name, code)
 
         control.setCurrentIndex(control.findData(prefValue))

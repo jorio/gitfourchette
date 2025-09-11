@@ -201,11 +201,15 @@ def testStagingBlockedBySafeCrlf(tempDir, mainWindow):
     rw.dirtyFiles.selectAll()
     rw.diffArea.stageButton.click()
 
-    # Note: Two lookups for a single qmb here because we're looking for parts of the message in different QLabels.
-    findQMessageBox(rw, "hello0.+contains CRLF.+will not be replaced by LF.+safecrlf")
-    acceptQMessageBox(rw, "stage files.+ran into an issue with 1 file.+1 other file was successful")
+    # if gitBackend == "libgit2":
+    #     # Note: Two lookups for a single qmb here because we're looking for parts of the message in different QLabels.
+    #     findQMessageBox(rw, "hello0.+contains CRLF.+will not be replaced by LF.+safecrlf")
+    #     acceptQMessageBox(rw, "stage files.+ran into an issue with 1 file.+1 other file was successful")
+    #     assert rw.repo.status() == {'hello1.txt': FileStatus.INDEX_NEW, 'hello0.txt': FileStatus.WT_NEW}
 
-    assert rw.repo.status() == {'hello1.txt': FileStatus.INDEX_NEW, 'hello0.txt': FileStatus.WT_NEW}
+    acceptQMessageBox(rw, "CRLF would be replaced by LF")
+    # With vanilla git, the add operation is atomic, so nothing should be staged
+    assert rw.repo.status() == {'hello0.txt': FileStatus.WT_NEW, 'hello1.txt': FileStatus.WT_NEW}
 
 
 def testStagingBlockedByConflicts(tempDir, mainWindow):

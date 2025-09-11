@@ -11,10 +11,12 @@ from textwrap import dedent
 import pygit2
 
 from gitfourchette.forms.ui_aboutdialog import Ui_AboutDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.syntax import pygmentsVersion
 from gitfourchette.toolbox import *
+from gitfourchette import settings
 
 WEBSITE_URL = "https://gitfourchette.org"
 DONATE_URL = "https://ko-fi.com/jorio"
@@ -87,12 +89,16 @@ class AboutDialog(QDialog):
 
         qtBindingSuffix = ""
 
-        poweredByTitle = _("Powered by:")
+        gitPath = settings.prefs.gitPath
+        gitVersion = GitDriver.gitVersion() or _("(unknown version)")
+        gitInfo = f"<b>git</b> {gitVersion} <small>({gitPath})</small>"
+
         self.ui.componentsBlurb.setText(dedent(f"""<html>\
             {appName} {appVersion}
             {buildInfo}
-            <br>{poweredByTitle}
+            <br>{_("Powered by:")}
             <ul style='margin: 0'>
+            <li>{gitInfo}
             <li><b>pygit2</b> {pygit2.__version__}
             <li><b>libgit2</b> {pygit2.LIBGIT2_VERSION} <small>({', '.join(getPygit2FeatureStrings())})</small>
             <li><b>{QT_BINDING}</b> {QT_BINDING_VERSION}{qtBindingSuffix}
@@ -105,16 +111,18 @@ class AboutDialog(QDialog):
         # ---------------------------------------------------------------------
         # Acknowledgments page
 
-        try:
-            translatorCreditsIntro = _("Brought to your native language by:")
-            translatorCreditsPath = Path(QFile("assets:translators.html").fileName())
-            translatorCredits = translatorCreditsIntro + "\n" + translatorCreditsPath.read_text("utf-8")
-        except OSError:
-            # TODO: Temporary until we have actual credits
-            translatorCredits = ""
+        contributorCreditsPath = Path(QFile("assets:/contributors.txt").fileName())
+        contributorCredits = contributorCreditsPath.read_text("utf-8")
+        contributorCredits = contributorCredits.removeprefix("Iliyas Jorio\n")
+        contributorCredits = f"<blockquote style='white-space: pre'>{contributorCredits}</blockquote>"
+
+        translatorCreditsPath = Path(QFile("assets:lang/credits.html").fileName())
+        translatorCredits = translatorCreditsPath.read_text("utf-8")
 
         ackText = [
-            translatorCredits,
+            _("Additional contributions by:") + contributorCredits,
+
+            _("Brought to your native language by:") + translatorCredits,
 
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
 
