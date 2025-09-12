@@ -44,12 +44,11 @@ class DiffImagePair:
         self.newImage = QImage.fromData(imageDataB)
 
 
-class ShouldDisplayPatchAsImageDiff(Exception):
-    def __init__(self):
-        super().__init__("This patch should be viewed as an image diff!")
+class ShouldDisplayPatchAsImageDiff:
+    pass
 
 
-class SpecialDiffError(Exception):
+class SpecialDiffError:
     def __init__(
             self,
             message: str,
@@ -58,7 +57,6 @@ class SpecialDiffError(Exception):
             preformatted: str = "",
             longform: str = "",
     ):
-        super().__init__(message)
         self.message = message
         self.details = details
         self.icon = icon
@@ -68,6 +66,7 @@ class SpecialDiffError(Exception):
 
     @staticmethod
     def noChange(delta: DiffDelta):
+        # TODO: Migrate to VanillaStatus
         message = _("File contents didn’t change.")
         details: list[str] = []
         longform: list[str] = []
@@ -143,6 +142,7 @@ class SpecialDiffError(Exception):
 
     @staticmethod
     def typeChange(delta: DiffDelta):
+        # TODO: Migrate to VanillaStatus
         oldFile = delta.old_file
         newFile = delta.new_file
         oldText = _("Old type:")
@@ -157,6 +157,7 @@ class SpecialDiffError(Exception):
 
     @staticmethod
     def binaryDiff(delta: DiffDelta, locator: NavLocator):
+        # TODO: Migrate to VanillaStatus
         locale = QLocale()
         of = delta.old_file
         nf = delta.new_file
@@ -177,6 +178,7 @@ class SpecialDiffError(Exception):
 
     @staticmethod
     def treeDiff(delta):
+        # TODO: Migrate to VanillaStatus
         from gitfourchette.tasks import AbsorbSubmodule
 
         treePath = os.path.normpath(delta.new_file.path)
@@ -198,6 +200,7 @@ class SpecialDiffError(Exception):
 
     @staticmethod
     def submoduleDiff(repo: Repo, patch: Patch, locator: NavLocator) -> SpecialDiffError:
+        # TODO: Migrate to VanillaStatus
         from gitfourchette.tasks import AbsorbSubmodule, DiscardFiles, RegisterSubmodule
 
         smDiff = repo.analyze_subtree_commit_patch(patch, in_workdir=locator.context.isWorkdir())

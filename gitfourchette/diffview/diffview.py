@@ -16,6 +16,7 @@ from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffhighlighter import DiffHighlighter
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavFlags, NavLocator
@@ -35,7 +36,7 @@ class DiffView(CodeView):
 
     lineData: list[LineData]
     currentLocator: NavLocator
-    currentPatch: Patch | None
+    currentPatch: VanillaDelta | None
     currentWorkdirFileStat: os.stat_result | None
     repo: Repo | None
 
@@ -123,17 +124,19 @@ class DiffView(CodeView):
         super().clear()
 
     @benchmark
-    def replaceDocument(self, repo: Repo, patch: Patch, locator: NavLocator, newDoc: DiffDocument):
+    def replaceDocument(self, repo: Repo, delta: VanillaDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
         oldDocument = self.document()
 
         # Detect if we're trying to load exactly the same patch - common occurrence when moving the app back to the
         # foreground. In that case, don't change the document to prevent losing any selected text.
-        if self.canReuseCurrentDocument(locator, patch, newDoc):
+        if self.canReuseCurrentDocument(locator, delta, newDoc):
+            """ TODO
             if APP_DEBUG:  # this check can be pretty expensive!
                 assert self.currentPatch is not None
                 assert patch.data == self.currentPatch.data
+            """
 
             # Delete new document
             assert newDoc.document is not oldDocument  # make sure it's not in use before deleting
@@ -148,7 +151,7 @@ class DiffView(CodeView):
             oldDocument.deleteLater()  # avoid leaking memory/objects, even though we do set QTextDocument's parent to this QTextEdit
 
         self.repo = repo
-        self.currentPatch = patch
+        self.currentPatch = delta
         self.currentLocator = locator
 
         newDoc.document.setParent(self)
@@ -160,14 +163,7 @@ class DiffView(CodeView):
         # now reset defaults that are lost when changing documents
         self.refreshPrefs(changeColorScheme=False)
 
-        if self.currentPatch and len(self.currentPatch.hunks) > 0:
-            lastHunk = self.currentPatch.hunks[-1]
-            maxNewLine = lastHunk.new_start + lastHunk.new_lines
-            maxOldLine = lastHunk.old_start + lastHunk.old_lines
-            maxLine = max(maxNewLine, maxOldLine)
-        else:
-            maxLine = 0
-        self.gutter.maxLine = maxLine
+        self.gutter.maxLine = newDoc.maxLine
         self.syncViewportMarginsWithGutter()
 
         buttonMask = 0
@@ -194,6 +190,15 @@ class DiffView(CodeView):
             return False
 
         assert self.currentPatch is not None
+
+        if self.currentPatch != newPatch:
+            return False
+
+        if newLocator.context == NavContext.UNSTAGED:
+            # TODO:
+            print("TODO: More thorough check here!")
+
+        return True
 
         of1: DiffFile = self.currentPatch.delta.old_file
         nf1: DiffFile = self.currentPatch.delta.new_file
@@ -347,11 +352,9 @@ class DiffView(CodeView):
             except IndexError:
                 assert (numAdds, numDels) == (0, 0)
                 break
-            if not ld.diffLine:
-                pass
-            elif ld.diffLine.origin == "+":
+            if ld.origin == "+":
                 numAdds += 1
-            elif ld.diffLine.origin == "-":
+            elif ld.origin == "-":
                 numDels += 1
         return numAdds, numDels
 

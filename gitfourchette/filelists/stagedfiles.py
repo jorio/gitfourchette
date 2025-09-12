@@ -6,6 +6,7 @@
 
 from gitfourchette import settings
 from gitfourchette.filelists.filelist import FileList
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
@@ -23,11 +24,11 @@ class StagedFiles(FileList):
 
         makeWidgetShortcut(self, self.unstage, *(GlobalShortcuts.discardHotkeys + GlobalShortcuts.stageHotkeys))
 
-    def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
         actions = []
 
-        n = len(patches)
-        modeSet = {patch.delta.new_file.mode for patch in patches}
+        n = len(deltas)
+        modeSet = {delta.modeWorktree for delta in deltas}
         anySubmodules = FileMode.COMMIT in modeSet
         onlySubmodules = anySubmodules and len(modeSet) == 1
 
@@ -41,12 +42,12 @@ class StagedFiles(FileList):
             actions += [
                 contextMenuActionUnstage,
                 self.contextMenuActionStash(),
-                self.contextMenuActionRevertMode(patches, self.unstageModeChange, ellipsis=False),
+                self.contextMenuActionRevertMode(deltas, self.unstageModeChange, ellipsis=False),
                 ActionDef.SEPARATOR,
-                self.contextMenuActionBlame(patches),
-                *self.contextMenuActionsDiff(patches),
+                self.contextMenuActionBlame(deltas),
+                *self.contextMenuActionsDiff(deltas),
                 ActionDef.SEPARATOR,
-                *self.contextMenuActionsEdit(patches),
+                *self.contextMenuActionsEdit(deltas),
             ]
 
         elif onlySubmodules:
@@ -73,11 +74,11 @@ class StagedFiles(FileList):
                 ActionDef(sorry, enabled=False),
             ]
 
-        actions += super().contextMenuActions(patches)
+        actions += super().contextMenuActions(deltas)
         return actions
 
     def unstage(self):
-        patches = list(self.selectedPatches())
+        patches = list(self.selectedDeltas())
         UnstageFiles.invoke(self, patches)
 
     def unstageModeChange(self):

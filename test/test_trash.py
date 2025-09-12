@@ -42,8 +42,8 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
         "MassiveFile.txt",
         "SomeNewFile.txt",
         "[link] symlink",
-        "[tree] tree",
-        "[tree] MassiveTree"
+        "[new subtree] tree",
+        "[new subtree] MassiveTree"
     }
 
     mainWindow.onAcceptPrefsDialog({"maxTrashFileKB": largeFileThreshold // 1024})

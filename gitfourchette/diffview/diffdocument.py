@@ -4,22 +4,23 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import difflib
+import re
 from collections.abc import Generator
 from dataclasses import dataclass
 
 from gitfourchette import colors
 from gitfourchette import settings
-from gitfourchette.diffview.specialdiff import SpecialDiffError
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator, NavFlags
-from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.subpatch import DiffLinePos
 from gitfourchette.syntax import LexJob
 from gitfourchette.toolbox import *
 
-MAX_LINE_LENGTH = 10_000
+
+_hunkPattern = re.compile(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@")
 
 
 @dataclass
@@ -30,8 +31,9 @@ class LineData:
     hunkPos: DiffLinePos
     "Which hunk this line pertains to, and its position in the hunk."
 
-    diffLine: DiffLine | None = None
-    "pygit2 diff line data."
+    origin: str = ""
+    oldLineNo: int = -1
+    newLineNo: int = -1
 
     cursorStart: int = -1
     "Cursor position at start of line in QDocument."
@@ -112,13 +114,21 @@ class DiffDocument:
     style: DiffStyle
     pluses: int
     minuses: int
+    maxLine: int
 
     # Syntax highlighting
     oldLexJob: LexJob | None = None
     newLexJob: LexJob | None = None
 
+    class VeryLongLinesError(ValueError):
+        pass
+
+    class NoChangeError(ValueError):
+        pass
+
     @staticmethod
-    def fromPatch(patch: Patch, locator: NavLocator):
+    def fromPatch(patch: str, maxLineLength=0) -> DiffDocument:
+        """
         if patch.delta.similarity == 100:
             raise SpecialDiffError.noChange(patch.delta)
 
@@ -143,6 +153,7 @@ class DiffDocument:
 
         if len(patch.hunks) == 0:
             raise SpecialDiffError.noChange(patch.delta)
+        """
 
         lineData = []
 
@@ -152,72 +163,91 @@ class DiffDocument:
         pluses = 0
         minuses = 0
 
-        # For each line of the diff, create a LineData object.
-        for hunkID, hunk in enumerate(patch.hunks):
-            oldLine = hunk.old_start
-            newLine = hunk.new_start
+        hunkID = -1
+        oldLine = -1
+        newLine = -1
+        hunkLineNum = -1
 
-            hunkHeaderLD = LineData(text=hunk.header, hunkPos=DiffLinePos(hunkID, -1))
-            lineData.append(hunkHeaderLD)
+        for rawLine in patch.splitlines(keepends=True):
+            if maxLineLength and len(rawLine) > maxLineLength:
+                raise DiffDocument.VeryLongLinesError()
 
-            for hunkLineNum, diffLine in enumerate(hunk.lines):
-                origin = diffLine.origin
-                content = diffLine.content
+            firstChar = rawLine[0]
 
-                # Any lines that aren't +/- break up the current clump
-                if origin not in "+-" and numLinesInClump != 0:
-                    # Process perfect clump (sum of + and - origins is 0)
-                    if numLinesInClump > 0 and perfectClumpTally == 0:
-                        assert (numLinesInClump % 2) == 0, "line count should be even in perfect clumps"
-                        clumpStart = len(lineData) - numLinesInClump
-                        halfClump = numLinesInClump // 2
-                        for doppel1 in range(clumpStart, clumpStart + halfClump):
-                            doppel2 = doppel1 + halfClump
-                            lineData[doppel1].doppelganger = doppel2
-                            lineData[doppel2].doppelganger = doppel1
+            # Keep looking for first hunk
+            if firstChar != "@" and hunkID < 0:
+                continue
 
-                    # Start new clump
-                    clumpID += 1
-                    numLinesInClump = 0
-                    perfectClumpTally = 0
+            # Start new hunk
+            if firstChar == "@":
+                hunkInfo = _hunkPattern.match(rawLine)
+                oldLine = int(hunkInfo.group(1))
+                newLine = int(hunkInfo.group(3))
 
-                # Skip GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
-                if origin in "=><":
-                    continue
+                hunkID += 1
+                hunkLineNum = -1
+                hunkHeaderLD = LineData(text=rawLine, hunkPos=DiffLinePos(hunkID, -1),
+                                        oldLineNo=oldLine, newLineNo=newLine)
+                lineData.append(hunkHeaderLD)
+                continue
 
-                if len(content) > MAX_LINE_LENGTH and not locator.hasFlags(NavFlags.AllowLargeFiles):
-                    loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
-                    raise SpecialDiffError(
-                        _("This file contains very long lines."),
-                        linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
-                        "SP_MessageBoxWarning")
+            hunkLineNum += 1
+            origin = firstChar
 
-                ld = LineData(text=content, hunkPos=DiffLinePos(hunkID, hunkLineNum), diffLine=diffLine)
+            # Any lines that aren't +/- break up the current clump
+            if origin not in "+-" and numLinesInClump != 0:
+                # Process perfect clump (sum of + and - origins is 0)
+                if numLinesInClump > 0 and perfectClumpTally == 0:
+                    assert (numLinesInClump % 2) == 0, "line count should be even in perfect clumps"
+                    clumpStart = len(lineData) - numLinesInClump
+                    halfClump = numLinesInClump // 2
+                    for doppel1 in range(clumpStart, clumpStart + halfClump):
+                        doppel2 = doppel1 + halfClump
+                        lineData[doppel1].doppelganger = doppel2
+                        lineData[doppel2].doppelganger = doppel1
 
-                assert origin in " -+", F"diffline origin: '{origin}'"
-                if origin == '+':
-                    assert diffLine.new_lineno == newLine
-                    assert diffLine.old_lineno == -1
-                    newLine += 1
-                    ld.clumpID = clumpID
-                    numLinesInClump += 1
-                    perfectClumpTally += 1
-                    pluses += 1
-                elif origin == '-':
-                    assert diffLine.new_lineno == -1
-                    assert diffLine.old_lineno == oldLine
-                    oldLine += 1
-                    ld.clumpID = clumpID
-                    numLinesInClump += 1
-                    perfectClumpTally -= 1
-                    minuses += 1
-                else:
-                    assert diffLine.new_lineno == newLine
-                    assert diffLine.old_lineno == oldLine
-                    newLine += 1
-                    oldLine += 1
+                # Start new clump
+                clumpID += 1
+                numLinesInClump = 0
+                perfectClumpTally = 0
 
-                lineData.append(ld)
+            # Skip GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
+            if origin in "=><":
+                continue
+
+            ld = LineData(text=rawLine[1:],
+                          hunkPos=DiffLinePos(hunkID, hunkLineNum),
+                          origin=origin,
+                          oldLineNo=-1 if origin == "+" else oldLine,
+                          newLineNo=-1 if origin == "-" else newLine)
+
+            if origin == '+':
+                assert ld.newLineNo == newLine
+                assert ld.oldLineNo == -1
+                newLine += 1
+                ld.clumpID = clumpID
+                numLinesInClump += 1
+                perfectClumpTally += 1
+                pluses += 1
+            elif origin == '-':
+                assert ld.newLineNo == -1
+                assert ld.oldLineNo == oldLine
+                oldLine += 1
+                ld.clumpID = clumpID
+                numLinesInClump += 1
+                perfectClumpTally -= 1
+                minuses += 1
+            else:
+                assert origin == " ", f"unknown origin: '{origin}'"
+                assert ld.newLineNo == newLine
+                assert ld.oldLineNo == oldLine
+                newLine += 1
+                oldLine += 1
+
+            lineData.append(ld)
+
+        if not lineData:
+            raise DiffDocument.NoChangeError()
 
         # Recreating a QTextDocument is faster than clearing any existing one.
         textDocument = QTextDocument()
@@ -225,7 +255,8 @@ class DiffDocument:
         textDocument.setDocumentLayout(QPlainTextDocumentLayout(textDocument))
 
         diffDocument = DiffDocument(document=textDocument, lineData=lineData, style=DiffStyle(),
-                                    pluses=pluses, minuses=minuses)
+                                    pluses=pluses, minuses=minuses,
+                                    maxLine=max(newLine, oldLine))
 
         # Begin batching text insertions for performance.
         # This prevents Qt from recomputing the document's layout after every line insertion.
@@ -255,13 +286,14 @@ class DiffDocument:
 
         for ld in self.lineData:
             # Decide block format & character format
-            if ld.diffLine is None:
+            origin = ld.origin
+            if not origin:
                 bf = style.hunkBF
                 cf = style.hunkCF
-            elif ld.diffLine.origin == '+':
+            elif origin == '+':
                 bf = style.addBF1
                 cf = defaultCF
-            elif ld.diffLine.origin == '-':
+            elif origin == '-':
                 bf = style.delBF1
                 cf = defaultCF
             else:
@@ -316,7 +348,7 @@ class DiffDocument:
                 continue
 
             assert lineNumber != line.doppelganger, "line cannot be its own doppelganger"
-            assert line.diffLine is not None, "line with doppelganger must have a DiffLine"
+            assert line.origin in "+-", "line with doppelganger must have origin"
             aheadOfDoppelganger = lineNumber < line.doppelganger
 
             if aheadOfDoppelganger:
@@ -328,7 +360,7 @@ class DiffDocument:
             else:
                 blocks = doppelgangerBlocksQueue.pop(0)  # Consume blocks set aside by my doppelganger
 
-            charFormat = delFormat if line.diffLine.origin == '-' else addFormat
+            charFormat = delFormat if line.origin == "-" else addFormat
 
             cursorPos = line.cursorStart
             oldBlockEnd = 0

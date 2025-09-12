@@ -4,15 +4,20 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import dataclasses
 import html
 import io
 import re
 import shlex
 import signal
 from enum import StrEnum
+from pathlib import Path
+
+from pygit2.enums import FileMode
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import version_to_tuple, Oid
 from gitfourchette.qt import *
 
@@ -32,6 +37,71 @@ class VanillaFetchStatusFlag(StrEnum):
     NewRef = "*"
     Rejected = "!"
     UpToDate = "="
+
+
+@dataclasses.dataclass
+class VanillaDelta:
+    conflictUs: str = ""
+    conflictThem: str = ""
+    statusStaged: str = ""
+    statusUnstaged: str = ""
+    statusSubmodule: str = ""
+    modeHead: int = 0
+    modeIndex: int = 0
+    modeConflictStages: tuple[int, int, int] = (0, 0, 0)
+    modeWorktree: int = 0
+    hexHashHead: str = ""
+    hexHashIndex: str = ""
+    hexHashConflictStages: tuple[str, str, str] = ("", "", "")
+    similarity: int = 0
+    path: str = ""
+    origPath: str = ""
+
+    def __post_init__(self):
+        if self.statusStaged == ".":
+            self.statusStaged = ""
+        if self.statusUnstaged == ".":
+            self.statusUnstaged = ""
+        if self.statusSubmodule == "N...":
+            self.statusSubmodule = ""
+
+    def isConflict(self) -> bool:
+        return bool(self.conflictUs)
+
+    def isSubtreeCommitPatch(self):
+        # TODO: Test more specifically?
+        return FileMode.COMMIT in (self.modeHead, self.modeWorktree, self.modeIndex)
+
+    def isUntracked(self):
+        return self.statusUnstaged == "?"
+
+    def statusPerContext(self, context: NavContext) -> str:
+        if context == NavContext.UNSTAGED:
+            return self.statusUnstaged
+        elif context == NavContext.STAGED:
+            return self.statusStaged
+        else:
+            raise NotImplementedError(f"statusPerContext doesn't support context {context} yet")
+
+    def modesPerContext(self, context: NavContext) -> tuple[int, int]:
+        if context == NavContext.UNSTAGED:
+            return self.modeIndex, self.modeWorktree
+        elif context == NavContext.STAGED:
+            return self.modeHead, self.modeIndex
+        else:
+            raise NotImplementedError(f"modesPerContext doesn't support context {context} yet")
+
+
+# 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
+# 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <R|C><score> <path><sep><origPath>
+# u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
+_gitStatusPatterns = {
+    "1": re.compile(r"1 (.)(.) (....) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
+    "2": re.compile(r"2 (.)(.) (....) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) [RC](\d+) ([^\x00]*)\x00([^\x00]*)\x00"),
+    "u": re.compile(r"u (.)(.) (....) (\d+) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
+    "?": re.compile(r"\? ([^\x00]*)\x00"),
+    "!": re.compile(r"! ([^\x00]*)\x00"),
+}
 
 
 class GitDriver(QProcess):
@@ -227,6 +297,81 @@ class GitDriver(QProcess):
             localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
             for flag, oldHex, newHex, localRef in table
         }
+
+    def readStatusPorcelainV2Z(self) -> list[VanillaDelta]:
+        stdout = self.stdoutScrollback()
+        pos = 0
+        limit = len(stdout)
+        deltas = []
+
+        while pos < limit:
+            ident = stdout[pos]
+            try:
+                patt = _gitStatusPatterns[ident]
+            except KeyError:
+                continue
+
+            match = patt.match(stdout, pos)
+            pos = match.end()
+
+            if ident == "1":
+                # Ordinary changed entries
+                x, y, sub, mh, mi, mw, hh, hi, path = match.groups()
+                delta = VanillaDelta(
+                    statusStaged=x,
+                    statusUnstaged=y,
+                    statusSubmodule=sub,
+                    modeHead=int(mh, 8),
+                    modeIndex=int(mi, 8),
+                    modeWorktree=int(mw, 8),
+                    hexHashHead=hh,
+                    hexHashIndex=hi,
+                    path=path)
+            elif ident == "2":
+                # Renamed or copied entries
+                x, y, sub, mh, mi, mw, hh, hi, score, path, origPath = match.groups()
+                delta = VanillaDelta(
+                    statusStaged=x,
+                    statusUnstaged=y,
+                    statusSubmodule=sub,
+                    modeHead=int(mh, 8),
+                    modeIndex=int(mi, 8),
+                    modeWorktree=int(mw, 8),
+                    hexHashHead=hh,
+                    hexHashIndex=hi,
+                    similarity=int(score),
+                    path=path,
+                    origPath=origPath)
+            elif ident == "u":
+                # Unmerged entries
+                x, y, sub, m1, m2, m3, mw, h1, h2, h3, path = match.groups()
+                delta = VanillaDelta(
+                    conflictUs=x,
+                    conflictThem=y,
+                    statusUnstaged="U",  # Fake an 'unmerged' status in the unstaged box
+                    statusSubmodule=sub,
+                    modeWorktree=int(mw, 8),
+                    modeConflictStages=(int(m1, 8), int(m2, 8), int(m3, 8)),
+                    path=path)
+            else:
+                # ? Untracked items
+                # ! Ignored items
+                # TODO: Should we hash the file? Note: git doesn't seem to hash unstaged 'M' files until they're staged
+                path, = match.groups()
+                if path.endswith("/"):
+                    path = path.removesuffix("/")
+                    mode = FileMode.TREE
+                else:
+                    pobj = Path(self.workingDirectory(), path)
+                    mode = pobj.stat().st_mode
+                delta = VanillaDelta(
+                    statusUnstaged=ident,
+                    modeWorktree=mode,
+                    path=path)
+
+            deltas.append(delta)
+
+        return deltas
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

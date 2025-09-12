@@ -162,7 +162,7 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
     assert rw.repo.status() == {"inner/": FileStatus.WT_NEW}
 
     assert os.path.exists(innerWd)
-    assert qlvGetRowData(rw.dirtyFiles) == ["[tree] inner"]
+    assert qlvGetRowData(rw.dirtyFiles) == ["[new subtree] inner"]
     qlvClickNthRow(rw.dirtyFiles, 0)
     triggerContextMenuAction(rw.dirtyFiles.viewport(), "delete")
     acceptQMessageBox(rw, "really delete.+inner")

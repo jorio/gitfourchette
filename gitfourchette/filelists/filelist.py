@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Iterable
 from contextlib import suppress
 
 from gitfourchette import settings
@@ -14,6 +14,7 @@ from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -213,9 +214,9 @@ class FileList(QListView):
     def isEmpty(self):
         return self.model().rowCount() == 0
 
-    def setContents(self, diffs: list[Diff], skippedRenameDetection: bool):
-        self.flModel.setDiffs(diffs)
-        self.skippedRenameDetection = skippedRenameDetection
+    def setContents(self, deltas: Iterable[VanillaDelta]):
+        self.flModel.setContents(deltas)
+        # self.skippedRenameDetection = skippedRenameDetection
         self.updateFocusPolicy()
         self.searchBar.reevaluateSearchTerm()
 
@@ -234,11 +235,11 @@ class FileList(QListView):
     # Context menu
 
     def makeContextMenu(self):
-        patches = list(self.selectedPatches())
-        if len(patches) == 0:
+        deltas = list(self.selectedDeltas())
+        if len(deltas) == 0:
             return None
 
-        actions = self.contextMenuActions(patches)
+        actions = self.contextMenuActions(deltas)
         menu = ActionDef.makeQMenu(self, actions)
         menu.setObjectName("FileListContextMenu")
         return menu
@@ -249,7 +250,7 @@ class FileList(QListView):
             menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
-    def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
         """ To be overridden """
 
         def pathDisplayStyleAction(pds: PathDisplayStyle):
@@ -260,7 +261,7 @@ class FileList(QListView):
             name = englishTitleCase(TrTables.enum(pds))
             return ActionDef(name, setIt, checkState=isCurrent)
 
-        n = len(patches)
+        n = len(deltas)
 
         actions = [
             ActionDef.SEPARATOR,
@@ -299,32 +300,37 @@ class FileList(QListView):
             icon="git-stash-black",
             shortcuts=TaskBook.shortcuts.get(NewStash, []))
 
-    def contextMenuActionRevertMode(self, patches, callback: Callable, ellipsis=True):
-        n = len(patches)
+    def contextMenuActionRevertMode(self, deltas: list[VanillaDelta], callback: Callable, ellipsis=True) -> ActionDef:
+        n = len(deltas)
         action = ActionDef(_n("Revert Mode Change", "Revert Mode Changes", n), callback, enabled=False)
 
-        for patch in patches:
-            if not patch:  # stale diff
-                break
-            om = patch.delta.old_file.mode
-            nm = patch.delta.new_file.mode
-            if (patch.delta.status in [DeltaStatus.MODIFIED, DeltaStatus.RENAMED]
-                    and om != nm
-                    and nm in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]):
-                action.enabled = True
-                if n == 1:
-                    if nm == FileMode.BLOB_EXECUTABLE:
-                        action.caption = _("Revert Mode to Non-Executable")
-                    elif nm == FileMode.BLOB:
-                        action.caption = _("Revert Mode to Executable")
+        # Scan deltas for mode changes
+        for delta in deltas:
+            status = delta.statusPerContext(self.navContext)
+            if status not in "MRC":  # modified, renamed or copied
+                continue
+
+            om, nm = delta.modesPerContext(self.navContext)
+            if not (om != nm and nm in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]):
+                continue
+
+            action.enabled = True
+
+            # Set specific caption if it's a single item
+            if n != 1:
+                pass
+            elif nm == FileMode.BLOB_EXECUTABLE:
+                action.caption = _("Revert Mode to Non-Executable")
+            elif nm == FileMode.BLOB:
+                action.caption = _("Revert Mode to Executable")
 
         if ellipsis:
             action.caption += "…"
 
         return action
 
-    def contextMenuActionsDiff(self, patches):
-        n = len(patches)
+    def contextMenuActionsDiff(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
+        n = len(deltas)
 
         return [
             ActionDef(
@@ -337,8 +343,8 @@ class FileList(QListView):
                 self.savePatchAs),
         ]
 
-    def contextMenuActionsEdit(self, patches):
-        n = len(patches)
+    def contextMenuActionsEdit(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
+        n = len(deltas)
 
         return [
             ActionDef(
@@ -351,13 +357,15 @@ class FileList(QListView):
                 self.openHeadRevision),
         ]
 
-    def contextMenuActionBlame(self, patches):
+    def contextMenuActionBlame(self, deltas: list[VanillaDelta]) -> ActionDef:
         isEnabled = False
-        if len(patches) == 1:
-            patch = patches[0]
+        if len(deltas) == 1:
+            delta = deltas[0]
             isEnabled = True
-            if self.navContext.isWorkdir():
-                isEnabled = patch.delta.status != DeltaStatus.ADDED
+            if self.navContext == NavContext.UNSTAGED:
+                isEnabled = delta.statusUnstaged not in "?A"
+            elif self.navContext == NavContext.STAGED:
+                isEnabled = delta.statusStaged not in "?A"
 
         return ActionDef(
             englishTitleCase(OpenBlame.name()) + "\u2026",
@@ -569,14 +577,14 @@ class FileList(QListView):
         """ Override this if you want to react to a middle click. """
         pass
 
-    def selectedPatches(self) -> Generator[Patch, None, None]:
+    def selectedDeltas(self) -> Generator[VanillaDelta, None, None]:
         index: QModelIndex
         for index in self.selectedIndexes():
-            patch: Patch = index.data(FileListModel.Role.PatchObject)
-            if not patch or not patch.delta:
-                raise ValueError(_("This file appears to have been modified by another application. Try refreshing the window."))
-            assert isinstance(patch, Patch)
-            yield patch
+            delta = index.data(FileListModel.Role.DeltaObject)
+            # if not patch or not patch.delta:
+            #     raise ValueError(_("This file appears to have been modified by another application. Try refreshing the window."))
+            assert isinstance(delta, VanillaDelta)
+            yield delta
 
     def selectedPaths(self) -> Generator[str, None, None]:
         index: QModelIndex
@@ -627,12 +635,9 @@ class FileList(QListView):
         self.selectRow(row)
         return True
 
-    def getPatchForFile(self, file: str):
-        try:
-            row = self.flModel.getRowForFile(file)
-            return self.flModel.entries[row].patch
-        except KeyError:
-            return None
+    def deltaForFile(self, file: str) -> VanillaDelta:
+        row = self.flModel.getRowForFile(file)
+        return self.flModel.deltas[row]
 
     def openHeadRevision(self):
         def run(patch: Patch):

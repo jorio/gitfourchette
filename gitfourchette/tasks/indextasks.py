@@ -11,7 +11,7 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import argsIf
+from gitfourchette.gitdriver import argsIf, VanillaDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -32,8 +32,8 @@ class _BaseStagingTask(RepoTask):
         from gitfourchette import tasks
         return isinstance(task, tasks.Jump | tasks.RefreshRepo)
 
-    def denyConflicts(self, patches: list[Patch], purpose: PatchPurpose):
-        conflicts = [p for p in patches if p.delta.status == DeltaStatus.CONFLICTED]
+    def denyConflicts(self, patches: list[VanillaDelta], purpose: PatchPurpose):
+        conflicts = [p for p in patches if p.isConflict()]
 
         if not conflicts:
             return
@@ -54,24 +54,24 @@ class _BaseStagingTask(RepoTask):
             please = _np("please fix (the merge conflicts)", "Please fix it before discarding:", "Please fix them before discarding:", numConflicts)
 
         message = paragraphs(intro, please)
-        message += toTightUL(p.delta.new_file.path for p in conflicts)
+        message += toTightUL(p.path for p in conflicts)
         raise AbortTask(message)
 
     @staticmethod
-    def filterSubmodules(patches: list[Patch]) -> list[Patch]:
-        submos = [p for p in patches if SubtreeCommitDiff.is_subtree_commit_patch(p)]
+    def filterSubmodules(deltas: list[VanillaDelta]) -> list[VanillaDelta]:
+        submos = [p for p in deltas if p.isSubtreeCommitPatch()]
         return submos
 
 
 class StageFiles(_BaseStagingTask):
-    def flow(self, patches: list[Patch]):
+    def flow(self, patches: list[VanillaDelta]):
         if not patches:  # Nothing to stage (may happen if user keeps pressing Enter in file list view)
             QApplication.beep()
             raise AbortTask()
 
         self.denyConflicts(patches, PatchPurpose.Stage)
 
-        paths = [patch.delta.new_file.path for patch in patches]
+        paths = [delta.path for delta in patches]
 
         self.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("add", "--", *paths)
@@ -80,26 +80,29 @@ class StageFiles(_BaseStagingTask):
 
         self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
 
-    def debriefPostStage(self, patches: list[Patch]):
+    def debriefPostStage(self, patches: list[VanillaDelta]):
         debrief = {}
 
-        for patch in patches:
-            newFile: DiffFile = patch.delta.new_file
+        for delta in patches:
             m = ""
 
-            if newFile.mode == FileMode.TREE:
+            if delta.modeWorktree == FileMode.TREE:
                 m = _("You’ve added another Git repo inside your current repo. "
                       "It is STRONGLY RECOMMENDED to absorb it as a submodule before committing.")
-            elif SubtreeCommitDiff.is_subtree_commit_patch(patch):
+            # elif SubtreeCommitDiff.is_subtree_commit_patch(patch):
+            elif delta.isSubtreeCommitPatch(): #delta.modeWorktree == FileMode.COMMIT or delta.modeIndex == FileMode.COMMIT:
+                raise NotImplementedError("TODO: analyze subtree commit patch")
+                """
                 info = self.repo.analyze_subtree_commit_patch(patch, in_workdir=True)
                 if info.is_del and info.was_registered:
                     m = _("Don’t forget to remove the submodule from {0} "
                           "to complete its deletion.", tquo(DOT_GITMODULES))
                 elif not info.is_del and not info.is_trivially_indexable:
                     m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
+                """
 
             if m:
-                debrief[newFile.path] = m
+                debrief[delta.path] = m
 
         if not debrief:
             return
@@ -117,35 +120,37 @@ class StageFiles(_BaseStagingTask):
 
 
 class DiscardFiles(_BaseStagingTask):
-    def flow(self, patches: list[Patch]):
+    def flow(self, deltas: list[VanillaDelta]):
         textPara = []
 
         verb = _("Discard changes")
 
-        if not patches:  # Nothing to discard (may happen if user keeps pressing Delete in file list view)
+        if not deltas:  # Nothing to discard (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
 
-        self.denyConflicts(patches, PatchPurpose.Discard)
+        self.denyConflicts(deltas, PatchPurpose.Discard)
 
-        submos = self.filterSubmodules(patches)
+        submos = self.filterSubmodules(deltas)
         anySubmos = bool(submos)
-        allSubmos = len(submos) == len(patches)
+        allSubmos = len(submos) == len(deltas)
         really = ""
 
-        if len(patches) == 1:
-            patch = patches[0]
-            bpath = bquo(patch.delta.new_file.path)
-            if patch.delta.status == DeltaStatus.UNTRACKED:
+        assert all(d.statusUnstaged for d in deltas), "expecting all files to discard to have an unstaged status"
+
+        if len(deltas) == 1:
+            delta = deltas[0]
+            bpath = bquo(delta.path)
+            if delta.isUntracked():
                 really = _("Really delete {0}?", bpath)
                 really += " " + _("Git isn’t tracking this file, so you may not be able to recover it from older commits.")
                 verb = _("Delete")
-            elif patch.delta.new_file.mode == FileMode.COMMIT:
+            elif delta.modeWorktree == FileMode.COMMIT:
                 really = _("Really discard changes in submodule {0}?", bpath)
             else:
                 really = _("Really discard changes to {0}?", bpath)
         else:
-            nFiles = len(patches) - len(submos)
+            nFiles = len(deltas) - len(submos)
             nSubmos = len(submos)
             if allSubmos:
                 really = _("Really discard changes in {n} submodules?", n=nSubmos)
@@ -167,26 +172,21 @@ class DiscardFiles(_BaseStagingTask):
 
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="git-discard")
 
-        yield from self._withGit(patches, submos)
-
-        self.postStatus = _n("File discarded.", "{n} files discarded.", len(patches))
-
-    def _withGit(self, patches: list[Patch], submos: list[Patch]):
         self.effects |= TaskEffects.Workdir
         if submos:
             self.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
 
         # Back up discarded patches
-        if patches:
-            yield from self.flowEnterWorkerThread()
-            Trash.instance().backupPatches(self.repo.workdir, patches)
-            yield from self.flowEnterUiThread()
+        if deltas:
+            # TODO:
+            print("TODO: Back up discarded patches")
+            # yield from self.flowEnterWorkerThread()
+            # Trash.instance().backupPatches(self.repo.workdir, patches)
+            # yield from self.flowEnterUiThread()
 
-        deltas = [patch.delta for patch in patches]
-
-        tracked = [d.new_file.path for d in deltas if d.status != DeltaStatus.UNTRACKED]
-        untrackedFiles = [d.new_file.path for d in deltas if d.status == DeltaStatus.UNTRACKED and d.new_file.mode != FileMode.TREE]
-        untrackedTrees = [d.new_file.path for d in deltas if d.status == DeltaStatus.UNTRACKED and d.new_file.mode == FileMode.TREE]
+        tracked = [d.path for d in deltas if not d.isUntracked()]
+        untrackedFiles = [d.path for d in deltas if d.isUntracked() and d.modeWorktree != FileMode.TREE]
+        untrackedTrees = [d.path for d in deltas if d.isUntracked() and d.modeWorktree == FileMode.TREE]
 
         # Discard untracked trees. They have already been backed up above,
         # but restore_files_from_index isn't capable of removing trees.
@@ -201,7 +201,7 @@ class DiscardFiles(_BaseStagingTask):
             yield from self.flowCallGit("checkout", "--", *tracked)
 
         if submos:
-            submoPaths = [patch.delta.new_file.path for patch in submos]
+            submoPaths = [delta.path for delta in submos]
 
             for submo in submoPaths:
                 subWd = os.path.join(self.repo.workdir, submo)
@@ -209,33 +209,35 @@ class DiscardFiles(_BaseStagingTask):
 
             yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", "--", *submoPaths)
 
+        self.postStatus = _n("File discarded.", "{n} files discarded.", len(deltas))
+
 
 class UnstageFiles(_BaseStagingTask):
-    def flow(self, patches: list[Patch]):
-        if not patches:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
+    def flow(self, deltas: list[VanillaDelta]):
+        if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
 
-        paths = [patch.delta.new_file.path for patch in patches]
+        paths = [delta.path for delta in deltas]
         self.effects |= TaskEffects.Workdir
         # Not using 'restore --staged' because it doesn't work in an empty repo
         yield from self.flowCallGit("reset", "--", *paths)
 
-        self.postStatus = _n("File unstaged.", "{n} files unstaged.", len(patches))
+        self.postStatus = _n("File unstaged.", "{n} files unstaged.", len(deltas))
 
 
 class DiscardModeChanges(_BaseStagingTask):
-    def flow(self, patches: list[Patch]):
+    def flow(self, deltas: list[VanillaDelta]):
         textPara = []
 
-        if not patches:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
+        if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
-        elif len(patches) == 1:
-            path = patches[0].delta.new_file.path
+        elif len(deltas) == 1:
+            path = deltas[0].path
             textPara.append(_("Really discard mode change in {0}?", bquo(path)))
         else:
-            textPara.append(_("Really discard mode changes in <b>{n} files</b>?", n=len(patches)))
+            textPara.append(_("Really discard mode changes in <b>{n} files</b>?", n=len(deltas)))
         textPara.append(_("This cannot be undone!"))
 
         yield from self.flowConfirm(text=paragraphs(textPara), verb=_("Discard mode changes"), buttonIcon="git-discard")
@@ -243,7 +245,7 @@ class DiscardModeChanges(_BaseStagingTask):
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
 
-        paths = [patch.delta.new_file.path for patch in patches]
+        paths = [delta.path for delta in deltas]
         self.repo.discard_mode_changes(paths)
 
 

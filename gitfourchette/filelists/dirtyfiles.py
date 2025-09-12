@@ -6,6 +6,7 @@
 
 from gitfourchette import settings
 from gitfourchette.filelists.filelist import FileList
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
@@ -24,19 +25,19 @@ class DirtyFiles(FileList):
         makeWidgetShortcut(self, self.stage, *GlobalShortcuts.stageHotkeys)
         makeWidgetShortcut(self, self.discard, *GlobalShortcuts.discardHotkeys)
 
-    def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
         actions = []
 
-        n = len(patches)
+        n = len(deltas)
 
-        statusSet = {patch.delta.status for patch in patches}
-        modeSet = {patch.delta.new_file.mode for patch in patches}
+        statusSet = {delta.statusUnstaged for delta in deltas}
+        modeSet = {delta.modeWorktree for delta in deltas}
 
-        anyConflicts = DeltaStatus.CONFLICTED in statusSet
+        anyConflicts = "U" in statusSet  # DeltaStatus.CONFLICTED in statusSet
         anySubmodules = FileMode.COMMIT in modeSet
         onlyConflicts = anyConflicts and len(statusSet) == 1
         onlySubmodules = anySubmodules and len(modeSet) == 1
-        onlyUntracked = statusSet == {DeltaStatus.UNTRACKED}
+        onlyUntracked = statusSet == {"?"}  # {DeltaStatus.UNTRACKED}
 
         if not anyConflicts and not anySubmodules:
             contextMenuActionStage = ActionDef(
@@ -64,11 +65,11 @@ class DirtyFiles(FileList):
                 contextMenuActionStage,
                 contextMenuActionDiscard,
                 self.contextMenuActionStash(),
-                self.contextMenuActionRevertMode(patches, self.discardModeChanges),
+                self.contextMenuActionRevertMode(deltas, self.discardModeChanges),
                 contextMenuActionIgnore,
                 ActionDef.SEPARATOR,
-                self.contextMenuActionBlame(patches),
-                *self.contextMenuActionsDiff(patches),
+                self.contextMenuActionBlame(deltas),
+                *self.contextMenuActionsDiff(deltas),
             ]
 
         elif onlyConflicts:
@@ -122,26 +123,27 @@ class DirtyFiles(FileList):
 
         if not onlySubmodules:
             actions += [
-                *self.contextMenuActionsEdit(patches),
+                *self.contextMenuActionsEdit(deltas),
                 ActionDef.SEPARATOR,
             ]
 
-        actions += super().contextMenuActions(patches)
+        actions += super().contextMenuActions(deltas)
         return actions
 
     def stage(self):
-        patches = list(self.selectedPatches())
-        StageFiles.invoke(self, patches)
+        deltas = list(self.selectedDeltas())
+        StageFiles.invoke(self, deltas)
 
     def discard(self):
-        patches = list(self.selectedPatches())
-        DiscardFiles.invoke(self, patches)
+        deltas = list(self.selectedDeltas())
+        DiscardFiles.invoke(self, deltas)
 
     def discardModeChanges(self):
-        patches = list(self.selectedPatches())
-        DiscardModeChanges.invoke(self, patches)
+        deltas = list(self.selectedDeltas())
+        DiscardModeChanges.invoke(self, deltas)
 
     def _mergeKeep(self, keepOurs: bool):
+        # TODO: Migrate to Vanilla
         patches = list(self.selectedPatches())
 
         conflicts = self.repo.index.conflicts

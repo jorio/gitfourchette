@@ -6,7 +6,7 @@
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
-from gitfourchette.diffview.diffdocument import SpecialDiffError
+from gitfourchette.diffview.specialdiff import SpecialDiffError
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *

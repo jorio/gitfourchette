@@ -93,9 +93,9 @@ class Jump(RepoTask):
             # Prepare Result object.
             if locator.path:
                 # Load patch in DiffView
-                patch = fileList.getPatchForFile(locator.path)
-                patchTask = yield from self.flowSubtask(LoadPatch, patch, locator)
-                result = Jump.Result(locator, patchTask.header, patchTask.result, patch)
+                delta = fileList.deltaForFile(locator.path)
+                patchTask = yield from self.flowSubtask(LoadPatch, delta, locator)
+                result = Jump.Result(locator, patchTask.header, patchTask.result, delta)
             else:
                 # Blank path
                 result = Jump.Result(locator, "", None)
@@ -137,13 +137,13 @@ class Jump(RepoTask):
         writeIndex = locator.hasFlags(NavFlags.AllowWriteIndex)
         if forceDiff or repoModel.workdirStale:
             # Load workdir (async)
-            if forceDiff or not repoModel.workdirDiffsReady:
+            if forceDiff or not repoModel.workdirStatusReady:
                 yield from self.flowSubtask(LoadWorkdir, allowWriteIndex=writeIndex)
 
             # Fill FileListViews
             with QSignalBlockerContext(rw.dirtyFiles, rw.stagedFiles):  # Don't emit jump signals
-                rw.dirtyFiles.setContents([repoModel.dirtyDiff], False)
-                rw.stagedFiles.setContents([repoModel.stageDiff], False)
+                rw.dirtyFiles.setContents(s for s in repoModel.workdirStatus if s.statusUnstaged)
+                rw.stagedFiles.setContents(s for s in repoModel.workdirStatus if s.statusStaged)
 
             nDirty = rw.dirtyFiles.model().rowCount()
             nStaged = rw.stagedFiles.model().rowCount()
@@ -157,9 +157,9 @@ class Jump(RepoTask):
                 commitButtonFont.setBold(commitButtonBold)
                 rw.diffArea.commitButton.setFont(commitButtonFont)
 
-            # Consume workdir freshness
+            # Flip workdir freshness
             repoModel.workdirStale = False
-            repoModel.workdirDiffsReady = False
+            repoModel.workdirStatusReady = True
 
         # If jumping to generic workdir context, find a concrete context
         if locator.context == NavContext.WORKDIR:

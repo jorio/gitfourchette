@@ -268,14 +268,13 @@ class TrTables:
 
     @staticmethod
     def _init_shortFileModes():
-        # Intentionally untranslated.
         return {
             0: "",
             FileMode.BLOB: "",
             FileMode.BLOB_EXECUTABLE: "+x",
-            FileMode.LINK: "link",
-            FileMode.TREE: "tree",
-            FileMode.COMMIT: "tree",
+            FileMode.LINK: _("link"),
+            FileMode.TREE: _("new subtree"),
+            FileMode.COMMIT: _("commit in subtree"),
         }
 
     @staticmethod

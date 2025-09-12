@@ -5,11 +5,13 @@
 # -----------------------------------------------------------------------------
 
 import logging
+from collections.abc import Generator
 from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -19,14 +21,15 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import RepoTask, TaskEffects
+from gitfourchette.tasks.repotask import RepoTask, TaskEffects, FlowControlToken
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
 RENAME_COUNT_THRESHOLD = 100
 """ Don't find_similar beyond this number of files in the main diff """
+
+LONG_LINE_THRESHOLD = 10_000
 
 
 def contextLines():
@@ -244,23 +247,11 @@ class LoadWorkdir(RepoTask):
         return isinstance(task, LoadCommit | LoadPatch)
 
     def flow(self, allowWriteIndex: bool):
-        yield from self.flowEnterWorkerThread()
-
-        with Benchmark("LoadWorkdir/Index"):
-            self.repo.refresh_index()
-
-        with Benchmark("LoadWorkdir/Staged"):
-            stageDiff = self.repo.get_staged_changes(context_lines=contextLines())
-
-        # yield from self.flowEnterWorkerThread()  # let task thread be interrupted here
-        with Benchmark("LoadWorkdir/Unstaged"):
-            dirtyDiff = self.repo.get_unstaged_changes(allowWriteIndex, context_lines=contextLines())
-
-        yield from self.flowEnterUiThread()
-        self.repoModel.stageDiff = stageDiff
-        self.repoModel.dirtyDiff = dirtyDiff
-        self.repoModel.workdirDiffsReady = True
-        self.repoModel.numUncommittedChanges = len(stageDiff) + len(dirtyDiff)
+        # TODO: --no-optional-locks?
+        # TODO: Honor allowWriteIndex
+        gitStatus = yield from self.flowCallGit("status", "--porcelain=v2", "-z")
+        self.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z()
+        self.repoModel.workdirStatusReady = True
 
 
 class LoadCommit(RepoTask):
@@ -282,8 +273,29 @@ class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
-    def _processPatch(self, patch: Patch, locator: NavLocator
-                      ) -> DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair:
+    def flow(self, delta: VanillaDelta, locator: NavLocator):
+        try:
+            self.result = yield from self._getPatch(delta, locator)
+        except Exception as exc:
+            # Yikes! Don't prevent loading a repo
+            summary, details = excStrings(exc)
+            self.result = SpecialDiffError(summary, icon="SP_MessageBoxCritical", preformatted=details)
+
+        self.header = self._makeHeader(self.result, locator)
+
+        # Prime lexer
+        # yield from self.flowEnterUiThread()
+        if type(self.result) is DiffDocument:
+            # TODO:
+            oldLexJob, newLexJob = None, None
+            # oldLexJob, newLexJob = self._primeLexJobs(patch.delta.old_file, patch.delta.new_file, locator)
+            self.result.oldLexJob = oldLexJob
+            self.result.newLexJob = newLexJob
+
+    def _getPatch(self, delta: VanillaDelta, locator: NavLocator
+                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair]:
+        logger.debug(f"Will load patch for: {delta}")
+        """
         if not patch:
             locator = locator.withExtraFlags(NavFlags.ForceDiff)
             longformItems = [linkify(_("Try to reload the file."), locator.url())]
@@ -298,29 +310,86 @@ class LoadPatch(RepoTask):
                                     _("The file appears to have changed on disk."),
                                     icon="SP_MessageBoxWarning",
                                     longform=toRoomyUL(longformItems))
+        """
 
-        if not patch.delta:
-            # Rare libgit2 bug, should be fixed in 1.6.0
-            return SpecialDiffError(_("Patch has no delta!"), icon="SP_MessageBoxWarning")
-
+        assert not delta.conflictUs, "conflicts not supported yet!"
+        """
         if patch.delta.status == DeltaStatus.CONFLICTED:
             path = patch.delta.new_file.path
             return self.repo.wrap_conflict(path)
+        """
 
+        assert not delta.isSubtreeCommitPatch(), "subtree patches not supported yet!"
+        """
         if FileMode.COMMIT in (patch.delta.new_file.mode, patch.delta.old_file.mode):
             return SpecialDiffError.submoduleDiff(self.repo, patch, locator)
+        """
+
+        if delta.similarity == 100:
+            # TODO: Migrate to Vanilla
+            return SpecialDiffError.noChange(delta)
+
+        # Render SVG file if user wants to.
+        if (settings.prefs.renderSvg
+                and delta.path.lower().endswith(".svg")
+                and isImageFormatSupported("file.svg")):
+            # TODO: Migrate to Vanilla
+            binaryDiff = SpecialDiffError.binaryDiff(delta, locator)
+            if isinstance(binaryDiff, ShouldDisplayPatchAsImageDiff):
+                return DiffImagePair(self.repo, delta, locator)
+            return binaryDiff
+
+        # Special formatting for TYPECHANGE.
+        if delta.statusPerContext(locator.context) == "T":  # TYPECHANGE
+            # TODO: Migrate to Vanilla
+            return SpecialDiffError.typeChange(delta)
+
+        # TODO: Check binary here or in diffDocument?
+
+        # ---------------------------------------------------------------------
+        # Get the patch
+
+        tokens = ["diff", "--abbrev=-1"]
+
+        if locator.context == NavContext.UNSTAGED:
+            if delta.isUntracked():
+                tokens += ["--", "/dev/null", delta.path]
+            else:
+                tokens += ["--", delta.path]
+        elif locator.context == NavContext.STAGED:
+            if delta.origPath and delta.origPath != delta.path:  # renames
+                tokens += ["--cached", "--", delta.origPath, delta.path]
+            else:
+                tokens += ["--cached", "--", delta.path]
+        else:
+            raise NotImplementedError("Not implemented!")
+
+        driver = yield from self.flowCallGit(*tokens, autoFail=False)
+        patch = driver.stdoutScrollback()
+        # ---------------------------------------------------------------------
+
+        # Don't load large diffs.
+        threshold = settings.prefs.largeFileThresholdKB * 1024
+        if threshold != 0 and len(patch) > threshold and not locator.hasFlags(NavFlags.AllowLargeFiles):
+            return SpecialDiffError.diffTooLarge(len(patch), threshold, locator)
+
+        yield from self.flowEnterWorkerThread() # TODO: Is this really necessary?
+
+        maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
         try:
-            diffModel = DiffDocument.fromPatch(patch, locator)
-            diffModel.document.moveToThread(QApplication.instance().thread())
-            return diffModel
-        except SpecialDiffError as dme:
-            return dme
-        except ShouldDisplayPatchAsImageDiff:
-            return DiffImagePair(self.repo, patch.delta, locator)
-        except BaseException as exc:
-            summary, details = excStrings(exc)
-            return SpecialDiffError(summary, icon="SP_MessageBoxCritical", preformatted=details)
+            diffDocument = DiffDocument.fromPatch(patch, maxLineLength)
+        except DiffDocument.NoChangeError:
+            return SpecialDiffError.noChange(delta)
+        except DiffDocument.VeryLongLinesError:
+            loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
+            return SpecialDiffError(
+                _("This file contains very long lines."),
+                linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
+                "SP_MessageBoxWarning")
+
+        diffDocument.document.moveToThread(QApplication.instance().thread())
+        return diffDocument
 
     def _makeHeader(self, result, locator):
         header = "<html>" + settings.prefs.addDelColorsStyleTag() + escape(locator.path)
@@ -340,19 +409,6 @@ class LoadPatch(RepoTask):
             header += f" <span style='color: gray;'>({locationText})</span>"
 
         return header
-
-    def flow(self, patch: Patch, locator: NavLocator):
-        yield from self.flowEnterWorkerThread()
-        # QThread.msleep(500)
-        self.result = self._processPatch(patch, locator)
-        self.header = self._makeHeader(self.result, locator)
-
-        # Prime lexer
-        yield from self.flowEnterUiThread()
-        if type(self.result) is DiffDocument:
-            oldLexJob, newLexJob = self._primeLexJobs(patch.delta.old_file, patch.delta.new_file, locator)
-            self.result.oldLexJob = oldLexJob
-            self.result.newLexJob = newLexJob
 
     def _primeLexJobs(self, oldFile: DiffFile, newFile: DiffFile, locator: NavLocator):
         assert onAppThread()

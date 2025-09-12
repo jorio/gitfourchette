@@ -6,11 +6,12 @@
 
 import logging
 import os
+from collections.abc import Iterable
 from contextlib import suppress
-from dataclasses import dataclass
 from typing import Any
 
 from gitfourchette import settings
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
@@ -27,13 +28,7 @@ in pygit2.enums.DeltaStatus.
 """
 
 
-def deltaModeText(delta: DiffDelta):
-    if not delta:
-        return "NO DELTA"
-
-    om = delta.old_file.mode
-    nm = delta.new_file.mode
-
+def deltaModeText(om: FileMode, nm: FileMode) -> str:
     if om != 0 and nm != 0 and om != nm:
         # Mode change
         if nm == FileMode.BLOB_EXECUTABLE:
@@ -47,19 +42,15 @@ def deltaModeText(delta: DiffDelta):
     elif om == 0:
         # New file
         return TrTables.shortFileModes(nm)
+    return ""
 
 
-def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterpart: bool = False):
+def fileTooltip(repo: Repo, delta: VanillaDelta, navContext: NavContext, isCounterpart: bool = False):
     if not delta:
         return ""
 
     locale = QLocale()
-    of: DiffFile = delta.old_file
-    nf: DiffFile = delta.new_file
-
-    sc = delta.status_char()
-    if delta.status == DeltaStatus.CONFLICTED:  # libgit2 should arguably return "U" (unmerged) for conflicts, but it doesn't
-        sc = "U"
+    sc = delta.statusPerContext(navContext)
 
     text = "<table style='white-space: pre'>"
 
@@ -69,17 +60,18 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
         return f"<tr><td style='color:{color}; text-align: right;'>{heading}{colon} </td><td>{caption}</td>"
 
     if sc == 'R':
-        text += newLine(_("old name"), escape(of.path))
-        text += newLine(_("new name"), escape(nf.path))
+        text += newLine(_("old name"), escape(delta.origPath))
+        text += newLine(_("new name"), escape(delta.path))
     else:
-        text += newLine(_("name"), escape(nf.path))
+        text += newLine(_("name"), escape(delta.path))
 
     # Status caption
     statusCaption = TrTables.diffStatusChar(sc)
     if sc not in '?U':  # show status char except for untracked and conflict
         statusCaption += f" ({sc})"
     if sc == 'U':  # conflict sides
-        diffConflict = repo.wrap_conflict(nf.path)
+        raise NotImplementedError("wrap conflict sides????")
+        diffConflict = repo.wrap_conflict(delta.path)
         postfix = TrTables.enum(diffConflict.sides)
         statusCaption += f" ({postfix})"
     text += newLine(_("status"), statusCaption)
@@ -89,34 +81,43 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
         text += newLine(_("similarity"), f"{delta.similarity}%")
 
     # File Mode
+    # TODO
     if sc not in 'DU':
+        om, nm = delta.modesPerContext(navContext)
+        om, nm = FileMode(om), FileMode(nm)
         if sc in 'A?':
-            text += newLine(_("file mode"), TrTables.enum(nf.mode))
-        elif of.mode != nf.mode:
-            text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
+            text += newLine(_("file mode"), TrTables.enum(nm))
+        elif om != nm:
+            text += newLine(_("file mode"), f"{TrTables.enum(om)} \u2192 {TrTables.enum(nm)}")
 
     # Size (if applicable)
+    # TODO
+    """
     if sc not in 'DU' and (nf.mode & FileMode.BLOB == FileMode.BLOB):
         if nf.flags & DiffFlag.VALID_SIZE:
             text += newLine(_("size"), locale.formattedDataSize(nf.size, 1))
         else:
             text += newLine(_("size"), _("(not computed)"))
+    """
 
     # Modified time
     if navContext.isWorkdir() and sc not in 'DU':
         with suppress(OSError):
-            fullPath = os.path.join(repo.workdir, nf.path)
+            fullPath = os.path.join(repo.workdir, delta.path)
             fileStat = os.stat(fullPath)
             timeQdt = QDateTime.fromSecsSinceEpoch(int(fileStat.st_mtime))
             timeText = locale.toString(timeQdt, settings.prefs.shortTimeFormat)
             text += newLine(_("modified"), timeText)
 
     # Blob/Commit IDs
+    # TODO
+    """
     if nf.mode != FileMode.TREE:  # untracked trees never have a valid ID
         oldId = shortHash(of.id) if of.flags & DiffFlag.VALID_ID else _("(not computed)")
         newId = shortHash(nf.id) if nf.flags & DiffFlag.VALID_ID else _("(not computed)")
         idLegend = _("commit hash") if nf.mode == FileMode.COMMIT else _("blob hash")
         text += newLine(idLegend, f"{oldId} \u2192 {newId}")
+    """
 
     if isCounterpart:
         if navContext == NavContext.UNSTAGED:
@@ -131,68 +132,11 @@ def fileTooltip(repo: Repo, delta: DiffDelta, navContext: NavContext, isCounterp
 
 
 class FileListModel(QAbstractListModel):
-    @dataclass
-    class Entry:
-        delta: DiffDelta
-        diff: Diff
-        patchNo: int
-        canonicalPath: str
-        _cachedPatch: Patch | None = None
-
-        @property
-        def patch(self) -> Patch | None:
-            try:
-                # Even if we already have a cached patch, call libgit2's git_patch_from_diff()
-                # to ensure that the backing data hasn't changed on disk (mmapped file?).
-                patch: Patch = self.diff[self.patchNo]
-
-            except (GitError, OSError) as e:
-                # GitError may occur if patch data is outdated (e.g. an unstaged file
-                # has changed on disk since the diff object was created).
-                # OSError may rarely occur if the file happens to be recreated.
-                logger.warning(f"Failed to get patch: {type(e).__name__}", exc_info=True)
-
-                # When the file that backs the cached patch is modified, the patch object
-                # becomes unreliable in libgit2 land. Invalidate it; the UI will tell
-                # the user to refresh the repo.
-                self._cachedPatch = None
-
-            else:
-                # Cache the patch - only if we haven't done so yet!
-                # This is to work around a libgit2 quirk where patch.delta is unstable
-                # (returning erroneous status, or returning no delta altogether) if the
-                # patch has been re-generated several times from the same diff while a
-                # CRLF filter applies.
-                # For this specific case, we want to keep using the first cached patch
-                # and discard the one we've just re-generated.
-                if self._cachedPatch is None:
-                    self._cachedPatch = patch
-                    self.delta = patch.delta  # Cache a fresher delta while we're here.
-
-            return self._cachedPatch
-
-        @benchmark
-        def refreshDelta(self):
-            """
-            Entry.delta is initialized from Diff.deltas, which may not contain
-            valid file sizes, or valid blob IDs in unstaged files.
-
-            Use this function to refresh Entry.delta with Patch.delta, which
-            contains more accurate information. Note that this may prime the
-            Patch, incurring a performance hit. This function does nothing if
-            the file is known to be very large.
-            """
-            nf = self.delta.new_file
-            if (nf.size <= settings.prefs.largeFileThresholdKB * 1024 and
-                    ~nf.flags & (DiffFlag.VALID_ID | DiffFlag.VALID_SIZE)):
-                _dummy = self.patch  # Prime the patch (and delta)
-            return self.delta
-
     class Role:
-        PatchObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
+        DeltaObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         FilePath = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
 
-    entries: list[Entry]
+    deltas: list[VanillaDelta]
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
     navContext: NavContext
@@ -218,71 +162,70 @@ class FileListModel(QAbstractListModel):
         return parentWidget
 
     def clear(self):
-        self.entries = []
+        self.deltas = []
         self.fileRows = {}
         self.highlightedCounterpartRow = -1
         self.modelReset.emit()
 
-    def setDiffs(self, diffs: list[Diff]):
+    def setContents(self, deltas: Iterable[VanillaDelta]):
         self.beginResetModel()
 
-        self.entries.clear()
+        self.deltas.clear()
         self.fileRows.clear()
 
-        for diff in diffs:
-            for patchNo, delta in enumerate(diff.deltas):
-                if self.skipConflicts and delta.status == DeltaStatus.CONFLICTED:
-                    continue
-                path = delta.new_file.path
-                path = path.removesuffix("/")  # trees (submodules) have a trailing slash - remove for NavLocator consistency
-                self.fileRows[path] = len(self.entries)
-                self.entries.append(FileListModel.Entry(delta, diff, patchNo, path))
+        for delta in deltas:
+            if self.skipConflicts and delta.isConflict():
+                continue
+            self.fileRows[delta.path] = len(self.deltas)
+            self.deltas.append(delta)
 
         self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = QModelIndex_default) -> int:
-        return len(self.entries)
+        return len(self.deltas)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
-        if role == FileListModel.Role.PatchObject:
-            entry = self.entries[index.row()]
-            return entry.patch
+        row = index.row()
+        try:
+            delta = self.deltas[row]
+        except IndexError:
+            delta = None
+
+        if role == FileListModel.Role.DeltaObject:
+            return delta
 
         elif role == FileListModel.Role.FilePath:
-            entry = self.entries[index.row()]
-            return entry.canonicalPath
+            # TODO: Canonical path for submodules?
+            return delta.path
 
         elif role == Qt.ItemDataRole.DisplayRole:
-            entry = self.entries[index.row()]
-            text = abbreviatePath(entry.canonicalPath, settings.prefs.pathDisplayStyle)
+            # TODO: Canonical path for submodules?
+            text = abbreviatePath(delta.path, settings.prefs.pathDisplayStyle)
 
             # Show important mode info in brackets
-            modeInfo = deltaModeText(entry.delta)
+            om, nm = delta.modesPerContext(self.navContext)
+            modeInfo = deltaModeText(om, nm)
             if modeInfo:
                 text = f"[{modeInfo}] {text}"
 
             return text
 
         elif role == Qt.ItemDataRole.DecorationRole:
-            entry = self.entries[index.row()]
-            delta = entry.delta
-            if not delta:
-                iconName = "status_x"
-            else:
-                iconName = "status_" + STATUS_ICON_LETTERS[int(delta.status)]
-            return stockIcon(iconName)
+            letter = delta.statusPerContext(self.navContext)
+            if letter == "?":  # untracked, fake A
+                letter = "A"
+            letter = letter.lower()
+            return stockIcon(f"status_{letter}")
 
         elif role == Qt.ItemDataRole.ToolTipRole:
-            entry = self.entries[index.row()]
-            delta = entry.refreshDelta()
-            isCounterpart = index.row() == self.highlightedCounterpartRow
+            isCounterpart = row == self.highlightedCounterpartRow
             return fileTooltip(self.repo, delta, self.navContext, isCounterpart)
 
         elif role == Qt.ItemDataRole.SizeHintRole:
             return QSize(-1, self.parentWidget.fontMetrics().height())
 
         elif role == Qt.ItemDataRole.FontRole:
-            if index.row() == self.highlightedCounterpartRow:
+            if row == self.highlightedCounterpartRow:
                 font = self.parentWidget.font()
                 font.setUnderline(True)
                 return font

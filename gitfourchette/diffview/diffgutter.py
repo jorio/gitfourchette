@@ -61,10 +61,10 @@ class DiffGutter(CodeGutter):
                 break
 
             ld = diffView.lineData[blockNumber]
-            if ld.diffLine:
+            if ld.origin:
                 # Draw line numbers
-                old = str(ld.diffLine.old_lineno) if ld.diffLine.old_lineno > 0 else noOldPlaceholder
-                new = str(ld.diffLine.new_lineno) if ld.diffLine.new_lineno > 0 else noNewPlaceholder
+                old = str(ld.oldLineNo) if ld.oldLineNo > 0 else noOldPlaceholder
+                new = str(ld.newLineNo) if ld.newLineNo > 0 else noNewPlaceholder
 
                 colW = (rightEdge - 3) // 2
                 painter.drawText(0, top, colW, fontHeight, Qt.AlignmentFlag.AlignRight, old)
