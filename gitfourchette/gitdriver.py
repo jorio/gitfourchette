@@ -7,6 +7,7 @@
 import dataclasses
 import html
 import io
+import logging
 import re
 import shlex
 import signal
@@ -20,6 +21,8 @@ from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import version_to_tuple, Oid
 from gitfourchette.qt import *
+
+logger = logging.getLogger(__name__)
 
 
 def argsIf(condition: bool, *args: str) -> tuple[str, ...]:
@@ -55,6 +58,7 @@ class VanillaDelta:
     modeDst: int = 0
     hexHashHead: str = ""
     hexHashIndex: str = ""
+    hexHashWorktree: str = ""
     hexHashConflictStages: tuple[str, str, str] = ("", "", "")
     hexHashSrc: str = ""
     hexHashDst: str = ""
@@ -96,6 +100,16 @@ class VanillaDelta:
             return self.modeHead, self.modeIndex
         else:
             return self.modeSrc, self.modeDst
+
+    def hashesPerContext(self, context: NavContext) -> tuple[str, str]:
+        if context == NavContext.UNSTAGED:
+            if not self.hexHashWorktree:
+                logger.warning(f"worktree hash unknown for {self.path}")
+            return self.hexHashIndex, self.hexHashWorktree or "f" * 40
+        elif context == NavContext.STAGED:
+            return self.hexHashHead, self.hexHashIndex
+        else:
+            return self.hexHashSrc, self.hexHashDst
 
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>

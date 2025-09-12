@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.codeview.codeview import CodeView
@@ -364,36 +365,29 @@ class DiffView(CodeView):
                 numDels += 1
         return numAdds, numDels
 
-    def extractSelection(self, reverse=False) -> bytes:
+    def extractSelection(self, reverse=False) -> str:
         assert self.currentPatch is not None
 
-        start, end = self.getSelectedLineExtents()
+        i, j = self.getSelectedLineExtents()
 
-        return extractSubpatch(
-            self.currentPatch,
-            self.lineData[start].hunkPos,
-            self.lineData[end].hunkPos,
-            reverse)
+        return extractSubpatch(self.currentPatch, self.currentLocator.context,
+                               self.lineData, i, j, reverse)
 
-    def extractHunk(self, hunkID: int, reverse=False) -> bytes:
+    def extractHunk(self, hunkID: int, reverse=False) -> str:
         assert self.currentPatch is not None
 
-        first, last = LineData.getHunkExtents(self.lineData, hunkID)
+        i, j = LineData.getHunkExtents(self.lineData, hunkID)
 
-        return extractSubpatch(
-            self.currentPatch,
-            self.lineData[first].hunkPos,
-            self.lineData[last].hunkPos,
-            reverse)
+        return extractSubpatch(self.currentPatch, self.currentLocator.context,
+                               self.lineData, i, j, reverse)
 
-    def exportPatch(self, patchData: bytes):
+    def exportPatch(self, patchData: str):
         if not patchData:
             QApplication.beep()
             return
 
         def dump(path: str):
-            with open(path, "wb") as file:
-                file.write(patchData)
+            Path(path).write_text(patchData, encoding="utf-8")
 
         name = os.path.basename(self.currentLocator.path) + "[partial].patch"
         qfd = PersistentFileDialog.saveFile(self, "SaveFile", _("Export selected lines"), name)

@@ -262,7 +262,7 @@ class UnstageModeChanges(_BaseStagingTask):
 
 
 class ApplyPatch(RepoTask):
-    def flow(self, fullPatch: Patch, subPatch: bytes, purpose: PatchPurpose):
+    def flow(self, fullPatch: Patch, subPatch: str, purpose: PatchPurpose):
         if not subPatch:
             QApplication.beep()
             verb = TrTables.enum(purpose & PatchPurpose.VerbMask).lower()
@@ -279,13 +279,20 @@ class ApplyPatch(RepoTask):
             textPara.append(_("This cannot be undone!"))
             yield from self.flowConfirm(title, text=paragraphs(textPara), verb=title, buttonIcon="git-discard-lines")
 
-            Trash.instance().backupPatch(self.repo.workdir, subPatch, fullPatch.delta.new_file.path)
+            # TODO:
+            print("TODO: Back up discarded patches")
+            #Trash.instance().backupPatch(self.repo.workdir, subPatch, fullPatch.delta.new_file.path)
+
             applyLocation = ApplyLocation.WORKDIR
         else:
             applyLocation = ApplyLocation.INDEX
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
+
+        # libgit2's index must be fresh in order to apply a partial patch to the index.
+        if applyLocation == ApplyLocation.INDEX:
+            self.repo.refresh_index()
 
         self.repo.apply(subPatch, applyLocation)
 

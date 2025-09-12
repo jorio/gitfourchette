@@ -4,12 +4,14 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import io
 from collections.abc import Iterable
-from dataclasses import dataclass
+from io import StringIO
 
-from gitfourchette.diffview.diffdocument import DiffLinePos
-from gitfourchette.porcelain import *
+from pygit2.enums import FileMode
+
+from gitfourchette.diffview.diffdocument import LineData
+from gitfourchette.gitdriver import VanillaDelta
+from gitfourchette.nav import NavContext
 
 REVERSE_ORIGIN_MAP = {
     ' ': ' ',
@@ -20,85 +22,96 @@ REVERSE_ORIGIN_MAP = {
     '<': '>',
 }
 
+QUOTE_PATH_ESCAPES = {
+    ' ': ' ',
+    '"': '\\"',
+    '\a': '\\a',
+    '\b': '\\b',
+    '\t': '\\t',
+    '\n': '\\n',
+    '\v': '\\v',
+    '\f': '\\f',
+    '\r': '\\r',
+    '\\': '\\\\',
+}
 
-def quotePath(path: bytes):
-    surround = False
 
-    safePath = ""
-
-    escapes = {
-        ord(' '): ' ',
-        ord('"'): '\\"',
-        ord('\a'): '\\a',
-        ord('\b'): '\\b',
-        ord('\t'): '\\t',
-        ord('\n'): '\\n',
-        ord('\v'): '\\v',
-        ord('\f'): '\\f',
-        ord('\r'): '\\r',
-        ord('\\'): '\\\\',
-    }
+def quotePath(path: str) -> str:
+    quote = False
+    safePath = []
 
     for c in path:
-        if c in escapes:
-            safePath += escapes[c]
-            surround = True
-        elif c < ord('!') or c > ord('~'):
-            safePath += F"\\{c:03o}"
-            surround = True
-        else:
-            safePath += chr(c)
+        codepoint = ord(c)
+        if 0x21 <= codepoint <= 0x7e:  # copy ASCII characters '!' through '~' verbatim
+            safePath.append(c)
+            continue
 
-    if surround:
-        return F'"{safePath}"'
-    else:
-        return safePath
+        if not quote:
+            safePath.insert(0, '"')
+            quote = True
+
+        try:
+            safePath.append(QUOTE_PATH_ESCAPES[c])
+        except KeyError:
+            safePath.append(f"\\{codepoint:03o}")
+
+    if quote:
+        safePath.append('"')
+
+    return "".join(safePath)
 
 
-def getPatchPreamble(delta: DiffDelta, reverse=False):
+def getPatchPreamble(delta: VanillaDelta, context: NavContext, reverse=False) -> str:
+    oldPath, newPath = delta.origPath or delta.path, delta.path
+    oldMode, newMode = delta.modesPerContext(context)
+    oldHash, newHash = delta.hashesPerContext(context)
+
+    oldHash = oldHash or "0" * 40
+    newHash = newHash or "0" * 40
+
     if not reverse:
-        of = delta.old_file
-        nf = delta.new_file
+        pass
+    elif delta.statusPerContext(context) != "D":
+        # When reversing some lines within a patch, stick to the new file
+        # to avoid changing the file's name or mode.
+        oldPath, oldMode, oldHash = newPath, newMode, newHash
     else:
-        # When reversing some lines within a patch, stick to new_file to avoid
-        # changing the file's name or mode.
-        of = delta.new_file
-        nf = delta.new_file
         # ...Unless we're reversing lines within a deletion.
-        if nf.id == NULL_OID:
-            nf = delta.old_file
+        newPath, newMode, newHash = oldPath, oldMode, oldHash
 
-    aQuoted = quotePath(b"a/" + of.raw_path)
-    bQuoted = quotePath(b"b/" + nf.raw_path)
-    preamble = F"diff --git {aQuoted} {bQuoted}\n"
+    oldPathQuoted = quotePath(f"a/{oldPath}")
+    newPathQuoted = quotePath(f"b/{newPath}")
+    preamble = [f"diff --git {oldPathQuoted} {newPathQuoted}\n"]
 
-    ofExists = of.id != NULL_OID
-    nfExists = nf.id != NULL_OID
+    oldExists = not all(c == "0" for c in oldHash)
+    newExists = not all(c == "0" for c in newHash)
 
-    if not ofExists:
-        preamble += F"new file mode {nf.mode:06o}\n"
-    elif of.mode != nf.mode or nf.mode != FileMode.BLOB:
-        preamble += F"old mode {of.mode:06o}\n"
-        preamble += F"new mode {nf.mode:06o}\n"
+    if not oldExists:
+        preamble.append(f"new file mode {newMode:06o}\n")
+    elif oldMode != newMode or newMode != FileMode.BLOB:
+        preamble.append(f"old mode {oldMode:06o}\n")
+        preamble.append(f"new mode {newMode:06o}\n")
 
     # Work around libgit2 bug: if a patch lacks the "index" line,
     # libgit2 will fail to parse it if there are "old mode"/"new mode" lines.
     # Also, even if the patch is successfully parsed as a Diff, and we need to
     # regenerate it (from the Diff), libgit2 may fail to re-create the
     # "---"/"+++" lines and it'll therefore fail to parse its own output.
-    preamble += f"index {of.id}..{'f'*40}\n"
+    preamble += f"index {oldHash}..{'f'*40}\n"
 
-    if ofExists:
-        preamble += F"--- a/{of.path}\n"
+    if oldExists:
+        # TODO: Should we quote this?
+        preamble.append(f"--- a/{oldPath}\n")
     else:
-        preamble += "--- /dev/null\n"
+        preamble.append("--- /dev/null\n")
 
-    if nfExists:
-        preamble += F"+++ b/{nf.path}\n"
+    if newExists:
+        # TODO: Should we quote this?
+        preamble.append(f"+++ b/{newPath}\n")
     else:
-        preamble += "+++ /dev/null\n"
+        preamble.append("+++ /dev/null\n")
 
-    return preamble
+    return "".join(preamble)
 
 
 def originToDelta(origin):
@@ -114,7 +127,7 @@ def reverseOrigin(origin):
     return REVERSE_ORIGIN_MAP.get(origin, origin)
 
 
-def writeContext(subpatch: io.BytesIO, reverse: bool, lines: Iterable[DiffLine]):
+def writeContext(subpatch: StringIO, reverse: bool, lines: Iterable[LineData]):
     skipOrigin = '-' if reverse else '+'
     for line in lines:
         if line.origin == skipOrigin:
@@ -126,96 +139,117 @@ def writeContext(subpatch: io.BytesIO, reverse: bool, lines: Iterable[DiffLine])
             pass
         elif line.origin in " -+":
             # Make it a context line
-            subpatch.write(b" ")
+            subpatch.write(" ")
         else:
             raise NotImplementedError(f"unknown origin char {line.origin}")
-        subpatch.write(line.raw_content)
+        subpatch.write(line.text)
 
 
 def extractSubpatch(
-        masterPatch: Patch,
-        startPos: DiffLinePos,  # index of first selected line in master patch
-        endPos: DiffLinePos,  # index of last selected line in master patch
+        masterDelta: VanillaDelta,
+        masterContext: NavContext,
+        masterLineDatas: list[LineData],
+        spanStart: int,
+        spanEnd: int,
         reverse: bool
-) -> bytes:
+) -> str:
     """
-    Creates a patch (in unified diff format) from the range of selected diff lines given as input.
+    Create a patch (in unified diff format) from a range of selected lines in a diff.
     """
+
+    spanStartPos = masterLineDatas[spanStart].hunkPos
+    spanEndPos = masterLineDatas[spanEnd].hunkPos
 
     # Edge case: a single hunk header line is selected
-    if startPos.hunkID == endPos.hunkID and startPos.hunkLineNum < 0 and endPos.hunkLineNum < 0:
-        return b""
+    if (spanStartPos.hunkID == spanEndPos.hunkID
+            and spanStartPos.hunkLineNum < 0
+            and spanEndPos.hunkLineNum < 0):
+        return ""
 
-    patch = io.BytesIO()
+    patch = StringIO()
 
-    preamble = getPatchPreamble(masterPatch.delta, reverse)
-    patch.write(preamble.encode())
+    preamble = getPatchPreamble(masterDelta, masterContext, reverse)
+    patch.write(preamble)
 
     newHunkStartOffset = 0
     subpatchIsEmpty = True
 
-    for hunkID in range(startPos.hunkID, endPos.hunkID + 1):
+    for hunkID in range(spanStartPos.hunkID, spanEndPos.hunkID + 1):
         assert hunkID >= 0
-        hunk = masterPatch.hunks[hunkID]
-        numHunkLines = len(hunk.lines)
+
+        hunkStart, hunkEnd = LineData.getHunkExtents(masterLineDatas, hunkID)
+        hunkHeader = masterLineDatas[hunkStart]
+        hunkContents = masterLineDatas[hunkStart + 1 : hunkEnd + 1]  # Skip header line
+        numHunkLines = len(hunkContents)
+
+        # ---------------------------------------------------------------------
+        # Compute selection bounds within the hunk
 
         # Compute start line boundary for this hunk
-        if hunkID == startPos.hunkID:  # First hunk in selection?
-            startLineNum = startPos.hunkLineNum
-            if startLineNum < 0:  # The hunk header's hunkLineNum is -1
-                startLineNum = 0
+        if hunkID == spanStartPos.hunkID:  # First hunk in selection?
+            boundStart = spanStartPos.hunkLineNum
+            if boundStart < 0:  # The hunk header's hunkLineNum is -1
+                boundStart = 0
         else:  # Middle hunk: take all lines in hunk
-            startLineNum = 0
+            boundStart = 0
 
         # Compute end line boundary for this hunk
-        if hunkID == endPos.hunkID:  # Last hunk in selection?
-            endLineNum = endPos.hunkLineNum
-            if endLineNum < 0:  # The hunk header's relative line number is -1
-                endLineNum = 0
+        if hunkID == spanEndPos.hunkID:  # Last hunk in selection?
+            boundEnd = spanEndPos.hunkLineNum
+            if boundEnd < 0:  # The hunk header's relative line number is -1
+                boundEnd = 0
         else:  # Middle hunk: take all lines in hunk
-            endLineNum = numHunkLines-1
+            boundEnd = numHunkLines-1
 
         # Expand selection to any lines saying "\ No newline at end of file"
         # that are adjacent to the selection. This will let us properly reorder
         # -/+ lines without an LF character later on (see plusLines below).
-        while endLineNum < numHunkLines-1 and hunk.lines[endLineNum+1].origin in "=><":
-            endLineNum += 1
+        while boundEnd < numHunkLines-1 and hunkContents[boundEnd+1].origin in "=><":
+            boundEnd += 1
 
         # Compute line count delta in this hunk
-        lineCountDelta = sum(originToDelta(hunk.lines[ln].origin) for ln in range(startLineNum, endLineNum + 1))
+        lineCountDelta = sum(originToDelta(hunkContents[ln].origin)
+                             for ln in range(boundStart, boundEnd + 1))
         if reverse:
             lineCountDelta = -lineCountDelta
 
         # Skip this hunk if all selected lines are context
         if lineCountDelta == 0 and \
-                all(originToDelta(hunk.lines[ln].origin) == 0 for ln in range(startLineNum, endLineNum + 1)):
+                all(originToDelta(hunkContents[ln].origin) == 0 for ln in range(boundStart, boundEnd + 1)):
             continue
-        else:
-            subpatchIsEmpty = False
+
+        subpatchIsEmpty = False
+
+        # ---------------------------------------------------------------------
+        # Adapt hunk header
+
+        # Parse hunk info
+        hunkOldStart, hunkOldLines, hunkNewStart, hunkNewLines, hunkComment = hunkHeader.parseHunkHeader()
 
         # Get coordinates of old hunk
         if reverse:  # flip old<=>new if reversing
-            oldStart = hunk.new_start
-            oldLines = hunk.new_lines
+            oldStart, oldLines = hunkNewStart, hunkNewLines
         else:
-            oldStart = hunk.old_start
-            oldLines = hunk.old_lines
+            oldStart, oldLines = hunkOldStart, hunkOldLines
 
         # Compute coordinates of new hunk
         newStart = oldStart + newHunkStartOffset
         newLines = oldLines + lineCountDelta
 
         # Assemble doctored hunk header
-        headerComment = hunk.header[hunk.header.find(" @@") + 3 :]
-        assert headerComment.endswith("\n")
-        patch.write(F"@@ -{oldStart},{oldLines} +{newStart},{newLines} @@{headerComment}".encode())
+        assert hunkComment.endswith("\n")
+        patch.write(f"@@ -{oldStart},{oldLines} +{newStart},{newLines} @@")
+        patch.write(hunkComment)
 
         # Account for line count delta in next new hunk's start offset
         newHunkStartOffset += lineCountDelta
 
+        # ---------------------------------------------------------------------
+        # Write hunk contents
+
         # Write non-selected lines at beginning of hunk as context
         writeContext(patch, reverse,
-                     (hunk.lines[ln] for ln in range(0, startLineNum)))
+                     (hunkContents[ln] for ln in range(0, boundStart)))
 
         # We'll reorder all non-context lines so that "-" lines always appear above "+" lines.
         # This buffer will hold "+" lines while we're processing a clump of non-context lines.
@@ -225,11 +259,11 @@ def extractSubpatch(
         #   +hello                                -hallo
         #   \ No newline at end of file           +hello
         #   -hallo                                \ No newline at end of file
-        plusLines = io.BytesIO()
+        plusLines = StringIO()
 
         # Write selected lines within the hunk
-        for ln in range(startLineNum, endLineNum + 1):
-            line = hunk.lines[ln]
+        for ln in range(boundStart, boundEnd + 1):
+            line = hunkContents[ln]
 
             if not reverse:
                 origin = line.origin
@@ -243,16 +277,16 @@ def extractSubpatch(
             elif origin == " " and plusLines.tell() != 0:
                 # A context line breaks up the clump of non-context lines - flush plusLines
                 patch.write(plusLines.getvalue())
-                plusLines = io.BytesIO()
+                plusLines = StringIO()
 
             if origin in "=><":
                 # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
                 # Just write raw content (b"\n\\ No newline at end of file") without an origin char
-                assert line.raw_content[0] == ord('\n')
-                buffer.write(line.raw_content)
+                assert line.text == ord('\n')
+                buffer.write(line.text)
             else:
-                buffer.write(origin.encode())
-                buffer.write(line.raw_content)
+                buffer.write(origin)
+                buffer.write(line.text)
 
         # End of selected lines.
         # All remaining lines in the hunk are context from now on.
@@ -263,9 +297,9 @@ def extractSubpatch(
 
         # Write non-selected lines at end of hunk as context
         writeContext(patch, reverse,
-                     (hunk.lines[ln] for ln in range(endLineNum + 1, len(hunk.lines))))
+                     (hunkContents[ln] for ln in range(boundEnd + 1, len(hunkContents))))
 
     if subpatchIsEmpty:
-        return b""
-    else:
-        return patch.getvalue()
+        return ""
+
+    return patch.getvalue()

@@ -69,6 +69,17 @@ class LineData:
     def _hunkIDKey(self) -> int:
         return self.hunkPos.hunkID
 
+    def parseHunkHeader(self):
+        assert self.hunkPos.hunkLineNum == -1
+        match = re.match(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@", self.text)
+        oldStartStr, oldLinesStr, newStartStr, newLinesStr = match.groups()
+        oldStart = int(oldStartStr)
+        oldLines = int(oldLinesStr)
+        newStart = int(newStartStr)
+        newLines = int(newLinesStr)
+        comment = self.text[match.end():]
+        return oldStart, oldLines, newStart, newLines, comment
+
 
 class DiffStyle:
     def __init__(self):
