@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import difflib
 import re
+from bisect import bisect_left
 from collections.abc import Generator
 from dataclasses import dataclass
 
@@ -15,12 +16,17 @@ from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.subpatch import DiffLinePos
 from gitfourchette.syntax import LexJob
 from gitfourchette.toolbox import *
 
 
 _hunkPattern = re.compile(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@")
+
+
+@dataclass
+class DiffLinePos:
+    hunkID: int
+    hunkLineNum: int
 
 
 @dataclass
@@ -49,6 +55,19 @@ class LineData:
 
     trailerLength: int = 0
     "Stop highlighting the syntax past this column in the line."
+
+    @classmethod
+    def getHunkExtents(cls, array: list[LineData], hunkID: int) -> tuple[int, int]:
+        """
+        Find indices of first and last LineData objects given the current hunk.
+        """
+
+        first = bisect_left(array, hunkID, 0, key=LineData._hunkIDKey)
+        last = bisect_left(array, hunkID + 1, first, key=LineData._hunkIDKey) - 1
+        return first, last
+
+    def _hunkIDKey(self) -> int:
+        return self.hunkPos.hunkID
 
 
 class DiffStyle:

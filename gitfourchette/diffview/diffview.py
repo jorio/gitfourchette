@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os
 import re
-from bisect import bisect_left
 
 from gitfourchette import settings
 from gitfourchette.codeview.codeview import CodeView
@@ -36,6 +35,7 @@ class DiffView(CodeView):
 
     lineData: list[LineData]
     currentLocator: NavLocator
+    # TODO: Rename this to currentDelta?
     currentPatch: VanillaDelta | None
     currentWorkdirFileStat: os.stat_result | None
     repo: Repo | None
@@ -234,11 +234,17 @@ class DiffView(CodeView):
         hasSelection = cursor.hasSelection()
 
         # Find hunk at click position
-        clickedHunkID = self.findHunkIDAt(clickedCursor.position())
-        shortHunkHeader = ""
-        if clickedHunkID >= 0:
-            hunk: DiffHunk = self.currentPatch.hunks[clickedHunkID]
-            headerMatch = re.match(r"@@ ([^@]+) @@.*", hunk.header)
+        block = self.document().findBlock(clickedCursor.position())
+        blockNumber = block.blockNumber()
+
+        try:
+            lineData = self.lineData[blockNumber]
+        except IndexError:
+            shortHunkHeader = "???"
+        else:
+            clickedHunkID = lineData.hunkPos.hunkID
+            hunkFirstLine, _hunkLastLine = LineData.getHunkExtents(self.lineData, clickedHunkID)
+            headerMatch = re.match(r"@@ ([^@]+) @@.*", self.lineData[hunkFirstLine].text)
             shortHunkHeader = headerMatch.group(1) if headerMatch else f"#{clickedHunkID}"
 
         actions = []
@@ -372,17 +378,12 @@ class DiffView(CodeView):
     def extractHunk(self, hunkID: int, reverse=False) -> bytes:
         assert self.currentPatch is not None
 
-        def hunkIDKey(lineData: LineData):
-            return lineData.hunkPos.hunkID
-
-        # Find indices of first and last LineData objects given the current hunk
-        hunkFirstLineIndex = bisect_left(self.lineData, hunkID, 0, key=hunkIDKey)
-        hunkLastLineIndex = bisect_left(self.lineData, hunkID+1, hunkFirstLineIndex, key=hunkIDKey) - 1
+        first, last = LineData.getHunkExtents(self.lineData, hunkID)
 
         return extractSubpatch(
             self.currentPatch,
-            self.lineData[hunkFirstLineIndex].hunkPos,
-            self.lineData[hunkLastLineIndex].hunkPos,
+            self.lineData[first].hunkPos,
+            self.lineData[last].hunkPos,
             reverse)
 
     def exportPatch(self, patchData: bytes):

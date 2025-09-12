@@ -8,6 +8,7 @@ import io
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from gitfourchette.diffview.diffdocument import DiffLinePos
 from gitfourchette.porcelain import *
 
 REVERSE_ORIGIN_MAP = {
@@ -18,12 +19,6 @@ REVERSE_ORIGIN_MAP = {
     '>': '<',
     '<': '>',
 }
-
-
-@dataclass
-class DiffLinePos:
-    hunkID: int
-    hunkLineNum: int
 
 
 def quotePath(path: bytes):
