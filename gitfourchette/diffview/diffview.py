@@ -38,14 +38,12 @@ class DiffView(CodeView):
     currentLocator: NavLocator
     # TODO: Rename this to currentDelta?
     currentPatch: FatDelta | None
-    currentWorkdirFileStat: os.stat_result | None
     repo: Repo | None
 
     def __init__(self, parent=None):
         super().__init__(gutterClass=DiffGutter, highlighterClass=DiffHighlighter, parent=parent)
 
         self.lineData = []
-        self.lineHunkIDCache = []
         self.repo = None
 
         # Emit contextual help with non-empty selection
