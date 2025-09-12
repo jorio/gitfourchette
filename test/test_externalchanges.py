@@ -140,11 +140,11 @@ def testLineEndingsChangedWithAutocrlfInputCauseDiffReload(tempDir, mainWindow):
 
     writeFile(f"{wd}/hello.txt", "hello\r\ndos\r\n")
     rw = mainWindow.openRepo(wd)
-    oldPatch = rw.diffView.currentPatch
+    oldPatch = rw.diffView.currentFatDelta
 
     writeFile(f"{wd}/hello.txt", "hello\ndos\n")
     rw.refreshRepo()  # Must not fail (no failed assertions, etc)
-    assert oldPatch is not rw.diffView.currentPatch
+    assert oldPatch is not rw.diffView.currentFatDelta
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.18.3"), reason="old pygit2 - https://github.com/libgit2/pygit2/pull/1412")

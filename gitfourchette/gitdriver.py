@@ -14,6 +14,7 @@ import re
 import shlex
 import signal
 from enum import StrEnum
+from os import stat_result
 from pathlib import Path
 
 from pygit2.enums import FileMode
@@ -25,6 +26,10 @@ from gitfourchette.porcelain import version_to_tuple, Oid
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
+
+
+HASH_40X0 = "0" * 40
+HASH_40XF = "f" * 40
 
 
 def argsIf(condition: bool, *args: str) -> tuple[str, ...]:
@@ -67,6 +72,7 @@ class FatDelta:
     similarity: int = 0
     path: str = ""
     origPath: str = ""
+    stat: stat_result | None = None
 
     def __post_init__(self):
         if self.statusStaged == ".":
@@ -94,7 +100,7 @@ class FatDelta:
             oldHash, newHash = self.hexHashIndex, self.hexHashWorktree
             if not newHash:
                 logger.warning(f"worktree hash unknown for {self.path}")
-                newHash = "f" * 40
+                newHash = HASH_40XF
         elif context == NavContext.STAGED:
             status = self.statusStaged
             oldMode, newMode = self.modeHead, self.modeIndex
@@ -104,8 +110,8 @@ class FatDelta:
             oldMode, newMode = self.modeSrc, self.modeDst
             oldHash, newHash = self.hexHashSrc, self.hexHashDst
 
-        oldHash = oldHash or "0" * 40
-        newHash = newHash or "0" * 40
+        oldHash = oldHash or HASH_40X0
+        newHash = newHash or HASH_40X0
         old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode)
         new = ABDeltaFile(self.path, newHash, newMode)
         return ABDelta(status=status, old=old, new=new, similarity=self.similarity)
@@ -117,9 +123,9 @@ class FatDelta:
 
 @dataclasses.dataclass
 class ABDeltaFile:
-    path: str
-    id: str
-    mode: FileMode
+    path: str = ""
+    id: str = ""
+    mode: FileMode = FileMode.UNREADABLE
 
     def isId0(self):
         return all(c == "0" for c in self.id)
@@ -127,10 +133,10 @@ class ABDeltaFile:
 
 @dataclasses.dataclass
 class ABDelta:
-    status: str
-    old: ABDeltaFile
-    new: ABDeltaFile
-    similarity: int
+    status: str = ""
+    old: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
+    new: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
+    similarity: int = 0
 
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
@@ -405,12 +411,19 @@ class GitDriver(QProcess):
                     path = path.removesuffix("/")
                     mode = FileMode.TREE
                 else:
-                    pobj = Path(self.workingDirectory(), path)
-                    mode = FileMode(pobj.stat().st_mode)
+                    mode = FileMode.UNREADABLE  # unknown, actually, but that's the next best thing
                 delta = FatDelta(
                     statusUnstaged=ident,
                     modeWorktree=mode,
                     path=path)
+
+            # Get stat if it's unstaged
+            if delta.statusUnstaged:
+                try:
+                    delta.stat = Path(self.workingDirectory(), path).lstat()
+                    delta.modeWorktree = FileMode(delta.stat.st_mode)
+                except OSError:
+                    pass
 
             deltas.append(delta)
 

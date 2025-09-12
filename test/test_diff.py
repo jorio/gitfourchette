@@ -251,7 +251,7 @@ def testDiffInNewWindow(tempDir, mainWindow, closeManually):
     rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
     qlvClickNthRow(rw.committedFiles, 0)
 
-    rw.committedFiles.openDiffInNewWindow.emit(rw.diffView.currentPatch, rw.navLocator)
+    rw.committedFiles.openDiffInNewWindow.emit(rw.diffView.currentFatDelta, rw.navLocator)
     waitUntilTrue(lambda: not mainWindow.isActiveWindow())
 
     diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == "DetachedDiffWindow")

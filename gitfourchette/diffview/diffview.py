@@ -36,14 +36,17 @@ class DiffView(CodeView):
 
     lineData: list[LineData]
     currentLocator: NavLocator
-    # TODO: Rename this to currentDelta?
-    currentPatch: FatDelta | None
+    currentFatDelta: FatDelta
+    currentABDelta: ABDelta
     repo: Repo | None
 
     def __init__(self, parent=None):
         super().__init__(gutterClass=DiffGutter, highlighterClass=DiffHighlighter, parent=parent)
 
         self.lineData = []
+        self.currentLocator = NavLocator.Empty
+        self.currentFatDelta = FatDelta()
+        self.currentABDelta = ABDelta()
         self.repo = None
 
         # Emit contextual help with non-empty selection
@@ -87,10 +90,6 @@ class DiffView(CodeView):
         makeWidgetShortcut(self, self.onStageShortcut, *GlobalShortcuts.stageHotkeys)
         makeWidgetShortcut(self, self.onDiscardShortcut, *GlobalShortcuts.discardHotkeys)
 
-    @property
-    def currentABDelta(self) -> ABDelta:
-        return self.currentPatch.distillOldNew(self.currentLocator.context)
-
     # ---------------------------------------------
     # Callbacks for Qt events/shortcuts
 
@@ -121,20 +120,28 @@ class DiffView(CodeView):
     def clear(self):  # override
         # Clear info about the current patch - necessary for document reuse detection to be correct when the user
         # clears the selection in a FileList and then reselects the last-displayed document.
-        self.currentPatch = None
+        self.currentFatDelta = None
+        self.currentABDelta = None
 
         # Clear the actual contents
         super().clear()
 
     @benchmark
-    def replaceDocument(self, repo: Repo, delta: FatDelta, locator: NavLocator, newDoc: DiffDocument):
+    def replaceDocument(self, repo: Repo, fatDelta: FatDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
         oldDocument = self.document()
 
-        # Detect if we're trying to load exactly the same patch - common occurrence when moving the app back to the
-        # foreground. In that case, don't change the document to prevent losing any selected text.
-        if self.canReuseCurrentDocument(locator, delta, newDoc):
+        # Detect if we're trying to load exactly the same patch - common occurrence
+        # when moving the app back to the foreground. If so, keep the current document
+        # to prevent losing any selected text (and wasting cycles).
+        canReuseCurrentDocument = (
+                not locator.hasFlags(NavFlags.ForceRecreateDocument)
+                and locator.isSimilarEnoughTo(self.currentLocator)
+                and fatDelta == self.currentFatDelta)
+
+        if canReuseCurrentDocument:
+            assert len(newDoc.lineData) == len(self.lineData)
             """ TODO
             if APP_DEBUG:  # this check can be pretty expensive!
                 assert self.currentPatch is not None
@@ -154,7 +161,8 @@ class DiffView(CodeView):
             oldDocument.deleteLater()  # avoid leaking memory/objects, even though we do set QTextDocument's parent to this QTextEdit
 
         self.repo = repo
-        self.currentPatch = delta
+        self.currentFatDelta = fatDelta
+        self.currentABDelta = fatDelta.distillOldNew(locator.context)
         self.currentLocator = locator
 
         newDoc.document.setParent(self)
@@ -181,57 +189,12 @@ class DiffView(CodeView):
         # Now restore cursor/scrollbar positions
         self.restorePosition(locator)
 
-    @benchmark
-    def canReuseCurrentDocument(self, newLocator: NavLocator, newPatch: Patch, newDocument: DiffDocument
-                                ) -> bool:
-        """Detect if we're trying to reload the same patch that's already being displayed"""
-
-        if newLocator.hasFlags(NavFlags.ForceRecreateDocument):
-            return False
-
-        if not self.currentLocator.isSimilarEnoughTo(newLocator):
-            return False
-
-        assert self.currentPatch is not None
-
-        if self.currentPatch != newPatch:
-            return False
-
-        if newLocator.context == NavContext.UNSTAGED:
-            # TODO:
-            print("TODO: More thorough check here!")
-
-        return True
-
-        of1: DiffFile = self.currentPatch.delta.old_file
-        nf1: DiffFile = self.currentPatch.delta.new_file
-        of2: DiffFile = newPatch.delta.old_file
-        nf2: DiffFile = newPatch.delta.new_file
-
-        if not DiffFile_compare(of1, of2):
-            return False
-
-        if not DiffFile_compare(nf1, nf2):
-            return False
-
-        # Changing amount of context lines?
-        if len(newDocument.lineData) != len(self.lineData):
-            return False
-
-        # All IDs must be valid
-        assert of1.flags & DiffFlag.VALID_ID
-        assert nf1.flags & DiffFlag.VALID_ID
-        assert of2.flags & DiffFlag.VALID_ID
-        assert nf2.flags & DiffFlag.VALID_ID
-
-        return True
-
     # ---------------------------------------------
     # Context menu
 
     def contextMenuActions(self, clickedCursor: QTextCursor) -> list[ActionDef]:
         # If we have a document, we should have a patch
-        assert self.currentPatch is not None
+        assert self.currentFatDelta is not None
 
         cursor: QTextCursor = self.textCursor()
         hasSelection = cursor.hasSelection()
@@ -392,13 +355,13 @@ class DiffView(CodeView):
         purpose |= PatchPurpose.Lines
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractSelection(reverse)
-        ApplyPatch.invoke(self, self.currentPatch, patchData, purpose)
+        ApplyPatch.invoke(self, self.currentFatDelta, patchData, purpose)
 
     def fireApplyHunk(self, hunkID: int, purpose: PatchPurpose):
         purpose |= PatchPurpose.Hunk
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractHunk(hunkID, reverse)
-        ApplyPatch.invoke(self, self.currentPatch, patchData, purpose)
+        ApplyPatch.invoke(self, self.currentFatDelta, patchData, purpose)
 
     def onMiddleClick(self):
         if not settings.prefs.middleClickToStage:

@@ -15,7 +15,7 @@ from .util import *
 
 def assertHistoryMatches(rw: RepoWidget, locator: NavLocator):
     assert rw.navLocator.isSimilarEnoughTo(locator)
-    assert rw.diffView.currentPatch.delta.old_file.path == locator.path
+    assert rw.diffView.currentABDelta.old.path == locator.path
     if locator.context.isWorkdir():
         assert rw.graphView.currentRowKind == SpecialRow.UncommittedChanges
         assert rw.diffArea.fileStackPage() == "workdir"
