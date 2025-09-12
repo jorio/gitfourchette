@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import dataclasses
 import html
 import io
@@ -43,19 +45,19 @@ class VanillaFetchStatusFlag(StrEnum):
 
 
 @dataclasses.dataclass
-class VanillaDelta:
+class FatDelta:
     conflictUs: str = ""
     conflictThem: str = ""
     statusStaged: str = ""
     statusUnstaged: str = ""
     statusSubmodule: str = ""
     statusCommit: str = ""
-    modeHead: int = 0
-    modeIndex: int = 0
-    modeConflictStages: tuple[int, int, int] = (0, 0, 0)
-    modeWorktree: int = 0
-    modeSrc: int = 0
-    modeDst: int = 0
+    modeHead: FileMode = FileMode.UNREADABLE
+    modeIndex: FileMode = FileMode.UNREADABLE
+    modeConflictStages: tuple[FileMode, FileMode, FileMode] = (FileMode.UNREADABLE, FileMode.UNREADABLE, FileMode.UNREADABLE)
+    modeWorktree: FileMode = FileMode.UNREADABLE
+    modeSrc: FileMode = FileMode.UNREADABLE
+    modeDst: FileMode = FileMode.UNREADABLE
     hexHashHead: str = ""
     hexHashIndex: str = ""
     hexHashWorktree: str = ""
@@ -85,31 +87,50 @@ class VanillaDelta:
     def isUntracked(self):
         return self.statusUnstaged == "?"
 
-    def statusPerContext(self, context: NavContext) -> str:
+    def distillOldNew(self, context: NavContext) -> ABDelta:
         if context == NavContext.UNSTAGED:
-            return self.statusUnstaged
-        elif context == NavContext.STAGED:
-            return self.statusStaged
-        else:
-            return self.statusCommit
-
-    def modesPerContext(self, context: NavContext) -> tuple[int, int]:
-        if context == NavContext.UNSTAGED:
-            return self.modeIndex, self.modeWorktree
-        elif context == NavContext.STAGED:
-            return self.modeHead, self.modeIndex
-        else:
-            return self.modeSrc, self.modeDst
-
-    def hashesPerContext(self, context: NavContext) -> tuple[str, str]:
-        if context == NavContext.UNSTAGED:
-            if not self.hexHashWorktree:
+            status = self.statusUnstaged
+            oldMode, newMode = self.modeIndex, self.modeWorktree
+            oldHash, newHash = self.hexHashIndex, self.hexHashWorktree
+            if not newHash:
                 logger.warning(f"worktree hash unknown for {self.path}")
-            return self.hexHashIndex, self.hexHashWorktree or "f" * 40
+                newHash = "f" * 40
         elif context == NavContext.STAGED:
-            return self.hexHashHead, self.hexHashIndex
+            status = self.statusStaged
+            oldMode, newMode = self.modeHead, self.modeIndex
+            oldHash, newHash = self.hexHashHead, self.hexHashIndex
         else:
-            return self.hexHashSrc, self.hexHashDst
+            status = self.statusCommit
+            oldMode, newMode = self.modeSrc, self.modeDst
+            oldHash, newHash = self.hexHashSrc, self.hexHashDst
+
+        oldHash = oldHash or "0" * 40
+        newHash = newHash or "0" * 40
+        old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode)
+        new = ABDeltaFile(self.path, newHash, newMode)
+        return ABDelta(status=status, old=old, new=new, similarity=self.similarity)
+
+    @staticmethod
+    def isNullHash(hexHash: str) -> bool:
+        return all(c == "0" for c in hexHash)
+
+
+@dataclasses.dataclass
+class ABDeltaFile:
+    path: str
+    id: str
+    mode: FileMode
+
+    def isId0(self):
+        return all(c == "0" for c in self.id)
+
+
+@dataclasses.dataclass
+class ABDelta:
+    status: str
+    old: ABDeltaFile
+    new: ABDeltaFile
+    similarity: int
 
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
@@ -320,7 +341,7 @@ class GitDriver(QProcess):
             for flag, oldHex, newHex, localRef in table
         }
 
-    def readStatusPorcelainV2Z(self) -> list[VanillaDelta]:
+    def readStatusPorcelainV2Z(self) -> list[FatDelta]:
         stdout = self.stdoutScrollback()
         pos = 0
         limit = len(stdout)
@@ -339,26 +360,26 @@ class GitDriver(QProcess):
             if ident == "1":
                 # Ordinary changed entries
                 x, y, sub, mh, mi, mw, hh, hi, path = match.groups()
-                delta = VanillaDelta(
+                delta = FatDelta(
                     statusStaged=x,
                     statusUnstaged=y,
                     statusSubmodule=sub,
-                    modeHead=int(mh, 8),
-                    modeIndex=int(mi, 8),
-                    modeWorktree=int(mw, 8),
+                    modeHead=FileMode(int(mh, 8)),
+                    modeIndex=FileMode(int(mi, 8)),
+                    modeWorktree=FileMode(int(mw, 8)),
                     hexHashHead=hh,
                     hexHashIndex=hi,
                     path=path)
             elif ident == "2":
                 # Renamed or copied entries
                 x, y, sub, mh, mi, mw, hh, hi, score, path, origPath = match.groups()
-                delta = VanillaDelta(
+                delta = FatDelta(
                     statusStaged=x,
                     statusUnstaged=y,
                     statusSubmodule=sub,
-                    modeHead=int(mh, 8),
-                    modeIndex=int(mi, 8),
-                    modeWorktree=int(mw, 8),
+                    modeHead=FileMode(int(mh, 8)),
+                    modeIndex=FileMode(int(mi, 8)),
+                    modeWorktree=FileMode(int(mw, 8)),
                     hexHashHead=hh,
                     hexHashIndex=hi,
                     similarity=int(score),
@@ -367,13 +388,13 @@ class GitDriver(QProcess):
             elif ident == "u":
                 # Unmerged entries
                 x, y, sub, m1, m2, m3, mw, h1, h2, h3, path = match.groups()
-                delta = VanillaDelta(
+                delta = FatDelta(
                     conflictUs=x,
                     conflictThem=y,
                     statusUnstaged="U",  # Fake an 'unmerged' status in the unstaged box
                     statusSubmodule=sub,
-                    modeWorktree=int(mw, 8),
-                    modeConflictStages=(int(m1, 8), int(m2, 8), int(m3, 8)),
+                    modeWorktree=FileMode(int(mw, 8)),
+                    modeConflictStages=(FileMode(int(m1, 8)), FileMode(int(m2, 8)), FileMode(int(m3, 8))),
                     path=path)
             else:
                 # ? Untracked items
@@ -385,8 +406,8 @@ class GitDriver(QProcess):
                     mode = FileMode.TREE
                 else:
                     pobj = Path(self.workingDirectory(), path)
-                    mode = pobj.stat().st_mode
-                delta = VanillaDelta(
+                    mode = FileMode(pobj.stat().st_mode)
+                delta = FatDelta(
                     statusUnstaged=ident,
                     modeWorktree=mode,
                     path=path)
@@ -395,7 +416,7 @@ class GitDriver(QProcess):
 
         return deltas
 
-    def readShowRawZ(self) -> list[VanillaDelta]:
+    def readShowRawZ(self) -> list[FatDelta]:
         stdout = self.stdoutScrollback()
         pos = 0
         limit = len(stdout)
@@ -419,9 +440,9 @@ class GitDriver(QProcess):
             else:
                 origPath, path = "", path1
 
-            deltas.append(VanillaDelta(
-                modeSrc=int(ms, 8),
-                modeDst=int(md, 8),
+            deltas.append(FatDelta(
+                modeSrc=FileMode(int(ms, 8)),
+                modeDst=FileMode(int(md, 8)),
                 hexHashSrc=hs,
                 hexHashDst=hd,
                 statusCommit=status,

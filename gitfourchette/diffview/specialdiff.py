@@ -12,6 +12,7 @@ import os
 from contextlib import suppress
 
 from gitfourchette import settings
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -65,26 +66,24 @@ class SpecialDiffError:
         self.links = DocumentLinks()
 
     @staticmethod
-    def noChange(delta: DiffDelta):
-        # TODO: Migrate to VanillaStatus
+    def noChange(delta: ABDelta, context: NavContext):
         message = _("File contents didn’t change.")
         details: list[str] = []
         longform: list[str] = []
 
-        oldFile: DiffFile = delta.old_file
-        newFile: DiffFile = delta.new_file
-
-        oldFileExists = oldFile.id != NULL_OID
-        newFileExists = newFile.id != NULL_OID
+        oldFile = delta.old
+        newFile = delta.new
+        oldFileExists = not oldFile.isId0()
+        newFileExists = not newFile.isId0()
 
         if not newFileExists:
             message = _("Empty file was deleted.")
 
         if not oldFileExists:
-            if delta.new_file.mode == FileMode.TREE:
+            if delta.new.mode == FileMode.TREE:
                 return SpecialDiffError.treeDiff(delta)
             else:
-                assert delta.status in [DeltaStatus.ADDED, DeltaStatus.UNTRACKED]
+                assert delta.status in "A?"  # added or untracked
                 message = _("New empty file.")
 
         if oldFile.path != newFile.path:
@@ -95,7 +94,8 @@ class SpecialDiffError:
             intro = _("Mode change:")
             details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
-        if oldFile.id == newFile.id and oldFile.size != newFile.size:
+        # TODO: "and oldFile.size != newFile.size" lost in translation, still OK?
+        if context.isWorkdir() and oldFile == newFile:
             message = _("Canonical file contents unchanged.")
             longform.append(toRoomyUL([
                 _("Due to filters such as {filter}, your working copy is not bit-for-bit identical to the file’s "

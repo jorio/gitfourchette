@@ -16,7 +16,7 @@ from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffhighlighter import DiffHighlighter
-from gitfourchette.gitdriver import VanillaDelta
+from gitfourchette.gitdriver import FatDelta, ABDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavFlags, NavLocator
@@ -37,7 +37,7 @@ class DiffView(CodeView):
     lineData: list[LineData]
     currentLocator: NavLocator
     # TODO: Rename this to currentDelta?
-    currentPatch: VanillaDelta | None
+    currentPatch: FatDelta | None
     currentWorkdirFileStat: os.stat_result | None
     repo: Repo | None
 
@@ -89,6 +89,10 @@ class DiffView(CodeView):
         makeWidgetShortcut(self, self.onStageShortcut, *GlobalShortcuts.stageHotkeys)
         makeWidgetShortcut(self, self.onDiscardShortcut, *GlobalShortcuts.discardHotkeys)
 
+    @property
+    def currentABDelta(self) -> ABDelta:
+        return self.currentPatch.distillOldNew(self.currentLocator.context)
+
     # ---------------------------------------------
     # Callbacks for Qt events/shortcuts
 
@@ -125,7 +129,7 @@ class DiffView(CodeView):
         super().clear()
 
     @benchmark
-    def replaceDocument(self, repo: Repo, delta: VanillaDelta, locator: NavLocator, newDoc: DiffDocument):
+    def replaceDocument(self, repo: Repo, delta: FatDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
         oldDocument = self.document()
@@ -366,20 +370,12 @@ class DiffView(CodeView):
         return numAdds, numDels
 
     def extractSelection(self, reverse=False) -> str:
-        assert self.currentPatch is not None
-
         i, j = self.getSelectedLineExtents()
-
-        return extractSubpatch(self.currentPatch, self.currentLocator.context,
-                               self.lineData, i, j, reverse)
+        return extractSubpatch(self.currentABDelta, self.lineData, i, j, reverse)
 
     def extractHunk(self, hunkID: int, reverse=False) -> str:
-        assert self.currentPatch is not None
-
         i, j = LineData.getHunkExtents(self.lineData, hunkID)
-
-        return extractSubpatch(self.currentPatch, self.currentLocator.context,
-                               self.lineData, i, j, reverse)
+        return extractSubpatch(self.currentABDelta, self.lineData, i, j, reverse)
 
     def exportPatch(self, patchData: str):
         if not patchData:

@@ -10,8 +10,7 @@ from io import StringIO
 from pygit2.enums import FileMode
 
 from gitfourchette.diffview.diffdocument import LineData
-from gitfourchette.gitdriver import VanillaDelta
-from gitfourchette.nav import NavContext
+from gitfourchette.gitdriver import ABDelta
 
 REVERSE_ORIGIN_MAP = {
     ' ': ' ',
@@ -61,53 +60,49 @@ def quotePath(path: str) -> str:
     return "".join(safePath)
 
 
-def getPatchPreamble(delta: VanillaDelta, context: NavContext, reverse=False) -> str:
-    oldPath, newPath = delta.origPath or delta.path, delta.path
-    oldMode, newMode = delta.modesPerContext(context)
-    oldHash, newHash = delta.hashesPerContext(context)
-
-    oldHash = oldHash or "0" * 40
-    newHash = newHash or "0" * 40
+def getPatchPreamble(delta: ABDelta, reverse=False) -> str:
+    old = delta.old
+    new = delta.new
 
     if not reverse:
         pass
-    elif delta.statusPerContext(context) != "D":
+    elif delta.status != "D":
         # When reversing some lines within a patch, stick to the new file
         # to avoid changing the file's name or mode.
-        oldPath, oldMode, oldHash = newPath, newMode, newHash
+        old = new
     else:
         # ...Unless we're reversing lines within a deletion.
-        newPath, newMode, newHash = oldPath, oldMode, oldHash
+        new = old
 
-    oldPathQuoted = quotePath(f"a/{oldPath}")
-    newPathQuoted = quotePath(f"b/{newPath}")
+    oldPathQuoted = quotePath(f"a/{old.path}")
+    newPathQuoted = quotePath(f"b/{new.path}")
     preamble = [f"diff --git {oldPathQuoted} {newPathQuoted}\n"]
 
-    oldExists = not all(c == "0" for c in oldHash)
-    newExists = not all(c == "0" for c in newHash)
+    oldExists = not old.isId0()
+    newExists = not new.isId0()
 
     if not oldExists:
-        preamble.append(f"new file mode {newMode:06o}\n")
-    elif oldMode != newMode or newMode != FileMode.BLOB:
-        preamble.append(f"old mode {oldMode:06o}\n")
-        preamble.append(f"new mode {newMode:06o}\n")
+        preamble.append(f"new file mode {new.mode:06o}\n")
+    elif old.mode != new.mode or new.mode != FileMode.BLOB:
+        preamble.append(f"old mode {old.mode:06o}\n")
+        preamble.append(f"new mode {new.mode:06o}\n")
 
     # Work around libgit2 bug: if a patch lacks the "index" line,
     # libgit2 will fail to parse it if there are "old mode"/"new mode" lines.
     # Also, even if the patch is successfully parsed as a Diff, and we need to
     # regenerate it (from the Diff), libgit2 may fail to re-create the
     # "---"/"+++" lines and it'll therefore fail to parse its own output.
-    preamble += f"index {oldHash}..{'f'*40}\n"
+    preamble.append(f"index {old.id}..{'f' * 40}\n")
 
     if oldExists:
         # TODO: Should we quote this?
-        preamble.append(f"--- a/{oldPath}\n")
+        preamble.append(f"--- a/{old.path}\n")
     else:
         preamble.append("--- /dev/null\n")
 
     if newExists:
         # TODO: Should we quote this?
-        preamble.append(f"+++ b/{newPath}\n")
+        preamble.append(f"+++ b/{old.path}\n")
     else:
         preamble.append("+++ /dev/null\n")
 
@@ -146,8 +141,7 @@ def writeContext(subpatch: StringIO, reverse: bool, lines: Iterable[LineData]):
 
 
 def extractSubpatch(
-        masterDelta: VanillaDelta,
-        masterContext: NavContext,
+        masterDelta: ABDelta,
         masterLineDatas: list[LineData],
         spanStart: int,
         spanEnd: int,
@@ -168,7 +162,7 @@ def extractSubpatch(
 
     patch = StringIO()
 
-    preamble = getPatchPreamble(masterDelta, masterContext, reverse)
+    preamble = getPatchPreamble(masterDelta, reverse)
     patch.write(preamble)
 
     newHunkStartOffset = 0

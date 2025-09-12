@@ -11,7 +11,7 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import argsIf, VanillaDelta
+from gitfourchette.gitdriver import argsIf, FatDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -32,7 +32,7 @@ class _BaseStagingTask(RepoTask):
         from gitfourchette import tasks
         return isinstance(task, tasks.Jump | tasks.RefreshRepo)
 
-    def denyConflicts(self, patches: list[VanillaDelta], purpose: PatchPurpose):
+    def denyConflicts(self, patches: list[FatDelta], purpose: PatchPurpose):
         conflicts = [p for p in patches if p.isConflict()]
 
         if not conflicts:
@@ -58,13 +58,13 @@ class _BaseStagingTask(RepoTask):
         raise AbortTask(message)
 
     @staticmethod
-    def filterSubmodules(deltas: list[VanillaDelta]) -> list[VanillaDelta]:
+    def filterSubmodules(deltas: list[FatDelta]) -> list[FatDelta]:
         submos = [p for p in deltas if p.isSubtreeCommitPatch()]
         return submos
 
 
 class StageFiles(_BaseStagingTask):
-    def flow(self, patches: list[VanillaDelta]):
+    def flow(self, patches: list[FatDelta]):
         if not patches:  # Nothing to stage (may happen if user keeps pressing Enter in file list view)
             QApplication.beep()
             raise AbortTask()
@@ -80,7 +80,7 @@ class StageFiles(_BaseStagingTask):
 
         self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
 
-    def debriefPostStage(self, patches: list[VanillaDelta]):
+    def debriefPostStage(self, patches: list[FatDelta]):
         debrief = {}
 
         for delta in patches:
@@ -120,7 +120,7 @@ class StageFiles(_BaseStagingTask):
 
 
 class DiscardFiles(_BaseStagingTask):
-    def flow(self, deltas: list[VanillaDelta]):
+    def flow(self, deltas: list[FatDelta]):
         textPara = []
 
         verb = _("Discard changes")
@@ -213,7 +213,7 @@ class DiscardFiles(_BaseStagingTask):
 
 
 class UnstageFiles(_BaseStagingTask):
-    def flow(self, deltas: list[VanillaDelta]):
+    def flow(self, deltas: list[FatDelta]):
         if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
@@ -227,7 +227,7 @@ class UnstageFiles(_BaseStagingTask):
 
 
 class DiscardModeChanges(_BaseStagingTask):
-    def flow(self, deltas: list[VanillaDelta]):
+    def flow(self, deltas: list[FatDelta]):
         textPara = []
 
         if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)

@@ -10,7 +10,7 @@ import os
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import VanillaDelta
+from gitfourchette.gitdriver import FatDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -23,7 +23,7 @@ class CommittedFiles(FileList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, navContext=NavContext.COMMITTED)
 
-    def contextMenuActions(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[FatDelta]) -> list[ActionDef]:
         actions = []
 
         n = len(deltas)

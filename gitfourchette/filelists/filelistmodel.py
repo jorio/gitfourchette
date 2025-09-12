@@ -11,7 +11,7 @@ from contextlib import suppress
 from typing import Any
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import VanillaDelta
+from gitfourchette.gitdriver import FatDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
@@ -45,12 +45,12 @@ def deltaModeText(om: FileMode, nm: FileMode) -> str:
     return ""
 
 
-def fileTooltip(repo: Repo, delta: VanillaDelta, navContext: NavContext, isCounterpart: bool = False):
-    if not delta:
-        return ""
-
+def fileTooltip(repo: Repo, fatDelta: FatDelta, navContext: NavContext, isCounterpart: bool = False):
     locale = QLocale()
-    sc = delta.statusPerContext(navContext)
+    delta = fatDelta.distillOldNew(navContext)
+    of = delta.old
+    nf = delta.new
+    sc = delta.status
 
     text = "<table style='white-space: pre'>"
 
@@ -60,10 +60,10 @@ def fileTooltip(repo: Repo, delta: VanillaDelta, navContext: NavContext, isCount
         return f"<tr><td style='color:{color}; text-align: right;'>{heading}{colon} </td><td>{caption}</td>"
 
     if sc == 'R':
-        text += newLine(_("old name"), escape(delta.origPath))
-        text += newLine(_("new name"), escape(delta.path))
+        text += newLine(_("old name"), escape(of.path))
+        text += newLine(_("new name"), escape(nf.path))
     else:
-        text += newLine(_("name"), escape(delta.path))
+        text += newLine(_("name"), escape(nf.path))
 
     # Status caption
     statusCaption = TrTables.diffStatusChar(sc)
@@ -81,14 +81,12 @@ def fileTooltip(repo: Repo, delta: VanillaDelta, navContext: NavContext, isCount
         text += newLine(_("similarity"), f"{delta.similarity}%")
 
     # File Mode
-    # TODO
-    if sc not in 'DU':
-        om, nm = delta.modesPerContext(navContext)
-        om, nm = FileMode(om), FileMode(nm)
-        if sc in 'A?':
-            text += newLine(_("file mode"), TrTables.enum(nm))
-        elif om != nm:
-            text += newLine(_("file mode"), f"{TrTables.enum(om)} \u2192 {TrTables.enum(nm)}")
+    if sc in 'DU':
+        pass
+    elif sc in 'A?':
+        text += newLine(_("file mode"), TrTables.enum(nf.mode))
+    elif of.mode != nf.mode:
+        text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
 
     # Size (if applicable)
     # TODO
@@ -103,7 +101,7 @@ def fileTooltip(repo: Repo, delta: VanillaDelta, navContext: NavContext, isCount
     # Modified time
     if navContext.isWorkdir() and sc not in 'DU':
         with suppress(OSError):
-            fullPath = os.path.join(repo.workdir, delta.path)
+            fullPath = os.path.join(repo.workdir, nf.path)
             fileStat = os.stat(fullPath)
             timeQdt = QDateTime.fromSecsSinceEpoch(int(fileStat.st_mtime))
             timeText = locale.toString(timeQdt, settings.prefs.shortTimeFormat)
@@ -133,10 +131,10 @@ def fileTooltip(repo: Repo, delta: VanillaDelta, navContext: NavContext, isCount
 
 class FileListModel(QAbstractListModel):
     class Role:
-        DeltaObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
+        FatDeltaObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         FilePath = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
 
-    deltas: list[VanillaDelta]
+    deltas: list[FatDelta]
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
     navContext: NavContext
@@ -167,7 +165,7 @@ class FileListModel(QAbstractListModel):
         self.highlightedCounterpartRow = -1
         self.modelReset.emit()
 
-    def setContents(self, deltas: Iterable[VanillaDelta]):
+    def setContents(self, deltas: Iterable[FatDelta]):
         self.beginResetModel()
 
         self.deltas.clear()
@@ -187,31 +185,32 @@ class FileListModel(QAbstractListModel):
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
         row = index.row()
         try:
-            delta = self.deltas[row]
+            fatDelta = self.deltas[row]
+            delta = fatDelta.distillOldNew(self.navContext)
         except IndexError:
+            fatDelta = None
             delta = None
 
-        if role == FileListModel.Role.DeltaObject:
-            return delta
+        if role == FileListModel.Role.FatDeltaObject:
+            return fatDelta
 
         elif role == FileListModel.Role.FilePath:
             # TODO: Canonical path for submodules?
-            return delta.path
+            return delta.new.path
 
         elif role == Qt.ItemDataRole.DisplayRole:
             # TODO: Canonical path for submodules?
-            text = abbreviatePath(delta.path, settings.prefs.pathDisplayStyle)
+            text = abbreviatePath(delta.new.path, settings.prefs.pathDisplayStyle)
 
             # Show important mode info in brackets
-            om, nm = delta.modesPerContext(self.navContext)
-            modeInfo = deltaModeText(om, nm)
+            modeInfo = deltaModeText(delta.old.mode, delta.new.mode)
             if modeInfo:
                 text = f"[{modeInfo}] {text}"
 
             return text
 
         elif role == Qt.ItemDataRole.DecorationRole:
-            letter = delta.statusPerContext(self.navContext)
+            letter = delta.status
             if letter == "?":  # untracked, fake A
                 letter = "A"
             letter = letter.lower()
@@ -219,7 +218,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             isCounterpart = row == self.highlightedCounterpartRow
-            return fileTooltip(self.repo, delta, self.navContext, isCounterpart)
+            return fileTooltip(self.repo, fatDelta, self.navContext, isCounterpart)
 
         elif role == Qt.ItemDataRole.SizeHintRole:
             return QSize(-1, self.parentWidget.fontMetrics().height())

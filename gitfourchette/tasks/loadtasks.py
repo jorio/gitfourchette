@@ -11,7 +11,7 @@ from contextlib import suppress
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import VanillaDelta
+from gitfourchette.gitdriver import FatDelta
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -239,7 +239,7 @@ class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
-    def flow(self, delta: VanillaDelta, locator: NavLocator):
+    def flow(self, delta: FatDelta, locator: NavLocator):
         try:
             self.result = yield from self._getPatch(delta, locator)
         except Exception as exc:
@@ -258,8 +258,9 @@ class LoadPatch(RepoTask):
             self.result.oldLexJob = oldLexJob
             self.result.newLexJob = newLexJob
 
-    def _getPatch(self, delta: VanillaDelta, locator: NavLocator
+    def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair]:
+        delta = fatDelta.distillOldNew(locator.context)
         logger.debug(f"Will load patch for: {delta}")
         """
         if not patch:
@@ -278,26 +279,25 @@ class LoadPatch(RepoTask):
                                     longform=toRoomyUL(longformItems))
         """
 
-        assert not delta.conflictUs, "conflicts not supported yet!"
+        assert not fatDelta.conflictUs, "conflicts not supported yet!"
         """
         if patch.delta.status == DeltaStatus.CONFLICTED:
             path = patch.delta.new_file.path
             return self.repo.wrap_conflict(path)
         """
 
-        assert not delta.isSubtreeCommitPatch(), "subtree patches not supported yet!"
+        assert not fatDelta.isSubtreeCommitPatch(), "subtree patches not supported yet!"
         """
         if FileMode.COMMIT in (patch.delta.new_file.mode, patch.delta.old_file.mode):
             return SpecialDiffError.submoduleDiff(self.repo, patch, locator)
         """
 
         if delta.similarity == 100:
-            # TODO: Migrate to Vanilla
-            return SpecialDiffError.noChange(delta)
+            return SpecialDiffError.noChange(delta, locator.context)
 
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg
-                and delta.path.lower().endswith(".svg")
+                and delta.new.path.lower().endswith(".svg")
                 and isImageFormatSupported("file.svg")):
             # TODO: Migrate to Vanilla
             binaryDiff = SpecialDiffError.binaryDiff(delta, locator)
@@ -306,7 +306,7 @@ class LoadPatch(RepoTask):
             return binaryDiff
 
         # Special formatting for TYPECHANGE.
-        if delta.statusPerContext(locator.context) == "T":  # TYPECHANGE
+        if delta.status == "T":  # TYPECHANGE
             # TODO: Migrate to Vanilla
             return SpecialDiffError.typeChange(delta)
 
@@ -318,15 +318,15 @@ class LoadPatch(RepoTask):
         tokens = ["diff", "--abbrev=-1"]
 
         if locator.context == NavContext.UNSTAGED:
-            if delta.isUntracked():
-                tokens += ["--", "/dev/null", delta.path]
+            if delta.status == "?":  # untracked
+                tokens += ["--", "/dev/null", delta.new.path]
             else:
-                tokens += ["--", delta.path]
+                tokens += ["--", delta.new.path]
         elif locator.context == NavContext.STAGED:
-            if delta.origPath and delta.origPath != delta.path:  # renames
-                tokens += ["--cached", "--", delta.origPath, delta.path]
+            if delta.old.path != delta.new.path:  # renames
+                tokens += ["--cached", "--", delta.old.path, delta.new.path]
             else:
-                tokens += ["--cached", "--", delta.path]
+                tokens += ["--cached", "--", delta.new.path]
         elif locator.context == NavContext.COMMITTED:
             tokens = ["show", "--diff-merges=1", "-p", "--abbrev=-1", "--format=",
                       str(locator.commit), "--", delta.path]
@@ -349,7 +349,7 @@ class LoadPatch(RepoTask):
         try:
             diffDocument = DiffDocument.fromPatch(patch, maxLineLength)
         except DiffDocument.NoChangeError:
-            return SpecialDiffError.noChange(delta)
+            return SpecialDiffError.noChange(delta, locator.context)
         except DiffDocument.VeryLongLinesError:
             loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
             return SpecialDiffError(
