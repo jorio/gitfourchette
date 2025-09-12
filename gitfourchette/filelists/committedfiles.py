@@ -10,6 +10,7 @@ import os
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList
+from gitfourchette.gitdriver import VanillaDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -22,17 +23,17 @@ class CommittedFiles(FileList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, navContext=NavContext.COMMITTED)
 
-    def contextMenuActions(self, patches: list[Patch]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[VanillaDelta]) -> list[ActionDef]:
         actions = []
 
-        n = len(patches)
-        modeSet = {patch.delta.new_file.mode for patch in patches}
+        n = len(deltas)
+        modeSet = {delta.modeDst for delta in deltas}
         anySubmodules = FileMode.COMMIT in modeSet
         onlySubmodules = anySubmodules and len(modeSet) == 1
 
         if not anySubmodules:
             actions += [
-                self.contextMenuActionBlame(patches),
+                self.contextMenuActionBlame(deltas),
 
                 ActionDef.SEPARATOR,
 
@@ -41,7 +42,7 @@ class CommittedFiles(FileList):
                     self.wantOpenDiffInNewWindow,
                 ),
 
-                *self.contextMenuActionsDiff(patches),
+                *self.contextMenuActionsDiff(deltas),
 
                 ActionDef.SEPARATOR,
 
@@ -97,7 +98,7 @@ class CommittedFiles(FileList):
                 ActionDef(sorry, enabled=False),
             ]
 
-        actions += super().contextMenuActions(patches)
+        actions += super().contextMenuActions(deltas)
         return actions
 
     def setCommit(self, oid: Oid):

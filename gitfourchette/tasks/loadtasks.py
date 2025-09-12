@@ -235,40 +235,6 @@ class PrimeRepo(RepoTask):
         super().onError(exc)
 
 
-class LoadWorkdir(RepoTask):
-    """
-    Refresh stage/dirty diffs in the RepoModel.
-    """
-
-    def canKill(self, task: RepoTask):
-        if isinstance(task, LoadWorkdir):
-            warnings.warn("LoadWorkdir is killing another LoadWorkdir. This is inefficient!")
-            return True
-        return isinstance(task, LoadCommit | LoadPatch)
-
-    def flow(self, allowWriteIndex: bool):
-        # TODO: --no-optional-locks?
-        # TODO: Honor allowWriteIndex
-        gitStatus = yield from self.flowCallGit("status", "--porcelain=v2", "-z")
-        self.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z()
-        self.repoModel.workdirStatusReady = True
-
-
-class LoadCommit(RepoTask):
-    def canKill(self, task: RepoTask):
-        return isinstance(task, LoadWorkdir | LoadCommit | LoadPatch)
-
-    def flow(self, locator: NavLocator):
-        yield from self.flowEnterWorkerThread()
-
-        oid = locator.commit
-        largeCommitThreshold = -1 if locator.hasFlags(NavFlags.AllowLargeCommits) else RENAME_COUNT_THRESHOLD
-
-        self.diffs, self.skippedRenameDetection = self.repo.commit_diffs(
-            oid, find_similar_threshold=largeCommitThreshold, context_lines=contextLines())
-        self.message = self.repo.get_commit_message(oid)
-
-
 class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
@@ -361,8 +327,11 @@ class LoadPatch(RepoTask):
                 tokens += ["--cached", "--", delta.origPath, delta.path]
             else:
                 tokens += ["--cached", "--", delta.path]
+        elif locator.context == NavContext.COMMITTED:
+            tokens = ["show", "--diff-merges=1", "-p", "--abbrev=-1", "--format=",
+                      str(locator.commit), "--", delta.path]
         else:
-            raise NotImplementedError("Not implemented!")
+            raise NotImplementedError()
 
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()

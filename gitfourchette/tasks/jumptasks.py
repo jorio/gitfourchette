@@ -23,11 +23,22 @@ from gitfourchette.porcelain import DeltaStatus, NULL_OID, Oid, Patch
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF
 from gitfourchette.tasks import TaskPrereqs
-from gitfourchette.tasks.loadtasks import LoadCommit, LoadPatch, LoadWorkdir
+from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
+
+
+def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
+    """
+    Refresh stage/dirty diffs in the RepoModel.
+    """
+    # TODO: --no-optional-locks?
+    # TODO: Honor allowWriteIndex
+    gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z")
+    task.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z()
+    task.repoModel.workdirStatusReady = True
 
 
 class Jump(RepoTask):
@@ -138,7 +149,7 @@ class Jump(RepoTask):
         if forceDiff or repoModel.workdirStale:
             # Load workdir (async)
             if forceDiff or not repoModel.workdirStatusReady:
-                yield from self.flowSubtask(LoadWorkdir, allowWriteIndex=writeIndex)
+                yield from loadWorkdir(self, allowWriteIndex=writeIndex)
 
             # Fill FileListViews
             with QSignalBlockerContext(rw.dirtyFiles, rw.stagedFiles):  # Don't emit jump signals
@@ -301,17 +312,19 @@ class Jump(RepoTask):
             area.diffBanner.lastWarningWasDismissed = False
 
             # Load commit (async)
-            subtask = yield from self.flowSubtask(LoadCommit, locator)
+            driver = yield from self.flowCallGit(
+                "show", "--diff-merges=1", "-z", "--raw", "--no-abbrev",
+                "--format=",  # skip info about the commit itself
+                str(locator.commit))
+            deltas = driver.readShowRawZ()
 
-            # Get data from subtask
-            diffs = subtask.diffs
-            summary = subtask.message.strip()
+            summary = self.repo.peel_commit(locator.commit).message.strip()
 
             # Fill committed file list
             with QSignalBlockerContext(flv):  # Don't emit jump signals
                 flv.clear()
                 flv.setCommit(locator.commit)
-                flv.setContents(diffs, subtask.skippedRenameDetection)
+                flv.setContents(deltas)
                 numChanges = flv.model().rowCount()
 
             # Set header text
@@ -583,7 +596,7 @@ class RefreshRepo(RepoTask):
         # This is done last so that it doesn't impede on responsivity when the user isn't explicitly looking at the workdir.
         if repoModel.workdirStale:
             assert not jumpToWorkdir, "jumping to workdir should have refreshed the workdir!"
-            yield from self.flowSubtask(LoadWorkdir, jumpTo.hasFlags(NavFlags.AllowWriteIndex))
+            yield from loadWorkdir(self, jumpTo.hasFlags(NavFlags.AllowWriteIndex))
 
         # Update number of staged changes in sidebar and graph
         if repoModel.numUncommittedChanges != pNumUncommittedChanges:

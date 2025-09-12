@@ -46,13 +46,18 @@ class VanillaDelta:
     statusStaged: str = ""
     statusUnstaged: str = ""
     statusSubmodule: str = ""
+    statusCommit: str = ""
     modeHead: int = 0
     modeIndex: int = 0
     modeConflictStages: tuple[int, int, int] = (0, 0, 0)
     modeWorktree: int = 0
+    modeSrc: int = 0
+    modeDst: int = 0
     hexHashHead: str = ""
     hexHashIndex: str = ""
     hexHashConflictStages: tuple[str, str, str] = ("", "", "")
+    hexHashSrc: str = ""
+    hexHashDst: str = ""
     similarity: int = 0
     path: str = ""
     origPath: str = ""
@@ -70,7 +75,8 @@ class VanillaDelta:
 
     def isSubtreeCommitPatch(self):
         # TODO: Test more specifically?
-        return FileMode.COMMIT in (self.modeHead, self.modeWorktree, self.modeIndex)
+        return FileMode.COMMIT in (self.modeHead, self.modeWorktree, self.modeIndex,
+                                   self.modeSrc, self.modeDst)
 
     def isUntracked(self):
         return self.statusUnstaged == "?"
@@ -81,7 +87,7 @@ class VanillaDelta:
         elif context == NavContext.STAGED:
             return self.statusStaged
         else:
-            raise NotImplementedError(f"statusPerContext doesn't support context {context} yet")
+            return self.statusCommit
 
     def modesPerContext(self, context: NavContext) -> tuple[int, int]:
         if context == NavContext.UNSTAGED:
@@ -89,7 +95,7 @@ class VanillaDelta:
         elif context == NavContext.STAGED:
             return self.modeHead, self.modeIndex
         else:
-            raise NotImplementedError(f"modesPerContext doesn't support context {context} yet")
+            return self.modeSrc, self.modeDst
 
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
@@ -102,6 +108,8 @@ _gitStatusPatterns = {
     "?": re.compile(r"\? ([^\x00]*)\x00"),
     "!": re.compile(r"! ([^\x00]*)\x00"),
 }
+
+_gitShowPattern = re.compile(r":(\d+) (\d+) ([\da-f]+) ([\da-f]+) (.)(\d*)\x00([^\x00]*)\x00")
 
 
 class GitDriver(QProcess):
@@ -370,6 +378,42 @@ class GitDriver(QProcess):
                     path=path)
 
             deltas.append(delta)
+
+        return deltas
+
+    def readShowRawZ(self) -> list[VanillaDelta]:
+        stdout = self.stdoutScrollback()
+        pos = 0
+        limit = len(stdout)
+        deltas = []
+
+        while pos < limit:
+            match = _gitShowPattern.match(stdout, pos)
+            pos = match.end()
+
+            ms, md, hs, hd, status, score, path1 = match.groups()
+
+            # WARNING! In case of a rename, "git show" outputs the old/new
+            # paths in the reverse order from "git status --porcelain=v2"!
+            # git show: ... old, new
+            # git status: ... new, old
+            if status in "RC":
+                pos2 = stdout.find("\0", pos)
+                path2 = stdout[pos:pos2]
+                pos = pos2 + 1
+                origPath, path = path1, path2
+            else:
+                origPath, path = "", path1
+
+            deltas.append(VanillaDelta(
+                modeSrc=int(ms, 8),
+                modeDst=int(md, 8),
+                hexHashSrc=hs,
+                hexHashDst=hd,
+                statusCommit=status,
+                similarity=int(score) if score else 0,
+                path=path,
+                origPath=origPath))
 
         return deltas
 
