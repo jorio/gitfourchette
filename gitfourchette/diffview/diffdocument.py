@@ -20,7 +20,18 @@ from gitfourchette.syntax import LexJob
 from gitfourchette.toolbox import *
 
 
-_hunkPattern = re.compile(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@")
+_hunkHeaderPattern = re.compile(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+
+
+def _parseHunkHeader(text: str) -> tuple[int, int, int, int, str]:
+    match = _hunkHeaderPattern.match(text)
+    oldStartStr, oldLinesStr, newStartStr, newLinesStr = match.groups()
+    oldStart = int(oldStartStr)
+    newStart = int(newStartStr)
+    oldLines = int(oldLinesStr) if oldLinesStr else 1
+    newLines = int(newLinesStr) if newLinesStr else 1
+    comment = text[match.end():]
+    return oldStart, oldLines, newStart, newLines, comment
 
 
 @dataclass
@@ -75,16 +86,9 @@ class LineData:
     def _hunkIDKey(self) -> int:
         return self.hunkPos.hunkID
 
-    def parseHunkHeader(self):
+    def parseHunkHeader(self) -> tuple[int, int, int, int, str]:
         assert self.hunkPos.hunkLineNum == -1
-        match = re.match(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@", self.text)
-        oldStartStr, oldLinesStr, newStartStr, newLinesStr = match.groups()
-        oldStart = int(oldStartStr)
-        oldLines = int(oldLinesStr)
-        newStart = int(newStartStr)
-        newLines = int(newLinesStr)
-        comment = self.text[match.end():]
-        return oldStart, oldLines, newStart, newLines, comment
+        return _parseHunkHeader(self.text)
 
 
 class DiffStyle:
@@ -216,9 +220,7 @@ class DiffDocument:
 
             # Start new hunk
             if firstChar == "@":
-                hunkInfo = _hunkPattern.match(rawLine)
-                oldLine = int(hunkInfo.group(1))
-                newLine = int(hunkInfo.group(3))
+                oldLine, _dummy, newLine, _dummy, _dummy = _parseHunkHeader(rawLine)
 
                 hunkID += 1
                 hunkLineNum = -1
