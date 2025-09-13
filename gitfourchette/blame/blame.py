@@ -160,6 +160,7 @@ def _traversePatch(patch: Patch, numLinesA: int) -> Generator[tuple[int, int, Di
                 assert cursorB == lineB + 1
             else:
                 # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
+                # TODO: These are libgit2 internal origins
                 assert origin in "=><"
 
     # Copy rest of file

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -14,11 +14,8 @@ from gitfourchette.gitdriver import ABDelta
 
 REVERSE_ORIGIN_MAP = {
     ' ': ' ',
-    '=': '=',
     '+': '-',
     '-': '+',
-    '>': '<',
-    '<': '>',
 }
 
 QUOTE_PATH_ESCAPES = {
@@ -125,19 +122,16 @@ def reverseOrigin(origin):
 def writeContext(subpatch: StringIO, reverse: bool, lines: Iterable[LineData]):
     skipOrigin = '-' if reverse else '+'
     for line in lines:
+        assert line.origin in " +-", f"unknown origin {line.origin}"
+
         if line.origin == skipOrigin:
             # Skip that line entirely
             continue
-        elif line.origin in "=><":
-            # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
-            # Just copy "\ No newline at end of file" verbatim without an origin character
-            pass
-        elif line.origin in " -+":
-            # Make it a context line
-            subpatch.write(" ")
-        else:
-            raise NotImplementedError(f"unknown origin char {line.origin}")
+
+        # Make it a context line
+        subpatch.write(" ")
         subpatch.write(line.text)
+        subpatch.write(line.hiddenSuffix)
 
 
 def extractSubpatch(
@@ -194,12 +188,6 @@ def extractSubpatch(
                 boundEnd = 0
         else:  # Middle hunk: take all lines in hunk
             boundEnd = numHunkLines-1
-
-        # Expand selection to any lines saying "\ No newline at end of file"
-        # that are adjacent to the selection. This will let us properly reorder
-        # -/+ lines without an LF character later on (see plusLines below).
-        while boundEnd < numHunkLines-1 and hunkContents[boundEnd+1].origin in "=><":
-            boundEnd += 1
 
         # Compute line count delta in this hunk
         lineCountDelta = sum(originToDelta(hunkContents[ln].origin)
@@ -265,22 +253,17 @@ def extractSubpatch(
                 origin = reverseOrigin(line.origin)
 
             buffer = patch
-            if origin in "+<":
-                # Save those lines for the end of the clump - write to plusLines for now
+            if origin == "+":
+                # Save this line for the end of the clump - write to plusLines for now
                 buffer = plusLines
             elif origin == " " and plusLines.tell() != 0:
                 # A context line breaks up the clump of non-context lines - flush plusLines
                 patch.write(plusLines.getvalue())
                 plusLines = StringIO()
 
-            if origin in "=><":
-                # GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
-                # Just write raw content (b"\n\\ No newline at end of file") without an origin char
-                assert line.text == ord('\n')
-                buffer.write(line.text)
-            else:
-                buffer.write(origin)
-                buffer.write(line.text)
+            buffer.write(origin)
+            buffer.write(line.text)
+            buffer.write(line.hiddenSuffix)
 
         # End of selected lines.
         # All remaining lines in the hunk are context from now on.

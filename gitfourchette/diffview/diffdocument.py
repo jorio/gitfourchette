@@ -56,6 +56,12 @@ class LineData:
     trailerLength: int = 0
     "Stop highlighting the syntax past this column in the line."
 
+    hiddenSuffix: str = ""
+    """
+    Suffix that follows `text` in a patch file but should be hidden in the UI,
+    e.g. newline + backslash + ' No newline at end of file'.
+    """
+
     @classmethod
     def getHunkExtents(cls, array: list[LineData], hunkID: int) -> tuple[int, int]:
         """
@@ -185,7 +191,7 @@ class DiffDocument:
             raise SpecialDiffError.noChange(patch.delta)
         """
 
-        lineData = []
+        lineData: list[LineData] = []
 
         clumpID = 0
         numLinesInClump = 0
@@ -221,8 +227,17 @@ class DiffDocument:
                 lineData.append(hunkHeaderLD)
                 continue
 
-            hunkLineNum += 1
             origin = firstChar
+
+            # "No newline at end of file" (message might be localized)
+            if origin == '\\':
+                # Fix up the last LineData and don't create a new one.
+                ld = lineData[-1]
+                ld.text = ld.text.removesuffix("\n")
+                ld.hiddenSuffix = "\n" + rawLine
+                continue
+
+            hunkLineNum += 1
 
             # Any lines that aren't +/- break up the current clump
             if origin not in "+-" and numLinesInClump != 0:
@@ -240,10 +255,6 @@ class DiffDocument:
                 clumpID += 1
                 numLinesInClump = 0
                 perfectClumpTally = 0
-
-            # Skip GIT_DIFF_LINE_CONTEXT_EOFNL, ...ADD_EOFNL, ...DEL_EOFNL
-            if origin in "=><":
-                continue
 
             ld = LineData(text=rawLine[1:],
                           hunkPos=DiffLinePos(hunkID, hunkLineNum),
