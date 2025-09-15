@@ -4,200 +4,207 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2025-09-16 05:55+0000\n"
+"Last-Translator: Fabiano Caputo <fabiano.caputo@outlook.it>\n"
+"Language-Team: Italian <https://hosted.weblate.org/projects/gitfourchette/"
+"gitfourchette/it/>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.14-dev\n"
 
 #: application.py:103 forms/aboutdialog.py:56
 msgid "The comfortable Git UI for Linux."
-msgstr ""
+msgstr "L'interfaccia grafica di Git comoda per Linux."
 
 #: application.py:106
 msgid "Repository paths to open on launch."
-msgstr ""
+msgstr "Percorsi dei repository da aprire all'avvio."
 
 #: application.py:246
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
 msgstr ""
+"Il tuo collegamento Qt preferito {0} non è disponibile su questo "
+"dispositivo. Passaggio a {1}."
 
 #: application.py:248
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not recognized by {app}. Using {1} instead. (Supported values: {known})"
 msgstr ""
+"Il tuo collegamento Qt preferito {0} non è riconosciuto da {app}. Passaggio "
+"a {1}. (Valori supportati: {known})"
 
 #: application.py:252
 msgid "Qt binding unavailable"
-msgstr ""
+msgstr "Collegamento Qt non disponibile"
 
 #: application.py:292 toolbox/messageboxes.py:40
 msgid "Please open a repository before performing this action."
-msgstr ""
+msgstr "Si prega di aprire un repository prima di eseguire quest'azione."
 
 #: application.py:422
 #, python-brace-format
 msgid "Couldn’t start {0} ({1})."
-msgstr ""
+msgstr "Impossibile avviare {0} ({1})."
 
 #: application.py:423
 msgid "Please make sure OpenSSH is installed on your system."
-msgstr ""
+msgstr "Assicurarsi che OpenSSH sia installato su questo sistema."
 
 #: application.py:424
 msgid "SSH agent"
-msgstr ""
+msgstr "Agente SSH"
 
 #: blameview/blamegutter.py:157 blameview/blamewindow.py:184
 msgid "(Uncommitted)"
-msgstr ""
+msgstr "(Non sottomessi)"
 
 #: blameview/blamegutter.py:187 filelists/filelistmodel.py:67
 #: forms/prefsdialog.py:205 tasks/misctasks.py:80 tasks/nettasks.py:268
 #: tasks/repotask.py:73
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: blameview/blamegutter.py:193
 msgid "Not Committed Yet"
-msgstr ""
+msgstr "Non ancora sottomessi"
 
 #: blameview/blamegutter.py:193 blameview/blamegutter.py:196
 msgid "commit"
-msgstr ""
+msgstr "commit"
 
 #: blameview/blamegutter.py:197
 msgid "author"
-msgstr ""
+msgstr "autore"
 
 #: blameview/blamegutter.py:198
 msgid "date"
-msgstr ""
+msgstr "data"
 
 #: blameview/blamegutter.py:199
 msgid "file name"
-msgstr ""
+msgstr "nome file"
 
 #: blameview/blamegutter.py:200
 msgid "revision"
-msgstr ""
+msgstr "revisione"
 
 #: blameview/blamescrubberdelegate.py:55 blameview/blamescrubbermodel.py:43
 msgid "Uncommitted Changes in Working Directory"
-msgstr ""
+msgstr "Cambiamenti non sottomessi nella cartella di lavoro"
 
 #: blameview/blametextedit.py:44
 msgid "Blame File at Uncommitted Revision"
-msgstr ""
+msgstr "Indaga (blame) file alla revisione non sottomessa"
 
 #: blameview/blametextedit.py:45
 msgid "Show Diff in Working Directory"
-msgstr ""
+msgstr "Mostra differenze nella cartella di lavoro"
 
 #: blameview/blametextedit.py:47
 #, python-brace-format
 msgid "Blame File at {0}"
-msgstr ""
+msgstr "Indaga (blame) file a {0}"
 
 #: blameview/blametextedit.py:48
 #, python-brace-format
 msgid "Show {0} in Repo"
-msgstr ""
+msgstr "Mostra {0} nel repo"
 
 #: blameview/blamewindow.py:50
 msgid "Jump"
-msgstr ""
+msgstr "Salta"
 
 #: blameview/blamewindow.py:51
 msgid "View this commit in the repo"
-msgstr ""
+msgstr "Visualizza questo commit nel repo"
 
 #: blameview/blamewindow.py:56
 msgid "Shift+Click:"
-msgstr ""
+msgstr "Maiusc+Clic:"
 
 #: blameview/blamewindow.py:59
 msgid "Older"
-msgstr ""
+msgstr "Più vecchia"
 
 #: blameview/blamewindow.py:61
 msgid "Go to next older revision"
-msgstr ""
+msgstr "Vai alla prossima revisione più vecchia"
 
 #: blameview/blamewindow.py:61
 msgid "Jump to bottom"
-msgstr ""
+msgstr "Salta in fondo"
 
 #: blameview/blamewindow.py:65
 msgid "Newer"
-msgstr ""
+msgstr "Più recente"
 
 #: blameview/blamewindow.py:67
 msgid "Go to next newer revision"
-msgstr ""
+msgstr "Vai alla prossima revisione più recente"
 
 #: blameview/blamewindow.py:67
 msgid "Jump to top"
-msgstr ""
+msgstr "Salta in cima"
 
 #: blameview/blamewindow.py:71
 msgid "Back"
-msgstr ""
+msgstr "Indietro"
 
 #: blameview/blamewindow.py:73 tasks/taskbook.py:63
 msgid "Navigate back"
-msgstr ""
+msgstr "Torna indietro"
 
 #: blameview/blamewindow.py:77
 msgid "Forward"
-msgstr ""
+msgstr "Avanti"
 
 #: blameview/blamewindow.py:79 tasks/taskbook.py:64 tasks/taskbook.py:65
 msgid "Navigate forward"
-msgstr ""
+msgstr "Vai avanti"
 
 #: blameview/blamewindow.py:163
 #, python-brace-format
 msgid "File deleted in commit {0}"
-msgstr ""
+msgstr "File eliminato nel commit {0}"
 
 #: blameview/blamewindow.py:169
 #, python-brace-format
 msgid "Binary blob, {size} bytes, {hash}"
-msgstr ""
+msgstr "Blob binario, {size} bytes, {hash}"
 
 #: blameview/blamewindow.py:183
 #, python-brace-format
 msgid "Blame {path} @ {commit}"
-msgstr ""
+msgstr "Indaga (blame) {path} @ {commit}"
 
 #: codeview/codeview.py:65
 msgid "Find text in code|Find text"
-msgstr ""
+msgstr "Trova testo nel codice|Trova testo"
 
 #: codeview/codeview.py:339
 msgid "&Word Wrap"
-msgstr ""
+msgstr "&A capo automatico"
 
 #: codeview/codeview.py:340
 msgid "Configure Appearance…"
-msgstr ""
+msgstr "Imposta aspetto…"
 
 #: codeview/codeview.py:505
 msgid "End of document reached."
-msgstr ""
+msgstr "Fine del documento raggiunta."
 
 #: codeview/codeview.py:506
 msgid "Top of document reached."
-msgstr ""
+msgstr "Inizio del documento raggiunto."
 
 #: codeview/codeview.py:507
 #, python-brace-format
 msgid "No more occurrences of {0} found."
-msgstr ""
+msgstr "Nessun'altra occorrenza di {0} trovata."
 
 #: codeview/codeview.py:513
 msgid "Wrap Around"
@@ -205,531 +212,558 @@ msgstr ""
 
 #: diffarea.py:109
 msgid "Unstaged files: will not be included in the commit unless you stage them."
-msgstr ""
+msgstr "File non inclusi: non faranno parte del commit finché non li includi."
 
 #: diffarea.py:117
 msgid "Stage"
-msgstr ""
+msgstr "Includi"
 
 #: diffarea.py:119
 msgid "Stage selected files"
-msgstr ""
+msgstr "Includi i file selezionati"
 
 #: diffarea.py:124 diffview/diffview.py:76
 msgid "Discard"
-msgstr ""
+msgstr "Scarta"
 
 #: diffarea.py:126
 msgid "Discard changes in selected files"
-msgstr ""
+msgstr "Scarta le modifiche nei file selezionati"
 
 #: diffarea.py:161
 msgid "Staged files: will be included in the commit."
-msgstr ""
+msgstr "File inclusi: faranno parte del commit."
 
 #: diffarea.py:169
 msgid "Unstage"
-msgstr ""
+msgstr "Escludi"
 
 #: diffarea.py:171
 msgid "Unstage selected files"
-msgstr ""
+msgstr "Escludi i file selezionati"
 
 #: diffarea.py:176 forms/commitdialog.py:59 tasks/committasks.py:498
 #: tasks/committasks.py:551
 msgctxt "verb"
 msgid "Commit"
-msgstr ""
+msgstr "Commit"
 
 #: diffview/diffdocument.py:191
 msgid "This file contains very long lines."
-msgstr ""
+msgstr "Questo file contiene linee molto lunghe."
 
 #: diffview/diffdocument.py:192 diffview/specialdiff.py:118
 msgid "[Load diff anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Carica comunque le differenze] (potrebbe richiedere un po' di tempo)"
 
 #: diffview/diffdocument.py:284
 msgid "<no newline at end of file>"
-msgstr ""
+msgstr "<nessun a capo alla fine del file>"
 
 #: diffview/diffview.py:53
 msgid "Find text in diff|Find in diff"
-msgstr ""
+msgstr "Trova testo nelle differenze|Trova nelle differenze"
 
 #: diffview/diffview.py:64
 msgid "Stage Selection"
-msgstr ""
+msgstr "Includi selezione"
 
 #: diffview/diffview.py:66
 msgid "Stage selected lines"
-msgstr ""
+msgstr "Includi le linee selezionate"
 
 #: diffview/diffview.py:70
 msgid "Unstage Selection"
-msgstr ""
+msgstr "Escludi selezione"
 
 #: diffview/diffview.py:73
 msgid "Unstage selected lines"
-msgstr ""
+msgstr "Escludi le linee selezionate"
 
 #: diffview/diffview.py:79
 msgid "Discard selected lines"
-msgstr ""
+msgstr "Scarta le linee selezionate"
 
 #: diffview/diffview.py:246 diffview/diffview.py:258 diffview/diffview.py:281
 #: diffview/diffview.py:310
 msgid "Export Lines as Patch…"
-msgstr ""
+msgstr "Esporta linee come patch…"
 
 #: diffview/diffview.py:247
 msgid "Revert Lines…"
-msgstr ""
+msgstr "Ripristina linee…"
 
 #: diffview/diffview.py:251
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr ""
+msgstr "Esporta pezzo {0] come patch…"
 
 #: diffview/diffview.py:252
 msgid "Revert Hunk…"
-msgstr ""
+msgstr "Ripristina pezzo…"
 
 #: diffview/diffview.py:262 diffview/diffview.py:297 diffview/diffview.py:322
 msgid "Export Hunk as Patch…"
-msgstr ""
+msgstr "Esporta pezzo come patch…"
 
 #: diffview/diffview.py:269
 msgid "Stage Lines"
-msgstr ""
+msgstr "Includi linee"
 
 #: diffview/diffview.py:275
 msgid "Discard Lines…"
-msgstr ""
+msgstr "Scarta linee…"
 
 #: diffview/diffview.py:288
 #, python-brace-format
 msgid "Stage Hunk {0}"
-msgstr ""
+msgstr "Includi pezzo {0}"
 
 #: diffview/diffview.py:293
 msgid "Discard Hunk…"
-msgstr ""
+msgstr "Scarta pezzo…"
 
 #: diffview/diffview.py:304
 msgid "Unstage Lines"
-msgstr ""
+msgstr "Escludi linee"
 
 #: diffview/diffview.py:317
 #, python-brace-format
 msgid "Unstage Hunk {0}"
-msgstr ""
+msgstr "Escludi pezzo {0}"
 
 #: diffview/diffview.py:395
 msgid "Export selected lines"
-msgstr ""
+msgstr "Esporta linee selezionate"
 
 #: diffview/diffview.py:447
 msgid "Revert selected lines"
-msgstr ""
+msgstr "Ripristina linee selezionate"
 
 #: diffview/diffview.py:448
 msgid "Do you want to revert the selected lines?"
-msgstr ""
+msgstr "Vuoi ripristinare le linee selezionate?"
 
 #: diffview/diffview.py:472
 msgid "Revert hunk"
-msgstr ""
+msgstr "Ripristina pezzo"
 
 #: diffview/diffview.py:473
 msgid "Do you want to revert this hunk?"
-msgstr ""
+msgstr "Vuoi ripristinare questo pezzo?"
 
 #: diffview/diffview.py:587 diffview/diffview.py:588
 msgid "or Middle-Click"
-msgstr ""
+msgstr "o clic centrale"
 
 #: diffview/diffview.py:595
 #, python-brace-format
 msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
 msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Premi {sk} per includere {nl} linea. Premi {dk} per scartarla."
+msgstr[1] "Premi {sk} per includere {nl} linee. Premi {dk} per scartarle."
 
 #: diffview/diffview.py:599
 #, python-brace-format
 msgid "Hit {uk} to unstage {nl} line."
 msgid_plural "Hit {uk} to unstage {nl} lines."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Premi {uk} per escludere {nl} linea."
+msgstr[1] "Premi {uk} per escludere {nl} linee."
 
 #: diffview/specialdiff.py:71
 msgid "File contents didn’t change."
-msgstr ""
+msgstr "Il contenuto del file non è cambiato."
 
 #: diffview/specialdiff.py:82
 msgid "Empty file was deleted."
-msgstr ""
+msgstr "Il file vuoto è stato eliminato."
 
 #: diffview/specialdiff.py:89
 msgid "New empty file."
-msgstr ""
+msgstr "Nuovo file vuoto."
 
 #: diffview/specialdiff.py:92
 msgid "Renamed:"
-msgstr ""
+msgstr "Rinominato:"
 
 #: diffview/specialdiff.py:96
 msgid "Mode change:"
-msgstr ""
+msgstr "Cambio modalità:"
 
 #: diffview/specialdiff.py:100
 msgid "Canonical file contents unchanged."
-msgstr ""
+msgstr "Contenuti canonici del file non modificati."
 
 #: diffview/specialdiff.py:102
 #, python-brace-format
 msgid "Due to filters such as {filter}, your working copy is not bit-for-bit identical to the file’s canonical state. However, the contents tracked by Git are equivalent after filtering."
 msgstr ""
+"A causa di filtri come {filter}, la tua copia di lavoro non è perfettamente "
+"identica allo stato canonico del file. Nonostante ciò, i contenuti tracciati "
+"da Git sono equivalenti dopo aver applicato il filtro."
 
 #: diffview/specialdiff.py:105
 msgid "You can stage the file to dismiss this message; no changes will be recorded."
 msgstr ""
+"Puoi includere il file per rimuovere questo messaggio; nessun cambiamento "
+"verrà registrato."
 
 #: diffview/specialdiff.py:119
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Configura limite di anteprima differenze] (al momento: {0})"
 
 #: diffview/specialdiff.py:122
 msgid "This diff is very large."
-msgstr ""
+msgstr "Questa differenza è molto grossa."
 
 #: diffview/specialdiff.py:123
 #, python-brace-format
 msgid "Diff size: {0}"
-msgstr ""
+msgstr "Dimensione differenza: {0}"
 
 #: diffview/specialdiff.py:135
 msgid "[Load image anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Carica comunque l'immagine] (può richiedere qualche momento)"
 
 #: diffview/specialdiff.py:136
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Configura limite di anteprima immagine] (al momento: {0})"
 
 #: diffview/specialdiff.py:139
 msgid "This image is very large."
-msgstr ""
+msgstr "Quest'immagine è molto grande."
 
 #: diffview/specialdiff.py:140
 #, python-brace-format
 msgid "Image size: {0}"
-msgstr ""
+msgstr "Dimensione immagine: {0}"
 
 #: diffview/specialdiff.py:148
 msgid "Old type:"
-msgstr ""
+msgstr "Vecchio tipo:"
 
 #: diffview/specialdiff.py:149
 msgid "New type:"
-msgstr ""
+msgstr "Nuovo tipo:"
 
 #: diffview/specialdiff.py:156
 msgid "This file’s type has changed."
-msgstr ""
+msgstr "Il tipo di file è cambiato."
 
 #: diffview/specialdiff.py:175
 msgid "File appears to be binary."
-msgstr ""
+msgstr "Il file sembra essere binario."
 
 #: diffview/specialdiff.py:184
 msgid "This untracked subtree is the root of another Git repository."
 msgstr ""
+"Questo sottoalbero non tracciato è la radice (root) di un altro repo Git."
 
 #: diffview/specialdiff.py:187 repowidget.py:499
 #, python-brace-format
 msgid "Open {0}"
-msgstr ""
+msgstr "Apri {0}"
 
 #: diffview/specialdiff.py:190
 #, python-brace-format
 msgid "Absorb {0} as submodule"
-msgstr ""
+msgstr "Assorbi {0} coem sottomodulo"
 
 #: diffview/specialdiff.py:191
 msgid "Recommended action:"
-msgstr ""
+msgstr "Azione consigliata:"
 
 #: diffview/specialdiff.py:210
 #, python-brace-format
 msgid "Subtree {0} was [removed.]"
-msgstr ""
+msgstr "Il sottoalbero {0} è stato [rimosso.]"
 
 #: diffview/specialdiff.py:211
 #, python-brace-format
 msgid "Submodule {0} was [removed.]"
-msgstr ""
+msgstr "Il sottomodulo {0} è stato [rimosso.]"
 
 #: diffview/specialdiff.py:214
 #, python-brace-format
 msgid "Subtree {0} was [added.]"
-msgstr ""
+msgstr "Il sottoalbero {0} è stato [aggiunto.]"
 
 #: diffview/specialdiff.py:215
 #, python-brace-format
 msgid "Submodule {0} was [added.]"
-msgstr ""
+msgstr "Il sottomodulo {0} è stato [aggiunto.]"
 
 #: diffview/specialdiff.py:218
 #, python-brace-format
 msgid "Subtree {0} was updated."
-msgstr ""
+msgstr "Il sottoalbero {0} è stato aggiornato."
 
 #: diffview/specialdiff.py:219
 #, python-brace-format
 msgid "Submodule {0} was updated."
-msgstr ""
+msgstr "Il sottomodulo {0} è stato aggiornato."
 
 #: diffview/specialdiff.py:221
 #, python-brace-format
 msgid "Subtree {0} contains changes."
-msgstr ""
+msgstr "Il sottoalbero {0} contiene dei cambiamenti."
 
 #: diffview/specialdiff.py:222
 #, python-brace-format
 msgid "Submodule {0} contains changes."
-msgstr ""
+msgstr "Il sottomodulo {0} contiene dei cambiamenti."
 
 #: diffview/specialdiff.py:230
 msgid "Open submodule"
-msgstr ""
+msgstr "Apri sottomodulo"
 
 #: diffview/specialdiff.py:230
 msgid "Open subtree"
-msgstr ""
+msgstr "Apri sottoalbero"
 
 #: diffview/specialdiff.py:232
 #, python-brace-format
 msgid "(path: {0})"
-msgstr ""
+msgstr "(percorso: {0})"
 
 #: diffview/specialdiff.py:267 diffview/specialdiffview.py:89
 msgid "Old:"
-msgstr ""
+msgstr "Vecchio:"
 
 #: diffview/specialdiff.py:268 diffview/specialdiffview.py:90
 msgid "New:"
-msgstr ""
+msgstr "Nuovo:"
 
 #: diffview/specialdiff.py:274
 msgid "The subtree’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "La <b>HEAD</b> del sottoalbero si è spostata su un altro commit."
 
 #: diffview/specialdiff.py:275
 msgid "The submodule’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "La <b>HEAD</b> del sottomodulo si è spostata su un altro commit."
 
 #: diffview/specialdiff.py:277
 msgid "You can stage this update:"
-msgstr ""
+msgstr "Puoi includere questo aggiornamento:"
 
 #: diffview/specialdiff.py:285
 #, python-brace-format
 msgid "To complete the removal of this submodule, <b>remove it from {gitmodules}</b>."
 msgstr ""
+"Per completare la rimozione di questo sottomodulo, <b> rimuovilo da "
+"{gitmodules}</b>"
 
 #: diffview/specialdiff.py:287
 #, python-brace-format
 msgid "To complete the removal of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
+"Per completare la rimozione di questo sottomodulo, assicurati di "
+"sottomettere un <b> commit di {gitmodules}</b> insieme con la cartella del "
+"sottomodulo stesso."
 
 #: diffview/specialdiff.py:291
 #, python-brace-format
 msgid "To complete the addition of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
+"Per completare l'aggiunta di questo sottomodulo, assicurati di sottomettere "
+"un <b> commit di {gitmodules}</b> insieme con la cartella del sottomodulo "
+"stesso."
 
 #: diffview/specialdiff.py:296
 msgid "<b>This subtree isn’t a submodule yet!</b> You should [absorb this subtree] into the parent repository so it becomes a submodule."
 msgstr ""
+"<b>Questo sottoalbero non è ancora un sottomodulo!</b>Dovresti "
+"[assorbire questo sottoalbero] nel repo genitore, così che ne diventi un "
+"sottomodulo."
 
 #: diffview/specialdiff.py:299
 msgid "To complete the addition of this submodule, you should [absorb the submodule] into the parent repository."
 msgstr ""
+"Per completare l'aggiunta di questo sottomodulo, dovresti "
+"[assorbire questo sottoalbero] nel repo genitore."
 
 #: diffview/specialdiff.py:304
 #, python-brace-format
 msgid "To complete the addition of this submodule, [register it in {gitmodules}]."
 msgstr ""
+"Per completare l'aggiunta di questo sottomodulo, [registralo in {gitmodules}]"
+"."
 
 #: diffview/specialdiff.py:308
 msgid "IMPORTANT"
-msgstr ""
+msgstr "IMPORTANTE"
 
 #: diffview/specialdiff.py:318
 msgid "The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
+"Questo sottoalbero contiene <b>modifiche non sottomesse</b>. Non possono "
+"essere sottomesse dal repo genitore. Puoi:"
 
 #: diffview/specialdiff.py:319
 msgid "[Open] the subtree and commit the changes."
-msgstr ""
+msgstr "[Aprire] il sottoalbero e sottomettere le modifiche."
 
 #: diffview/specialdiff.py:320
 msgid "Or, [Reset] the subtree to a clean state."
-msgstr ""
+msgstr "O [riportare] il sottoalbero ad uno stadio pulito."
 
 #: diffview/specialdiff.py:322
 msgid "The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
+"Il sottomodulo ha <b>modifiche non sottomesse</b>. Non possono essere "
+"sottomesse dal repo genitore. Puoi:"
 
 #: diffview/specialdiff.py:323
 msgid "[Open] the submodule and commit the changes."
-msgstr ""
+msgstr "[Aprire] il sottomodulo e sottomettere le modifiche."
 
 #: diffview/specialdiff.py:324
 msgid "Or, [Reset] the submodule to a clean state."
-msgstr ""
+msgstr "O [riportare] il sottomodulo ad uno stadio pulito."
 
 #: diffview/specialdiffview.py:89 diffview/specialdiffview.py:90
 #, python-brace-format
 msgid "{w}×{h} pixels, {size}"
-msgstr ""
+msgstr "{w}x{h} pixel, {size}"
 
 #: diffview/specialdiffview.py:96
 msgid "(<b>deleted file</b> displayed below)"
-msgstr ""
+msgstr "(<b>file eliminato</b> mostrato in basso)"
 
 #: diffview/specialdiffview.py:99
 msgid "(<b>new file</b> displayed below)"
-msgstr ""
+msgstr "(<b>nuovo file</b> mostrato in basso)"
 
 #: dropzone.py:38
 #, python-brace-format
 msgid "Drop here to open repo {0}"
-msgstr ""
+msgstr "Rilascia qui per aprire il repo {0}"
 
 #: dropzone.py:41
 #, python-brace-format
 msgid "Drop here to clone {0}"
-msgstr ""
+msgstr "Rilascia qui per clonare {0}"
 
 #: dropzone.py:45
 #, python-brace-format
 msgid "Drop here to apply patch {0}"
-msgstr ""
+msgstr "Rilascia qui per applicare la patch {0}"
 
 #: dropzone.py:49
 #, python-brace-format
 msgid "Drop here to blame {0}"
-msgstr ""
+msgstr "Rilascia qui per indagare (blame) {0}"
 
 #: exttools/mergedriver.py:123
 #, python-brace-format
 msgid "{0} failed to start."
-msgstr ""
+msgstr "Avvio di {0} fallito."
 
 #: exttools/mergedriver.py:126
 #, python-brace-format
 msgid "{0} ran into error {1}."
-msgstr ""
+msgstr "{0} ha prodotto l'errore {1}."
 
 #: exttools/mergedriver.py:137
 #, python-brace-format
 msgid "{0} didn’t complete the merge."
-msgstr ""
+msgstr "{0} non ha completato l'unione (merge)."
 
 #: exttools/mergedriver.py:138
 #, python-brace-format
 msgid "Exit code: {0}."
-msgstr ""
+msgstr "Codice di uscita: {0}."
 
 #: exttools/toolcommands.py:112
 #, python-brace-format
 msgid "Unknown placeholder: {0}"
-msgstr ""
+msgstr "Segnaposto sconosciuto: {0}"
 
 #: exttools/toolcommands.py:122
 msgid "Missing placeholder:"
 msgid_plural "Missing placeholders:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Segnaposto mancante:"
+msgstr[1] "Segnaposti mancanti:"
 
 #: exttools/toolcommands.py:298
 msgid "Command exited with code:"
-msgstr ""
+msgstr "Il comando è uscito col codice:"
 
 #: exttools/toolcommands.py:299
 msgid "Continue in a shell?"
-msgstr ""
+msgstr "Continuare in un terminale?"
 
 #: exttools/toolprocess.py:44
 #, python-brace-format
 msgid "Failed to start {tool}"
-msgstr ""
+msgstr "Avvio di {tool} fallito"
 
 #: exttools/toolprocess.py:47
 #, python-brace-format
 msgid "There is an issue with the {tool} command template in your settings:"
-msgstr ""
+msgstr "C'è un problema con la struttura del comando {tool} nelle impostazioni:"
 
 #: exttools/toolprocess.py:52
 #, python-brace-format
 msgid "Couldn’t start Flatpak {command} ({tool})."
-msgstr ""
+msgstr "Impossibile eseguire il comando {command} Flatpak ({tool})."
 
 #: exttools/toolprocess.py:54
 #, python-brace-format
 msgid "Couldn’t start {command} ({tool})."
-msgstr ""
+msgstr "Impossibile avviare il comando {command} ({tool})."
 
 #: exttools/toolprocess.py:56
 msgid "It might not be installed on your machine."
-msgstr ""
+msgstr "Potrebbe non essere installato su questo sistema."
 
 #: exttools/toolprocess.py:66
 #, python-brace-format
 msgid "Where is {tool}?"
-msgstr ""
+msgstr "Dov'è {tool}?"
 
 #: exttools/toolprocess.py:76
 msgid "Edit Command…"
-msgstr ""
+msgstr "Modifica comando…"
 
 #: exttools/toolprocess.py:81
 #, python-brace-format
 msgid "Locate {tool}…"
-msgstr ""
+msgstr "Localizza {tool}…"
 
 #: exttools/toolprocess.py:100
 #, python-brace-format
 msgid "{tool} isn’t configured in your settings yet."
-msgstr ""
+msgstr "{tool} non è ancora configurato nelle impostazioni."
 
 #: exttools/toolprocess.py:106
 #, python-brace-format
 msgid "Set up {tool}"
-msgstr ""
+msgstr "Imposta {tool}"
 
 #: exttools/usercommand.py:100
 msgid "Unknown placeholder token"
-msgstr ""
+msgstr "Gettone (token) segnaposto sconosciuto"
 
 #: exttools/usercommand.py:125
 msgid "A commit must be selected in the history"
-msgstr ""
+msgstr "È necessario selezionare un commit nello storico"
 
 #: exttools/usercommand.py:134
 msgid "HEAD cannot be unborn"
-msgstr ""
+msgstr "La HEAD non può non essere ancora nata"
 
 #: exttools/usercommand.py:149
 msgid "A ref (local branch, remote branch, or tag) must be selected in the sidebar"
 msgstr ""
+"È necessario selezionare un riferimento (ramo locale, remoto o etichetta) "
+"nella barra laterale"
 
 #: exttools/usercommand.py:156 exttools/usercommand.py:163
 msgid "HEAD cannot be unborn or detached"
-msgstr ""
+msgstr "La HEAD non può non essere ancora nata o essere distaccata"
 
 #: exttools/usercommand.py:168
 msgid "Current branch has no upstream"
