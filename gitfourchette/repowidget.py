@@ -784,7 +784,7 @@ class RepoWidget(QWidget):
 
         # Reflect any change in titlebar prefs
         self.refreshWindowTitle()
-    
+
     def onAutoFetchTimerTimeout(self):
         if not settings.prefs.autoFetch or not self.isVisible() or self.taskRunner.isBusy():
             return
