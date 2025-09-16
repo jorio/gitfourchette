@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-08-31 20:01+0000\n"
+"PO-Revision-Date: 2025-09-17 07:01+0000\n"
 "Last-Translator: Iliyas Jorio <iliyas@jor.io>\n"
 "Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/"
 "projects/gitfourchette/gitfourchette/zh_Hans/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.13.1-dev\n"
+"X-Generator: Weblate 5.14-dev\n"
 
 #: application.py:86 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -100,8 +100,9 @@ msgid "[Load diff anyway] (this may take a moment)"
 msgstr "[仍然加载差异]（这可能需要一些时间）"
 
 #: diffview/diffdocument.py:269
+#, fuzzy
 msgid "<no newline at end of file>"
-msgstr "文件末尾<缺少换行符>"
+msgstr "<文件末尾缺少换行符>"
 
 #: diffview/diffview.py:80
 msgid "Find text in diff|Find in diff"
