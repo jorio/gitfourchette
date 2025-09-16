@@ -161,7 +161,11 @@ class RenameRemoteBranch(RepoTask):
 
 
 class FetchRemotes(RepoTask):
-    def flow(self, singleRemoteName: str = ""):
+    def isFreelyInterruptible(self) -> bool:
+        return self.auto
+
+    def flow(self, singleRemoteName: str = "", auto: bool = False):
+        self.auto = auto
         remotes: list[Remote] = list(self.repo.remotes)
 
         if len(remotes) == 0:
