@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-09-17 07:02+0000\n"
+"PO-Revision-Date: 2025-09-18 09:01+0000\n"
 "Last-Translator: Fabiano Caputo <fabiano.caputo@outlook.it>\n"
 "Language-Team: Italian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/it/>\n"
@@ -1618,308 +1618,319 @@ msgstr "Accantona (stash)"
 
 #: forms/contextheader.py:85
 msgid "Info"
-msgstr ""
+msgstr "Info"
 
 #: forms/contextheader.py:86
 msgid "Show details about this commit"
-msgstr ""
+msgstr "Mostra i dettagli di questo commit"
 
 #: forms/contextheader.py:87
 msgid "Show details about this stash"
-msgstr ""
+msgstr "Mostra dettagli di questo stash"
 
 #: forms/contextheader.py:90 tasks/indextasks.py:142
 msgid "Delete"
-msgstr ""
+msgstr "Elimina"
 
 #: forms/contextheader.py:91
 msgid "Delete this stash"
-msgstr ""
+msgstr "Elimina questo stash"
 
 #: forms/contextheader.py:93 tasks/indextasks.py:426
 msgid "Apply"
-msgstr ""
+msgstr "Applica"
 
 #: forms/contextheader.py:94
 msgid "Apply this stash"
-msgstr ""
+msgstr "Applica questo stash"
 
 #: forms/contextheader.py:97 graphview/commitlogdelegate.py:585
 msgid "Working Directory"
-msgstr ""
+msgstr "Cartella di lavoro"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally"
-msgstr ""
+msgstr "%Elimina in locale"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally && Remotely"
-msgstr ""
+msgstr "%Elimina in locale e da remoto"
 
 #: forms/deletetagdialog.py:47
 #, python-brace-format
 msgid "Delete tag {0}"
-msgstr ""
+msgstr "Elimina etichetta {0}"
 
 #: forms/deletetagdialog.py:48
 #, python-brace-format
 msgid "Tagged commit: {0}"
-msgstr ""
+msgstr "Commit etichettato: {0}"
 
 #: forms/gpgbutton.py:34
 #, python-brace-format
 msgid "Signing key: {0}"
-msgstr ""
+msgstr "Chiave di firma: {0}"
 
 #: forms/gpgbutton.py:36
 #, python-brace-format
 msgid "Signing key not configured ({0})"
-msgstr ""
+msgstr "Chiave di firma non configurata ({0})"
 
 #: forms/gpgbutton.py:42
 msgid "Enable &signing for this commit"
-msgstr ""
+msgstr "Abilita la &firma per questo commit"
 
 #: forms/gpgbutton.py:44 forms/gpgbutton.py:64
 msgid "This commit will not be signed."
-msgstr ""
+msgstr "Questo commit non verrà firmato"
 
 #: forms/gpgbutton.py:62
 #, python-brace-format
 msgid "This commit [will be signed] with your key {yourkey} (configured in {keyconf})."
 msgstr ""
+"Questo commit [verrà firmato] con la tua chiave {yourkey} (configurata in "
+"{keyconf})."
 
 #: forms/gpgbutton.py:69
 #, python-brace-format
 msgid "Click this button to sign the commit with your key {yourkey} (configured in {keyconf})."
 msgstr ""
+"Premi qui per firmare il commit con la tua chiave {yourkey} (configurata in "
+"{keyconf})."
 
 #: forms/gpgbutton.py:71
 #, python-brace-format
 msgid "Your signing key isn’t configured in {keyconf}."
-msgstr ""
+msgstr "La tua chiave di firma non è configurata in {keyconf}."
 
 #: forms/gpgbutton.py:76
 #, python-brace-format
 msgid "This repository is configured to sign commits automatically ({flagconf})."
 msgstr ""
+"Questo repo è configurato per firmare i commit in automatico ({flagconf})."
 
 #: forms/gpgbutton.py:78
 #, python-brace-format
 msgid "Tip: You can configure {flagconf} if you want to sign every commit."
-msgstr ""
+msgstr "Consiglio: puoi configurare {flagconf} se vuoi firmare ogni commit."
 
 #: forms/identitydialog.py:44
 msgid "This information will be embedded in the commits and tags that you create on this machine."
 msgstr ""
+"Questa informazione verrà incorporata nei commit e nelle etichette che crei "
+"su questa macchina."
 
 #: forms/identitydialog.py:46
 msgid "Before editing this repository, please set up your identity for Git."
-msgstr ""
+msgstr "Prima di modificare questo repo, imposta la tua identità di Git."
 
 #: forms/ignorepatterndialog.py:40
 #, python-brace-format
 msgid "Based off: {0}"
-msgstr ""
+msgstr "Basato su: {0}"
 
 #: forms/ignorepatterndialog.py:72
 msgid "This pattern doesn’t match the file that you selected."
-msgstr ""
+msgstr "Questo schema non combacia con il file che hai selezionato."
 
 #: forms/ignorepatterndialog.py:79
 msgid "Just this specific path"
-msgstr ""
+msgstr "Solo questo percorso specifico"
 
 #: forms/ignorepatterndialog.py:85
 msgid "Everything in this directory"
-msgstr ""
+msgstr "Tutto il contenuto di questo percorso"
 
 #: forms/ignorepatterndialog.py:90
 #, python-brace-format
 msgid "All {0} files in this directory tree"
-msgstr ""
+msgstr "Tutti i {0} file in quest'albero di cartelle"
 
 #: forms/ignorepatterndialog.py:91
 #, python-brace-format
 msgid "Any {0} file"
-msgstr ""
+msgstr "Qualsiasi file {0}"
 
 #: forms/ignorepatterndialog.py:93
 msgid "Any file with this exact name"
-msgstr ""
+msgstr "Qualsiasi file con questo nome esatto"
 
 #: forms/ignorepatterndialog.py:100
 msgid "Share pattern with other contributors"
-msgstr ""
+msgstr "Condividi lo schema con altri contributori"
 
 #: forms/ignorepatterndialog.py:101
 msgid "Keep pattern private on this machine"
-msgstr ""
+msgstr "Mantieni lo schema privato su questa macchina"
 
 #: forms/keyfilepickercheckbox.py:20
 #, python-brace-format
 msgid "{app} normally uses public/private keys in {path} to authenticate you with remote servers."
 msgstr ""
+"{app} di solito usa chiavi pubbliche/private in {path} per autenticarti sui "
+"server remoti."
 
 #: forms/keyfilepickercheckbox.py:22
 msgid "Tick this box if you want to access remotes in this repo with a custom key."
 msgstr ""
+"Attiva questa casella se vuoi accedere ai remote in questo repo con una "
+"chiave personalizzata."
 
 #: forms/keyfilepickercheckbox.py:29
 msgid "Select public key file for this remote"
-msgstr ""
+msgstr "Seleziona il file della chiave pubblica per questo remote"
 
 #: forms/keyfilepickercheckbox.py:30
 msgid "Public key file"
-msgstr ""
+msgstr "File di chiave pubblica"
 
 #: forms/keyfilepickercheckbox.py:40
 msgid "File not found."
-msgstr ""
+msgstr "File non trovato."
 
 #: forms/keyfilepickercheckbox.py:45
 msgid "Accompanying private key not found."
-msgstr ""
+msgstr "Chiave privata corrispondente non trovata."
 
 #: forms/keyfilepickercheckbox.py:49
 msgid "Accompanying public key not found."
-msgstr ""
+msgstr "Chiave pubblica corrispondente non trovata."
 
 #: forms/maintoolbar.py:32 trtables.py:386
 msgid "Show toolbar"
-msgstr ""
+msgstr "Mostra barra degli strumenti"
 
 #: forms/maintoolbar.py:51 trtables.py:508
 msgid "Terminal"
-msgstr ""
+msgstr "Terminale"
 
 #: forms/maintoolbar.py:53
 msgid "Open a terminal in the repo"
-msgstr ""
+msgstr "Apri terminale nel repo"
 
 #: forms/maintoolbar.py:57
 msgid "Open…"
-msgstr ""
+msgstr "Apri…"
 
 #: forms/maintoolbar.py:59 mainwindow.py:214
 msgid "Open a Git repo on your machine"
-msgstr ""
+msgstr "Apri un repo Git sulla tua macchina"
 
 #: forms/maintoolbar.py:63
 msgid "Settings"
-msgstr ""
+msgstr "Impostazioni"
 
 #: forms/maintoolbar.py:65 mainwindow.py:231
 #, python-brace-format
 msgid "Configure {app}"
-msgstr ""
+msgstr "Configura {app}"
 
 #: forms/maintoolbar.py:84
 msgid "Reveal"
-msgstr ""
+msgstr "Rivela"
 
 #: forms/maintoolbar.py:86
 msgid "Open repo folder in file manager"
-msgstr ""
+msgstr "Apri cartella del repo nel file manager"
 
 #: forms/maintoolbar.py:145
 msgid "Text Position"
-msgstr ""
+msgstr "Posizione testo"
 
 #: forms/maintoolbar.py:147 trtables.py:224
 msgid "Icons Only"
-msgstr ""
+msgstr "Solo icone"
 
 #: forms/maintoolbar.py:148
 msgid "Text Only"
-msgstr ""
+msgstr "Solo testo"
 
 #: forms/maintoolbar.py:149
 msgid "Text Alongside Icons"
-msgstr ""
+msgstr "Testo di fianco a icone"
 
 #: forms/maintoolbar.py:150
 msgid "Text Under Icons"
-msgstr ""
+msgstr "Testo sotto a icone"
 
 #: forms/maintoolbar.py:155
 msgid "Icon Size"
-msgstr ""
+msgstr "Dimensione icone"
 
 #: forms/maintoolbar.py:157
 msgid "Small"
-msgstr ""
+msgstr "Piccola"
 
 #: forms/maintoolbar.py:158
 msgid "Medium"
-msgstr ""
+msgstr "Media"
 
 #: forms/maintoolbar.py:159
 msgid "Large"
-msgstr ""
+msgstr "Grande"
 
 #: forms/maintoolbar.py:160
 msgid "Huge"
-msgstr ""
+msgstr "Enorme"
 
 #: forms/newbranchdialog.py:31 forms/newtagdialog.py:41
 msgid "&Create"
-msgstr ""
+msgstr "&Crea"
 
 #: forms/newbranchdialog.py:48
 msgid "(blocked by conflicts)"
-msgstr ""
+msgstr "(bloccato da conflitti)"
 
 #: forms/newbranchdialog.py:51 tasks/branchtasks.py:87
 msgid "This name is already taken by another local branch."
-msgstr ""
+msgstr "Questo nome è già in uso da un altro ramo locale."
 
 #: forms/newbranchdialog.py:57
 msgid "New branch"
-msgstr ""
+msgstr "Nuovo ramo"
 
 #: forms/newbranchdialog.py:58
 msgid "Commit at tip:"
-msgstr ""
+msgstr "Commit in punta:"
 
 #: forms/newtagdialog.py:17 sidebar/sidebar.py:984
 msgid "No Remotes"
-msgstr ""
+msgstr "Nessun remote"
 
 #: forms/newtagdialog.py:19
 msgid "All Remotes"
-msgstr ""
+msgstr "Tutti i remote"
 
 #: forms/newtagdialog.py:41
 msgid "&Create && Push"
-msgstr ""
+msgstr "&Crea e invia (push)"
 
 #: forms/newtagdialog.py:46
 msgid "This name is already taken by another tag."
-msgstr ""
+msgstr "Questo nome è già in uso da un'altra etichetta."
 
 #: forms/newtagdialog.py:61
 #, python-brace-format
 msgid "New tag on commit {0}"
-msgstr ""
+msgstr "Nuova etichetta sul commit {0}"
 
 #: forms/prefsdialog.py:57
 #, python-brace-format
 msgid "{app} Settings"
-msgstr ""
+msgstr "Impostazioni di {app}"
 
 #: forms/prefsdialog.py:230
 #, python-brace-format
 msgid "{0} Handy Reference"
-msgstr ""
+msgstr "Guida rapida a {0}"
 
 #: forms/prefsdialog.py:315
 msgid "Image"
-msgstr ""
+msgstr "Immagine"
 
 #: forms/prefsdialog.py:315
 msgid "Text"
-msgstr ""
+msgstr "Testo"
 
 #: forms/prefsdialog.py:340
 msgid "Built-in git (sandboxed)"
