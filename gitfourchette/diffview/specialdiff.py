@@ -156,11 +156,9 @@ class SpecialDiffError:
         return SpecialDiffError(_("This file’s type has changed."), table)
 
     @staticmethod
-    def binaryDiff(delta: DiffDelta, locator: NavLocator):
-        # TODO: Migrate to VanillaStatus
+    def binaryDiff(delta: ABDelta, locator: NavLocator):
         locale = QLocale()
-        of = delta.old_file
-        nf = delta.new_file
+        of, nf = delta.old, delta.new
 
         if isImageFormatSupported(of.path) and isImageFormatSupported(nf.path):
             largestSize = max(of.size, nf.size)

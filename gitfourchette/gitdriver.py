@@ -22,7 +22,7 @@ from pygit2.enums import FileMode
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, Oid
+from gitfourchette.porcelain import version_to_tuple, Oid, Repo
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ class VanillaFetchStatusFlag(StrEnum):
 
 @dataclasses.dataclass
 class FatDelta:
+    repo: Repo
     conflictUs: str = ""
     conflictThem: str = ""
     statusStaged: str = ""
@@ -94,6 +95,9 @@ class FatDelta:
         return self.statusUnstaged == "?"
 
     def distillOldNew(self, context: NavContext) -> ABDelta:
+        oldSize = -1
+        newSize = -1
+
         if context == NavContext.UNSTAGED:
             status = self.statusUnstaged
             oldMode, newMode = self.modeIndex, self.modeWorktree
@@ -101,6 +105,8 @@ class FatDelta:
             if not newHash:
                 logger.warning(f"worktree hash unknown for {self.path}")
                 newHash = HASH_40XF
+            if self.stat is not None:
+                newSize = self.stat.st_size
         elif context == NavContext.STAGED:
             status = self.statusStaged
             oldMode, newMode = self.modeHead, self.modeIndex
@@ -112,8 +118,14 @@ class FatDelta:
 
         oldHash = oldHash or HASH_40X0
         newHash = newHash or HASH_40X0
-        old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode)
-        new = ABDeltaFile(self.path, newHash, newMode)
+
+        oldSize = 0 if oldHash == HASH_40X0 else self.repo.peel_blob(oldHash).size
+
+        if newSize < 0 and newHash != HASH_40XF:
+            newSize = 0 if newHash == HASH_40X0 else self.repo.peel_blob(newHash).size
+
+        old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize)
+        new = ABDeltaFile(self.path, newHash, newMode, newSize)
         return ABDelta(status=status, old=old, new=new, similarity=self.similarity)
 
     @staticmethod
@@ -126,6 +138,7 @@ class ABDeltaFile:
     path: str = ""
     id: str = ""
     mode: FileMode = FileMode.UNREADABLE
+    size: int = -1
 
     def isId0(self):
         return all(c == "0" for c in self.id)
@@ -347,7 +360,7 @@ class GitDriver(QProcess):
             for flag, oldHex, newHex, localRef in table
         }
 
-    def readStatusPorcelainV2Z(self) -> list[FatDelta]:
+    def readStatusPorcelainV2Z(self, repo: Repo) -> list[FatDelta]:
         stdout = self.stdoutScrollback()
         pos = 0
         limit = len(stdout)
@@ -367,6 +380,7 @@ class GitDriver(QProcess):
                 # Ordinary changed entries
                 x, y, sub, mh, mi, mw, hh, hi, path = match.groups()
                 delta = FatDelta(
+                    repo=repo,
                     statusStaged=x,
                     statusUnstaged=y,
                     statusSubmodule=sub,
@@ -380,6 +394,7 @@ class GitDriver(QProcess):
                 # Renamed or copied entries
                 x, y, sub, mh, mi, mw, hh, hi, score, path, origPath = match.groups()
                 delta = FatDelta(
+                    repo=repo,
                     statusStaged=x,
                     statusUnstaged=y,
                     statusSubmodule=sub,
@@ -395,6 +410,7 @@ class GitDriver(QProcess):
                 # Unmerged entries
                 x, y, sub, m1, m2, m3, mw, h1, h2, h3, path = match.groups()
                 delta = FatDelta(
+                    repo=repo,
                     conflictUs=x,
                     conflictThem=y,
                     statusUnstaged="U",  # Fake an 'unmerged' status in the unstaged box
@@ -413,6 +429,7 @@ class GitDriver(QProcess):
                 else:
                     mode = FileMode.UNREADABLE  # unknown, actually, but that's the next best thing
                 delta = FatDelta(
+                    repo=repo,
                     statusUnstaged=ident,
                     modeWorktree=mode,
                     path=path)
@@ -429,7 +446,7 @@ class GitDriver(QProcess):
 
         return deltas
 
-    def readShowRawZ(self) -> list[FatDelta]:
+    def readShowRawZ(self, repo: Repo) -> list[FatDelta]:
         stdout = self.stdoutScrollback()
         pos = 0
         limit = len(stdout)
@@ -454,6 +471,7 @@ class GitDriver(QProcess):
                 origPath, path = "", path1
 
             deltas.append(FatDelta(
+                repo=repo,
                 modeSrc=FileMode(int(ms, 8)),
                 modeDst=FileMode(int(md, 8)),
                 hexHashSrc=hs,

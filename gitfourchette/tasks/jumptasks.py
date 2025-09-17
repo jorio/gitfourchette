@@ -37,7 +37,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     # TODO: --no-optional-locks?
     # TODO: Honor allowWriteIndex
     gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z")
-    task.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z()
+    task.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z(task.repo)
     task.repoModel.workdirStatusReady = True
 
 
@@ -316,7 +316,7 @@ class Jump(RepoTask):
                 "show", "--diff-merges=1", "-z", "--raw", "--no-abbrev",
                 "--format=",  # skip info about the commit itself
                 str(locator.commit))
-            deltas = driver.readShowRawZ()
+            deltas = driver.readShowRawZ(self.repo)
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 

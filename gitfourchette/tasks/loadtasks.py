@@ -310,8 +310,6 @@ class LoadPatch(RepoTask):
             # TODO: Migrate to Vanilla
             return SpecialDiffError.typeChange(delta)
 
-        # TODO: Check binary here or in diffDocument?
-
         # ---------------------------------------------------------------------
         # Get the patch
 
@@ -348,6 +346,8 @@ class LoadPatch(RepoTask):
 
         try:
             diffDocument = DiffDocument.fromPatch(patch, maxLineLength)
+        except DiffDocument.BinaryError:
+            return SpecialDiffError.binaryDiff(delta, locator)
         except DiffDocument.NoChangeError:
             return SpecialDiffError.noChange(delta, locator.context)
         except DiffDocument.VeryLongLinesError:

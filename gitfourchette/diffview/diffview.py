@@ -45,7 +45,7 @@ class DiffView(CodeView):
 
         self.lineData = []
         self.currentLocator = NavLocator.Empty
-        self.currentFatDelta = FatDelta()
+        self.currentFatDelta = FatDelta(None)
         self.currentABDelta = ABDelta()
         self.repo = None
 

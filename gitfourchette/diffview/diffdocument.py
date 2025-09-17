@@ -166,6 +166,9 @@ class DiffDocument:
     class NoChangeError(ValueError):
         pass
 
+    class BinaryError(ValueError):
+        pass
+
     @staticmethod
     def fromPatch(patch: str, maxLineLength=0) -> DiffDocument:
         """
@@ -207,6 +210,7 @@ class DiffDocument:
         oldLine = -1
         newLine = -1
         hunkLineNum = -1
+        isBinary = False
 
         for rawLine in patch.splitlines(keepends=True):
             if maxLineLength and len(rawLine) > maxLineLength:
@@ -216,6 +220,8 @@ class DiffDocument:
 
             # Keep looking for first hunk
             if firstChar != "@" and hunkID < 0:
+                if rawLine.startswith("Binary files"):
+                    isBinary = True
                 continue
 
             # Start new hunk
@@ -290,6 +296,8 @@ class DiffDocument:
             lineData.append(ld)
 
         if not lineData:
+            if isBinary:
+                raise DiffDocument.BinaryError()
             raise DiffDocument.NoChangeError()
 
         # Recreating a QTextDocument is faster than clearing any existing one.
