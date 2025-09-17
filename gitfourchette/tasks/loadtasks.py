@@ -313,25 +313,23 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Get the patch
 
-        tokens = ["diff", "--abbrev=-1"]
-
         if locator.context == NavContext.UNSTAGED:
             if delta.status == "?":  # untracked
-                tokens += ["--", "/dev/null", delta.new.path]
+                tokens = ["diff", "--", "/dev/null", delta.new.path]
             else:
-                tokens += ["--", delta.new.path]
+                tokens = ["diff", "--", delta.new.path]
         elif locator.context == NavContext.STAGED:
             if delta.old.path != delta.new.path:  # renames
-                tokens += ["--cached", "--", delta.old.path, delta.new.path]
+                tokens = ["diff", "--cached", "--", delta.old.path, delta.new.path]
             else:
-                tokens += ["--cached", "--", delta.new.path]
+                tokens = ["diff", "--cached", "--", delta.new.path]
         elif locator.context == NavContext.COMMITTED:
-            tokens = ["show", "--diff-merges=1", "-p", "--abbrev=-1", "--format=",
-                      str(locator.commit), "--", delta.path]
+            tokens = ["show", "--diff-merges=1", "-p", "--format=",
+                      str(locator.commit), "--", delta.new.path]
         else:
             raise NotImplementedError()
 
-        driver = yield from self.flowCallGit(*tokens, autoFail=False)
+        driver = yield from self.flowCallGit("-c", "core.abbrev=no", *tokens, autoFail=False)
         patch = driver.stdoutScrollback()
         # ---------------------------------------------------------------------
 

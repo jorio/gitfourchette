@@ -313,7 +313,8 @@ class Jump(RepoTask):
 
             # Load commit (async)
             driver = yield from self.flowCallGit(
-                "show", "--diff-merges=1", "-z", "--raw", "--no-abbrev",
+                "-c", "core.abbrev=no",
+                "show", "--diff-merges=1", "-z", "--raw",
                 "--format=",  # skip info about the commit itself
                 str(locator.commit))
             deltas = driver.readShowRawZ(self.repo)
