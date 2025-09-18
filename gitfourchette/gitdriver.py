@@ -104,7 +104,10 @@ class FatDelta:
             oldHash, newHash = self.hexHashIndex, self.hexHashWorktree
             if not newHash:
                 logger.warning(f"worktree hash unknown for {self.path}")
-                newHash = HASH_40XF
+                if status == "D":
+                    newHash = HASH_40X0
+                else:
+                    newHash = HASH_40XF  # "unknown" non-zero hash
             if self.stat is not None:
                 newSize = self.stat.st_size
         elif context == NavContext.STAGED:
@@ -140,8 +143,34 @@ class ABDeltaFile:
     mode: FileMode = FileMode.UNREADABLE
     size: int = -1
 
+    _data: bytes = b""
+    _dataValid: bool = False
+
     def isId0(self):
         return all(c == "0" for c in self.id)
+
+    def read(self, repo: Repo) -> bytes:
+        # TODO: Should we apply filters to read unstaged files?
+
+        if not self._dataValid:
+            logger.debug(f"Reading {self.id} {self.path}")
+
+            if self.isId0():
+                data = b""
+            elif self.id == HASH_40XF:
+                pathObj = Path(repo.in_workdir(self.path))
+                data = pathObj.read_bytes()
+                if self.size != len(data):
+                    logger.warning(f"File size changed in workdir since delta was constructed! {path}")
+                # TODO: Compute hash?
+            else:
+                data = repo.peel_blob(self.id).data
+
+            self._data = data
+            self._dataValid = True
+            self.size = len(data)
+
+        return self._data
 
 
 @dataclasses.dataclass

@@ -40,6 +40,9 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     task.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z(task.repo)
     task.repoModel.workdirStatusReady = True
 
+    # Refresh libgit2 index after git status is complete
+    task.repo.refresh_index()
+
 
 class Jump(RepoTask):
     """
@@ -401,9 +404,8 @@ class Jump(RepoTask):
             area.specialDiffView.displaySpecialDiffError(document)
 
         elif isinstance(document, DiffImagePair):
-            assert result.patch is not None
             area.setDiffStackPage("special")
-            area.specialDiffView.displayImageDiff(result.patch.delta, document.oldImage, document.newImage)
+            area.specialDiffView.displayImageDiff(document.delta, document.oldImage, document.newImage)
 
         else:
             raise NotImplementedError(f"Can't display {type(document)}")

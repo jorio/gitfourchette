@@ -24,29 +24,14 @@ from gitfourchette.trtables import TrTables
 class DiffImagePair:
     oldImage: QImage
     newImage: QImage
+    delta: ABDelta
 
-    def __init__(self, repo: Repo, delta: DiffDelta, locator: NavLocator):
-        if delta.old_file.id != NULL_OID:
-            imageDataA = repo.peel_blob(delta.old_file.id).data
-        else:
-            imageDataA = b''
-
-        if delta.new_file.id == NULL_OID:
-            imageDataB = b''
-        elif locator.context.isDirty():
-            fullPath = repo.in_workdir(delta.new_file.path)
-            assert os.lstat(fullPath).st_size == delta.new_file.size, "Size mismatch in unstaged image file"
-            with open(fullPath, 'rb') as file:
-                imageDataB = file.read()
-        else:
-            imageDataB = repo.peel_blob(delta.new_file.id).data
-
+    def __init__(self, repo: Repo, delta: ABDelta, locator: NavLocator):
+        imageDataA = delta.old.read(repo)
+        imageDataB = delta.new.read(repo)
         self.oldImage = QImage.fromData(imageDataA)
         self.newImage = QImage.fromData(imageDataB)
-
-
-class ShouldDisplayPatchAsImageDiff:
-    pass
+        self.delta = delta
 
 
 class SpecialDiffError:
@@ -156,23 +141,25 @@ class SpecialDiffError:
         return SpecialDiffError(_("This file’s type has changed."), table)
 
     @staticmethod
-    def binaryDiff(delta: ABDelta, locator: NavLocator):
+    def binaryDiff(repo: Repo, delta: ABDelta, locator: NavLocator) -> SpecialDiffError | DiffImagePair:
         locale = QLocale()
         of, nf = delta.old, delta.new
 
         if isImageFormatSupported(of.path) and isImageFormatSupported(nf.path):
             largestSize = max(of.size, nf.size)
-            threshold = settings.prefs.imageFileThresholdKB * 1024
-            if threshold != 0 and largestSize > threshold and not locator.hasFlags(NavFlags.AllowLargeFiles):
-                return SpecialDiffError.imageTooLarge(largestSize, threshold, locator)
+            if locator.hasFlags(NavFlags.AllowLargeFiles):
+                threshold = 0
             else:
-                return ShouldDisplayPatchAsImageDiff()
-        else:
-            oldHumanSize = locale.formattedDataSize(of.size)
-            newHumanSize = locale.formattedDataSize(nf.size)
-            return SpecialDiffError(
-                _("File appears to be binary."),
-                f"{oldHumanSize} &rarr; {newHumanSize}")
+                threshold = settings.prefs.imageFileThresholdKB * 1024
+            if largestSize > threshold > 0:
+                return SpecialDiffError.imageTooLarge(largestSize, threshold, locator)
+            return DiffImagePair(repo, delta, locator)
+
+        oldHumanSize = locale.formattedDataSize(of.size)
+        newHumanSize = locale.formattedDataSize(nf.size)
+        return SpecialDiffError(
+            _("File appears to be binary."),
+            f"{oldHumanSize} &rarr; {newHumanSize}")
 
     @staticmethod
     def treeDiff(delta):

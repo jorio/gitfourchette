@@ -15,7 +15,7 @@ from gitfourchette.gitdriver import FatDelta
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
-from gitfourchette.diffview.specialdiff import (ShouldDisplayPatchAsImageDiff, SpecialDiffError, DiffImagePair)
+from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair
 from gitfourchette.graph import GraphBuildLoop
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
@@ -299,10 +299,7 @@ class LoadPatch(RepoTask):
         if (settings.prefs.renderSvg
                 and delta.new.path.lower().endswith(".svg")
                 and isImageFormatSupported("file.svg")):
-            # TODO: Migrate to Vanilla
-            binaryDiff = SpecialDiffError.binaryDiff(delta, locator)
-            if isinstance(binaryDiff, ShouldDisplayPatchAsImageDiff):
-                return DiffImagePair(self.repo, delta, locator)
+            binaryDiff = SpecialDiffError.binaryDiff(self.repo, delta, locator)
             return binaryDiff
 
         # Special formatting for TYPECHANGE.
@@ -345,7 +342,7 @@ class LoadPatch(RepoTask):
         try:
             diffDocument = DiffDocument.fromPatch(patch, maxLineLength)
         except DiffDocument.BinaryError:
-            return SpecialDiffError.binaryDiff(delta, locator)
+            return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:
             return SpecialDiffError.noChange(delta, locator.context)
         except DiffDocument.VeryLongLinesError:

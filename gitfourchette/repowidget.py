@@ -15,7 +15,6 @@ from gitfourchette.application import GFApplication
 from gitfourchette.diffarea import DiffArea
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.diffview import DiffView
-from gitfourchette.diffview.specialdiff import ShouldDisplayPatchAsImageDiff
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
@@ -431,7 +430,6 @@ class RepoWidget(QWidget):
         except Exception as exc:
             excMessageBox(exc, _("Open diff in new window"),
                           _("Only text diffs may be opened in a separate window."),
-                          showExcSummary=not isinstance(exc, ShouldDisplayPatchAsImageDiff),
                           icon='information')
             return
 

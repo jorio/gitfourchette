@@ -7,6 +7,7 @@
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.specialdiff import SpecialDiffError
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -79,20 +80,23 @@ class SpecialDiffView(QTextBrowser):
         assert self.documentLinks is None
         self.documentLinks = err.links
 
-    def displayImageDiff(self, delta: DiffDelta, imageA: QImage, imageB: QImage):
+    def displayImageDiff(self, delta: ABDelta, imageA: QImage, imageB: QImage):
         document = QTextDocument(self)
         document.setObjectName("ImageDiffDocument")
 
-        humanSizeA = self.locale().formattedDataSize(delta.old_file.size)
-        humanSizeB = self.locale().formattedDataSize(delta.new_file.size)
+        sizeA = imageA.sizeInBytes()
+        sizeB = imageB.sizeInBytes()
+
+        humanSizeA = self.locale().formattedDataSize(sizeA)
+        humanSizeB = self.locale().formattedDataSize(sizeB)
 
         textA = _("Old:") + " " + _("{w}×{h} pixels, {size}", w=imageA.width(), h=imageA.height(), size=humanSizeA)
         textB = _("New:") + " " + _("{w}×{h} pixels, {size}", w=imageB.width(), h=imageB.height(), size=humanSizeB)
 
-        if delta.old_file.id == NULL_OID:
+        if delta.old.isId0():
             header = f"<add>{textB}</add>"
             image = imageB
-        elif delta.new_file.id == NULL_OID:
+        elif delta.new.isId0():
             header = f"<del>{textA} " + _("(<b>deleted file</b> displayed below)") + "</del>"
             image = imageA
         else:
