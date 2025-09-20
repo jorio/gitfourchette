@@ -141,7 +141,7 @@ class Prefs(PrefsFile):
     maxRecentRepos              : int                   = 20
     shortHashChars              : int                   = 7
     autoRefresh                 : bool                  = True
-    autoFetch                   : bool                  = True
+    autoFetch                   : bool                  = False
     autoFetchMinutes            : int                   = 5
     middleClickToStage          : bool                  = False
     flattenLanes                : bool                  = True
