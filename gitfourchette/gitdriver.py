@@ -139,15 +139,21 @@ class FatDelta:
 @dataclasses.dataclass
 class ABDeltaFile:
     path: str = ""
-    id: str = ""
+    id: str = HASH_40X0
     mode: FileMode = FileMode.UNREADABLE
     size: int = -1
 
     _data: bytes = b""
     _dataValid: bool = False
 
-    def isId0(self):
-        return all(c == "0" for c in self.id)
+    def isId0(self) -> bool:
+        return self.id == HASH_40X0
+
+    def isIdValid(self) -> bool:
+        return self.id != HASH_40XF
+
+    def isSizeValid(self) -> bool:
+        return self.size >= 0
 
     def read(self, repo: Repo) -> bytes:
         # TODO: Should we apply filters to read unstaged files?
@@ -157,7 +163,7 @@ class ABDeltaFile:
 
             if self.isId0():
                 data = b""
-            elif self.id == HASH_40XF:
+            elif not self.isIdValid():
                 pathObj = Path(repo.in_workdir(self.path))
                 data = pathObj.read_bytes()
                 if self.size != len(data):

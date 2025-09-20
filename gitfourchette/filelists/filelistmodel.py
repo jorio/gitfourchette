@@ -89,14 +89,11 @@ def fileTooltip(repo: Repo, fatDelta: FatDelta, navContext: NavContext, isCounte
         text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
 
     # Size (if applicable)
-    # TODO
-    """
     if sc not in 'DU' and (nf.mode & FileMode.BLOB == FileMode.BLOB):
-        if nf.flags & DiffFlag.VALID_SIZE:
+        if nf.isSizeValid():
             text += newLine(_("size"), locale.formattedDataSize(nf.size, 1))
         else:
             text += newLine(_("size"), _("(not computed)"))
-    """
 
     # Modified time
     if navContext.isWorkdir() and sc not in 'DU':
@@ -108,14 +105,11 @@ def fileTooltip(repo: Repo, fatDelta: FatDelta, navContext: NavContext, isCounte
             text += newLine(_("modified"), timeText)
 
     # Blob/Commit IDs
-    # TODO
-    """
     if nf.mode != FileMode.TREE:  # untracked trees never have a valid ID
-        oldId = shortHash(of.id) if of.flags & DiffFlag.VALID_ID else _("(not computed)")
-        newId = shortHash(nf.id) if nf.flags & DiffFlag.VALID_ID else _("(not computed)")
+        oldId = shortHash(of.id) if of.isIdValid() else _("(not computed)")
+        newId = shortHash(nf.id) if nf.isIdValid() else _("(not computed)")
         idLegend = _("commit hash") if nf.mode == FileMode.COMMIT else _("blob hash")
         text += newLine(idLegend, f"{oldId} \u2192 {newId}")
-    """
 
     if isCounterpart:
         if navContext == NavContext.UNSTAGED:
