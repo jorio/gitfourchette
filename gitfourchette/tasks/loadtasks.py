@@ -337,7 +337,7 @@ class LoadPatch(RepoTask):
         maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
         try:
-            diffDocument = DiffDocument.fromPatch(patch, maxLineLength)
+            diffDocument = DiffDocument.fromPatch(delta, patch, maxLineLength)
         except DiffDocument.BinaryError:
             return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:

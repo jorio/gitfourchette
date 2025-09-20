@@ -14,12 +14,14 @@ from dataclasses import dataclass
 
 from gitfourchette import colors
 from gitfourchette import settings
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.syntax import LexJob
 from gitfourchette.toolbox import *
 
 
+_indexLinePattern = re.compile(r"index ([\da-f]+)\.\.([\da-f]+)")
 _hunkHeaderPattern = re.compile(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
 
@@ -170,7 +172,7 @@ class DiffDocument:
         pass
 
     @staticmethod
-    def fromPatch(patch: str, maxLineLength=0) -> DiffDocument:
+    def fromPatch(abDelta: ABDelta, patch: str, maxLineLength=0) -> DiffDocument:
         """
         if patch.delta.similarity == 100:
             raise SpecialDiffError.noChange(patch.delta)
@@ -222,6 +224,13 @@ class DiffDocument:
             if firstChar != "@" and hunkID < 0:
                 if rawLine.startswith("Binary files"):
                     isBinary = True
+                elif rawLine.startswith("index "):
+                    # Complete existing delta with actual hashes
+                    indexLineMatch = _indexLinePattern.match(rawLine)
+                    oldHash, newHash = indexLineMatch.groups()
+                    assert oldHash == abDelta.old.id
+                    if not abDelta.new.isIdValid():
+                        abDelta.new.id = newHash
                 continue
 
             # Start new hunk

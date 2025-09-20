@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import dataclasses
-import hashlib
 import html
 import io
 import logging
@@ -25,6 +24,7 @@ from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import version_to_tuple, id7, Oid, Repo
 from gitfourchette.qt import *
+from gitfourchette.toolbox import benchmark
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +74,13 @@ class FatDelta:
     similarity: int = 0
     path: str = ""
     origPath: str = ""
+
     stat: stat_result | None = None
-    _abDeltaCache: dict[NavContext, ABDelta] = dataclasses.field(default_factory=dict)
+    """ Kept in ABDelta for comparison purposes when refreshing the repo.
+    This lets us figure out if an unstaged file was modified since the FatDelta
+    was created. """
+
+    _abDeltaCache: dict[NavContext, ABDelta] = dataclasses.field(default_factory=dict, compare=False)
 
     def __post_init__(self):
         if self.statusStaged == ".":
@@ -115,8 +120,10 @@ class FatDelta:
                     newHash = HASH_40X0
                 else:
                     newHash = HASH_40XF  # "unknown" non-zero hash
-            if self.stat is not None:
-                newSize = self.stat.st_size
+            # Even though we may have a filesystem stat for the unstaged file,
+            # don't copy stat.st_size to the ABDelta because the size on disk
+            # may differ from the size obtained after applying the filters
+            # (e.g. CRLF).
         elif context == NavContext.STAGED:
             status = self.statusStaged
             oldMode, newMode = self.modeHead, self.modeIndex
@@ -164,34 +171,29 @@ class ABDeltaFile:
     def isSizeValid(self) -> bool:
         return self.size >= 0
 
+    @benchmark
     def read(self, repo: Repo) -> bytes:
-        # TODO: Should we apply filters to read unstaged files?
-
-        if not self._dataValid:
-            logger.debug(f"Reading {self.id} {self.path}")
-
-            if self.isId0():
-                data = b""
-                assert self.size == 0
-            elif not self.isIdValid():
-                # TODO: Which is faster - this or "repo.create_blob_fromworkdir(path)"?
-                pathObj = Path(repo.in_workdir(self.path))
-                data = pathObj.read_bytes()
-                dataSize = len(data)
-                if self.size != dataSize:
-                    logger.warning(f"File size changed in workdir since delta was constructed! {self.path}")
-                self.size = dataSize
-                # Compute hash
-                sha = hashlib.sha1(f"blob {dataSize}\0".encode("ascii"))
-                sha.update(data)
-                self.id = sha.hexdigest()
-                assert self.isIdValid()
-            else:
-                data = repo.peel_blob(self.id).data
-                assert len(data) == self.size
-
-            self._data = data
+        if self._dataValid:
+            pass
+        elif self.isId0():
             self._dataValid = True
+        else:
+            assert self.isIdValid()
+            try:
+                blob = repo.peel_blob(self.id)
+                logger.debug(f"Reading {self.id} {self.path} from existing blob")
+            except KeyError:
+                # Unstaged file, typically
+                blobId = repo.create_blob_fromworkdir(self.path)
+                blob = repo.peel_blob(blobId)
+                logger.debug(f"Reading {self.id} {self.path} from workdir")
+            assert blob.id == self.id  # TODO: Unsure about this assert - what if the file was modified between the calls to __init__ and read?
+            assert not self.isSizeValid() or blob.size == self.size
+
+            self.size = blob.size
+            self._data = blob.data
+            self._dataValid = True
+            assert self.isSizeValid()
 
         return self._data
 
