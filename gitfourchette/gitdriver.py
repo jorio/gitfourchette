@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import html
 import io
 import logging
@@ -22,7 +23,7 @@ from pygit2.enums import FileMode
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, Oid, Repo
+from gitfourchette.porcelain import version_to_tuple, id7, Oid, Repo
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ class FatDelta:
     path: str = ""
     origPath: str = ""
     stat: stat_result | None = None
+    _abDeltaCache: dict[NavContext, ABDelta] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
         if self.statusStaged == ".":
@@ -95,6 +97,11 @@ class FatDelta:
         return self.statusUnstaged == "?"
 
     def distillOldNew(self, context: NavContext) -> ABDelta:
+        try:
+            return self._abDeltaCache[context]
+        except KeyError:
+            pass
+
         oldSize = -1
         newSize = -1
 
@@ -129,7 +136,9 @@ class FatDelta:
 
         old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize)
         new = ABDeltaFile(self.path, newHash, newMode, newSize)
-        return ABDelta(status=status, old=old, new=new, similarity=self.similarity)
+        abDelta = ABDelta(status=status, old=old, new=new, similarity=self.similarity)
+        self._abDeltaCache[context] = abDelta
+        return abDelta
 
     @staticmethod
     def isNullHash(hexHash: str) -> bool:
@@ -163,20 +172,31 @@ class ABDeltaFile:
 
             if self.isId0():
                 data = b""
+                assert self.size == 0
             elif not self.isIdValid():
+                # TODO: Which is faster - this or "repo.create_blob_fromworkdir(path)"?
                 pathObj = Path(repo.in_workdir(self.path))
                 data = pathObj.read_bytes()
-                if self.size != len(data):
-                    logger.warning(f"File size changed in workdir since delta was constructed! {path}")
-                # TODO: Compute hash?
+                dataSize = len(data)
+                if self.size != dataSize:
+                    logger.warning(f"File size changed in workdir since delta was constructed! {self.path}")
+                self.size = dataSize
+                # Compute hash
+                sha = hashlib.sha1(f"blob {dataSize}\0".encode("ascii"))
+                sha.update(data)
+                self.id = sha.hexdigest()
+                assert self.isIdValid()
             else:
                 data = repo.peel_blob(self.id).data
+                assert len(data) == self.size
 
             self._data = data
             self._dataValid = True
-            self.size = len(data)
 
         return self._data
+
+    def __repr__(self) -> str:
+        return f"({self.path},{id7(self.id)},{self.mode:o},{self.size})"
 
 
 @dataclasses.dataclass

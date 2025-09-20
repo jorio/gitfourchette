@@ -41,16 +41,15 @@ class DiffHighlighter(CodeHighlighter):
         blockNumber = self.currentBlock().blockNumber()
 
         lineData: LineData = self.diffDocument.lineData[blockNumber]
-        diffLine = lineData.diffLine
-        if diffLine is None:  # Hunk header, etc.
+        if not lineData.origin:  # Hunk header, etc.
             return
 
-        if diffLine.origin == '+':
+        if lineData.origin == '+':
             lexJob = self.newLexJob
-            lineNumber = diffLine.new_lineno
+            lineNumber = lineData.newLineNo
         else:
             lexJob = self.oldLexJob
-            lineNumber = diffLine.old_lineno
+            lineNumber = lineData.oldLineNo
 
         # While oldLexJob or newLexJob may be None in the case of a NULL_OID revision
         # (e.g. the 'old' revision of an untracked file), there shouldn't be any lines
@@ -58,7 +57,7 @@ class DiffHighlighter(CodeHighlighter):
         assert lexJob is not None
 
         column = 0
-        scheme = self.scheme.highContrastScheme if diffLine.origin in "+-" else self.scheme.scheme
+        scheme = self.scheme.highContrastScheme if lineData.origin in "+-" else self.scheme.scheme
         boundary = len(text) - lineData.trailerLength
 
         for tokenType, tokenLength in lexJob.tokens(lineNumber, text):
@@ -74,4 +73,4 @@ class DiffHighlighter(CodeHighlighter):
         if APP_DEBUG and lexJob.lexingComplete and column != boundary:  # pragma: no cover
             # Overstep may occur in low-quality lexing (not a big deal, so
             # we ignore that case) or when the file isn't decoded properly.
-            logger.warning(f"Syntax highlighting overstep on line -{diffLine.old_lineno}+{diffLine.new_lineno} {column} != {boundary}")
+            logger.warning(f"Syntax highlighting overstep on line -{lineData.oldLineNo}+{lineData.newLineNo} {column} != {boundary}")

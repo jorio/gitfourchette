@@ -11,7 +11,7 @@ from contextlib import suppress
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import FatDelta
+from gitfourchette.gitdriver import FatDelta, ABDeltaFile
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -239,9 +239,9 @@ class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
-    def flow(self, delta: FatDelta, locator: NavLocator):
+    def flow(self, fatDelta: FatDelta, locator: NavLocator):
         try:
-            self.result = yield from self._getPatch(delta, locator)
+            self.result = yield from self._getPatch(fatDelta, locator)
         except Exception as exc:
             # Yikes! Don't prevent loading a repo
             summary, details = excStrings(exc)
@@ -250,18 +250,15 @@ class LoadPatch(RepoTask):
         self.header = self._makeHeader(self.result, locator)
 
         # Prime lexer
-        # yield from self.flowEnterUiThread()
+        yield from self.flowEnterUiThread()
         if type(self.result) is DiffDocument:
-            # TODO:
-            oldLexJob, newLexJob = None, None
-            # oldLexJob, newLexJob = self._primeLexJobs(patch.delta.old_file, patch.delta.new_file, locator)
-            self.result.oldLexJob = oldLexJob
-            self.result.newLexJob = newLexJob
+            dd: DiffDocument = self.result
+            delta = fatDelta.distillOldNew(locator.context)
+            dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta.old, delta.new, locator)
 
     def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair]:
         delta = fatDelta.distillOldNew(locator.context)
-        logger.debug(f"Will load patch for: {delta}")
         """
         if not patch:
             locator = locator.withExtraFlags(NavFlags.ForceDiff)
@@ -374,7 +371,7 @@ class LoadPatch(RepoTask):
 
         return header
 
-    def _primeLexJobs(self, oldFile: DiffFile, newFile: DiffFile, locator: NavLocator):
+    def _primeLexJobs(self, oldFile: ABDeltaFile, newFile: ABDeltaFile, locator: NavLocator):
         assert onAppThread()
 
         if not settings.prefs.isSyntaxHighlightingEnabled():
@@ -385,27 +382,23 @@ class LoadPatch(RepoTask):
         if lexer is None:
             return None, None
 
-        def primeLexJob(file: DiffFile, isDirty: bool):
-            assert file.flags & DiffFlag.VALID_ID, "need valid blob id for lexing"
-
-            if file.id == NULL_OID:
-                assert not file.flags & DiffFlag.EXISTS, "need valid blob id if reading dirty file from disk"
+        def primeLexJob(file: ABDeltaFile, isDirty: bool):
+            if file.isId0():
                 return None
 
             if file.id == EMPTYBLOB_OID:
                 return None
 
+            if not file.isIdValid():
+                assert isDirty, "reading from disk should only occur for dirty files"
+                file.read(self.repo)  # Cache file contents and hash
+
+            assert file.isIdValid(), "need valid blob id for lexing"
+
             with suppress(KeyError):
                 return LexJobCache.get(file.id)
 
-            try:
-                data = self.repo[file.id].data
-            except KeyError:
-                assert isDirty, "reading from disk should only occur for dirty files"
-                blobId = self.repo.create_blob_fromworkdir(file.path)
-                assert blobId == file.id
-                data = self.repo[file.id].data
-
+            data = file.read(self.repo)
             return LexJob(lexer, data, file.id)
 
         oldLexJob = primeLexJob(oldFile, False)

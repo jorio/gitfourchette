@@ -13,13 +13,13 @@ except ImportError:  # pragma: no cover
     # If Pygments isn't available, LexJob should never be instantiated!
     pass
 
-from gitfourchette.porcelain import Oid, NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import benchmark
 from gitfourchette.toolbox.textutils import qstringLength
 
 
 class LexJob(QObject):
+    KeyType = str
     ChunkSize = 5000  # tokens
     ScheduleInitialDelay = 0  # ms
     ScheduleInterval = 0  # ms
@@ -29,13 +29,13 @@ class LexJob(QObject):
 
     pulse = Signal()
 
-    def __init__(self, lexer: Lexer, data: bytes, fileKey: Oid):
+    def __init__(self, lexer: Lexer, data: bytes, fileKey: KeyType):
         # Don't bind the QObject to a parent to allow Python's refcounting to
         # purge evicted cache entries that are not currently in use by the UI.
         super().__init__(None)
         self.setObjectName("LexJob")
 
-        assert fileKey != NULL_OID
+        assert fileKey
         assert data, "don't create a LexJob without some data"
 
         self.lexer = lexer
