@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-09-18 09:01+0000\n"
+"PO-Revision-Date: 2025-09-20 11:58+0000\n"
 "Last-Translator: Fabiano Caputo <fabiano.caputo@outlook.it>\n"
 "Language-Team: Italian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/it/>\n"
@@ -1206,8 +1206,8 @@ msgstr "Versione {0}"
 #, python-brace-format
 msgid "If {app} helps you get work done, please consider [making a small donation]."
 msgstr ""
-"Se {app} ti aiuta nei tuoi progetti di lavoro, ti preghiamo di prendere in "
-"considerazione una [piccola donazione]."
+"Se {app} ti è di aiuto, ti preghiamo di prendere in considerazione una "
+"[piccola donazione]."
 
 #: forms/aboutdialog.py:84
 msgid "Thank you for your support!"
@@ -1934,25 +1934,25 @@ msgstr "Testo"
 
 #: forms/prefsdialog.py:340
 msgid "Built-in git (sandboxed)"
-msgstr ""
+msgstr "Git integrato (in sandbox)"
 
 #: forms/prefsdialog.py:341
 msgid "Auto-detected system git"
-msgstr ""
+msgstr "Rileva automaticamente git di sistema"
 
 #: forms/prefsdialog.py:362
 msgctxt "system default language setting"
 msgid "System default"
-msgstr ""
+msgstr "Predefiniti di sistema"
 
 #: forms/prefsdialog.py:421
 msgctxt "hint user to leave the field blank"
 msgid "leave blank"
-msgstr ""
+msgstr "lascia vuoto"
 
 #: forms/prefsdialog.py:427
 msgid "Leave blank for system default."
-msgstr ""
+msgstr "Lascia vuoto per usare l'impostazione predefinita."
 
 #: forms/prefsdialog.py:455
 #, python-brace-format
@@ -1961,498 +1961,515 @@ msgid ""
 "# You can then launch them from the {menu} menu.\n"
 "# Click {button} below for more information."
 msgstr ""
+"# Inserisci qui comandi del terminale personalizzati.\n"
+"# In seguito potrai avviarli dal menu {menu}.\n"
+"# Premi il pulsante {button} qui sotto per ulteriori informazioni."
 
 #: forms/prefsdialog.py:458 mainwindow.py:354 trtables.py:559
 msgid "&Commands"
-msgstr ""
+msgstr "&Comandi"
 
 #: forms/prefsdialog.py:459
 msgid "Handy Reference"
-msgstr ""
+msgstr "Guida rapida"
 
 #: forms/prefsdialog.py:523
 msgctxt "system default theme setting"
 msgid "System default"
-msgstr ""
+msgstr "Predefinito di sistema"
 
 #: forms/prefsdialog.py:573
 #, python-brace-format
 msgid "This feature requires {0}."
-msgstr ""
+msgstr "Questa funzione richiede {0}."
 
 #: forms/prefsdialog.py:577
 #, python-brace-format
 msgctxt "syntax highlighting"
 msgid "Automatic ({name})"
-msgstr ""
+msgstr "Automatico ({name})"
 
 #: forms/prefsdialog.py:578
 msgctxt "syntax highlighting"
 msgid "Off"
-msgstr ""
+msgstr "Spento"
 
 #: forms/prefsdialog.py:613
 msgid "Red and green"
-msgstr ""
+msgstr "Rosso e verde"
 
 #: forms/prefsdialog.py:614
 msgid "Colorblind-friendly"
-msgstr ""
+msgstr "Per daltonici"
 
 #: forms/protocolbutton.py:19
 msgid "Change URL protocol"
-msgstr ""
+msgstr "Cambia protocollo URL"
 
 #: forms/pushdialog.py:27
 #, python-brace-format
 msgid "tracking {0}"
-msgstr ""
+msgstr "tracciamento {0}"
 
 #: forms/pushdialog.py:29
 msgid "non-tracking"
-msgstr ""
+msgstr "non tracciamento"
 
 #: forms/pushdialog.py:78
 #, python-brace-format
 msgid "{0} will track {1}."
-msgstr ""
+msgstr "{0} traccerà {1}."
 
 #: forms/pushdialog.py:80
 #, python-brace-format
 msgid "{0} currently does not track any remote branch."
-msgstr ""
+msgstr "{0} non sta tracciando nessun ramo remoto."
 
 #: forms/pushdialog.py:82
 #, python-brace-format
 msgid "{0} already tracks remote branch {1}."
-msgstr ""
+msgstr "{0} traccia già il ramo remoto {1}."
 
 #: forms/pushdialog.py:84
 #, python-brace-format
 msgid "{0} will track {1} instead of {2}."
-msgstr ""
+msgstr "{0} traccerà {1} invece di {2}."
 
 #: forms/pushdialog.py:86
 #, python-brace-format
 msgid "{0} currently tracks {1}."
-msgstr ""
+msgstr "{0} al momento traccia {1}."
 
 #: forms/pushdialog.py:192
 msgid "[tracked]"
-msgstr ""
+msgstr "[tracciato]"
 
 #: forms/pushdialog.py:199
 #, python-brace-format
 msgid "New remote branch on {0}"
-msgstr ""
+msgstr "Nuovo ramo remoto su {0}"
 
 #: forms/pushdialog.py:217 forms/pushdialog.py:274 forms/pushdialog.py:329
 msgid "&Push"
-msgstr ""
+msgstr "Invia (&push)"
 
 #: forms/pushdialog.py:242
 msgid "(with lease)"
-msgstr ""
+msgstr "(con lease)"
 
 #: forms/pushdialog.py:268
 msgid "Force &push"
-msgstr ""
+msgstr "Invia forzatamente (force &push)"
 
 #: forms/pushdialog.py:270
 msgid "Force push: Destructive action!"
-msgstr ""
+msgstr "Invio forzato: Azione distruttiva!"
 
 #: forms/pushdialog.py:272
 msgid "&Push new branch"
-msgstr ""
+msgstr "&Invia (push) nuovo ramo"
 
 #: forms/pushdialog.py:288 tasks/nettasks.py:103
 msgid "This name is already taken by another branch on this remote."
-msgstr ""
+msgstr "Questo nome è già usato da un altro ramo su questo remote."
 
 #: forms/pushdialog.py:330
 #, python-brace-format
 msgid "Click {0} to run:"
-msgstr ""
+msgstr "Clicca {0} per avviare:"
 
 #: forms/registersubmoduledialog.py:36
 msgid "Reset to default name"
-msgstr ""
+msgstr "Reimposta il nome predefinito"
 
 #: forms/registersubmoduledialog.py:42 forms/registersubmoduledialog.py:43
 #: tasks/taskbook.py:33
 msgid "Absorb submodule"
-msgstr ""
+msgstr "Assorbi sottomodulo"
 
 #: forms/registersubmoduledialog.py:46 forms/registersubmoduledialog.py:47
 #: tasks/taskbook.py:84
 msgid "Register submodule"
-msgstr ""
+msgstr "Registra sottomodulo"
 
 #: forms/registersubmoduledialog.py:70
 msgid "This name is already taken by another submodule."
-msgstr ""
+msgstr "Questo nome è già usato da un altro sottomodulo."
 
 #: forms/remotedialog.py:35
 msgid "This name is already taken by another remote."
-msgstr ""
+msgstr "Questo nome è già usato da un altro remote."
 
 #: forms/remotedialog.py:45
 #, python-brace-format
 msgid "Edit remote {0}"
-msgstr ""
+msgstr "Modifica {0} remoto"
 
 #: forms/remotedialog.py:46 tasks/taskbook.py:51
 msgid "Edit remote"
-msgstr ""
+msgstr "Modifica remote"
 
 #: forms/remotedialog.py:47
 msgid "Save"
-msgstr ""
+msgstr "Salva"
 
 #: forms/remotedialog.py:53 forms/remotedialog.py:54 tasks/taskbook.py:75
 msgid "Add remote"
-msgstr ""
+msgstr "Aggiungi remote"
 
 #: forms/remotedialog.py:55
 msgid "Add"
-msgstr ""
+msgstr "Aggiungi"
 
 #: forms/reposettingsdialog.py:44
 msgctxt "RepoSettingsDialog"
 msgid "from global config"
-msgstr ""
+msgstr "dalla configurazione globale"
 
 #: forms/reposettingsdialog.py:46
 msgctxt "RepoSettingsDialog"
 msgid "global git identity not configured"
-msgstr ""
+msgstr "identità git globale non configurata"
 
 #: forms/repostub.py:74
 msgid "Aborting. Just a moment…"
-msgstr ""
+msgstr "Interrompo. Solo un momento…"
 
 #: forms/repostub.py:91
 #, python-brace-format
 msgid "Opening {0}…"
-msgstr ""
+msgstr "Sto aprendo {0}…"
 
 #: forms/repostub.py:102
 msgid "Try to reload"
-msgstr ""
+msgstr "Tentativo di ricaricamento"
 
 #: forms/repostub.py:109
 msgid "Loading interrupted. Just a moment…"
-msgstr ""
+msgstr "Caricamento interrotto. Solo un momento…"
 
 #: forms/resetheaddialog.py:27
 msgid "Hard reset: Destructive action!"
-msgstr ""
+msgstr "Hard reset: Azione distruttiva!"
 
 #: forms/resetheaddialog.py:77
 #, python-brace-format
 msgid "Reset {0} to {1}"
-msgstr ""
+msgstr "Reimposta {0} a {1}"
 
 #: forms/resetheaddialog.py:81
 #, python-brace-format
 msgid "Commit {0}:"
-msgstr ""
+msgstr "Commit {0}:"
 
 #: forms/searchbar.py:225
 #, python-brace-format
 msgid "{text} not found."
-msgstr ""
+msgstr "{text} non trovato."
 
 #: forms/stashdialog.py:58
 msgid "Stash && Keep Changes"
-msgstr ""
+msgstr "Accantona (stash) e mantieni le modifiche"
 
 #: forms/stashdialog.py:58
 msgid "Stash && Reset Changes"
-msgstr ""
+msgstr "Accantona (stash) e annulla le modifiche"
 
 #: forms/stashdialog.py:60
 msgid "&Include these files in the stash, then reset them to their unmodified state:"
 msgstr ""
+"&Accantona questi file e quindi riportali allo stato precedente le modifiche:"
 
 #: forms/stashdialog.py:61
 msgid "&Include these files in the stash:"
-msgstr ""
+msgstr "&Accantona questi file:"
 
 #: forms/statusform.py:81 tasks/blametasks.py:110
 msgid "Please wait…"
-msgstr ""
+msgstr "Prego attendere…"
 
 #: forms/statusform.py:85
 msgid "Abort"
-msgstr ""
+msgstr "Interrompi"
 
 #: forms/statusform.py:117
 msgid "Aborting…"
-msgstr ""
+msgstr "Interrompo…"
 
 #: forms/statusform.py:128
 msgid "SIGTERM sent. Waiting for process to terminate…"
-msgstr ""
+msgstr "SIGTERM inviato. In attesa della chiusura del processo…"
 
 #: forms/ui_aboutdialog.py:158
 #, python-brace-format
 msgctxt "AboutDialog"
 msgid "About {0}"
-msgstr ""
+msgstr "Informazioni su {0}"
 
 #: forms/ui_aboutdialog.py:159
 msgctxt "AboutDialog"
 msgid "About"
-msgstr ""
+msgstr "Informazioni"
 
 #: forms/ui_aboutdialog.py:160
 msgctxt "AboutDialog"
 msgid "Components"
-msgstr ""
+msgstr "Componenti"
 
 #: forms/ui_aboutdialog.py:161
 msgctxt "AboutDialog"
 msgid "Acknowledgments"
-msgstr ""
+msgstr "Riconoscimenti"
 
 #: forms/ui_aboutdialog.py:162
 msgctxt "AboutDialog"
 msgid "License"
-msgstr ""
+msgstr "Licenza"
 
 #: forms/ui_checkoutcommitdialog.py:94
 msgctxt "CheckoutCommitDialog"
 msgid "Check out commit"
-msgstr ""
+msgstr "Passa al commit"
 
 #: forms/ui_checkoutcommitdialog.py:95
 msgctxt "CheckoutCommitDialog"
 msgid "How do you want to check out this commit?"
-msgstr ""
+msgstr "Come vuoi passare a questo commit?"
 
 #: forms/ui_checkoutcommitdialog.py:96
 msgctxt "CheckoutCommitDialog"
 msgid "Switch to &branch:"
-msgstr ""
+msgstr "Passa al &ramo:"
 
 #: forms/ui_checkoutcommitdialog.py:97
 msgctxt "CheckoutCommitDialog"
 msgid "List of branches that point to this commit."
-msgstr ""
+msgstr "Lista dei rami che puntano a questo commit."
 
 #: forms/ui_checkoutcommitdialog.py:98
 msgctxt "CheckoutCommitDialog"
 msgid "Enter &detached HEAD here"
-msgstr ""
+msgstr "Muovi qui la %HEAD distaccata"
 
 #: forms/ui_checkoutcommitdialog.py:99
 msgctxt "CheckoutCommitDialog"
 msgid "&Reset HEAD here…"
-msgstr ""
+msgstr "&Reimposta qui la HEAD…"
 
 #: forms/ui_checkoutcommitdialog.py:100
 msgctxt "CheckoutCommitDialog"
 msgid "&Merge into HEAD…"
-msgstr ""
+msgstr "Unisci (merge) nella HEAD…"
 
 #: forms/ui_checkoutcommitdialog.py:101
 msgctxt "CheckoutCommitDialog"
 msgid "Start &new branch here…"
-msgstr ""
+msgstr "Avvia qui un &nuovo ramo…"
 
 #: forms/ui_checkoutcommitdialog.py:102
 msgctxt "CheckoutCommitDialog"
 msgid "After the checkout:"
-msgstr ""
+msgstr "Dopo il checkout:"
 
 #: forms/ui_checkoutcommitdialog.py:103
 msgctxt "CheckoutCommitDialog"
 msgid "Update submodules recursively"
-msgstr ""
+msgstr "Aggiorna ricorsivamente i sottomoduli"
 
 #: forms/ui_clonedialog.py:130
 msgctxt "CloneDialog"
 msgid "Clone repository"
-msgstr ""
+msgstr "Clona il repo"
 
 #: forms/ui_clonedialog.py:131
 msgctxt "CloneDialog"
 msgid "Remote &URL:"
-msgstr ""
+msgstr "&URL remoto:"
 
 #: forms/ui_clonedialog.py:132
 msgctxt "CloneDialog"
 msgid "Clone in&to:"
-msgstr ""
+msgstr "Clona &in:"
 
 #: forms/ui_clonedialog.py:133
 msgctxt "CloneDialog"
 msgid "&Browse…"
-msgstr ""
+msgstr "&Sfoglia…"
 
 #: forms/ui_clonedialog.py:134
 msgctxt "CloneDialog"
 msgid "Options:"
-msgstr ""
+msgstr "Opzioni:"
 
 #: forms/ui_clonedialog.py:135
 msgctxt "CloneDialog"
 msgid "Initialize submodules recursively (if any)"
-msgstr ""
+msgstr "Inizializza ricorsivamente sottomodulo (se presente)"
 
 #: forms/ui_clonedialog.py:136
 msgctxt "CloneDialog"
 msgid "<p>Tick this to download just the latest commits, not the entire history of the repository."
 msgstr ""
+"<p> Attiva per scaricare solo gli ultimi commit, invece dell'intero storico "
+"del repo."
 
 #: forms/ui_clonedialog.py:137
 msgctxt "CloneDialog"
 msgid "Log in to SSH remotes with custom &key file"
-msgstr ""
+msgstr "Accedi ai remote SSH con un file di &chiave personalizzato"
 
 #: forms/ui_commitdialog.py:106
 msgctxt "CommitDialog"
 msgid "Commit"
-msgstr ""
+msgstr "Sottometti (commit)"
 
 #: forms/ui_commitdialog.py:107
 msgctxt "CommitDialog"
 msgid "Enter commit summary"
-msgstr ""
+msgstr "Inserisci il riepilogo del commit"
 
 #: forms/ui_commitdialog.py:108
 msgctxt "CommitDialog"
 msgid "<p>Length of the summary. Convention is to stay under 50 characters and avoid going over 72. If that’s not enough, use the long-form description.</p>"
 msgstr ""
+"<p>Lunghezza del riepilogo. Per convenzione è preferibile rimanere sotto i "
+"50 caratteri, evitando di superare i 72. Se questo spazio non è sufficiente, "
+"usa il campo descrizione approfondita.</p>"
 
 #: forms/ui_commitdialog.py:109
 msgctxt "CommitDialog"
 msgid "Long-form description (optional)"
-msgstr ""
+msgstr "Descrizione approfondita (facoltativa)"
 
 #: forms/ui_commitdialog.py:110
 msgctxt "CommitDialog"
 msgid "&Edit Author"
-msgstr ""
+msgstr "&Modifica autore"
 
 #: forms/ui_commitdialog.py:111
 msgctxt "CommitDialog"
 msgid "Preview"
-msgstr ""
+msgstr "Anteprima"
 
 #: forms/ui_conflictview.py:228
 msgctxt "ConflictView"
 msgid "Merge conflict"
-msgstr ""
+msgstr "Unisci (merge) conflitto"
 
 #: forms/ui_conflictview.py:229
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "Merge conflict on {0}"
-msgstr ""
+msgstr "Unisci conflitto su {0}"
 
 #: forms/ui_conflictview.py:230
 msgctxt "ConflictView"
 msgid "OUR version"
-msgstr ""
+msgstr "NOSTRA versione"
 
 #: forms/ui_conflictview.py:231
 msgctxt "ConflictView"
 msgid "or"
-msgstr ""
+msgstr "o"
 
 #: forms/ui_conflictview.py:232
 msgctxt "ConflictView"
 msgid "THEIR version"
-msgstr ""
+msgstr "LORO versione"
 
 #: forms/ui_conflictview.py:233
 msgctxt "ConflictView"
 msgid "Select another external merge tool in the Settings."
-msgstr ""
+msgstr "Scegli un altro programma differenze nelle Impostazioni."
 
 #: forms/ui_conflictview.py:234
 msgctxt "ConflictView"
 msgid "Change merge tool…"
-msgstr ""
+msgstr "Cambia programma differenze…"
 
 #: forms/ui_conflictview.py:235
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Open {tool} so you can merge both versions by hand. When you are done, save the file and quit {tool} to resolve the conflict."
 msgstr ""
+"<p>Apri {tool} per scegliere cosa conservare di ogni versione. Quando hai "
+"finito, salva il file ed esci da {tool} per risolvere il conflitto."
 
 #: forms/ui_conflictview.py:236
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "Merge both versions in {tool}"
-msgstr ""
+msgstr "Unisci le versioni con {tool}"
 
 #: forms/ui_conflictview.py:237
 msgctxt "ConflictView"
 msgid "Abort"
-msgstr ""
+msgstr "Interrompi"
 
 #: forms/ui_conflictview.py:238
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Ignore the merge that you made in {tool} so that you can start over."
 msgstr ""
+"<p>Ignora l'unione che hai fatto in {tool} così da poter ricominciare da "
+"capo."
 
 #: forms/ui_conflictview.py:239
 msgctxt "ConflictView"
 msgid "Discard this merge"
-msgstr ""
+msgstr "Annulla quest'unione"
 
 #: forms/ui_conflictview.py:240
 msgctxt "ConflictView"
 msgid "It looks like you’ve finished merging this file."
-msgstr ""
+msgstr "Sembra che tu abbia finito di unire questo file."
 
 #: forms/ui_conflictview.py:241
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Merge this file in {tool} again, starting where you left off."
 msgstr ""
+"<p>Unisci nuovamente questo file in {tool}, ripartendo da dove avevi "
+"lasciato."
 
 #: forms/ui_conflictview.py:242
 msgctxt "ConflictView"
 msgid "Merge again"
-msgstr ""
+msgstr "Unisci ancora"
 
 #: forms/ui_conflictview.py:243
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Resolve this conflict by accepting the merge that you’ve completed in {tool}."
 msgstr ""
+"<p>Risolvi questo conflitto accettando l'unione (merge) che hai completato "
+"in {tool}."
 
 #: forms/ui_conflictview.py:244
 msgctxt "ConflictView"
 msgid "Resolve the conflict with your merge"
-msgstr ""
+msgstr "Risolvi il conflitto con la tua unione"
 
 #: forms/ui_conflictview.py:245
 msgctxt "ConflictView"
 msgid "Confirm deletion"
-msgstr ""
+msgstr "Conferma eliminazione"
 
 #: forms/ui_deletetagdialog.py:50
 msgctxt "DeleteTagDialog"
 msgid "Delete tag"
-msgstr ""
+msgstr "Elimina etichetta"
 
 #: forms/ui_deletetagdialog.py:51
 #, python-brace-format
 msgctxt "DeleteTagDialog"
 msgid "Really delete tag {0}?"
-msgstr ""
+msgstr "Vuoi davvero eliminare l'etichetta {0}?"
 
 #: forms/ui_deletetagdialog.py:52
 msgctxt "DeleteTagDialog"
 msgid "&Push deletion to:"
-msgstr ""
+msgstr "Invia (&push) eliminazione a:"
 
 #: forms/ui_donateprompt.py:90
 #, python-brace-format
@@ -2464,267 +2481,286 @@ msgid ""
 "\n"
 "-Iliyas"
 msgstr ""
+"Ciao! Spero che {app} ti stia piacendo.\n"
+"\n"
+"Se {app} ti è di aiuto, per favore considera una piccola donazione! Questo "
+"mi incoraggerà a proseguirne lo sviluppo. Grazie!\n"
+"\n"
+"-Iliyas"
 
 #: forms/ui_donateprompt.py:95
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Donate {amount}"
-msgstr ""
+msgstr "Dona {amount}"
 
 #: forms/ui_donateprompt.py:96
 msgctxt "DonatePrompt"
 msgid "Never show this again"
-msgstr ""
+msgstr "Non mostrare più"
 
 #: forms/ui_donateprompt.py:97
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Remind me in {month}"
-msgstr ""
+msgstr "Ricordamelo tra {month}"
 
 #: forms/ui_donateprompt.py:98
 msgctxt "DonatePrompt"
 msgid "THANK YOU!"
-msgstr ""
+msgstr "GRAZIE!"
 
 #: forms/ui_identitydialog.py:63
 msgctxt "IdentityDialog"
 msgid "Set up your Git identity"
-msgstr ""
+msgstr "Imposta la tua identità Git"
 
 #: forms/ui_identitydialog.py:64
 msgctxt "IdentityDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Nome:"
 
 #: forms/ui_identitydialog.py:65
 msgctxt "IdentityDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&Email:"
 
 #: forms/ui_identitydialog.py:66
 msgctxt "IdentityDialog"
 msgid "Note: This will not apply to the current repository, because its configuration file defines a custom identity."
 msgstr ""
+"Nota: Questo non verrà applicato al repo corrente, perché il suo file di "
+"configurazione definisce un'identità specifica."
 
 #: forms/ui_identitydialog.py:67
 #, python-brace-format
 msgctxt "IdentityDialog"
 msgid "This information will be saved in {0}."
-msgstr ""
+msgstr "Quest'informazione verrà salvata in {0}."
 
 #: forms/ui_ignorepatterndialog.py:55
 msgctxt "IgnorePatternDialog"
 msgid "Ignore file name pattern"
-msgstr ""
+msgstr "Ignora lo schema per il nome file"
 
 #: forms/ui_ignorepatterndialog.py:56
 msgctxt "IgnorePatternDialog"
 msgid "&Pattern:"
-msgstr ""
+msgstr "&Schema:"
 
 #: forms/ui_ignorepatterndialog.py:57
 msgctxt "IgnorePatternDialog"
 msgid "&Add to:"
-msgstr ""
+msgstr "&Aggiungi a:"
 
 #: forms/ui_newbranchdialog.py:81
 msgctxt "NewBranchDialog"
 msgid "New branch"
-msgstr ""
+msgstr "Nuovo ramo"
 
 #: forms/ui_newbranchdialog.py:82
 msgctxt "NewBranchDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Nome"
 
 #: forms/ui_newbranchdialog.py:83
 msgctxt "NewBranchDialog"
 msgid "Options:"
-msgstr ""
+msgstr "Opzioni:"
 
 #: forms/ui_newbranchdialog.py:84
 msgctxt "NewBranchDialog"
 msgid "&Switch to branch after creating"
-msgstr ""
+msgstr "&Passa al ramo dopo averlo creato"
 
 #: forms/ui_newbranchdialog.py:85
 msgctxt "NewBranchDialog"
 msgid "&Track upstream branch:"
-msgstr ""
+msgstr "&Traccia ramo d'origine (upstream):"
 
 #: forms/ui_newbranchdialog.py:86
 msgctxt "NewBranchDialog"
 msgid "…then update submodules recursively"
-msgstr ""
+msgstr "...poi aggiorna ricorsivamente i sottomoduli"
 
 #: forms/ui_newtagdialog.py:60
 msgctxt "NewTagDialog"
 msgid "New tag"
-msgstr ""
+msgstr "Nuova etichetta (tag)"
 
 #: forms/ui_newtagdialog.py:61
 msgctxt "NewTagDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Nome:"
 
 #: forms/ui_newtagdialog.py:62
 msgctxt "NewTagDialog"
 msgid "Enter tag name"
-msgstr ""
+msgstr "Introduci il nome dell'etichetta"
 
 #: forms/ui_newtagdialog.py:63
 msgctxt "NewTagDialog"
 msgid "&Push to:"
-msgstr ""
+msgstr "Invia (&push) a:"
 
 #: forms/ui_pushdialog.py:126
 msgctxt "PushDialog"
 msgid "Push branch"
-msgstr ""
+msgstr "Invia ramo"
 
 #: forms/ui_pushdialog.py:127
 msgctxt "PushDialog"
 msgid "&Local branch:"
-msgstr ""
+msgstr "Ramo &locale:"
 
 #: forms/ui_pushdialog.py:128
 msgctxt "PushDialog"
 msgid "Push &to:"
-msgstr ""
+msgstr "Invia (push) &a:"
 
 #: forms/ui_pushdialog.py:129
 msgctxt "PushDialog"
 msgid "Branch name on remote"
-msgstr ""
+msgstr "Nome del ramo sul remote"
 
 #: forms/ui_pushdialog.py:130
 msgctxt "PushDialog"
 msgid "&Force push"
-msgstr ""
+msgstr "Invia forzatamente (&force push)"
 
 #: forms/ui_pushdialog.py:131
 msgctxt "PushDialog"
 msgid "&Track this remote branch after pushing"
-msgstr ""
+msgstr "&Traccia questo ramo remoto dopo averlo inviato"
 
 #: forms/ui_registersubmoduledialog.py:96
 msgctxt "RegisterSubmoduleDialog"
 msgid "Register submodule"
-msgstr ""
+msgstr "Registra sottomodulo"
 
 #: forms/ui_registersubmoduledialog.py:97
 msgctxt "RegisterSubmoduleDialog"
 msgid "Workdir:"
-msgstr ""
+msgstr "Cartella di lavoro:"
 
 #: forms/ui_registersubmoduledialog.py:98
 msgctxt "RegisterSubmoduleDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Nome:"
 
 #: forms/ui_registersubmoduledialog.py:99
 msgctxt "RegisterSubmoduleDialog"
 msgid "&Remote:"
-msgstr ""
+msgstr "&Remote:"
 
 #: forms/ui_registersubmoduledialog.py:100
 msgctxt "RegisterSubmoduleDialog"
 msgid "<p>This will be the default remote for this submodule. People who clone your repo will use this remote to download the submodule."
 msgstr ""
+"<p>Questo sarà il remote preimpostato per questo sottomodulo. Chi clonerà il "
+"tuo repo userà questo remote per scaricare il sottomodulo."
 
 #: forms/ui_registersubmoduledialog.py:101
 #, python-brace-format
 msgctxt "RegisterSubmoduleDialog"
 msgid "Once absorbed as a submodule, this copy of {sub} cannot be used independently from its superproject, {super}. This cannot be undone!"
 msgstr ""
+"Una volta assorbito come sottomodulo, questa copia di {sub} non può essere "
+"usata in modo indipendente dal suo superprogetto, {super}. Quest'azione è "
+"irreversibile!"
 
 #: forms/ui_registersubmoduledialog.py:102
 msgctxt "RegisterSubmoduleDialog"
 msgid "<p>This name uniquely identifies your submodule in “.gitmodules”. It can be anything you like, but common practice is to simply name it after the submodule’s workdir."
 msgstr ""
+"<p>Questo nome identifica unicamente il tuo sottomodulo in “.gitmodules”. "
+"Puoi sceglierlo liberamente, ma è usanza comune usare semplicemente il nome "
+"della sua cartella di lavoro."
 
 #: forms/ui_remotedialog.py:65
 msgctxt "RemoteDialog"
 msgid "Edit remote"
-msgstr ""
+msgstr "Modifica remote"
 
 #: forms/ui_remotedialog.py:66
 msgctxt "RemoteDialog"
 msgid "&URL:"
-msgstr ""
+msgstr "&URL:"
 
 #: forms/ui_remotedialog.py:67
 msgctxt "RemoteDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Nome:"
 
 #: forms/ui_remotedialog.py:68
 msgctxt "RemoteDialog"
 msgid "&Fetch remote branches after adding"
-msgstr ""
+msgstr "&Richiama (fetch) rami remoti dopo l'aggiunta"
 
 #: forms/ui_reposettingsdialog.py:70
 #, python-brace-format
 msgctxt "RepoSettingsDialog"
 msgid "Repo Settings for {repo}"
-msgstr ""
+msgstr "Impostazioni repo per {repo}"
 
 #: forms/ui_reposettingsdialog.py:71
 msgctxt "RepoSettingsDialog"
 msgid "Repo Nic&kname:"
-msgstr ""
+msgstr "&Soprannome del repo:"
 
 #: forms/ui_reposettingsdialog.py:72
 #, python-brace-format
 msgctxt "RepoSettingsDialog"
 msgid "This nickname will appear within {app} in tab names, menus, etc. It does not change the actual name of the repo’s directory. Leave blank to clear the nickname."
 msgstr ""
+"Questo soprannome apparirà all'interno di {app} nei nomi delle schede, nei "
+"menu, ecc. Non cambia il nome reale della cartella del repo. Lascia vuoto "
+"per rimuovere il soprannome."
 
 #: forms/ui_reposettingsdialog.py:73
 msgctxt "RepoSettingsDialog"
 msgid "No nickname"
-msgstr ""
+msgstr "Nessun soprannome"
 
 #: forms/ui_reposettingsdialog.py:74
 msgctxt "RepoSettingsDialog"
 msgid "Create commits under a custom &identity in this repo"
-msgstr ""
+msgstr "Crea commit usando un'&identità personalizzata in questo repo"
 
 #: forms/ui_reposettingsdialog.py:75
 msgctxt "RepoSettingsDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Nome:"
 
 #: forms/ui_reposettingsdialog.py:76
 msgctxt "RepoSettingsDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&Email:"
 
 #: forms/ui_reposettingsdialog.py:77
 msgctxt "RepoSettingsDialog"
 msgid "Log in to SSH remotes with custom &key file"
-msgstr ""
+msgstr "Accedi ai remote SSH con un file di &chiave personalizzato"
 
 #: forms/ui_repostub.py:96
 msgctxt "RepoStub"
 msgid "Ready to load this repository."
-msgstr ""
+msgstr "Pronto a caricare questo repository."
 
 #: forms/ui_repostub.py:97
 msgctxt "RepoStub"
 msgid "Load"
-msgstr ""
+msgstr "Carica"
 
 #: forms/ui_repostub.py:98
 msgctxt "RepoStub"
 msgid "Abort"
-msgstr ""
+msgstr "Interrompi"
 
 #: forms/ui_resetheaddialog.py:72
 msgctxt "ResetHeadDialog"
 msgid "Reset HEAD"
-msgstr ""
+msgstr "Reimposta HEAD"
 
 #: forms/ui_resetheaddialog.py:73
 #, python-brace-format
@@ -2733,6 +2769,8 @@ msgid ""
 "<b>Keep</b> all your files intact.\n"
 "<br><b>Stage</b> any differences between your files and {commit}."
 msgstr ""
+"<b>Mantieni</b> tutti i tuoi file intatti.\n"
+"<br><b>Includi (stage)</b> qualsiasi differenza tra i tuoi file e {commit}."
 
 #: forms/ui_resetheaddialog.py:75
 #, python-brace-format
@@ -2741,6 +2779,8 @@ msgid ""
 "<b>Keep</b> all your files intact.\n"
 "<br><b>Unstage</b> any differences between your files and {commit}."
 msgstr ""
+"<b>Mantieni</b> tutti i tuoi file intatti.\n"
+"<br><b>Escludi (unstage)</b> qualsiasi differenza tra i tuoi file e {commit}."
 
 #: forms/ui_resetheaddialog.py:77
 #, python-brace-format
@@ -2749,86 +2789,88 @@ msgid ""
 "<b>Wipe</b> all your changes.\n"
 "<br>End result identical to a fresh checkout of {commit}."
 msgstr ""
+"<b>Azzera</b> tutte le tue modifiche.\n"
+"<br>Il risultato finale sarà come se si fosse appena passati a {commit}."
 
 #: forms/ui_resetheaddialog.py:79
 msgctxt "ResetHeadDialog"
 msgid "&Reset submodules recursively"
-msgstr ""
+msgstr "&Reimposta ricorsivamente sottomoduli"
 
 #: forms/ui_searchbar.py:46
 msgctxt "SearchBar"
 msgid "Search"
-msgstr ""
+msgstr "Cerca"
 
 #: forms/ui_searchbar.py:47
 msgctxt "SearchBar"
 msgid "Search…"
-msgstr ""
+msgstr "Cerca…"
 
 #: forms/ui_searchbar.py:48
 msgctxt "SearchBar"
 msgid "Next Occurrence"
-msgstr ""
+msgstr "Occorrenza successiva"
 
 #: forms/ui_searchbar.py:49
 msgctxt "SearchBar"
 msgid "Previous Occurrence"
-msgstr ""
+msgstr "Occorrenza precedente"
 
 #: forms/ui_searchbar.py:50
 msgctxt "SearchBar"
 msgid "Close Search Bar"
-msgstr ""
+msgstr "Chiudi barra di ricerca"
 
 #: forms/ui_searchbar.py:51
 msgctxt "SearchBar"
 msgid "Done"
-msgstr ""
+msgstr "Fatto"
 
 #: forms/ui_signatureform.py:73
 msgctxt "SignatureForm"
 msgid "Signature"
-msgstr ""
+msgstr "Firma"
 
 #: forms/ui_signatureform.py:74
 msgctxt "SignatureForm"
 msgid "&Override:"
-msgstr ""
+msgstr "&Sovrascrivi:"
 
 #: forms/ui_signatureform.py:75
 msgctxt "SignatureForm"
 msgid "&Identity:"
-msgstr ""
+msgstr "&Identità:"
 
 #: forms/ui_signatureform.py:76 forms/ui_signatureform.py:77
 msgctxt "SignatureForm"
 msgid "Name"
-msgstr ""
+msgstr "Nome"
 
 #: forms/ui_signatureform.py:78 forms/ui_signatureform.py:79
 msgctxt "SignatureForm"
 msgid "Email"
-msgstr ""
+msgstr "Email"
 
 #: forms/ui_signatureform.py:80
 msgctxt "SignatureForm"
 msgid "&Time:"
-msgstr ""
+msgstr "&Ora:"
 
 #: forms/ui_signatureform.py:81
 msgctxt "SignatureForm"
 msgid "Offset from UTC"
-msgstr ""
+msgstr "Scarto da UTC"
 
 #: forms/ui_signatureform.py:82
 msgctxt "SignatureForm"
 msgid "Set to current local time"
-msgstr ""
+msgstr "Imposta ora locale"
 
 #: forms/ui_signatureform.py:83
 msgctxt "SignatureForm"
 msgid "Now"
-msgstr ""
+msgstr "Adesso"
 
 #: forms/ui_signatureform.py:84
 msgctxt "SignatureForm"
@@ -2836,366 +2878,383 @@ msgid ""
 "<p>Every commit records information about an author and a committer. They can be the same person.</p>\n"
 "       <p>Select which person you want to override.</p>"
 msgstr ""
+"<p>Ogni commit memorizza informazioni riguardo all'autore e al "
+"sottomettente. Possono anche essere la stessa persona.</p>\n"
+"       <p>Scegli quale persona vuoi sovrascrivere.</p>"
 
 #: forms/ui_signatureform.py:86
 msgctxt "SignatureForm"
 msgid "Author"
-msgstr ""
+msgstr "Autore"
 
 #: forms/ui_signatureform.py:87
 msgctxt "SignatureForm"
 msgid "Committer"
-msgstr ""
+msgstr "Sottomettente"
 
 #: forms/ui_signatureform.py:88
 msgctxt "SignatureForm"
 msgid "Both"
-msgstr ""
+msgstr "Entrambi"
 
 #: forms/ui_stashdialog.py:65
 msgctxt "StashDialog"
 msgid "New stash"
-msgstr ""
+msgstr "Nuovo accantonamento (stash)"
 
 #: forms/ui_stashdialog.py:66
 msgctxt "StashDialog"
 msgid "Optional stash message"
-msgstr ""
+msgstr "Messaggio facoltativo dell'accantonamento"
 
 #: forms/ui_stashdialog.py:67
 msgctxt "StashDialog"
 msgid "Normally, stashed changes are removed from the working directory. Tick this to leave the stashed changes intact instead."
 msgstr ""
+"Normalmente, le modifiche accantonate vengono rimosse dalla cartella di "
+"lavoro. Attiva questa casella per lasciarle intatte."
 
 #: forms/ui_stashdialog.py:68
 msgctxt "StashDialog"
 msgid "&Retain stashed changes in working directory"
-msgstr ""
+msgstr "&Mantieni le modifiche accantonate nella cartella di lavoro"
 
 #: forms/ui_stashdialog.py:69
 msgctxt "StashDialog"
 msgid "Warning: Some of the files have both staged and unstaged changes. Those changes will be combined in the stash."
 msgstr ""
+"Attenzione: Alcuni file hanno sia modifiche incluse che escluse. Queste "
+"modifiche verranno accantonate insieme."
 
 #: forms/ui_welcomewidget.py:68
 msgctxt "WelcomeWidget"
 msgid "Welcome"
-msgstr ""
+msgstr "Benvenuto"
 
 #: forms/ui_welcomewidget.py:69
 msgctxt "WelcomeWidget"
 msgid "Clone remote repository"
-msgstr ""
+msgstr "Clona repository remoto"
 
 #: forms/ui_welcomewidget.py:70
 msgctxt "WelcomeWidget"
 msgid "New empty repository"
-msgstr ""
+msgstr "Nuovo repository remoto"
 
 #: forms/ui_welcomewidget.py:71
 msgctxt "WelcomeWidget"
 msgid "Open local repository"
-msgstr ""
+msgstr "Apri repository locale"
 
 #: forms/ui_welcomewidget.py:72
 msgctxt "WelcomeWidget"
 msgid "Recent repositories"
-msgstr ""
+msgstr "Repository recenti"
 
 #: forms/ui_welcomewidget.py:73
 #, python-brace-format
 msgctxt "WelcomeWidget"
 msgid "Welcome to<br>{app}"
-msgstr ""
+msgstr "Benvenuto in <br>{app}"
 
 #: gitdriver.py:225
 #, python-brace-format
 msgid "Git command exited with code {0}."
-msgstr ""
+msgstr "Il comando git è uscito con codice {0}."
 
 #: graphview/commitlogdelegate.py:215
 #, python-brace-format
 msgid "History truncated to {0} commits (including hidden branches)"
-msgstr ""
+msgstr "Storico troncato a {0} commit (inclusi i rami nascosti)"
 
 #: graphview/commitlogdelegate.py:217
 #, python-brace-format
 msgid "History truncated to {0} commits"
-msgstr ""
+msgstr "Storico troncato a {0} commit"
 
 #: graphview/commitlogdelegate.py:221 tasks/jumptasks.py:213
 msgid "Shallow clone – End of commit history"
-msgstr ""
+msgstr "Clone breve - Fine dello storico"
 
 #: graphview/commitlogdelegate.py:450 repowidget.py:643
 #: sidebar/sidebarmodel.py:631 sidebar/sidebarmodel.py:634
 msgid "Detached HEAD"
-msgstr ""
+msgstr "HEAD distaccata"
 
 #: graphview/commitlogdelegate.py:589
 msgid "(Clean)"
-msgstr ""
+msgstr "(Pulito)"
 
 #: graphview/commitlogdelegate.py:591
 #, python-brace-format
 msgid "({n} change)"
 msgid_plural "({n} changes)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "({n} modifica)"
+msgstr[1] "({n} modifiche)"
 
 #: graphview/commitlogdelegate.py:596
 msgid "Commit draft:"
-msgstr ""
+msgstr "Bozza del commit:"
 
 #: graphview/commitlogmodel.py:185
 msgctxt "CommitTooltip"
 msgid "(authored)"
-msgstr ""
+msgstr "(autore)"
 
 #: graphview/commitlogmodel.py:186
 msgctxt "CommitTooltip"
 msgid "(committed)"
-msgstr ""
+msgstr "(sottomettente)"
 
 #: graphview/commitlogmodel.py:190
 #, python-brace-format
 msgctxt "CommitTooltip"
 msgid "Committed by {0}"
-msgstr ""
+msgstr "Sottomesso da {0}"
 
 #: graphview/graphview.py:42
 msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
 msgstr ""
+"Questo commit non viene mostrato nel grafico perché è parte di un ramo "
+"nascosto."
 
 #: graphview/graphview.py:44
 msgid "This commit isn’t shown in the graph because it isn’t part of the truncated commit history."
 msgstr ""
+"Questo commit non viene mostrato nel grafico perché è parte di uno storico "
+"troncato."
 
 #: graphview/graphview.py:46
 msgid "This commit isn’t shown in the graph."
-msgstr ""
+msgstr "Questo commit non viene mostrato nel grafico."
 
 #: graphview/graphview.py:73
 msgid "Find a commit by hash, message or author|Find commit"
 msgstr ""
+"Trova un commit tramite il suo identificativo, messaggio o autore|Trova "
+"commit"
 
 #: graphview/graphview.py:112
 msgid "Clear Draft Message"
-msgstr ""
+msgstr "Svuota messaggio della bozza"
 
 #: graphview/graphview.py:125 tasks/jumptasks.py:223
 #, python-brace-format
 msgid "Load up to {0} commits"
-msgstr ""
+msgstr "Carica fino a {0} commit"
 
 #: graphview/graphview.py:127
 msgid "Load full commit history"
-msgstr ""
+msgstr "Carica l'intero storico"
 
 #: graphview/graphview.py:129
 msgid "Change threshold setting"
-msgstr ""
+msgstr "Cambia impostazione soglia"
 
 #: graphview/graphview.py:144
 msgid "&Check Out…"
-msgstr ""
+msgstr "&Passa a (check out)…"
 
 #: graphview/graphview.py:154 sidebar/sidebar.py:257 sidebar/sidebar.py:276
 msgid "New &Branch Here…"
-msgstr ""
+msgstr "Nuovo &ramo qui…"
 
 #: graphview/graphview.py:155
 msgid "&Tag This Commit…"
-msgstr ""
+msgstr "&Etichetta questo commit…"
 
 #: graphview/graphview.py:158
 msgid "&Reset HEAD to Here…"
-msgstr ""
+msgstr "&Reimposta qui la HEAD…"
 
 #: graphview/graphview.py:160
 msgid "Cherry &Pick…"
-msgstr ""
+msgstr "Cernita (cherry &pick)…"
 
 #: graphview/graphview.py:161
 msgid "Re&vert…"
-msgstr ""
+msgstr "&Regredisci…"
 
 #: graphview/graphview.py:162
 msgid "E&xport As Patch…"
-msgstr ""
+msgstr "&Esporta come patch…"
 
 #: graphview/graphview.py:164
 msgid "Copy Commit &Hash"
-msgstr ""
+msgstr "Copia identificativo (&hash) del commit..."
 
 #: graphview/graphview.py:165
 msgid "Copy Commit M&essage"
-msgstr ""
+msgstr "Copia &messaggio commit"
 
 #: graphview/graphview.py:167
 msgid "Get &Info…"
-msgstr ""
+msgstr "Recupera &informazioni…"
 
 #: mainwindow.py:185
 msgid "&File"
-msgstr ""
+msgstr "&File"
 
 #: mainwindow.py:186
 msgid "&Edit"
-msgstr ""
+msgstr "&Modifica"
 
 #: mainwindow.py:187
 msgid "&View"
-msgstr ""
+msgstr "&Vista"
 
 #: mainwindow.py:188
 msgid "&Repo"
-msgstr ""
+msgstr "&Repo"
 
 #: mainwindow.py:189
 msgid "&Help"
-msgstr ""
+msgstr "&Aiuto"
 
 #: mainwindow.py:202
 msgid "&New Repository…"
-msgstr ""
+msgstr "&Nuovo repository.…"
 
 #: mainwindow.py:204
 msgid "Create an empty Git repo"
-msgstr ""
+msgstr "Crea un repo git vuoto"
 
 #: mainwindow.py:206
 msgid "C&lone Repository…"
-msgstr ""
+msgstr "C&lona repository…"
 
 #: mainwindow.py:208
 msgid "Download a Git repo and open it"
-msgstr ""
+msgstr "Scarica un repo git e aprilo"
 
 #: mainwindow.py:212
 msgid "&Open Repository…"
-msgstr ""
+msgstr "&Apri repository.…"
 
 #: mainwindow.py:216
 msgid "Open &Recent"
-msgstr ""
+msgstr "Apri &recente"
 
 #: mainwindow.py:218
 msgid "List of recently opened Git repos"
-msgstr ""
+msgstr "Lista di repo aperti di recente"
 
 #: mainwindow.py:228
 msgid "&Settings…"
-msgstr ""
+msgstr "&Impostazioni…"
 
 #: mainwindow.py:238
 msgid "&Close Tab"
-msgstr ""
+msgstr "&Chiudi scheda"
 
 #: mainwindow.py:240
 msgid "Close current repository tab"
-msgstr ""
+msgstr "Chiudi la scheda repo corrente"
 
 #: mainwindow.py:242
 msgid "&Quit"
-msgstr ""
+msgstr "&Esci"
 
 #: mainwindow.py:244
 #, python-brace-format
 msgid "Quit {app}"
-msgstr ""
+msgstr "Esci da {app}"
 
 #: mainwindow.py:253
 msgid "&Find…"
-msgstr ""
+msgstr "&Trova…"
 
 #: mainwindow.py:255
 msgid "Search for a piece of text in commit messages, the current diff, or the name of a file"
 msgstr ""
+"Cerca del testo nei messaggi dei commit, nelle differenze correnti o nei "
+"nomi dei file"
 
 #: mainwindow.py:257
 msgid "Find Next"
-msgstr ""
+msgstr "Trova successivo"
 
 #: mainwindow.py:259
 msgid "Find next occurrence"
-msgstr ""
+msgstr "Trova la prossima occorrenza"
 
 #: mainwindow.py:261
 msgid "Find Previous"
-msgstr ""
+msgstr "Trova precedente"
 
 #: mainwindow.py:263
 msgid "Find previous occurrence"
-msgstr ""
+msgstr "Trova l'occorrenza precedente"
 
 #: mainwindow.py:278 trtables.py:385
 msgid "Show status bar"
-msgstr ""
+msgstr "Mostra barra di stato"
 
 #: mainwindow.py:279 trtables.py:387
 msgid "Show menu bar"
-msgstr ""
+msgstr "Mostra barra dei menu"
 
 #: mainwindow.py:284
 msgid "Focus on Sidebar"
-msgstr ""
+msgstr "Inquadra la barra laterale"
 
 #: mainwindow.py:285
 msgid "Focus on Commit Log"
-msgstr ""
+msgstr "Inquadra lo storico dei commit"
 
 #: mainwindow.py:286
 msgid "Focus on File List"
-msgstr ""
+msgstr "Inquadra la lista file"
 
 #: mainwindow.py:287
 msgid "Focus on Code View"
-msgstr ""
+msgstr "Inquadra l'area codice"
 
 #: mainwindow.py:289
 msgid "Blame File…"
-msgstr ""
+msgstr "Indaga file…"
 
 #: mainwindow.py:290
 msgid "Next File"
-msgstr ""
+msgstr "File successivo"
 
 #: mainwindow.py:291
 msgid "Previous File"
-msgstr ""
+msgstr "File precedente"
 
 #: mainwindow.py:293
 msgid "&Next Tab"
-msgstr ""
+msgstr "Scheda &successiva"
 
 #: mainwindow.py:294
 msgid "&Previous Tab"
-msgstr ""
+msgstr "Scheda &precedente"
 
 #: mainwindow.py:301
 msgid "Navigation Log"
-msgstr ""
+msgstr "Registro di navigazione"
 
 #: mainwindow.py:310
 msgid "&Refresh"
-msgstr ""
+msgstr "&Ricontrolla"
 
 #: mainwindow.py:314
 msgid "Check for changes in the repo (on the local filesystem only – will not fetch remotes)"
 msgstr ""
+"Controlla se ci sono cambiamenti nel repo (solo sul file system locale - non "
+"equivale a richiamare i remote con fetch)"
 
 #: mainwindow.py:318
 msgid "Reloa&d"
-msgstr ""
+msgstr "Ri&carica"
 
 #: mainwindow.py:321
 msgid "Reopen the repo from scratch"
-msgstr ""
+msgstr "Riapri il repo da zero"
 
 #: mainwindow.py:346
 msgid "Edit Commands…"
-msgstr ""
+msgstr "Modifica comandi.…"
 
 #: mainwindow.py:368
 #, python-brace-format
