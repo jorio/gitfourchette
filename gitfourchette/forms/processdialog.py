@@ -82,6 +82,11 @@ class ProcessDialog(QDialog):
         self.delayPopUp.stop()
         self.setVisible(False)
 
+        # HACK: In offscreen unit tests, re-activate the previous window so we can assume
+        # keyboard focus is still valid. Qt does this for us in non-offscreen mode.
+        if APP_TESTMODE and OFFSCREEN:
+            self.parentWidget().activateWindow()
+
         if self.trackedProcess is None:
             return
 
