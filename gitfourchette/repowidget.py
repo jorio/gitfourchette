@@ -791,7 +791,8 @@ class RepoWidget(QWidget):
 
         # Check if it's time to auto-fetch.
         now = time.time()
-        if now - self.lastAutoFetchTime > settings.prefs.autoFetchMinutes * 60:
+        interval = min(1, settings.prefs.autoFetchMinutes) * 60
+        if now - self.lastAutoFetchTime > interval:
             from gitfourchette.tasks.nettasks import FetchRemotes
 
             # Disconnect processStarted to avoid showing the process dialog.
