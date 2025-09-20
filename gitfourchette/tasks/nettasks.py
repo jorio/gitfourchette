@@ -161,11 +161,7 @@ class RenameRemoteBranch(RepoTask):
 
 
 class FetchRemotes(RepoTask):
-    def isFreelyInterruptible(self) -> bool:
-        return self.auto
-
-    def flow(self, singleRemoteName: str = "", auto: bool = False):
-        self.auto = auto
+    def flow(self, singleRemoteName: str = ""):
         remotes: list[Remote] = list(self.repo.remotes)
 
         if len(remotes) == 0:
@@ -194,6 +190,14 @@ class FetchRemotes(RepoTask):
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
             *argsIf(bool(singleRemoteName), "--no-all", singleRemoteName),
             *argsIf(not singleRemoteName, "--all"))
+
+
+class AutoFetchRemotes(FetchRemotes):
+    def isFreelyInterruptible(self) -> bool:
+        return True
+
+    def broadcastProcesses(self) -> bool:
+        return False
 
 
 class FetchRemoteBranch(RepoTask):
