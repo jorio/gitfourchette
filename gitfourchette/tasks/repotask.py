@@ -999,7 +999,7 @@ class RepoTaskRunner(QObject):
         tk = token.flowControl
         TK = FlowControlToken.Kind
 
-        if tk == TK.ContinueOnUiThread or (RepoTaskRunner.ForceSerial and tk == TK.ContinueOnWorkThread):
+        if tk == TK.ContinueOnUiThread:
             # Get next continuation token on this thread then loop to beginning of _continueFlow.
             token = RepoTaskRunner._getNextToken(flow)
             assert token is not None, "Do not yield None from a RepoTask coroutine"
@@ -1018,12 +1018,10 @@ class RepoTaskRunner(QObject):
                 process = task.currentProcess
                 self.processStarted.emit(process, task.name())
 
-            # In unit tests, block until the process has completed
-            if RepoTaskRunner.ForceSerial:
+            if RepoTaskRunner.ForceSerial:  # In unit tests, block until process has completed
                 return self._waitForNextToken()
 
         elif tk == TK.ContinueOnWorkThread:
-            assert not RepoTaskRunner.ForceSerial
             busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
 
@@ -1032,6 +1030,9 @@ class RepoTaskRunner(QObject):
             assert not self._workerThread.isRunning()
             self._workerThread.flow = flow
             self._workerThread.start()
+
+            if RepoTaskRunner.ForceSerial:  # In unit tests, block until threaded workload has completed
+                return self._waitForNextToken()
 
         elif tk == TK.InterruptedByException:
             exception = token.exception
