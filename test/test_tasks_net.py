@@ -14,6 +14,7 @@ We use a bare repository on the local filesystem as a "remote server".
 import os.path
 import re
 import shlex
+import time
 
 import pytest
 
@@ -890,3 +891,34 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     rw.refreshRepo()
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def testAutoFetch(tempDir, mainWindow, enabled):
+    """Test that auto-fetch works when enabled and conditions are met."""
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+
+    mainWindow.onAcceptPrefsDialog({"autoFetch": enabled, "autoFetchMinutes": 1})
+
+    with RepoContext(barePath) as bareRepo:
+        assert bareRepo.is_bare
+        bareRepo.create_branch_on_head("new-remote-branch")
+        bareRepo.delete_local_branch("no-parent")
+
+    rw = mainWindow.openRepo(wd)
+
+    assert {"localfs/master", "localfs/no-parent"} == {
+        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
+
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
+    rw.lastAutoFetchTime = 0
+    rw.onAutoFetchTimerTimeout()
+
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    branches = {x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
+    if enabled:
+        assert branches == {"localfs/master", "localfs/new-remote-branch"}
+    else:
+        assert branches == {"localfs/master", "localfs/no-parent"}
