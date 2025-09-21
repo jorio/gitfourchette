@@ -19,6 +19,7 @@ import pytest
 
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.deletetagdialog import DeleteTagDialog
+from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
@@ -26,6 +27,7 @@ from gitfourchette.gitdriver import GitDriver
 from gitfourchette.mainwindow import NoRepoWidgetError
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.tasks.nettasks import AutoFetchRemotes
 from . import reposcenario
 from .util import *
 
@@ -921,3 +923,46 @@ def testAutoFetch(tempDir, mainWindow, enabled):
         assert branches == {"localfs/master", "localfs/new-remote-branch"}
     else:
         assert branches == {"localfs/master", "localfs/no-parent"}
+
+
+def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    gitCmd = settings.prefs.gitPath
+    delayGitCmd = shlex.join(["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath])
+
+    # Enable auto-fetch and make sure it'll keep RepoTaskRunner busy for a few seconds
+    mainWindow.onAcceptPrefsDialog({
+        "autoFetch": True,
+        "autoFetchMinutes": 1,
+        "gitPath": delayGitCmd,
+    })
+
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    with RepoContext(barePath) as bareRepo:
+        bareRepo.create_branch_on_head("new-remote-branch")
+
+    # Open the repo and wait for it to settle
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
+    rw.lastAutoFetchTime = 0
+    rw.onAutoFetchTimerTimeout()
+
+    # Make sure we're auto-fetching right now
+    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)
+
+    # Don't delay git for the next task
+    mainWindow.onAcceptPrefsDialog({"gitPath": gitCmd})
+    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)  # just making sure a future version of onAcceptPrefsDialog doesn't kill the task...
+
+    # Perform a task - any task! - while auto-fetching is in progress.
+    # It shouldn't be blocked by an ongoing auto-fetch.
+    triggerMenuAction(mainWindow.menuBar(), "repo/new local branch")
+    newBranchDialog = waitForQDialog(rw, "new branch", t=NewBranchDialog)
+    newBranchDialog.ui.nameEdit.setText("not-blocked-by-auto-fetch")
+    newBranchDialog.accept()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert "not-blocked-by-auto-fetch" in rw.repo.branches.local
+    assert "localfs/new-remote-branch" not in rw.repo.branches.remote
