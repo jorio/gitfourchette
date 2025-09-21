@@ -22,7 +22,7 @@ from pygit2.enums import FileMode
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, id7, Oid, Repo
+from gitfourchette.porcelain import version_to_tuple, id7, Blob, Oid, Repo
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark
 
@@ -114,6 +114,7 @@ class FatDelta:
             status = self.statusUnstaged
             oldMode, newMode = self.modeIndex, self.modeWorktree
             oldHash, newHash = self.hexHashIndex, self.hexHashWorktree
+            oldSource, newSource = NavContext.STAGED, NavContext.UNSTAGED
             if not newHash:
                 logger.warning(f"worktree hash unknown for {self.path}")
                 if status == "D":
@@ -128,10 +129,12 @@ class FatDelta:
             status = self.statusStaged
             oldMode, newMode = self.modeHead, self.modeIndex
             oldHash, newHash = self.hexHashHead, self.hexHashIndex
+            oldSource, newSource = NavContext.COMMITTED, NavContext.STAGED
         else:
             status = self.statusCommit
             oldMode, newMode = self.modeSrc, self.modeDst
             oldHash, newHash = self.hexHashSrc, self.hexHashDst
+            oldSource, newSource = NavContext.COMMITTED, NavContext.COMMITTED
 
         oldHash = oldHash or HASH_40X0
         newHash = newHash or HASH_40X0
@@ -141,8 +144,8 @@ class FatDelta:
         if newSize < 0 and newHash != HASH_40XF:
             newSize = 0 if newHash == HASH_40X0 else self.repo.peel_blob(newHash).size
 
-        old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize)
-        new = ABDeltaFile(self.path, newHash, newMode, newSize)
+        old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize, oldSource)
+        new = ABDeltaFile(self.path, newHash, newMode, newSize, newSource)
         abDelta = ABDelta(status=status, old=old, new=new, similarity=self.similarity)
         self._abDeltaCache[context] = abDelta
         return abDelta
@@ -158,6 +161,7 @@ class ABDeltaFile:
     id: str = HASH_40X0
     mode: FileMode = FileMode.UNREADABLE
     size: int = -1
+    source: NavContext = NavContext.EMPTY
 
     _data: bytes = b""
     _dataValid: bool = False
@@ -177,25 +181,31 @@ class ABDeltaFile:
             pass
         elif self.isId0():
             self._dataValid = True
+            assert self.size == 0
         else:
-            assert self.isIdValid()
-            try:
-                blob = repo.peel_blob(self.id)
-                logger.debug(f"Reading {self.id} {self.path} from existing blob")
-            except KeyError:
-                # Unstaged file, typically
-                blobId = repo.create_blob_fromworkdir(self.path)
-                blob = repo.peel_blob(blobId)
-                logger.debug(f"Reading {self.id} {self.path} from workdir")
-            assert blob.id == self.id  # TODO: Unsure about this assert - what if the file was modified between the calls to __init__ and read?
+            blob = self._readBlob(repo)
+            assert not self.isIdValid() or blob.id == self.id  # TODO: Unsure about this assert - what if the file was modified between the calls to __init__ and read?
             assert not self.isSizeValid() or blob.size == self.size
-
             self.size = blob.size
             self._data = blob.data
             self._dataValid = True
             assert self.isSizeValid()
 
         return self._data
+
+    def _readBlob(self, repo: Repo) -> Blob:
+        if self.isIdValid():
+            try:
+                return repo.peel_blob(self.id)
+            except KeyError:
+                # Blob isn't in the database.
+                pass
+
+        # Typically, if a blob id isn't in the database, it's an unstaged file.
+        # Read it from the workdir.
+        assert self.source == NavContext.UNSTAGED, f"can't read blob from workdir for source {self.source}"
+        blobId = repo.create_blob_fromworkdir(self.path)
+        return repo.peel_blob(blobId)
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o},{self.size})"
