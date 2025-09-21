@@ -26,7 +26,7 @@ class DiffImagePair:
     newImage: QImage
     delta: ABDelta
 
-    def __init__(self, repo: Repo, delta: ABDelta, locator: NavLocator):
+    def __init__(self, repo: Repo, delta: ABDelta):
         imageDataA = delta.old.read(repo)
         imageDataB = delta.new.read(repo)
         self.oldImage = QImage.fromData(imageDataA)
@@ -51,7 +51,7 @@ class SpecialDiffError:
         self.links = DocumentLinks()
 
     @staticmethod
-    def noChange(delta: ABDelta, context: NavContext):
+    def noChange(delta: ABDelta):
         message = _("File contents didn’t change.")
         details: list[str] = []
         longform: list[str] = []
@@ -80,7 +80,7 @@ class SpecialDiffError:
             details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
         # TODO: "and oldFile.size != newFile.size" lost in translation, still OK?
-        if context.isWorkdir() and oldFile == newFile:
+        if delta.context.isWorkdir() and oldFile == newFile:
             message = _("Canonical file contents unchanged.")
             longform.append(toRoomyUL([
                 _("Due to filters such as {filter}, your working copy is not bit-for-bit identical to the file’s "
@@ -150,7 +150,7 @@ class SpecialDiffError:
                 threshold = settings.prefs.imageFileThresholdKB * 1024
             if largestSize > threshold > 0:
                 return SpecialDiffError.imageTooLarge(largestSize, threshold, locator)
-            return DiffImagePair(repo, delta, locator)
+            return DiffImagePair(repo, delta)
 
         oldHumanSize = locale.formattedDataSize(of.size)
         newHumanSize = locale.formattedDataSize(nf.size)

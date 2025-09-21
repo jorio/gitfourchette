@@ -290,7 +290,7 @@ class LoadPatch(RepoTask):
         """
 
         if delta.similarity == 100:
-            return SpecialDiffError.noChange(delta, locator.context)
+            return SpecialDiffError.noChange(delta)
 
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg
@@ -306,17 +306,17 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Get the patch
 
-        if locator.context == NavContext.UNSTAGED:
+        if delta.context == NavContext.UNSTAGED:
             if delta.status == "?":  # untracked
                 tokens = ["diff", "--", "/dev/null", delta.new.path]
             else:
                 tokens = ["diff", "--", delta.new.path]
-        elif locator.context == NavContext.STAGED:
+        elif delta.context == NavContext.STAGED:
             if delta.old.path != delta.new.path:  # renames
                 tokens = ["diff", "--cached", "--", delta.old.path, delta.new.path]
             else:
                 tokens = ["diff", "--cached", "--", delta.new.path]
-        elif locator.context == NavContext.COMMITTED:
+        elif delta.context == NavContext.COMMITTED:
             tokens = ["show", "--diff-merges=1", "-p", "--format=",
                       str(locator.commit), "--", delta.new.path]
         else:
@@ -340,7 +340,7 @@ class LoadPatch(RepoTask):
         except DiffDocument.BinaryError:
             return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:
-            return SpecialDiffError.noChange(delta, locator.context)
+            return SpecialDiffError.noChange(delta)
         except DiffDocument.VeryLongLinesError:
             loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
             return SpecialDiffError(

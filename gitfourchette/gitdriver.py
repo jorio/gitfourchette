@@ -218,6 +218,10 @@ class ABDelta:
     new: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     similarity: int = 0
 
+    @property
+    def context(self) -> NavContext:
+        return self.new.source
+
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
 # 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <R|C><score> <path><sep><origPath>
