@@ -14,7 +14,6 @@ We use a bare repository on the local filesystem as a "remote server".
 import os.path
 import re
 import shlex
-import time
 
 import pytest
 
