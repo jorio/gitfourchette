@@ -296,7 +296,7 @@ class RepoTask(QObject):
         Terminate the current process associated with this task, if any.
         This sends SIGTERM to the process, allowing it to clean up gracefully.
         """
-        if self.currentProcess and self.currentProcess.state() == QProcess.ProcessState.Running:
+        if self.currentProcess and self.currentProcess.state() != QProcess.ProcessState.NotRunning:
             logger.info(f"Terminating process {self.currentProcess.program()} (PID {self.currentProcess.processId()})")
             self.currentProcess.terminate()
 
