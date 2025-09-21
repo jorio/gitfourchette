@@ -791,7 +791,7 @@ class RepoWidget(QWidget):
 
         # Check if it's time to auto-fetch.
         now = time.time()
-        interval = min(1, settings.prefs.autoFetchMinutes) * 60
+        interval = max(1, settings.prefs.autoFetchMinutes) * 60
         if now - self.lastAutoFetchTime > interval:
             from gitfourchette.tasks.nettasks import AutoFetchRemotes
             AutoFetchRemotes.invoke(self)
