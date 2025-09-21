@@ -32,10 +32,6 @@ RENAME_COUNT_THRESHOLD = 100
 LONG_LINE_THRESHOLD = 10_000
 
 
-def contextLines():
-    return settings.prefs.contextLines
-
-
 class PrimeRepo(RepoTask):
     """
     This task initializes a RepoModel and a RepoWidget.
@@ -322,7 +318,10 @@ class LoadPatch(RepoTask):
         else:
             raise NotImplementedError()
 
-        driver = yield from self.flowCallGit("-c", "core.abbrev=no", *tokens, autoFail=False)
+        driver = yield from self.flowCallGit(
+            "-c", "core.abbrev=no",
+            "-c", f"diff.context={settings.prefs.contextLines}",
+            *tokens, autoFail=False)
         patch = driver.stdoutScrollback()
         # ---------------------------------------------------------------------
 
