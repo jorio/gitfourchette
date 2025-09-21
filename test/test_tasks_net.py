@@ -966,3 +966,35 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert "not-blocked-by-auto-fetch" in rw.repo.branches.local
     assert "localfs/new-remote-branch" not in rw.repo.branches.remote
+
+
+def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
+    """Test that terminating a task also terminates its associated process."""
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--delay", "0.5", "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    with RepoContext(barePath) as bareRepo:
+        bareRepo.create_branch_on_head("new-remote-branch")
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    # Start a fetch task that will take 3 seconds due to the delay command
+    from gitfourchette.tasks.nettasks import FetchRemotes
+    a = FetchRemotes.invoke(rw)
+
+    waitUntilTrue(lambda: rw.taskRunner.isBusy())
+    QTest.qWait(100)
+    assert isinstance(rw.taskRunner.currentTask, FetchRemotes), "task should still be running"
+    process = rw.taskRunner.currentTask.currentProcess
+    assert process.state() != QProcess.ProcessState.NotRunning, "process should be running"
+
+    rw.taskRunner.killCurrentTask()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert rw.taskRunner.currentTask is None, "task should be terminated"
+    QTest.qWait(1000)
+
+    # Check that the branch was not fetched
+    assert "localfs/new-remote-branch" not in rw.repo.branches.remote
