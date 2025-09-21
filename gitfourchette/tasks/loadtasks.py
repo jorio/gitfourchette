@@ -301,7 +301,6 @@ class LoadPatch(RepoTask):
 
         # Special formatting for TYPECHANGE.
         if delta.status == "T":  # TYPECHANGE
-            # TODO: Migrate to Vanilla
             return SpecialDiffError.typeChange(delta)
 
         # ---------------------------------------------------------------------

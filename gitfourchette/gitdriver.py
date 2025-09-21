@@ -501,11 +501,15 @@ class GitDriver(QProcess):
                     modeWorktree=mode,
                     path=path)
 
-            # Get stat if it's unstaged
+            # Capture file stats if the file is unstaged. This can be used later
+            # to check whether the FatDelta is stale.
+            # Do NOT set modeWorktree from the stat, because git uses simplified
+            # modes that may not accurately reflect actual modes in the
+            # filesystem (e.g. stat may report a symlink's mode to be 120777,
+            # but to git it's just 120000).
             if delta.statusUnstaged:
                 try:
                     delta.stat = Path(self.workingDirectory(), path).lstat()
-                    delta.modeWorktree = FileMode(delta.stat.st_mode)
                 except OSError:
                     pass
 

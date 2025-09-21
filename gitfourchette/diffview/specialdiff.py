@@ -126,14 +126,11 @@ class SpecialDiffError:
             longform=longform)
 
     @staticmethod
-    def typeChange(delta: DiffDelta):
-        # TODO: Migrate to VanillaStatus
-        oldFile = delta.old_file
-        newFile = delta.new_file
+    def typeChange(delta: ABDelta):
         oldText = _("Old type:")
         newText = _("New type:")
-        oldMode = TrTables.enum(oldFile.mode)
-        newMode = TrTables.enum(newFile.mode)
+        oldMode = TrTables.enum(delta.old.mode)
+        newMode = TrTables.enum(delta.new.mode)
         table = ("<table>"
                  f"<tr><td><del><b>{oldText}</b></del> </td><td>{oldMode}</tr>"
                  f"<tr><td><add><b>{newText}</b></add> </td><td>{newMode}</td></tr>"
