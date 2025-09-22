@@ -192,6 +192,14 @@ class FetchRemotes(RepoTask):
             *argsIf(not singleRemoteName, "--all"))
 
 
+class AutoFetchRemotes(FetchRemotes):
+    def isFreelyInterruptible(self) -> bool:
+        return True
+
+    def broadcastProcesses(self) -> bool:
+        return False
+
+
 class FetchRemoteBranch(RepoTask):
     def flow(self, remoteBranchName: str = "", debrief: bool = True):
         shorthand = remoteBranchName

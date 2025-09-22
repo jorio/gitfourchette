@@ -6,6 +6,7 @@
 
 import logging
 import os
+import time
 from contextlib import suppress
 
 from gitfourchette import settings
@@ -101,6 +102,7 @@ class RepoWidget(QWidget):
         self.pendingLocator = NavLocator()
         self.pendingEffects = TaskEffects.Nothing
         self.pendingStatusMessage = ""
+        self.lastAutoFetchTime = time.time()
 
         self.busyCursorDelayer = QTimer(self)
         self.busyCursorDelayer.setSingleShot(True)
@@ -242,6 +244,12 @@ class RepoWidget(QWidget):
         self.restoreSplitterStates()
         self.refreshWindowTitle()
         self.refreshBanner()
+
+        # Every second, check if we should auto-fetch.
+        self.autoFetchTimer = QTimer(self)
+        self.autoFetchTimer.timeout.connect(self.onAutoFetchTimerTimeout)
+        self.autoFetchTimer.setInterval(1000)
+        self.autoFetchTimer.start()
 
     def replaceWithStub(
             self,
@@ -776,6 +784,19 @@ class RepoWidget(QWidget):
 
         # Reflect any change in titlebar prefs
         self.refreshWindowTitle()
+
+    def onAutoFetchTimerTimeout(self):
+        if not settings.prefs.autoFetch or not self.isVisible() or self.taskRunner.isBusy():
+            return
+
+        # Check if it's time to auto-fetch.
+        now = time.time()
+        interval = max(1, settings.prefs.autoFetchMinutes) * 60
+        if now - self.lastAutoFetchTime > interval:
+            from gitfourchette.tasks.nettasks import AutoFetchRemotes
+            AutoFetchRemotes.invoke(self)
+            self.lastAutoFetchTime = now
+
 
     # -------------------------------------------------------------------------
 

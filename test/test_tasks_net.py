@@ -19,6 +19,7 @@ import pytest
 
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.deletetagdialog import DeleteTagDialog
+from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.pushdialog import PushDialog
 from gitfourchette.forms.remotedialog import RemoteDialog
@@ -26,6 +27,7 @@ from gitfourchette.gitdriver import GitDriver
 from gitfourchette.mainwindow import NoRepoWidgetError
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.tasks.nettasks import AutoFetchRemotes
 from . import reposcenario
 from .util import *
 
@@ -890,3 +892,109 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     rw.refreshRepo()
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def testAutoFetch(tempDir, mainWindow, enabled):
+    """Test that auto-fetch works when enabled and conditions are met."""
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+
+    mainWindow.onAcceptPrefsDialog({"autoFetch": enabled, "autoFetchMinutes": 1})
+
+    with RepoContext(barePath) as bareRepo:
+        assert bareRepo.is_bare
+        bareRepo.create_branch_on_head("new-remote-branch")
+        bareRepo.delete_local_branch("no-parent")
+
+    rw = mainWindow.openRepo(wd)
+
+    assert {"localfs/master", "localfs/no-parent"} == {
+        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
+
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
+    rw.lastAutoFetchTime = 0
+    rw.onAutoFetchTimerTimeout()
+
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    branches = {x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
+    if enabled:
+        assert branches == {"localfs/master", "localfs/new-remote-branch"}
+    else:
+        assert branches == {"localfs/master", "localfs/no-parent"}
+
+
+def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
+    from gitfourchette import settings
+    gitCmd = settings.prefs.gitPath
+    delayGitCmd = shlex.join(["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath])
+
+    # Enable auto-fetch and make sure it'll keep RepoTaskRunner busy for a few seconds
+    mainWindow.onAcceptPrefsDialog({
+        "autoFetch": True,
+        "autoFetchMinutes": 1,
+        "gitPath": delayGitCmd,
+    })
+
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    with RepoContext(barePath) as bareRepo:
+        bareRepo.create_branch_on_head("new-remote-branch")
+
+    # Open the repo and wait for it to settle
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
+    rw.lastAutoFetchTime = 0
+    rw.onAutoFetchTimerTimeout()
+
+    # Make sure we're auto-fetching right now
+    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)
+
+    # Don't delay git for the next task
+    mainWindow.onAcceptPrefsDialog({"gitPath": gitCmd})
+    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)  # just making sure a future version of onAcceptPrefsDialog doesn't kill the task...
+
+    # Perform a task - any task! - while auto-fetching is in progress.
+    # It shouldn't be blocked by an ongoing auto-fetch.
+    triggerMenuAction(mainWindow.menuBar(), "repo/new local branch")
+    newBranchDialog = waitForQDialog(rw, "new branch", t=NewBranchDialog)
+    newBranchDialog.ui.nameEdit.setText("not-blocked-by-auto-fetch")
+    newBranchDialog.accept()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert "not-blocked-by-auto-fetch" in rw.repo.branches.local
+    assert "localfs/new-remote-branch" not in rw.repo.branches.remote
+
+
+def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
+    """Test that terminating a task also terminates its associated process."""
+    from gitfourchette import settings
+    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--delay", "0.5", "--", settings.prefs.gitPath]
+    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    with RepoContext(barePath) as bareRepo:
+        bareRepo.create_branch_on_head("new-remote-branch")
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+
+    # Start a fetch task that will take 3 seconds due to the delay command
+    from gitfourchette.tasks.nettasks import FetchRemotes
+    FetchRemotes.invoke(rw)
+
+    waitUntilTrue(lambda: rw.taskRunner.isBusy())
+    QTest.qWait(100)
+    assert isinstance(rw.taskRunner.currentTask, FetchRemotes), "task should still be running"
+    process = rw.taskRunner.currentTask.currentProcess
+    assert process.state() != QProcess.ProcessState.NotRunning, "process should be running"
+
+    rw.taskRunner.killCurrentTask()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert rw.taskRunner.currentTask is None, "task should be terminated"
+    QTest.qWait(1000)
+
+    # Check that the branch was not fetched
+    assert "localfs/new-remote-branch" not in rw.repo.branches.remote

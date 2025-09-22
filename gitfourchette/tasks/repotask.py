@@ -291,6 +291,15 @@ class RepoTask(QObject):
         """
         return True
 
+    def terminateCurrentProcess(self):
+        """
+        Terminate the current process associated with this task, if any.
+        This sends SIGTERM to the process, allowing it to clean up gracefully.
+        """
+        if self.currentProcess and self.currentProcess.state() != QProcess.ProcessState.NotRunning:
+            logger.info(f"Terminating process {self.currentProcess.program()} (PID {self.currentProcess.processId()})")
+            self.currentProcess.terminate()
+
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
 
@@ -846,6 +855,7 @@ class RepoTaskRunner(QObject):
     def killCurrentTask(self):
         """
         Interrupt current task next time it yields a FlowControlToken.
+        Also terminate any running process associated with the current task.
 
         The task will not die immediately. Use joinKilledTask() after killing
         the task to block the current thread until the task runner is empty.
@@ -854,6 +864,7 @@ class RepoTaskRunner(QObject):
         """
         if self._currentTask:
             self._interruptCurrentTask = True
+            self._currentTask.terminateCurrentProcess()
 
     def joinKilledTask(self):
         """

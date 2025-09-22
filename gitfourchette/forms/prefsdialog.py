@@ -303,6 +303,8 @@ class PrefsDialog(QDialog):
             return self.boundedIntControl(key, value, 1, 32)
         elif key == "tabSpaces":
             return self.boundedIntControl(key, value, 1, 16)
+        elif key == "autoFetchMinutes":
+            return self.boundedIntControl(key, value, 1, 9999)
         elif key == "syntaxHighlighting":
             return self.syntaxHighlightingControl(key, value)
         elif key == "colorblind":
