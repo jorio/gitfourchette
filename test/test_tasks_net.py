@@ -983,7 +983,7 @@ def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
 
     # Start a fetch task that will take 3 seconds due to the delay command
     from gitfourchette.tasks.nettasks import FetchRemotes
-    a = FetchRemotes.invoke(rw)
+    FetchRemotes.invoke(rw)
 
     waitUntilTrue(lambda: rw.taskRunner.isBusy())
     QTest.qWait(100)
