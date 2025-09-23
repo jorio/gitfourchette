@@ -99,7 +99,14 @@ def unpackRepo(
     return path
 
 
-def makeBareCopy(path: str, addAsRemote: str, preFetch: bool, barePath="", keepOldUpstream=False):
+def makeBareCopy(
+        path: str,
+        addAsRemote: str,
+        preFetch: bool,
+        barePath="",
+        keepOldUpstream=False,
+        deleteOtherRemotes=False
+) -> str:
     if not barePath:
         basename = os.path.basename(os.path.normpath(path))  # normpath first, because basename may return an empty string if path ends with a slash
         barePath = f"{path}/../{basename}-bare.git"  # create bare repo besides real repo in temporary directory
@@ -111,14 +118,29 @@ def makeBareCopy(path: str, addAsRemote: str, preFetch: bool, barePath="", keepO
     conf['core.bare'] = True
     del conf
 
-    if addAsRemote:
-        with RepoContext(path) as repo:
-            remote = repo.remotes.create(addAsRemote, barePath)
-            if preFetch:
-                remote.fetch()
-                if not keepOldUpstream:
-                    for localBranch in repo.branches.local:
-                        repo.edit_upstream_branch(localBranch, f"{addAsRemote}/{localBranch}")
+    if not addAsRemote:
+        assert not preFetch, "requires addAsRemote"
+        assert not keepOldUpstream, "requires addAsRemote"
+        assert not deleteOtherRemotes, "requires addAsRemote"
+        return barePath
+
+    with RepoContext(path) as repo:
+        remote = repo.remotes.create(addAsRemote, barePath)
+
+        if preFetch:
+            remote.fetch()
+            if not keepOldUpstream:
+                for localBranch in repo.branches.local:
+                    repo.edit_upstream_branch(localBranch, f"{addAsRemote}/{localBranch}")
+        else:
+            assert not keepOldUpstream, "requires preFetch"
+
+        if deleteOtherRemotes:
+            assert not keepOldUpstream, "mutually exclusive"
+            remoteNames = repo.listall_remotes_fast()[:]
+            remoteNames.remove(addAsRemote)
+            for remoteName in remoteNames:
+                repo.delete_remote(remoteName)
 
     return barePath
 

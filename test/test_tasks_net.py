@@ -145,7 +145,7 @@ def testFetchNewRemoteBranches(tempDir, mainWindow):
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testDeleteRemoteBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     rw = mainWindow.openRepo(wd)
 
     assert "localfs/no-parent" in rw.repo.branches.remote
@@ -171,7 +171,7 @@ def testDeleteRemoteBranch(tempDir, mainWindow, method):
 
 def testRenameRemoteBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(bareCopy) as bareRepo:
         bareBranch = bareRepo.branches.local["no-parent"]
@@ -211,7 +211,7 @@ def testRenameRemoteBranch(tempDir, mainWindow):
 def testFetchRemote(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
 
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     # Make some modifications to the bare repository that serves as a remote.
     # We're going to create a new branch and delete another.
@@ -248,7 +248,7 @@ def testFetchRemoteBranch(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir)
 
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     # Modify the master branch in the bare repository that serves as a remote.
     # The client must pick up on this modification once it fetches the remote branch.
@@ -286,7 +286,7 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
 
     # Modify the master branch in the bare repository that serves as a remote.
     # The client must pick up on this modification once it fetches the remote branch.
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     with RepoContext(barePath) as bareRepo:
         assert bareRepo.is_bare
         bareRepo.branches.local['master'].rename('switcheroo')
@@ -323,7 +323,7 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
 def testFetchRemoteBranchNoChange(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     rw = mainWindow.openRepo(wd)
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
@@ -342,7 +342,7 @@ def testFetchRemoteBranchNoChange(tempDir, mainWindow):
 def testPullRemoteBranchAlreadyUpToDate(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, "localfs", preFetch=True)
+    makeBareCopy(wd, "localfs", preFetch=True, deleteOtherRemotes=True)
 
     rw = mainWindow.openRepo(wd)
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
@@ -425,12 +425,11 @@ def testPullRemoteBranchAutoFastForward(tempDir, mainWindow, remoteNeedsFetching
     oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, "localfs", preFetch=True)
+    makeBareCopy(wd, "localfs", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(wd) as repo:
         assert newTip == repo.head_commit_id
         repo.reset(oldTip, ResetMode.HARD)
-        repo.delete_remote("origin")
         if remoteNeedsFetching:
             # "Forget" top of graph
             writeFile(f"{repo.path}/refs/remotes/localfs/master", str(oldTip))
@@ -456,12 +455,11 @@ def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow)
     oldTip = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, "localfs", preFetch=True)
+    makeBareCopy(wd, "localfs", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(wd) as repo:
         assert newTip == repo.head_commit_id
         repo.reset(oldTip, ResetMode.HARD)
-        repo.delete_remote("origin")
         repo.config["pull.ff"] = "false"
 
     rw = mainWindow.openRepo(wd)
@@ -480,7 +478,7 @@ def testPullRemoteBranchAutomaticFastForwardBlockedByConfig(tempDir, mainWindow)
 
 def testPullRemoteBranchCausesConflict(tempDir, mainWindow):
     wd = unpackRepo(tempDir, testRepoName="testrepoformerging")
-    makeBareCopy(wd, "localfs", True)
+    makeBareCopy(wd, "localfs", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(wd) as repo:
         repo.edit_upstream_branch("master", "localfs/branch-conflicts")
@@ -699,7 +697,7 @@ def testPushExistingTag(tempDir, mainWindow):
 
 def testPushAllTags(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(wd) as repo, RepoContext(barePath) as bareRepo:
         repo.create_reference("refs/tags/etiquette1", repo.head_commit_id)
@@ -726,7 +724,7 @@ def testPushDeleteTag(tempDir, mainWindow):
     with RepoContext(wd) as repo:
         repo.create_reference("refs/tags/etiquette", repo.head_commit_id)
 
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     with RepoContext(barePath) as bareRepo:
         assert "etiquette" in bareRepo.listall_tags()
 
@@ -746,7 +744,7 @@ def testPushDeleteTag(tempDir, mainWindow):
 
 def testForcePushWithLeasePass(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(wd) as repo:
         newOid = repo.amend_commit_on_head("amended locally", TEST_SIGNATURE, TEST_SIGNATURE)
@@ -764,7 +762,7 @@ def testForcePushWithLeasePass(tempDir, mainWindow):
 def testForcePushWithLeaseRejected(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    bareCopy = makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+    bareCopy = makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(bareCopy) as bareRepo:
         _unknownCommitId = bareRepo.create_commit(
@@ -799,10 +797,9 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
 
     wd = unpackRepo(tempDir)
-    makeBareCopy(wd, addAsRemote="remote2", preFetch=True)
+    makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
         oldOid = repo.head_commit_id
         newOid = repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
 
@@ -852,7 +849,7 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
 
     wd = unpackRepo(tempDir)
-    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     with RepoContext(bareCopy) as bareRepo:
         _unknownCommitId = bareRepo.create_commit(
@@ -864,7 +861,6 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
             [bareRepo.head_commit_id])
 
     with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
         oldHead = repo.head_commit_id
 
     mainWindow.openRepo(wd)
@@ -898,7 +894,7 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
 def testAutoFetch(tempDir, mainWindow, enabled):
     """Test that auto-fetch works when enabled and conditions are met."""
     wd = unpackRepo(tempDir)
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     mainWindow.onAcceptPrefsDialog({"autoFetch": enabled, "autoFetchMinutes": 1})
 
@@ -938,7 +934,7 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     })
 
     wd = unpackRepo(tempDir)
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     with RepoContext(barePath) as bareRepo:
         bareRepo.create_branch_on_head("new-remote-branch")
 
@@ -975,19 +971,17 @@ def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
     mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
 
     wd = unpackRepo(tempDir)
-    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     with RepoContext(barePath) as bareRepo:
         bareRepo.create_branch_on_head("new-remote-branch")
     mainWindow.openRepo(wd)
     rw = waitForRepoWidget(mainWindow)
 
-    # Start a fetch task that will take 3 seconds due to the delay command
-    from gitfourchette.tasks.nettasks import FetchRemotes
-    FetchRemotes.invoke(rw)
-
-    waitUntilTrue(lambda: rw.taskRunner.isBusy())
+    # Start a fetch task that will take 0.5 seconds due to the delay command
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
+    assert rw.taskRunner.isBusy()
     QTest.qWait(100)
-    assert isinstance(rw.taskRunner.currentTask, FetchRemotes), "task should still be running"
+    assert rw.taskRunner.isBusy(), "task should still be running"
     process = rw.taskRunner.currentTask.currentProcess
     assert process.state() != QProcess.ProcessState.NotRunning, "process should be running"
 
