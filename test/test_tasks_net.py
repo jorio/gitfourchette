@@ -931,6 +931,23 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
         assert branches == {"localfs/master", "localfs/no-parent"}
 
 
+def testAutoFetchFailure(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.edit_remote("origin", "origin", "https://this-will-fail-to-resolve.invalid/whatever.git")
+
+    mainWindow.onAcceptPrefsDialog({"autoFetch": True, "autoFetchMinutes": 1})
+
+    rw = mainWindow.openRepo(wd)
+
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
+    rw.lastAutoFetchTime = 0
+    rw.onAutoFetchTimerTimeout()
+
+    # Make sure we're showing a discreet message in the status bar instead of a message box
+    assert re.search("couldn.t auto-fetch", mainWindow.statusBar2.currentMessage(), re.I)
+
+
 def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     from gitfourchette import settings
     gitCmd = settings.prefs.gitPath

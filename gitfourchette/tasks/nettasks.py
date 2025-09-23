@@ -192,12 +192,44 @@ class FetchRemotes(RepoTask):
             *argsIf(not singleRemoteName, "--all"))
 
 
-class AutoFetchRemotes(FetchRemotes):
+class AutoFetchRemotes(RepoTask):
     def isFreelyInterruptible(self) -> bool:
         return True
 
     def broadcastProcesses(self) -> bool:
+        # Don't pop up a ProcessDialog for this task.
         return False
+
+    def flow(self):
+        # Bail now if we don't have any remotes
+        if not self.repo.listall_remotes_fast():
+            return
+
+        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        driver = yield from self.flowCallGit(
+            "fetch",
+            "--all",
+            "--prune",
+            "--progress",
+            *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
+            autoFail=False)
+
+        if driver.exitCode() == 0:
+            return
+
+        # In case of failure, don't steal the user's attention with an obnoxious
+        # message box - we may simply be offline and the app may be in the background.
+        # Instead, show a subdued message in the status bar.
+        message = " ".join([
+            _("Couldn’t auto-fetch."),
+            _("Git command exited with code {0}.", driver.formatExitCode()),
+            tquo(elide(driver.stderrScrollback().strip(), Qt.TextElideMode.ElideRight, 72)),
+        ])
+
+        # Prevent chaining RefreshRepo so that the message remains visible in the status bar.
+        self.effects = TaskEffects.Nothing
+
+        raise AbortTask(message, asStatusMessage=True)
 
 
 class FetchRemoteBranch(RepoTask):
