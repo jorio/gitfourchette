@@ -886,19 +886,27 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
 
 
 @pytest.mark.parametrize("enabled", [True, False])
-def testAutoFetch(tempDir, mainWindow, enabled):
+def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     """Test that auto-fetch works when enabled and conditions are met."""
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
-    mainWindow.onAcceptPrefsDialog({"autoFetch": enabled, "autoFetchMinutes": 1})
+    # Enable or disable auto-fetch.
+    # Force 'git fetch' to take a little while so we can check the status message.
+    mainWindow.onAcceptPrefsDialog({
+        "autoFetch": enabled,
+        "autoFetchMinutes": 1,
+        "gitPath": delayGitCommand(delay=2),
+    })
 
     with RepoContext(barePath) as bareRepo:
         assert bareRepo.is_bare
         bareRepo.create_branch_on_head("new-remote-branch")
         bareRepo.delete_local_branch("no-parent")
 
-    rw = mainWindow.openRepo(wd)
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+    assert not rw.taskRunner.isBusy()
 
     assert {"localfs/master", "localfs/no-parent"} == {
         x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
@@ -907,7 +915,14 @@ def testAutoFetch(tempDir, mainWindow, enabled):
     rw.lastAutoFetchTime = 0
     rw.onAutoFetchTimerTimeout()
 
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    # Check auto-fetch status message
+    if enabled:
+        waitUntilTrue(rw.taskRunner.isBusy)
+        waitUntilTrue(mainWindow.statusBar2.busyLabel.isVisible)
+        assert findTextInWidget(mainWindow.statusBar2.busyLabel, "auto-fetch")
+
+    # Big timeout: Mac CI sometimes takes its sweet time to complete the fetch here
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy(), timeout=10_000)
 
     branches = {x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
     if enabled:

@@ -32,6 +32,7 @@ from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskEffects, TaskBook
 from gitfourchette.tasks.misctasks import VerifyGpgQueue
+from gitfourchette.tasks.nettasks import AutoFetchRemotes
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -793,10 +794,8 @@ class RepoWidget(QWidget):
         now = time.time()
         interval = max(1, settings.prefs.autoFetchMinutes) * 60
         if now - self.lastAutoFetchTime > interval:
-            from gitfourchette.tasks.nettasks import AutoFetchRemotes
             AutoFetchRemotes.invoke(self)
             self.lastAutoFetchTime = now
-
 
     # -------------------------------------------------------------------------
 

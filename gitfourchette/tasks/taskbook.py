@@ -31,6 +31,7 @@ class TaskBook:
         cls.names = {
             tasks.AbortMerge: _("Abort merge"),
             tasks.AbsorbSubmodule: _("Absorb submodule"),
+            tasks.AutoFetchRemotes: _("Auto-fetch remotes"),
             tasks.AcceptMergeConflictResolution: _("Accept merge conflict resolution"),
             tasks.AmendCommit: _("Amend last commit"),
             tasks.ApplyPatch: _("Apply selected text"),

@@ -58,6 +58,7 @@ from gitfourchette.tasks.jumptasks import (
     RefreshRepo,
 )
 from gitfourchette.tasks.nettasks import (
+    AutoFetchRemotes,
     DeleteRemoteBranch,
     RenameRemoteBranch,
     FetchRemotes,

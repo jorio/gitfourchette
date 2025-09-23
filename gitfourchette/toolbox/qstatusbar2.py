@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -64,10 +64,15 @@ class QStatusBar2(QStatusBar):
     def commitBusyMessage(self):
         self.busyMessageDelayer.stop()
 
-        if not self.busySpinner.isSpinning():
-            self.busySpinner.start()
-            self.busyWidget.setVisible(True)
-            self.addWidget(self.busyWidget, 1)
+        if self.busySpinner.isSpinning():
+            # Spinner is already spinning: busy widget already visible.
+            return
+
+        # Replace permanent status message with our busyWidget
+        # which includes the spinner and the busy message.
+        self.busySpinner.start()
+        self.busyWidget.setVisible(True)
+        self.insertPermanentWidget(0, self.busyWidget, 1)
 
     def clearMessage(self):
         self.busyMessageDelayer.stop()
