@@ -669,9 +669,7 @@ class RepoTask(QObject):
 
         files = dialog.selectedFiles()
         path = files[0]
-
-        # Somehow QFileDialog.deleteLater() is flaky here in unit tests, so defer to RepoTask.destroyed.
-        self.destroyed.connect(dialog.deleteLater)
+        dialog.deleteLater()
 
         return path
 
@@ -828,6 +826,9 @@ class RepoTaskRunner(QObject):
     _currentTaskBenchmark: Benchmark
     "Context manager"
 
+    _queueTokens: bool
+    _tokenQueue: list[FlowControlToken]
+
     def __init__(self, parent: QObject):
         super().__init__(parent)
         self.setObjectName("RepoTaskRunner")
@@ -841,7 +842,8 @@ class RepoTaskRunner(QObject):
         self._workerThread.flow = None
         self._workerThread.tokenReady.connect(self._continueFlow)
 
-        self._waitForNextToken = QEventLoop(self)
+        self._queueTokens = 0
+        self._tokenQueue = []
 
     @property
     def currentTask(self):
@@ -952,9 +954,8 @@ class RepoTaskRunner(QObject):
         self._continueFlow()
 
     def _continueFlow(self, token: FlowControlToken = FlowControlToken.BootstrapFlow):
-        if self._waitForNextToken.isRunning():
-            assert token.flowControl == FlowControlToken.Kind.ContinueOnUiThread
-            self._waitForNextToken.quit()
+        if self._queueTokens:
+            self._tokenQueue.append(token)
             return
 
         while token is not None:
@@ -1024,9 +1025,7 @@ class RepoTaskRunner(QObject):
 
             # In unit tests, block until the process has completed
             if RepoTaskRunner.ForceSerial:
-                assert not self._waitForNextToken.isRunning()
-                self._waitForNextToken.exec()
-                return FlowControlToken.BootstrapFlow
+                return self._waitForNextToken()
 
         elif tk == TK.ContinueOnWorkThread:
             assert not RepoTaskRunner.ForceSerial
@@ -1076,6 +1075,30 @@ class RepoTaskRunner(QObject):
             raise NotImplementedError(f"Unsupported FlowControlToken {token.flowControl}")
 
         return None
+
+    def _waitForNextToken(self) -> FlowControlToken:
+        """
+        Block caller until the next FlowControlToken is ready to be processed.
+        Useful to wait for a process to complete, etc.
+        Meant for ForceSerial mode (unit tests).
+        """
+
+        assert onAppThread()
+        assert not self._queueTokens
+        assert not self._tokenQueue
+
+        self._queueTokens = True
+        deadline = QDeadlineTimer(5_000)
+
+        while not self._tokenQueue:
+            QApplication.processEvents()
+            if deadline.hasExpired():  # pragma: no cover
+                raise TimeoutError("timed out while waiting for next token")
+
+        self._queueTokens = False
+        token = self._tokenQueue.pop(0)
+        assert not self._tokenQueue
+        return token
 
     @staticmethod
     def _getNextToken(flow: RepoTask.FlowGeneratorType) -> FlowControlToken:
