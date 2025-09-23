@@ -478,7 +478,6 @@ class TrTables:
                 _("If you turn this off, you will need to hit {key} to "
                   "perform this refresh manually.", key="F5"),
                 "<b>" + _("We strongly recommend to keep this setting enabled.") + "</b>"),
-            "autoFetch": _("Auto-fetch remotes periodically"),
             "autoFetchMinutes": _("Auto-fetch remotes every # minutes"),
             "animations": _("Animation effects in sidebar"),
             "smoothScroll": _("Smooth scrolling (where applicable)"),

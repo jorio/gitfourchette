@@ -141,7 +141,6 @@ class Prefs(PrefsFile):
     maxRecentRepos              : int                   = 20
     shortHashChars              : int                   = 7
     autoRefresh                 : bool                  = True
-    autoFetch                   : bool                  = False
     autoFetchMinutes            : int                   = 5
     middleClickToStage          : bool                  = False
     flattenLanes                : bool                  = True
@@ -152,6 +151,8 @@ class Prefs(PrefsFile):
     forceQtApi                  : QtApiNames            = QtApiNames.Automatic
 
     _category_hidden            : int                   = 0
+    # Hide autoFetch from PrefsDialog because autoFetchMinutes's control includes a checkbox
+    autoFetch                   : bool                  = False
     rememberPassphrases         : bool                  = True
     smoothScroll                : bool                  = True
     toolBarButtonStyle          : Qt.ToolButtonStyle    = Qt.ToolButtonStyle.ToolButtonTextBesideIcon

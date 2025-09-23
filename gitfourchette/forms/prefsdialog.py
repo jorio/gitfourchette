@@ -173,11 +173,14 @@ class PrefsDialog(QDialog):
             if suffix:
                 rowWidgets.append(QLabel(suffix))
 
+            if prefKey == "autoFetchMinutes":
+                self.prependCheckBox(rowWidgets, "autoFetch", caption)
+
             # Any help text? Then make a help button for it & set tooltip text on the main control
             toolTip = TrTables.prefKeyNoDefault(prefKey + "_help")
             if toolTip:
                 toolTip = toolTip.format(app=qAppName())
-                control.setToolTip(toolTip)
+                rowWidgets[0].setToolTip(toolTip)
                 hintButton = QHintButton(self, toolTip)
                 hintButton.setMaximumHeight(2 + hintButton.fontMetrics().height())
                 rowWidgets.append(hintButton)
@@ -185,8 +188,7 @@ class PrefsDialog(QDialog):
             # Gather what to add to the form as a single item.
             # If we have more than a single widget to add to the form, lay them out in a row.
             if len(rowWidgets) == 1:
-                formField = control
-                assert rowWidgets[0] is control
+                formField = rowWidgets[0]
             else:
                 rowLayout = QHBoxLayout()
                 for w in rowWidgets:
@@ -197,14 +199,14 @@ class PrefsDialog(QDialog):
                 formField = rowLayout
 
             # Add `formField` to the form layout, with a leading caption if any
-            if not caption or type(control) is QCheckBox:
+            if not caption or isinstance(rowWidgets[0], QCheckBox):
                 # No caption, make field span entire row
                 form.addRow(formField)
             else:
                 # There's a leading caption, so add it as the label in the row
                 caption += _(":")
                 captionLabel = QLabel(caption)
-                captionLabel.setBuddy(control)
+                captionLabel.setBuddy(rowWidgets[0])
                 if toolTip:
                     captionLabel.setToolTip(toolTip)
                 form.addRow(captionLabel, formField)
@@ -352,10 +354,7 @@ class PrefsDialog(QDialog):
             if trueText or falseText:
                 return self.boolComboBoxControl(key, value, trueName=trueText, falseName=falseText)
             else:
-                control = QCheckBox(caption, self)
-                control.setChecked(value)
-                control.checkStateChanged.connect(lambda state, k=key: self.assign(k, state == Qt.CheckState.Checked))
-                return control
+                return self.boolCheckBoxControl(key, value, caption)
         else:
             raise NotImplementedError(f"Write pref widget for {key}")
 
@@ -495,6 +494,12 @@ class PrefsDialog(QDialog):
         control.activated.connect(lambda index: self.assign(prefKey, index == 0))
         return control
 
+    def boolCheckBoxControl(self, prefKey: str, prefValue: bool, caption: str) -> QCheckBox:
+        control = QCheckBox(caption, self)
+        control.setChecked(prefValue)
+        control.checkStateChanged.connect(lambda state, k=prefKey: self.assign(k, state == Qt.CheckState.Checked))
+        return control
+
     def enumControl(self, prefKey, prefValue, enumType, previewCallback=None):
         if previewCallback:
             control = QComboBoxWithPreview(self)
@@ -624,3 +629,26 @@ class PrefsDialog(QDialog):
 
         control.activated.connect(onPickStyle)
         return control
+
+    def prependCheckBox(self, rowWidgets: list[QWidget], booleanKey: str, caption: str) -> QCheckBox:
+        """
+        Add a QCheckBox on the same row as an existing widget,
+        controlling whether another pref key is enabled or disabled.
+        """
+
+        def enableRowWidgets(enable: bool):
+            for w in rowWidgets:
+                if not isinstance(w, QCheckBox):
+                    w.setEnabled(enable)
+
+        booleanValue = prefs.__dict__[booleanKey]
+
+        checkBox = self.boolCheckBoxControl(booleanKey, booleanValue, caption)
+        checkBox.setObjectName(f"prefctl_{booleanKey}")  # Name the control so that unit tests can find it
+        checkBox.checkStateChanged.connect(lambda state: enableRowWidgets(state == Qt.CheckState.Checked))
+
+        rowWidgets.insert(0, checkBox)
+        QWidget.setTabOrder(rowWidgets[0], rowWidgets[1])
+
+        enableRowWidgets(booleanValue)  # Prime enabled/disabled state
+        return checkBox
