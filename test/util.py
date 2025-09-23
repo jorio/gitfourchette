@@ -6,6 +6,7 @@
 
 import os
 import re
+import shlex
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -54,6 +55,20 @@ def pygit2OlderThan(version: str):
 def getTestDataPath(name):
     path = Path(__file__).resolve().parent / "data"
     return str(path / name)
+
+
+def delayCommand(*tokens: str, delay=5, block=False) -> str:
+    delayTokens = ["python3", getTestDataPath("delay-cmd.py"), f"-d{delay}"]
+    if block:
+        delayTokens.append("--block")
+    delayTokens.append("--")
+    delayTokens.extend(tokens)
+    return shlex.join(delayTokens)
+
+
+def delayGitCommand(delay=5, block=False):
+    from gitfourchette import settings
+    return delayCommand(settings.prefs.gitPath, delay=delay, block=block)
 
 
 def clearSessionwideIdentity():

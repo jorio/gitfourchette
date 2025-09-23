@@ -13,7 +13,6 @@ We use a bare repository on the local filesystem as a "remote server".
 
 import os.path
 import re
-import shlex
 
 import pytest
 
@@ -792,9 +791,7 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
 
 def testAbortPushInProgress(tempDir, mainWindow, taskThread):
-    from gitfourchette import settings
-    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath]
-    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand()})
 
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
@@ -844,9 +841,7 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
 
 
 def testAbortPullInProgress(tempDir, mainWindow, taskThread):
-    from gitfourchette import settings
-    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath]
-    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand()})
 
     wd = unpackRepo(tempDir)
     bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
@@ -924,13 +919,12 @@ def testAutoFetch(tempDir, mainWindow, enabled):
 def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     from gitfourchette import settings
     gitCmd = settings.prefs.gitPath
-    delayGitCmd = shlex.join(["python3", getTestDataPath("delay-cmd.py"), "--", settings.prefs.gitPath])
 
     # Enable auto-fetch and make sure it'll keep RepoTaskRunner busy for a few seconds
     mainWindow.onAcceptPrefsDialog({
         "autoFetch": True,
         "autoFetchMinutes": 1,
-        "gitPath": delayGitCmd,
+        "gitPath": delayGitCommand(),
     })
 
     wd = unpackRepo(tempDir)
@@ -966,9 +960,7 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
 
 def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
     """Test that terminating a task also terminates its associated process."""
-    from gitfourchette import settings
-    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--delay", "0.5", "--", settings.prefs.gitPath]
-    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand(delay=0.5)})
 
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)

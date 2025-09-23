@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import os.path
-import shlex
 from contextlib import suppress
 
 import pytest
@@ -772,9 +771,7 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
 
 
 def testGitProcessStuck(tempDir, mainWindow, taskThread):
-    from gitfourchette import settings
-    delayCmd = ["python3", getTestDataPath("delay-cmd.py"), "--block", "--", settings.prefs.gitPath]
-    mainWindow.onAcceptPrefsDialog({"gitPath": shlex.join(delayCmd)})
+    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand(block=True)})
 
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "stage me")
