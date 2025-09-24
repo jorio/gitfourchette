@@ -138,9 +138,11 @@ def formatWidgetText(widget: QAbstractButton | QLabel, *args, **kwargs):
     return text
 
 
-def formatWidgetTooltip(widget: QWidget, *args, **kwargs):
+def formatWidgetTooltip(widget: QWidget, forceWrap=False, *args, **kwargs):
     text = widget.toolTip()
     text = text.format(*args, **kwargs)
+    if forceWrap:
+        text = "<html>" + text
     widget.setToolTip(text)
     return text
 

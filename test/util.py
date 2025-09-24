@@ -124,7 +124,7 @@ def makeBareCopy(
 ) -> str:
     if not barePath:
         basename = os.path.basename(os.path.normpath(path))  # normpath first, because basename may return an empty string if path ends with a slash
-        barePath = f"{path}/../{basename}-bare.git"  # create bare repo besides real repo in temporary directory
+        barePath = f"{path}/../{basename}-bare-{addAsRemote}.git"  # create bare repo besides real repo in temporary directory
     barePath = os.path.normpath(barePath)
 
     shutil.copytree(F"{path}/.git", barePath)

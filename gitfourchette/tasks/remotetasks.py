@@ -10,6 +10,7 @@ Remote management tasks.
 
 from gitfourchette.forms.remotedialog import RemoteDialog
 from gitfourchette.localization import *
+from gitfourchette.porcelain import GitConfigHelper
 from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import RepoTask, TaskEffects
 from gitfourchette.toolbox import *
@@ -24,6 +25,7 @@ class NewRemote(RepoTask):
             name="",
             url="",
             existingRemotes=existingRemotes,
+            skipFetchAll=False,
             parent=self.parentWidget())
 
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
@@ -34,11 +36,13 @@ class NewRemote(RepoTask):
         newRemoteName = dlg.ui.nameEdit.text()
         newRemoteUrl = dlg.ui.urlEdit.text()
         fetchAfterAdd = dlg.ui.fetchAfterAddCheckBox.isChecked()
+        newSkipFetchAll = dlg.ui.skipFetchAllCheckBox.isChecked()
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.create_remote(newRemoteName, newRemoteUrl)
+        self.repo.set_remote_skipfetchall(newRemoteName, newSkipFetchAll)
 
         self.postStatus = _("Remote {0} added.", tquo(newRemoteName))
 
@@ -56,11 +60,18 @@ class EditRemote(RepoTask):
         existingRemotes = [r.name for r in self.repo.remotes]
         existingRemotes.remove(oldRemoteName)
 
+        skipFetchAllConfigKey = GitConfigHelper.sanitize_key(("remote", oldRemoteName, "skipFetchAll"))
+        try:
+            skipFetchAll = self.repo.config.get_bool(skipFetchAllConfigKey)
+        except KeyError:
+            skipFetchAll = False
+
         dlg = RemoteDialog(
             editExistingRemote=True,
             name=oldRemoteName,
             url=oldRemoteUrl,
             existingRemotes=existingRemotes,
+            skipFetchAll=skipFetchAll,
             parent=self.parentWidget())
 
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
@@ -70,11 +81,13 @@ class EditRemote(RepoTask):
 
         newRemoteName = dlg.ui.nameEdit.text()
         newRemoteUrl = dlg.ui.urlEdit.text().strip()
+        newSkipFetchAll = dlg.ui.skipFetchAllCheckBox.isChecked()
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
         self.repo.edit_remote(oldRemoteName, newRemoteName, newRemoteUrl)
+        self.repo.set_remote_skipfetchall(newRemoteName, newSkipFetchAll)
 
 
 class DeleteRemote(RepoTask):

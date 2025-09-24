@@ -1028,6 +1028,23 @@ class Repo(_VanillaRepository):
         remote = self.remotes[remote_name]
         remote.push([refspec], callbacks=remoteCallbacks)
 
+    def get_remote_skipfetchall(self, remote_name: str) -> bool:
+        key = GitConfigHelper.sanitize_key(("remote", remote_name, "skipFetchAll"))
+        try:
+            return self.config.get_bool(key)
+        except KeyError:
+            return False
+
+    def set_remote_skipfetchall(self, remote_name: str, value: bool):
+        key = GitConfigHelper.sanitize_key(("remote", remote_name, "skipFetchAll"))
+
+        # Set skipFetchAll only if it's True, otherwise delete it
+        if value:
+            self.config[key] = value
+        else:
+            with _suppress(KeyError):
+                del self.config[key]
+
     def rename_remote_branch(self, old_shorthand: str, new_name: str, remote_callbacks: RemoteCallbacks):
         """
         Rename a branch on the remote, then adjust local branch upstreams (if any).

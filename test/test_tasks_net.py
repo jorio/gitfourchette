@@ -885,6 +885,46 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
+def testRemoteSkipFetchAll(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    for i in range(3):
+        barePath = makeBareCopy(wd, addAsRemote=f"localfs{i}", preFetch=True,
+                                deleteOtherRemotes=i == 0)
+
+        # Create a "hello" branch in the bare repo that we will fetch
+        with RepoContext(barePath) as bareRepo:
+            bareRepo.create_branch_on_head("hello")
+
+    rw = mainWindow.openRepo(wd)
+
+    # Make sure none of the branches we added are known yet
+    refs = rw.repo.map_refs_to_ids()
+    assert "refs/remotes/localfs0/hello" not in refs
+    assert "refs/remotes/localfs1/hello" not in refs
+    assert "refs/remotes/localfs2/hello" not in refs
+
+    # Open "edit remote" dialog on localfs1
+    node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "localfs1")
+    rw.sidebar.selectNode(node)
+    triggerContextMenuAction(rw.sidebar.viewport(), "edit remote")
+
+    # Tick "skip fetch all" checkbox
+    dlg = findQDialog(rw, "edit remote", t=RemoteDialog)
+    assert not dlg.ui.skipFetchAllCheckBox.isChecked()
+    dlg.ui.skipFetchAllCheckBox.setChecked(True)
+    dlg.accept()
+
+    # Fetch
+    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
+
+    # We should have fetched localfs0 and localfs2, but not localfs1
+    refs = rw.repo.map_refs_to_ids()
+    assert "refs/remotes/localfs0/hello" in refs
+    assert "refs/remotes/localfs1/hello" not in refs, "localfs1 should have been skipped!"
+    assert "refs/remotes/localfs2/hello" in refs
+
+
 @pytest.mark.parametrize("enabled", [True, False])
 def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     """Test that auto-fetch works when enabled and conditions are met."""

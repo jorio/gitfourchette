@@ -18,10 +18,12 @@ class RemoteDialog(QDialog):
             name: str,
             url: str,
             existingRemotes: list[str],
+            skipFetchAll: bool,
             parent: QWidget
     ):
-
         super().__init__(parent)
+
+        self.existingRemotes = existingRemotes
 
         self.ui = Ui_RemoteDialog()
         self.ui.setupUi(self)
@@ -29,7 +31,8 @@ class RemoteDialog(QDialog):
 
         self.ui.urlEdit.setText(url)
         self.ui.nameEdit.setText(name)
-        self.existingRemotes = existingRemotes
+        self.ui.skipFetchAllCheckBox.setChecked(skipFetchAll)
+        formatWidgetTooltip(self.ui.skipFetchAllCheckBox, cmd=hquo("git fetch --all"), forceWrap=True)
 
         # Set up input validator
         nameTaken = _("This name is already taken by another remote.")
