@@ -17,6 +17,14 @@ from gitfourchette.toolbox import stockIcon, tweakWidgetFont
 
 logger = logging.getLogger(__name__)
 
+# Capture the verb in a git command, e.g. "cherry-pick" in:
+#       git cherry-pick
+#       git cherry-pick args
+#       /usr/bin/git cherry-pick
+#       git --option cherry-pick
+#       git -c config.item cherry-pick
+_gitVerbPattern = re.compile(r"git(?=\s).*?\s([a-z][a-z\-]*)(?=$|\s)")
+
 
 class StatusForm(QWidget):
     def __init__(self, parent):
@@ -71,11 +79,11 @@ class StatusForm(QWidget):
         commandLine = shlex.join([process.program()] + process.arguments())
         self.ui.commandLabel.setText(commandLine)
 
-        gitVerbMatch = re.search(r"git(?=\s).*?\s+(\w\S*)", commandLine)
+        gitVerbMatch = _gitVerbPattern.search(commandLine)
         if gitVerbMatch:
-            title = "git " + gitVerbMatch.group(1) + "…"
+            title = f"git {gitVerbMatch.group(1)}…"
         else:
-            title = process.program()
+            title = f"{process.program()}…"
 
         self.ui.titleLabel.setText(title)
         self.initProgress(_("Please wait…"))
