@@ -38,7 +38,7 @@ def autoDetectUpstream(repo: Repo, noUpstreamMessage: str = ""):
     return branch.upstream
 
 
-def formatUpdatedTipsMessageFromGitOutput(
+def formatUpdatedRefs(
         updatedTips: dict[str, tuple[str, Oid, Oid]],
         header: str,
         noNewCommits="",
@@ -53,7 +53,7 @@ def formatUpdatedTipsMessageFromGitOutput(
         if flag == VanillaFetchStatusFlag.UpToDate:
             if skipUpToDate:
                 continue
-            ps = _("{0} is already up to date with {1}.", tquo(rb), tquo(shortHash(oldTip)))
+            ps = _("{0} is already up to date with {1}.", tquo(rb), shortHash(oldTip))
         elif flag == VanillaFetchStatusFlag.NewRef:
             ps = _("{0} created: {1}.", tquo(rb), shortHash(newTip))
         elif flag == VanillaFetchStatusFlag.PrunedRef:
@@ -162,34 +162,28 @@ class RenameRemoteBranch(RepoTask):
 
 class FetchRemotes(RepoTask):
     def flow(self, singleRemoteName: str = ""):
-        remotes: list[Remote] = list(self.repo.remotes)
-
-        if len(remotes) == 0:
+        # Bail now if we don't have any remotes
+        if not self.repo.listall_remotes_fast():
             text = paragraphs(
                 _("To fetch remote branches, you must first add a remote to your repo."),
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))
             raise AbortTask(text)
 
-        """
-        if singleRemoteName:
-            remotes = [next(r for r in remotes if r.name == singleRemoteName)]
-
-        if len(remotes) == 1:
-            title = _("Fetch remote {0}", lquo(remotes[0].name))
-        else:
-            title = _("Fetch {n} remotes", n=len(remotes))
-        """
-
-        # TODO: Use title?
-        # TODO: postStatus?
         self.effects |= TaskEffects.Remotes | TaskEffects.Refs
-        yield from self.flowCallGit(
+        driver = yield from self.flowCallGit(
             "fetch",
             "--prune",
             "--progress",
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
             *argsIf(bool(singleRemoteName), "--no-all", singleRemoteName),
             *argsIf(not singleRemoteName, "--all"))
+
+        # Old git: no --porcelain support, don't attempt to parse the ref table
+        if not GitDriver.supportsFetchPorcelain():  # pragma: no cover
+            return
+
+        updatedRefs = driver.readFetchPorcelainUpdatedRefs()
+        self.postStatus = formatUpdatedRefs(updatedRefs, _("Fetch complete."), skipUpToDate=True)
 
 
 class AutoFetchRemotes(RepoTask):
@@ -215,6 +209,12 @@ class AutoFetchRemotes(RepoTask):
             autoFail=False)
 
         if driver.exitCode() == 0:
+            # Old git: no --porcelain support, don't attempt to parse the ref table
+            if not GitDriver.supportsFetchPorcelain():  # pragma: no cover
+                return
+
+            updatedRefs = driver.readFetchPorcelainUpdatedRefs()
+            self.postStatus = formatUpdatedRefs(updatedRefs, _("Auto-fetch complete."), skipUpToDate=True)
             return
 
         # In case of failure, don't steal the user's attention with an obnoxious
@@ -252,22 +252,15 @@ class FetchRemoteBranch(RepoTask):
             remoteName,
             remoteBranch)
 
-        # Old git: don't attempt to parse the result
-        if not GitDriver.supportsFetchPorcelain():
-            self.cleanup()
+        # Old git: no --porcelain support, don't attempt to parse the ref table
+        if not GitDriver.supportsFetchPorcelain():  # pragma: no cover
             return
 
-        table = driver.stdoutTable(r"^(.) ([0-9a-f]+) ([0-9a-f]+) (.+)$")
+        updatedRefs = driver.readFetchPorcelainUpdatedRefs()
+        flag, oldTarget, newTarget = updatedRefs[fullRemoteRef]
 
-        updatedTips = {
-            localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
-            for flag, oldHex, newHex, localRef in table
-        }
-
-        flag, oldTarget, newTarget = updatedTips[fullRemoteRef]
-
-        self.postStatus = formatUpdatedTipsMessageFromGitOutput(
-            updatedTips,
+        self.postStatus = formatUpdatedRefs(
+            updatedRefs,
             _("Fetch complete."),
             noNewCommits=_("No new commits on {0}.", lquo(shorthand)),
             skipUpToDate=True)
@@ -275,9 +268,6 @@ class FetchRemoteBranch(RepoTask):
         # Jump to new commit if there was an update and the branch didn't vanish
         if flag not in [VanillaFetchStatusFlag.UpToDate, VanillaFetchStatusFlag.PrunedRef]:
             self.jumpTo = NavLocator.inCommit(newTarget)
-
-        # Clean up RemoteLinkDialog before showing any error text
-        self.cleanup()
 
         if flag == VanillaFetchStatusFlag.PrunedRef:
             # Raise exception to prevent PullBranch from continuing

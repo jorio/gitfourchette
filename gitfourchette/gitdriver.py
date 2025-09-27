@@ -13,7 +13,7 @@ from enum import StrEnum
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
-from gitfourchette.porcelain import version_to_tuple
+from gitfourchette.porcelain import version_to_tuple, Oid
 from gitfourchette.qt import *
 
 
@@ -213,6 +213,20 @@ class GitDriver(QProcess):
         branchName = match.group(1)
         commitHash = match.group(2)
         return branchName, commitHash
+
+    def readFetchPorcelainUpdatedRefs(self) -> dict[str, tuple[str, Oid, Oid]]:
+        """
+        Read a table of updated refs from the output of "git fetch --porcelain".
+        Requires git 2.41.
+        """
+        assert self.supportsFetchPorcelain(), "did you forget to gate this call with GitDriver.supportsFetchPorcelain()?"
+
+        table = self.stdoutTable(r"^(.) ([\da-f]+) ([\da-f]+) (.+)$", strict=False)
+
+        return {
+            localRef: (flag, Oid(hex=oldHex), Oid(hex=newHex))
+            for flag, oldHex, newHex, localRef in table
+        }
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

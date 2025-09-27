@@ -13,6 +13,7 @@ We use a bare repository on the local filesystem as a "remote server".
 
 import os.path
 import re
+import warnings
 
 import pytest
 
@@ -240,6 +241,13 @@ def testFetchRemote(tempDir, mainWindow, method):
     assert {"localfs/master", "localfs/new-remote-branch"} == {
         x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
+    if GitDriver.supportsFetchPorcelain():
+        assert findTextInWidget(mainWindow.statusBar2, "fetch complete")
+        assert findTextInWidget(mainWindow.statusBar2, "localfs/new-remote-branch.+created")
+        assert findTextInWidget(mainWindow.statusBar2, "localfs/no-parent.+deleted")
+    else:
+        warnings.warn("git too old")
+
 
 def testFetchRemoteBranch(tempDir, mainWindow):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
@@ -276,6 +284,12 @@ def testFetchRemoteBranch(tempDir, mainWindow):
 
     # The position of the remote's master branch should be up to date now
     assert rw.repo.branches.remote["localfs/master"].target == newHead
+
+    if GitDriver.supportsFetchPorcelain():
+        assert findTextInWidget(mainWindow.statusBar2, "fetch complete")
+        assert findTextInWidget(mainWindow.statusBar2, f"localfs/master.+{id7(oldHead)}.+{id7(newHead)}")
+    else:
+        warnings.warn("git too old")
 
 
 @pytest.mark.parametrize("pull", [False, True])
@@ -333,7 +347,7 @@ def testFetchRemoteBranchNoChange(tempDir, mainWindow):
 
     # Skip status bar test if vanilla git is pre-2.41 - we don't parse non-porcelain output
     if GitDriver.supportsFetchPorcelain():
-        assert re.search(r"no new commits", mainWindow.statusBar().currentMessage(), re.I)
+        assert findTextInWidget(mainWindow.statusBar2, "no new commits")
 
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
@@ -959,7 +973,7 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     if enabled:
         waitUntilTrue(rw.taskRunner.isBusy)
         waitUntilTrue(mainWindow.statusBar2.busyLabel.isVisible)
-        assert findTextInWidget(mainWindow.statusBar2.busyLabel, "auto-fetch")
+        assert findTextInWidget(mainWindow.statusBar2.busyLabel, "busy: auto-fetch")
 
     # Big timeout: Mac CI sometimes takes its sweet time to complete the fetch here
     waitUntilTrue(lambda: not rw.taskRunner.isBusy(), timeout=10_000)
@@ -967,6 +981,11 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     branches = {x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
     if enabled:
         assert branches == {"localfs/master", "localfs/new-remote-branch"}
+        if GitDriver.supportsFetchPorcelain():
+            assert findTextInWidget(mainWindow.statusBar2, "localfs/no-parent.+deleted")
+            assert findTextInWidget(mainWindow.statusBar2, "localfs/new-remote-branch.+created")
+        else:
+            warnings.warn("git too old")
     else:
         assert branches == {"localfs/master", "localfs/no-parent"}
 
