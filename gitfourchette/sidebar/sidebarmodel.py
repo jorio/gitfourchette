@@ -648,8 +648,11 @@ class SidebarModel(QAbstractItemModel):
                 return remoteName
             elif toolTipRole:
                 url = self.repo.remotes[remoteName].url
+                skipFetchAll = self.repo.get_remote_skipfetchall(remoteName)
                 text = "<p style='white-space: pre'>" + escape(url)
                 text += self.visibilityToolTip(node)
+                if skipFetchAll:
+                    text += "<br>" + _("(Skipped when fetching all remotes.)")
                 self.cacheToolTip(index, text)
                 return text
             elif iconKeyRole:

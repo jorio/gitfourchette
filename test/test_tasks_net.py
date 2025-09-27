@@ -929,6 +929,10 @@ def testRemoteSkipFetchAll(tempDir, mainWindow):
     dlg.ui.skipFetchAllCheckBox.setChecked(True)
     dlg.accept()
 
+    # Look for message in sidebar tooltip
+    tip = node.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search("skipped when fetching all remotes", tip, re.I)
+
     # Fetch
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
 
