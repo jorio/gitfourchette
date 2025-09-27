@@ -35,35 +35,55 @@ class VanillaFetchStatusFlag(StrEnum):
 
 
 class GitDriver(QProcess):
-    _gitPath = "/usr/bin/git"
+    _commandStem = ["/usr/bin/git"]
+
+    _cachedGitVersionValid = False
     _cachedGitVersion = ""
+    _cachedGitVersionTuple = (0,)
 
     progressMessage = Signal(str)
     progressFraction = Signal(int, int)
 
     @classmethod
+    def runSync(
+            cls,
+            *args: str,
+            directory: str = "",
+            strict: bool = False
+    ):
+        return ToolCommands.runSync(*cls._commandStem, *args, directory=directory, strict=strict)
+
+    @classmethod
     def setGitPath(cls, gitPath: str):
-        cls._gitPath = gitPath
-        cls._cachedGitVersion = ""
+        cls._commandStem = shlex.split(gitPath, posix=True)
+        cls._cachedGitVersionValid = False
 
     @classmethod
-    def gitVersion(cls) -> str:
-        if cls._cachedGitVersion:
-            return cls._cachedGitVersion
+    def _cacheGitVersion(cls):
+        if cls._cachedGitVersionValid:
+            return
 
-        text = ToolCommands.runSync(cls._gitPath, "version")
+        text = cls.runSync("version")
         text = text.removeprefix("git version").strip()
-        cls._cachedGitVersion = text
-        return text
 
-    @classmethod
-    def gitVersionTuple(cls) -> tuple[int, ...]:
-        text = cls.gitVersion()
         try:
             numberStr = text.split(maxsplit=1)[0]
         except IndexError:
             numberStr = "0"
-        return version_to_tuple(numberStr)
+
+        cls._cachedGitVersionValid = True
+        cls._cachedGitVersion = text
+        cls._cachedGitVersionTuple = version_to_tuple(numberStr)
+
+    @classmethod
+    def gitVersion(cls) -> str:
+        cls._cacheGitVersion()
+        return cls._cachedGitVersion
+
+    @classmethod
+    def gitVersionTuple(cls) -> tuple[int, ...]:
+        cls._cacheGitVersion()
+        return cls._cachedGitVersionTuple
 
     @classmethod
     def supportsFetchPorcelain(cls) -> bool:
@@ -90,6 +110,19 @@ class GitDriver(QProcess):
             table.append(match.groups())
 
         return table
+
+    def __init__(self, *args: str, parent: QObject | None = None):
+        super().__init__(parent)
+
+        self.setObjectName("GitDriver")
+
+        tokens = GitDriver._commandStem + list(args)
+        self.setProgram(tokens[0])
+        self.setArguments(tokens[1:])
+
+        self.readyReadStandardError.connect(self._onReadyReadStandardError)
+        self._stderrScrollback = io.BytesIO()
+        self._stdout = None
 
     def stdoutTable(self, pattern: str, linesep="\n", strict=True) -> list:
         stdout = self.stdoutScrollback()
@@ -146,13 +179,6 @@ class GitDriver(QProcess):
             previousTag = tag
 
         return "".join(parts)
-
-    def __init__(self, parent: QObject | None = None):
-        super().__init__(parent)
-        self.setObjectName("GitDriver")
-        self.readyReadStandardError.connect(self._onReadyReadStandardError)
-        self._stderrScrollback = io.BytesIO()
-        self._stdout = None
 
     def _onReadyReadStandardError(self):
         raw = self.readAllStandardError().data()

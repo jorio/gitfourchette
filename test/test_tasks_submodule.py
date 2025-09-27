@@ -11,7 +11,6 @@ import pygit2
 import pytest
 from pygit2.enums import SubmoduleStatus
 
-from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
 from gitfourchette.gitdriver import GitDriver
@@ -466,7 +465,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
     wd = unpackRepo(tempDir, "submoroot")
 
     if recurse:  # TODO: Figure out why this specific test needs this
-        ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
+        GitDriver.runSync("update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
     assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
@@ -518,7 +517,7 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
 
     # TODO: Figure out why this specific test needs this
-    ToolCommands.runSync(GitDriver._gitPath, "update-index", "--really-refresh", directory=f"{wd}/submosub")
+    GitDriver.runSync("update-index", "--really-refresh", directory=f"{wd}/submosub")
 
     rw = mainWindow.openRepo(wd)
 

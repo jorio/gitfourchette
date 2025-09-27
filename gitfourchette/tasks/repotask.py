@@ -603,12 +603,7 @@ class RepoTask(QObject):
         # ---------------------------------------------------------------------
         # Create GitDriver (QProcess)
 
-        gitProgram = shlex.split(settings.prefs.gitPath, posix=True)
-        tokens = gitProgram + list(args)
-
-        process = GitDriver(self)
-        process.setProgram(tokens[0])
-        process.setArguments(tokens[1:])
+        process = GitDriver(*args, parent=self)
         if workdir:
             process.setWorkingDirectory(workdir)
         ToolCommands.setQProcessEnvironment(process, env)

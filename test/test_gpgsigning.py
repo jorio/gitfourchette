@@ -12,6 +12,7 @@ import pytest
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import GpgStatus
 from gitfourchette.tasks import VerifyGpgQueue
@@ -24,14 +25,11 @@ aliceKeyId = aliceFpr[-16:]
 
 
 def runGit(*args, directory):
-    from gitfourchette import settings
-    gitProgram = settings.prefs.gitPath
-
     # FLATPAK: Prevent sandboxed git from using /tmp to pass temp files to gpg on the host
     if FLATPAK:
         os.environ["TMPDIR"] = directory
 
-    return ToolCommands.runSync(gitProgram, *args, directory=directory, strict=True)
+    return GitDriver.runSync(*args, directory=directory, strict=True)
 
 
 def runGpg(*args, directory):
