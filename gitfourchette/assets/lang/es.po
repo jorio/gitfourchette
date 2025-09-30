@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-05-21 06:02+0000\n"
+"PO-Revision-Date: 2025-09-30 12:01+0000\n"
 "Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.12-dev\n"
+"X-Generator: Weblate 5.14-dev\n"
 
 #: application.py:84 forms/aboutdialog.py:52
 msgid "The comfortable Git UI for Linux."
@@ -2483,35 +2483,35 @@ msgstr ""
 
 #: mainwindow.py:186
 msgid "&File"
-msgstr ""
+msgstr "&Archivo"
 
 #: mainwindow.py:187
 msgid "&Edit"
-msgstr ""
+msgstr "&Editar"
 
 #: mainwindow.py:188
 msgid "&View"
-msgstr ""
+msgstr "&Vista"
 
 #: mainwindow.py:189
 msgid "&Repo"
-msgstr ""
+msgstr "&Repo"
 
 #: mainwindow.py:190
 msgid "&Help"
-msgstr ""
+msgstr "&Ayuda"
 
 #: mainwindow.py:208
 msgid "&New Repository…"
-msgstr ""
+msgstr "&Nuevo Repositorio…"
 
 #: mainwindow.py:210
 msgid "Create an empty Git repo"
-msgstr ""
+msgstr "Crear un repositorio de Git vacío"
 
 #: mainwindow.py:212
 msgid "C&lone Repository…"
-msgstr ""
+msgstr "C&lonar Repositorio…"
 
 #: mainwindow.py:214
 msgid "Download a Git repo and open it"
@@ -2527,32 +2527,32 @@ msgstr ""
 
 #: mainwindow.py:224
 msgid "List of recently opened Git repos"
-msgstr ""
+msgstr "Listado de repositorios Git abiertos recientemente"
 
 #: mainwindow.py:234
 msgid "&Settings…"
-msgstr ""
+msgstr "&Ajustes…"
 
 #: mainwindow.py:244
 msgid "&Close Tab"
-msgstr ""
+msgstr "&Cerrar Pestaña"
 
 #: mainwindow.py:246
 msgid "Close current repository tab"
-msgstr ""
+msgstr "Cerrar la pestaña del repositorio actual"
 
 #: mainwindow.py:248
 msgid "&Quit"
-msgstr ""
+msgstr "&Salir"
 
 #: mainwindow.py:250
 #, python-brace-format
 msgid "Quit {app}"
-msgstr ""
+msgstr "Salir {app}"
 
 #: mainwindow.py:259
 msgid "&Find…"
-msgstr ""
+msgstr "&Encontrar…"
 
 #: mainwindow.py:261
 msgid "Search for a piece of text in commit messages, the current diff, or the name of a file"
@@ -2560,19 +2560,19 @@ msgstr ""
 
 #: mainwindow.py:263
 msgid "Find Next"
-msgstr ""
+msgstr "Encontrar Siguiente"
 
 #: mainwindow.py:265
 msgid "Find next occurrence"
-msgstr ""
+msgstr "Encontrar siguiente aparición"
 
 #: mainwindow.py:267
 msgid "Find Previous"
-msgstr ""
+msgstr "Encontrar Anterior"
 
 #: mainwindow.py:269
 msgid "Find previous occurrence"
-msgstr ""
+msgstr "Encontrar anterior aparición"
 
 #: mainwindow.py:284 trtables.py:275
 msgid "Show status bar"
@@ -2600,19 +2600,19 @@ msgstr ""
 
 #: mainwindow.py:295
 msgid "Next File"
-msgstr ""
+msgstr "Siguiente Archivo"
 
 #: mainwindow.py:296
 msgid "Previous File"
-msgstr ""
+msgstr "Archivo Anterior"
 
 #: mainwindow.py:298
 msgid "&Next Tab"
-msgstr ""
+msgstr "&Siguiente Pestaña"
 
 #: mainwindow.py:299
 msgid "&Previous Tab"
-msgstr ""
+msgstr "&Anterior Pestaña"
 
 #: mainwindow.py:306
 msgid "Navigation Log"
@@ -2620,7 +2620,7 @@ msgstr ""
 
 #: mainwindow.py:315
 msgid "&Refresh"
-msgstr ""
+msgstr "&Actualizar"
 
 #: mainwindow.py:319
 msgid "Check for changes in the repo (on the local filesystem only – will not fetch remotes)"
@@ -2628,16 +2628,16 @@ msgstr ""
 
 #: mainwindow.py:323
 msgid "Reloa&d"
-msgstr ""
+msgstr "Recarga&r"
 
 #: mainwindow.py:326
 msgid "Reopen the repo from scratch"
-msgstr ""
+msgstr "Reabrir el repositorio desde cero"
 
 #: mainwindow.py:336
 #, python-brace-format
 msgid "&About {0}"
-msgstr ""
+msgstr "& Acerca de {0}"
 
 #: mainwindow.py:340
 #, python-brace-format
@@ -2646,7 +2646,7 @@ msgstr "{0} Guía del Usuario"
 
 #: mainwindow.py:346
 msgid "Open Trash…"
-msgstr ""
+msgstr "Abrir Papelera…"
 
 #: mainwindow.py:348
 msgid "Explore changes that you may have discarded by mistake"
@@ -2654,15 +2654,16 @@ msgstr "Explora los cambios que podrías haber descartado por error"
 
 #: mainwindow.py:350
 msgid "Empty Trash…"
-msgstr ""
+msgstr "Vaciar Papelera…"
 
 #: mainwindow.py:351
+#, fuzzy
 msgid "Delete all discarded changes from the trash folder"
-msgstr ""
+msgstr "Borrar todos los cambios descartados de la papelera"
 
 #: mainwindow.py:381
 msgid "Clear List"
-msgstr ""
+msgstr "Borrar Lista"
 
 #: mainwindow.py:382
 msgid "Clear the list of recently opened repositories"
@@ -2737,7 +2738,7 @@ msgstr[1] ""
 #: mainwindow.py:657
 #, python-brace-format
 msgid "This will free up {0} on disk."
-msgstr ""
+msgstr "Esto liberará {0} en el disco."
 
 #: mainwindow.py:658 tasks/branchtasks.py:185 tasks/branchtasks.py:222
 #: tasks/indextasks.py:164 tasks/indextasks.py:240 tasks/indextasks.py:278
@@ -2756,7 +2757,7 @@ msgstr "Nuevo repositorio"
 
 #: mainwindow.py:676
 msgid "&Create repo here"
-msgstr ""
+msgstr "&Crear repositorio aquí"
 
 #: mainwindow.py:694
 #, python-brace-format
