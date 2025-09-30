@@ -377,27 +377,27 @@ class FileList(QListView):
 
     # -------------------------------------------------------------------------
 
-    def confirmBatch(self, callback: Callable[[Patch], None], title: str, prompt: str, threshold: int = 3):
-        patches = list(self.selectedPatches())
+    def confirmBatch(self, callback: Callable[[FatDelta], None], title: str, prompt: str, threshold: int = 3):
+        fatDeltas = list(self.selectedDeltas())
 
         def runBatch():
             errors = MultiFileError()
 
-            for patch in patches:
+            for fatDelta in fatDeltas:
                 try:
-                    callback(patch)
+                    callback(fatDelta)
                     errors.add_file_success()
                 except OSError as exc:  # typically FileNotFoundError
-                    errors.add_file_error(patch.delta.new_file.path, exc)
+                    errors.add_file_error(fatDelta.path, exc)
 
             if errors:
                 showMultiFileErrorMessage(self, errors, title)
 
-        if len(patches) <= threshold:
+        if len(fatDeltas) <= threshold:
             runBatch()
             return
 
-        numFiles = len(patches)
+        numFiles = len(fatDeltas)
 
         qmb = askConfirmation(
             self,
@@ -407,7 +407,7 @@ class FileList(QListView):
             QMessageBox.StandardButton.YesAll | QMessageBox.StandardButton.Cancel,
             show=False)
 
-        addULToMessageBox(qmb, [p.delta.new_file.path for p in patches])
+        addULToMessageBox(qmb, [d.path for d in fatDeltas])
 
         qmb.button(QMessageBox.StandardButton.YesAll).clicked.connect(runBatch)
         qmb.show()

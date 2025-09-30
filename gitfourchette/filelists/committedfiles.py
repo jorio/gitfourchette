@@ -10,7 +10,7 @@ import os
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import FatDelta
+from gitfourchette.gitdriver import FatDelta, ABDeltaFile
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -126,21 +126,22 @@ class CommittedFiles(FileList):
         assert len(patches) == 1
         RestoreRevisionToWorkdir.invoke(self, patches[0], old=True)
 
-    def saveRevisionAsTempFile(self, patch: Patch, beforeCommit: bool = False):
+    def saveRevisionAsTempFile(self, delta: FatDelta, beforeCommit: bool = False):
         # May raise FileNotFoundError!
-        name, blob, _dummy = self.getFileRevisionInfo(patch, beforeCommit)
+        name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
+        data = diffFile.read(self.repo)
 
         tempPath = os.path.join(qTempDir(), name)
 
         with open(tempPath, "wb") as f:
-            f.write(blob.data)
+            f.write(data)
 
         return tempPath
 
     # TODO: Send all files to text editor in one command?
     def openRevision(self, beforeCommit: bool = False):
-        def run(patch: Patch):
-            tempPath = self.saveRevisionAsTempFile(patch, beforeCommit)
+        def run(delta: FatDelta):
+            tempPath = self.saveRevisionAsTempFile(delta, beforeCommit)
             ToolProcess.startTextEditor(self, tempPath)
 
         if beforeCommit:
@@ -157,12 +158,13 @@ class CommittedFiles(FileList):
                 f.write(data)
             os.chmod(path, mode)
 
-        def run(patch: Patch):
+        def run(delta: FatDelta):
             # May raise FileNotFoundError!
-            name, blob, diffFile = self.getFileRevisionInfo(patch, beforeCommit)
+            name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
+            data = diffFile.read(self.repo)
 
             qfd = PersistentFileDialog.saveFile(self, "SaveFile", _("Save file revision as"), name)
-            qfd.fileSelected.connect(lambda path: dump(path, diffFile.mode, blob.data))
+            qfd.fileSelected.connect(lambda path: dump(path, diffFile.mode, data))
             qfd.show()
 
         if beforeCommit:
@@ -172,17 +174,17 @@ class CommittedFiles(FileList):
 
         self.confirmBatch(run, title, _("Really export <b>{n} files</b>?"))
 
-    def getFileRevisionInfo(self, patch: Patch, beforeCommit: bool = False) -> tuple[str, Blob, DiffFile]:
+    def getFileRevisionInfo(self, fatDelta: FatDelta, beforeCommit: bool = False) -> tuple[str, ABDeltaFile]:
+        delta = fatDelta.distillOldNew(self.navContext)
+
         if beforeCommit:
-            diffFile = patch.delta.old_file
-            if patch.delta.status == DeltaStatus.ADDED:
+            diffFile = delta.old
+            if delta.status == "A":
                 raise FileNotFoundError(errno.ENOENT, _("This file didn’t exist before the commit."), diffFile.path)
         else:
-            diffFile = patch.delta.new_file
-            if patch.delta.status == DeltaStatus.DELETED:
+            diffFile = delta.new
+            if delta.status == "D":
                 raise FileNotFoundError(errno.ENOENT, _("This file was deleted by the commit."), diffFile.path)
-
-        blob = self.repo.peel_blob(diffFile.id)
 
         atSuffix = shortHash(self.commitId)
         if beforeCommit:
@@ -191,11 +193,11 @@ class CommittedFiles(FileList):
         name, ext = os.path.splitext(os.path.basename(diffFile.path))
         name = F"{name}@{atSuffix}{ext}"
 
-        return name, blob, diffFile
+        return name, diffFile
 
     def openWorkingCopyRevision(self):
-        def run(patch: Patch):
-            path = self.repo.in_workdir(patch.delta.new_file.path)
+        def run(delta: FatDelta):
+            path = self.repo.in_workdir(delta.path)
             if not os.path.isfile(path):
                 raise FileNotFoundError(_("There’s no file at this path in the working copy."))
             ToolProcess.startTextEditor(self, path)

@@ -328,7 +328,7 @@ def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
 @pytest.mark.skipif(MACOS and not OFFSCREEN, reason="flaky on macOS unless executed offscreen")
-def testEditFileInExternalEditor(tempDir, mainWindow):
+def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
