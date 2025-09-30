@@ -222,7 +222,7 @@ class DiffDocument:
 
             # Keep looking for first hunk
             if firstChar != "@" and hunkID < 0:
-                if rawLine.startswith("Binary files"):
+                if rawLine.startswith(("Binary files", "GIT binary patch")):
                     isBinary = True
                 elif rawLine.startswith("index "):
                     # Complete existing delta with actual hashes

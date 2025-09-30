@@ -601,8 +601,8 @@ class FileList(QListView):
             return -1
 
     def savePatchAs(self):
-        patches = list(self.selectedPatches())
-        ExportPatchCollection.invoke(self, patches)
+        deltas = [fat.distillOldNew(self.navContext) for fat in self.selectedDeltas()]
+        ExportPatchCollection.invoke(self, deltas, self.commitId)
 
     def revertPaths(self):
         patches = list(self.selectedPatches())

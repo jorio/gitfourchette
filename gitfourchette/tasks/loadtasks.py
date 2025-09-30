@@ -11,7 +11,7 @@ from contextlib import suppress
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import FatDelta, ABDeltaFile
+from gitfourchette.gitdriver import FatDelta, ABDeltaFile, ABDelta
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -252,6 +252,40 @@ class LoadPatch(RepoTask):
             delta = fatDelta.distillOldNew(locator.context)
             dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta.old, delta.new, locator)
 
+    @classmethod
+    def diffCommandPreamble(cls) -> list[str]:
+        return [
+            "-c", "core.abbrev=no",
+            "-c", f"diff.context={settings.prefs.contextLines}",
+        ]
+
+    @classmethod
+    def buildDiffCommand(cls, delta: ABDelta, commit: Oid = NULL_OID, binary=False) -> list[str]:
+        if delta.context == NavContext.UNSTAGED:
+            if delta.status == "?":  # untracked
+                tokens = ["diff", "--", "/dev/null", delta.new.path]
+            else:
+                tokens = ["diff", "--", delta.new.path]
+
+        elif delta.context == NavContext.STAGED:
+            if delta.old.path != delta.new.path:  # renames
+                tokens = ["diff", "--cached", "--", delta.old.path, delta.new.path]
+            else:
+                tokens = ["diff", "--cached", "--", delta.new.path]
+
+        elif delta.context == NavContext.COMMITTED:
+            tokens = ["show", "--diff-merges=1", "-p", "--format=", str(commit), "--", delta.new.path]
+
+        else:
+            raise NotImplementedError()
+
+        if binary:
+            tokens.insert(1, "--binary")
+
+        command = cls.diffCommandPreamble()
+        command.extend(tokens)
+        return command
+
     def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair]:
         delta = fatDelta.distillOldNew(locator.context)
@@ -302,28 +336,9 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Get the patch
 
-        if delta.context == NavContext.UNSTAGED:
-            if delta.status == "?":  # untracked
-                tokens = ["diff", "--", "/dev/null", delta.new.path]
-            else:
-                tokens = ["diff", "--", delta.new.path]
-        elif delta.context == NavContext.STAGED:
-            if delta.old.path != delta.new.path:  # renames
-                tokens = ["diff", "--cached", "--", delta.old.path, delta.new.path]
-            else:
-                tokens = ["diff", "--cached", "--", delta.new.path]
-        elif delta.context == NavContext.COMMITTED:
-            tokens = ["show", "--diff-merges=1", "-p", "--format=",
-                      str(locator.commit), "--", delta.new.path]
-        else:
-            raise NotImplementedError()
-
-        driver = yield from self.flowCallGit(
-            "-c", "core.abbrev=no",
-            "-c", f"diff.context={settings.prefs.contextLines}",
-            *tokens, autoFail=False)
+        tokens = LoadPatch.buildDiffCommand(delta, locator.commit)
+        driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()
-        # ---------------------------------------------------------------------
 
         # Don't load large diffs.
         threshold = settings.prefs.largeFileThresholdKB * 1024

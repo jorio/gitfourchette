@@ -4,130 +4,114 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import itertools
-import re
-from collections.abc import Iterable
 from pathlib import Path
 
-from gitfourchette import settings
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
-from gitfourchette.qt import *
+from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 
 
-def contextLines():
-    return settings.prefs.contextLines
+def savePatch(task: RepoTask, patch: str, fileName=""):
+    if not patch:
+        raise AbortTask(_("Nothing to export. The patch is empty."), icon="information")
+
+    # Sanitize filename
+    for c in "?/\\*~<>|:":
+        fileName = fileName.replace(c, "_")
+
+    qfd = PersistentFileDialog.saveFile(task.parentWidget(), "SaveFile", task.name(), fileName)
+    savePath = yield from task.flowFileDialog(qfd)
+
+    yield from task.flowEnterWorkerThread()
+    Path(savePath).write_text(patch)
+
+    if task.repo.is_in_workdir(savePath):
+        task.effects |= TaskEffects.Workdir  # invalidate workdir if saved file to it
 
 
-class ComposePatch(RepoTask):
-    def composePatch(self, patches: Iterable[Patch], fileName=""):
-        yield from self.flowEnterWorkerThread()
-
-        composed = b""
-        names = set()
-        skippedBinaryFiles = []
-
-        for patch in patches:
-            if not patch:
-                continue
-            if patch.delta.status == DeltaStatus.DELETED:
-                diffFile = patch.delta.old_file
-            else:
-                diffFile = patch.delta.new_file
-
-            data = patch.data
-
-            if patch.delta.is_binary:
-                startOfLastLine = data.rfind(b"\n", 0, -1) + 1
-                lastLine = data[startOfLastLine:]
-                if re.search(rb"^Binary files .+ and .+ differ", lastLine):
-                    skippedBinaryFiles.append(diffFile.path)
-                    continue
-
-            diffPatchData = patch.data
-            composed += diffPatchData
-            assert composed.endswith(b"\n")
-            names.add(Path(diffFile.path).stem)
-
-        yield from self.flowEnterUiThread()
-
-        if skippedBinaryFiles:
-            sorry = _("{app} cannot export binary patches from a hand-picked selection of files.", app=qAppName())
-            if not composed:
-                raise AbortTask(sorry)
-            sorry += " "
-            sorry += _n("Binary file will be omitted from patch file:", "{n} binary files will be omitted from patch file:", len(skippedBinaryFiles))
-            yield from self.flowConfirm(self.name(), sorry, detailList=skippedBinaryFiles, verb=_("Proceed"))
-
-        if not composed:
-            raise AbortTask(_("Nothing to export. The patch is empty."), icon="information")
-
-        # Fallback filename
+class ExportCommitAsPatch(RepoTask):
+    def flow(self, oid: Oid, fileName=""):
         if not fileName:
-            fileName = ", ".join(sorted(names)) + ".patch"
+            commit = self.repo.peel_commit(oid)
+            summary, _dummy = messageSummary(commit.message, elision="")
+            summary = summary[:50].strip()
+            fileName = f"{self.repo.repo_name()} - {shortHash(oid)} - {summary}.patch"
 
-        # Sanitize filename
-        for c in "?/\\*~<>|:":
-            fileName = fileName.replace(c, "_")
+        preamble = LoadPatch.diffCommandPreamble()
+        driver = yield from self.flowCallGit(
+            *preamble, "show", "--binary", "--diff-merges=1", "-p", "--format=", str(oid))
+        patch = driver.stdoutScrollback()
 
-        qfd = PersistentFileDialog.saveFile(self.parentWidget(), "SaveFile", self.name(), fileName)
-        savePath = yield from self.flowFileDialog(qfd)
-
-        yield from self.flowEnterWorkerThread()
-        with open(savePath, "wb") as f:
-            f.write(composed)
-
-        if self.repo.is_in_workdir(savePath):
-            self.effects |= TaskEffects.Workdir  # invalidate workdir if saved file to it
-
-
-class ExportCommitAsPatch(ComposePatch):
-    def flow(self, oid: Oid):
-        yield from self.flowEnterWorkerThread()
-
-        diffs, _dummy = self.repo.commit_diffs(oid, show_binary=True, context_lines=contextLines())
-        patches = itertools.chain.from_iterable((p for p in d) for d in diffs)
-
-        commit = self.repo.peel_commit(oid)
-        summary, _dummy = messageSummary(commit.message, elision="")
-        summary = summary.strip()[:50].strip()
-        initialName = f"{self.repo.repo_name()} - {shortHash(oid)} - {summary}.patch"
-
-        yield from self.composePatch(patches, initialName)
+        yield from savePatch(self, patch, fileName)
 
 
 class ExportStashAsPatch(ExportCommitAsPatch):
     def flow(self, oid: Oid):
-        yield from self.flowEnterWorkerThread()
-
-        diffs, _dummy = self.repo.commit_diffs(oid, show_binary=True, context_lines=contextLines())
-        patches = itertools.chain.from_iterable((p for p in d) for d in diffs)
-
         commit = self.repo.peel_commit(oid)
         message = _p("patch file name, please keep it short",
                      "stashed on {commit}", commit=shortHash(commit.parent_ids[0]))
-        coreMessage = strip_stash_message(commit.message)
-        initialName = f"{self.repo.repo_name()} - {message} - {coreMessage}.patch"
+        summary = strip_stash_message(commit.message)[:50].strip()
+        fileName = f"{self.repo.repo_name()} - {message} - {summary}.patch"
+        yield from super().flow(oid, fileName)
 
-        yield from self.composePatch(patches, initialName)
 
-
-class ExportWorkdirAsPatch(ComposePatch):
+class ExportWorkdirAsPatch(RepoTask):
     def flow(self):
-        yield from self.flowEnterWorkerThread()
+        patches = []
 
-        diff = self.repo.get_uncommitted_changes(show_binary=True, context_lines=contextLines())
-        patches = (p for p in diff)
+        # Diff the workdir to HEAD (except untracked files)
+        preamble = LoadPatch.diffCommandPreamble()
+        driver = yield from self.flowCallGit(*preamble, "diff", "--binary", "HEAD")
+        patches.append(driver.stdoutScrollback())
 
+        # Diff untracked files.
+        # This requires fresh workdir status in RepoModel, which we probably have already
+        # because this task requires the user to click on the workdir first.
+        if not self.repoModel.workdirStatusReady or self.repoModel.workdirStale:
+            raise NotImplementedError("Export workdir requires fresh status")
+
+        for fatDelta in self.repoModel.workdirStatus:
+            if not fatDelta.isUntracked():
+                continue
+            driver = yield from self.flowCallGit(*preamble, "diff", "--binary", "--", "/dev/null", fatDelta.path,
+                                                 autoFail=False)
+            patches.append(driver.stdoutScrollback())
+
+        # Compose the patch
+        assert all(not patch or patch.endswith("\n") for patch in patches)
+        patch = "".join(patches)
+
+        # Compose filename
         message = _p("patch file name, please keep it short",
                      "uncommitted changes on {commit}", commit=shortHash(self.repo.head_commit_id))
-        initialName = f"{self.repo.repo_name()} - {message}.patch"
+        fileName = f"{self.repo.repo_name()} - {message}.patch"
 
-        yield from self.composePatch(patches, initialName)
+        yield from savePatch(self, patch, fileName)
 
 
-class ExportPatchCollection(ComposePatch):
-    def flow(self, patches: list[Patch]):
-        yield from self.composePatch(patches)
+class ExportPatchCollection(RepoTask):
+    def flow(self, deltas: list[ABDelta], commit: Oid):
+        names = []
+        patches = []
+
+        for delta in deltas:
+            # Get filename stem
+            file = delta.old if delta.status == "D" else delta.new
+            name = Path(file.path).stem
+            names.append(name)
+
+            # Get patch (run 'git diff')
+            tokens = LoadPatch.buildDiffCommand(delta, commit, binary=True)
+            driver = yield from self.flowCallGit(*tokens, autoFail=False)
+            patch = driver.stdoutScrollback()
+            patches.append(patch)
+
+        # Compose patch and filename
+        assert all(not patch or patch.endswith("\n") for patch in patches)
+        composed = "".join(patches)
+        fileName = ", ".join(names) + ".patch"
+
+        yield from savePatch(self, composed, fileName)

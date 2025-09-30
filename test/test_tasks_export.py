@@ -51,24 +51,22 @@ def testExportPatchFromEmptyWorkdir(tempDir, mainWindow):
     acceptQMessageBox(rw, "patch is empty")
 
 
-def testExportPatchFromHandPickedSelectionOfBinaryFiles(tempDir, mainWindow):
+def testExportPatchContainingBinaryFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "\x00\x01\x02\x03")
     writeFile(f"{wd}/untracked.txt", "hello")
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
-    rw.dirtyFiles.savePatchAs()
-    acceptQMessageBox(rw, "cannot export binary patches from a hand-picked selection of files")
 
     rw.dirtyFiles.selectAll()
     rw.dirtyFiles.savePatchAs()
-    acceptQMessageBox(rw, "cannot export binary patches from a hand-picked selection of files"
-                          ".+binary file will be omitted.+master.txt")
-    acceptQFileDialog(rw, "export patch", f"{wd}/nobinary.patch")
+    acceptQFileDialog(rw, "export patch", f"{wd}/hello.patch")
 
-    assert "master.txt" not in readTextFile(f"{wd}/nobinary.patch")
-    assert "untracked.txt" in readTextFile(f"{wd}/nobinary.patch")
+    patchData = readTextFile(f"{wd}/hello.patch")
+    assert "master.txt" in patchData
+    assert "GIT binary patch" in patchData
+    assert "untracked.txt" in readTextFile(f"{wd}/hello.patch")
 
 
 def testExportPatchFromCommit(tempDir, mainWindow):
