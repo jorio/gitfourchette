@@ -81,6 +81,10 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
     loc = NavLocator.inCommit(oid, path)
     rw.jump(loc, check=True)
 
+    # Make sure parent directories are recreated
+    if result not in ["[NOP]", "[DEL]"]:
+        shutil.rmtree(f"{wd}/c")
+
     triggerContextMenuAction(rw.committedFiles.viewport(), f"restore/{side}.+commit")
     if result == "[NOP]":
         acceptQMessageBox(rw, "working copy.+already matches.+revision")

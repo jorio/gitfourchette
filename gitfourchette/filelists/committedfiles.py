@@ -116,15 +116,17 @@ class CommittedFiles(FileList):
     def saveOldRevision(self):
         self.saveRevisionAs(beforeCommit=True)
 
+    def _restoreRevision(self, old: bool):
+        fatDeltas = list(self.selectedDeltas())
+        assert len(fatDeltas) == 1
+        delta = fatDeltas[0].distillOldNew(self.navContext)
+        RestoreRevisionToWorkdir.invoke(self, delta, old=old)
+
     def restoreNewRevision(self):
-        patches = list(self.selectedPatches())
-        assert len(patches) == 1
-        RestoreRevisionToWorkdir.invoke(self, patches[0], old=False)
+        self._restoreRevision(old=False)
 
     def restoreOldRevision(self):
-        patches = list(self.selectedPatches())
-        assert len(patches) == 1
-        RestoreRevisionToWorkdir.invoke(self, patches[0], old=True)
+        self._restoreRevision(old=True)
 
     def saveRevisionAsTempFile(self, delta: FatDelta, beforeCommit: bool = False):
         # May raise FileNotFoundError!

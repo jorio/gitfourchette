@@ -8,10 +8,11 @@ import logging
 import os
 import shutil
 from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import argsIf, FatDelta
+from gitfourchette.gitdriver import argsIf, FatDelta, ABDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -468,18 +469,19 @@ class ApplyPatchData(RepoTask):
 
 
 class RestoreRevisionToWorkdir(RepoTask):
-    def flow(self, patch: Patch, old: bool):
+    def flow(self, delta: ABDelta, old: bool):
         if old:
             preposition = _p("preposition slotted into '...BEFORE this commit'", "before")
-            diffFile = patch.delta.old_file
-            delete = patch.delta.status == DeltaStatus.ADDED
+            diffFile = delta.old
+            delete = delta.status == "A"
         else:
             preposition = _p("preposition slotted into '...AT this commit'", "at")
-            diffFile = patch.delta.new_file
-            delete = patch.delta.status == DeltaStatus.DELETED
+            diffFile = delta.new
+            delete = delta.status == "D"
 
         path = self.repo.in_workdir(diffFile.path)
-        existsNow = os.path.isfile(path)
+        pathObj = Path(path)
+        existsNow = pathObj.is_file()
 
         if not existsNow and delete:
             message = _("Your working copy of {path} already matches the revision {preposition} this commit.",
@@ -502,13 +504,12 @@ class RestoreRevisionToWorkdir(RepoTask):
         self.effects |= TaskEffects.Workdir
 
         if delete:
-            os.unlink(path)
+            pathObj.unlink()
         else:
-            blob = self.repo.peel_blob(diffFile.id)
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "wb") as f:
-                f.write(blob.data)
-            os.chmod(path, diffFile.mode)
+            data = diffFile.read(self.repo)
+            pathObj.parent.mkdir(parents=True, exist_ok=True)
+            pathObj.write_bytes(data)
+            pathObj.chmod(diffFile.mode)
 
         self.postStatus = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
         self.jumpTo = NavLocator.inUnstaged(diffFile.path)
