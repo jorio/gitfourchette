@@ -355,7 +355,7 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     assert b"a1@49322bb" in readFile(scratchPath, timeout=1000, unlink=True)
 
 
-def testEditFileInExternalDiffTool(tempDir, mainWindow):
+def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"), check=True)

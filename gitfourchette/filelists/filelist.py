@@ -424,30 +424,32 @@ class FileList(QListView):
         self.confirmBatch(self._openInDiffTool, _("Open in external diff tool"),
                           _("Really open <b>{n} files</b> in external diff tool?"))
 
-    def _openInDiffTool(self, patch: Patch):
-        oldDiffFile = patch.delta.old_file
-        newDiffFile = patch.delta.new_file
+    def _openInDiffTool(self, fatDelta: FatDelta):
+        delta = fatDelta.distillOldNew(self.navContext)
 
-        if newDiffFile.id == NULL_OID:
+        if delta.new.isId0():
             raise FileNotFoundError(_("Can’t open external diff tool on a deleted file."))
 
-        if oldDiffFile.id == NULL_OID:
+        if delta.old.isId0():
             raise FileNotFoundError(_("Can’t open external diff tool on a new file."))
 
         diffDir = qTempDir()
+        repo = self.repo
 
-        if self.navContext == NavContext.UNSTAGED:
+        if delta.context == NavContext.UNSTAGED:
             # Unstaged: compare indexed state to workdir file
-            oldPath = dumpTempBlob(self.repo, diffDir, oldDiffFile, "INDEXED")
-            newPath = self.repo.in_workdir(newDiffFile.path)
-        elif self.navContext == NavContext.STAGED:
+            oldPath = delta.old.dump(repo, diffDir, "[INDEXED]")
+            newPath = repo.in_workdir(delta.new.path)
+        elif delta.context == NavContext.STAGED:
             # Staged: compare HEAD state to indexed state
-            oldPath = dumpTempBlob(self.repo, diffDir, oldDiffFile, "HEAD")
-            newPath = dumpTempBlob(self.repo, diffDir, newDiffFile, "STAGED")
-        else:
+            oldPath = delta.old.dump(repo, diffDir, "[HEAD]")
+            newPath = delta.new.dump(repo, diffDir, "[STAGED]")
+        elif delta.context == NavContext.COMMITTED:
             # Committed: compare parent state to this commit
-            oldPath = dumpTempBlob(self.repo, diffDir, oldDiffFile, "OLD")
-            newPath = dumpTempBlob(self.repo, diffDir, newDiffFile, "NEW")
+            oldPath = delta.old.dump(repo, diffDir, "[OLD]")
+            newPath = delta.new.dump(repo, diffDir, "[NEW]")
+        else:
+            raise NotImplementedError(f"unsupported context {delta.context}")
 
         return ToolProcess.startDiffTool(self, oldPath, newPath)
 
@@ -640,8 +642,9 @@ class FileList(QListView):
         return self.flModel.deltas[row]
 
     def openHeadRevision(self):
-        def run(patch: Patch):
-            tempPath = dumpTempBlob(self.repo, qTempDir(), patch.delta.old_file, "HEAD")
+        def run(fatDelta: FatDelta):
+            delta = fatDelta.distillOldNew(self.navContext)
+            tempPath = delta.old.dump(self.repo, qTempDir(), "[HEAD]")
             ToolProcess.startTextEditor(self, tempPath)
 
         self.confirmBatch(run, _("Open HEAD version of file"),

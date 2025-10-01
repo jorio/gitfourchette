@@ -207,6 +207,20 @@ class ABDeltaFile:
         blobId = repo.create_blob_fromworkdir(self.path)
         return repo.peel_blob(blobId)
 
+    def dump(self, repo: Repo, directory: str, namePrefix: str) -> str:
+        data = self.read(repo)
+        relPathObj = Path(self.path)
+        pathObj = Path(directory, f"{namePrefix}{relPathObj.name}")
+        pathObj.write_bytes(data)
+
+        """
+        # Make it read-only
+        mode = pathObj.stat().st_mode
+        pathObj.chmod(mode & ~0o222)  # ~(write, write, write)
+        """
+
+        return str(pathObj)
+
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o},{self.size})"
 
