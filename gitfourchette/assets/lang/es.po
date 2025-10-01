@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-09-30 12:01+0000\n"
+"PO-Revision-Date: 2025-10-02 07:01+0000\n"
 "Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
@@ -2898,7 +2898,7 @@ msgstr ""
 #: nav.py:76
 msgctxt "NavContext"
 msgid "Unknown"
-msgstr ""
+msgstr "Desconocido"
 
 #: remotelink.py:94
 msgid "Remote operation interrupted by user."
@@ -3202,7 +3202,7 @@ msgstr ""
 
 #: sidebar/sidebar.py:160
 msgid "&New Branch…"
-msgstr ""
+msgstr "&Nueva Rama…"
 
 #: sidebar/sidebar.py:162 sidebar/sidebar.py:418
 msgid "Sort By"
@@ -3408,7 +3408,7 @@ msgstr ""
 #: sidebar/sidebarmodel.py:569
 #, python-brace-format
 msgid "{0} (local branch)"
-msgstr ""
+msgstr "{0} (rama local)"
 
 #: sidebar/sidebarmodel.py:575
 #, python-brace-format
@@ -3460,7 +3460,7 @@ msgstr ""
 #: sidebar/sidebarmodel.py:674
 #, python-brace-format
 msgid "Tag {0}"
-msgstr ""
+msgstr "Etiqueta {0}"
 
 #: sidebar/sidebarmodel.py:701
 #, python-brace-format
