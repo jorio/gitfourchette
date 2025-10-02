@@ -454,8 +454,8 @@ class FileList(QListView):
         return ToolProcess.startDiffTool(self, oldPath, newPath)
 
     def showInFolder(self):
-        def run(entry: Patch):
-            relPath = entry.delta.new_file.path
+        def run(fatDelta: FatDelta):
+            relPath = fatDelta.path
             path = self.repo.in_workdir(relPath)
             path = os.path.normpath(path)  # get rid of any trailing slashes (submodules)
             if not os.path.exists(path):  # check exists, not isfile, for submodules
