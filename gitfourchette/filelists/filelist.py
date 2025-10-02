@@ -652,11 +652,12 @@ class FileList(QListView):
 
     def wantPartialStash(self):
         paths = set()
-        for patch in self.selectedPatches():
+        for fatDelta in self.selectedDeltas():
             # Add both old and new paths so that both are pre-selected
             # if we're stashing a rename.
-            paths.add(patch.delta.old_file.path)
-            paths.add(patch.delta.new_file.path)
+            delta = fatDelta.distillOldNew(self.navContext)
+            paths.add(delta.old.path)
+            paths.add(delta.new.path)
         NewStash.invoke(self, list(paths))
 
     def openSubmoduleTabs(self):
