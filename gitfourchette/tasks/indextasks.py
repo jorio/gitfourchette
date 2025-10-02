@@ -452,8 +452,8 @@ class ApplyPatchFileReverse(ApplyPatchFile):
 
 
 class ApplyPatchData(RepoTask):
-    def flow(self, patchData: bytes, title: str, question: str, reverse: bool = False, context: int = -1):
-        assert isinstance(patchData, bytes)
+    def flow(self, patchData: str, title: str, question: str, reverse: bool = False, context: int = -1):
+        assert isinstance(patchData, str), "patchData should be str"
 
         if not patchData:
             raise AbortTask(_("There’s nothing to apply in the selection."))
@@ -461,7 +461,7 @@ class ApplyPatchData(RepoTask):
         template = os.path.join(qTempDir(), self.__class__.__name__ + "-XXXXXX.patch")
         tempPatch = QTemporaryFile(template, self)
         tempPatch.open()
-        tempPatch.write(patchData)
+        tempPatch.write(patchData.encode("utf-8"))
         tempPatch.close()
         path = tempPatch.fileName()
 
