@@ -261,30 +261,30 @@ class LoadPatch(RepoTask):
 
     @classmethod
     def buildDiffCommand(cls, delta: ABDelta, commit: Oid = NULL_OID, binary=False) -> list[str]:
+        tokens = cls.diffCommandPreamble()
+
+        paths = [delta.old.path, delta.new.path]
+
         if delta.context == NavContext.UNSTAGED:
+            tokens.extend(["diff"])
             if delta.status == "?":  # untracked
-                tokens = ["diff", "--", "/dev/null", delta.new.path]
-            else:
-                tokens = ["diff", "--", delta.new.path]
-
+                paths[0] = "/dev/null"
         elif delta.context == NavContext.STAGED:
-            if delta.old.path != delta.new.path:  # renames
-                tokens = ["diff", "--cached", "--", delta.old.path, delta.new.path]
-            else:
-                tokens = ["diff", "--cached", "--", delta.new.path]
-
+            tokens.extend(["diff", "--cached"])
         elif delta.context == NavContext.COMMITTED:
-            tokens = ["show", "--diff-merges=1", "-p", "--format=", str(commit), "--", delta.new.path]
-
+            tokens.extend(["show", "--diff-merges=1", "-p", "--format=", str(commit)])
         else:
             raise NotImplementedError()
 
         if binary:
-            tokens.insert(1, "--binary")
+            tokens.append("--binary")
 
-        command = cls.diffCommandPreamble()
-        command.extend(tokens)
-        return command
+        tokens.append("--")
+        tokens.append(paths[0])
+        if paths[0] != paths[1]:
+            tokens.append(paths[1])
+
+        return tokens
 
     def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair]:
