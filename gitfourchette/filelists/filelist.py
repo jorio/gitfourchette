@@ -14,13 +14,14 @@ from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.gitdriver import FatDelta
+from gitfourchette.gitdriver import FatDelta, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import *
+from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -607,9 +608,12 @@ class FileList(QListView):
         ExportPatchCollection.invoke(self, deltas, self.commitId)
 
     def revertPaths(self):
-        patches = list(self.selectedPatches())
-        assert len(patches) == 1
-        patchData = patches[0].data
+        # TODO: Convert into a task? (So we can build the patch asynchronously)
+        fatDeltas = list(self.selectedDeltas())
+        assert len(fatDeltas) == 1
+        delta = fatDeltas[0].distillOldNew(self.navContext)
+        tokens = LoadPatch.buildDiffCommand(delta, self.commitId, binary=True)
+        patchData = GitDriver.runSync(*tokens, directory=self.repo.workdir, strict=True)
         ApplyPatchData.invoke(self, patchData, reverse=True,
                               title=_("Revert changes in file"),
                               question=_("Do you want to revert this patch?"))
