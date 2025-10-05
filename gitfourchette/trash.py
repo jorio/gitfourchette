@@ -99,31 +99,13 @@ class Trash:
         shutil.copyfile(fullPath, trashPath, follow_symlinks=False)
         return trashPath
 
-    def backupPatch(self, workdir: str, data: bytes, originalPath: str = ""):
+    def backupPatch(self, workdir: str, text: str, originalPath: str = "") -> str:
         trashFile = self.newFile(workdir, ext=".patch", originalPath=originalPath)
         if not trashFile:
             return ""
-        with open(trashFile, 'wb') as f:
-            f.write(data)
+        with open(trashFile, "w", encoding="utf-8") as f:
+            f.write(text)
         return trashFile
-
-    def backupPatches(self, workdir: str, patches: list[Patch]):
-        for patch in patches:
-            path = patch.delta.new_file.path
-
-            if patch.delta.status == DeltaStatus.DELETED:
-                # It doesn't make sense to back up a file deletion
-                continue
-
-            elif patch.delta.status == DeltaStatus.UNTRACKED and patch.delta.new_file.mode == FileMode.TREE:
-                self.backupTree(workdir, path)
-
-            elif patch.delta.status == DeltaStatus.UNTRACKED or patch.delta.is_binary:
-                self.backupFile(workdir, path)
-
-            else:
-                # Write text patch
-                self.backupPatch(workdir, patch.data, path)
 
     def backupTree(self, workdir: str, treePath: str):
         treeFullPath = os.path.join(workdir, treePath)

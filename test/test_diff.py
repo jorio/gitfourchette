@@ -200,6 +200,29 @@ def testDiscardHunkNoEOL(tempDir, mainWindow):
     assert NEW_CONTENTS not in readFile(f"{wd}/master.txt").decode('utf-8')
 
 
+def testBackUpDiscardedHunkInTrash(tempDir, mainWindow):
+    newContents = "this change has been trashed"
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", newContents)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
+    rw.diffView.setFocus()
+    rw.diffView.discardHunk(0)
+    acceptQMessageBox(rw, "discard.+hunk")
+
+    from gitfourchette.trash import Trash
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    triggerMenuAction(mainWindow.menuBar(), "file/revert patch file")
+    acceptQFileDialog(rw, "patch", f"{trash.trashDir}/{trash.trashFiles[0]}")
+    acceptQMessageBox(rw, "do you want to revert patch file")
+    assert readTextFile(f"{wd}/master.txt") == newContents
+
+
 def testSubpatchNoEOL(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

@@ -355,13 +355,13 @@ class DiffView(CodeView):
         purpose |= PatchPurpose.Lines
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractSelection(reverse)
-        ApplyPatch.invoke(self, self.currentFatDelta, patchData, purpose)
+        ApplyPatch.invoke(self, self.currentABDelta, patchData, purpose)
 
     def fireApplyHunk(self, hunkID: int, purpose: PatchPurpose):
         purpose |= PatchPurpose.Hunk
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractHunk(hunkID, reverse)
-        ApplyPatch.invoke(self, self.currentFatDelta, patchData, purpose)
+        ApplyPatch.invoke(self, self.currentABDelta, patchData, purpose)
 
     def onMiddleClick(self):
         if not settings.prefs.middleClickToStage:

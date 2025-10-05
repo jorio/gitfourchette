@@ -136,7 +136,7 @@ class DirtyFiles(FileList):
 
     def discard(self):
         deltas = list(self.selectedDeltas())
-        DiscardFiles.invoke(self, deltas)
+        DiscardFiles.invoke(self, deltas, self.navContext)
 
     def discardModeChanges(self):
         deltas = list(self.selectedDeltas())

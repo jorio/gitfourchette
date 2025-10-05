@@ -14,9 +14,10 @@ from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.gitdriver import argsIf, FatDelta, ABDelta
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator
+from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
@@ -121,7 +122,7 @@ class StageFiles(_BaseStagingTask):
 
 
 class DiscardFiles(_BaseStagingTask):
-    def flow(self, deltas: list[FatDelta]):
+    def flow(self, deltas: list[FatDelta], context: NavContext = NavContext.UNSTAGED):
         textPara = []
 
         verb = _("Discard changes")
@@ -178,12 +179,7 @@ class DiscardFiles(_BaseStagingTask):
             self.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
 
         # Back up discarded patches
-        if deltas:
-            # TODO:
-            print("TODO: Back up discarded patches")
-            # yield from self.flowEnterWorkerThread()
-            # Trash.instance().backupPatches(self.repo.workdir, patches)
-            # yield from self.flowEnterUiThread()
+        yield from self.backUpPatches(deltas, context)
 
         tracked = [d.path for d in deltas if not d.isUntracked()]
         untrackedFiles = [d.path for d in deltas if d.isUntracked() and d.modeWorktree != FileMode.TREE]
@@ -211,6 +207,34 @@ class DiscardFiles(_BaseStagingTask):
             yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", "--", *submoPaths)
 
         self.postStatus = _n("File discarded.", "{n} files discarded.", len(deltas))
+
+    def backUpPatches(self, fatDeltas: list[FatDelta], context: NavContext):
+        trash = Trash.instance()
+        workdir = self.repo.workdir
+
+        for fatDelta in fatDeltas:
+            delta = fatDelta.distillOldNew(context)
+            path = delta.new.path
+
+            if delta.status == "D":
+                # It doesn't make sense to back up a file deletion
+                continue
+
+            elif delta.status == "?" and delta.new.mode == FileMode.TREE:
+                # Untracked tree
+                trash.backupTree(workdir, path)
+
+            elif delta.status == "?":
+                # Untracked file
+                # TODO: Also binary files?
+                trash.backupFile(workdir, path)
+
+            else:
+                # TODO: Cache patch in ABDelta? So we don't have to regenerate the patch if we've already displayed it
+                tokens = LoadPatch.buildDiffCommand(delta, binary=True)
+                driver = yield from self.flowCallGit(*tokens, autoFail=False)
+                patchText = driver.stdoutScrollback()
+                trash.backupPatch(workdir, patchText, path)
 
 
 class UnstageFiles(_BaseStagingTask):
@@ -272,7 +296,7 @@ class UnstageModeChanges(_BaseStagingTask):
 
 
 class ApplyPatch(RepoTask):
-    def flow(self, fullPatch: Patch, subPatch: str, purpose: PatchPurpose):
+    def flow(self, delta: ABDelta, subPatch: str, purpose: PatchPurpose):
         if not subPatch:
             QApplication.beep()
             verb = TrTables.enum(purpose & PatchPurpose.VerbMask).lower()
@@ -289,9 +313,7 @@ class ApplyPatch(RepoTask):
             textPara.append(_("This cannot be undone!"))
             yield from self.flowConfirm(title, text=paragraphs(textPara), verb=title, buttonIcon="git-discard-lines")
 
-            # TODO:
-            print("TODO: Back up discarded patches")
-            #Trash.instance().backupPatch(self.repo.workdir, subPatch, fullPatch.delta.new_file.path)
+            Trash.instance().backupPatch(self.repo.workdir, subPatch, delta.new.path)
 
             applyLocation = ApplyLocation.WORKDIR
         else:
