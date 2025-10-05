@@ -423,11 +423,12 @@ def waitForQDialog(
 
 def waitUntilTrue(
         callback: Callable[[], _T],
-        timeout: int = 5000
+        timeout: int = 5000,
+        interval: int = 100,
 ) -> _T:
-    interval = 100
     assert timeout >= interval
-    for _ in range(0, timeout, interval):
+    deadline = QDeadlineTimer(timeout)
+    while not deadline.hasExpired():
         result = callback()
         if result:
             return result

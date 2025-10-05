@@ -8,7 +8,7 @@ import pytest
 
 from .util import *
 
-from gitfourchette.syntax import syntaxHighlightingAvailable, LexJobCache
+from gitfourchette.syntax import syntaxHighlightingAvailable, LexJobCache, LexJob
 from gitfourchette.nav import NavLocator
 
 SAMPLE_CODE = """\
@@ -69,40 +69,44 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
 
 @pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
 def testLexJobCaching(tempDir, mainWindow):
+    mainWindow.onAcceptPrefsDialog({"largeFileThresholdKB": 0})
+
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/big.py", SAMPLE_CODE * 500)  # enough tokens to require LexJob round-trip
+    writeFile(f"{wd}/aaaa.empty", "")  # first file is empty to avoid starting a LexJob off the bat
+    writeFile(f"{wd}/big.py", SAMPLE_CODE * 3000)  # enough tokens to require LexJob round-trip
     writeFile(f"{wd}/small.py", SAMPLE_CODE * 4)
-    writeFile(f"{wd}/zzempty.txt", "")
 
     rw = mainWindow.openRepo(wd)
 
+    def getNewLexJob() -> LexJob:
+        return rw.diffView.highlighter.newLexJob
+
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
-    lexJobId = id(rw.diffView.highlighter.newLexJob)
-    assert not rw.diffView.highlighter.newLexJob.lexingComplete
-    while not rw.diffView.highlighter.newLexJob.scheduler.isActive():
-        QTest.qWait(0)
-    assert not rw.diffView.highlighter.newLexJob.lexingComplete
+    lexJobId = id(getNewLexJob())
+    assert not getNewLexJob().lexingComplete
+    waitUntilTrue(lambda: getNewLexJob().scheduler.isActive(), interval=0)
+    assert not getNewLexJob().lexingComplete
 
     # Switch away from DiffView, put LexJob on ice
-    rw.jump(NavLocator.inUnstaged("zzempty.txt"), check=True)
+    rw.jump(NavLocator.inUnstaged("aaaa.empty"), check=True)
     assert not rw.diffView.isVisible()
-    assert not rw.diffView.highlighter.newLexJob.scheduler.isActive()
+    assert not getNewLexJob().scheduler.isActive()
 
     # Switch back to DiffView, restore LexJob
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
-    assert lexJobId == id(rw.diffView.highlighter.newLexJob)
-    assert rw.diffView.highlighter.newLexJob.scheduler.isActive()
+    assert lexJobId == id(getNewLexJob())
+    assert getNewLexJob().scheduler.isActive()
 
     # Change document in DiffView
     rw.jump(NavLocator.inUnstaged("small.py"), check=True)
-    assert lexJobId != id(rw.diffView.highlighter.newLexJob)
+    assert lexJobId != id(getNewLexJob())
 
     # Restore document
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
-    assert lexJobId == id(rw.diffView.highlighter.newLexJob)
+    assert lexJobId == id(getNewLexJob())
 
 
 @pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
