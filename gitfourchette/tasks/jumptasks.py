@@ -36,7 +36,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     """
     # TODO: --no-optional-locks?
     # TODO: Honor allowWriteIndex
-    gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z")
+    gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z", "--untracked-files=all")
     task.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z(task.repo)
     task.repoModel.workdirStatusReady = True
 
