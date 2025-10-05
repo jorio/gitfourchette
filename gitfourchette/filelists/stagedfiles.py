@@ -82,8 +82,8 @@ class StagedFiles(FileList):
         UnstageFiles.invoke(self, patches)
 
     def unstageModeChange(self):
-        patches = list(self.selectedPatches())
-        UnstageModeChanges.invoke(self, patches)
+        deltas = [fat.distillOldNew(self.navContext) for fat in self.selectedDeltas()]
+        UnstageModeChanges.invoke(self, deltas)
 
     def onSpecialMouseClick(self):
         if settings.prefs.middleClickToStage:

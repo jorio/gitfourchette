@@ -251,15 +251,24 @@ class DiscardModeChanges(_BaseStagingTask):
 
 
 class UnstageModeChanges(_BaseStagingTask):
-    def flow(self, patches: list[Patch]):
-        if not patches:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
+    def flow(self, deltas: list[ABDelta]):
+        if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
 
-        self.repo.unstage_mode_changes(patches)
+        self.repo.refresh_index()
+        index = self.repo.index
+        for delta in deltas:
+            of = delta.old
+            nf = delta.new
+            if (of.mode != nf.mode
+                    and delta.status not in "AD?"  # ADDED, DELETED, UNTRACKED
+                    and of.mode in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]):
+                index.add(IndexEntry(nf.path, Oid(hex=nf.id), of.mode))
+        index.write()
 
 
 class ApplyPatch(RepoTask):
