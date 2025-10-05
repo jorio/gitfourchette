@@ -24,7 +24,9 @@ def run():
     parser.add_argument("--qt", default="pyqt6", choices=["pyqt6", "pyside6", "pyqt5"], help="Qt bindings to use (pyqt6 by default)")
     parser.add_argument("-1", dest="single", action="store_true", help="run a single test at a time (no parallel tests)")
     parser.add_argument("--with-network", action="store_true", help="run tests that require network access")
+    parser.add_argument("-g", "--live-logging", action="store_true", help="enable live logging (recommended with -1)")
     args, forwardArgs = parser.parse_known_args()
+    extraArgs = []
 
     if args.visual:
         args.single = True
@@ -35,13 +37,16 @@ def run():
         os.environ["TESTNET"] = "1"
 
     if not args.single:
-        forwardArgs = ["-n", "auto"] + forwardArgs
+        extraArgs.extend(["-n", "auto"])
+
+    if args.live_logging:
+        extraArgs.extend(["--log-cli-level=0"])
 
     if args.cov:
-        forwardArgs = ["--cov=gitfourchette", "--cov-report=term", "--cov-report=html"] + forwardArgs
+        extraArgs.extend(["--cov=gitfourchette", "--cov-report=term", "--cov-report=html"])
 
     os.environ["PYTEST_QT_API"] = args.qt
-    exitCode = pytest.main(forwardArgs)
+    exitCode = pytest.main(extraArgs + forwardArgs)
     sys.exit(exitCode)
 
 

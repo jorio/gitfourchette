@@ -4,16 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import logging
 import os
-import sys
-
-# Verbose logging by default in unit tests
-# Don't override datefmt so we get milliseconds
-logging.basicConfig(
-    stream=sys.stderr,
-    format='%(levelname).1s %(asctime)s %(filename)-24s | %(message)s')
-logging.captureWarnings(True)
 
 # Keep QT_API env var (used by our qt.py module) in sync with Qt binding used by pytest-qt
 if os.environ.get("PYTEST_QT_API") and os.environ.get("QT_API"):
