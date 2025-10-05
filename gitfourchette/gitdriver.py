@@ -276,12 +276,13 @@ class GitDriver(QProcess):
         cls._cachedGitVersionValid = False
 
     @classmethod
-    def _cacheGitVersion(cls):
+    def _cacheGitVersion(cls, rawVersionText: str = ""):
         if cls._cachedGitVersionValid:
             return
 
-        text = cls.runSync("version")
-        text = text.removeprefix("git version").strip()
+        if not rawVersionText:
+            rawVersionText = cls.runSync("version")
+        text = rawVersionText.removeprefix("git version").strip()
 
         try:
             numberStr = text.split(maxsplit=1)[0]

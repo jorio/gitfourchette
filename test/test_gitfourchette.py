@@ -771,8 +771,6 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
 
 
 def testGitProcessStuck(tempDir, mainWindow, taskThread):
-    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand(block=True)})
-
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "stage me")
 
@@ -780,11 +778,14 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread):
     rw = waitForRepoWidget(mainWindow)
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
-    rw.diffArea.stageButton.click()
-    processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
-    waitUntilTrue(lambda: findTextInWidget(processDialog.statusForm.ui.statusLabel, r"delaying.+git.+for.+seconds"))
+    with DelayGitCommandContext(block=True):
+        rw.diffArea.stageButton.click()
+        processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
 
-    assert "Abort" in processDialog.abortButton.text()
+    waitUntilTrue(lambda: findTextInWidget(processDialog.statusForm.ui.statusLabel, r"delaying.+git.+for.+seconds"))
+    assert findTextInWidget(processDialog.statusForm.ui.titleLabel, "git add")
+
+    assert findTextInWidget(processDialog.abortButton, "abort")
     processDialog.abortButton.click()
 
     waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)

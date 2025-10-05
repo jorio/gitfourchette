@@ -66,9 +66,35 @@ def delayCommand(*tokens: str, delay=5, block=False) -> str:
     return shlex.join(delayTokens)
 
 
-def delayGitCommand(delay=5, block=False):
-    from gitfourchette import settings
-    return delayCommand(settings.prefs.gitPath, delay=delay, block=block)
+class DelayGitCommandContext:
+    def __init__(self, delay=5, block=False):
+        from gitfourchette import settings
+        rawCommand = settings.prefs.gitPath
+        rawTokens = shlex.split(rawCommand, posix=True)
+        self.oldCommand = rawCommand
+        self.newCommand = delayCommand(*rawTokens, delay=delay, block=block)
+
+    @property
+    def mainWindow(self):
+        from gitfourchette.application import GFApplication
+        return GFApplication.instance().mainWindow
+
+    def __enter__(self):
+        # We'll change the git command in the prefs, which invalidates
+        # GitDriver's cached version info. Some tasks need this version info
+        # to prepare the actual git command they'll run. For testing purposes,
+        # the version check ('git version') shouldn't put an additional delay
+        # on the tasks, so we'll refresh the version cache manually.
+        from gitfourchette.gitdriver import GitDriver
+        rawVersionText = GitDriver.runSync("version")
+
+        self.mainWindow.onAcceptPrefsDialog({"gitPath": self.newCommand})
+
+        assert not GitDriver._cachedGitVersionValid
+        GitDriver._cacheGitVersion(rawVersionText)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.mainWindow.onAcceptPrefsDialog({"gitPath": self.oldCommand})
 
 
 def clearSessionwideIdentity():

@@ -805,8 +805,6 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
 
 def testAbortPushInProgress(tempDir, mainWindow, taskThread):
-    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand()})
-
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
 
@@ -827,13 +825,14 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     okButton = pushDialog.okButton()
     cancelButton = pushDialog.cancelButton()
 
-    okButton.click()
-    assert not okButton.isEnabled()
-    assert statusLabel.isVisible()
-    assert findTextInWidget(statusLabel, "please wait")
+    with DelayGitCommandContext():
+        okButton.click()
+        assert not okButton.isEnabled()
+        assert statusLabel.isVisible()
+        assert findTextInWidget(statusLabel, "please wait")
 
-    # Wait for wrapper script to actually start
-    waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))
+        # Wait for wrapper script to actually start
+        waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))
 
     # Send SIGTERM
     cancelButton.click()
@@ -855,8 +854,6 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
 
 
 def testAbortPullInProgress(tempDir, mainWindow, taskThread):
-    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand()})
-
     wd = unpackRepo(tempDir)
     bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
@@ -877,16 +874,16 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
 
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
-    QTest.qWait(0)
-    triggerMenuAction(mainWindow.menuBar(), "repo/pull")
-
-    waitForSignal(rw.processDialog.becameVisible)
-    assert rw.processDialog.isVisible()
+    with DelayGitCommandContext():
+        triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+        waitForSignal(rw.processDialog.becameVisible)
+        assert rw.processDialog.isVisible()
 
     assert rw.processDialog.abortButton.isEnabled()
-    assert "Abort" in rw.processDialog.abortButton.text()
+    assert findTextInWidget(rw.processDialog.abortButton, "abort")
+
     rw.processDialog.abortButton.click()
-    assert "SIGKILL" in rw.processDialog.abortButton.text()
+    assert findTextInWidget(rw.processDialog.abortButton, "SIGKILL")
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
     # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
@@ -950,11 +947,9 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     # Enable or disable auto-fetch.
-    # Force 'git fetch' to take a little while so we can check the status message.
     mainWindow.onAcceptPrefsDialog({
         "autoFetch": enabled,
         "autoFetchMinutes": 1,
-        "gitPath": delayGitCommand(delay=2),
     })
 
     with RepoContext(barePath) as bareRepo:
@@ -969,9 +964,10 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     assert {"localfs/master", "localfs/no-parent"} == {
         x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
-    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
-    rw.lastAutoFetchTime = 0
-    rw.onAutoFetchTimerTimeout()
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing.
+    with DelayGitCommandContext(delay=2):  # Keep busy for a while so we can check the status message.
+        rw.lastAutoFetchTime = 0
+        rw.onAutoFetchTimerTimeout()
 
     # Check auto-fetch status message
     if enabled:
@@ -1015,12 +1011,8 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     from gitfourchette import settings
     gitCmd = settings.prefs.gitPath
 
-    # Enable auto-fetch and make sure it'll keep RepoTaskRunner busy for a few seconds
-    mainWindow.onAcceptPrefsDialog({
-        "autoFetch": True,
-        "autoFetchMinutes": 1,
-        "gitPath": delayGitCommand(),
-    })
+    # Enable auto-fetch
+    mainWindow.onAcceptPrefsDialog({"autoFetch": True, "autoFetchMinutes": 1})
 
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
@@ -1031,9 +1023,11 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     mainWindow.openRepo(wd)
     rw = waitForRepoWidget(mainWindow)
 
-    # Manually trigger the auto-fetch timer timeout to simulate the timer firing
-    rw.lastAutoFetchTime = 0
-    rw.onAutoFetchTimerTimeout()
+    # Manually trigger the auto-fetch timer timeout to simulate the timer firing.
+    # Delay git to keep RepoTaskRunner busy for a few seconds.
+    with DelayGitCommandContext():
+        rw.lastAutoFetchTime = 0
+        rw.onAutoFetchTimerTimeout()
 
     # Make sure we're auto-fetching right now
     assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)
@@ -1055,8 +1049,6 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
 
 def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
     """Test that terminating a task also terminates its associated process."""
-    mainWindow.onAcceptPrefsDialog({"gitPath": delayGitCommand(delay=0.5)})
-
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     with RepoContext(barePath) as bareRepo:
@@ -1064,9 +1056,10 @@ def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
     mainWindow.openRepo(wd)
     rw = waitForRepoWidget(mainWindow)
 
-    # Start a fetch task that will take 0.5 seconds due to the delay command
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    assert rw.taskRunner.isBusy()
+    # Start a fetch task that will take a while due to the delay command
+    with DelayGitCommandContext(delay=30):
+        triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
+        assert rw.taskRunner.isBusy()
     QTest.qWait(100)
     assert rw.taskRunner.isBusy(), "task should still be running"
     process = rw.taskRunner.currentTask.currentProcess
@@ -1075,7 +1068,6 @@ def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
     rw.taskRunner.killCurrentTask()
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert rw.taskRunner.currentTask is None, "task should be terminated"
-    QTest.qWait(1000)
 
     # Check that the branch was not fetched
     assert "localfs/new-remote-branch" not in rw.repo.branches.remote
