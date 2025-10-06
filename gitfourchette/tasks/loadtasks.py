@@ -313,11 +313,8 @@ class LoadPatch(RepoTask):
             return self.repo.wrap_conflict(path)
         """
 
-        assert not fatDelta.isSubtreeCommitPatch(), "subtree patches not supported yet!"
-        """
-        if FileMode.COMMIT in (patch.delta.new_file.mode, patch.delta.old_file.mode):
-            return SpecialDiffError.submoduleDiff(self.repo, patch, locator)
-        """
+        if FileMode.COMMIT in (delta.new.mode, delta.old.mode):
+            return SpecialDiffError.submoduleDiff(self.repo, fatDelta, locator)
 
         if delta.similarity == 100:
             return SpecialDiffError.noChange(delta)

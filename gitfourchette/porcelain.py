@@ -1548,51 +1548,6 @@ class Repo(_VanillaRepository):
             with RepoContext(submodule.open()) as subrepo:
                 frontier.extend(gen_frontier(subrepo))
 
-    def analyze_subtree_commit_patch(self, patch: Patch, in_workdir: bool = False) -> SubtreeCommitDiff:
-        assert SubtreeCommitDiff.is_subtree_commit_patch(patch)
-
-        patchText = patch.text
-        assert patchText is not None
-
-        path = patch.delta.new_file.path
-
-        try:
-            name = next(n for n, p in self.listall_submodules_dict().items() if p == path)
-            is_registered = True
-        except StopIteration:
-            # Name may not be available when viewing a past commit about a deleted submodule,
-            # or a tree that isn't registered as a submodule yet
-            name = path  # Fallback to inner path as the name
-            is_registered = False
-
-        abs_path = self.in_workdir(path)
-        still_exists = _isdir(abs_path)
-        old_id, new_id, dirty = parse_submodule_patch(patchText)
-
-        is_absorbed = still_exists and _isfile(_joinpath(abs_path, ".git"))
-
-        if in_workdir:
-            try:
-                old_gitmodules = self.head_tree['.gitmodules'].data.decode('utf-8')
-                old_submodules = self.listall_submodules_dict(config_text=old_gitmodules)
-                was_registered = path in old_submodules.values()
-            except KeyError:
-                was_registered = False
-        else:
-            was_registered = True
-
-        return SubtreeCommitDiff(
-            name=name,
-            workdir=abs_path,
-            status=patch.delta.status,
-            old_id=old_id,
-            new_id=new_id,
-            dirty=dirty,
-            still_exists=still_exists,
-            is_registered=is_registered,
-            was_registered=was_registered,
-            is_absorbed=is_absorbed)
-
     def fast_forward_branch(self, local_branch_name: str, target_branch_name: str = ""):
         """
         Fast-forward a local branch to another branch (local or remote).
@@ -2142,45 +2097,3 @@ class DiffConflict:
         elif self.ancestor:
             return self.ancestor.path
         raise NotImplementedError("empty conflict")
-
-
-@_dataclasses.dataclass(frozen=True)
-class SubtreeCommitDiff:
-    name: str
-    workdir: str
-    status: DeltaStatus
-    old_id: Oid
-    new_id: Oid
-    dirty: bool
-    still_exists: bool
-    is_registered: bool
-    was_registered: bool
-    is_absorbed: bool
-
-    @staticmethod
-    def is_subtree_commit_patch(patch: Patch):
-        return FileMode.COMMIT in (patch.delta.new_file.mode, patch.delta.old_file.mode)
-
-    @property
-    def short_name(self):
-        return self.name
-
-    @property
-    def head_did_move(self):
-        return self.old_id != self.new_id
-
-    @property
-    def is_trivially_indexable(self):
-        return self.head_did_move and self.status == DeltaStatus.MODIFIED
-
-    @property
-    def is_add(self):
-        return self.status == DeltaStatus.ADDED
-
-    @property
-    def is_del(self):
-        return self.status == DeltaStatus.DELETED
-
-    @property
-    def is_submodule(self):
-        return self.is_registered or self.was_registered

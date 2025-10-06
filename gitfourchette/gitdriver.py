@@ -57,7 +57,7 @@ class FatDelta:
     conflictThem: str = ""
     statusStaged: str = ""
     statusUnstaged: str = ""
-    statusSubmodule: str = ""
+    statusSubmodule: str = ""  # only valid for uncommitted changes in workdir
     statusCommit: str = ""
     modeHead: FileMode = FileMode.UNREADABLE
     modeIndex: FileMode = FileMode.UNREADABLE
@@ -139,10 +139,18 @@ class FatDelta:
         oldHash = oldHash or HASH_40X0
         newHash = newHash or HASH_40X0
 
-        oldSize = 0 if oldHash == HASH_40X0 else self.repo.peel_blob(oldHash).size
+        oldIsBlob = oldMode & FileMode.BLOB == FileMode.BLOB
+        newIsBlob = newMode & FileMode.BLOB == FileMode.BLOB
 
-        if newSize < 0 and newHash != HASH_40XF:
-            newSize = 0 if newHash == HASH_40X0 else self.repo.peel_blob(newHash).size
+        if oldHash == HASH_40X0:
+            oldSize = 0
+        elif oldIsBlob:
+            oldSize = self.repo.peel_blob(oldHash).size
+
+        if newHash == HASH_40X0:
+            newSize = 0
+        elif newIsBlob and newSize < 0 and newHash != HASH_40XF:
+            newSize = self.repo.peel_blob(newHash).size
 
         old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize, oldSource)
         new = ABDeltaFile(self.path, newHash, newMode, newSize, newSource)

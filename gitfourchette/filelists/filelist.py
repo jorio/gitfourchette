@@ -665,9 +665,9 @@ class FileList(QListView):
         NewStash.invoke(self, list(paths))
 
     def openSubmoduleTabs(self):
-        patches = [p for p in self.selectedPatches() if p.delta.new_file.mode in [FileMode.COMMIT]]
-        for patch in patches:
-            self.openSubRepo.emit(patch.delta.new_file.path)
+        for fatDelta in self.selectedDeltas():
+            if fatDelta.isSubtreeCommitPatch():
+                self.openSubRepo.emit(fatDelta.path)
 
     def searchRange(self, searchRange: range) -> QModelIndex | None:
         model = self.model()  # to filter out hidden rows, don't use self.clModel directly

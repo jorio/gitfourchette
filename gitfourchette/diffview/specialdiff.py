@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import os
 from contextlib import suppress
+from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import ABDelta, FatDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -181,40 +182,67 @@ class SpecialDiffError:
             longform=toRoomyUL([linkify(prompt2, taskLink)]))
 
     @staticmethod
-    def submoduleDiff(repo: Repo, patch: Patch, locator: NavLocator) -> SpecialDiffError:
-        # TODO: Migrate to VanillaStatus
+    def submoduleDiff(repo: Repo, fatDelta: FatDelta, locator: NavLocator) -> SpecialDiffError:
         from gitfourchette.tasks import AbsorbSubmodule, DiscardFiles, RegisterSubmodule
 
-        smDiff = repo.analyze_subtree_commit_patch(patch, in_workdir=locator.context.isWorkdir())
-        isTree = not smDiff.is_submodule
+        delta = fatDelta.distillOldNew(locator.context)
+
+        path = delta.new.path
+        absPath = repo.in_workdir(path)
+        stillExists = Path(absPath).is_dir()
+        isAbsorbed = stillExists and Path(absPath, ".git").is_file()
+
+        isDel = delta.status == "D"
+        isAdd = delta.status in "A?"
+        oldId = delta.old.id
+        newId = delta.new.id
+        headDidMove = oldId != newId
+
+        try:
+            name = next(n for n, p in repo.listall_submodules_dict().items() if p == path)
+            isRegistered = True
+        except StopIteration:
+            # Name may not be available when viewing a past commit about a deleted submodule,
+            # or a tree that isn't registered as a submodule yet
+            name = path  # Fallback to inner path as the name
+            isRegistered = False
+
+        if locator.context.isWorkdir():
+            try:
+                oldGitmodules = repo.head_tree[".gitmodules"].data.decode("utf-8")
+                oldSubmodules = repo.listall_submodules_dict(config_text=oldGitmodules)
+                wasRegistered = path in oldSubmodules.values()
+            except KeyError:
+                wasRegistered = False
+        else:
+            wasRegistered = True
+
+        isSubmodule = isRegistered or wasRegistered
+        isTree = not isSubmodule
 
         # Compose title.
         # Explicit permutations of "subtree"/"submodule" text so that translations
         # can be grammatically correct (in case of different genders, etc.)
-        if smDiff.is_del:
-            title = (_("Subtree {0} was [removed.]") if isTree else
-                     _("Submodule {0} was [removed.]"))
+        if isDel:
+            title = _("Subtree {0} was [removed.]") if isTree else _("Submodule {0} was [removed.]")
             title = tagify(title, "<del><b>")
-        elif smDiff.is_add:
-            title = (_("Subtree {0} was [added.]") if isTree else
-                     _("Submodule {0} was [added.]"))
+        elif isAdd:
+            title = _("Subtree {0} was [added.]") if isTree else _("Submodule {0} was [added.]")
             title = tagify(title, "<add><b>")
-        elif smDiff.head_did_move:
-            title = (_("Subtree {0} was updated.") if isTree else
-                     _("Submodule {0} was updated."))
+        elif headDidMove:
+            title = _("Subtree {0} was updated.") if isTree else _("Submodule {0} was updated.")
         else:
-            title = (_("Subtree {0} contains changes.") if isTree else
-                     _("Submodule {0} contains changes."))
+            title = _("Subtree {0} contains changes.") if isTree else _("Submodule {0} contains changes.")
 
-        title = title.format(bquo(smDiff.short_name))
+        title = title.format(bquo(name))
 
         # Add link to open the submodule as a subtitle
         subtitle = ""
-        openLink = QUrl.fromLocalFile(smDiff.workdir)
-        if smDiff.still_exists:
+        openLink = QUrl.fromLocalFile(absPath)
+        if stillExists:
             subtitle = _("Open subtree") if isTree else _("Open submodule")
-            if smDiff.short_name != patch.delta.new_file.path:
-                subtitle += " " + _("(path: {0})", escape(patch.delta.new_file.path))
+            if name != path:
+                subtitle += " " + _("(path: {0})", escape(path))
             subtitle = linkify(subtitle, openLink)
 
         # Initialize SpecialDiffError (we'll return this)
@@ -222,15 +250,15 @@ class SpecialDiffError:
         longformParts = []
 
         # Create old/new table if the submodule's HEAD commit was moved
-        if smDiff.head_did_move and not smDiff.is_del:
-            targets = [shortHash(smDiff.old_id), shortHash(smDiff.new_id)]
+        if headDidMove and not isDel:
+            targets = [shortHash(oldId), shortHash(newId)]
             messages = ["", ""]
 
             # Show additional details about the commits if there's still a workdir for this submo
-            if smDiff.still_exists:
+            if stillExists:
                 try:
-                    with RepoContext(smDiff.workdir, RepositoryOpenFlag.NO_SEARCH) as subRepo:
-                        for i, h in enumerate([smDiff.old_id, smDiff.new_id]):
+                    with RepoContext(absPath, RepositoryOpenFlag.NO_SEARCH) as subRepo:
+                        for i, h in enumerate([oldId, newId]):
                             if h == NULL_OID:
                                 continue
 
@@ -249,55 +277,52 @@ class SpecialDiffError:
                     # Don't show an error for this, show the diff document anyway
                     pass
 
-            oldText = _("Old:")
-            newText = _("New:")
-            table = ("<table>"
-                     f"<tr><td><del><b>{oldText}</b></del> </td><td><code>{targets[0]} </code> {messages[0]}</td></tr>"
-                     f"<tr><td><add><b>{newText}</b></add> </td><td><code>{targets[1]} </code> {messages[1]}</td></tr>"
-                     "</table>")
-
             intro = (_("The subtree’s <b>HEAD</b> has moved to another commit.") if isTree else
                      _("The submodule’s <b>HEAD</b> has moved to another commit."))
             if locator.context == NavContext.UNSTAGED:
                 intro += " " + _("You can stage this update:")
-            longformParts.append(f"{intro}<p>{table}</p>")
+            longformParts.append(
+                f"{intro}"
+                "<p><table>"
+                f"<tr><td><del><b>{_('Old:')}</b></del> </td><td><tt>{targets[0]}</tt> {messages[0]}</td></tr>"
+                f"<tr><td><add><b>{_('New:')}</b></add> </td><td><tt>{targets[1]}</tt> {messages[1]}</td></tr>"
+                "</table></p>")
 
         # Show additional tips if this submodule is in the workdir.
         if locator.context.isWorkdir():
             m = ""
-            if smDiff.is_del:
-                if smDiff.is_registered:
+            if isDel:
+                if isRegistered:
                     m = _("To complete the removal of this submodule, <b>remove it from {gitmodules}</b>.")
-                elif smDiff.was_registered:
+                elif wasRegistered:
                     m = _("To complete the removal of this submodule, make sure to <b>commit "
                           "{gitmodules}</b> at the same time as the submodule folder itself.")
 
-            elif smDiff.is_registered and not smDiff.was_registered:
+            elif isRegistered and not wasRegistered:
                 m = _("To complete the addition of this submodule, make sure to <b>commit "
                       "{gitmodules}</b> at the same time as the submodule folder itself.")
 
-            elif not smDiff.is_absorbed:
+            elif not isAbsorbed:
                 if isTree:
                     m = _("<b>This subtree isn’t a submodule yet!</b> "
                           "You should [absorb this subtree] into the parent repository so it becomes a submodule.")
                 else:
                     m = _("To complete the addition of this submodule, "
                           "you should [absorb the submodule] into the parent repository.")
-                m = linkify(m, AbsorbSubmodule.makeInternalLink(path=patch.delta.new_file.path))
+                m = linkify(m, AbsorbSubmodule.makeInternalLink(path=path))
 
-            elif not smDiff.is_registered:
+            elif not isRegistered:
                 m = _("To complete the addition of this submodule, [register it in {gitmodules}].")
-                m = linkify(m, RegisterSubmodule.makeInternalLink(path=patch.delta.new_file.path))
+                m = linkify(m, RegisterSubmodule.makeInternalLink(path=path))
 
             if m:
-                important = _("IMPORTANT")
                 m = m.format(gitmodules=f"<tt>{DOT_GITMODULES}</tt>")
-                m = f"{stockIconImgTag('achtung')} <b>{important}</b> &ndash; {m}"
+                m = f"{stockIconImgTag('achtung')} <b>{_('IMPORTANT')}</b> &ndash; {m}"
                 longformParts.insert(0, m)
 
             # Tell about any uncommitted changes
-            if smDiff.dirty:
-                discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [patch]))
+            if any(c in fatDelta.statusSubmodule for c in "MU"):  # M: tracked changes; U: untracked changes
+                discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [fatDelta]))
 
                 if isTree:
                     uc1 = _("The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:")
