@@ -61,12 +61,11 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
         triggerContextMenuAction(rw.dirtyFiles.viewport(), r"open.+submodule.+in new tab")
 
     elif method == "stagedFileList":
-        with RepoContext(submoAbsPath, write_index=True) as submoRepo:
-            submoRepo.reset(Oid(hex="ac7e7e44c1885efb472ad54a78327d66bfc4ecef"), ResetMode.HARD)
-        rw.repo.index.add("submodir")
+        GitDriver.runSync("reset", "--hard", "ac7e7e44", directory=submoAbsPath)
+        GitDriver.runSync("add", "submodir", directory=wd)
         rw.refreshRepo()
 
-        rw.jump(NavLocator.inStaged(path="submodir"))
+        rw.jump(NavLocator.inStaged(path="submodir"), check=True)
         triggerContextMenuAction(rw.stagedFiles.viewport(), r"open.+submodule.+in new tab")
 
     else:
