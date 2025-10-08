@@ -12,6 +12,7 @@ Unlike most other tasks, jump tasks directly manipulate the UI extensively, via 
 import dataclasses
 import logging
 import os
+import re
 from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -29,6 +30,8 @@ from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
 
+_submoduleIndexLinePattern = re.compile(r"^index ([\da-f]+)\.\.([\da-f]+)", re.M)
+
 
 def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     """
@@ -37,7 +40,31 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     # TODO: --no-optional-locks?
     # TODO: Honor allowWriteIndex
     gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z", "--untracked-files=all")
-    task.repoModel.workdirStatus = gitStatus.readStatusPorcelainV2Z(task.repo)
+    statusTable = gitStatus.readStatusPorcelainV2Z(task.repo)
+
+    # Fill in submodule worktree hashes
+    # (This might be parallelizable if we've got tons of modified submodules)
+    for fatDelta in statusTable:
+        if not fatDelta.hasUncommittedSubmoduleStatus():  # filter on submodules
+            continue
+
+        if fatDelta.submoduleHasUnstagedHeadMove():
+            # We know the submodule's head has moved, but we don't know to what commit,
+            # because "git status" doesn't give this information until this move is staged.
+            assert not fatDelta.hexHashWorktree
+            subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", fatDelta.path)
+            subDiff = subDiffDriver.stdoutScrollback()
+            match = _submoduleIndexLinePattern.search(subDiff)
+            assert match
+            assert fatDelta.hexHashIndex == match.group(1)
+            fatDelta.hexHashWorktree = match.group(2)
+        else:
+            # The submodule's head hasn't moved. Fill in hexHashWorktree to enable comparing
+            # ABDelta.old.id to ABDelta.new.id after "distilling".
+            assert not fatDelta.hexHashWorktree
+            fatDelta.hexHashWorktree = fatDelta.hexHashIndex
+
+    task.repoModel.workdirStatus = statusTable
     task.repoModel.workdirStatusReady = True
 
     # Refresh libgit2 index after git status is complete

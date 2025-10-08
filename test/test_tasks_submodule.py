@@ -82,9 +82,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
 def testSubmoduleHeadUpdate(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
-    subHead = Oid(hex='49322bb17d3acc9146f98c97d078513228bbf3c0')
-    with RepoContext(subWd) as submo:
-        submo.checkout_commit(subHead)
+    GitDriver.runSync("checkout", "49322bb", directory=subWd, strict=True)
 
     rw = mainWindow.openRepo(wd)
 
@@ -116,13 +114,16 @@ def testSubmoduleDirty(tempDir, mainWindow, method):
 
     special = rw.specialDiffView
     assert special.isVisible()
+    with pytest.raises(KeyError):
+        qteFind(special, r"moved to another commit")
+    with pytest.raises(KeyError):
+        qteFind(special, r"ffffff")
     assert qteFind(special, r"submodule.+submo.+contains changes")
     assert qteFind(special, r"uncommitted changes")
 
     # Attempt to stage the submodule; this shouldn't do anything
     QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)  # attempt to stage it
     acceptQMessageBox(rw, "can.+t be staged from the parent repo")
-    QTest.qWait(0)
     assert rw.repo.status() == {"submodir": FileStatus.WT_MODIFIED}  # shouldn't do anything
 
     if method == "link":

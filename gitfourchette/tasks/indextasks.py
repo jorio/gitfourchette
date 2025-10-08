@@ -66,45 +66,45 @@ class _BaseStagingTask(RepoTask):
 
 
 class StageFiles(_BaseStagingTask):
-    def flow(self, patches: list[FatDelta]):
-        if not patches:  # Nothing to stage (may happen if user keeps pressing Enter in file list view)
+    def flow(self, fatDeltas: list[FatDelta]):
+        if not fatDeltas:  # Nothing to stage (may happen if user keeps pressing Enter in file list view)
             QApplication.beep()
             raise AbortTask()
 
-        self.denyConflicts(patches, PatchPurpose.Stage)
+        self.denyConflicts(fatDeltas, PatchPurpose.Stage)
 
-        paths = [delta.path for delta in patches]
+        paths = [d.path for d in fatDeltas]
 
         self.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("add", "--", *paths)
 
-        yield from self.debriefPostStage(patches)
+        yield from self.debriefPostStage(fatDeltas)
 
-        self.postStatus = _n("File staged.", "{n} files staged.", len(patches))
+        self.postStatus = _n("File staged.", "{n} files staged.", len(fatDeltas))
 
-    def debriefPostStage(self, patches: list[FatDelta]):
+    def debriefPostStage(self, fatDeltas: list[FatDelta]):
         debrief = {}
 
-        for delta in patches:
+        for fat in fatDeltas:
             m = ""
 
-            if delta.modeWorktree == FileMode.TREE:
+            # Staging a tree that isn't registered as a submodule
+            if fat.modeWorktree == FileMode.TREE:
                 m = _("You’ve added another Git repo inside your current repo. "
                       "It is STRONGLY RECOMMENDED to absorb it as a submodule before committing.")
-            # elif SubtreeCommitDiff.is_subtree_commit_patch(patch):
-            elif delta.isSubtreeCommitPatch(): #delta.modeWorktree == FileMode.COMMIT or delta.modeIndex == FileMode.COMMIT:
-                raise NotImplementedError("TODO: analyze subtree commit patch")
-                """
-                info = self.repo.analyze_subtree_commit_patch(patch, in_workdir=True)
-                if info.is_del and info.was_registered:
-                    m = _("Don’t forget to remove the submodule from {0} "
-                          "to complete its deletion.", tquo(DOT_GITMODULES))
-                elif not info.is_del and not info.is_trivially_indexable:
-                    m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
-                """
+
+            # Staging a submodule with uncommitted changes within
+            elif fat.modeWorktree == FileMode.COMMIT and fat.submoduleContainsUncommittedChanges():
+                m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
+
+            # Staging a submodule deletion, and the submodule is still in .gitmodules
+            elif (fat.statusUnstaged == "D"
+                  and fat.modeIndex == FileMode.COMMIT
+                  and fat.path in self.repo.listall_submodules_dict_at_head()):
+                m = _("Don’t forget to remove the submodule from {0} to complete its deletion.", tquo(DOT_GITMODULES))
 
             if m:
-                debrief[delta.path] = m
+                debrief[fat.path] = m
 
         if not debrief:
             return

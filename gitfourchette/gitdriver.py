@@ -85,10 +85,14 @@ class FatDelta:
     def __post_init__(self):
         if self.statusStaged == ".":
             self.statusStaged = ""
+
         if self.statusUnstaged == ".":
             self.statusUnstaged = ""
+
         if self.statusSubmodule == "N...":
             self.statusSubmodule = ""
+        else:
+            assert not self.statusSubmodule or self.statusSubmodule.startswith("S")
 
     def isConflict(self) -> bool:
         return bool(self.conflictUs)
@@ -97,6 +101,27 @@ class FatDelta:
         # TODO: Test more specifically?
         return FileMode.COMMIT in (self.modeHead, self.modeWorktree, self.modeIndex,
                                    self.modeSrc, self.modeDst)
+
+    def hasUncommittedSubmoduleStatus(self) -> bool:
+        """
+        Return True if this FatDelta is about uncommitted changes in a submodule.
+        """
+        return self.statusSubmodule.startswith("S")
+
+    def submoduleHasUnstagedHeadMove(self) -> bool:
+        """
+        Return True if the submodule's HEAD has moved,
+        and this move isn't staged or committed in the superproject yet.
+        """
+        return "C" in self.statusSubmodule
+
+    def submoduleContainsUncommittedChanges(self) -> bool:
+        """
+        Return True if the submodule's workdir contains
+        any tracked or untracked changes.
+        """
+        # M: tracked changes; U: untracked changes
+        return any(c in self.statusSubmodule for c in "MU")
 
     def isUntracked(self):
         return self.statusUnstaged == "?"

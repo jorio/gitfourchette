@@ -160,11 +160,10 @@ class SpecialDiffError:
             f"{oldHumanSize} &rarr; {newHumanSize}")
 
     @staticmethod
-    def treeDiff(delta):
-        # TODO: Migrate to VanillaStatus
+    def treeDiff(delta: ABDelta):
         from gitfourchette.tasks import AbsorbSubmodule
 
-        treePath = os.path.normpath(delta.new_file.path)
+        treePath = os.path.normpath(delta.new.path)
         treeName = os.path.basename(treePath)
         message = _("This untracked subtree is the root of another Git repository.")
 
@@ -208,12 +207,7 @@ class SpecialDiffError:
             isRegistered = False
 
         if locator.context.isWorkdir():
-            try:
-                oldGitmodules = repo.head_tree[".gitmodules"].data.decode("utf-8")
-                oldSubmodules = repo.listall_submodules_dict(config_text=oldGitmodules)
-                wasRegistered = path in oldSubmodules.values()
-            except KeyError:
-                wasRegistered = False
+            wasRegistered = path in repo.listall_submodules_dict_at_head()
         else:
             wasRegistered = True
 
@@ -321,7 +315,7 @@ class SpecialDiffError:
                 longformParts.insert(0, m)
 
             # Tell about any uncommitted changes
-            if any(c in fatDelta.statusSubmodule for c in "MU"):  # M: tracked changes; U: untracked changes
+            if fatDelta.submoduleContainsUncommittedChanges():
                 discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [fatDelta]))
 
                 if isTree:

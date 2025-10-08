@@ -1942,6 +1942,13 @@ class Repo(_VanillaRepository):
             self._cached_submodule_table = Repo._listall_submodules_from_config(config)
         return self._cached_submodule_table
 
+    def listall_submodules_dict_at_head(self) -> dict[str, str]:
+        try:
+            old_gitmodules = self.head_tree[".gitmodules"].data.decode("utf-8")
+        except KeyError:
+            return {}
+        return self.listall_submodules_dict(config_text=old_gitmodules)
+
     def _get_cached_config(self, cache_key: str, path: str, strict: bool) -> _configparser.ConfigParser:
         new_stat = _os.stat(path)
 
