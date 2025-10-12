@@ -143,15 +143,12 @@ class DirtyFiles(FileList):
         DiscardModeChanges.invoke(self, deltas)
 
     def _mergeKeep(self, keepOurs: bool):
-        # TODO: Migrate to Vanilla
-        patches = list(self.selectedPatches())
-
+        deltas = list(self.selectedDeltas())
         conflicts = self.repo.index.conflicts
-
         table = {}
 
-        for patch in patches:
-            path = patch.delta.new_file.path
+        for fatDelta in deltas:
+            path = fatDelta.path
             ancestor, ours, theirs = conflicts[path]
 
             keepEntry = ours if keepOurs else theirs

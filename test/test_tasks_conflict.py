@@ -6,6 +6,7 @@
 
 import pytest
 
+from gitfourchette.gitdriver import ConflictSides
 from gitfourchette.nav import NavLocator
 from . import reposcenario
 from .util import *
@@ -39,7 +40,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "a/a2.txt"]
     assert qlvGetRowData(rw.stagedFiles) == []
     rw.jump(NavLocator.inUnstaged("a/a1.txt"))
-    assert rw.conflictView.currentConflict.deleted_by_us
+    assert rw.conflictView.currentConflict.sides == ConflictSides.DeletedByUs
     assert rw.conflictView.ui.oursButton.isVisible()
     assert not rw.conflictView.ui.mergeToolButton.isVisible()
     assert "deleted by us" in rw.conflictView.ui.explainer.text().lower()
@@ -55,7 +56,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a2.txt"]
     assert qlvGetRowData(rw.stagedFiles) == []
     rw.jump(NavLocator.inUnstaged("a/a2.txt"))
-    assert rw.conflictView.currentConflict.deleted_by_us
+    assert rw.conflictView.currentConflict.sides == ConflictSides.DeletedByUs
     assert rw.conflictView.ui.theirsButton.isVisible()
     assert not rw.conflictView.ui.mergeToolButton.isVisible()
 
@@ -99,7 +100,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "a/a2.txt"]
     assert qlvGetRowData(rw.stagedFiles) == []
     rw.jump(NavLocator.inUnstaged("a/a1.txt"))
-    assert rw.conflictView.currentConflict.deleted_by_them
+    assert rw.conflictView.currentConflict.sides == ConflictSides.DeletedByThem
     assert rw.conflictView.ui.oursButton.isVisible()
     assert not rw.conflictView.ui.mergeToolButton.isVisible()
     assert "deleted by them" in rw.conflictView.ui.explainer.text().lower()
@@ -115,7 +116,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a2.txt"]
     assert qlvGetRowData(rw.stagedFiles) == []
     rw.jump(NavLocator.inUnstaged("a/a2.txt"))
-    assert rw.conflictView.currentConflict.deleted_by_them
+    assert rw.conflictView.currentConflict.sides == ConflictSides.DeletedByThem
     assert rw.conflictView.ui.theirsButton.isVisible()
     assert not rw.conflictView.ui.mergeToolButton.isVisible()
     if not viaContextMenu:

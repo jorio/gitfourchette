@@ -4,7 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import os
 import re
 from contextlib import suppress
 
@@ -95,34 +94,6 @@ def abbreviatePerson(sig: Signature, style: AuthorDisplayStyle = AuthorDisplaySt
 def shortHash(oid: Oid | str) -> str:
     from gitfourchette.settings import prefs
     return str(oid)[:prefs.shortHashChars]
-
-
-def dumpTempBlob(
-        repo: Repo,
-        dir: str,
-        entry: DiffFile | IndexEntry | None,
-        inBrackets: str):
-
-    # In merge conflicts, the IndexEntry may be None (for the ancestor, etc.)
-    if not entry:
-        return ""
-
-    blobId = entry.id
-    blob = repo.peel_blob(blobId)
-    name, ext = os.path.splitext(os.path.basename(entry.path))
-    name = f"[{inBrackets}]{name}{ext}"
-    path = os.path.join(dir, name)
-    with open(path, "wb") as f:
-        f.write(blob.data)
-
-    """
-    # Make it read-only (this will probably not work on Windows)
-    mode = os.stat(path).st_mode
-    readOnlyMask = ~(stat.S_IWRITE | stat.S_IWGRP | stat.S_IWOTH)
-    os.chmod(path, mode & readOnlyMask)
-    """
-
-    return path
 
 
 def nameValidationMessage(name: str, reservedNames: list[str], nameTakenMessage: str = "") -> str:

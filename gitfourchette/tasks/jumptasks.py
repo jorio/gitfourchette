@@ -16,7 +16,8 @@ import re
 from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
-from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffConflict, DiffImagePair
+from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair
+from gitfourchette.gitdriver import VanillaConflict
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -82,7 +83,7 @@ class Jump(RepoTask):
     class Result(Exception):
         locator: NavLocator
         header: str
-        document: DiffDocument | DiffConflict | DiffImagePair | SpecialDiffError | None
+        document: DiffDocument | VanillaConflict | DiffImagePair | SpecialDiffError | None
         patch: Patch | None = None
 
     def canKill(self, task: RepoTask):
@@ -421,7 +422,7 @@ class Jump(RepoTask):
             area.setDiffStackPage("text")
             area.diffView.replaceDocument(self.repo, result.patch, result.locator, document)
 
-        elif isinstance(document, DiffConflict):
+        elif isinstance(document, VanillaConflict):
             conflict = document
             area.setDiffStackPage("conflict")
             area.conflictView.displayConflict(conflict)

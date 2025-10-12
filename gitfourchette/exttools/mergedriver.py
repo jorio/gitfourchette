@@ -11,15 +11,35 @@ import filecmp
 import logging
 import os
 import shutil
+from pathlib import Path
 
 from gitfourchette import settings
+from gitfourchette.gitdriver import VanillaConflict, VanillaConflictStage
 from gitfourchette.localization import *
-from gitfourchette.porcelain import Repo, DiffConflict
+from gitfourchette.porcelain import Repo
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 from gitfourchette.exttools.toolprocess import ToolProcess
 
 logger = logging.getLogger(__name__)
+
+
+def _dumpBlob(repo: Repo, directory: str, stage: VanillaConflictStage, inBrackets: str) -> str:
+    # Some of the stages in a merge conflict may be void (e.g. no ancestor)
+    if not stage:
+        return ""
+
+    data = repo.peel_blob(stage.id)
+    relPathObj = Path(stage.path)
+    pathObj = Path(directory, f"[{inBrackets}]{relPathObj.name}")
+    pathObj.write_bytes(data)
+
+    """
+    # Make it read-only
+    mode = pathObj.stat().st_mode
+    pathObj.chmod(mode & ~0o222)  # ~(write, write, write)
+    """
+    return str(pathObj)
 
 
 class MergeDriver(QObject):
@@ -34,13 +54,13 @@ class MergeDriver(QObject):
 
     statusChange = Signal()
 
-    conflict: DiffConflict
+    conflict: VanillaConflict
     process: QProcess | None
     processName: str
     state: State
     debrief: str
 
-    def __init__(self, parent: QObject, repo: Repo, conflict: DiffConflict):
+    def __init__(self, parent: QObject, repo: Repo, conflict: VanillaConflict):
         super().__init__(parent)
 
         logger.info(f"Initialize MergeDriver: {conflict}")
@@ -50,8 +70,8 @@ class MergeDriver(QObject):
         self.state = MergeDriver.State.Idle
         self.debrief = ""
 
-        assert conflict.ours is not None, "MergeDriver requires an 'ours' side in DiffConflict"
-        assert conflict.theirs is not None, "MergeDriver requires a 'theirs' side in DiffConflict"
+        assert conflict.ours, "MergeDriver requires an 'ours' side"
+        assert conflict.theirs, "MergeDriver requires a 'theirs' side"
 
         # Keep a reference to mergeDir so the temporary directory doesn't vanish
         self.mergeDir = QTemporaryDir(os.path.join(qTempDir(), "merge"))
@@ -61,17 +81,17 @@ class MergeDriver(QObject):
         mergeDirPath = self.mergeDir.path()
 
         # Dump OURS and THEIRS blobs into the temporary directory
-        self.oursPath = dumpTempBlob(repo, mergeDirPath, conflict.ours, "OURS")
-        self.theirsPath = dumpTempBlob(repo, mergeDirPath, conflict.theirs, "THEIRS")
+        self.oursPath = _dumpBlob(repo, mergeDirPath, conflict.ours, "OURS")
+        self.theirsPath = _dumpBlob(repo, mergeDirPath, conflict.theirs, "THEIRS")
 
         oursPath = conflict.ours.path
         baseName = os.path.basename(oursPath)
         self.targetPath = repo.in_workdir(oursPath)
         self.relativeTargetPath = oursPath
 
-        if conflict.ancestor is not None:
+        if conflict.ancestor:
             # Dump ANCESTOR blob into the temporary directory
-            self.ancestorPath = dumpTempBlob(repo, mergeDirPath, conflict.ancestor, "ANCESTOR")
+            self.ancestorPath = _dumpBlob(repo, mergeDirPath, conflict.ancestor, "ANCESTOR")
         else:
             # There's no ancestor! Some merge tools can fake a 3-way merge without
             # an ancestor (e.g. PyCharm), but others won't (e.g. VS Code).
@@ -152,7 +172,7 @@ class MergeDriver(QObject):
         shutil.copyfile(self.scratchPath, self.targetPath)
 
     @classmethod
-    def findOngoingMerge(cls, conflict: DiffConflict) -> MergeDriver | None:
+    def findOngoingMerge(cls, conflict: VanillaConflict) -> MergeDriver | None:
         try:
             return next(m for m in cls._ongoingMerges if m.conflict == conflict)
         except StopIteration:

@@ -11,7 +11,7 @@ from contextlib import suppress
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import FatDelta, ABDeltaFile, ABDelta
+from gitfourchette.gitdriver import FatDelta, ABDeltaFile, ABDelta, VanillaConflict
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -241,7 +241,7 @@ class LoadPatch(RepoTask):
         except Exception as exc:
             # Yikes! Don't prevent loading a repo
             summary, details = excStrings(exc)
-            self.result = SpecialDiffError(summary, icon="SP_MessageBoxCritical", preformatted=details)
+            self.result = SpecialDiffError(escape(summary), icon="SP_MessageBoxCritical", preformatted=details)
 
         self.header = self._makeHeader(self.result, locator)
 
@@ -287,7 +287,7 @@ class LoadPatch(RepoTask):
         return tokens
 
     def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
-                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | DiffConflict | DiffImagePair]:
+                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | VanillaConflict | DiffImagePair]:
         delta = fatDelta.distillOldNew(locator.context)
         """
         if not patch:
@@ -306,12 +306,8 @@ class LoadPatch(RepoTask):
                                     longform=toRoomyUL(longformItems))
         """
 
-        assert not fatDelta.conflictUs, "conflicts not supported yet!"
-        """
-        if patch.delta.status == DeltaStatus.CONFLICTED:
-            path = patch.delta.new_file.path
-            return self.repo.wrap_conflict(path)
-        """
+        if fatDelta.isConflict():
+            return fatDelta.conflict
 
         if FileMode.COMMIT in (delta.new.mode, delta.old.mode):
             return SpecialDiffError.submoduleDiff(self.repo, fatDelta, locator)

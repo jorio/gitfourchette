@@ -1845,10 +1845,6 @@ class Repo(_VanillaRepository):
         if staged_paths:
             self.restore_files_from_head(staged_paths)
 
-    def wrap_conflict(self, path: str) -> DiffConflict:
-        ancestor, ours, theirs = self.index.conflicts[path]
-        return DiffConflict(ancestor, ours, theirs)
-
     @property
     def message_without_conflict_comments(self) -> str:
         message = self.message
@@ -2040,67 +2036,3 @@ class RepoContext:
         # repo.free() is necessary for correct test teardown on Windows
         self.repo.free()
         self.repo = None
-
-
-class ConflictSides(enum.IntEnum):
-    # -------------------TOA (Theirs, Ours, Ancestor)
-    DELETED_BY_BOTH  = 0b001
-    ADDED_BY_US      = 0b010
-    DELETED_BY_THEM  = 0b011
-    ADDED_BY_THEM    = 0b100
-    DELETED_BY_US    = 0b101
-    ADDED_BY_BOTH    = 0b110
-    MODIFIED_BY_BOTH = 0b111
-
-
-@_dataclasses.dataclass(frozen=True)
-class DiffConflict:
-    ancestor: IndexEntry | None
-    ours: IndexEntry | None
-    theirs: IndexEntry | None
-
-    @property
-    def sides(self) -> ConflictSides:
-        a = 0b001 * bool(self.ancestor)
-        o = 0b010 * bool(self.ours)
-        t = 0b100 * bool(self.theirs)
-        return ConflictSides(t | o | a)
-        # This ctor will raise ValueError if it's an invalid IntEnum
-
-    @property
-    def deleted_by_us(self):
-        return self.sides == ConflictSides.DELETED_BY_US
-
-    @property
-    def deleted_by_them(self):
-        return self.sides == ConflictSides.DELETED_BY_THEM
-
-    @property
-    def deleted_by_both(self):
-        return self.sides == ConflictSides.DELETED_BY_BOTH
-
-    @property
-    def modified_by_both(self):
-        return self.sides == ConflictSides.MODIFIED_BY_BOTH
-
-    @property
-    def added_by_them(self):
-        return self.sides == ConflictSides.ADDED_BY_THEM
-
-    @property
-    def added_by_us(self):
-        return self.sides == ConflictSides.ADDED_BY_US
-
-    @property
-    def added_by_both(self):
-        return self.sides == ConflictSides.ADDED_BY_BOTH
-
-    @property
-    def best_path(self) -> str:
-        if self.ours:
-            return self.ours.path
-        elif self.theirs:
-            return self.theirs.path
-        elif self.ancestor:
-            return self.ancestor.path
-        raise NotImplementedError("empty conflict")

@@ -53,27 +53,24 @@ class VanillaFetchStatusFlag(StrEnum):
 @dataclasses.dataclass
 class FatDelta:
     repo: Repo
-    conflictUs: str = ""
-    conflictThem: str = ""
     statusStaged: str = ""
     statusUnstaged: str = ""
     statusSubmodule: str = ""  # only valid for uncommitted changes in workdir
     statusCommit: str = ""
     modeHead: FileMode = FileMode.UNREADABLE
     modeIndex: FileMode = FileMode.UNREADABLE
-    modeConflictStages: tuple[FileMode, FileMode, FileMode] = (FileMode.UNREADABLE, FileMode.UNREADABLE, FileMode.UNREADABLE)
     modeWorktree: FileMode = FileMode.UNREADABLE
     modeSrc: FileMode = FileMode.UNREADABLE
     modeDst: FileMode = FileMode.UNREADABLE
     hexHashHead: str = ""
     hexHashIndex: str = ""
     hexHashWorktree: str = ""
-    hexHashConflictStages: tuple[str, str, str] = ("", "", "")
     hexHashSrc: str = ""
     hexHashDst: str = ""
     similarity: int = 0
     path: str = ""
     origPath: str = ""
+    conflict: VanillaConflict | None = None
 
     stat: stat_result | None = None
     """ Kept in ABDelta for comparison purposes when refreshing the repo.
@@ -95,7 +92,7 @@ class FatDelta:
             assert not self.statusSubmodule or self.statusSubmodule.startswith("S")
 
     def isConflict(self) -> bool:
-        return bool(self.conflictUs)
+        return self.conflict is not None
 
     def isSubtreeCommitPatch(self):
         # TODO: Test more specifically?
@@ -270,13 +267,45 @@ class ABDelta:
         return self.new.source
 
 
+@dataclasses.dataclass
+class VanillaConflictStage:
+    mode: FileMode
+    id: str
+    path: str  # for compatibility with existing code - TODO: Remove or keep?
+
+    def __bool__(self):
+        return not self.isId0()
+
+    def isId0(self) -> bool:
+        return self.id == HASH_40X0
+
+
+class ConflictSides(StrEnum):
+    BothDeleted   = "DD"
+    AddedByUs     = "AU"
+    DeletedByThem = "UD"
+    AddedByThem   = "UA"
+    DeletedByUs   = "DU"
+    BothAdded     = "AA"
+    BothModified  = "UU"
+
+
+@dataclasses.dataclass
+class VanillaConflict:
+    sides: ConflictSides
+    ancestor: VanillaConflictStage
+    ours: VanillaConflictStage
+    theirs: VanillaConflictStage
+    path: str
+
+
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
 # 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <R|C><score> <path><sep><origPath>
 # u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
 _gitStatusPatterns = {
     "1": re.compile(r"1 (.)(.) (....) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
     "2": re.compile(r"2 (.)(.) (....) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) [RC](\d+) ([^\x00]*)\x00([^\x00]*)\x00"),
-    "u": re.compile(r"u (.)(.) (....) (\d+) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
+    "u": re.compile(r"u (..) (....) (\d+) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
     "?": re.compile(r"\? ([^\x00]*)\x00"),
     "!": re.compile(r"! ([^\x00]*)\x00"),
 }
@@ -527,16 +556,18 @@ class GitDriver(QProcess):
                     origPath=origPath)
             elif ident == "u":
                 # Unmerged entries
-                x, y, sub, m1, m2, m3, mw, h1, h2, h3, path = match.groups()
+                xy, sub, m1, m2, m3, mw, h1, h2, h3, path = match.groups()
+                stage1 = VanillaConflictStage(FileMode(int(m1, 8)), h1, path)
+                stage2 = VanillaConflictStage(FileMode(int(m2, 8)), h2, path)
+                stage3 = VanillaConflictStage(FileMode(int(m3, 8)), h3, path)
+                conflict = VanillaConflict(ConflictSides(xy), stage1, stage2, stage3, path)
                 delta = FatDelta(
                     repo=repo,
-                    conflictUs=x,
-                    conflictThem=y,
                     statusUnstaged="U",  # Fake an 'unmerged' status in the unstaged box
                     statusSubmodule=sub,
                     modeWorktree=FileMode(int(mw, 8)),
-                    modeConflictStages=(FileMode(int(m1, 8)), FileMode(int(m2, 8)), FileMode(int(m3, 8))),
-                    path=path)
+                    path=path,
+                    conflict=conflict)
             else:
                 # ? Untracked items
                 # ! Ignored items

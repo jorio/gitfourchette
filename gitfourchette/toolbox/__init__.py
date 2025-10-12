@@ -16,7 +16,7 @@ from .fittedtext import FittedText
 from .excutils import shortenTracebackPath, excStrings
 from .fontpicker import FontPicker
 from .gitutils import (
-    shortHash, dumpTempBlob, nameValidationMessage,
+    shortHash, nameValidationMessage,
     AuthorDisplayStyle, abbreviatePerson,
     PatchPurpose,
     remoteUrlProtocol,
