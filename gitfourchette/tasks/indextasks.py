@@ -399,16 +399,11 @@ class AcceptMergeConflictResolution(RepoTask):
         return isinstance(task, RefreshRepo | Jump)
 
     def flow(self, mergeDriver: MergeDriver):
-        path = mergeDriver.relativeTargetPath
-
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir
-
+        path = mergeDriver.relativeTargetPath
         mergeDriver.copyScratchToTarget()
         mergeDriver.deleteNow()
-
-        del self.repo.index.conflicts[path]
-        self.repo.index.add(path)
+        yield from self.flowCallGit("add", "--force", "--", path)
 
         # Jump to staged file after confirming conflict resolution
         self.jumpTo = NavLocator.inStaged(path)
