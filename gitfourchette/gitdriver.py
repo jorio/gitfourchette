@@ -14,7 +14,6 @@ import re
 import shlex
 import signal
 from enum import StrEnum
-from os import stat_result
 from pathlib import Path
 
 from pygit2.enums import FileMode
@@ -72,7 +71,7 @@ class FatDelta:
     origPath: str = ""
     conflict: VanillaConflict | None = None
 
-    stat: stat_result | None = None
+    miniStat: tuple[int, int, int] | None = None
     """ Kept in ABDelta for comparison purposes when refreshing the repo.
     This lets us figure out if an unstaged file was modified since the FatDelta
     was created. """
@@ -592,7 +591,8 @@ class GitDriver(QProcess):
             # but to git it's just 120000).
             if delta.statusUnstaged:
                 try:
-                    delta.stat = Path(self.workingDirectory(), path).lstat()
+                    stat = Path(self.workingDirectory(), path).lstat()
+                    delta.miniStat = (stat.st_mode, stat.st_size, stat.st_mtime_ns)
                 except OSError:
                     pass
 
