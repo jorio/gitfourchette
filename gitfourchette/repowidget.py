@@ -13,8 +13,6 @@ from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
 from gitfourchette.diffarea import DiffArea
-from gitfourchette.diffview.diffdocument import DiffDocument
-from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.banner import Banner
@@ -191,7 +189,6 @@ class RepoWidget(QWidget):
         self.graphView.clDelegate.requestSignatureVerification.connect(self.repoModel.queueGpgVerification)
         self.graphView.clDelegate.requestSignatureVerification.connect(self.scheduleFlushGpgVerificationQueue)
 
-        self.diffArea.committedFiles.openDiffInNewWindow.connect(self.loadPatchInNewWindow)
         self.diffArea.conflictView.openPrefs.connect(self.openPrefs)
         self.diffArea.diffView.contextualHelp.connect(self.statusMessage)
         self.diffArea.specialDiffView.linkActivated.connect(self.processInternalLink)
@@ -423,33 +420,6 @@ class RepoWidget(QWidget):
             searchBar.notFoundMessage = None
         # Release any LexJobs that we own (it's not a big deal if we lose cached jobs for other tabs)
         LexJobCache.clear()
-
-    def loadPatchInNewWindow(self, patch: Patch, locator: NavLocator):
-        try:
-            diffDocument = DiffDocument.fromPatch(patch, locator)
-        except Exception as exc:
-            excMessageBox(exc, _("Open diff in new window"),
-                          _("Only text diffs may be opened in a separate window."),
-                          icon='information')
-            return
-
-        diffWindow = QWidget(self)
-        diffWindow.setObjectName("DetachedDiffWindow")
-        diffWindow.setWindowTitle(locator.asTitle())
-        diffWindow.setWindowFlag(Qt.WindowType.Window, True)
-        diffWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        layout = QVBoxLayout(diffWindow)
-        layout.setContentsMargins(QMargins())
-        layout.setSpacing(0)
-        diff = DiffView(diffWindow)
-        diff.isDetachedWindow = True
-        diff.setFrameStyle(QFrame.Shape.NoFrame)
-        diff.replaceDocument(self.repo, patch, locator, diffDocument)
-        layout.addWidget(diff)
-        layout.addWidget(diff.searchBar)
-        diffWindow.resize(550, 700)
-        diffWindow.show()
-        diff.setUpAsDetachedWindow()  # Required for detached windows
 
     def blameFile(self, path="", atCommit=NULL_OID):
         if not path:

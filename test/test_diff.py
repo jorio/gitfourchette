@@ -266,18 +266,19 @@ def testSubpatchNoEOL(tempDir, mainWindow):
 
 @pytest.mark.parametrize("closeManually", [True, False])
 def testDiffInNewWindow(tempDir, mainWindow, closeManually):
+    diffWindowObjectName = "DetachedDiffWindow"
+
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     assert mainWindow in QApplication.topLevelWidgets()
 
     oid = Oid(hex='1203b03dc816ccbb67773f28b3c19318654b0bc8')
     rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
-    qlvClickNthRow(rw.committedFiles, 0)
 
-    rw.committedFiles.openDiffInNewWindow.emit(rw.diffView.currentFatDelta, rw.navLocator)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in new window")
     waitUntilTrue(lambda: not mainWindow.isActiveWindow())
 
-    diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == "DetachedDiffWindow")
+    diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == diffWindowObjectName)
     diffWidget: DiffView = diffWindow.findChild(DiffView)
     assert diffWindow is not mainWindow
     assert diffWindow is diffWidget.window()
@@ -295,7 +296,7 @@ def testDiffInNewWindow(tempDir, mainWindow, closeManually):
         mainWindow.closeAllTabs()
 
     QTest.qWait(0)  # doesn't get a chance to clean up windows without this...
-    assert 1 == len(QGuiApplication.topLevelWindows())
+    assert diffWindowObjectName not in [w.objectName() for w in QApplication.topLevelWidgets()]
 
 
 def testSearchDiff(tempDir, mainWindow):

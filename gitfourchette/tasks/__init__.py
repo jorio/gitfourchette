@@ -57,6 +57,9 @@ from gitfourchette.tasks.jumptasks import (
     JumpToUncommittedChanges,
     RefreshRepo,
 )
+from gitfourchette.tasks.loadtasks import (
+    LoadPatchInNewWindow,
+)
 from gitfourchette.tasks.nettasks import (
     AutoFetchRemotes,
     DeleteRemoteBranch,

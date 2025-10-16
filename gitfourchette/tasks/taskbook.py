@@ -66,6 +66,7 @@ class TaskBook:
             tasks.JumpForward: _("Navigate forward"),
             tasks.JumpToHEAD: _("Go to HEAD commit"),
             tasks.JumpToUncommittedChanges: _("Go to Working Directory"),
+            tasks.LoadPatchInNewWindow: _("Open diff in new window"),
             tasks.MarkConflictSolved: _("Mark conflict solved"),
             tasks.MergeBranch: _("Merge branch"),
             tasks.NewBranchFromCommit: _("New local branch"),

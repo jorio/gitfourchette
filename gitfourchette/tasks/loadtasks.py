@@ -21,7 +21,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import RepoTask, TaskEffects, FlowControlToken
+from gitfourchette.tasks.repotask import RepoTask, TaskEffects, FlowControlToken, AbortTask
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -415,3 +415,36 @@ class LoadPatch(RepoTask):
                 LexJobCache.put(job)
 
         return oldLexJob, newLexJob
+
+
+class LoadPatchInNewWindow(LoadPatch):
+    def flow(self, fatDelta: FatDelta, locator: NavLocator):
+        yield from super().flow(fatDelta, locator)
+
+        diffDocument = self.result
+        if not isinstance(diffDocument, DiffDocument):
+            raise AbortTask(_("Only text diffs may be opened in a separate window."), icon="information")
+
+        from gitfourchette.diffview.diffview import DiffView
+
+        diffWindow = QWidget(self.parentWidget())
+        diffWindow.setObjectName("DetachedDiffWindow")
+        diffWindow.setWindowTitle(locator.asTitle())
+        diffWindow.setWindowFlag(Qt.WindowType.Window, True)
+        diffWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        diff = DiffView(diffWindow)
+        diff.isDetachedWindow = True
+        diff.setFrameStyle(QFrame.Shape.NoFrame)
+        diff.replaceDocument(self.repo, fatDelta, locator, self.result)
+
+        layout = QVBoxLayout(diffWindow)
+        layout.setContentsMargins(QMargins())
+        layout.setSpacing(0)
+        layout.addWidget(diff)
+        layout.addWidget(diff.searchBar)
+
+        diffWindow.resize(550, 700)
+        diffWindow.show()
+
+        diff.setUpAsDetachedWindow()  # Required for detached windows

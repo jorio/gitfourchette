@@ -130,7 +130,6 @@ class FileList(QListView):
     nothingClicked = Signal()
     """ Only emitted if the widget has focus. """
     selectedCountChanged = Signal(int)
-    openDiffInNewWindow = Signal(Patch, NavLocator)
     openSubRepo = Signal(str)
     statusMessage = Signal(str)
 

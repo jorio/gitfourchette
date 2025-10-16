@@ -15,7 +15,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks import RestoreRevisionToWorkdir
+from gitfourchette.tasks import LoadPatchInNewWindow, RestoreRevisionToWorkdir
 from gitfourchette.toolbox import *
 
 
@@ -207,7 +207,8 @@ class CommittedFiles(FileList):
         self.confirmBatch(run, _("Open working copy revision"), _("Really open <b>{n} files</b>?"))
 
     def wantOpenDiffInNewWindow(self):
-        def run(patch: Patch):
-            self.openDiffInNewWindow.emit(patch, NavLocator(self.navContext, self.commitId, patch.delta.new_file.path))
+        def run(delta: FatDelta):
+            locator = NavLocator(self.navContext, self.commitId, delta.path)
+            LoadPatchInNewWindow.invoke(self, delta, locator)
 
         self.confirmBatch(run, _("Open diff in new window"), _("Really open <b>{n} windows</b>?"))
