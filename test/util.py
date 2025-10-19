@@ -509,10 +509,13 @@ def waitForQMessageBox(parent: QWidget, pattern: str) -> QMessageBox:
 def acceptQMessageBox(parent: QWidget, textPattern: str):
     findQMessageBox(parent, textPattern).accept()
     parent.activateWindow()  # in offscreen tests, accepting the QMB doesn't restore an active window, for some reason (as of Qt 6.7.1)
+    QTest.qWait(0)
 
 
 def rejectQMessageBox(parent: QWidget, textPattern: str):
     findQMessageBox(parent, textPattern).reject()
+    parent.activateWindow()  # in offscreen tests, accepting the QMB doesn't restore an active window, for some reason (as of Qt 6.7.1)
+    QTest.qWait(0)
 
 
 def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggestedName=False):
