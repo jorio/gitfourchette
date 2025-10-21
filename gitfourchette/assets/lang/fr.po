@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2025-09-07 21:29+0000\n"
-"Last-Translator: Alex Nadzharov <anadjarov@gmail.com>\n"
+"PO-Revision-Date: 2025-10-22 10:02+0000\n"
+"Last-Translator: Cyril <github@kosmon.fr>\n"
 "Language-Team: French <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/fr/>\n"
 "Language: fr\n"
@@ -1274,9 +1274,8 @@ msgid "Detach HEAD"
 msgstr "Détacher HEAD"
 
 #: forms/checkoutcommitdialog.py:44
-#, fuzzy
 msgid "Switch Branch"
-msgstr "Basculer sur branche"
+msgstr "Changer de branche"
 
 #: forms/checkoutcommitdialog.py:45
 #, python-brace-format
