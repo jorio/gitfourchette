@@ -72,7 +72,41 @@ class FileListDelegate(QStyledItemDelegate):
             painter.setFont(font)
         fullText = index.data(Qt.ItemDataRole.DisplayRole)
         text = painter.fontMetrics().elidedText(fullText, option.textElideMode, textRect.width())
-        painter.drawText(textRect, option.displayAlignment, text)
+
+        # Split path into directory and filename for better readability
+        dirPortion = None
+        filePortion = None
+
+        if '/' in fullText and not isSelected:
+            slashesInFull = fullText.count('/')
+            slashesInElided = text.count('/')
+
+            if slashesInFull > slashesInElided:
+                # A slash was elided - gray everything up to the ellipsis
+                ellipsisPos = text.find('\u2026')
+                dirPortion = text[:ellipsisPos + 1]
+                filePortion = text[ellipsisPos + 1:]
+            elif slashesInElided > 0:
+                # No slash elided - gray up to the last slash
+                lastSlash = text.rfind('/')
+                dirPortion = text[:lastSlash + 1]
+                filePortion = text[lastSlash + 1:]
+
+        if dirPortion is not None:
+            # Draw directory with muted color
+            mutedColor = option.palette.color(colorGroup, QPalette.ColorRole.WindowText)
+            mutedColor.setAlphaF(0.4)
+            painter.setPen(mutedColor)
+            painter.drawText(textRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, dirPortion)
+
+            # Draw filename with normal color
+            painter.setPen(option.palette.color(colorGroup, QPalette.ColorRole.WindowText))
+            dirWidth = painter.fontMetrics().horizontalAdvance(dirPortion)
+            fileRect = QRect(textRect)
+            fileRect.setLeft(textRect.left() + dirWidth)
+            painter.drawText(fileRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, filePortion)
+        else:
+            painter.drawText(textRect, option.displayAlignment, text)
 
         # Highlight search term
         if searchTerm and searchTerm in fullText.lower():
