@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import os
+import re
 from contextlib import suppress
 from pathlib import Path
 
@@ -20,6 +21,9 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
+
+
+_workdirCrlfWarning = re.compile("warning: in the working copy of .+, (.+) will be replaced by (.+) the next time Git touches it")
 
 
 class DiffImagePair:
@@ -52,7 +56,7 @@ class SpecialDiffError:
         self.links = DocumentLinks()
 
     @staticmethod
-    def noChange(delta: ABDelta):
+    def noChange(delta: ABDelta, stderr: str = ""):
         message = _("File contents didn’t change.")
         details: list[str] = []
         longform: list[str] = []
@@ -80,15 +84,15 @@ class SpecialDiffError:
             intro = _("Mode change:")
             details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
-        # TODO: "and oldFile.size != newFile.size" lost in translation, still OK?
-        if delta.context.isWorkdir() and oldFile == newFile:
-            message = _("Canonical file contents unchanged.")
-            longform.append(toRoomyUL([
-                _("Due to filters such as {filter}, your working copy is not bit-for-bit identical to the file’s "
-                  "canonical state. However, the contents tracked by Git are equivalent after filtering.",
-                  filter=hquo("core.autocrlf")),
-                _("You can stage the file to dismiss this message; no changes will be recorded.")
-            ]))
+        if delta.context.isWorkdir():
+            match = _workdirCrlfWarning.search(stderr)
+            if match:
+                sourceEndings = match.group(1)
+                targetEndings = match.group(2)
+                longform.append(toRoomyUL([
+                    _("In your working copy, {0} will be replaced by {1} the next time Git touches this file.", sourceEndings, targetEndings),
+                    _("You can stage the file to dismiss this message; no changes will be recorded.")
+                ]))
 
         return SpecialDiffError(message, "\n".join(details), longform="\n".join(longform))
 

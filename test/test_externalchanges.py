@@ -147,12 +147,11 @@ def testLineEndingsChangedWithAutocrlfInputCauseDiffReload(tempDir, mainWindow):
     assert oldPatch is not rw.diffView.currentFatDelta
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.18.3"), reason="old pygit2 - https://github.com/libgit2/pygit2/pull/1412")
 def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     # Convert these files to CRLF
-    crlfFiles = [ "a/a1.txt", "a/a2.txt", "b/b1.txt", "b/b2.txt" ]
+    crlfFiles = ["a/a1.txt", "a/a2.txt", "b/b1.txt", "b/b2.txt"]
     for filePath in crlfFiles:
         contents = readFile(f"{wd}/{filePath}")
         contents = contents.replace(b'\n', b'\r\n')
@@ -169,11 +168,12 @@ def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow
     # There seems to be a bug in libgit2 where patch.delta is unstable (returning erroneous
     # status, or returning no delta altogether) if the patch has been re-generated several times from
     # the same diff while a CRLF filter applies. To work around this, we should cache the patch.
+    # (Note: this doesn't apply to vanilla git diffs anymore - but it doesn't hurt to keep the loop as-is)
     for _i in range(3):
         for filePath in crlfFiles:
             rw.jump(NavLocator.inUnstaged(filePath), check=True)
             assert rw.specialDiffView.isVisible()
-            assert "canonical file contents unchanged" in rw.specialDiffView.toPlainText().lower()
+            assert "crlf will be replaced by lf" in rw.specialDiffView.toPlainText().lower()
 
     # Stage them to dismiss the messages
     for filePath in crlfFiles:

@@ -331,7 +331,8 @@ class LoadPatch(RepoTask):
         except DiffDocument.BinaryError:
             return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:
-            return SpecialDiffError.noChange(delta)
+            stderr = driver.stderrScrollback()
+            return SpecialDiffError.noChange(delta, stderr)
         except DiffDocument.VeryLongLinesError:
             loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
             return SpecialDiffError(
