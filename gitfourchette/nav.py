@@ -32,9 +32,6 @@ class NavFlags(enum.IntFlag):
     AllowLargeFiles = enum.auto()
     "Bypass file size and line length limits to display the diff at this location."
 
-    AllowLargeCommits = enum.auto()
-    "Bypass rename detection limit to display the commit at this location."
-
     AllowMultiSelect = enum.auto()
     "Don't reset the selection when loading this location."
 

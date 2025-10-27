@@ -374,21 +374,9 @@ class Jump(RepoTask):
             raise Jump.Result(locator, header, sde)
 
         # Warning banner
-        if not area.diffBanner.lastWarningWasDismissed:
-            if flv.skippedRenameDetection:
-                warnings.append(_("Rename detection was skipped to load this large commit faster."))
-            elif locator.hasFlags(NavFlags.AllowLargeCommits | NavFlags.ForceDiff):
-                n = sum(sum(1 if delta.status == DeltaStatus.RENAMED else 0 for delta in diff.deltas) for diff in diffs)
-                warnings.append(_n("{n} rename detected.", "{n} renames detected.", n))
-
-            if warnings:
-                warningText = "<br>".join(warnings)
-                area.diffBanner.popUp("", warningText, canDismiss=True, withIcon=True)
-
-            if flv.skippedRenameDetection:
-                area.diffBanner.addButton(
-                    _("Detect Renames"),
-                    lambda: Jump.invoke(rw, locator.withExtraFlags(NavFlags.AllowLargeCommits | NavFlags.ForceDiff)))
+        if warnings and not area.diffBanner.lastWarningWasDismissed:
+            warningText = "<br>".join(warnings)
+            area.diffBanner.popUp("", warningText, canDismiss=True, withIcon=True)
 
         return locator
 

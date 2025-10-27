@@ -147,11 +147,6 @@ class FileList(QListView):
     Only valid if navContext == COMMITTED.
     """
 
-    skippedRenameDetection: bool
-    """
-    In large diffs, we skip rename detection.
-    """
-
     _selectionBackup: list[str]
     """
     Backup of selected paths before refreshing the view.
@@ -171,7 +166,6 @@ class FileList(QListView):
 
         self.navContext = navContext
         self.commitId = NULL_OID
-        self.skippedRenameDetection = False
         self._selectionBackup = []
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -216,14 +210,12 @@ class FileList(QListView):
 
     def setContents(self, deltas: Iterable[FatDelta]):
         self.flModel.setContents(deltas)
-        # self.skippedRenameDetection = skippedRenameDetection
         self.updateFocusPolicy()
         self.searchBar.reevaluateSearchTerm()
 
     def clear(self):
         self.flModel.clear()
         self.commitId = NULL_OID
-        self.skippedRenameDetection = False
         assert self.isEmpty()
         self.updateFocusPolicy()
 

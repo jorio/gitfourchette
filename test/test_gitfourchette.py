@@ -107,41 +107,6 @@ def testUnloadRepoWhenFolderGoesMissing(tempDir, mainWindow, qtbot: QtBot):
     assert os.path.samefile(wd, rw.workdir)
 
 
-def testSkipRenameDetection(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-
-    with RepoContext(wd, write_index=True) as repo:
-        os.rename(f"{wd}/a/a2.txt", f"{wd}/a/a2-renamed.txt")
-        repo.index.remove("a/a2.txt")
-        repo.index.add("a/a2-renamed.txt")
-        for i in range(100):
-            writeFile(f"{wd}/bogus{i:03}.txt", f"hello {i}\n")
-            repo.index.add(f"bogus{i:03}.txt")
-        oid = repo.create_commit_on_head("renamed a2.txt and added a ton of files")
-
-    rw = mainWindow.openRepo(wd)
-    assert not rw.diffBanner.isVisible()
-
-    # Jump to the deleted file
-    rw.jump(NavLocator.inCommit(oid, "a/a2.txt"), check=True)
-    assert 102 == len(qlvGetRowData(rw.committedFiles))
-    assert rw.diffBanner.isVisible()
-    assert "rename" in rw.diffBanner.label.text().lower()
-
-    assert "detect" in rw.diffBanner.buttons[-1].text().lower()
-    rw.diffBanner.buttons[-1].click()
-
-    assert rw.navLocator.context == NavContext.COMMITTED
-    assert rw.diffArea.committedFiles.isVisible()
-    assert 101 == len(qlvGetRowData(rw.committedFiles))
-    assert rw.diffBanner.isVisible()
-    print(rw.diffBanner.label.text())
-    assert re.search(r"1 rename.* detected", rw.diffBanner.label.text(), re.I)
-
-    rw.diffBanner.dismissButton.click()
-    assert not rw.diffBanner.isVisible()
-
-
 def testNewRepo(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
 
