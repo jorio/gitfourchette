@@ -587,3 +587,23 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
     triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor-shim")
     acceptQMessageBox(rw, "really open.+11 files.+in external diff tool")
     acceptQMessageBox(rw, "can.t open external diff tool on a new file")
+
+
+def testFileListNaturalSort(tempDir, mainWindow):
+    names = [
+        "a1",
+        "a1z",
+        "a2",
+        "a10",
+        "a10z1z",
+        "a10z10",
+        "a15",
+        "a100",
+    ]
+
+    wd = unpackRepo(tempDir)
+    for name in names:
+        writeFile(f"{wd}/{name}", name)
+
+    rw = mainWindow.openRepo(wd)
+    assert qlvGetRowData(rw.dirtyFiles) == names

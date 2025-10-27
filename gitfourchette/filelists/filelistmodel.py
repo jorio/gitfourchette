@@ -165,7 +165,9 @@ class FileListModel(QAbstractListModel):
         self.deltas.clear()
         self.fileRows.clear()
 
-        for delta in deltas:
+        sortedDeltas = sorted(deltas, key=lambda d: naturalSort(d.path))
+
+        for delta in sortedDeltas:
             if self.skipConflicts and delta.isConflict():
                 continue
             self.fileRows[delta.path] = len(self.deltas)
