@@ -9,6 +9,7 @@ import re
 import shlex
 import shutil
 import tempfile
+import warnings
 from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
@@ -41,6 +42,40 @@ _TInheritsQDialog = TypeVar("_TInheritsQDialog", bound=QDialog)
 
 def pause(seconds: int = 3):
     QTest.qWait(seconds * 1000)
+
+
+def pauseDialog(message="Click OK to continue"):
+    """
+    Show a non-modal QMessageBox and pause the unit test until the message box
+    is finished. Click OK to resume the test or Cancel to abort. This lets you
+    explore the UI in the middle of a test.
+
+    This function does nothing in offscreen mode. Make sure to remove calls to
+    this function before committing a new test.
+    """
+
+    import sys
+    import traceback
+
+    if OFFSCREEN:
+        warnings.warn("Did you forget to remove a pauseDialog call?")
+        return
+
+    stackLine = traceback.format_stack()[-2].splitlines()[0]
+
+    qmb = QMessageBox(
+        QMessageBox.Icon.NoIcon,
+        "Unit test paused",
+        f"Unit test paused from:\n{stackLine}\n{message}",
+        buttons=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+        parent=None)
+    qmb.setWindowModality(Qt.WindowModality.NonModal)
+    qmb.show()
+
+    waitForSignal(qmb.finished, 1000 * 3600 * 24)
+
+    if qmb.result() == QMessageBox.StandardButton.Cancel:
+        sys.exit(1)
 
 
 def pygit2OlderThan(version: str):
