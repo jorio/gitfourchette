@@ -215,10 +215,14 @@ class ABDeltaFile:
             blob = self._readBlob(repo)
             assert not self.isIdValid() or blob.id == self.id  # TODO: Unsure about this assert - what if the file was modified between the calls to __init__ and read?
             assert not self.isSizeValid() or blob.size == self.size
+            self.id = str(blob.id)
             self.size = blob.size
             self._data = blob.data
             self._dataValid = True
-            assert self.isSizeValid()
+
+        assert self.isSizeValid(), "size should be valid here"
+        assert self.isIdValid(), "id should be valid here"
+        assert self._dataValid, "data should be valid here"
 
         return self._data
 
