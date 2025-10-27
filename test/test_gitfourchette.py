@@ -751,23 +751,25 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     assert readFile(scratchPath).decode().strip() == "about to sleep"
 
 
-def testFailedToStartGitProcess(tempDir, mainWindow):
+def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
     mainWindow.onAcceptPrefsDialog({
         "gitPath": "/tmp/supposedly-a-git-executable-but-it-doesnt-exist"
     })
 
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/master.txt", "stage me")
 
-    rw = mainWindow.openRepo(wd)
-    rw.diffArea.stageButton.click()
+    repoStub = mainWindow.openRepo(wd)
+    assert isinstance(repoStub, RepoStub)
+
+    waitUntilTrue(lambda: repoStub.ui.promptPage.isVisible())
+    assert findTextInWidget(repoStub.ui.promptReadyLabel, "failed to start")
 
     if FLATPAK:
         # flatpak-spawn always starts successfully, so the errorOccurred callback won't run.
         # Instead, look for return code 127 from /usr/bin/env.
-        acceptQMessageBox(rw, "code 127")
+        acceptQMessageBox(mainWindow, "code 127")
     else:
-        acceptQMessageBox(rw, "failed to start")
+        acceptQMessageBox(mainWindow, "failed to start")
 
 
 def testGitProcessStuck(tempDir, mainWindow, taskThread):
