@@ -173,33 +173,6 @@ class DiffDocument:
 
     @staticmethod
     def fromPatch(abDelta: ABDelta, patch: str, maxLineLength=0) -> DiffDocument:
-        """
-        if patch.delta.similarity == 100:
-            raise SpecialDiffError.noChange(patch.delta)
-
-        # Don't show contents if file appears to be binary.
-        if patch.delta.is_binary:
-            raise SpecialDiffError.binaryDiff(patch.delta, locator)
-
-        # Render SVG file if user wants to.
-        if (settings.prefs.renderSvg
-                and patch.delta.new_file.path.lower().endswith(".svg")
-                and isImageFormatSupported("file.svg")):
-            raise SpecialDiffError.binaryDiff(patch.delta, locator)
-
-        # Special formatting for TYPECHANGE.
-        if patch.delta.status == DeltaStatus.TYPECHANGE:
-            raise SpecialDiffError.typeChange(patch.delta)
-
-        # Don't load large diffs.
-        threshold = settings.prefs.largeFileThresholdKB * 1024
-        if threshold != 0 and len(patch.data) > threshold and not locator.hasFlags(NavFlags.AllowLargeFiles):
-            raise SpecialDiffError.diffTooLarge(len(patch.data), threshold, locator)
-
-        if len(patch.hunks) == 0:
-            raise SpecialDiffError.noChange(patch.delta)
-        """
-
         lineData: list[LineData] = []
 
         clumpID = 0

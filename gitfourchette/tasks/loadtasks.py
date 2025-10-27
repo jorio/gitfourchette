@@ -289,22 +289,6 @@ class LoadPatch(RepoTask):
     def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | VanillaConflict | DiffImagePair]:
         delta = fatDelta.distillOldNew(locator.context)
-        """
-        if not patch:
-            locator = locator.withExtraFlags(NavFlags.ForceDiff)
-            longformItems = [linkify(_("Try to reload the file."), locator.url())]
-
-            if locator.context.isWorkdir() and not settings.prefs.autoRefresh:
-                prefKey = "autoRefresh"
-                tip = _("Consider re-enabling {0} to prevent this issue.",
-                        linkify(hquo(TrTables.prefKey(prefKey)), makeInternalLink("prefs", prefKey)))
-                longformItems.append(tip)
-
-            return SpecialDiffError(_("Outdated diff."),
-                                    _("The file appears to have changed on disk."),
-                                    icon="SP_MessageBoxWarning",
-                                    longform=toRoomyUL(longformItems))
-        """
 
         if fatDelta.isConflict():
             return fatDelta.conflict

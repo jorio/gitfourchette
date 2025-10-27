@@ -439,19 +439,6 @@ def signatures_equalish(a: Signature, b: Signature):
     )
 
 
-def DiffFile_compare(f1: DiffFile, f2: DiffFile):
-    # TODO: pygit2 ought to implement DiffFile.__eq__
-    # Note: We're also checking the size, because IDs may be equal though the
-    # physical size may differ due to filters (e.g. autocrlf).
-    same = (f1.id == f2.id
-            and f1.mode == f2.mode
-            and f1.flags == f2.flags
-            and f1.raw_path == f2.raw_path
-            and f1.size == f2.size)
-    assert not same or f1.path == f2.path
-    return same
-
-
 def strip_stash_message(stash_message: str) -> str:
     m = CORE_STASH_MESSAGE_PATTERN.match(stash_message)
     if m:
