@@ -1675,54 +1675,6 @@ class Repo(_VanillaRepository):
         assert refname in self.references
         self.references.delete(refname)
 
-    def add_inner_repo_as_submodule(self, inner_relative_path: str, remote_url: str, absorb_git_dir: bool = True, name: str = ""):
-        outer_w = _Path(self.workdir)
-        inner_w = _Path(outer_w, inner_relative_path)  # normalize
-
-        if not inner_w.is_dir():
-            raise FileNotFoundError(f"Inner workdir not found: {inner_w}")
-
-        if not inner_w.is_relative_to(outer_w):
-            raise ValueError("Subrepo workdir must be relative to superrepo workdir")
-
-        if not name:
-            name = str(inner_w.relative_to(outer_w))
-
-        with RepoContext(str(inner_w)) as inner_repo:
-            inner_g = _Path(inner_repo.path)
-            inner_head_id = inner_repo.head_commit.id
-
-        if not inner_g.is_relative_to(outer_w):
-            raise ValueError("Subrepo .git dir must be relative to superrepo workdir")
-
-        gitmodules = GitConfig(self.in_workdir(DOT_GITMODULES))
-        gitmodules[f"submodule.{name}.path"] = inner_w.relative_to(outer_w)
-        if remote_url:
-            gitmodules[f"submodule.{name}.url"] = remote_url
-            self.config[f"submodule.{name}.url"] = remote_url
-
-        if absorb_git_dir:
-            inner_g2 = _Path(self.path, "modules", inner_w.relative_to(outer_w))
-            if inner_g2.exists():
-                raise FileExistsError(f"Directory already exists: {inner_g2}")
-            inner_g2.parent.mkdir(parents=True, exist_ok=True)
-            inner_g.rename(inner_g2)
-            inner_g = inner_g2
-
-            # TODO: Use Path.relative_to(..., walk_up=True) once we drop support for all versions older than Python 3.13
-            submodule_config = GitConfig(str(inner_g / "config"))
-            submodule_config["core.worktree"] = _relpath(inner_w, inner_g2)
-
-            with open(inner_w / ".git", "w", encoding="utf-8") as submodule_dotgit_file:
-                submodule_dotgit_file.write(f"gitdir: {_relpath(inner_g2, inner_w)}\n")
-
-        # Poor man's workaround for git_submodule_add_to_index (not available in pygit2 yet)
-        entry = IndexEntry(inner_w.relative_to(outer_w), inner_head_id, FileMode.COMMIT)
-        self.index.add(entry)
-
-        # While we're here also add .gitmodules
-        self.index.add(DOT_GITMODULES)
-
     def remove_submodule(self, submodule_name: str):
         inner_w = self.listall_submodules_dict()[submodule_name]
         config_abspath = self.in_workdir(DOT_GITMODULES)

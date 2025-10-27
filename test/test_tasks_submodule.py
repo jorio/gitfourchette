@@ -221,8 +221,8 @@ def testAbsorbSubmodule(tempDir, mainWindow):
     assert ["newsubmo", "submosub"] == sorted(rw.repo.listall_submodules_fast())
     assert ["newsubmo", "submosub"] == sorted(node.data for node in rw.sidebar.findNodesByKind(SidebarItem.Submodule))
 
-    # The submodule is there, but it's unstaged
-    rw.jump(NavLocator.inStaged("newsubmo"))
+    # The submodule should be automatically staged
+    rw.jump(NavLocator.inStaged("newsubmo"), check=True)
 
     # Click "open submodule" link
     qteClickLink(rw.specialDiffView, "open submodule")
@@ -272,7 +272,7 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     rw.jump(submoStagedLoc)
     assert rw.navLocator.isSimilarEnoughTo(submoStagedLoc)
     assert qteFind(rw.specialDiffView, r"subtree.+newsubmo.+was added")
-    assert qteFind(rw.specialDiffView, r"isn.t a submodule yet")
+    assert qteFind(rw.specialDiffView, r"subtree isn.t a submodule yet")
     qteClickLink(rw.specialDiffView, r"absorb")
     findQDialog(rw, "absorb").accept()
 

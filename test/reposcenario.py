@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -51,6 +51,8 @@ def statelessConflictingChange(path):
 
 
 def submodule(path, absorb=False):
+    from gitfourchette.gitdriver import GitDriver
+
     subPath = os.path.join(path, "submodir")
     shutil.copytree(path, subPath)
 
@@ -62,9 +64,12 @@ def submodule(path, absorb=False):
         subRepo.branches.local["master"].upstream = subRepo.branches.remote["submo-localfs/master"]
         subRemoteUrl = subRepo.remotes["submo-localfs"].url
 
+    # Give submodule a custom name that is different from the path to reveal edge cases
+    GitDriver.runSync("submodule", "add", "--name", "submoname", "--", subRemoteUrl, "submodir", strict=True, directory=path)
+    if absorb:
+        GitDriver.runSync("submodule", "absorbgitdirs", "--", "submodir", strict=True, directory=path)
+
     with RepoContext(path, write_index=True) as repo:
-        # Give submodule a custom name that is different from the path to reveal edge cases
-        repo.add_inner_repo_as_submodule("submodir", subRemoteUrl, absorb_git_dir=absorb, name="submoname")
         subAddCommit = repo.create_commit_on_head("Add Submodule for Test Purposes")
 
     if WINDOWS:

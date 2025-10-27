@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -71,11 +71,13 @@ class RegisterSubmodule(RepoTask):
         customName = dlg.customName
         dlg.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs  # we don't have TaskEffects.Submodules so .Refs is the next best thing
 
         innerWD = str(subWD.relative_to(thisWD))
-        self.repo.add_inner_repo_as_submodule(innerWD, remoteUrl, name=customName, absorb_git_dir=absorb)
+        yield from self.flowCallGit("submodule", "add", "--force", "--name", customName, "--", remoteUrl, innerWD)
+
+        if absorb:
+            yield from self.flowCallGit("submodule", "absorbgitdirs", "--", innerWD)
 
 
 class AbsorbSubmodule(RegisterSubmodule):
