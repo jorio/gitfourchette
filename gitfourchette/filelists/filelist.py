@@ -77,7 +77,7 @@ class FileListDelegate(QStyledItemDelegate):
         dirPortion = None
         filePortion = None
 
-        if '/' in fullText and not isSelected:
+        if '/' in fullText:
             slashesInFull = fullText.count('/')
             slashesInElided = text.count('/')
 
@@ -93,14 +93,16 @@ class FileListDelegate(QStyledItemDelegate):
                 filePortion = text[lastSlash + 1:]
 
         if dirPortion is not None:
+            textColor = QPalette.ColorRole.WindowText if not isSelected else QPalette.ColorRole.HighlightedText
+            
             # Draw directory with muted color
-            mutedColor = option.palette.color(colorGroup, QPalette.ColorRole.WindowText)
+            mutedColor = option.palette.color(colorGroup, textColor)
             mutedColor.setAlphaF(0.4)
             painter.setPen(mutedColor)
             painter.drawText(textRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, dirPortion)
 
             # Draw filename with normal color
-            painter.setPen(option.palette.color(colorGroup, QPalette.ColorRole.WindowText))
+            painter.setPen(option.palette.color(colorGroup, textColor))
             dirWidth = painter.fontMetrics().horizontalAdvance(dirPortion)
             fileRect = QRect(textRect)
             fileRect.setLeft(textRect.left() + dirWidth)
