@@ -17,11 +17,16 @@ import gc
 import logging
 
 from gitfourchette.appconsts import APP_DEBUG
-from gitfourchette.toolbox import onAppThread as _onAppThread
+from gitfourchette.qt import QApplication, QThread
 
 _logger = logging.getLogger(__name__)
 
 gc.disable()
+
+
+def _onAppThread():
+    app = QApplication.instance()
+    return (app is None) or (app.thread() is QThread.currentThread())
 
 
 if APP_DEBUG:
