@@ -94,7 +94,7 @@ class FileListDelegate(QStyledItemDelegate):
 
         if dirPortion is not None:
             textColor = QPalette.ColorRole.WindowText if not isSelected else QPalette.ColorRole.HighlightedText
-            
+
             # Draw directory with muted color
             mutedColor = option.palette.color(colorGroup, textColor)
             mutedColor.setAlphaF(0.4)
