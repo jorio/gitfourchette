@@ -571,7 +571,7 @@ class GitDriver(QProcess):
                     modeWorktree=FileMode(int(mw, 8)),
                     path=path,
                     conflict=conflict)
-            else:
+            elif ident in "?!":
                 # ? Untracked items
                 # ! Ignored items
                 # TODO: Should we hash the file? Note: git doesn't seem to hash unstaged 'M' files until they're staged
@@ -586,19 +586,29 @@ class GitDriver(QProcess):
                     statusUnstaged=ident,
                     modeWorktree=mode,
                     path=path)
+            else:
+                raise NotImplementedError(f"unsupported status ident '{ident}'")
 
             # Capture file stats if the file is unstaged. This can be used later
             # to check whether the FatDelta is stale.
-            # Do NOT set modeWorktree from the stat, because git uses simplified
-            # modes that may not accurately reflect actual modes in the
-            # filesystem (e.g. stat may report a symlink's mode to be 120777,
-            # but to git it's just 120000).
             if delta.statusUnstaged:
                 try:
                     stat = Path(self.workingDirectory(), path).lstat()
                     delta.miniStat = (stat.st_mode, stat.st_size, stat.st_mtime_ns)
                 except OSError:
                     pass
+
+            # Git doesn't return any information about the modes of UNTRACKED files.
+            # Do NOT set modeWorktree directly from the stat, because git uses simplified
+            # modes that may not accurately reflect actual modes in the filesystem
+            # (e.g. a symlink's stat.st_mode might be 120777, but to git it's just 120000).
+            if ident in "?!" and delta.miniStat and delta.modeWorktree == FileMode.UNREADABLE:
+                assert delta.statusUnstaged
+                mode = delta.miniStat[0]
+                for cand in [FileMode.LINK, FileMode.BLOB_EXECUTABLE, FileMode.BLOB]:  # order is significant!
+                    if (mode & cand) == cand:
+                        delta.modeWorktree = cand
+                        break
 
             deltas.append(delta)
 
