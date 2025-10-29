@@ -390,37 +390,49 @@ def testFileListToolTip(tempDir, mainWindow):
     os.chmod(f"{wd}/newexe", 0o777)
     rw = mainWindow.openRepo(wd)
 
+    def search(pattern):
+        return re.search(pattern, tip, re.I)
+
     assert NavLocator.inUnstaged("a/a1.txt").isSimilarEnoughTo(rw.navLocator)
     tip = rw.dirtyFiles.currentIndex().data(Qt.ItemDataRole.ToolTipRole)
-    assert all(re.search(p, tip, re.I) for p in ("a/a1.txt", "modified"))
-    assert re.search(r"blob hash:.+2051170.+5ccdb87", tip, re.I)
-    assert re.search(r"size:.+43 bytes", tip, re.I)
+    assert search(r"name:.+a/a1.txt")
+    assert search(r"status:.+modified")
+    assert search(r"blob hash:.+2051170.+5ccdb87")
 
     # look at staged counterpart of current index
     tip = rw.stagedFiles.model().index(0, 0).data(Qt.ItemDataRole.ToolTipRole)
-    assert all(re.search(p, tip, re.I) for p in ("a/a1.txt", "modified", "also.+staged"))
-    assert re.search(r"blob hash:.+15fae9e.+2051170", tip, re.I)
-    assert re.search(r"size:.+17 bytes", tip, re.I)
+    assert search(r"name:.+a/a1.txt")
+    assert search(r"status:.+modified")
+    assert search(r"also has.+staged.+changes")
+    assert search(r"blob hash:.+15fae9e.+2051170")
+    assert search(r"size:.+17 bytes")
 
-    # Look at newexe's blob ID before loading the patch
+    # Look at newexe's tooltip before loading the patch
     tip = rw.dirtyFiles.model().index(1, 0).data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search(r"blob hash:.+0000000.+dcf02b2", tip, re.I)
-    assert re.search(r"size:.+5 bytes", tip, re.I)
+    assert search(r"name:.+newexe")
+    assert search(r"status:.+untracked")
+    assert search(r"file mode:.+executable") or WINDOWS  # skip mode on windows
 
+    # Load newexe's patch. This will enrich the delta and the tooltip will be more up to date.
     rw.jump(NavLocator.inUnstaged("newexe"), check=True)
     tip = rw.dirtyFiles.currentIndex().data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search("untracked", tip, re.I)
-    assert re.search("executable", tip, re.I) or WINDOWS  # skip mode on windows
+    assert search(r"name:.+newexe")
+    assert search(r"status:.+untracked")
+    assert search(r"file mode:.+executable") or WINDOWS  # skip mode on windows
+    assert search(r"blob hash:.+0000000.+dcf02b2")  # hash resolved after loading the patch
 
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     tip = rw.committedFiles.currentIndex().data(Qt.ItemDataRole.ToolTipRole)
-    assert all(re.search(p, tip, re.I) for p in ("c/c2.txt", "c/c2-2.txt", "renamed", "similarity"))
+    assert search(r"old name:.+c/c2.txt")
+    assert search(r"new name:.+c/c2-2.txt")
+    assert search(r"status:.+renamed")
+    assert search(r"similarity:")
 
     # Look at file size/blob ID in a committed file without loading the patch in DiffView
     rw.jump(NavLocator.inCommit(Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664"), "a/a1.txt"), check=True)
     tip = rw.committedFiles.model().index(1, 0).data(Qt.ItemDataRole.ToolTipRole)  # a/a2.txt, not the current file
-    assert re.search(r"blob hash:.+0000000.+9653611", tip, re.I)
-    assert re.search(r"size:.+6 bytes", tip, re.I)
+    assert search(r"blob hash:.+0000000.+9653611")
+    assert search(r"size:.+6 bytes")
 
 
 def testFileListCopyPath(tempDir, mainWindow):
