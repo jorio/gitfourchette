@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2025 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from tarfile import TarFile
 
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.trash import Trash
 from .util import *
 
@@ -25,16 +26,21 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
     largeFileThreshold = 1024 + 1
 
     wd = unpackRepo(tempDir)
-    os.unlink(F"{wd}/a/a2.txt")
-    writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")
-    writeFile(F"{wd}/SomeNewFile.txt", "this file is untracked")
-    writeFile(F"{wd}/MassiveFile.txt", "." * largeFileThreshold)
-    writeFile(F"{wd}/tree/.git/config", "")
-    writeFile(F"{wd}/tree/hello.txt", "this untracked tree should end up in a tarball")
-    writeFile(F"{wd}/MassiveTree/.git/config", "")
-    writeFile(F"{wd}/MassiveTree/hello.txt", "." * largeFileThreshold)
+
+    # Init subtrees
+    # (with empty template so that hook sample files don't trip largeFileThreshold)
+    GitDriver.runSync("init", "--template=", "SmallTree", directory=wd, strict=True)
+    GitDriver.runSync("init", "--template=", "LargeTree", directory=wd, strict=True)
+
+    Path(f"{wd}/a/a2.txt").unlink()
+    writeFile(f"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")
+    writeFile(f"{wd}/SomeNewFile.txt", "this file is untracked")
+    writeFile(f"{wd}/MassiveFile.txt", "." * largeFileThreshold)
+    writeFile(f"{wd}/SmallTree/hello.txt", "this untracked tree should end up in a tarball")
+    writeFile(f"{wd}/LargeTree/hello.txt", "." * largeFileThreshold)
+
     if not WINDOWS:
-        os.symlink(f"{wd}/this/path/does/not/exist", f"{wd}/symlink")
+        Path(f"{wd}/symlink").symlink_to(f"{wd}/this/path/does/not/exist")
 
     setOfDirtyFiles = {
         "a/a1.txt",
@@ -42,8 +48,8 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
         "MassiveFile.txt",
         "SomeNewFile.txt",
         "[link] symlink",
-        "[new subtree] tree",
-        "[new subtree] MassiveTree"
+        "[new subtree] LargeTree",
+        "[new subtree] SmallTree",
     }
 
     mainWindow.onAcceptPrefsDialog({"maxTrashFileKB": largeFileThreshold // 1024})
@@ -68,22 +74,23 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
         except StopIteration:
             return None
 
-    assert len(trash.trashFiles) == 4 if not WINDOWS else 3
-
     assert findInTrash("a1.txt")
     assert findInTrash("SomeNewFile.txt")
-
-    if not WINDOWS:
-        assert findInTrash("symlink")
-        assert os.path.islink(findInTrash("symlink"))
-
+    assert findInTrash("SmallTree.tar")
     assert not findInTrash("a2.txt")  # file deletions shouldn't be backed up
     assert not findInTrash("MassiveFile.txt")  # file is too large to be backed up
-    assert not findInTrash("MassiveTree")  # tree is too large to be backed up
+    assert not findInTrash("LargeTree")  # tree is too large to be backed up
 
-    assert findInTrash("tree.tar")
-    assert set(TarFile(findInTrash("tree.tar")).getnames()) == {
-        "tree", "tree/.git", "tree/.git/config", "tree/hello.txt"}
+    # Find symlink
+    if not WINDOWS:
+        assert findInTrash("symlink")
+        assert Path(findInTrash("symlink")).is_symlink()
+
+    # Make sure tree.tar contains our repo
+    tarballFiles = TarFile(findInTrash("SmallTree.tar")).getnames()
+    assert "SmallTree" in tarballFiles
+    assert "SmallTree/.git/config" in tarballFiles
+    assert "SmallTree/hello.txt" in tarballFiles
 
 
 def testTrashFull(tempDir, mainWindow):
