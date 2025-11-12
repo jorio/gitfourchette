@@ -758,10 +758,10 @@ class Repo(_VanillaRepository):
         assert not _isabs(path)
 
         parent = self.commondir if common else self.path
-
+        parent_resolved = _Path(parent).resolve()
         p = _Path(parent, path).resolve()
 
-        if not p.is_relative_to(parent):
+        if not p.is_relative_to(parent_resolved):
             raise ValueError("Won't resolve absolute path outside gitdir")
 
         return str(p)
@@ -903,13 +903,13 @@ class Repo(_VanillaRepository):
         for remote in self.remotes:
             names[remote.name] = []
 
-        for refname in self.listall_references():
-            prefix, shorthand = RefPrefix.split(refname)
+        for ref in self.references.iterator():
+            prefix, shorthand = RefPrefix.split(ref.name)
 
             if prefix != RefPrefix.REMOTES:
                 continue
 
-            if refname.endswith("/HEAD"):
+            if ref.name.endswith("/HEAD"):
                 # Skip refs/remotes/*/HEAD (the remote's default branch).
                 # The ref file (.git/refs/remotes/*/HEAD) is created ONCE when first cloning the repository,
                 # and it's never updated again automatically, even if the default branch has changed on the remote.
@@ -918,13 +918,25 @@ class Repo(_VanillaRepository):
                 # See: https://stackoverflow.com/questions/8839958
                 continue
 
+            # Skip symbolic refs (e.g., repo tool's refs/remotes/m/master -> origin/master).
+            # We only show direct refs in real remotes; resolving would duplicate the target
+            # (e.g. origin/master would appear twice in the upstream context menu).
+            if ref.type == ReferenceType.SYMBOLIC:
+                continue
+
             remote_name, branch_name = split_remote_branch_shorthand(shorthand)
+            # Skip references without a branch name (e.g., refs/remotes/git-svn from git svn clone)
+            if not branch_name:
+                continue
+            # Skip references that don't match any known remote (e.g., stale refs from deleted remotes)
+            if remote_name not in names:
+                continue
             if value_style == "strip":
                 value = branch_name
             elif value_style == "shorthand":
                 value = shorthand
             elif value_style == "refname":
-                value = refname
+                value = ref.name
             else:
                 raise NotImplementedError(f"unsupported value_style {value_style}")
             names[remote_name].append(value)
