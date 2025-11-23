@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-10-02 07:01+0000\n"
-"Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
+"PO-Revision-Date: 2025-11-24 15:51+0000\n"
+"Last-Translator: Dani Rodríguez <dani@danirod.es>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
 "Language: es\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14-dev\n"
+"X-Generator: Weblate 5.15-dev\n"
 
 #: application.py:84 forms/aboutdialog.py:52
 msgid "The comfortable Git UI for Linux."
@@ -2406,7 +2406,7 @@ msgstr "(commit guardado por)"
 #, python-brace-format
 msgctxt "CommitTooltip"
 msgid "Committed by {0}"
-msgstr ""
+msgstr "Confirmado por {0}"
 
 #: graphview/graphview.py:41
 msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
@@ -2443,7 +2443,7 @@ msgstr ""
 #: graphview/graphview.py:117 sidebar/sidebar.py:193 sidebar/sidebar.py:292
 #, python-brace-format
 msgid "&Merge into {0}…"
-msgstr ""
+msgstr "&Fusionar en {0}…"
 
 #: graphview/graphview.py:122
 msgid "&Check Out…"
@@ -2451,7 +2451,7 @@ msgstr ""
 
 #: graphview/graphview.py:128 sidebar/sidebar.py:238 sidebar/sidebar.py:251
 msgid "New &Branch Here…"
-msgstr ""
+msgstr "Nueva &rama aquí…"
 
 #: graphview/graphview.py:129
 msgid "&Tag This Commit…"
