@@ -71,10 +71,16 @@ class FatDelta:
     origPath: str = ""
     conflict: VanillaConflict | None = None
 
-    miniStat: tuple[int, int, int] | None = None
-    """ Kept in ABDelta for comparison purposes when refreshing the repo.
-    This lets us figure out if an unstaged file was modified since the FatDelta
-    was created. """
+    unstagedDifferentiator: tuple[int, ...] | None = None
+    """
+    Filled in for unstaged files only. Allows quick comparison of FatDeltas
+    taken at two points in time for the same unstaged file. In unstaged files,
+    the hash isn't computed, so this field is typically the only one that
+    changes when an unstaged file is modified.
+
+    Internally, this is a partial snapshot of the file's stats on disk
+    (mode, size, mtime). 
+    """
 
     _abDeltaCache: dict[NavContext, ABDelta] = dataclasses.field(default_factory=dict, compare=False)
 
@@ -314,6 +320,14 @@ _gitStatusPatterns = {
 }
 
 _gitShowPattern = re.compile(r":(\d+) (\d+) ([\da-f]+) ([\da-f]+) (.)(\d*)\x00([^\x00]*)\x00")
+
+# The order of this table is SIGNIFICANT!
+_gitSimplifiedModes = [
+    FileMode.LINK,              # 0o120000
+    FileMode.TREE,              # 0o040000
+    FileMode.BLOB_EXECUTABLE,   # 0o100755
+    FileMode.BLOB,              # 0o100644
+]
 
 
 class GitDriver(QProcess):
@@ -574,45 +588,47 @@ class GitDriver(QProcess):
             elif ident in "?!":
                 # ? Untracked items
                 # ! Ignored items
-                # TODO: Should we hash the file? Note: git doesn't seem to hash unstaged 'M' files until they're staged
                 path, = match.groups()
                 if path.endswith("/"):
                     path = path.removesuffix("/")
                     mode = FileMode.TREE
                 else:
-                    mode = FileMode.UNREADABLE  # unknown, actually, but that's the next best thing
-                delta = FatDelta(
-                    repo=repo,
-                    statusUnstaged=ident,
-                    modeWorktree=mode,
-                    path=path)
+                    mode = FileMode.UNREADABLE  # a more precise mode will be filled in from the file's stats
+                delta = FatDelta(repo=repo, statusUnstaged=ident, modeWorktree=mode, path=path)
             else:
                 raise NotImplementedError(f"unsupported status ident '{ident}'")
 
-            # Capture file stats if the file is unstaged. This can be used later
-            # to check whether the FatDelta is stale.
+            # Fill in additional information for unstaged files.
             if delta.statusUnstaged:
                 try:
-                    stat = Path(self.workingDirectory(), path).lstat()
-                    delta.miniStat = (stat.st_mode, stat.st_size, stat.st_mtime_ns)
+                    stat = Path(self.workingDirectory(), delta.path).lstat()
                 except OSError:
                     pass
+                else:
+                    # Use a subset of the stats as a differentiator key for this unstaged file.
+                    delta.unstagedDifferentiator = (stat.st_mode, stat.st_size, stat.st_mtime_ns)
 
-            # Git doesn't return any information about the modes of UNTRACKED files.
-            # Do NOT set modeWorktree directly from the stat, because git uses simplified
-            # modes that may not accurately reflect actual modes in the filesystem
-            # (e.g. a symlink's stat.st_mode might be 120777, but to git it's just 120000).
-            if ident in "?!" and delta.miniStat and delta.modeWorktree == FileMode.UNREADABLE:
-                assert delta.statusUnstaged
-                mode = delta.miniStat[0]
-                for cand in [FileMode.LINK, FileMode.BLOB_EXECUTABLE, FileMode.BLOB]:  # order is significant!
-                    if (mode & cand) == cand:
-                        delta.modeWorktree = cand
-                        break
+                    # Fill in modeWorktree for untracked/ignored files.
+                    if delta.modeWorktree == FileMode.UNREADABLE and delta.statusUnstaged in "?!":
+                        delta.modeWorktree = self.distillFileMode(stat.st_mode)
 
             deltas.append(delta)
 
         return deltas
+
+    @staticmethod
+    def distillFileMode(realMode: int) -> FileMode:
+        """
+        Git uses simplified file modes that may not accurately reflect a file's
+        actual mode in the filesystem (e.g., a symlink's st_mode might be
+        0o120777, which to git is just 0o120000). Use this function to simplify
+        a real file mode to a legal FileMode value for git.
+        """
+        for m in _gitSimplifiedModes:
+            if m == (realMode & m):
+                return m
+
+        raise ValueError(f"cannot map to git FileMode: 0o{realMode:o}")
 
     def readShowRawZ(self, repo: Repo) -> list[FatDelta]:
         stdout = self.stdoutScrollback()
