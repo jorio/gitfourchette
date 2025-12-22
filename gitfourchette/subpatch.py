@@ -62,14 +62,16 @@ def getPatchPreamble(delta: ABDelta, reverse=False) -> str:
     new = delta.new
 
     if not reverse:
+        # Not reversing. Old/new sides are correct.
         pass
-    elif delta.status != "D":
-        # When reversing some lines within a patch, stick to the new file
+    elif delta.status == "D":
+        # Reversing lines within a deleted file. Swap old/new sides.
+        new, old = old, new
+        assert old.isId0()  # 'old' side is now the deleted file
+    else:
+        # When reversing lines within a patch, stick to the new file
         # to avoid changing the file's name or mode.
         old = new
-    else:
-        # ...Unless we're reversing lines within a deletion.
-        new = old
 
     oldPathQuoted = quotePath(f"a/{old.path}")
     newPathQuoted = quotePath(f"b/{new.path}")
