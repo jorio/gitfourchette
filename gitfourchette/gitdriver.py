@@ -198,8 +198,11 @@ class ABDeltaFile:
     size: int = -1
     source: NavContext = NavContext.EMPTY
 
-    _data: bytes = b""
-    _dataValid: bool = False
+    _cachedBlob: bytes | None = dataclasses.field(default=None, compare=False)
+    """
+    Cached file contents. Not used in object comparisons.
+    None means that the file hasn't been cached yet (isDataValid() == False).
+    """
 
     def isId0(self) -> bool:
         return self.id == HASH_40X0
@@ -210,12 +213,15 @@ class ABDeltaFile:
     def isSizeValid(self) -> bool:
         return self.size >= 0
 
+    def isDataValid(self) -> bool:
+        return self._cachedBlob is not None
+
     @benchmark
     def read(self, repo: Repo) -> bytes:
-        if self._dataValid:
+        if self._cachedBlob is not None:
             pass
         elif self.isId0():
-            self._dataValid = True
+            self._cachedBlob = b""
             assert self.size == 0
         else:
             blob = self._readBlob(repo)
@@ -223,17 +229,16 @@ class ABDeltaFile:
             assert not self.isSizeValid() or blob.size == self.size
             self.id = str(blob.id)
             self.size = blob.size
-            self._data = blob.data
-            self._dataValid = True
+            self._cachedBlob = blob.data
 
         assert self.isSizeValid(), "size should be valid here"
         assert self.isIdValid(), "id should be valid here"
-        assert self._dataValid, "data should be valid here"
+        assert self.isDataValid(), "data should be valid here"
 
-        return self._data
+        return self._cachedBlob
 
     def _readBlob(self, repo: Repo) -> Blob:
-        if self.isIdValid():
+        if self.isIdValid():  # i.e. it's not the unknown hash (FFFFFFF)
             try:
                 return repo.peel_blob(self.id)
             except KeyError:

@@ -27,6 +27,7 @@ from gitfourchette.tasks import ApplyPatch, ApplyPatchData
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
+_emptyABDelta = ABDelta()
 
 
 class DiffView(CodeView):
@@ -36,7 +37,6 @@ class DiffView(CodeView):
 
     lineData: list[LineData]
     currentLocator: NavLocator
-    currentFatDelta: FatDelta
     currentABDelta: ABDelta
     repo: Repo | None
 
@@ -45,8 +45,7 @@ class DiffView(CodeView):
 
         self.lineData = []
         self.currentLocator = NavLocator.Empty
-        self.currentFatDelta = FatDelta(None)
-        self.currentABDelta = ABDelta()
+        self.currentABDelta = _emptyABDelta
         self.repo = None
 
         # Emit contextual help with non-empty selection
@@ -120,8 +119,7 @@ class DiffView(CodeView):
     def clear(self):  # override
         # Clear info about the current patch - necessary for document reuse detection to be correct when the user
         # clears the selection in a FileList and then reselects the last-displayed document.
-        self.currentFatDelta = None
-        self.currentABDelta = None
+        self.currentABDelta = _emptyABDelta
 
         # Clear the actual contents
         super().clear()
@@ -131,6 +129,7 @@ class DiffView(CodeView):
         assert newDoc.document is not None
 
         oldDocument = self.document()
+        delta = fatDelta.distillOldNew(locator.context)
 
         # Detect if we're trying to load exactly the same patch - common occurrence
         # when moving the app back to the foreground. If so, keep the current document
@@ -138,15 +137,13 @@ class DiffView(CodeView):
         canReuseCurrentDocument = (
                 not locator.hasFlags(NavFlags.ForceRecreateDocument)
                 and locator.isSimilarEnoughTo(self.currentLocator)
-                and fatDelta == self.currentFatDelta)
+                and delta == self.currentABDelta)
 
         if canReuseCurrentDocument:
             assert len(newDoc.lineData) == len(self.lineData)
-            """ TODO
+
             if APP_DEBUG:  # this check can be pretty expensive!
-                assert self.currentPatch is not None
-                assert patch.data == self.currentPatch.data
-            """
+                assert oldDocument.toPlainText() == newDoc.document.toPlainText()
 
             # Delete new document
             assert newDoc.document is not oldDocument  # make sure it's not in use before deleting
@@ -161,8 +158,7 @@ class DiffView(CodeView):
             oldDocument.deleteLater()  # avoid leaking memory/objects, even though we do set QTextDocument's parent to this QTextEdit
 
         self.repo = repo
-        self.currentFatDelta = fatDelta
-        self.currentABDelta = fatDelta.distillOldNew(locator.context)
+        self.currentABDelta = delta
         self.currentLocator = locator
 
         newDoc.document.setParent(self)
@@ -194,7 +190,7 @@ class DiffView(CodeView):
 
     def contextMenuActions(self, clickedCursor: QTextCursor) -> list[ActionDef]:
         # If we have a document, we should have a patch
-        assert self.currentFatDelta is not None
+        assert self.currentABDelta != _emptyABDelta
 
         cursor: QTextCursor = self.textCursor()
         hasSelection = cursor.hasSelection()

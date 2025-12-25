@@ -133,18 +133,18 @@ def testExternalChangeWhileTaskIsBusyThenAborts(tempDir, mainWindow):
     assert qlvGetRowData(rw.dirtyFiles) == ["sneaky.txt"]
 
 
-def testLineEndingsChangedWithAutocrlfInputCauseDiffReload(tempDir, mainWindow):
+def testLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         repo.config["core.autocrlf"] = "input"
 
     writeFile(f"{wd}/hello.txt", "hello\r\ndos\r\n")
     rw = mainWindow.openRepo(wd)
-    oldPatch = rw.diffView.currentFatDelta
+    assert "hello\ndos" in rw.diffView.toPlainText()
 
     writeFile(f"{wd}/hello.txt", "hello\ndos\n")
     rw.refreshRepo()  # Must not fail (no failed assertions, etc)
-    assert oldPatch is not rw.diffView.currentFatDelta
+    assert "hello\ndos" in rw.diffView.toPlainText()
 
 
 def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
