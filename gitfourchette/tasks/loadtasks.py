@@ -410,6 +410,8 @@ class LoadPatchInNewWindow(LoadPatch):
         if not isinstance(diffDocument, DiffDocument):
             raise AbortTask(_("Only text diffs may be opened in a separate window."), icon="information")
 
+        delta = fatDelta.distillOldNew(locator.context)
+
         from gitfourchette.diffview.diffview import DiffView
 
         diffWindow = QWidget(self.parentWidget())
@@ -421,7 +423,7 @@ class LoadPatchInNewWindow(LoadPatch):
         diff = DiffView(diffWindow)
         diff.isDetachedWindow = True
         diff.setFrameStyle(QFrame.Shape.NoFrame)
-        diff.replaceDocument(self.repo, fatDelta, locator, self.result)
+        diff.replaceDocument(self.repo, delta, locator, self.result)
 
         layout = QVBoxLayout(diffWindow)
         layout.setContentsMargins(QMargins())

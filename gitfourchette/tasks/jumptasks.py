@@ -17,11 +17,11 @@ from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair
-from gitfourchette.gitdriver import VanillaConflict
+from gitfourchette.gitdriver import ABDelta, VanillaConflict
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
-from gitfourchette.porcelain import DeltaStatus, NULL_OID, Oid, Patch
+from gitfourchette.porcelain import NULL_OID, Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF
 from gitfourchette.tasks import TaskPrereqs
@@ -84,7 +84,7 @@ class Jump(RepoTask):
         locator: NavLocator
         header: str
         document: DiffDocument | VanillaConflict | DiffImagePair | SpecialDiffError | None
-        patch: Patch | None = None
+        delta: ABDelta | None = None
 
     def canKill(self, task: RepoTask):
         return isinstance(task, Jump | RefreshRepo)
@@ -135,8 +135,9 @@ class Jump(RepoTask):
             # Prepare Result object.
             if locator.path:
                 # Load patch in DiffView
-                delta = fileList.deltaForFile(locator.path)
-                patchTask = yield from self.flowSubtask(LoadPatch, delta, locator)
+                fatDelta = fileList.deltaForFile(locator.path)
+                patchTask = yield from self.flowSubtask(LoadPatch, fatDelta, locator)
+                delta = fatDelta.distillOldNew(locator.context)
                 result = Jump.Result(locator, patchTask.header, patchTask.result, delta)
             else:
                 # Blank path
@@ -406,9 +407,9 @@ class Jump(RepoTask):
             area.clearDocument(result.locator)
 
         elif isinstance(document, DiffDocument):
-            assert result.patch is not None
+            assert result.delta is not None
             area.setDiffStackPage("text")
-            area.diffView.replaceDocument(self.repo, result.patch, result.locator, document)
+            area.diffView.replaceDocument(self.repo, result.delta, result.locator, document)
 
         elif isinstance(document, VanillaConflict):
             conflict = document

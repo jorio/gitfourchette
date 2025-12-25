@@ -16,7 +16,7 @@ from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffhighlighter import DiffHighlighter
-from gitfourchette.gitdriver import FatDelta, ABDelta
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavFlags, NavLocator
@@ -129,11 +129,10 @@ class DiffView(CodeView):
         super().clear()
 
     @benchmark
-    def replaceDocument(self, repo: Repo, fatDelta: FatDelta, locator: NavLocator, newDoc: DiffDocument):
+    def replaceDocument(self, repo: Repo, delta: ABDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
         oldDocument = self.document()
-        delta = fatDelta.distillOldNew(locator.context)
 
         unstagedDifferentiator = _defaultUnstagedDifferentiator
         if delta.context.isDirty():  # Unstaged
