@@ -34,11 +34,10 @@ class ProcessDialog(QDialog):
         layout.addWidget(self.buttonBox)
 
         # Delay popup to avoid flashing when the process finishes fast enough.
-        # (In unit tests, show it immediately for code coverage.)
         self.delayPopUp = QTimer(self)
         self.delayPopUp.timeout.connect(self.popUp)
         self.delayPopUp.setSingleShot(True)
-        self.delayPopUp.setInterval(ProcessDialog.PopUpDelay if not APP_TESTMODE else 0)
+        self.delayPopUp.setInterval(ProcessDialog.PopUpDelay)
 
         self.setMinimumWidth(self.fontMetrics().horizontalAdvance("W" * 40))
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)  # hide close button
