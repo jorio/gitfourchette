@@ -93,13 +93,21 @@ class Jump(RepoTask):
         if not locator:
             return
 
-        activateWindow = locator.hasFlags(NavFlags.ActivateWindow)
-
-        rw = self.rw
-
         # Back up current locator
-        if not rw.navHistory.isWriteLocked():
-            rw.saveFilePositions()
+        if not self.rw.navHistory.isWriteLocked():
+            self.rw.saveFilePositions()
+
+        result = yield from self.loadResult(locator)
+
+        assert onAppThread()
+        self.saveFinalLocator(result.locator)
+        self.displayResult(result)
+
+        if locator.hasFlags(NavFlags.ActivateWindow):  # initial locator!
+            self.rw.activateWindow()
+
+    def loadResult(self, locator: NavLocator) -> Generator[FlowControlToken, None, Result]:
+        rw = self.rw
 
         # If the locator is "coarse" (i.e. no specific path given, just a generic context),
         # try to recall where we were last time we looked at this context.
@@ -113,48 +121,33 @@ class Jump(RepoTask):
                 locator = yield from self.showWorkdir(locator)
             else:
                 locator = yield from self.showCommit(locator)
-        except Jump.Result as r:
+        except Jump.Result as result:
             # The showXXX functions may bail early by raising Jump.Result.
-            result = r
-
             # Set up DiffArea for this locator.
             rw.diffArea.setUpForLocator(result.locator)
-        else:
-            fileList = rw.diffArea.fileListByContext(locator.context)
+            return result
 
-            # If we don't have a path in the locator, fall back to first path in file list.
-            # (Only for non-special locators, though!)
-            if not locator.path and locator.context != NavContext.SPECIAL:
-                locator = locator.replace(path=fileList.firstPath())
-                locator = rw.navHistory.refine(locator)
+        fileList = rw.diffArea.fileListByContext(locator.context)
 
-            # Set up DiffArea for this locator.
-            # Note that this may return a new locator if the desired path is not available.
-            locator = rw.diffArea.setUpForLocator(locator)
+        # If we don't have a path in the locator, fall back to first path in file list.
+        # (Only for non-special locators, though!)
+        if not locator.path and locator.context != NavContext.SPECIAL:
+            locator = locator.replace(path=fileList.firstPath())
+            locator = rw.navHistory.refine(locator)
 
-            # Prepare Result object.
-            if locator.path:
-                # Load patch in DiffView
-                fatDelta = fileList.deltaForFile(locator.path)
-                patchTask = yield from self.flowSubtask(LoadPatch, fatDelta, locator)
-                delta = fatDelta.distillOldNew(locator.context)
-                result = Jump.Result(locator, patchTask.header, patchTask.result, delta)
-            else:
-                # Blank path
-                result = Jump.Result(locator, "", None)
+        # Set up DiffArea for this locator.
+        # Note that this may return a new locator if the desired path is not available.
+        locator = rw.diffArea.setUpForLocator(locator)
 
-        assert onAppThread()
-        self.saveFinalLocator(result.locator)
-        self.displayResult(result)
+        # Blank path?
+        if not locator.path:
+            return Jump.Result(locator, "", None)
 
-        if activateWindow:
-            def doActivateWindow():
-                rw.activateWindow()
-                rw.window().raise_()  # for macOS
-
-            # Wayland sometimes ignores activateWindow if called here directly,
-            # but postponing it to the next event loop seems to work consistently.
-            QTimer.singleShot(0, doActivateWindow)
+        # Load patch in DiffView
+        fatDelta = fileList.deltaForFile(locator.path)
+        patchTask = yield from self.flowSubtask(LoadPatch, fatDelta, locator)
+        delta = fatDelta.distillOldNew(locator.context)
+        return Jump.Result(locator, patchTask.header, patchTask.result, delta)
 
     def showWorkdir(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
         rw = self.rw
