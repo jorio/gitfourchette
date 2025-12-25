@@ -86,31 +86,50 @@ def testStayOnFileAfterPartialPatchDespiteExternalChange(tempDir, mainWindow):
     assert qlvGetSelection(rw.dirtyFiles) == ["b/b2.txt"]
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows clings to a file handle")
-def testPatchBecameInvalid(tempDir, mainWindow):
+@pytest.mark.parametrize("scenario", [0, 1, 2])
+def testPatchBecameInvalid(tempDir, mainWindow, scenario):
     wd = unpackRepo(tempDir)
 
-    writeFile(f"{wd}/a/a2.txt", "change a\nchange b\nchange c\n")
-    writeFile(f"{wd}/b/b2.txt", "change a\nchange b\nchange c\n")
+    relPath = "b/b2.txt"
+    absPath = f"{wd}/{relPath}"
+
+    oldText = "change a\nchange b\nchange c\n"
+    newText = "surprise!"
+
+    writeFile(f"{wd}/a/a2.txt", "\x00Binary")
+    writeFile(absPath, oldText)
+
+    timestamp = TEST_SIGNATURE.time
+    os.utime(absPath, (timestamp, timestamp))
 
     rw = mainWindow.openRepo(wd)
 
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a2.txt", "b/b2.txt"]
+    rw.jump(NavLocator.inUnstaged(relPath), check=True)
+    assert oldText.strip() in rw.diffView.toPlainText()
 
-    qlvClickNthRow(rw.dirtyFiles, 1)  # Select b/b2.txt
-    writeFile(f"{wd}/b/b2.txt", "pulled the rug out from under the cached patch")
-    qlvClickNthRow(rw.dirtyFiles, 0)  # Select something else
-    qlvClickNthRow(rw.dirtyFiles, 1)  # Select b/b2.txt
+    if scenario == 0:
+        # Different timestamp, different size
+        writeFile(absPath, newText)
+    elif scenario == 1:
+        # SAME timestamp, different size
+        writeFile(absPath, newText)
+        os.utime(absPath, (timestamp, timestamp))
+    elif scenario == 2:
+        # Different timestamp, SAME size
+        padChars = len(oldText) - len(newText)
+        assert padChars > 0
+        writeFile(absPath, newText + ("x" * padChars))
+    else:
+        raise NotImplementedError()
 
-    assert not rw.diffView.isVisibleTo(rw)
-    assert rw.specialDiffView.isVisibleTo(rw)
-    doc = rw.specialDiffView.document()
-    text = doc.toRawText()
-    assert "changed on disk" in text.lower()
+    # Select something else, won't clear the DiffView because it's a binary file
+    rw.jump(NavLocator.inUnstaged("a/a2.txt"), check=True)
+    assert not rw.diffView.isVisible()  # should be showing a SpecialDiff for "binary file"
+    assert oldText.strip() in rw.diffView.toPlainText()  # DiffView retains the old patch
 
-    qteClickLink(rw.specialDiffView, "try to reload the file")
-    assert rw.diffView.isVisibleTo(rw)
-    assert not rw.specialDiffView.isVisibleTo(rw)
+    # Back to b2.txt
+    rw.jump(NavLocator.inUnstaged(relPath), check=True)
+    assert newText.strip() in rw.diffView.toPlainText()
 
 
 def testExternalChangeWhileTaskIsBusyThenAborts(tempDir, mainWindow):

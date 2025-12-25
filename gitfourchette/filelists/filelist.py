@@ -575,8 +575,6 @@ class FileList(QListView):
         index: QModelIndex
         for index in self.selectedIndexes():
             delta = index.data(FileListModel.Role.FatDeltaObject)
-            # if not patch or not patch.delta:
-            #     raise ValueError(_("This file appears to have been modified by another application. Try refreshing the window."))
             assert isinstance(delta, FatDelta)
             yield delta
 
