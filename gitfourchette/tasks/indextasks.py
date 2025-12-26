@@ -86,25 +86,27 @@ class StageFiles(_BaseStagingTask):
         debrief = {}
 
         for fat in fatDeltas:
+            delta = fat.distillOldNew(NavContext.UNSTAGED)
+
             m = ""
 
             # Staging a tree that isn't registered as a submodule
-            if fat.modeWorktree == FileMode.TREE:
+            if delta.new.mode == FileMode.TREE:
                 m = _("You’ve added another Git repo inside your current repo. "
                       "It is STRONGLY RECOMMENDED to absorb it as a submodule before committing.")
 
             # Staging a submodule with uncommitted changes within
-            elif fat.modeWorktree == FileMode.COMMIT and fat.submoduleContainsUncommittedChanges():
+            elif delta.new.mode == FileMode.COMMIT and delta.submoduleWorkdirDirty:
                 m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
 
             # Staging a submodule deletion, and the submodule is still in .gitmodules
-            elif (fat.statusUnstaged == "D"
-                  and fat.modeIndex == FileMode.COMMIT
-                  and fat.path in self.repo.listall_submodules_dict_at_head()):
+            elif (delta.status == "D"
+                  and delta.old.mode == FileMode.COMMIT
+                  and delta.old.path in self.repo.listall_submodules_dict_at_head()):
                 m = _("Don’t forget to remove the submodule from {0} to complete its deletion.", tquo(DOT_GITMODULES))
 
             if m:
-                debrief[fat.path] = m
+                debrief[delta.new.path] = m
 
         if not debrief:
             return

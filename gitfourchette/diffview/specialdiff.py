@@ -323,7 +323,7 @@ class SpecialDiffError:
                 longformParts.insert(0, m)
 
             # Tell about any uncommitted changes
-            if fatDelta.submoduleContainsUncommittedChanges():
+            if delta.submoduleWorkdirDirty:
                 discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [fatDelta]))
 
                 if isTree:

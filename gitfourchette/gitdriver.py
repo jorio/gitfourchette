@@ -94,27 +94,6 @@ class FatDelta:
         return FileMode.COMMIT in (self.modeHead, self.modeWorktree, self.modeIndex,
                                    self.modeSrc, self.modeDst)
 
-    def hasUncommittedSubmoduleStatus(self) -> bool:
-        """
-        Return True if this FatDelta is about uncommitted changes in a submodule.
-        """
-        return self.statusSubmodule.startswith("S")
-
-    def submoduleHasUnstagedHeadMove(self) -> bool:
-        """
-        Return True if the submodule's HEAD has moved,
-        and this move isn't staged or committed in the superproject yet.
-        """
-        return "C" in self.statusSubmodule
-
-    def submoduleContainsUncommittedChanges(self) -> bool:
-        """
-        Return True if the submodule's workdir contains
-        any tracked or untracked changes.
-        """
-        # M: tracked changes; U: untracked changes
-        return any(c in self.statusSubmodule for c in "MU")
-
     def isUntracked(self):
         return self.statusUnstaged == "?"
 
@@ -169,10 +148,12 @@ class FatDelta:
         elif newIsBlob and newSize < 0 and newHash != HASH_40XF:
             newSize = self.repo.peel_blob(newHash).size
 
+        ss = self.statusSubmodule
+        submoduleWorkdirDirty = "M" in ss or "U" in ss
+
         old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize, oldSource)
         new = ABDeltaFile(self.path, newHash, newMode, newSize, newSource)
-
-        abDelta = ABDelta(status=status, old=old, new=new, similarity=self.similarity)
+        abDelta = ABDelta(status=status, old=old, new=new, similarity=self.similarity, submoduleWorkdirDirty=submoduleWorkdirDirty)
         self._abDeltaCache[context] = abDelta
         return abDelta
 
@@ -283,6 +264,7 @@ class ABDelta:
     old: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     new: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     similarity: int = 0
+    submoduleWorkdirDirty: bool = False
 
     @property
     def context(self) -> NavContext:

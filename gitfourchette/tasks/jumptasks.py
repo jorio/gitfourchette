@@ -43,27 +43,35 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z", "--untracked-files=all")
     statusTable = gitStatus.readStatusPorcelainV2Z(task.repo)
 
-    # Fill in submodule worktree hashes
+    # Fill in submodule commit hashes.
     # (This might be parallelizable if we've got tons of modified submodules)
     for fatDelta in statusTable:
-        if not fatDelta.hasUncommittedSubmoduleStatus():  # filter on submodules
+        # Scan for submodules with changes that the superproject isn't tracking yet
+        submoduleUpdated = fatDelta.statusSubmodule.startswith("S")
+        if not submoduleUpdated:
             continue
 
-        if fatDelta.submoduleHasUnstagedHeadMove():
-            # We know the submodule's head has moved, but we don't know to what commit,
-            # because "git status" doesn't give this information until this move is staged.
+        # Work out head commit for this submodule
+        headDidMove = "C" in fatDelta.statusSubmodule
+        if not headDidMove:
+            # The submodule's head hasn't moved.
+            submoduleCommitHash = fatDelta.hexHashIndex
+        else:
+            # The submodule's head has moved, but we don't know to what commit,
+            # because "git status" doesn't give this information until this move
+            # is staged.
             assert not fatDelta.hexHashWorktree
             subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", fatDelta.path)
             subDiff = subDiffDriver.stdoutScrollback()
             match = _submoduleIndexLinePattern.search(subDiff)
             assert match
             assert fatDelta.hexHashIndex == match.group(1)
-            fatDelta.hexHashWorktree = match.group(2)
-        else:
-            # The submodule's head hasn't moved. Fill in hexHashWorktree to enable comparing
-            # ABDelta.old.id to ABDelta.new.id after "distilling".
-            assert not fatDelta.hexHashWorktree
-            fatDelta.hexHashWorktree = fatDelta.hexHashIndex
+            submoduleCommitHash = match.group(2)
+
+        # Fill in FatDelta.hexHashWorktree to enable comparing
+        # ABDelta.old.id to ABDelta.new.id after "distilling".
+        assert not fatDelta.hexHashWorktree  # not expecting this to be filled in right after a "git status"
+        fatDelta.hexHashWorktree = submoduleCommitHash
 
     task.repoModel.workdirStatus = statusTable
     task.repoModel.workdirStatusReady = True
