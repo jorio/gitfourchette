@@ -11,7 +11,7 @@ from contextlib import suppress
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import FatDelta, ABDeltaFile, ABDelta, VanillaConflict
+from gitfourchette.gitdriver import ABDelta, ABDeltaFile, VanillaConflict
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -235,9 +235,9 @@ class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
-    def flow(self, fatDelta: FatDelta, locator: NavLocator):
+    def flow(self, delta: ABDelta, locator: NavLocator):
         try:
-            self.result = yield from self._getPatch(fatDelta, locator)
+            self.result = yield from self._getPatch(delta, locator)
         except Exception as exc:
             # Yikes! Don't prevent loading a repo
             summary, details = excStrings(exc)
@@ -249,7 +249,6 @@ class LoadPatch(RepoTask):
         yield from self.flowEnterUiThread()
         if type(self.result) is DiffDocument:
             dd: DiffDocument = self.result
-            delta = fatDelta.distillOldNew(locator.context)
             dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta.old, delta.new, locator)
 
     @classmethod
@@ -286,15 +285,13 @@ class LoadPatch(RepoTask):
 
         return tokens
 
-    def _getPatch(self, fatDelta: FatDelta, locator: NavLocator
+    def _getPatch(self, delta: ABDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | VanillaConflict | DiffImagePair]:
-        delta = fatDelta.distillOldNew(locator.context)
+        if delta.conflict is not None:
+            return delta.conflict
 
-        if fatDelta.isConflict():
-            return fatDelta.conflict
-
-        if FileMode.COMMIT in (delta.new.mode, delta.old.mode):
-            return SpecialDiffError.submoduleDiff(self.repo, fatDelta, locator)
+        if delta.isSubtreeCommitPatch():
+            return SpecialDiffError.submoduleDiff(self.repo, delta, locator)
 
         if delta.similarity == 100:
             return SpecialDiffError.noChange(delta)
@@ -412,14 +409,12 @@ class LoadPatch(RepoTask):
 
 
 class LoadPatchInNewWindow(LoadPatch):
-    def flow(self, fatDelta: FatDelta, locator: NavLocator):
-        yield from super().flow(fatDelta, locator)
+    def flow(self, delta: ABDelta, locator: NavLocator):
+        yield from super().flow(delta, locator)
 
         diffDocument = self.result
         if not isinstance(diffDocument, DiffDocument):
             raise AbortTask(_("Only text diffs may be opened in a separate window."), icon="information")
-
-        delta = fatDelta.distillOldNew(locator.context)
 
         from gitfourchette.diffview.diffview import DiffView
 

@@ -11,7 +11,7 @@ from contextlib import suppress
 from typing import Any
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import FatDelta
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
@@ -45,9 +45,8 @@ def deltaModeText(om: FileMode, nm: FileMode) -> str:
     return ""
 
 
-def fileTooltip(repo: Repo, fatDelta: FatDelta, navContext: NavContext, isCounterpart: bool = False):
+def fileTooltip(repo: Repo, delta: ABDelta, navContext: NavContext, isCounterpart: bool = False):
     locale = QLocale()
-    delta = fatDelta.distillOldNew(navContext)
     of = delta.old
     nf = delta.new
     sc = delta.status
@@ -125,10 +124,10 @@ def fileTooltip(repo: Repo, fatDelta: FatDelta, navContext: NavContext, isCounte
 
 class FileListModel(QAbstractListModel):
     class Role:
-        FatDeltaObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
+        ABDeltaObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         FilePath = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
 
-    deltas: list[FatDelta]
+    deltas: list[ABDelta]
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
     navContext: NavContext
@@ -137,11 +136,6 @@ class FileListModel(QAbstractListModel):
         super().__init__(parent)
         self.navContext = navContext
         self.clear()
-
-    @property
-    def skipConflicts(self) -> bool:
-        # Hide conflicts from staged file list
-        return self.navContext == NavContext.STAGED
 
     @property
     def repo(self) -> Repo:
@@ -159,18 +153,16 @@ class FileListModel(QAbstractListModel):
         self.highlightedCounterpartRow = -1
         self.modelReset.emit()
 
-    def setContents(self, deltas: Iterable[FatDelta]):
+    def setContents(self, deltas: Iterable[ABDelta]):
         self.beginResetModel()
 
         self.deltas.clear()
         self.fileRows.clear()
 
-        sortedDeltas = sorted(deltas, key=lambda d: naturalSort(d.path))
+        sortedDeltas = sorted(deltas, key=lambda d: naturalSort(d.new.path))
 
         for delta in sortedDeltas:
-            if self.skipConflicts and delta.isConflict():
-                continue
-            self.fileRows[delta.path] = len(self.deltas)
+            self.fileRows[delta.new.path] = len(self.deltas)
             self.deltas.append(delta)
 
         self.endResetModel()
@@ -181,14 +173,12 @@ class FileListModel(QAbstractListModel):
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
         row = index.row()
         try:
-            fatDelta = self.deltas[row]
-            delta = fatDelta.distillOldNew(self.navContext)
+            delta = self.deltas[row]
         except IndexError:
-            fatDelta = None
             delta = None
 
-        if role == FileListModel.Role.FatDeltaObject:
-            return fatDelta
+        if role == FileListModel.Role.ABDeltaObject:
+            return delta
 
         elif role == FileListModel.Role.FilePath:
             # TODO: Canonical path for submodules?
@@ -214,7 +204,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             isCounterpart = row == self.highlightedCounterpartRow
-            return fileTooltip(self.repo, fatDelta, self.navContext, isCounterpart)
+            return fileTooltip(self.repo, delta, self.navContext, isCounterpart)
 
         elif role == Qt.ItemDataRole.SizeHintRole:
             return QSize(-1, self.parentWidget.fontMetrics().height())

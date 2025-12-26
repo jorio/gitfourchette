@@ -6,7 +6,7 @@
 
 from gitfourchette import settings
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import FatDelta
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
@@ -25,13 +25,13 @@ class DirtyFiles(FileList):
         makeWidgetShortcut(self, self.stage, *GlobalShortcuts.stageHotkeys)
         makeWidgetShortcut(self, self.discard, *GlobalShortcuts.discardHotkeys)
 
-    def contextMenuActions(self, deltas: list[FatDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[ABDelta]) -> list[ActionDef]:
         actions = []
 
         n = len(deltas)
 
-        statusSet = {delta.statusUnstaged for delta in deltas}
-        modeSet = {delta.modeWorktree for delta in deltas}
+        statusSet = {delta.status for delta in deltas}
+        modeSet = {delta.new.mode for delta in deltas}  # mode in worktree
 
         anyConflicts = "U" in statusSet  # DeltaStatus.CONFLICTED in statusSet
         anySubmodules = FileMode.COMMIT in modeSet
@@ -136,19 +136,18 @@ class DirtyFiles(FileList):
 
     def discard(self):
         deltas = list(self.selectedDeltas())
-        DiscardFiles.invoke(self, deltas, self.navContext)
+        DiscardFiles.invoke(self, deltas)
 
     def discardModeChanges(self):
         deltas = list(self.selectedDeltas())
         DiscardModeChanges.invoke(self, deltas)
 
     def _mergeKeep(self, keepOurs: bool):
-        deltas = list(self.selectedDeltas())
         conflicts = self.repo.index.conflicts
         table = {}
 
-        for fatDelta in deltas:
-            path = fatDelta.path
+        for delta in self.selectedDeltas():
+            path = delta.new.path
             ancestor, ours, theirs = conflicts[path]
 
             keepEntry = ours if keepOurs else theirs

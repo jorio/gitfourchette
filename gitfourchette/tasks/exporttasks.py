@@ -62,9 +62,10 @@ class ExportWorkdirAsPatch(RepoTask):
     def flow(self):
         patches = []
 
+        diffCommand = LoadPatch.diffCommandPreamble() + ["diff", "--binary"]
+
         # Diff the workdir to HEAD (except untracked files)
-        preamble = LoadPatch.diffCommandPreamble()
-        driver = yield from self.flowCallGit(*preamble, "diff", "--binary", "HEAD")
+        driver = yield from self.flowCallGit(*diffCommand, "HEAD")
         patches.append(driver.stdoutScrollback())
 
         # Diff untracked files.
@@ -73,12 +74,10 @@ class ExportWorkdirAsPatch(RepoTask):
         if not self.repoModel.workdirStatusReady or self.repoModel.workdirStale:
             raise NotImplementedError("Export workdir requires fresh status")
 
-        for fatDelta in self.repoModel.workdirStatus:
-            if not fatDelta.isUntracked():
-                continue
-            driver = yield from self.flowCallGit(*preamble, "diff", "--binary", "--", "/dev/null", fatDelta.path,
-                                                 autoFail=False)
-            patches.append(driver.stdoutScrollback())
+        for delta in self.repoModel.workdirUnstagedDeltas:
+            if delta.status == "?":  # Scan for untracked files
+                driver = yield from self.flowCallGit(*diffCommand, "--", "/dev/null", delta.new.path, autoFail=False)
+                patches.append(driver.stdoutScrollback())
 
         # Compose the patch
         assert all(not patch or patch.endswith("\n") for patch in patches)

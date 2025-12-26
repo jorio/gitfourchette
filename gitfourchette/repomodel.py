@@ -10,7 +10,7 @@ from collections.abc import Generator, Iterable
 
 from gitfourchette import settings
 from gitfourchette.appconsts import *
-from gitfourchette.gitdriver import FatDelta
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.graph import Graph, GraphSpliceLoop, MockCommit
 from gitfourchette.porcelain import *
 from gitfourchette.repoprefs import RepoPrefs
@@ -131,7 +131,8 @@ class RepoModel:
     workdirStatusReady: bool
     "Flag indicating that stageDiff and dirtyDiff are available."
 
-    workdirStatus: list[FatDelta]
+    workdirUnstagedDeltas: list[ABDelta]
+    workdirStagedDeltas: list[ABDelta]
 
     numUncommittedChanges: int
     "Number of unstaged+staged files. Negative means unknown count."
@@ -154,9 +155,12 @@ class RepoModel:
         self.homeBranch = ""
 
         self.superproject = ""
+
         self.workdirStale = True
         self.workdirStatusReady = False
-        self.workdirStatus = []
+        self.workdirNumChanges = -1
+        self.workdirUnstagedDeltas = []
+        self.workdirStagedDeltas = []
 
         self.refs = {}
         self.refsAt = {}
@@ -197,7 +201,7 @@ class RepoModel:
     @property
     def numUncommittedChanges(self) -> int:
         if self.workdirStatusReady:
-            return len(self.workdirStatus)
+            return self.workdirNumChanges
         else:
             return -1
 

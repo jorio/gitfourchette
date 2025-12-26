@@ -72,8 +72,6 @@ class FatDelta:
     origPath: str = ""
     conflict: VanillaConflict | None = None
 
-    _abDeltaCache: dict[NavContext, ABDelta] = dataclasses.field(default_factory=dict, compare=False)
-
     def __post_init__(self):
         if self.statusStaged == ".":
             self.statusStaged = ""
@@ -86,23 +84,7 @@ class FatDelta:
         else:
             assert not self.statusSubmodule or self.statusSubmodule.startswith("S")
 
-    def isConflict(self) -> bool:
-        return self.conflict is not None
-
-    def isSubtreeCommitPatch(self):
-        # TODO: Test more specifically?
-        return FileMode.COMMIT in (self.modeHead, self.modeWorktree, self.modeIndex,
-                                   self.modeSrc, self.modeDst)
-
-    def isUntracked(self):
-        return self.statusUnstaged == "?"
-
     def distillOldNew(self, context: NavContext) -> ABDelta:
-        try:
-            return self._abDeltaCache[context]
-        except KeyError:
-            pass
-
         oldSize = -1
         newSize = -1
 
@@ -153,13 +135,15 @@ class FatDelta:
 
         old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize, oldSource)
         new = ABDeltaFile(self.path, newHash, newMode, newSize, newSource)
-        abDelta = ABDelta(status=status, old=old, new=new, similarity=self.similarity, submoduleWorkdirDirty=submoduleWorkdirDirty)
-        self._abDeltaCache[context] = abDelta
-        return abDelta
 
-    @staticmethod
-    def isNullHash(hexHash: str) -> bool:
-        return all(c == "0" for c in hexHash)
+        return ABDelta(
+            status=status,
+            old=old,
+            new=new,
+            similarity=self.similarity,
+            submoduleWorkdirDirty=submoduleWorkdirDirty,
+            conflict=self.conflict if context == NavContext.UNSTAGED else None,
+        )
 
 
 @dataclasses.dataclass
@@ -264,11 +248,15 @@ class ABDelta:
     old: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     new: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     similarity: int = 0
-    submoduleWorkdirDirty: bool = False
+    submoduleWorkdirDirty: bool = False  # Only in UNSTAGED contexts
+    conflict: VanillaConflict | None = None  # Only in UNSTAGED contexts
 
     @property
     def context(self) -> NavContext:
         return self.new.source
+
+    def isSubtreeCommitPatch(self) -> bool:
+        return FileMode.COMMIT in (self.old.mode, self.new.mode)
 
 
 @dataclasses.dataclass

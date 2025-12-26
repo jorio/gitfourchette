@@ -10,7 +10,7 @@ import os
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import FatDelta, ABDeltaFile
+from gitfourchette.gitdriver import ABDelta, ABDeltaFile
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -23,11 +23,11 @@ class CommittedFiles(FileList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, navContext=NavContext.COMMITTED)
 
-    def contextMenuActions(self, deltas: list[FatDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[ABDelta]) -> list[ActionDef]:
         actions = []
 
         n = len(deltas)
-        modeSet = {delta.modeDst for delta in deltas}
+        modeSet = {delta.new.mode for delta in deltas}  # modeDst
         anySubmodules = FileMode.COMMIT in modeSet
         onlySubmodules = anySubmodules and len(modeSet) == 1
 
@@ -117,10 +117,9 @@ class CommittedFiles(FileList):
         self.saveRevisionAs(beforeCommit=True)
 
     def _restoreRevision(self, old: bool):
-        fatDeltas = list(self.selectedDeltas())
-        assert len(fatDeltas) == 1
-        delta = fatDeltas[0].distillOldNew(self.navContext)
-        RestoreRevisionToWorkdir.invoke(self, delta, old=old)
+        deltas = list(self.selectedDeltas())
+        assert len(deltas) == 1
+        RestoreRevisionToWorkdir.invoke(self, deltas[0], old=old)
 
     def restoreNewRevision(self):
         self._restoreRevision(old=False)
@@ -128,7 +127,7 @@ class CommittedFiles(FileList):
     def restoreOldRevision(self):
         self._restoreRevision(old=True)
 
-    def saveRevisionAsTempFile(self, delta: FatDelta, beforeCommit: bool = False):
+    def saveRevisionAsTempFile(self, delta: ABDelta, beforeCommit: bool = False):
         # May raise FileNotFoundError!
         name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
         data = diffFile.read(self.repo)
@@ -142,7 +141,7 @@ class CommittedFiles(FileList):
 
     # TODO: Send all files to text editor in one command?
     def openRevision(self, beforeCommit: bool = False):
-        def run(delta: FatDelta):
+        def run(delta: ABDelta):
             tempPath = self.saveRevisionAsTempFile(delta, beforeCommit)
             ToolProcess.startTextEditor(self, tempPath)
 
@@ -160,7 +159,7 @@ class CommittedFiles(FileList):
                 f.write(data)
             os.chmod(path, mode)
 
-        def run(delta: FatDelta):
+        def run(delta: ABDelta):
             # May raise FileNotFoundError!
             name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
             data = diffFile.read(self.repo)
@@ -176,9 +175,7 @@ class CommittedFiles(FileList):
 
         self.confirmBatch(run, title, _("Really export <b>{n} files</b>?"))
 
-    def getFileRevisionInfo(self, fatDelta: FatDelta, beforeCommit: bool = False) -> tuple[str, ABDeltaFile]:
-        delta = fatDelta.distillOldNew(self.navContext)
-
+    def getFileRevisionInfo(self, delta: ABDelta, beforeCommit: bool = False) -> tuple[str, ABDeltaFile]:
         if beforeCommit:
             diffFile = delta.old
             if delta.status == "A":
@@ -198,8 +195,8 @@ class CommittedFiles(FileList):
         return name, diffFile
 
     def openWorkingCopyRevision(self):
-        def run(delta: FatDelta):
-            path = self.repo.in_workdir(delta.path)
+        def run(delta: ABDelta):
+            path = self.repo.in_workdir(delta.new.path)
             if not os.path.isfile(path):
                 raise FileNotFoundError(_("There’s no file at this path in the working copy."))
             ToolProcess.startTextEditor(self, path)
@@ -207,8 +204,8 @@ class CommittedFiles(FileList):
         self.confirmBatch(run, _("Open working copy revision"), _("Really open <b>{n} files</b>?"))
 
     def wantOpenDiffInNewWindow(self):
-        def run(delta: FatDelta):
-            locator = NavLocator(self.navContext, self.commitId, delta.path)
+        def run(delta: ABDelta):
+            locator = NavLocator(self.navContext, self.commitId, delta.new.path)
             LoadPatchInNewWindow.invoke(self, delta, locator)
 
         self.confirmBatch(run, _("Open diff in new window"), _("Really open <b>{n} windows</b>?"))

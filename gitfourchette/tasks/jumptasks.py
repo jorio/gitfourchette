@@ -73,8 +73,23 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
         assert not fatDelta.hexHashWorktree  # not expecting this to be filled in right after a "git status"
         fatDelta.hexHashWorktree = submoduleCommitHash
 
-    task.repoModel.workdirStatus = statusTable
-    task.repoModel.workdirStatusReady = True
+    unstagedDeltas = [
+        fatDelta.distillOldNew(NavContext.UNSTAGED)
+        for fatDelta in statusTable
+        if fatDelta.statusUnstaged
+    ]
+
+    stagedDeltas = [
+        fatDelta.distillOldNew(NavContext.STAGED)
+        for fatDelta in statusTable
+        if fatDelta.statusStaged
+    ]
+
+    repoModel = task.repoModel
+    repoModel.workdirUnstagedDeltas = unstagedDeltas
+    repoModel.workdirStagedDeltas = stagedDeltas
+    repoModel.workdirNumChanges = len(statusTable)
+    repoModel.workdirStatusReady = True
 
     # Refresh libgit2 index after git status is complete
     task.repo.refresh_index()
@@ -151,8 +166,8 @@ class Jump(RepoTask):
         if not locator.path:
             return Jump.Result(locator, "", None)
 
-        fatDelta = fileList.deltaForFile(locator.path)
-        delta = fatDelta.distillOldNew(locator.context)
+        delta = fileList.deltaForFile(locator.path)
+        assert delta.context == locator.context
 
         # If DiffView is already set up to display this specific patch,
         # we don't need to bother shelling out to 'git diff'.
@@ -160,7 +175,7 @@ class Jump(RepoTask):
             return Jump.Result(rw.diffView.currentLocator, "", SameTextDiff())
 
         # Load the patch
-        patchTask = yield from self.flowSubtask(LoadPatch, fatDelta, locator)
+        patchTask = yield from self.flowSubtask(LoadPatch, delta, locator)
         return Jump.Result(locator, patchTask.header, patchTask.result, delta)
 
     def isDiffViewAlreadySetUpFor(self, locator: NavLocator, delta: ABDelta) -> bool:
@@ -230,8 +245,8 @@ class Jump(RepoTask):
 
             # Fill FileListViews
             with QSignalBlockerContext(rw.dirtyFiles, rw.stagedFiles):  # Don't emit jump signals
-                rw.dirtyFiles.setContents(s for s in repoModel.workdirStatus if s.statusUnstaged)
-                rw.stagedFiles.setContents(s for s in repoModel.workdirStatus if s.statusStaged)
+                rw.dirtyFiles.setContents(repoModel.workdirUnstagedDeltas)
+                rw.stagedFiles.setContents(repoModel.workdirStagedDeltas)
 
             nDirty = rw.dirtyFiles.model().rowCount()
             nStaged = rw.stagedFiles.model().rowCount()
@@ -394,7 +409,9 @@ class Jump(RepoTask):
                 "show", "--diff-merges=1", "-z", "--raw",
                 "--format=",  # skip info about the commit itself
                 str(locator.commit))
-            deltas = driver.readShowRawZ(self.repo)
+
+            fatDeltas = driver.readShowRawZ(self.repo)
+            deltas = [fat.distillOldNew(NavContext.COMMITTED) for fat in fatDeltas]
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 

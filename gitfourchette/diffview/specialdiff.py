@@ -14,7 +14,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import ABDelta, FatDelta
+from gitfourchette.gitdriver import ABDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -189,10 +189,11 @@ class SpecialDiffError:
             longform=toRoomyUL([linkify(prompt2, taskLink)]))
 
     @staticmethod
-    def submoduleDiff(repo: Repo, fatDelta: FatDelta, locator: NavLocator) -> SpecialDiffError:
+    def submoduleDiff(repo: Repo, delta: ABDelta, locator: NavLocator) -> SpecialDiffError:
         from gitfourchette.tasks import AbsorbSubmodule, DiscardFiles, RegisterSubmodule
 
-        delta = fatDelta.distillOldNew(locator.context)
+        assert delta.context == locator.context
+        context = delta.context
 
         path = delta.new.path
         absPath = repo.in_workdir(path)
@@ -214,7 +215,7 @@ class SpecialDiffError:
             name = path  # Fallback to inner path as the name
             isRegistered = False
 
-        if locator.context.isWorkdir():
+        if context.isWorkdir():
             wasRegistered = path in repo.listall_submodules_dict_at_head()
         else:
             wasRegistered = True
@@ -281,7 +282,7 @@ class SpecialDiffError:
 
             intro = (_("The subtree’s <b>HEAD</b> has moved to another commit.") if isTree else
                      _("The submodule’s <b>HEAD</b> has moved to another commit."))
-            if locator.context == NavContext.UNSTAGED:
+            if context == NavContext.UNSTAGED:
                 intro += " " + _("You can stage this update:")
             longformParts.append(
                 f"{intro}"
@@ -291,7 +292,7 @@ class SpecialDiffError:
                 "</table></p>")
 
         # Show additional tips if this submodule is in the workdir.
-        if locator.context.isWorkdir():
+        if context.isWorkdir():
             m = ""
             if isDel:
                 if isRegistered:
@@ -324,7 +325,7 @@ class SpecialDiffError:
 
             # Tell about any uncommitted changes
             if delta.submoduleWorkdirDirty:
-                discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [fatDelta]))
+                discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [delta]))
 
                 if isTree:
                     uc1 = _("The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:")

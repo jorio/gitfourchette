@@ -14,7 +14,7 @@ from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.gitdriver import FatDelta, GitDriver
+from gitfourchette.gitdriver import ABDelta, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -208,7 +208,7 @@ class FileList(QListView):
     def isEmpty(self):
         return self.model().rowCount() == 0
 
-    def setContents(self, deltas: Iterable[FatDelta]):
+    def setContents(self, deltas: Iterable[ABDelta]):
         self.flModel.setContents(deltas)
         self.updateFocusPolicy()
         self.searchBar.reevaluateSearchTerm()
@@ -242,7 +242,7 @@ class FileList(QListView):
             menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
-    def contextMenuActions(self, deltas: list[FatDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[ABDelta]) -> list[ActionDef]:
         """ To be overridden """
 
         def pathDisplayStyleAction(pds: PathDisplayStyle):
@@ -292,18 +292,22 @@ class FileList(QListView):
             icon="git-stash-black",
             shortcuts=TaskBook.shortcuts.get(NewStash, []))
 
-    def contextMenuActionRevertMode(self, deltas: list[FatDelta], callback: Callable, ellipsis=True) -> ActionDef:
+    def contextMenuActionRevertMode(self, deltas: list[ABDelta], callback: Callable, ellipsis=True) -> ActionDef:
         n = len(deltas)
         action = ActionDef(_n("Revert Mode Change", "Revert Mode Changes", n), callback, enabled=False)
 
         # Scan deltas for mode changes
-        for bigDelta in deltas:
-            delta = bigDelta.distillOldNew(self.navContext)
-            if delta.status not in "MRC":  # modified, renamed or copied
+        for delta in deltas:
+            # Scan for Modified, Renamed, or Copied
+            if delta.status not in "MRC":
                 continue
 
-            if not (delta.old.mode != delta.new.mode
-                    and delta.new.mode in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]):
+            # Skip if mode didn't change
+            if delta.old.mode == delta.new.mode:
+                continue
+
+            # It has to be a mode we can actually revert
+            if delta.new.mode not in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]:
                 continue
 
             action.enabled = True
@@ -321,7 +325,7 @@ class FileList(QListView):
 
         return action
 
-    def contextMenuActionsDiff(self, deltas: list[FatDelta]) -> list[ActionDef]:
+    def contextMenuActionsDiff(self, deltas: list[ABDelta]) -> list[ActionDef]:
         n = len(deltas)
 
         return [
@@ -335,7 +339,7 @@ class FileList(QListView):
                 self.savePatchAs),
         ]
 
-    def contextMenuActionsEdit(self, deltas: list[FatDelta]) -> list[ActionDef]:
+    def contextMenuActionsEdit(self, deltas: list[ABDelta]) -> list[ActionDef]:
         n = len(deltas)
 
         return [
@@ -349,15 +353,12 @@ class FileList(QListView):
                 self.openHeadRevision),
         ]
 
-    def contextMenuActionBlame(self, deltas: list[FatDelta]) -> ActionDef:
+    def contextMenuActionBlame(self, deltas: list[ABDelta]) -> ActionDef:
         isEnabled = False
         if len(deltas) == 1:
             delta = deltas[0]
-            isEnabled = True
-            if self.navContext == NavContext.UNSTAGED:
-                isEnabled = delta.statusUnstaged not in "?A"
-            elif self.navContext == NavContext.STAGED:
-                isEnabled = delta.statusStaged not in "?A"
+            assert delta.context == self.navContext
+            isEnabled = (not delta.context.isWorkdir()) or (delta.status not in "?A")
 
         return ActionDef(
             englishTitleCase(OpenBlame.name()) + "\u2026",
@@ -369,27 +370,26 @@ class FileList(QListView):
 
     # -------------------------------------------------------------------------
 
-    def confirmBatch(self, callback: Callable[[FatDelta], None], title: str, prompt: str, threshold: int = 3):
-        fatDeltas = list(self.selectedDeltas())
+    def confirmBatch(self, callback: Callable[[ABDelta], None], title: str, prompt: str, threshold: int = 3):
+        deltas = list(self.selectedDeltas())
+        numFiles = len(deltas)
 
         def runBatch():
             errors = MultiFileError()
 
-            for fatDelta in fatDeltas:
+            for delta in deltas:
                 try:
-                    callback(fatDelta)
+                    callback(delta)
                     errors.add_file_success()
                 except OSError as exc:  # typically FileNotFoundError
-                    errors.add_file_error(fatDelta.path, exc)
+                    errors.add_file_error(delta.new.path, exc)
 
             if errors:
                 showMultiFileErrorMessage(self, errors, title)
 
-        if len(fatDeltas) <= threshold:
+        if numFiles <= threshold:
             runBatch()
             return
-
-        numFiles = len(fatDeltas)
 
         qmb = askConfirmation(
             self,
@@ -399,7 +399,7 @@ class FileList(QListView):
             QMessageBox.StandardButton.YesAll | QMessageBox.StandardButton.Cancel,
             show=False)
 
-        addULToMessageBox(qmb, [d.path for d in fatDeltas])
+        addULToMessageBox(qmb, [d.new.path for d in deltas])
 
         qmb.button(QMessageBox.StandardButton.YesAll).clicked.connect(runBatch)
         qmb.show()
@@ -416,9 +416,7 @@ class FileList(QListView):
         self.confirmBatch(self._openInDiffTool, _("Open in external diff tool"),
                           _("Really open <b>{n} files</b> in external diff tool?"))
 
-    def _openInDiffTool(self, fatDelta: FatDelta):
-        delta = fatDelta.distillOldNew(self.navContext)
-
+    def _openInDiffTool(self, delta: ABDelta):
         if delta.new.isId0():
             raise FileNotFoundError(_("Can’t open external diff tool on a deleted file."))
 
@@ -446,9 +444,8 @@ class FileList(QListView):
         return ToolProcess.startDiffTool(self, oldPath, newPath)
 
     def showInFolder(self):
-        def run(fatDelta: FatDelta):
-            relPath = fatDelta.path
-            path = self.repo.in_workdir(relPath)
+        def run(delta: ABDelta):
+            path = self.repo.in_workdir(delta.new.path)
             path = os.path.normpath(path)  # get rid of any trailing slashes (submodules)
             if not os.path.exists(path):  # check exists, not isfile, for submodules
                 raise FileNotFoundError(_("File doesn’t exist at this path anymore."))
@@ -571,20 +568,13 @@ class FileList(QListView):
         """ Override this if you want to react to a middle click. """
         pass
 
-    def selectedDeltas(self) -> Generator[FatDelta, None, None]:
-        index: QModelIndex
+    def selectedDeltas(self) -> Generator[ABDelta, None, None]:
         for index in self.selectedIndexes():
-            delta = index.data(FileListModel.Role.FatDeltaObject)
-            assert isinstance(delta, FatDelta)
-            yield delta
+            yield index.data(FileListModel.Role.ABDeltaObject)
 
     def selectedPaths(self) -> Generator[str, None, None]:
-        index: QModelIndex
         for index in self.selectedIndexes():
-            path: str = index.data(FileListModel.Role.FilePath)
-            if not path:
-                continue
-            yield path
+            yield index.data(FileListModel.Role.FilePath)
 
     def earliestSelectedRow(self):
         try:
@@ -593,14 +583,14 @@ class FileList(QListView):
             return -1
 
     def savePatchAs(self):
-        deltas = [fat.distillOldNew(self.navContext) for fat in self.selectedDeltas()]
+        deltas = list(self.selectedDeltas())
         ExportPatchCollection.invoke(self, deltas, self.commitId)
 
     def revertPaths(self):
         # TODO: Convert into a task? (So we can build the patch asynchronously)
-        fatDeltas = list(self.selectedDeltas())
-        assert len(fatDeltas) == 1
-        delta = fatDeltas[0].distillOldNew(self.navContext)
+        deltas = list(self.selectedDeltas())
+        assert len(deltas) == 1
+        delta = deltas[0]
         tokens = LoadPatch.buildDiffCommand(delta, self.commitId, binary=True)
         patchData = GitDriver.runSync(*tokens, directory=self.repo.workdir, strict=True)
         ApplyPatchData.invoke(self, patchData, reverse=True,
@@ -630,13 +620,12 @@ class FileList(QListView):
         self.selectRow(row)
         return True
 
-    def deltaForFile(self, file: str) -> FatDelta:
+    def deltaForFile(self, file: str) -> ABDelta:
         row = self.flModel.getRowForFile(file)
         return self.flModel.deltas[row]
 
     def openHeadRevision(self):
-        def run(fatDelta: FatDelta):
-            delta = fatDelta.distillOldNew(self.navContext)
+        def run(delta: ABDelta):
             tempPath = delta.old.dump(self.repo, qTempDir(), "[HEAD]")
             ToolProcess.startTextEditor(self, tempPath)
 
@@ -645,18 +634,17 @@ class FileList(QListView):
 
     def wantPartialStash(self):
         paths = set()
-        for fatDelta in self.selectedDeltas():
+        for delta in self.selectedDeltas():
             # Add both old and new paths so that both are pre-selected
             # if we're stashing a rename.
-            delta = fatDelta.distillOldNew(self.navContext)
             paths.add(delta.old.path)
             paths.add(delta.new.path)
         NewStash.invoke(self, list(paths))
 
     def openSubmoduleTabs(self):
-        for fatDelta in self.selectedDeltas():
-            if fatDelta.isSubtreeCommitPatch():
-                self.openSubRepo.emit(fatDelta.path)
+        for delta in self.selectedDeltas():
+            if delta.isSubtreeCommitPatch():
+                self.openSubRepo.emit(delta.new.path)
 
     def searchRange(self, searchRange: range) -> QModelIndex | None:
         model = self.model()  # to filter out hidden rows, don't use self.clModel directly
