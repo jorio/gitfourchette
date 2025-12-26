@@ -19,7 +19,7 @@ from gitfourchette.diffview.diffhighlighter import DiffHighlighter
 from gitfourchette.gitdriver import ABDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
-from gitfourchette.nav import NavContext, NavFlags, NavLocator
+from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.subpatch import extractSubpatch
@@ -28,7 +28,6 @@ from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
 _emptyABDelta = ABDelta()
-_defaultUnstagedDifferentiator = (-1, -1)
 
 
 class DiffView(CodeView):
@@ -39,7 +38,6 @@ class DiffView(CodeView):
     lineData: list[LineData]
     currentLocator: NavLocator
     currentABDelta: ABDelta
-    currentUnstagedDifferentiator: tuple[int, int]
     repo: Repo | None
 
     def __init__(self, parent=None):
@@ -48,7 +46,6 @@ class DiffView(CodeView):
         self.lineData = []
         self.currentLocator = NavLocator.Empty
         self.currentABDelta = _emptyABDelta
-        self.currentUnstagedDifferentiator = _defaultUnstagedDifferentiator
         self.repo = None
 
         # Emit contextual help with non-empty selection
@@ -123,7 +120,6 @@ class DiffView(CodeView):
         # Clear info about the current patch - necessary for document reuse detection to be correct when the user
         # clears the selection in a FileList and then reselects the last-displayed document.
         self.currentABDelta = _emptyABDelta
-        self.currentUnstagedDifferentiator = _defaultUnstagedDifferentiator
 
         # Clear the actual contents
         super().clear()
@@ -133,46 +129,12 @@ class DiffView(CodeView):
         assert newDoc.document is not None
 
         oldDocument = self.document()
-
-        unstagedDifferentiator = _defaultUnstagedDifferentiator
-        if delta.context.isDirty():  # Unstaged
-            try:
-                stat = os.lstat(repo.in_workdir(delta.new.path))
-                unstagedDifferentiator = (stat.st_mtime_ns, stat.st_size)
-            except OSError:
-                pass
-
-        # Detect if we're trying to load exactly the same patch - common occurrence
-        # when moving the app back to the foreground. If so, keep the current document
-        # to prevent losing any selected text (and wasting cycles).
-        canReuseCurrentDocument = (
-                not locator.hasFlags(NavFlags.ForceRecreateDocument)
-                and locator.isSimilarEnoughTo(self.currentLocator)
-                and delta == self.currentABDelta
-                and unstagedDifferentiator == self.currentUnstagedDifferentiator)
-
-        if canReuseCurrentDocument:
-            assert len(newDoc.lineData) == len(self.lineData)
-
-            if APP_DEBUG:  # this check can be pretty expensive!
-                assert oldDocument.toPlainText() == newDoc.document.toPlainText()
-
-            # Delete new document
-            assert newDoc.document is not oldDocument  # make sure it's not in use before deleting
-            newDoc.document.deleteLater()
-            newDoc.document = None  # prevent any callers from using a stale object
-
-            # Bail now - don't change the document
-            logger.debug("Don't need to regenerate diff document.")
-            return
-
         if oldDocument:
             oldDocument.deleteLater()  # avoid leaking memory/objects, even though we do set QTextDocument's parent to this QTextEdit
 
         self.repo = repo
         self.currentABDelta = delta
         self.currentLocator = locator
-        self.currentUnstagedDifferentiator = unstagedDifferentiator
 
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)

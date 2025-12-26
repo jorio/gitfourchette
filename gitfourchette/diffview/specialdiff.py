@@ -26,6 +26,10 @@ from gitfourchette.trtables import TrTables
 _workdirCrlfWarning = re.compile("warning: in the working copy of .+, (.+) will be replaced by (.+) the next time Git touches it")
 
 
+class SameTextDiff:
+    pass
+
+
 class DiffImagePair:
     oldImage: QImage
     newImage: QImage

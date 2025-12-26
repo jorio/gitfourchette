@@ -311,7 +311,7 @@ class LoadPatch(RepoTask):
             return SpecialDiffError.typeChange(delta)
 
         # ---------------------------------------------------------------------
-        # Get the patch
+        # Load the patch
 
         tokens = LoadPatch.buildDiffCommand(delta, locator.commit)
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
@@ -326,8 +326,18 @@ class LoadPatch(RepoTask):
 
         maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
+        # Special case for unstaged files: Before loading the patch, update the
+        # ABDelta with fresh filesystem stats (st_mtime_ns). This allows
+        # bypassing LoadPatch in a future refresh of the UI if the file isn't
+        # modified. (We don't need to stat non-unstaged files because blob
+        # hashes are known in advance, so for those, we can simply compare the
+        # hashes stored in ABDelta to figure out if it's fresh.)
+        if locator.context.isDirty():
+            delta.new.diskStat = delta.new.stat(self.repo)
+
         try:
             diffDocument = DiffDocument.fromPatch(delta, patch, maxLineLength)
+            diffDocument.document.moveToThread(QApplication.instance().thread())
         except DiffDocument.BinaryError:
             return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:
@@ -340,7 +350,6 @@ class LoadPatch(RepoTask):
                 linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
                 "SP_MessageBoxWarning")
 
-        diffDocument.document.moveToThread(QApplication.instance().thread())
         return diffDocument
 
     def _makeHeader(self, result, locator):

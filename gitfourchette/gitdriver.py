@@ -10,6 +10,7 @@ import dataclasses
 import html
 import io
 import logging
+import os
 import re
 import shlex
 import signal
@@ -70,17 +71,6 @@ class FatDelta:
     path: str = ""
     origPath: str = ""
     conflict: VanillaConflict | None = None
-
-    unstagedDifferentiator: tuple[int, ...] | None = None
-    """
-    Filled in for unstaged files only. Allows quick comparison of FatDeltas
-    taken at two points in time for the same unstaged file. In unstaged files,
-    the hash isn't computed, so this field is typically the only one that
-    changes when an unstaged file is modified.
-
-    Internally, this is a partial snapshot of the file's stats on disk
-    (mode, size, mtime). 
-    """
 
     _abDeltaCache: dict[NavContext, ABDelta] = dataclasses.field(default_factory=dict, compare=False)
 
@@ -181,6 +171,7 @@ class FatDelta:
 
         old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize, oldSource)
         new = ABDeltaFile(self.path, newHash, newMode, newSize, newSource)
+
         abDelta = ABDelta(status=status, old=old, new=new, similarity=self.similarity)
         self._abDeltaCache[context] = abDelta
         return abDelta
@@ -197,6 +188,13 @@ class ABDeltaFile:
     mode: FileMode = FileMode.UNREADABLE
     size: int = -1
     source: NavContext = NavContext.EMPTY
+
+    diskStat: tuple[int, int] = (-1, -1)
+    """
+    Filled in for unstaged files only. Allows quick comparison of ABDeltaFiles
+    taken at two points in time for the same unstaged file. Internally, this is
+    a snapshot of a subset of the file's status on disk (st_mtime_ns, st_size).
+    """
 
     _cachedBlob: bytes | None = dataclasses.field(default=None, compare=False)
     """
@@ -264,6 +262,16 @@ class ABDeltaFile:
         """
 
         return str(pathObj)
+
+    def stat(self, repo: Repo) -> tuple[int, int]:
+        diskStat = (-1, -1)
+        absPath = repo.in_workdir(self.path)
+        try:
+            stat = os.lstat(absPath)
+            diskStat = (stat.st_mtime_ns, stat.st_size)
+        except OSError:
+            pass
+        return diskStat
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o},{self.size})"
@@ -610,9 +618,6 @@ class GitDriver(QProcess):
                 except OSError:
                     pass
                 else:
-                    # Use a subset of the stats as a differentiator key for this unstaged file.
-                    delta.unstagedDifferentiator = (stat.st_mode, stat.st_size, stat.st_mtime_ns)
-
                     # Fill in modeWorktree for untracked/ignored files.
                     if delta.modeWorktree == FileMode.UNREADABLE and delta.statusUnstaged in "?!":
                         delta.modeWorktree = self.distillFileMode(stat.st_mode)
