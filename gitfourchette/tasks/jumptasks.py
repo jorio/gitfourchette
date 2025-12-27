@@ -41,58 +41,50 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     # TODO: --no-optional-locks?
     # TODO: Honor allowWriteIndex
     gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z", "--untracked-files=all")
-    statusTable = gitStatus.readStatusPorcelainV2Z(task.repo)
+    numEntries, stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z()
+
+    if APP_DEBUG:
+        assert not any(d.submoduleStatus.startswith("S") for d in stagedDeltas), "only expecting full submo status in unstaged deltas"
 
     # Fill in submodule commit hashes.
     # (This might be parallelizable if we've got tons of modified submodules)
-    for fatDelta in statusTable:
+    for delta in unstagedDeltas:
         # Scan for submodules with changes that the superproject isn't tracking yet
-        submoduleUpdated = fatDelta.statusSubmodule.startswith("S")
+        submoduleUpdated = delta.submoduleStatus.startswith("S")
         if not submoduleUpdated:
             continue
 
+        if delta.status == "D":
+            assert delta.new.isId0()
+            continue
+
         # Work out head commit for this submodule
-        headDidMove = "C" in fatDelta.statusSubmodule
+        headDidMove = "C" in delta.submoduleStatus
         if not headDidMove:
             # The submodule's head hasn't moved.
-            submoduleCommitHash = fatDelta.hexHashIndex
+            submoduleCommitHash = delta.old.id
         else:
             # The submodule's head has moved, but we don't know to what commit,
-            # because "git status" doesn't give this information until this move
-            # is staged.
-            assert not fatDelta.hexHashWorktree
-            subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", fatDelta.path)
+            # because "git status" doesn't give this information if unstaged.
+            subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", delta.new.path)
             subDiff = subDiffDriver.stdoutScrollback()
             match = _submoduleIndexLinePattern.search(subDiff)
             assert match
-            assert fatDelta.hexHashIndex == match.group(1)
+            assert delta.old.id == match.group(1)
             submoduleCommitHash = match.group(2)
 
-        # Fill in FatDelta.hexHashWorktree to enable comparing
-        # ABDelta.old.id to ABDelta.new.id after "distilling".
-        assert not fatDelta.hexHashWorktree  # not expecting this to be filled in right after a "git status"
-        fatDelta.hexHashWorktree = submoduleCommitHash
-
-    unstagedDeltas = [
-        fatDelta.distillOldNew(NavContext.UNSTAGED)
-        for fatDelta in statusTable
-        if fatDelta.statusUnstaged
-    ]
-
-    stagedDeltas = [
-        fatDelta.distillOldNew(NavContext.STAGED)
-        for fatDelta in statusTable
-        if fatDelta.statusStaged
-    ]
+        # Fill in worktree hash
+        assert not delta.new.isIdValid(), f"not expecting id to be filled in right after git status: {delta.new.id}"
+        delta.new.id = submoduleCommitHash
 
     repoModel = task.repoModel
     repoModel.workdirUnstagedDeltas = unstagedDeltas
     repoModel.workdirStagedDeltas = stagedDeltas
-    repoModel.workdirNumChanges = len(statusTable)
+    repoModel.workdirNumChanges = numEntries
     repoModel.workdirStatusReady = True
 
     # Refresh libgit2 index after git status is complete
-    task.repo.refresh_index()
+    repoModel.repo.refresh_index()
 
 
 class Jump(RepoTask):
@@ -410,8 +402,7 @@ class Jump(RepoTask):
                 "--format=",  # skip info about the commit itself
                 str(locator.commit))
 
-            fatDeltas = driver.readShowRawZ(self.repo)
-            deltas = [fat.distillOldNew(NavContext.COMMITTED) for fat in fatDeltas]
+            deltas = driver.readShowRawZ()
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 

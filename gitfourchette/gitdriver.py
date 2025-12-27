@@ -50,100 +50,116 @@ class VanillaFetchStatusFlag(StrEnum):
     UpToDate = "="
 
 
-@dataclasses.dataclass
-class FatDelta:
-    repo: Repo
-    statusStaged: str = ""
-    statusUnstaged: str = ""
-    statusSubmodule: str = ""  # only valid for uncommitted changes in workdir
-    statusCommit: str = ""
-    modeHead: FileMode = FileMode.UNREADABLE
-    modeIndex: FileMode = FileMode.UNREADABLE
-    modeWorktree: FileMode = FileMode.UNREADABLE
-    modeSrc: FileMode = FileMode.UNREADABLE
-    modeDst: FileMode = FileMode.UNREADABLE
-    hexHashHead: str = ""
-    hexHashIndex: str = ""
-    hexHashWorktree: str = ""
-    hexHashSrc: str = ""
-    hexHashDst: str = ""
-    similarity: int = 0
-    path: str = ""
-    origPath: str = ""
-    conflict: VanillaConflict | None = None
+class ABDeltaParser:
+    @classmethod
+    def parseMode(cls, octal: str) -> FileMode:
+        return FileMode(int(octal, 8))
 
-    def __post_init__(self):
-        if self.statusStaged == ".":
-            self.statusStaged = ""
-
-        if self.statusUnstaged == ".":
-            self.statusUnstaged = ""
-
-        if self.statusSubmodule == "N...":
-            self.statusSubmodule = ""
+    @classmethod
+    def parseGitStatus(cls, ident: str, *tokens: str) -> tuple[ABDelta | None, ABDelta | None]:
+        if ident == "1":
+            # Ordinary changed entries
+            tokens = list(tokens)
+            path = tokens.pop()
+            tokens.extend(("0", path, path))
+            return cls._parseStatus2(*tokens)
+        elif ident == "2":
+            # Renamed or copied entries
+            return cls._parseStatus2(*tokens)
+        elif ident == "u":
+            # Unmerged entries (conflict)
+            return cls._parseStatusConflict(*tokens)
+        elif ident in "?!":
+            # ? - Untracked items
+            # ! - Ignored items
+            return cls._parseStatusUntracked(ident, *tokens)
         else:
-            assert not self.statusSubmodule or self.statusSubmodule.startswith("S")
+            raise ValueError(f"unknown ident: {ident}")
 
-    def distillOldNew(self, context: NavContext) -> ABDelta:
-        oldSize = -1
-        newSize = -1
+    @classmethod
+    def _parseStatus2(cls, x, y, sub, mh, mi, mw, hh, hi, score, newPath, origPath):
+        fileHead = ABDeltaFile(
+            path=origPath,
+            id=hh,
+            mode=cls.parseMode(mh),
+            source=NavContext.COMMITTED)
 
-        if context == NavContext.UNSTAGED:
-            status = self.statusUnstaged
-            oldMode, newMode = self.modeIndex, self.modeWorktree
-            oldHash, newHash = self.hexHashIndex, self.hexHashWorktree
-            oldSource, newSource = NavContext.STAGED, NavContext.UNSTAGED
-            if not newHash:
-                logger.warning(f"worktree hash unknown for {self.path}")
-                if status == "D":
-                    newHash = HASH_40X0
-                else:
-                    newHash = HASH_40XF  # "unknown" non-zero hash
-            # Even though we may have a filesystem stat for the unstaged file,
-            # don't copy stat.st_size to the ABDelta because the size on disk
-            # may differ from the size obtained after applying the filters
-            # (e.g. CRLF).
-        elif context == NavContext.STAGED:
-            status = self.statusStaged
-            oldMode, newMode = self.modeHead, self.modeIndex
-            oldHash, newHash = self.hexHashHead, self.hexHashIndex
-            oldSource, newSource = NavContext.COMMITTED, NavContext.STAGED
+        fileIndex = ABDeltaFile(
+            path=newPath,
+            id=hi,
+            mode=cls.parseMode(mi),
+            source=NavContext.STAGED)
+
+        fileWorktree = ABDeltaFile(
+            path=newPath,
+            id=HASH_40XF,  # Unknown hash
+            mode=cls.parseMode(mw),
+            source=NavContext.UNSTAGED)
+
+        if y == "D":  # Unstaged deletion in worktree
+            fileWorktree.id = HASH_40X0
+            fileWorktree.size = 0
+
+        xDelta, yDelta = None, None
+
+        if x != ".":  # STAGED
+            xDelta = ABDelta(status=x, old=fileHead, new=fileIndex, similarity=int(score))
+
+        if y != ".":  # UNSTAGED
+            yDelta = ABDelta(status=y, old=fileIndex, new=fileWorktree, submoduleStatus=sub)
+
+        return xDelta, yDelta
+
+    @classmethod
+    def _parseStatusConflict(cls, xy, sub, m1, m2, m3, mw, h1, h2, h3, path):
+        indexFile = ABDeltaFile(path=path, source=NavContext.STAGED)
+
+        worktreeFile = ABDeltaFile(path=path, id=HASH_40XF,
+                                   mode=cls.parseMode(mw),
+                                   source=NavContext.UNSTAGED)
+
+        sides = ConflictSides(xy)
+        stage1 = VanillaConflictStage(cls.parseMode(m1), h1, path)
+        stage2 = VanillaConflictStage(cls.parseMode(m2), h2, path)
+        stage3 = VanillaConflictStage(cls.parseMode(m3), h3, path)
+        conflict = VanillaConflict(sides, stage1, stage2, stage3, path)
+
+        yDelta = ABDelta(status="U", old=indexFile, new=worktreeFile,
+                         conflict=conflict, submoduleStatus=sub)
+        return None, yDelta
+
+    @classmethod
+    def _parseStatusUntracked(cls, ident: str, path: str):
+        if path.endswith("/"):
+            path = path.removesuffix("/")
+            mode = FileMode.TREE
         else:
-            status = self.statusCommit
-            oldMode, newMode = self.modeSrc, self.modeDst
-            oldHash, newHash = self.hexHashSrc, self.hexHashDst
-            oldSource, newSource = NavContext.COMMITTED, NavContext.COMMITTED
+            mode = FileMode.UNREADABLE  # a more precise mode will be filled in from the file's stats
 
-        oldHash = oldHash or HASH_40X0
-        newHash = newHash or HASH_40X0
+        # "Old" state = empty file (not indexed yet)
+        indexFile = ABDeltaFile(path=path, id=HASH_40X0, mode=FileMode.UNREADABLE,
+                                size=0, source=NavContext.STAGED)
 
-        oldIsBlob = oldMode & FileMode.BLOB == FileMode.BLOB
-        newIsBlob = newMode & FileMode.BLOB == FileMode.BLOB
+        worktreeFile = ABDeltaFile(path=path, id=HASH_40XF, mode=mode, source=NavContext.UNSTAGED)
 
-        if oldHash == HASH_40X0:
-            oldSize = 0
-        elif oldIsBlob:
-            oldSize = self.repo.peel_blob(oldHash).size
+        yDelta = ABDelta(status=ident, old=indexFile, new=worktreeFile)
+        return None, yDelta
 
-        if newHash == HASH_40X0:
-            newSize = 0
-        elif newIsBlob and newSize < 0 and newHash != HASH_40XF:
-            newSize = self.repo.peel_blob(newHash).size
+    @classmethod
+    def parseGitShow(cls, ms, md, hs, hd, status, score, path1, path2) -> ABDelta:
+        fileSrc = ABDeltaFile(
+            path=path1,
+            id=hs,
+            mode=cls.parseMode(ms),
+            source=NavContext.COMMITTED)
 
-        ss = self.statusSubmodule
-        submoduleWorkdirDirty = "M" in ss or "U" in ss
+        fileDst = ABDeltaFile(
+            path=path2,
+            id=hd,
+            mode=cls.parseMode(md),
+            source=NavContext.COMMITTED)
 
-        old = ABDeltaFile(self.origPath or self.path, oldHash, oldMode, oldSize, oldSource)
-        new = ABDeltaFile(self.path, newHash, newMode, newSize, newSource)
-
-        return ABDelta(
-            status=status,
-            old=old,
-            new=new,
-            similarity=self.similarity,
-            submoduleWorkdirDirty=submoduleWorkdirDirty,
-            conflict=self.conflict if context == NavContext.UNSTAGED else None,
-        )
+        return ABDelta(status, fileSrc, fileDst, similarity=int(score) if score else 0)
 
 
 @dataclasses.dataclass
@@ -210,7 +226,7 @@ class ABDeltaFile:
 
         # Typically, if a blob id isn't in the database, it's an unstaged file.
         # Read it from the workdir.
-        assert self.source == NavContext.UNSTAGED, f"can't read blob from workdir for source {self.source}"
+        assert self.source.isDirty(), f"can't read blob from workdir for source {self.source}"
         blobId = repo.create_blob_fromworkdir(self.path)
         return repo.peel_blob(blobId)
 
@@ -248,12 +264,17 @@ class ABDelta:
     old: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     new: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
     similarity: int = 0
-    submoduleWorkdirDirty: bool = False  # Only in UNSTAGED contexts
+    submoduleStatus: str = ""  # Only in UNSTAGED contexts
     conflict: VanillaConflict | None = None  # Only in UNSTAGED contexts
 
     @property
     def context(self) -> NavContext:
         return self.new.source
+
+    @property
+    def submoduleWorkdirDirty(self) -> bool:
+        sub = self.submoduleStatus
+        return "M" in sub or "U" in sub
 
     def isSubtreeCommitPatch(self) -> bool:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
@@ -508,93 +529,42 @@ class GitDriver(QProcess):
             for flag, oldHex, newHex, localRef in table
         }
 
-    def readStatusPorcelainV2Z(self, repo: Repo) -> list[FatDelta]:
+    def readStatusPorcelainV2Z(self) -> tuple[int, list[ABDelta], list[ABDelta]]:
         stdout = self.stdoutScrollback()
         pos = 0
         limit = len(stdout)
-        deltas = []
+        stagedDeltas = []
+        unstagedDeltas = []
+        numEntries = 0
 
         while pos < limit:
             ident = stdout[pos]
             try:
-                patt = _gitStatusPatterns[ident]
+                pattern = _gitStatusPatterns[ident]
             except KeyError:
+                logger.warning(f"unknown git status ident '{ident}'")
                 continue
 
-            match = patt.match(stdout, pos)
+            match = pattern.match(stdout, pos)
             pos = match.end()
+            numEntries += 1
 
-            if ident == "1":
-                # Ordinary changed entries
-                x, y, sub, mh, mi, mw, hh, hi, path = match.groups()
-                delta = FatDelta(
-                    repo=repo,
-                    statusStaged=x,
-                    statusUnstaged=y,
-                    statusSubmodule=sub,
-                    modeHead=FileMode(int(mh, 8)),
-                    modeIndex=FileMode(int(mi, 8)),
-                    modeWorktree=FileMode(int(mw, 8)),
-                    hexHashHead=hh,
-                    hexHashIndex=hi,
-                    path=path)
-            elif ident == "2":
-                # Renamed or copied entries
-                x, y, sub, mh, mi, mw, hh, hi, score, path, origPath = match.groups()
-                delta = FatDelta(
-                    repo=repo,
-                    statusStaged=x,
-                    statusUnstaged=y,
-                    statusSubmodule=sub,
-                    modeHead=FileMode(int(mh, 8)),
-                    modeIndex=FileMode(int(mi, 8)),
-                    modeWorktree=FileMode(int(mw, 8)),
-                    hexHashHead=hh,
-                    hexHashIndex=hi,
-                    similarity=int(score),
-                    path=path,
-                    origPath=origPath)
-            elif ident == "u":
-                # Unmerged entries
-                xy, sub, m1, m2, m3, mw, h1, h2, h3, path = match.groups()
-                stage1 = VanillaConflictStage(FileMode(int(m1, 8)), h1, path)
-                stage2 = VanillaConflictStage(FileMode(int(m2, 8)), h2, path)
-                stage3 = VanillaConflictStage(FileMode(int(m3, 8)), h3, path)
-                conflict = VanillaConflict(ConflictSides(xy), stage1, stage2, stage3, path)
-                delta = FatDelta(
-                    repo=repo,
-                    statusUnstaged="U",  # Fake an 'unmerged' status in the unstaged box
-                    statusSubmodule=sub,
-                    modeWorktree=FileMode(int(mw, 8)),
-                    path=path,
-                    conflict=conflict)
-            elif ident in "?!":
-                # ? Untracked items
-                # ! Ignored items
-                path, = match.groups()
-                if path.endswith("/"):
-                    path = path.removesuffix("/")
-                    mode = FileMode.TREE
-                else:
-                    mode = FileMode.UNREADABLE  # a more precise mode will be filled in from the file's stats
-                delta = FatDelta(repo=repo, statusUnstaged=ident, modeWorktree=mode, path=path)
-            else:
-                raise NotImplementedError(f"unsupported status ident '{ident}'")
+            staged, unstaged = ABDeltaParser.parseGitStatus(ident, *match.groups())
 
-            # Fill in additional information for unstaged files.
-            if delta.statusUnstaged:
+            # Fill in file mode for untracked/ignored files.
+            if unstaged and unstaged.status in "?!" and unstaged.new.mode == FileMode.UNREADABLE:
                 try:
-                    stat = Path(self.workingDirectory(), delta.path).lstat()
+                    stat = Path(self.workingDirectory(), unstaged.new.path).lstat()
+                    unstaged.new.mode = self.distillFileMode(stat.st_mode)
                 except OSError:
                     pass
-                else:
-                    # Fill in modeWorktree for untracked/ignored files.
-                    if delta.modeWorktree == FileMode.UNREADABLE and delta.statusUnstaged in "?!":
-                        delta.modeWorktree = self.distillFileMode(stat.st_mode)
 
-            deltas.append(delta)
+            if staged:
+                stagedDeltas.append(staged)
+            if unstaged:
+                unstagedDeltas.append(unstaged)
 
-        return deltas
+        return numEntries, stagedDeltas, unstagedDeltas
 
     @staticmethod
     def distillFileMode(realMode: int) -> FileMode:
@@ -610,7 +580,7 @@ class GitDriver(QProcess):
 
         raise ValueError(f"cannot map to git FileMode: 0o{realMode:o}")
 
-    def readShowRawZ(self, repo: Repo) -> list[FatDelta]:
+    def readShowRawZ(self) -> list[ABDelta]:
         stdout = self.stdoutScrollback()
         pos = 0
         limit = len(stdout)
@@ -630,20 +600,11 @@ class GitDriver(QProcess):
                 pos2 = stdout.find("\0", pos)
                 path2 = stdout[pos:pos2]
                 pos = pos2 + 1
-                origPath, path = path1, path2
             else:
-                origPath, path = "", path1
+                path2 = path1
 
-            deltas.append(FatDelta(
-                repo=repo,
-                modeSrc=FileMode(int(ms, 8)),
-                modeDst=FileMode(int(md, 8)),
-                hexHashSrc=hs,
-                hexHashDst=hd,
-                statusCommit=status,
-                similarity=int(score) if score else 0,
-                path=path,
-                origPath=origPath))
+            delta = ABDeltaParser.parseGitShow(ms, md, hs, hd, status, score, path1, path2)
+            deltas.append(delta)
 
         return deltas
 
