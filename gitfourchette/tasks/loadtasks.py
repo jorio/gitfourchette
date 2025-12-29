@@ -248,7 +248,7 @@ class LoadPatch(RepoTask):
         yield from self.flowEnterUiThread()
         if type(self.result) is DiffDocument:
             dd: DiffDocument = self.result
-            dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta.old, delta.new, locator)
+            dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta)
 
     @classmethod
     def diffCommandPreamble(cls) -> list[str]:
@@ -367,27 +367,20 @@ class LoadPatch(RepoTask):
 
         return header
 
-    def _primeLexJobs(self, oldFile: GitDeltaFile, newFile: GitDeltaFile, locator: NavLocator):
+    def _primeLexJobs(self, delta: GitDelta) -> tuple[LexJob | None, LexJob | None]:
         assert onAppThread()
 
         if not settings.prefs.isSyntaxHighlightingEnabled():
             return None, None
 
-        lexer = LexerCache.getLexerFromPath(newFile.path, settings.prefs.pygmentsPlugins)
+        lexer = LexerCache.getLexerFromPath(delta.new.path, settings.prefs.pygmentsPlugins)
 
         if lexer is None:
             return None, None
 
-        def primeLexJob(file: GitDeltaFile, isDirty: bool):
-            if file.isId0():
+        def primeLexJob(file: GitDeltaFile):
+            if file.isId0() or file.isEmptyBlob():
                 return None
-
-            if file.id == EMPTYBLOB_OID:
-                return None
-
-            if not file.isIdValid():
-                assert isDirty, "reading from disk should only occur for dirty files"
-                file.read(self.repo)  # Cache file contents and hash
 
             assert file.isIdValid(), "need valid blob id for lexing"
 
@@ -397,8 +390,8 @@ class LoadPatch(RepoTask):
                 data = file.read(self.repo)
                 return LexJob(lexer, data, file.id)
 
-        oldLexJob = primeLexJob(oldFile, False)
-        newLexJob = primeLexJob(newFile, locator.context.isDirty())
+        oldLexJob = primeLexJob(delta.old)
+        newLexJob = primeLexJob(delta.new)
 
         for job in oldLexJob, newLexJob:
             if job is not None and job.fileKey not in LexJobCache.cache:

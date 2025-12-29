@@ -15,6 +15,9 @@ from gitfourchette.porcelain import FileMode, Repo, id7
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
 
+HexHashEmptyBlob = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"  # hashlib.sha1(b'blob 0\0').hexdigest()
+""" The SHA-1 hash of an empty Git blob. """
+
 
 @dataclasses.dataclass
 class GitDeltaFile:
@@ -46,6 +49,9 @@ class GitDeltaFile:
 
     def isId0(self) -> bool:
         return self.id == HexHash0000
+
+    def isEmptyBlob(self) -> bool:
+        return self.id == HexHashEmptyBlob
 
     def isIdValid(self) -> bool:
         return self.id != HexHashFFFF

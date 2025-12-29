@@ -98,12 +98,6 @@ A hash consisting of all zeros.
 Used in some places to denote the absence of an object.
 """
 
-# hashlib.sha1(b'blob 0\0').hexdigest()
-EMPTYBLOB_OID = Oid(hex='e69de29bb2d1d6434b8b29ae775ad8c2e48c5391')
-"""
-The hash of an empty blob.
-"""
-
 DOT_GITMODULES = ".gitmodules"
 
 CORE_STASH_MESSAGE_PATTERN = _re.compile(r"^On (?:[^\s:]+|\(no branch\)): (.+)")
