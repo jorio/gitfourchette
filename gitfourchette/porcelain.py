@@ -1954,6 +1954,26 @@ class Repo(_VanillaRepository):
 
         return submodules
 
+    def apply_filters_to_workdir(self, path: str) -> bytes:
+        # See if this file is subject to any filters
+        try:
+            filters = self.load_filter_list(path)
+        except AttributeError:  # pragma: no cover (old pygit2 compatibility)
+            # TODO: Remove this once we can stop supporting pygit2 <= 1.19.1.
+            #       This applies filters, but it also writes the resulting blob
+            #       to the ODB on disk, which isn't optimal for transient contents
+            #       that may change frequently (unstaged files).
+            oid = self.create_blob_fromworkdir(path)
+            blob = self.peel_blob(oid)
+            return blob.data
+
+        if filters is None:
+            # No filters, read file from disk
+            return _Path(self.in_workdir(path)).read_bytes()
+        else:
+            # Apply filters in a buffer
+            return filters.apply_to_file(self, path)
+
 
 class RepoContext:
     def __init__(self, repo_or_path: Repo | str | _Path, flags=RepositoryOpenFlag.DEFAULT, write_index=False):

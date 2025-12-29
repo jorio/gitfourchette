@@ -22,7 +22,7 @@ from pygit2.enums import FileMode
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, id7, Blob, Oid, Repo
+from gitfourchette.porcelain import version_to_tuple, id7, Oid, Repo
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark
 
@@ -177,7 +177,7 @@ class ABDeltaFile:
     a snapshot of a subset of the file's status on disk (st_mtime_ns, st_size).
     """
 
-    _cachedBlob: bytes | None = dataclasses.field(default=None, compare=False)
+    _data: bytes | None = dataclasses.field(default=None, compare=False)
     """
     Cached file contents. Not used in object comparisons.
     None means that the file hasn't been cached yet (isDataValid() == False).
@@ -193,33 +193,31 @@ class ABDeltaFile:
         return self.size >= 0
 
     def isDataValid(self) -> bool:
-        return self._cachedBlob is not None
+        return self._data is not None
 
     @benchmark
     def read(self, repo: Repo) -> bytes:
-        if self._cachedBlob is not None:
+        if self._data is not None:
             pass
         elif self.isId0():
-            self._cachedBlob = b""
+            self._data = b""
             assert self.size == 0
+            assert self.isIdValid(), "id should be valid here"
         else:
-            blob = self._readBlob(repo)
-            assert not self.isIdValid() or blob.id == self.id  # TODO: Unsure about this assert - what if the file was modified between the calls to __init__ and read?
-            assert not self.isSizeValid() or blob.size == self.size
-            self.id = str(blob.id)
-            self.size = blob.size
-            self._cachedBlob = blob.data
+            self._data = self._read(repo)
+            assert not self.isSizeValid() or self.size == len(self._data)
+            self.size = len(self._data)
 
         assert self.isSizeValid(), "size should be valid here"
-        assert self.isIdValid(), "id should be valid here"
         assert self.isDataValid(), "data should be valid here"
 
-        return self._cachedBlob
+        return self._data
 
-    def _readBlob(self, repo: Repo) -> Blob:
+    def _read(self, repo: Repo) -> bytes:
         if self.isIdValid():  # i.e. it's not the unknown hash (FFFFFFF)
             try:
-                return repo.peel_blob(self.id)
+                blob = repo.peel_blob(self.id)
+                return blob.data
             except KeyError:
                 # Blob isn't in the database.
                 pass
@@ -227,8 +225,7 @@ class ABDeltaFile:
         # Typically, if a blob id isn't in the database, it's an unstaged file.
         # Read it from the workdir.
         assert self.source.isDirty(), f"can't read blob from workdir for source {self.source}"
-        blobId = repo.create_blob_fromworkdir(self.path)
-        return repo.peel_blob(blobId)
+        return repo.apply_filters_to_workdir(self.path)
 
     def dump(self, repo: Repo, directory: str, namePrefix: str) -> str:
         data = self.read(repo)

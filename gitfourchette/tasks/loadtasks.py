@@ -6,7 +6,6 @@
 
 import logging
 from collections.abc import Generator
-from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -392,11 +391,11 @@ class LoadPatch(RepoTask):
 
             assert file.isIdValid(), "need valid blob id for lexing"
 
-            with suppress(KeyError):
+            try:
                 return LexJobCache.get(file.id)
-
-            data = file.read(self.repo)
-            return LexJob(lexer, data, file.id)
+            except KeyError:
+                data = file.read(self.repo)
+                return LexJob(lexer, data, file.id)
 
         oldLexJob = primeLexJob(oldFile, False)
         newLexJob = primeLexJob(newFile, locator.context.isDirty())
