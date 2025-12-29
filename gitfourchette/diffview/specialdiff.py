@@ -14,7 +14,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -33,9 +33,9 @@ class SameTextDiff:
 class DiffImagePair:
     oldImage: QImage
     newImage: QImage
-    delta: ABDelta
+    delta: GitDelta
 
-    def __init__(self, repo: Repo, delta: ABDelta):
+    def __init__(self, repo: Repo, delta: GitDelta):
         imageDataA = delta.old.read(repo)
         imageDataB = delta.new.read(repo)
         self.oldImage = QImage.fromData(imageDataA)
@@ -60,7 +60,7 @@ class SpecialDiffError:
         self.links = DocumentLinks()
 
     @staticmethod
-    def noChange(delta: ABDelta, stderr: str = ""):
+    def noChange(delta: GitDelta, stderr: str = ""):
         message = _("File contents didn’t change.")
         details: list[str] = []
         longform: list[str] = []
@@ -135,7 +135,7 @@ class SpecialDiffError:
             longform=longform)
 
     @staticmethod
-    def typeChange(delta: ABDelta):
+    def typeChange(delta: GitDelta):
         oldText = _("Old type:")
         newText = _("New type:")
         oldMode = TrTables.enum(delta.old.mode)
@@ -147,7 +147,7 @@ class SpecialDiffError:
         return SpecialDiffError(_("This file’s type has changed."), table)
 
     @staticmethod
-    def binaryDiff(repo: Repo, delta: ABDelta, locator: NavLocator) -> SpecialDiffError | DiffImagePair:
+    def binaryDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError | DiffImagePair:
         locale = QLocale()
         oldSize = delta.old.sizeBallpark(repo)
         newSize = delta.new.sizeBallpark(repo)
@@ -168,7 +168,7 @@ class SpecialDiffError:
         return SpecialDiffError(_("File appears to be binary."), sizeText)
 
     @staticmethod
-    def treeDiff(delta: ABDelta):
+    def treeDiff(delta: GitDelta):
         from gitfourchette.tasks import AbsorbSubmodule
 
         treePath = os.path.normpath(delta.new.path)
@@ -189,7 +189,7 @@ class SpecialDiffError:
             longform=toRoomyUL([linkify(prompt2, taskLink)]))
 
     @staticmethod
-    def submoduleDiff(repo: Repo, delta: ABDelta, locator: NavLocator) -> SpecialDiffError:
+    def submoduleDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError:
         from gitfourchette.tasks import AbsorbSubmodule, DiscardFiles, RegisterSubmodule
 
         assert delta.context == locator.context

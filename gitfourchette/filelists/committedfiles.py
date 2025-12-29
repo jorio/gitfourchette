@@ -10,7 +10,7 @@ import os
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import ABDelta, ABDeltaFile
+from gitfourchette.gitdriver import GitDelta, GitDeltaFile
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -23,7 +23,7 @@ class CommittedFiles(FileList):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, navContext=NavContext.COMMITTED)
 
-    def contextMenuActions(self, deltas: list[ABDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[GitDelta]) -> list[ActionDef]:
         actions = []
 
         n = len(deltas)
@@ -127,7 +127,7 @@ class CommittedFiles(FileList):
     def restoreOldRevision(self):
         self._restoreRevision(old=True)
 
-    def saveRevisionAsTempFile(self, delta: ABDelta, beforeCommit: bool = False):
+    def saveRevisionAsTempFile(self, delta: GitDelta, beforeCommit: bool = False):
         # May raise FileNotFoundError!
         name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
         data = diffFile.read(self.repo)
@@ -141,7 +141,7 @@ class CommittedFiles(FileList):
 
     # TODO: Send all files to text editor in one command?
     def openRevision(self, beforeCommit: bool = False):
-        def run(delta: ABDelta):
+        def run(delta: GitDelta):
             tempPath = self.saveRevisionAsTempFile(delta, beforeCommit)
             ToolProcess.startTextEditor(self, tempPath)
 
@@ -159,7 +159,7 @@ class CommittedFiles(FileList):
                 f.write(data)
             os.chmod(path, mode)
 
-        def run(delta: ABDelta):
+        def run(delta: GitDelta):
             # May raise FileNotFoundError!
             name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
             data = diffFile.read(self.repo)
@@ -175,7 +175,7 @@ class CommittedFiles(FileList):
 
         self.confirmBatch(run, title, _("Really export <b>{n} files</b>?"))
 
-    def getFileRevisionInfo(self, delta: ABDelta, beforeCommit: bool = False) -> tuple[str, ABDeltaFile]:
+    def getFileRevisionInfo(self, delta: GitDelta, beforeCommit: bool = False) -> tuple[str, GitDeltaFile]:
         if beforeCommit:
             diffFile = delta.old
             if delta.status == "A":
@@ -195,7 +195,7 @@ class CommittedFiles(FileList):
         return name, diffFile
 
     def openWorkingCopyRevision(self):
-        def run(delta: ABDelta):
+        def run(delta: GitDelta):
             path = self.repo.in_workdir(delta.new.path)
             if not os.path.isfile(path):
                 raise FileNotFoundError(_("There’s no file at this path in the working copy."))
@@ -204,7 +204,7 @@ class CommittedFiles(FileList):
         self.confirmBatch(run, _("Open working copy revision"), _("Really open <b>{n} files</b>?"))
 
     def wantOpenDiffInNewWindow(self):
-        def run(delta: ABDelta):
+        def run(delta: GitDelta):
             locator = NavLocator(self.navContext, self.commitId, delta.new.path)
             LoadPatchInNewWindow.invoke(self, delta, locator)
 

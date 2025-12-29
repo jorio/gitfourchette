@@ -13,7 +13,7 @@ import os
 import shutil
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import VanillaConflict
+from gitfourchette.gitdriver import GitConflict
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo
 from gitfourchette.qt import *
@@ -35,13 +35,13 @@ class MergeDriver(QObject):
 
     statusChange = Signal()
 
-    conflict: VanillaConflict
+    conflict: GitConflict
     process: QProcess | None
     processName: str
     state: State
     debrief: str
 
-    def __init__(self, parent: QObject, repo: Repo, conflict: VanillaConflict):
+    def __init__(self, parent: QObject, repo: Repo, conflict: GitConflict):
         super().__init__(parent)
 
         logger.info(f"Initialize MergeDriver: {conflict}")
@@ -153,7 +153,7 @@ class MergeDriver(QObject):
         shutil.copyfile(self.scratchPath, self.targetPath)
 
     @classmethod
-    def findOngoingMerge(cls, conflict: VanillaConflict) -> MergeDriver | None:
+    def findOngoingMerge(cls, conflict: GitConflict) -> MergeDriver | None:
         try:
             return next(m for m in cls._ongoingMerges if m.conflict == conflict)
         except StopIteration:

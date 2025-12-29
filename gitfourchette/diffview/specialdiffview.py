@@ -7,7 +7,7 @@
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.diffview.specialdiff import SpecialDiffError
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -80,7 +80,7 @@ class SpecialDiffView(QTextBrowser):
         assert self.documentLinks is None
         self.documentLinks = err.links
 
-    def displayImageDiff(self, delta: ABDelta, imageA: QImage, imageB: QImage):
+    def displayImageDiff(self, delta: GitDelta, imageA: QImage, imageB: QImage):
         document = QTextDocument(self)
         document.setObjectName("ImageDiffDocument")
 

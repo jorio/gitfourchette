@@ -10,7 +10,7 @@ from collections.abc import Generator
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import ABDelta, ABDeltaFile, VanillaConflict
+from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -234,7 +234,7 @@ class LoadPatch(RepoTask):
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
-    def flow(self, delta: ABDelta, locator: NavLocator):
+    def flow(self, delta: GitDelta, locator: NavLocator):
         try:
             self.result = yield from self._getPatch(delta, locator)
         except Exception as exc:
@@ -258,7 +258,7 @@ class LoadPatch(RepoTask):
         ]
 
     @classmethod
-    def buildDiffCommand(cls, delta: ABDelta, commit: Oid = NULL_OID, binary=False) -> list[str]:
+    def buildDiffCommand(cls, delta: GitDelta, commit: Oid = NULL_OID, binary=False) -> list[str]:
         tokens = cls.diffCommandPreamble()
 
         paths = [delta.old.path, delta.new.path]
@@ -284,8 +284,8 @@ class LoadPatch(RepoTask):
 
         return tokens
 
-    def _getPatch(self, delta: ABDelta, locator: NavLocator
-                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | VanillaConflict | DiffImagePair]:
+    def _getPatch(self, delta: GitDelta, locator: NavLocator
+                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | GitConflict | DiffImagePair]:
         if delta.conflict is not None:
             return delta.conflict
 
@@ -323,11 +323,11 @@ class LoadPatch(RepoTask):
         maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
         # Special case for unstaged files: Before loading the patch, update the
-        # ABDelta with fresh filesystem stats (st_mtime_ns). This allows
+        # GitDelta with fresh filesystem stats (st_mtime_ns). This allows
         # bypassing LoadPatch in a future refresh of the UI if the file isn't
         # modified. (We don't need to stat non-unstaged files because blob
         # hashes are known in advance, so for those, we can simply compare the
-        # hashes stored in ABDelta to figure out if it's fresh.)
+        # hashes stored in GitDelta to figure out if it's fresh.)
         if locator.context.isDirty():
             delta.new.diskStat = delta.new.stat(self.repo)
 
@@ -367,7 +367,7 @@ class LoadPatch(RepoTask):
 
         return header
 
-    def _primeLexJobs(self, oldFile: ABDeltaFile, newFile: ABDeltaFile, locator: NavLocator):
+    def _primeLexJobs(self, oldFile: GitDeltaFile, newFile: GitDeltaFile, locator: NavLocator):
         assert onAppThread()
 
         if not settings.prefs.isSyntaxHighlightingEnabled():
@@ -378,7 +378,7 @@ class LoadPatch(RepoTask):
         if lexer is None:
             return None, None
 
-        def primeLexJob(file: ABDeltaFile, isDirty: bool):
+        def primeLexJob(file: GitDeltaFile, isDirty: bool):
             if file.isId0():
                 return None
 
@@ -408,7 +408,7 @@ class LoadPatch(RepoTask):
 
 
 class LoadPatchInNewWindow(LoadPatch):
-    def flow(self, delta: ABDelta, locator: NavLocator):
+    def flow(self, delta: GitDelta, locator: NavLocator):
         yield from super().flow(delta, locator)
 
         diffDocument = self.result

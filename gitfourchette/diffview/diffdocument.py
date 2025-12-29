@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from gitfourchette import colors
 from gitfourchette import settings
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.syntax import LexJob
@@ -172,7 +172,7 @@ class DiffDocument:
         pass
 
     @staticmethod
-    def fromPatch(abDelta: ABDelta, patch: str, maxLineLength=0) -> DiffDocument:
+    def fromPatch(delta: GitDelta, patch: str, maxLineLength=0) -> DiffDocument:
         lineData: list[LineData] = []
 
         clumpID = 0
@@ -201,9 +201,9 @@ class DiffDocument:
                     # Complete existing delta with actual hashes
                     indexLineMatch = _indexLinePattern.match(rawLine)
                     oldHash, newHash = indexLineMatch.groups()
-                    assert oldHash == abDelta.old.id
-                    if not abDelta.new.isIdValid():
-                        abDelta.new.id = newHash
+                    assert oldHash == delta.old.id
+                    if not delta.new.isIdValid():
+                        delta.new.id = newHash
                 continue
 
             # Start new hunk

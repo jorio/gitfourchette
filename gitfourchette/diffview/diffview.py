@@ -16,7 +16,7 @@ from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.diffview.diffdocument import DiffDocument, LineData
 from gitfourchette.diffview.diffgutter import DiffGutter
 from gitfourchette.diffview.diffhighlighter import DiffHighlighter
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavLocator
@@ -27,7 +27,7 @@ from gitfourchette.tasks import ApplyPatch, ApplyPatchData
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
-_emptyABDelta = ABDelta()
+_emptyDelta = GitDelta()
 
 
 class DiffView(CodeView):
@@ -37,7 +37,7 @@ class DiffView(CodeView):
 
     lineData: list[LineData]
     currentLocator: NavLocator
-    currentABDelta: ABDelta
+    currentDelta: GitDelta
     repo: Repo | None
 
     def __init__(self, parent=None):
@@ -45,7 +45,7 @@ class DiffView(CodeView):
 
         self.lineData = []
         self.currentLocator = NavLocator.Empty
-        self.currentABDelta = _emptyABDelta
+        self.currentDelta = _emptyDelta
         self.repo = None
 
         # Emit contextual help with non-empty selection
@@ -119,13 +119,13 @@ class DiffView(CodeView):
     def clear(self):  # override
         # Clear info about the current patch - necessary for document reuse detection to be correct when the user
         # clears the selection in a FileList and then reselects the last-displayed document.
-        self.currentABDelta = _emptyABDelta
+        self.currentDelta = _emptyDelta
 
         # Clear the actual contents
         super().clear()
 
     @benchmark
-    def replaceDocument(self, repo: Repo, delta: ABDelta, locator: NavLocator, newDoc: DiffDocument):
+    def replaceDocument(self, repo: Repo, delta: GitDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
         oldDocument = self.document()
@@ -133,7 +133,7 @@ class DiffView(CodeView):
             oldDocument.deleteLater()  # avoid leaking memory/objects, even though we do set QTextDocument's parent to this QTextEdit
 
         self.repo = repo
-        self.currentABDelta = delta
+        self.currentDelta = delta
         self.currentLocator = locator
 
         newDoc.document.setParent(self)
@@ -165,7 +165,7 @@ class DiffView(CodeView):
 
     def contextMenuActions(self, clickedCursor: QTextCursor) -> list[ActionDef]:
         # If we have a document, we should have a patch
-        assert self.currentABDelta != _emptyABDelta
+        assert self.currentDelta != _emptyDelta
 
         cursor: QTextCursor = self.textCursor()
         hasSelection = cursor.hasSelection()
@@ -303,11 +303,11 @@ class DiffView(CodeView):
 
     def extractSelection(self, reverse=False) -> str:
         i, j = self.getSelectedLineExtents()
-        return extractSubpatch(self.currentABDelta, self.lineData, i, j, reverse)
+        return extractSubpatch(self.currentDelta, self.lineData, i, j, reverse)
 
     def extractHunk(self, hunkID: int, reverse=False) -> str:
         i, j = LineData.getHunkExtents(self.lineData, hunkID)
-        return extractSubpatch(self.currentABDelta, self.lineData, i, j, reverse)
+        return extractSubpatch(self.currentDelta, self.lineData, i, j, reverse)
 
     def exportPatch(self, patchData: str):
         if not patchData:
@@ -326,13 +326,13 @@ class DiffView(CodeView):
         purpose |= PatchPurpose.Lines
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractSelection(reverse)
-        ApplyPatch.invoke(self, self.currentABDelta, patchData, purpose)
+        ApplyPatch.invoke(self, self.currentDelta, patchData, purpose)
 
     def fireApplyHunk(self, hunkID: int, purpose: PatchPurpose):
         purpose |= PatchPurpose.Hunk
         reverse = not (purpose & PatchPurpose.Stage)
         patchData = self.extractHunk(hunkID, reverse)
-        ApplyPatch.invoke(self, self.currentABDelta, patchData, purpose)
+        ApplyPatch.invoke(self, self.currentDelta, patchData, purpose)
 
     def onMiddleClick(self):
         if not settings.prefs.middleClickToStage:

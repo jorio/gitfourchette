@@ -12,7 +12,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import argsIf, ABDelta
+from gitfourchette.gitdriver import argsIf, GitDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
@@ -34,7 +34,7 @@ class _BaseStagingTask(RepoTask):
         from gitfourchette import tasks
         return isinstance(task, tasks.Jump | tasks.RefreshRepo)
 
-    def denyConflicts(self, deltas: list[ABDelta], purpose: PatchPurpose):
+    def denyConflicts(self, deltas: list[GitDelta], purpose: PatchPurpose):
         # Filter on conflicts
         conflictPaths = [d.new.path for d in deltas if d.conflict is not None]
 
@@ -63,7 +63,7 @@ class _BaseStagingTask(RepoTask):
 
 
 class StageFiles(_BaseStagingTask):
-    def flow(self, deltas: list[ABDelta]):
+    def flow(self, deltas: list[GitDelta]):
         if not deltas:  # Nothing to stage (may happen if user keeps pressing Enter in file list view)
             QApplication.beep()
             raise AbortTask()
@@ -79,7 +79,7 @@ class StageFiles(_BaseStagingTask):
 
         self.postStatus = _n("File staged.", "{n} files staged.", len(deltas))
 
-    def debriefPostStage(self, deltas: list[ABDelta]):
+    def debriefPostStage(self, deltas: list[GitDelta]):
         debrief = {}
 
         for delta in deltas:
@@ -120,7 +120,7 @@ class StageFiles(_BaseStagingTask):
 
 
 class DiscardFiles(_BaseStagingTask):
-    def flow(self, deltas: list[ABDelta]):
+    def flow(self, deltas: list[GitDelta]):
         context = NavContext.UNSTAGED
         assert all(d.context == context for d in deltas)
 
@@ -201,7 +201,7 @@ class DiscardFiles(_BaseStagingTask):
 
         self.postStatus = _n("File discarded.", "{n} files discarded.", len(deltas))
 
-    def backUpPatches(self, deltas: list[ABDelta]):
+    def backUpPatches(self, deltas: list[GitDelta]):
         trash = Trash.instance()
         workdir = self.repo.workdir
 
@@ -222,7 +222,7 @@ class DiscardFiles(_BaseStagingTask):
                 trash.backupFile(workdir, path)
 
             else:
-                # TODO: Cache patch in ABDelta? So we don't have to regenerate the patch if we've already displayed it
+                # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
                 tokens = LoadPatch.buildDiffCommand(delta, binary=True)
                 driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patchText = driver.stdoutScrollback()
@@ -230,7 +230,7 @@ class DiscardFiles(_BaseStagingTask):
 
 
 class UnstageFiles(_BaseStagingTask):
-    def flow(self, deltas: list[ABDelta]):
+    def flow(self, deltas: list[GitDelta]):
         if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
@@ -244,7 +244,7 @@ class UnstageFiles(_BaseStagingTask):
 
 
 class DiscardModeChanges(_BaseStagingTask):
-    def flow(self, deltas: list[ABDelta]):
+    def flow(self, deltas: list[GitDelta]):
         paths = [delta.new.path for delta in deltas]
         numFiles = len(paths)
         textPara = []
@@ -265,7 +265,7 @@ class DiscardModeChanges(_BaseStagingTask):
 
 
 class UnstageModeChanges(_BaseStagingTask):
-    def flow(self, deltas: list[ABDelta]):
+    def flow(self, deltas: list[GitDelta]):
         if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
@@ -286,7 +286,7 @@ class UnstageModeChanges(_BaseStagingTask):
 
 
 class ApplyPatch(RepoTask):
-    def flow(self, delta: ABDelta, subPatch: str, purpose: PatchPurpose):
+    def flow(self, delta: GitDelta, subPatch: str, purpose: PatchPurpose):
         if not subPatch:
             QApplication.beep()
             verb = TrTables.enum(purpose & PatchPurpose.VerbMask).lower()
@@ -485,7 +485,7 @@ class ApplyPatchData(RepoTask):
 
 
 class RestoreRevisionToWorkdir(RepoTask):
-    def flow(self, delta: ABDelta, old: bool):
+    def flow(self, delta: GitDelta, old: bool):
         if old:
             preposition = _p("preposition slotted into '...BEFORE this commit'", "before")
             diffFile = delta.old

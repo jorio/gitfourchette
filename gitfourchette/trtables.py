@@ -100,7 +100,7 @@ class TrTables:
 
     @staticmethod
     def _init_enums():
-        from gitfourchette.gitdriver import ConflictSides
+        from gitfourchette.gitdriver import GitConflictSides
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -148,14 +148,14 @@ class TrTables:
                 RepositoryState.APPLY_MAILBOX_OR_REBASE : "Apply Mailbox or Rebase",  # intentionally untranslated
             },
 
-            ConflictSides: {
-                ConflictSides.BothDeleted   : _p("ConflictSides", "deleted by both sides"),
-                ConflictSides.AddedByUs     : _p("ConflictSides", "added by us"),
-                ConflictSides.DeletedByThem : _p("ConflictSides", "deleted by them"),
-                ConflictSides.AddedByThem   : _p("ConflictSides", "added by them"),
-                ConflictSides.DeletedByUs   : _p("ConflictSides", "deleted by us"),
-                ConflictSides.BothAdded     : _p("ConflictSides", "added by both sides"),
-                ConflictSides.BothModified  : _p("ConflictSides", "modified by both sides"),
+            GitConflictSides: {
+                GitConflictSides.BothDeleted    : _p("ConflictSides", "deleted by both sides"),
+                GitConflictSides.AddedByUs      : _p("ConflictSides", "added by us"),
+                GitConflictSides.DeletedByThem  : _p("ConflictSides", "deleted by them"),
+                GitConflictSides.AddedByThem    : _p("ConflictSides", "added by them"),
+                GitConflictSides.DeletedByUs    : _p("ConflictSides", "deleted by us"),
+                GitConflictSides.BothAdded      : _p("ConflictSides", "added by both sides"),
+                GitConflictSides.BothModified   : _p("ConflictSides", "modified by both sides"),
             },
 
             PatchPurpose: {

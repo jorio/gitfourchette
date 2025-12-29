@@ -14,7 +14,7 @@ from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.gitdriver import ABDelta, GitDriver
+from gitfourchette.gitdriver import GitDelta, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -208,7 +208,7 @@ class FileList(QListView):
     def isEmpty(self):
         return self.model().rowCount() == 0
 
-    def setContents(self, deltas: Iterable[ABDelta]):
+    def setContents(self, deltas: Iterable[GitDelta]):
         self.flModel.setContents(deltas)
         self.updateFocusPolicy()
         self.searchBar.reevaluateSearchTerm()
@@ -242,7 +242,7 @@ class FileList(QListView):
             menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
-    def contextMenuActions(self, deltas: list[ABDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[GitDelta]) -> list[ActionDef]:
         """ To be overridden """
 
         def pathDisplayStyleAction(pds: PathDisplayStyle):
@@ -292,7 +292,7 @@ class FileList(QListView):
             icon="git-stash-black",
             shortcuts=TaskBook.shortcuts.get(NewStash, []))
 
-    def contextMenuActionRevertMode(self, deltas: list[ABDelta], callback: Callable, ellipsis=True) -> ActionDef:
+    def contextMenuActionRevertMode(self, deltas: list[GitDelta], callback: Callable, ellipsis=True) -> ActionDef:
         n = len(deltas)
         action = ActionDef(_n("Revert Mode Change", "Revert Mode Changes", n), callback, enabled=False)
 
@@ -325,7 +325,7 @@ class FileList(QListView):
 
         return action
 
-    def contextMenuActionsDiff(self, deltas: list[ABDelta]) -> list[ActionDef]:
+    def contextMenuActionsDiff(self, deltas: list[GitDelta]) -> list[ActionDef]:
         n = len(deltas)
 
         return [
@@ -339,7 +339,7 @@ class FileList(QListView):
                 self.savePatchAs),
         ]
 
-    def contextMenuActionsEdit(self, deltas: list[ABDelta]) -> list[ActionDef]:
+    def contextMenuActionsEdit(self, deltas: list[GitDelta]) -> list[ActionDef]:
         n = len(deltas)
 
         return [
@@ -353,7 +353,7 @@ class FileList(QListView):
                 self.openHeadRevision),
         ]
 
-    def contextMenuActionBlame(self, deltas: list[ABDelta]) -> ActionDef:
+    def contextMenuActionBlame(self, deltas: list[GitDelta]) -> ActionDef:
         isEnabled = False
         if len(deltas) == 1:
             delta = deltas[0]
@@ -370,7 +370,7 @@ class FileList(QListView):
 
     # -------------------------------------------------------------------------
 
-    def confirmBatch(self, callback: Callable[[ABDelta], None], title: str, prompt: str, threshold: int = 3):
+    def confirmBatch(self, callback: Callable[[GitDelta], None], title: str, prompt: str, threshold: int = 3):
         deltas = list(self.selectedDeltas())
         numFiles = len(deltas)
 
@@ -416,7 +416,7 @@ class FileList(QListView):
         self.confirmBatch(self._openInDiffTool, _("Open in external diff tool"),
                           _("Really open <b>{n} files</b> in external diff tool?"))
 
-    def _openInDiffTool(self, delta: ABDelta):
+    def _openInDiffTool(self, delta: GitDelta):
         if delta.new.isId0():
             raise FileNotFoundError(_("Can’t open external diff tool on a deleted file."))
 
@@ -444,7 +444,7 @@ class FileList(QListView):
         return ToolProcess.startDiffTool(self, oldPath, newPath)
 
     def showInFolder(self):
-        def run(delta: ABDelta):
+        def run(delta: GitDelta):
             path = self.repo.in_workdir(delta.new.path)
             path = os.path.normpath(path)  # get rid of any trailing slashes (submodules)
             if not os.path.exists(path):  # check exists, not isfile, for submodules
@@ -568,9 +568,9 @@ class FileList(QListView):
         """ Override this if you want to react to a middle click. """
         pass
 
-    def selectedDeltas(self) -> Generator[ABDelta, None, None]:
+    def selectedDeltas(self) -> Generator[GitDelta, None, None]:
         for index in self.selectedIndexes():
-            yield index.data(FileListModel.Role.ABDeltaObject)
+            yield index.data(FileListModel.Role.Delta)
 
     def selectedPaths(self) -> Generator[str, None, None]:
         for index in self.selectedIndexes():
@@ -620,12 +620,12 @@ class FileList(QListView):
         self.selectRow(row)
         return True
 
-    def deltaForFile(self, file: str) -> ABDelta:
+    def deltaForFile(self, file: str) -> GitDelta:
         row = self.flModel.getRowForFile(file)
         return self.flModel.deltas[row]
 
     def openHeadRevision(self):
-        def run(delta: ABDelta):
+        def run(delta: GitDelta):
             tempPath = delta.old.dump(self.repo, qTempDir(), "[HEAD]")
             ToolProcess.startTextEditor(self, tempPath)
 

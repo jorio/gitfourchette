@@ -9,7 +9,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
@@ -43,7 +43,7 @@ def deltaModeText(om: FileMode, nm: FileMode) -> str:
     return ""
 
 
-def fileTooltip(repo: Repo, delta: ABDelta, navContext: NavContext, isCounterpart: bool = False):
+def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpart: bool = False):
     locale = QLocale()
     of = delta.old
     nf = delta.new
@@ -133,10 +133,10 @@ def fileTooltip(repo: Repo, delta: ABDelta, navContext: NavContext, isCounterpar
 
 class FileListModel(QAbstractListModel):
     class Role:
-        ABDeltaObject = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
+        Delta = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         FilePath = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
 
-    deltas: list[ABDelta]
+    deltas: list[GitDelta]
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
     navContext: NavContext
@@ -162,7 +162,7 @@ class FileListModel(QAbstractListModel):
         self.highlightedCounterpartRow = -1
         self.modelReset.emit()
 
-    def setContents(self, deltas: Iterable[ABDelta]):
+    def setContents(self, deltas: Iterable[GitDelta]):
         self.beginResetModel()
 
         self.deltas.clear()
@@ -186,7 +186,7 @@ class FileListModel(QAbstractListModel):
         except IndexError:
             delta = None
 
-        if role == FileListModel.Role.ABDeltaObject:
+        if role == FileListModel.Role.Delta:
             return delta
 
         elif role == FileListModel.Role.FilePath:

@@ -10,7 +10,7 @@ from io import StringIO
 from pygit2.enums import FileMode
 
 from gitfourchette.diffview.diffdocument import LineData
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 
 REVERSE_ORIGIN_MAP = {
     ' ': ' ',
@@ -57,7 +57,7 @@ def quotePath(path: str) -> str:
     return "".join(safePath)
 
 
-def getPatchPreamble(delta: ABDelta, reverse=False) -> str:
+def getPatchPreamble(delta: GitDelta, reverse=False) -> str:
     old = delta.old
     new = delta.new
 
@@ -137,7 +137,7 @@ def writeContext(subpatch: StringIO, reverse: bool, lines: Iterable[LineData]):
 
 
 def extractSubpatch(
-        masterDelta: ABDelta,
+        masterDelta: GitDelta,
         masterLineDatas: list[LineData],
         spanStart: int,
         spanEnd: int,

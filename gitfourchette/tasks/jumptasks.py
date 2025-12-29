@@ -17,7 +17,7 @@ from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair, SameTextDiff
-from gitfourchette.gitdriver import ABDelta, VanillaConflict
+from gitfourchette.gitdriver import GitDelta, GitConflict
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -98,8 +98,8 @@ class Jump(RepoTask):
     class Result(Exception):
         locator: NavLocator
         header: str
-        document: SameTextDiff | DiffDocument | VanillaConflict | DiffImagePair | SpecialDiffError | None
-        delta: ABDelta | None = None
+        document: SameTextDiff | DiffDocument | GitConflict | DiffImagePair | SpecialDiffError | None
+        delta: GitDelta | None = None
 
     def canKill(self, task: RepoTask):
         return isinstance(task, Jump | RefreshRepo)
@@ -170,9 +170,9 @@ class Jump(RepoTask):
         patchTask = yield from self.flowSubtask(LoadPatch, delta, locator)
         return Jump.Result(locator, patchTask.header, patchTask.result, delta)
 
-    def isDiffViewAlreadySetUpFor(self, locator: NavLocator, delta: ABDelta) -> bool:
+    def isDiffViewAlreadySetUpFor(self, locator: NavLocator, delta: GitDelta) -> bool:
         currentLocator = self.rw.diffView.currentLocator
-        currentABDelta = self.rw.diffView.currentABDelta
+        currentDelta = self.rw.diffView.currentDelta
 
         # Special flag to bypass same-patch detection
         if locator.hasFlags(NavFlags.ForceRecreateDocument):
@@ -185,28 +185,28 @@ class Jump(RepoTask):
         # Special case for unstaged files: a valid hash may not be available
         # in delta.new, so we rely on the file's stats on disk.
         if locator.context.isDirty():
-            if delta.new.path != currentABDelta.new.path:
+            if delta.new.path != currentDelta.new.path:
                 return False
 
             # Refresh filesystem status for unstaged files. Since `git status`
             # doesn't hash unstaged files, we rely on st_mtime_ns to determine if
             # we're displaying stale contents.
-            if currentABDelta.new.diskStat != currentABDelta.new.stat(self.repo):
+            if currentDelta.new.diskStat != currentDelta.new.stat(self.repo):
                 return False
 
             # If all else is equal, equality hinges on the old delta.
             # Ignore the new delta, because DiffView may have a valid new hash.
             # We can expect the old hash (i.e. the blob in the index) to be valid.
             assert delta.old.isIdValid()
-            return delta.old == currentABDelta.old
+            return delta.old == currentDelta.old
 
         # In staged or commit contexts, we've got valid hashes for both sides.
         assert delta.old.isIdValid()
         assert delta.new.isIdValid()
-        assert currentABDelta.old.isIdValid()
-        assert currentABDelta.new.isIdValid()
+        assert currentDelta.old.isIdValid()
+        assert currentDelta.new.isIdValid()
 
-        return delta == currentABDelta
+        return delta == currentDelta
 
     def showWorkdir(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
         rw = self.rw
@@ -468,7 +468,7 @@ class Jump(RepoTask):
             area.setDiffStackPage("text")
             area.diffView.replaceDocument(self.repo, result.delta, result.locator, document)
 
-        elif isinstance(document, VanillaConflict):
+        elif isinstance(document, GitConflict):
             conflict = document
             area.setDiffStackPage("conflict")
             area.conflictView.displayConflict(conflict)

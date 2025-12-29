@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.tasks.loadtasks import LoadPatch
@@ -92,7 +92,7 @@ class ExportWorkdirAsPatch(RepoTask):
 
 
 class ExportPatchCollection(RepoTask):
-    def flow(self, deltas: list[ABDelta], commit: Oid):
+    def flow(self, deltas: list[GitDelta], commit: Oid):
         names = []
         patches = []
 

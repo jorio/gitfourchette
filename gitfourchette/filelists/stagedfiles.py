@@ -6,7 +6,7 @@
 
 from gitfourchette import settings
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import ABDelta
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
@@ -24,7 +24,7 @@ class StagedFiles(FileList):
 
         makeWidgetShortcut(self, self.unstage, *(GlobalShortcuts.discardHotkeys + GlobalShortcuts.stageHotkeys))
 
-    def contextMenuActions(self, deltas: list[ABDelta]) -> list[ActionDef]:
+    def contextMenuActions(self, deltas: list[GitDelta]) -> list[ActionDef]:
         actions = []
 
         n = len(deltas)

@@ -14,7 +14,7 @@ from pygit2 import Oid
 from gitfourchette import settings, colors
 from gitfourchette.application import GFApplication
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
-from gitfourchette.gitdriver import VanillaConflict, ConflictSides
+from gitfourchette.gitdriver import GitConflict, GitConflictSides
 from gitfourchette.localization import *
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.porcelain import NULL_OID
@@ -44,7 +44,7 @@ class ConflictView(QWidget):
     openPrefs = Signal(str)
 
     repoModel: RepoModel
-    currentConflict: VanillaConflict | None
+    currentConflict: GitConflict | None
     currentMerge: MergeDriver | None
     currentMergeState: MergeDriver.State
 
@@ -88,7 +88,7 @@ class ConflictView(QWidget):
         if not conflict:
             return
 
-        S = ConflictSides
+        S = GitConflictSides
 
         if conflict.sides in (S.DeletedByUs, S.AddedByThem):
             assert conflict.theirs
@@ -130,7 +130,7 @@ class ConflictView(QWidget):
     def hardSolve(self, path: str, oid=NULL_OID):
         HardSolveConflicts.invoke(self, {path: oid})
 
-    def openMergeTool(self, conflict: VanillaConflict, reopenWorkInProgress=False):
+    def openMergeTool(self, conflict: GitConflict, reopenWorkInProgress=False):
         mergeDriver = MergeDriver.findOngoingMerge(conflict)
         if mergeDriver is None:
             mergeDriver = MergeDriver(self, self.repoModel.repo, conflict)
@@ -153,7 +153,7 @@ class ConflictView(QWidget):
         if self.currentConflict is not None:
             self.displayConflict(self.currentConflict, forceRefresh=True)
 
-    def displayConflict(self, conflict: VanillaConflict, forceRefresh=False):
+    def displayConflict(self, conflict: GitConflict, forceRefresh=False):
         assert conflict is not None, "don't call displayConflict with None"
 
         merge = MergeDriver.findOngoingMerge(conflict)
@@ -260,9 +260,9 @@ class ConflictView(QWidget):
         merge.deleteNow()
         self.refresh()
 
-    def getKit(self, sides: ConflictSides) -> ConflictViewKit:
+    def getKit(self, sides: GitConflictSides) -> ConflictViewKit:
         kitTable = {
-            ConflictSides.BothModified: ConflictViewKit(
+            GitConflictSides.BothModified: ConflictViewKit(
                 page=self.ui.mergePage,
                 description=_("This file has received changes from both <i>our</i> branch "
                               "and <i>their</i> branch."),
@@ -278,7 +278,7 @@ class ConflictView(QWidget):
                 iconT="status_m",
             ),
 
-            ConflictSides.DeletedByUs: ConflictViewKit(
+            GitConflictSides.DeletedByUs: ConflictViewKit(
                 page=self.ui.emptyPage,
                 description=_("This file was deleted from <i>our</i> branch, "
                               "but <i>their</i> branch kept it and made changes to it."),
@@ -294,7 +294,7 @@ class ConflictView(QWidget):
                 iconT="status_m",
             ),
 
-            ConflictSides.DeletedByThem: ConflictViewKit(
+            GitConflictSides.DeletedByThem: ConflictViewKit(
                 page=self.ui.emptyPage,
                 description=_("We’ve made changes to this file in <i>our</i> branch, "
                               "but <i>their</i> branch has deleted it."),
@@ -310,7 +310,7 @@ class ConflictView(QWidget):
                 iconT="status_d",
             ),
 
-            ConflictSides.AddedByUs: ConflictViewKit(
+            GitConflictSides.AddedByUs: ConflictViewKit(
                 page=self.ui.emptyPage,
                 description=_("No common ancestor."),
                 captionO=_("Keep OURS"),
@@ -319,7 +319,7 @@ class ConflictView(QWidget):
                 iconT="status_missing",
             ),
 
-            ConflictSides.AddedByThem: ConflictViewKit(
+            GitConflictSides.AddedByThem: ConflictViewKit(
                 page=self.ui.emptyPage,
                 description=_("No common ancestor."),
                 captionO=_("Don’t add"),
@@ -328,7 +328,7 @@ class ConflictView(QWidget):
                 iconT="status_a",
             ),
 
-            ConflictSides.BothAdded: ConflictViewKit(
+            GitConflictSides.BothAdded: ConflictViewKit(
                 page=self.ui.mergePage,
                 description=_("This file has been created in both <i>our</i> branch "
                               "and <i>their</i> branch, independently from each other. "
@@ -345,7 +345,7 @@ class ConflictView(QWidget):
                 iconT="status_a",
             ),
 
-            ConflictSides.BothDeleted: ConflictViewKit(
+            GitConflictSides.BothDeleted: ConflictViewKit(
                 page=self.ui.confirmDeletionPage,
                 description=_("The file was deleted from <i>our</i> branch, "
                               "and <i>their</i> branch has deleted it too."),
