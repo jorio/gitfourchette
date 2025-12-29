@@ -435,6 +435,22 @@ def testFileListToolTip(tempDir, mainWindow):
     assert search(r"size:.+6 bytes")
 
 
+def testFileListToolTipConflict(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    reposcenario.statelessConflictingChange(wd)
+    rw = mainWindow.openRepo(wd)
+
+    def search(pattern):
+        return re.search(pattern, tip, re.I)
+
+    assert NavLocator.inUnstaged("a/a1.txt").isSimilarEnoughTo(rw.navLocator)
+    tip = rw.dirtyFiles.currentIndex().data(Qt.ItemDataRole.ToolTipRole)
+
+    assert search(r"merge conflict")
+    assert search(r"modified by both")
+    assert not search(r"blob hash")
+
+
 def testFileListCopyPath(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)

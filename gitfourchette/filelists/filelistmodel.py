@@ -67,9 +67,8 @@ def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpa
     if sc not in '?U':  # show status char except for untracked and conflict
         statusCaption += f" ({sc})"
     if sc == 'U':  # conflict sides
-        raise NotImplementedError("wrap conflict sides????")
-        diffConflict = repo.wrap_conflict(delta.path)
-        postfix = TrTables.enum(diffConflict.sides)
+        assert delta.conflict is not None
+        postfix = TrTables.enum(delta.conflict.sides)
         statusCaption += f" ({postfix})"
     text += newLine(_("status"), statusCaption)
 
@@ -113,7 +112,9 @@ def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpa
         text += newLine(_("modified"), timeText)
 
     # Blob/Commit IDs
-    if nf.mode != FileMode.TREE:  # untracked trees never have a valid ID
+    # (Not for unmerged conflicts)
+    # (Not for untracked trees - those never have a valid ID)
+    if sc != 'U' and nf.mode != FileMode.TREE:
         oldId = shortHash(of.id) if of.isIdValid() else _("(not computed)")
         newId = shortHash(nf.id) if nf.isIdValid() else _("(not computed)")
         idLegend = _("commit hash") if nf.mode == FileMode.COMMIT else _("blob hash")
