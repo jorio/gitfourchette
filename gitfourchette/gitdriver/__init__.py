@@ -4,10 +4,10 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from .gitdriver import ABDelta
-from .gitdriver import ABDeltaFile
-from .gitdriver import ConflictSides
+from .gitdelta import GitDelta as ABDelta
+from .gitdeltafile import GitDeltaFile as ABDeltaFile
+from .gitconflict import GitConflict as VanillaConflict
+from .gitconflict import GitConflictSides as ConflictSides
 from .gitdriver import GitDriver
-from .gitdriver import VanillaConflict
 from .gitdriver import VanillaFetchStatusFlag
 from .gitdriver import argsIf

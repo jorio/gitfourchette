@@ -6,32 +6,22 @@
 
 from __future__ import annotations
 
-import dataclasses
 import html
 import io
 import logging
-import os
 import re
 import shlex
 import signal
-import warnings
 from enum import StrEnum
-from pathlib import Path
-
-from pygit2.enums import FileMode
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
-from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, id7, Oid, Repo
+from gitfourchette.gitdriver.gitdelta import GitDelta
+from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitShow
+from gitfourchette.porcelain import version_to_tuple, Oid
 from gitfourchette.qt import *
-from gitfourchette.toolbox import benchmark
 
 logger = logging.getLogger(__name__)
-
-
-HASH_40X0 = "0" * 40
-HASH_40XF = "f" * 40
 
 
 def argsIf(condition: bool, *args: str) -> tuple[str, ...]:
@@ -49,272 +39,6 @@ class VanillaFetchStatusFlag(StrEnum):
     NewRef = "*"
     Rejected = "!"
     UpToDate = "="
-
-
-class ABDeltaParser:
-    @classmethod
-    def parseMode(cls, octal: str) -> FileMode:
-        return FileMode(int(octal, 8))
-
-    @classmethod
-    def parseGitStatus(cls, ident: str, *tokens: str) -> tuple[ABDelta | None, ABDelta | None]:
-        if ident == "1":
-            # Ordinary changed entries
-            tokens = list(tokens)
-            path = tokens.pop()
-            tokens.extend(("0", path, path))
-            return cls._parseStatus2(*tokens)
-        elif ident == "2":
-            # Renamed or copied entries
-            return cls._parseStatus2(*tokens)
-        elif ident == "u":
-            # Unmerged entries (conflict)
-            return cls._parseStatusConflict(*tokens)
-        elif ident in "?!":
-            # ? - Untracked items
-            # ! - Ignored items
-            return cls._parseStatusUntracked(ident, *tokens)
-        else:
-            raise ValueError(f"unknown ident: {ident}")
-
-    @classmethod
-    def _parseStatus2(cls, x, y, sub, mh, mi, mw, hh, hi, score, newPath, origPath):
-        fileHead = ABDeltaFile(
-            path=origPath,
-            id=hh,
-            mode=cls.parseMode(mh),
-            source=NavContext.COMMITTED)
-
-        fileIndex = ABDeltaFile(
-            path=newPath,
-            id=hi,
-            mode=cls.parseMode(mi),
-            source=NavContext.STAGED)
-
-        fileWorktree = ABDeltaFile(
-            path=newPath,
-            id=HASH_40X0 if y == "D" else HASH_40XF,
-            mode=cls.parseMode(mw),
-            source=NavContext.UNSTAGED)
-
-        xDelta, yDelta = None, None
-
-        if x != ".":  # STAGED
-            xDelta = ABDelta(status=x, old=fileHead, new=fileIndex, similarity=int(score))
-
-        if y != ".":  # UNSTAGED
-            yDelta = ABDelta(status=y, old=fileIndex, new=fileWorktree, submoduleStatus=sub)
-
-        return xDelta, yDelta
-
-    @classmethod
-    def _parseStatusConflict(cls, xy, sub, m1, m2, m3, mw, h1, h2, h3, path):
-        indexFile = ABDeltaFile(path=path, source=NavContext.STAGED)
-
-        worktreeFile = ABDeltaFile(path=path, id=HASH_40XF,
-                                   mode=cls.parseMode(mw),
-                                   source=NavContext.UNSTAGED)
-
-        sides = ConflictSides(xy)
-        stage1 = ABDeltaFile(path=path, id=h1, mode=cls.parseMode(m1))
-        stage2 = ABDeltaFile(path=path, id=h2, mode=cls.parseMode(m2))
-        stage3 = ABDeltaFile(path=path, id=h3, mode=cls.parseMode(m3))
-        conflict = VanillaConflict(sides, stage1, stage2, stage3)
-
-        yDelta = ABDelta(status="U", old=indexFile, new=worktreeFile,
-                         conflict=conflict, submoduleStatus=sub)
-        return None, yDelta
-
-    @classmethod
-    def _parseStatusUntracked(cls, ident: str, path: str):
-        if path.endswith("/"):
-            path = path.removesuffix("/")
-            mode = FileMode.TREE
-        else:
-            mode = FileMode.UNREADABLE  # a more precise mode will be filled in from the file's stats
-
-        # "Old" state = empty file (not indexed yet)
-        indexFile = ABDeltaFile(path=path, id=HASH_40X0, mode=FileMode.UNREADABLE, source=NavContext.STAGED)
-
-        worktreeFile = ABDeltaFile(path=path, id=HASH_40XF, mode=mode, source=NavContext.UNSTAGED)
-
-        yDelta = ABDelta(status=ident, old=indexFile, new=worktreeFile)
-        return None, yDelta
-
-    @classmethod
-    def parseGitShow(cls, ms, md, hs, hd, status, score, path1, path2) -> ABDelta:
-        fileSrc = ABDeltaFile(
-            path=path1,
-            id=hs,
-            mode=cls.parseMode(ms),
-            source=NavContext.COMMITTED)
-
-        fileDst = ABDeltaFile(
-            path=path2,
-            id=hd,
-            mode=cls.parseMode(md),
-            source=NavContext.COMMITTED)
-
-        return ABDelta(status, fileSrc, fileDst, similarity=int(score) if score else 0)
-
-
-@dataclasses.dataclass
-class ABDeltaFile:
-    path: str = ""
-    id: str = HASH_40X0
-    mode: FileMode = FileMode.UNREADABLE
-    source: NavContext = NavContext.EMPTY
-
-    diskStat: tuple[int, int] = (-1, -1)
-    """
-    Filled in for unstaged files only. Allows quick comparison of ABDeltaFiles
-    taken at two points in time for the same unstaged file. Internally, this is
-    a snapshot of a subset of the file's status on disk (st_mtime_ns, st_size).
-    """
-
-    _data: bytes | None = dataclasses.field(default=None, compare=False)
-    """
-    Cached file contents. Not used in object comparisons.
-    None means that the file hasn't been cached yet (isDataValid() == False).
-    """
-
-    def __post_init__(self):
-        if self.isId0():
-            self._data = b""
-
-    def __bool__(self) -> bool:
-        return not self.isId0()
-
-    def isId0(self) -> bool:
-        return self.id == HASH_40X0
-
-    def isIdValid(self) -> bool:
-        return self.id != HASH_40XF
-
-    def isDataValid(self) -> bool:
-        return self._data is not None
-
-    def isBlob(self) -> bool:
-        return self.mode & FileMode.BLOB == FileMode.BLOB
-
-    @benchmark
-    def read(self, repo: Repo) -> bytes:
-        if self._data is None:
-            try:
-                if not self.isIdValid():  # unknown hash (FFFFFFF...)
-                    raise KeyError()
-                self._data = repo.peel_blob(self.id).data
-            except KeyError:
-                # Blob ID isn't in the database. Typically, that means
-                # it's an unstaged file. Read it from the workdir.
-                assert self.source.isDirty(), f"expecting untracked/unstaged, got {self.source}"
-                self._data = repo.apply_filters_to_workdir(self.path)
-
-        assert self.isDataValid(), "data should be valid here"
-        return self._data
-
-    def dump(self, repo: Repo, directory: str, namePrefix: str) -> str:
-        if self.isId0():
-            warnings.warn(f"dumping file with id zero: {self}")
-
-        data = self.read(repo)
-        relPathObj = Path(self.path)
-        pathObj = Path(directory, f"{namePrefix}{relPathObj.name}")
-        pathObj.write_bytes(data)
-
-        """
-        # Make it read-only
-        mode = pathObj.stat().st_mode
-        pathObj.chmod(mode & ~0o222)  # ~(write, write, write)
-        """
-
-        return str(pathObj)
-
-    def stat(self, repo: Repo) -> tuple[int, int]:
-        diskStat = (-1, -1)
-        absPath = repo.in_workdir(self.path)
-        try:
-            stat = os.lstat(absPath)
-            diskStat = (stat.st_mtime_ns, stat.st_size)
-        except OSError:
-            pass
-        return diskStat
-
-    def sizeBallpark(self, repo: Repo) -> int:
-        if self.isId0():
-            return 0
-        if self.isIdValid():
-            try:
-                return repo.peel_blob(self.id).size
-            except KeyError:
-                pass
-        _, size = self.stat(repo)
-        return size
-
-    def __repr__(self) -> str:
-        return f"({self.path},{id7(self.id)},{self.mode:o})"
-
-
-@dataclasses.dataclass
-class ABDelta:
-    status: str = ""
-    old: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
-    new: ABDeltaFile = dataclasses.field(default_factory=ABDeltaFile)
-    similarity: int = 0
-    submoduleStatus: str = ""  # Only in UNSTAGED contexts
-    conflict: VanillaConflict | None = None  # Only in UNSTAGED contexts
-
-    @property
-    def context(self) -> NavContext:
-        return self.new.source
-
-    @property
-    def submoduleWorkdirDirty(self) -> bool:
-        sub = self.submoduleStatus
-        return "M" in sub or "U" in sub
-
-    def isSubtreeCommitPatch(self) -> bool:
-        return FileMode.COMMIT in (self.old.mode, self.new.mode)
-
-
-class ConflictSides(StrEnum):
-    BothDeleted   = "DD"
-    AddedByUs     = "AU"
-    DeletedByThem = "UD"
-    AddedByThem   = "UA"
-    DeletedByUs   = "DU"
-    BothAdded     = "AA"
-    BothModified  = "UU"
-
-
-@dataclasses.dataclass
-class VanillaConflict:
-    sides: ConflictSides
-    ancestor: ABDeltaFile
-    ours: ABDeltaFile
-    theirs: ABDeltaFile
-
-
-# 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
-# 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <R|C><score> <path><sep><origPath>
-# u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
-_gitStatusPatterns = {
-    "1": re.compile(r"1 (.)(.) (....) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
-    "2": re.compile(r"2 (.)(.) (....) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) [RC](\d+) ([^\x00]*)\x00([^\x00]*)\x00"),
-    "u": re.compile(r"u (..) (....) (\d+) (\d+) (\d+) (\d+) ([\da-f]+) ([\da-f]+) ([\da-f]+) ([^\x00]*)\x00"),
-    "?": re.compile(r"\? ([^\x00]*)\x00"),
-    "!": re.compile(r"! ([^\x00]*)\x00"),
-}
-
-_gitShowPattern = re.compile(r":(\d+) (\d+) ([\da-f]+) ([\da-f]+) (.)(\d*)\x00([^\x00]*)\x00")
-
-# The order of this table is SIGNIFICANT!
-_gitSimplifiedModes = [
-    FileMode.LINK,              # 0o120000
-    FileMode.TREE,              # 0o040000
-    FileMode.BLOB_EXECUTABLE,   # 0o100755
-    FileMode.BLOB,              # 0o100644
-]
 
 
 class GitDriver(QProcess):
@@ -512,83 +236,23 @@ class GitDriver(QProcess):
             for flag, oldHex, newHex, localRef in table
         }
 
-    def readStatusPorcelainV2Z(self) -> tuple[int, list[ABDelta], list[ABDelta]]:
+    def readStatusPorcelainV2Z(self) -> tuple[int, list[GitDelta], list[GitDelta]]:
         stdout = self.stdoutScrollback()
-        pos = 0
-        limit = len(stdout)
+        parser = parseGitStatus(stdout, self.workingDirectory())
         stagedDeltas = []
         unstagedDeltas = []
         numEntries = 0
-
-        while pos < limit:
-            ident = stdout[pos]
-            try:
-                pattern = _gitStatusPatterns[ident]
-            except KeyError:
-                logger.warning(f"unknown git status ident '{ident}'")
-                continue
-
-            match = pattern.match(stdout, pos)
-            pos = match.end()
+        for staged, unstaged in parser:
             numEntries += 1
-
-            staged, unstaged = ABDeltaParser.parseGitStatus(ident, *match.groups())
-
-            # Fill in file mode for untracked/ignored files.
-            if unstaged and unstaged.status in "?!" and unstaged.new.mode == FileMode.UNREADABLE:
-                try:
-                    stat = Path(self.workingDirectory(), unstaged.new.path).lstat()
-                    unstaged.new.mode = self.distillFileMode(stat.st_mode)
-                except OSError:
-                    pass
-
-            if staged:
+            if staged is not None:
                 stagedDeltas.append(staged)
-            if unstaged:
+            if unstaged is not None:
                 unstagedDeltas.append(unstaged)
-
         return numEntries, stagedDeltas, unstagedDeltas
 
-    @staticmethod
-    def distillFileMode(realMode: int) -> FileMode:
-        """
-        Git uses simplified file modes that may not accurately reflect a file's
-        actual mode in the filesystem (e.g., a symlink's st_mode might be
-        0o120777, which to git is just 0o120000). Use this function to simplify
-        a real file mode to a legal FileMode value for git.
-        """
-        for m in _gitSimplifiedModes:
-            if m == (realMode & m):
-                return m
-
-        raise ValueError(f"cannot map to git FileMode: 0o{realMode:o}")
-
-    def readShowRawZ(self) -> list[ABDelta]:
+    def readShowRawZ(self) -> list[GitDelta]:
         stdout = self.stdoutScrollback()
-        pos = 0
-        limit = len(stdout)
-        deltas = []
-
-        while pos < limit:
-            match = _gitShowPattern.match(stdout, pos)
-            pos = match.end()
-
-            ms, md, hs, hd, status, score, path1 = match.groups()
-
-            # WARNING! In case of a rename, "git show" outputs the old/new
-            # paths in the reverse order from "git status --porcelain=v2"!
-            # git show: ... old, new
-            # git status: ... new, old
-            if status in "RC":
-                pos2 = stdout.find("\0", pos)
-                path2 = stdout[pos:pos2]
-                pos = pos2 + 1
-            else:
-                path2 = path1
-
-            delta = ABDeltaParser.parseGitShow(ms, md, hs, hd, status, score, path1, path2)
-            deltas.append(delta)
-
+        deltas = list(parseGitShow(stdout))
         return deltas
 
     def formatExitCode(self) -> str:
