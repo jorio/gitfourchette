@@ -149,10 +149,11 @@ class SpecialDiffError:
     @staticmethod
     def binaryDiff(repo: Repo, delta: ABDelta, locator: NavLocator) -> SpecialDiffError | DiffImagePair:
         locale = QLocale()
-        of, nf = delta.old, delta.new
+        oldSize = delta.old.sizeBallpark(repo)
+        newSize = delta.new.sizeBallpark(repo)
 
-        if isImageFormatSupported(of.path) and isImageFormatSupported(nf.path):
-            largestSize = max(of.size, nf.size)
+        if isImageFormatSupported(delta.old.path) and isImageFormatSupported(delta.new.path):
+            largestSize = max(oldSize, newSize)
             if locator.hasFlags(NavFlags.AllowLargeFiles):
                 threshold = 0
             else:
@@ -161,11 +162,10 @@ class SpecialDiffError:
                 return SpecialDiffError.imageTooLarge(largestSize, threshold, locator)
             return DiffImagePair(repo, delta)
 
-        oldHumanSize = locale.formattedDataSize(of.size)
-        newHumanSize = locale.formattedDataSize(nf.size)
-        return SpecialDiffError(
-            _("File appears to be binary."),
-            f"{oldHumanSize} &rarr; {newHumanSize}")
+        oldSizeText = locale.formattedDataSize(oldSize)
+        newSizeText = locale.formattedDataSize(newSize)
+        sizeText = f"{oldSizeText} &rarr; {newSizeText}"
+        return SpecialDiffError(_("File appears to be binary."), sizeText)
 
     @staticmethod
     def treeDiff(delta: ABDelta):

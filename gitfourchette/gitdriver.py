@@ -92,13 +92,9 @@ class ABDeltaParser:
 
         fileWorktree = ABDeltaFile(
             path=newPath,
-            id=HASH_40XF,  # Unknown hash
+            id=HASH_40X0 if y == "D" else HASH_40XF,
             mode=cls.parseMode(mw),
             source=NavContext.UNSTAGED)
-
-        if y == "D":  # Unstaged deletion in worktree
-            fileWorktree.id = HASH_40X0
-            fileWorktree.size = 0
 
         xDelta, yDelta = None, None
 
@@ -137,8 +133,7 @@ class ABDeltaParser:
             mode = FileMode.UNREADABLE  # a more precise mode will be filled in from the file's stats
 
         # "Old" state = empty file (not indexed yet)
-        indexFile = ABDeltaFile(path=path, id=HASH_40X0, mode=FileMode.UNREADABLE,
-                                size=0, source=NavContext.STAGED)
+        indexFile = ABDeltaFile(path=path, id=HASH_40X0, mode=FileMode.UNREADABLE, source=NavContext.STAGED)
 
         worktreeFile = ABDeltaFile(path=path, id=HASH_40XF, mode=mode, source=NavContext.UNSTAGED)
 
@@ -167,7 +162,6 @@ class ABDeltaFile:
     path: str = ""
     id: str = HASH_40X0
     mode: FileMode = FileMode.UNREADABLE
-    size: int = -1
     source: NavContext = NavContext.EMPTY
 
     diskStat: tuple[int, int] = (-1, -1)
@@ -183,49 +177,37 @@ class ABDeltaFile:
     None means that the file hasn't been cached yet (isDataValid() == False).
     """
 
+    def __post_init__(self):
+        if self.isId0():
+            self._data = b""
+
     def isId0(self) -> bool:
         return self.id == HASH_40X0
 
     def isIdValid(self) -> bool:
         return self.id != HASH_40XF
 
-    def isSizeValid(self) -> bool:
-        return self.size >= 0
-
     def isDataValid(self) -> bool:
         return self._data is not None
 
+    def isBlob(self) -> bool:
+        return self.mode & FileMode.BLOB == FileMode.BLOB
+
     @benchmark
     def read(self, repo: Repo) -> bytes:
-        if self._data is not None:
-            pass
-        elif self.isId0():
-            self._data = b""
-            assert self.size == 0
-            assert self.isIdValid(), "id should be valid here"
-        else:
-            self._data = self._read(repo)
-            assert not self.isSizeValid() or self.size == len(self._data)
-            self.size = len(self._data)
-
-        assert self.isSizeValid(), "size should be valid here"
-        assert self.isDataValid(), "data should be valid here"
-
-        return self._data
-
-    def _read(self, repo: Repo) -> bytes:
-        if self.isIdValid():  # i.e. it's not the unknown hash (FFFFFFF)
+        if self._data is None:
             try:
-                blob = repo.peel_blob(self.id)
-                return blob.data
+                if not self.isIdValid():  # unknown hash (FFFFFFF...)
+                    raise KeyError()
+                self._data = repo.peel_blob(self.id).data
             except KeyError:
-                # Blob isn't in the database.
-                pass
+                # Blob ID isn't in the database. Typically, that means
+                # it's an unstaged file. Read it from the workdir.
+                assert self.source.isDirty(), f"expecting untracked/unstaged, got {self.source}"
+                self._data = repo.apply_filters_to_workdir(self.path)
 
-        # Typically, if a blob id isn't in the database, it's an unstaged file.
-        # Read it from the workdir.
-        assert self.source.isDirty(), f"can't read blob from workdir for source {self.source}"
-        return repo.apply_filters_to_workdir(self.path)
+        assert self.isDataValid(), "data should be valid here"
+        return self._data
 
     def dump(self, repo: Repo, directory: str, namePrefix: str) -> str:
         data = self.read(repo)
@@ -251,8 +233,19 @@ class ABDeltaFile:
             pass
         return diskStat
 
+    def sizeBallpark(self, repo: Repo) -> int:
+        if self.isId0():
+            return 0
+        if self.isIdValid():
+            try:
+                return repo.peel_blob(self.id).size
+            except KeyError:
+                pass
+        _, size = self.stat(repo)
+        return size
+
     def __repr__(self) -> str:
-        return f"({self.path},{id7(self.id)},{self.mode:o},{self.size})"
+        return f"({self.path},{id7(self.id)},{self.mode:o})"
 
 
 @dataclasses.dataclass

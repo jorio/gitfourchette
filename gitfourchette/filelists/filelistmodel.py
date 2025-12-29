@@ -5,9 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
-import os
 from collections.abc import Iterable
-from contextlib import suppress
 from typing import Any
 
 from gitfourchette import settings
@@ -87,21 +85,32 @@ def fileTooltip(repo: Repo, delta: ABDelta, navContext: NavContext, isCounterpar
     elif of.mode != nf.mode:
         text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
 
+    mTimeNS, size = -1, -1
+    sizeIsAccurate = False
+    if nf.isBlob() and not nf.isId0():
+        # Stat workdir file (get size on disk, modification time)
+        if navContext.isWorkdir():
+            mTimeNS, size = nf.stat(repo)
+
+        # Get accurate size in index if it's not an unstaged file
+        if navContext in (NavContext.STAGED, NavContext.COMMITTED):
+            assert nf.isIdValid()
+            size = repo.peel_blob(nf.id).size
+            sizeIsAccurate = True
+
     # Size (if applicable)
-    if sc not in 'DU' and (nf.mode & FileMode.BLOB == FileMode.BLOB):
-        if nf.isSizeValid():
-            text += newLine(_("size"), locale.formattedDataSize(nf.size, 1))
-        else:
-            text += newLine(_("size"), _("(not computed)"))
+    if size != -1:
+        sizeText = locale.formattedDataSize(size, 1)
+        if not sizeIsAccurate:
+            sizeText = _("{size} on disk", size=sizeText)
+        text += newLine(_("size"), sizeText)
 
     # Modified time
-    if navContext.isWorkdir() and sc not in 'DU':
-        with suppress(OSError):
-            fullPath = os.path.join(repo.workdir, nf.path)
-            fileStat = os.stat(fullPath)
-            timeQdt = QDateTime.fromSecsSinceEpoch(int(fileStat.st_mtime))
-            timeText = locale.toString(timeQdt, settings.prefs.shortTimeFormat)
-            text += newLine(_("modified"), timeText)
+    if mTimeNS != -1:
+        timeSecs = int(mTimeNS * 1e-9)  # Convert from nanoseconds
+        timeQdt = QDateTime.fromSecsSinceEpoch(timeSecs)
+        timeText = locale.toString(timeQdt, settings.prefs.shortTimeFormat)
+        text += newLine(_("modified"), timeText)
 
     # Blob/Commit IDs
     if nf.mode != FileMode.TREE:  # untracked trees never have a valid ID
