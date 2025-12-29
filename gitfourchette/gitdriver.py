@@ -14,6 +14,7 @@ import os
 import re
 import shlex
 import signal
+import warnings
 from enum import StrEnum
 from pathlib import Path
 
@@ -115,10 +116,10 @@ class ABDeltaParser:
                                    source=NavContext.UNSTAGED)
 
         sides = ConflictSides(xy)
-        stage1 = VanillaConflictStage(cls.parseMode(m1), h1, path)
-        stage2 = VanillaConflictStage(cls.parseMode(m2), h2, path)
-        stage3 = VanillaConflictStage(cls.parseMode(m3), h3, path)
-        conflict = VanillaConflict(sides, stage1, stage2, stage3, path)
+        stage1 = ABDeltaFile(path=path, id=h1, mode=cls.parseMode(m1))
+        stage2 = ABDeltaFile(path=path, id=h2, mode=cls.parseMode(m2))
+        stage3 = ABDeltaFile(path=path, id=h3, mode=cls.parseMode(m3))
+        conflict = VanillaConflict(sides, stage1, stage2, stage3)
 
         yDelta = ABDelta(status="U", old=indexFile, new=worktreeFile,
                          conflict=conflict, submoduleStatus=sub)
@@ -181,6 +182,9 @@ class ABDeltaFile:
         if self.isId0():
             self._data = b""
 
+    def __bool__(self) -> bool:
+        return not self.isId0()
+
     def isId0(self) -> bool:
         return self.id == HASH_40X0
 
@@ -210,6 +214,9 @@ class ABDeltaFile:
         return self._data
 
     def dump(self, repo: Repo, directory: str, namePrefix: str) -> str:
+        if self.isId0():
+            warnings.warn(f"dumping file with id zero: {self}")
+
         data = self.read(repo)
         relPathObj = Path(self.path)
         pathObj = Path(directory, f"{namePrefix}{relPathObj.name}")
@@ -270,19 +277,6 @@ class ABDelta:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
 
 
-@dataclasses.dataclass
-class VanillaConflictStage:
-    mode: FileMode
-    id: str
-    path: str  # for compatibility with existing code - TODO: Remove or keep?
-
-    def __bool__(self):
-        return not self.isId0()
-
-    def isId0(self) -> bool:
-        return self.id == HASH_40X0
-
-
 class ConflictSides(StrEnum):
     BothDeleted   = "DD"
     AddedByUs     = "AU"
@@ -296,10 +290,9 @@ class ConflictSides(StrEnum):
 @dataclasses.dataclass
 class VanillaConflict:
     sides: ConflictSides
-    ancestor: VanillaConflictStage
-    ours: VanillaConflictStage
-    theirs: VanillaConflictStage
-    path: str
+    ancestor: ABDeltaFile
+    ours: ABDeltaFile
+    theirs: ABDeltaFile
 
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>

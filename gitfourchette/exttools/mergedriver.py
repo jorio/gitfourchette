@@ -11,10 +11,9 @@ import filecmp
 import logging
 import os
 import shutil
-from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import VanillaConflict, VanillaConflictStage
+from gitfourchette.gitdriver import VanillaConflict
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Repo
 from gitfourchette.qt import *
@@ -22,24 +21,6 @@ from gitfourchette.toolbox import *
 from gitfourchette.exttools.toolprocess import ToolProcess
 
 logger = logging.getLogger(__name__)
-
-
-def _dumpBlob(repo: Repo, directory: str, stage: VanillaConflictStage, inBrackets: str) -> str:
-    # Some of the stages in a merge conflict may be void (e.g. no ancestor)
-    if not stage:
-        return ""
-
-    data = repo.peel_blob(stage.id)
-    relPathObj = Path(stage.path)
-    pathObj = Path(directory, f"[{inBrackets}]{relPathObj.name}")
-    pathObj.write_bytes(data)
-
-    """
-    # Make it read-only
-    mode = pathObj.stat().st_mode
-    pathObj.chmod(mode & ~0o222)  # ~(write, write, write)
-    """
-    return str(pathObj)
 
 
 class MergeDriver(QObject):
@@ -81,8 +62,8 @@ class MergeDriver(QObject):
         mergeDirPath = self.mergeDir.path()
 
         # Dump OURS and THEIRS blobs into the temporary directory
-        self.oursPath = _dumpBlob(repo, mergeDirPath, conflict.ours, "OURS")
-        self.theirsPath = _dumpBlob(repo, mergeDirPath, conflict.theirs, "THEIRS")
+        self.oursPath = conflict.ours.dump(repo, mergeDirPath, "[OURS]")
+        self.theirsPath = conflict.theirs.dump(repo, mergeDirPath, "[THEIRS]")
 
         oursPath = conflict.ours.path
         baseName = os.path.basename(oursPath)
@@ -91,7 +72,7 @@ class MergeDriver(QObject):
 
         if conflict.ancestor:
             # Dump ANCESTOR blob into the temporary directory
-            self.ancestorPath = _dumpBlob(repo, mergeDirPath, conflict.ancestor, "ANCESTOR")
+            self.ancestorPath = conflict.ancestor.dump(repo, mergeDirPath, "[ANCESTOR]")
         else:
             # There's no ancestor! Some merge tools can fake a 3-way merge without
             # an ancestor (e.g. PyCharm), but others won't (e.g. VS Code).

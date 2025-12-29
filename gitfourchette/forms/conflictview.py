@@ -214,7 +214,7 @@ class ConflictView(QWidget):
         self.ui.theirsButton.setEnabled(not isMergeBusy)
 
         # Format placeholders
-        displayPath = os.path.basename(self.currentConflict.path)
+        displayPath = os.path.basename(self.currentConflict.ours.path)
         formatWidgetText(self.ui.titleLabel, lquo(displayPath))
 
         tool = lquoe(settings.getMergeToolName())
