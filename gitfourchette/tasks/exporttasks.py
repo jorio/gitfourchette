@@ -34,15 +34,15 @@ def savePatch(task: RepoTask, patch: str, fileName=""):
 
 class ExportCommitAsPatch(RepoTask):
     def flow(self, oid: Oid, fileName=""):
+        commit = self.repo.peel_commit(oid)
+
         if not fileName:
-            commit = self.repo.peel_commit(oid)
             summary, _dummy = messageSummary(commit.message, elision="")
             summary = summary[:50].strip()
             fileName = f"{self.repo.repo_name()} - {shortHash(oid)} - {summary}.patch"
 
-        preamble = LoadPatch.diffCommandPreamble()
-        driver = yield from self.flowCallGit(
-            *preamble, "show", "--binary", "--diff-merges=1", "-p", "--format=", str(oid))
+        tokens = LoadPatch.buildDiffCommand(delta=None, commit=commit)
+        driver = yield from self.flowCallGit(*tokens)
         patch = driver.stdoutScrollback()
 
         yield from savePatch(self, patch, fileName)
@@ -62,10 +62,9 @@ class ExportWorkdirAsPatch(RepoTask):
     def flow(self):
         patches = []
 
-        diffCommand = LoadPatch.diffCommandPreamble() + ["diff", "--binary"]
-
         # Diff the workdir to HEAD (except untracked files)
-        driver = yield from self.flowCallGit(*diffCommand, "HEAD")
+        tokens = LoadPatch.buildDiffCommand(delta=None, commit=None)
+        driver = yield from self.flowCallGit(*tokens, "HEAD")
         patches.append(driver.stdoutScrollback())
 
         # Diff untracked files.
@@ -76,7 +75,8 @@ class ExportWorkdirAsPatch(RepoTask):
 
         for delta in self.repoModel.workdirUnstagedDeltas:
             if delta.status == "?":  # Scan for untracked files
-                driver = yield from self.flowCallGit(*diffCommand, "--", "/dev/null", delta.new.path, autoFail=False)
+                tokens = LoadPatch.buildDiffCommand(delta, commit=None)
+                driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patches.append(driver.stdoutScrollback())
 
         # Compose the patch
@@ -92,7 +92,7 @@ class ExportWorkdirAsPatch(RepoTask):
 
 
 class ExportPatchCollection(RepoTask):
-    def flow(self, deltas: list[GitDelta], commit: Oid):
+    def flow(self, deltas: list[GitDelta], commit: Commit):
         names = []
         patches = []
 
@@ -103,7 +103,7 @@ class ExportPatchCollection(RepoTask):
             names.append(name)
 
             # Get patch (run 'git diff')
-            tokens = LoadPatch.buildDiffCommand(delta, commit, binary=True)
+            tokens = LoadPatch.buildDiffCommand(delta, commit)
             driver = yield from self.flowCallGit(*tokens, autoFail=False)
             patch = driver.stdoutScrollback()
             patches.append(patch)

@@ -200,6 +200,12 @@ class FileList(QListView):
         return self.repoModel.repo
 
     @property
+    def commitObject(self) -> Commit | None:
+        if self.commitId == NULL_OID:
+            return None
+        return self.repo.peel_commit(self.commitId)
+
+    @property
     def flModel(self) -> FileListModel:
         model = self.model()
         assert isinstance(model, FileListModel)
@@ -584,14 +590,14 @@ class FileList(QListView):
 
     def savePatchAs(self):
         deltas = list(self.selectedDeltas())
-        ExportPatchCollection.invoke(self, deltas, self.commitId)
+        ExportPatchCollection.invoke(self, deltas, self.commitObject)
 
     def revertPaths(self):
         # TODO: Convert into a task? (So we can build the patch asynchronously)
         deltas = list(self.selectedDeltas())
         assert len(deltas) == 1
         delta = deltas[0]
-        tokens = LoadPatch.buildDiffCommand(delta, self.commitId, binary=True)
+        tokens = LoadPatch.buildDiffCommand(delta, self.commitObject)
         patchData = GitDriver.runSync(*tokens, directory=self.repo.workdir, strict=True)
         ApplyPatchData.invoke(self, patchData, reverse=True,
                               title=_("Revert changes in file"),

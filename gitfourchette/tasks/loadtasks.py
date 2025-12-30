@@ -10,7 +10,7 @@ from collections.abc import Generator
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict
+from gitfourchette.gitdriver import argsIf, GitDelta, GitDeltaFile, GitConflict
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -251,36 +251,35 @@ class LoadPatch(RepoTask):
             dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta)
 
     @classmethod
-    def diffCommandPreamble(cls) -> list[str]:
-        return [
+    def buildDiffCommand(cls, delta: GitDelta | None, commit: Commit | None = None, binary=True) -> list[str]:
+        tokens = [
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
+            "diff",
+            *argsIf(binary, "--binary"),
+            *argsIf(delta is not None and delta.context == NavContext.STAGED, "--staged"),
         ]
 
-    @classmethod
-    def buildDiffCommand(cls, delta: GitDelta, commit: Oid = NULL_OID, binary=False) -> list[str]:
-        tokens = cls.diffCommandPreamble()
+        # Append commits
+        if commit is not None:
+            assert delta is None or delta.context == NavContext.COMMITTED
+            try:
+                # Compare to first parent
+                firstParent = commit.parent_ids[0]
+            except IndexError:
+                # Root commit: compare to empty tree (sha1(b"tree \0"))
+                firstParent = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+            tokens.append(str(firstParent))
+            tokens.append(str(commit.id))
 
-        paths = [delta.old.path, delta.new.path]
-
-        if delta.context == NavContext.UNSTAGED:
-            tokens.extend(["diff"])
-            if delta.status == "?":  # untracked
-                paths[0] = "/dev/null"
-        elif delta.context == NavContext.STAGED:
-            tokens.extend(["diff", "--cached"])
-        elif delta.context == NavContext.COMMITTED:
-            tokens.extend(["show", "--diff-merges=1", "-p", "--format=", str(commit)])
-        else:
-            raise NotImplementedError()
-
-        if binary:
-            tokens.append("--binary")
-
-        tokens.append("--")
-        tokens.append(paths[0])
-        if paths[0] != paths[1]:
-            tokens.append(paths[1])
+        # Append paths
+        if delta is not None:
+            tokens.append("--")
+            if delta.status == "?":  # untracked, compare to nothing
+                tokens.append("/dev/null")
+            elif delta.old.path != delta.new.path:
+                tokens.append(delta.old.path)
+            tokens.append(delta.new.path)
 
         return tokens
 
@@ -309,7 +308,8 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Load the patch
 
-        tokens = LoadPatch.buildDiffCommand(delta, locator.commit)
+        commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
+        tokens = LoadPatch.buildDiffCommand(delta, commit, binary=False)
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()
 

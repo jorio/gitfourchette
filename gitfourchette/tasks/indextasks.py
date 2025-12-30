@@ -223,7 +223,7 @@ class DiscardFiles(_BaseStagingTask):
 
             else:
                 # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
-                tokens = LoadPatch.buildDiffCommand(delta, binary=True)
+                tokens = LoadPatch.buildDiffCommand(delta)
                 driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patchText = driver.stdoutScrollback()
                 trash.backupPatch(workdir, patchText, path)
