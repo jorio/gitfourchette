@@ -4,13 +4,16 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import logging
 import re
-import warnings
 from pathlib import Path
 
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, HexHash0000, HexHashFFFF, NavContext
 from gitfourchette.gitdriver.gitconflict import GitConflict, GitConflictSides
+
+_logger = logging.getLogger(__name__)
+
 
 # 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
 # 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <R|C><score> <path><sep><origPath>
@@ -41,11 +44,13 @@ def distillMode(realMode: int) -> FileMode:
     0o120777, which to git is just 0o120000). Use this function to simplify
     a real file mode to a legal FileMode value for git.
     """
-    for m in _gitSimplifiedModes:
-        if m == (realMode & m):
-            return m
+    for gitMode in _gitSimplifiedModes:
+        stripped = gitMode & ~0o000077  # Keep 'user' bits, ignore 'group'/'all' bits
+        if stripped == (realMode & stripped):
+            return gitMode
 
-    raise ValueError(f"cannot map to git FileMode: 0o{realMode:o}")
+    logging.warning(f"cannot map to git FileMode: 0o{realMode:o}")
+    return FileMode.UNREADABLE
 
 
 def parseMode(octal: str) -> FileMode:
@@ -61,7 +66,7 @@ def parseGitStatus(stdout: str, workdir: str):
         try:
             pattern = _gitStatusPatterns[ident]
         except KeyError:
-            warnings.warn(f"unknown git status ident '{ident}'")
+            logging.warning(f"unknown git status ident '{ident}'")
             continue
 
         match = pattern.match(stdout, pos)

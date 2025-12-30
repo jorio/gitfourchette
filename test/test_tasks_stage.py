@@ -118,10 +118,11 @@ def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow,
 def testDiscardModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     path = f"{wd}/a/a1.txt"
-    assert os.lstat(path).st_mode & 0o777 == 0o644
+    assert not fileHasUserExecutableBit(path)
 
     writeFile(path, "keep this!")
     os.chmod(path, 0o777)
+    assert fileHasUserExecutableBit(path)
 
     rw = mainWindow.openRepo(wd)
     assert qlvGetRowData(rw.dirtyFiles) == ["[+x] a/a1.txt"]
@@ -130,17 +131,18 @@ def testDiscardModeChange(tempDir, mainWindow):
     acceptQMessageBox(rw, "(restore|revert|discard) mode")
 
     assert readFile(path).decode() == "keep this!"
-    assert os.lstat(path).st_mode & 0o777 == 0o644
+    assert not fileHasUserExecutableBit(path)
 
 
 @pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
 def testUnstageModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     path = f"{wd}/a/a1.txt"
-    assert os.lstat(path).st_mode & 0o777 == 0o644
+    assert not fileHasUserExecutableBit(path)
 
     writeFile(path, "keep this!")
     os.chmod(path, 0o777)
+    assert fileHasUserExecutableBit(path)
     with RepoContext(wd, write_index=True) as repo:
         repo.index.add_all()
 

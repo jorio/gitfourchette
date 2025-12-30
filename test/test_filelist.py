@@ -168,12 +168,12 @@ def testRevertModeChangedFile(tempDir, mainWindow):
         oid = repo.create_commit_on_head("test chmod", TEST_SIGNATURE, TEST_SIGNATURE)
 
     rw = mainWindow.openRepo(wd)
-    assert Path(f"{wd}/{path}").lstat().st_mode & 0o777 == 0o777
+    assert fileHasUserExecutableBit(f"{wd}/{path}")
     rw.jump(NavLocator.inCommit(oid, path), check=True)
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     acceptQMessageBox(rw, "revert.+patch")
     assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
-    assert Path(f"{wd}/{path}").lstat().st_mode & 0o777 == 0o644
+    assert not fileHasUserExecutableBit(f"{wd}/{path}")
 
 
 def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):

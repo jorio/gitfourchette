@@ -263,6 +263,11 @@ def readTextFile(path, timeout=0, unlink=False):
     return data
 
 
+def fileHasUserExecutableBit(path: str) -> bool:
+    mode = Path(path).lstat().st_mode
+    return mode & 0o100 == 0o100
+
+
 def qlvGetRowData(view: QListView, role=Qt.ItemDataRole.DisplayRole):
     model = view.model()
     data = []
