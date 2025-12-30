@@ -85,6 +85,22 @@ def testOpenBlameCorrectTrace(blameWindow):
         blameModel.trace.nodeForCommit(BlameFixture.unrelatedOid)
 
 
+def testOpenBlameFromFileListContextMenu(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    rw = mainWindow.openRepo(wd)
+
+    seedLoc = NavLocator.inCommit(BlameFixture.revs["spanish"], BlameFixture.path)
+    rw.jump(seedLoc, check=True)
+
+    triggerContextMenuAction(rw.committedFiles.viewport(), "blame")
+
+    blameWindow = findWindow("blame")
+    assert isinstance(blameWindow, BlameWindow)
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
+
+
 def testOpenBlameJumpAround(blameWindow):
     blameModel = blameWindow.model
     assert blameModel
