@@ -14,7 +14,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import GitDelta
+from gitfourchette.gitdriver import GitDelta, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -23,7 +23,10 @@ from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
 
-_workdirCrlfWarning = re.compile("warning: in the working copy of .+, (.+) will be replaced by (.+) the next time Git touches it")
+# convert.c, since Git 2.37.0
+_workdirCrlfWarning = re.compile(r"warning: in the working copy of .+, (.+) will be replaced by (.+) the next time Git touches it")
+# Old message in versions older than 2.37.0
+_workdirCrlfWarningLegacy = re.compile(r"warning: (.+) will be replaced by (.+) in .+\.")
 
 
 class SameTextDiff:
@@ -88,11 +91,14 @@ class SpecialDiffError:
             intro = _("Mode change:")
             details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
-        if delta.context.isWorkdir():
-            match = _workdirCrlfWarning.search(stderr)
-            if match:
-                sourceEndings = match.group(1)
-                targetEndings = match.group(2)
+        if delta.context.isWorkdir() and stderr:
+            crlfWarningPattern = _workdirCrlfWarning
+            if GitDriver.gitVersionTuple() < (2, 37):
+                crlfWarningPattern = _workdirCrlfWarningLegacy
+            crlfWarningMatch = crlfWarningPattern.search(stderr)
+            if crlfWarningMatch:
+                sourceEndings = crlfWarningMatch.group(1)
+                targetEndings = crlfWarningMatch.group(2)
                 longform.append(toRoomyUL([
                     _("In your working copy, {0} will be replaced by {1} the next time Git touches this file.", sourceEndings, targetEndings),
                     _("You can stage the file to dismiss this message; no changes will be recorded.")
