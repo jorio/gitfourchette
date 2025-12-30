@@ -4,7 +4,7 @@ set -e
 set -x
 
 export QT_API=${QT_API:-pyqt6}
-export PYVER=${PYVER:-"3.13"}
+export PYVER=${PYVER:-"3.14"}
 
 HERE="$(dirname "$(readlink -f -- "$0")" )"
 ROOT="$(readlink -f -- "$HERE/../..")"

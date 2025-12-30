@@ -3,7 +3,7 @@ name: AppImage
 on: [workflow_dispatch]
 
 env:
-  PYVER: "3.13"
+  PYVER: "3.14"
   QT_API: "pyqt6"
 
 jobs:
@@ -17,8 +17,8 @@ jobs:
     runs-on: ${{ matrix.platform.os }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with: { python-version: "${{ env.PYVER }}" }
       - run: python -m pip install --upgrade pip setuptools wheel
       - run: python -m pip install --upgrade -e .[$QT_API,pygments]  # install dependencies (installing GF itself isn't necessary)
@@ -27,7 +27,7 @@ jobs:
         run: |
           PYVER=$PYVER QT_API=$QT_API ./pkg/appimage/build-appimage.sh
           echo "ARTIFACT_NAME=$(cd build && ls GitFourchette*.AppImage)" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: build/GitFourchette*.AppImage
           name: ${{env.ARTIFACT_NAME}}
