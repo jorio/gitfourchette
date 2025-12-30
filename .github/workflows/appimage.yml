@@ -20,12 +20,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with: { python-version: "${{ env.PYVER }}" }
-      - run: python -m pip install --upgrade pip setuptools wheel
-      - run: python -m pip install --upgrade -e .[$QT_API,pygments]  # install dependencies (installing GF itself isn't necessary)
+      - run: python -m pip install --upgrade pip setuptools wheel pygit2  # build dependencies
       - run: python -m pip install --upgrade git+https://github.com/niess/python-appimage@984f77a
       - name: Build AppImage
         run: |
-          PYVER=$PYVER QT_API=$QT_API ./pkg/appimage/build-appimage.sh
+          PYVER=$PYVER QT_API=$QT_API PINNED_REQUIREMENTS='pyqt6==6.9.1' ./pkg/appimage/build-appimage.sh
           echo "ARTIFACT_NAME=$(cd build && ls GitFourchette*.AppImage)" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v6
         with:

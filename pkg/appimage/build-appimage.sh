@@ -23,7 +23,7 @@ cd "$ROOT/build"
 
 # Write requirements file so python_appimage knows what to include.
 # The path to gitfourchette's root dir must be absolute.
-echo -e "$ROOT[$QT_API,pygments]" > "$HERE/requirements.txt"
+echo -e "$PINNED_REQUIREMENTS\n$ROOT[$QT_API,pygments]" > "$HERE/requirements.txt"
 
 # Use python_appimage to create AppImage contents directory
 python3 -m python_appimage --verbose build app --python-version $PYVER --no-packaging "$HERE"
