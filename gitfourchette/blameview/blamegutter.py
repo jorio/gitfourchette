@@ -9,7 +9,7 @@ from __future__ import annotations
 from pygit2 import Commit
 
 from gitfourchette import settings, colors
-from gitfourchette.blameview.blamemodel import BlameModel
+from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
 from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -75,6 +75,9 @@ class BlameGutter(CodeGutter):
 
     def paintEvent(self, event: QPaintEvent):
         blame = self.model.currentBlame
+        if blame is None:
+            return
+
         painter = QPainter(self)
 
         # Set up colors
@@ -104,6 +107,7 @@ class BlameGutter(CodeGutter):
 
         topNode = blame.traceNode
         topCommitId = topNode.commitId
+        topRevisionNumber = self.model.trace.revisionNumber(topCommitId)
 
         for block, top, bottom in self.paintBlocks(event, painter, lineColor):
             lineNumber = 1 + block.blockNumber()
@@ -119,7 +123,8 @@ class BlameGutter(CodeGutter):
                 painter.setFont(self.boldFont if isCurrent else self.font())
                 painter.setPen(boldTextPen if isCurrent else textPen)
                 # Compute heat color
-                heat = blameNode.revisionNumber / topNode.revisionNumber
+                revisionNumber = self.model.trace.revisionNumber(blameNode.commitId)
+                heat = revisionNumber / topRevisionNumber
                 heat = heat ** 2  # ease in cubic
                 heatColor.setAlphaF(lerp(.0, .6, heat))
 
@@ -196,7 +201,7 @@ class BlameGutter(CodeGutter):
             text += newLine(_("author"), commit.author.name)
             text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat, localTime=False))
         text += newLine(_("file name"), node.path)
-        text += newLine(_("revision"), node.revisionNumber)
+        text += newLine(_("revision"), self.model.trace.revisionNumber(node.commitId))
         text += "</table>"
         if not isWorkdir:
             text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"

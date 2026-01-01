@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -27,6 +27,12 @@ _gitStatusPatterns = {
 }
 
 _gitShowPattern = re.compile(r":(\d+) (\d+) ([\da-f]+) ([\da-f]+) (.)(\d*)\x00([^\x00]*)\x00")
+
+# - Commit hash
+# - Line number in original file
+# - Line number in final file
+# - Number of lines in the group (only in new group)
+_gitBlameHeaderPattern = re.compile(r"[0-9a-f]+( [0-9]+){2,3}")
 
 # The order of this table is SIGNIFICANT!
 _gitSimplifiedModes = [
@@ -205,3 +211,30 @@ def _parseShowLine(ms, md, hs, hd, status, score, path1, path2) -> GitDelta:
         source=NavContext.COMMITTED)
 
     return GitDelta(status, fileSrc, fileDst, similarity=int(score) if score else 0)
+
+
+def parseGitBlame(stdout: str):
+    pos = 0
+    limit = len(stdout)
+
+    gotHeader = False
+    commitId = ""
+
+    while pos < limit:
+        nextPos = stdout.find('\n', pos)
+        if nextPos < 0:
+            nextPos = limit
+
+        if not gotHeader:
+            match = _gitBlameHeaderPattern.match(stdout, pos, nextPos)
+            commitId, _ = match.group(0).split(" ", maxsplit=1)
+            gotHeader = True
+        elif stdout[pos] == '\t':
+            text = stdout[pos+1 : nextPos]
+            yield commitId, text
+            gotHeader = False  # next line
+        else:
+            # Ignore author, author-mail, etc.
+            pass
+
+        pos = nextPos + 1

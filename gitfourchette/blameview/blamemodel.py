@@ -38,8 +38,6 @@ class BlameModel:
             graphWeaver.newCommit(node.commitId, node.parentIds)
             self.graph.commitRows[node.commitId] = graphWeaver.row
 
-            node.annotatedFile = AnnotatedFile(node) # TODO: bogus annotated file
-
         self.currentTraceNode = trace.sequence[0]  # fall back to newest commit
 
         if APP_DEBUG:
@@ -111,11 +109,17 @@ class Trace:
     def nodeForCommit(self, oid: Oid):
         return self.byCommit[oid]
 
+    def revisionNumber(self, oid: Oid) -> int:
+        node = self.byCommit[oid]
+        index = self.sequence.index(node)
+        return len(self.sequence) - index
+
 
 class AnnotatedFile:
     @dataclasses.dataclass
     class Line:
         traceNode: TraceNode
+        # TODO: 2026: Do we still need line text at all?
         text: str
 
     binary: bool
@@ -129,30 +133,6 @@ class AnnotatedFile:
     @property
     def traceNode(self):
         return self.lines[0].traceNode
-
-    def toPlainText(self, repo: Repo):  # pragma: no cover (for debugging)
-        """ Intended for debugging. No need to localize the text within. """
-
-        from datetime import datetime
-
-        dateNow = datetime.now()
-        result = ""
-
-        for i, blameLine in enumerate(self.lines):
-            node = blameLine.traceNode
-
-            if node.commitId == UC_FAKEID:
-                date = dateNow
-                author = "Not Committed Yet"
-            else:
-                commit = repo[node.commitId].peel(Commit)
-                author = commit.author.name
-                date = datetime.fromtimestamp(commit.author.time)
-
-            strDate = date.strftime("%Y-%m-%d")
-            result += f"{id7(node.commitId)} {node.path:20} ({author:20} {strDate} {i}) {blameLine.text.rstrip()}\n"
-
-        return result
 
     def findLineByReference(self, target: Line, start: int, searchRange: int = 250) -> int:
         lines = self.lines

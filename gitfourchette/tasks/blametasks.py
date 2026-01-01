@@ -4,9 +4,14 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from gitfourchette import settings
-from gitfourchette.blameview.blamemodel import BlameModel, Trace, TraceNode
+from gitfourchette.blameview.blamemodel import BlameModel, Trace, TraceNode, AnnotatedFile
 from gitfourchette.gitdriver import argsIf
+from gitfourchette.gitdriver.parsers import parseGitBlame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -14,6 +19,9 @@ from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
+
+if TYPE_CHECKING:
+    from gitfourchette.blameview.blamewindow import BlameWindow
 
 
 class OpenBlame(RepoTask):
@@ -27,12 +35,13 @@ class OpenBlame(RepoTask):
 
         blameModel = BlameModel(self.repoModel, trace, self.parentWidget())
         blameWindow = BlameWindow(blameModel)
+        blameWindow.repoWidget = self.rw
 
         try:
             startNode = trace.nodeForCommit(seed)
         except KeyError:
             startNode = blameModel.currentTraceNode
-        blameWindow.setTraceNode(startNode)
+        yield from self.flowSubtask(AnnotateFile, blameWindow, startNode, False, False)
 
         windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
         windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
@@ -131,3 +140,118 @@ class OpenBlame(RepoTask):
         # TODO: If the top commit is a deletion, it may also be a rename
         #       that we should expand upwards!
         return node, bottomPath
+
+
+class AnnotateFile(RepoTask):
+    def flow(self, blameWindow: BlameWindow, node: TraceNode,
+             saveFilePositionFirst: bool,
+             transposeFilePosition: bool):
+        from gitfourchette.blameview.blamewindow import BlameWindow
+
+        blameModel = blameWindow.model
+
+        # Stop lexing BEFORE changing the document!
+        blameWindow.textEdit.highlighter.stopLexJobs()
+
+        previousNode = blameModel.currentTraceNode
+        if previousNode.annotatedFile is None:
+            saveFilePositionFirst = False
+            transposeFilePosition = False
+
+        # Update current locator
+        if saveFilePositionFirst:
+            blameWindow.saveFilePosition()
+
+        blameModel.currentTraceNode = node
+
+        # Update scrubber
+        # Heads up: Look up scrubber row from the sequence of nodes, not via
+        # scrubber.findData(commitId, CommitLogModel.Role.Oid), because this
+        # compares references to Oid objects, not Oid values.
+        scrubberIndex = blameModel.nodeSequence.index(node)
+        with QSignalBlockerContext(blameWindow.scrubber):
+            blameWindow.scrubber.setCurrentIndex(scrubberIndex)
+
+        # Load the annotated file
+        if node.annotatedFile is None:
+            yield from self.buildAnnotatedFile(blameModel, node)
+            assert node.annotatedFile is not None
+
+        # Figure out which line number (QTextBlock) to scroll to
+        # TODO: 2026: findLineByReference won't work anymore because references aren't shared across revisions
+        topBlock = blameWindow.textEdit.topLeftCornerCursor().blockNumber()
+        if transposeFilePosition:  # Attempt to restore position across files
+            try:
+                oldLine = previousNode.annotatedFile.lines[1 + topBlock]
+                topBlock = node.annotatedFile.findLineByReference(oldLine, topBlock) - 1
+            except (IndexError,  # Zero lines in annotatedFile ("File deleted in commit" notice)
+                    ValueError):  # Could not findLineByReference
+                pass  # default to raw line number already stored in topBlock
+
+        # Resolve blob
+        # TODO: 2026: Handle fake UC commit!
+        if node.commitId == UC_FAKEID or node.statusChar == "D":
+            data = None
+        else:
+            commit = blameModel.repo.peel_commit(node.commitId)
+            blob = commit.tree[node.path]
+            data = blob.data
+
+        useLexer = False
+        if data is None:#node.blobId == NULL_OID:
+            text = "*** " + _("File deleted in commit {0}", shortHash(node.commitId)) + " ***"
+        elif False and self.model.currentBlame.binary:  # TODO: 2026: Detect binary data
+            text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
+        else:
+            text = data.decode('utf-8', errors='replace')
+            useLexer = True
+
+        newLocator = blameModel.currentLocator
+        newLocator = blameWindow.navHistory.refine(newLocator)
+        blameWindow.navHistory.push(newLocator)  # this should update in place
+
+        blameWindow.textEdit.setPlainText(text)
+        blameWindow.textEdit.currentLocator = newLocator
+        blameWindow.textEdit.restorePosition(newLocator)
+        blameWindow.textEdit.syncViewportMarginsWithGutter()
+
+        title = _("Blame {path} @ {commit}", path=tquo(node.path),
+                  commit=shortHash(node.commitId) if node.commitId else _("(Uncommitted)"))
+        blameWindow.setWindowTitle(title)
+
+        if transposeFilePosition:
+            blockPosition = blameWindow.textEdit.document().findBlockByNumber(topBlock).position()
+            blameWindow.textEdit.restoreScrollPosition(blockPosition)
+
+        # Install lex job
+        useLexer = False # TODO: 2026: -------------
+        if useLexer:
+            lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
+        else:
+            lexJob = None
+        if lexJob is not None:
+            blameWindow.textEdit.highlighter.installLexJob(lexJob)
+            blameWindow.textEdit.highlighter.rehighlight()
+
+        blameWindow.syncNavButtons()
+
+    def buildAnnotatedFile(self, blameModel: BlameModel, node: TraceNode):
+        assert node.annotatedFile is None, "node annotation already built"
+
+        driver = yield from self.flowCallGit(
+            "blame", "--porcelain", str(node.commitId), "--", node.path)
+
+        stdout = driver.stdoutScrollback()
+
+        annotatedFile = AnnotatedFile(node)
+        allLines = []
+
+        for hexHash, lineText in parseGitBlame(stdout):
+            oid = Oid(hex=hexHash)
+            lineNode = blameModel.trace.nodeForCommit(oid)
+            line = AnnotatedFile.Line(lineNode, lineText)
+            annotatedFile.lines.append(line)
+            allLines.append(lineText)
+
+        annotatedFile.fullText = "".join(allLines)
+        node.annotatedFile = annotatedFile

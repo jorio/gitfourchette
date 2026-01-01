@@ -12,7 +12,7 @@ from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory, NavFlags
-from gitfourchette.porcelain import Oid, NULL_OID
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
@@ -130,76 +130,13 @@ class BlameWindow(QWidget):
         return currentLocator
 
     def setTraceNode(self, node: TraceNode, saveFilePositionFirst=True, transposeFilePosition=True):
-        # Stop lexing BEFORE changing the document!
-        self.textEdit.highlighter.stopLexJobs()
-
-        # Update current locator
-        if saveFilePositionFirst:
-            self.saveFilePosition()
-
-        # Figure out which line number (QTextBlock) to scroll to
-        if True:
-            topBlock = 0
-        elif transposeFilePosition:
-            topBlock = self.textEdit.topLeftCornerCursor().blockNumber()
-            try:
-                oldLine = self.model.currentTraceNode.annotatedFile.lines[1 + topBlock]
-                topBlock = node.annotatedFile.findLineByReference(oldLine, topBlock) - 1
-            except (IndexError,  # Zero lines in annotatedFile ("File deleted in commit" notice)
-                    ValueError):  # Could not findLineByReference
-                pass  # default to raw line number already stored in topBlock
-
-        self.model.currentTraceNode = node
-
-        # Update scrubber
-        # Heads up: Look up scrubber row from the sequence of nodes, not via
-        # scrubber.findData(commitId, CommitLogModel.Role.Oid), because this
-        # compares references to Oid objects, not Oid values.
-        scrubberIndex = self.model.nodeSequence.index(node)
-        with QSignalBlockerContext(self.scrubber):
-            self.scrubber.setCurrentIndex(scrubberIndex)
-
-        useLexer = False
-        if True:
-            text = f"*** TODO {node.path} {shortHash(node.commitId)} ***"
-        elif node.blobId == NULL_OID:
-            text = "*** " + _("File deleted in commit {0}", shortHash(node.commitId)) + " ***"
-        else:
-            blob = self.model.repo.peel_blob(node.blobId)
-            data = blob.data
-
-            if self.model.currentBlame.binary:
-                text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
-            else:
-                text = data.decode('utf-8', errors='replace')
-                useLexer = True
-
-        newLocator = self.model.currentLocator
-        newLocator = self.navHistory.refine(newLocator)
-        self.navHistory.push(newLocator)  # this should update in place
-
-        self.textEdit.setPlainText(text)
-        self.textEdit.currentLocator = newLocator
-        self.textEdit.restorePosition(newLocator)
-
-        self.textEdit.syncViewportMarginsWithGutter()
-        self.setWindowTitle(_("Blame {path} @ {commit}", path=tquo(node.path),
-                              commit=shortHash(node.commitId) if node.commitId else _("(Uncommitted)")))
-
-        if transposeFilePosition:
-            blockPosition = self.textEdit.document().findBlockByNumber(topBlock).position()
-            self.textEdit.restoreScrollPosition(blockPosition)
-
-        # Install lex job
-        if useLexer:
-            lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
-        else:
-            lexJob = None
-        if lexJob is not None:
-            self.textEdit.highlighter.installLexJob(lexJob)
-            self.textEdit.highlighter.rehighlight()
-
-        self.syncNavButtons()
+        from gitfourchette.tasks.blametasks import AnnotateFile
+        AnnotateFile.invoke(
+            self.repoWidget,
+            self,
+            node,
+            saveFilePositionFirst,
+            transposeFilePosition)
 
     def syncNavButtons(self):
         index = self.scrubber.currentIndex()
