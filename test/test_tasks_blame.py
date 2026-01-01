@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import dataclasses
 import shutil
 import textwrap
 import pytest
@@ -59,7 +60,7 @@ def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
 
     # Open blame window
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
-    blameWindow = findWindow("blame")
+    blameWindow = findWindow("blame", BlameWindow)
     assert isinstance(blameWindow, BlameWindow)
 
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
@@ -94,7 +95,7 @@ def testOpenBlameFromFileListContextMenu(tempDir, mainWindow):
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "blame")
 
-    blameWindow = findWindow("blame")
+    blameWindow = findWindow("blame", BlameWindow)
     assert isinstance(blameWindow, BlameWindow)
     blameWindow.close()
     if QT5:  # Qt 5 needs a breather here to actually close window
@@ -224,7 +225,7 @@ def testBlameBinaryBlob(tempDir, mainWindow):
     mainWindow.openRepo(wd)
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
     QTest.qWait(0)
-    blameWindow: BlameWindow = findWindow("blame")
+    blameWindow = findWindow("blame", BlameWindow)
     qcbSetIndex(blameWindow.scrubber, "working directory")
     text = blameWindow.textEdit.toPlainText().lower()
     assert "binary blob" in text
@@ -237,7 +238,7 @@ def testBlameStartTraceOnDeletion(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt"), check=True)
 
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
-    blameWindow: BlameWindow = findWindow("blame")
+    blameWindow = findWindow("blame", BlameWindow)
 
     text = blameWindow.textEdit.toPlainText().lower()
     assert "file deleted in commit c9ed7bf" in text
@@ -348,7 +349,7 @@ def testBlameSyntaxHighlighting(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(oids[0], "SomeNewFile.yml"), check=True)
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
-    blameWindow: BlameWindow = findWindow("blame")
+    blameWindow = findWindow("blame", BlameWindow)
     assert "syntaxtest1" in blameWindow.scrubber.currentText()
 
     # Look at the color of the first character
@@ -389,7 +390,7 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(oids[0], "hello.c"), check=True)
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
 
-    blameWindow: BlameWindow = findWindow("blame")
+    blameWindow = findWindow("blame", BlameWindow)
     vsb = blameWindow.textEdit.verticalScrollBar()
     assert vsb.isVisible()
     vsb.setValue(numPaddingLines)
@@ -406,3 +407,67 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     # Go up 1 revision - 'foo' line was deleted, so rely on raw line numbers.
     blameWindow.newerButton.click()
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"
+
+
+# -----------------------------------------------------------------------------
+# Cursory line-by-line correctness checks
+
+@dataclasses.dataclass
+class BlameLineByLineScenario:
+    path: str
+    lineCommits: list[str]
+    seedCommit: str = ""  # if blank, start at workdir
+    testRepo: str = "TestGitRepository"
+
+
+blameLineByLineScenarios = {
+    "hello.txt": BlameLineByLineScenario(
+        "hello.txt",
+        ["acecd5e", "6aaa262", "4ec4389"],
+        testRepo="testrepoformerging",
+    ),
+
+    "add file in merge commit": BlameLineByLineScenario(
+        "b/b2.txt",
+        ["d31f5a6", "7f82283"],
+        testRepo="TestGitRepository",
+    ),
+
+    "start trace on deletion": BlameLineByLineScenario(
+        "c/c2-2.txt",
+        [],
+        seedCommit="c9ed7bf",
+        testRepo="TestGitRepository",
+    ),
+
+    "octopus": BlameLineByLineScenario(
+        "hello.txt",
+        ["bd3c034", "bb5e854", "e87a100", "bb5e854",
+         "e87a100", "0f0fe48", "e87a100", "0f0fe48"],
+        testRepo="octopusblame",
+    )
+}
+
+
+@pytest.mark.parametrize('scenarioKey', blameLineByLineScenarios.keys())
+def testBlameLineByLine(tempDir, mainWindow, scenarioKey):
+    scenario = blameLineByLineScenarios[scenarioKey]
+
+    wd = unpackRepo(tempDir, scenario.testRepo)
+    repo = Repo(wd)
+    rw = mainWindow.openRepo(wd)
+
+    seedId = repo[scenario.seedCommit].id if scenario.seedCommit else NULL_OID
+
+    rw.blameFile(scenario.path, seedId)
+    blameWindow = findWindow("blame", BlameWindow)
+
+    trace = blameWindow.model.trace
+    anno = trace.sequence[0].annotatedFile
+
+    for line, expectedOid in zip(anno.lines[1:], scenario.lineCommits, strict=True):
+        assert str(line.commitId).startswith(expectedOid)
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)

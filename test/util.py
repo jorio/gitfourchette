@@ -424,10 +424,15 @@ def qcbSetIndex(qcb: QComboBox, pattern: str):
     return i
 
 
-def findWindow(pattern: str) -> QWidget:
+def findWindow(
+        pattern: str,
+        t: type[_TInheritsQWidget] = QWidget
+) -> _TInheritsQWidget:
     widget: QWidget
     for widget in QApplication.topLevelWidgets():
         if not widget.isEnabled() or widget.isHidden():
+            continue
+        if not isinstance(widget, t):
             continue
         if re.search(pattern, widget.windowTitle(), re.IGNORECASE):
             return widget
