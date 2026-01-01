@@ -16,6 +16,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
+from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
@@ -204,7 +205,8 @@ class AnnotateFile(RepoTask):
 
         useLexer = False
         if text is None:
-            text = "*** " + _("File deleted in commit {0}", shortHash(node.commitId)) + " ***"
+            text = _("File deleted in commit {0}", shortHash(node.commitId))
+            text = f"*** {text} ***"
         elif False and self.model.currentBlame.binary:  # TODO: 2026: Detect binary data
             # text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
             text = "??? BINARY ???"
@@ -229,11 +231,7 @@ class AnnotateFile(RepoTask):
             blameWindow.textEdit.restoreScrollPosition(blockPosition)
 
         # Install lex job
-        useLexer = False # TODO: 2026: -------------
-        if useLexer:
-            lexJob = BlameWindow._getLexJob(node.path, node.blobId, text)
-        else:
-            lexJob = None
+        lexJob = self.getLexJob(node) if useLexer else None
         if lexJob is not None:
             blameWindow.textEdit.highlighter.installLexJob(lexJob)
             blameWindow.textEdit.highlighter.rehighlight()
@@ -267,3 +265,26 @@ class AnnotateFile(RepoTask):
 
         annotatedFile.fullText = "\n".join(allLines)
         node.annotatedFile = annotatedFile
+
+    @staticmethod
+    def getLexJob(node: TraceNode) -> LexJob | None:
+        if not settings.prefs.isSyntaxHighlightingEnabled():
+            return None
+
+        cacheKey = f"blame:{node.commitId}:{node.path}"
+
+        try:
+            return LexJobCache.get(cacheKey)
+        except KeyError:
+            pass
+
+        lexer = LexerCache.getLexerFromPath(node.path, settings.prefs.pygmentsPlugins)
+        if lexer is None:
+            return None
+
+        lexJob = LexJob(lexer, node.annotatedFile.fullText, cacheKey)
+        if lexJob is None:
+            return None
+
+        LexJobCache.put(lexJob)
+        return lexJob

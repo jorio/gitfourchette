@@ -4,7 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
 from gitfourchette.blameview.blamescrubber import BlameScrubber
@@ -12,9 +11,7 @@ from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory, NavFlags
-from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
-from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
 from gitfourchette.tasks import Jump
 from gitfourchette.toolbox import *
 
@@ -195,24 +192,3 @@ class BlameWindow(QWidget):
             locator = self.model.currentLocator
         locator = locator.withExtraFlags(NavFlags.ActivateWindow)
         Jump.invoke(self.model.taskInvoker, locator)
-
-    @staticmethod
-    def _getLexJob(path: str, blobId: Oid, data: str) -> LexJob | None:
-        if not settings.prefs.isSyntaxHighlightingEnabled():
-            return None
-
-        try:
-            return LexJobCache.get(blobId)
-        except KeyError:
-            pass
-
-        lexer = LexerCache.getLexerFromPath(path, settings.prefs.pygmentsPlugins)
-        if lexer is None:
-            return None
-
-        lexJob = LexJob(lexer, data, blobId)
-        if lexJob is None:
-            return None
-
-        LexJobCache.put(lexJob)
-        return lexJob
