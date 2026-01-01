@@ -63,6 +63,20 @@ def parseMode(octal: str) -> FileMode:
     return FileMode(int(octal, 8))
 
 
+def iterateLines(text: str):
+    pos = 0
+    limit = len(text)
+
+    while pos < limit:
+        nextPos = text.find('\n', pos)
+        if nextPos < 0:
+            nextPos = limit
+        else:
+            nextPos += 1
+        yield pos, nextPos
+        pos = nextPos
+
+
 def parseGitStatus(stdout: str, workdir: str):
     pos = 0
     limit = len(stdout)
@@ -214,29 +228,20 @@ def _parseShowLine(ms, md, hs, hd, status, score, path1, path2) -> GitDelta:
 
 
 def parseGitBlame(stdout: str):
-    pos = 0
-    limit = len(stdout)
-
     # Transient data for current line
     commitId = ""
     originalLineNumber = -1
 
-    while pos < limit:
-        nextPos = stdout.find('\n', pos)
-        if nextPos < 0:
-            nextPos = limit
-
+    for pos, endPos in iterateLines(stdout):
         if not commitId:  # Looking for header
-            match = _gitBlameHeaderPattern.match(stdout, pos, nextPos)
+            match = _gitBlameHeaderPattern.match(stdout, pos, endPos)
             tokens = match.group(0).split(" ")
             commitId = tokens[0]
             originalLineNumber = int(tokens[1])
         elif stdout[pos] == '\t':
-            text = stdout[pos+1 : nextPos]
+            text = stdout[pos+1 : endPos]
             yield commitId, originalLineNumber, text
             commitId = ""  # Look for next line
         else:
             # Ignore author, author-mail, etc.
             pass
-
-        pos = nextPos + 1

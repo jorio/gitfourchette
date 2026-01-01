@@ -279,7 +279,7 @@ class AnnotateFile(RepoTask):
                 binaryCheckChars -= len(lineText)
 
         if not annotatedFile.binary:
-            annotatedFile.fullText = "\n".join(allLines)
+            annotatedFile.fullText = "".join(allLines)
 
         node.annotatedFile = annotatedFile
 

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from gitfourchette import colors
 from gitfourchette import settings
 from gitfourchette.gitdriver import GitDelta
+from gitfourchette.gitdriver.parsers import iterateLines
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.syntax import LexJob
@@ -187,16 +188,7 @@ class DiffDocument:
         hunkLineNum = -1
         isBinary = False
 
-        endPos = 0
-        limit = len(patch)
-        while endPos < limit:
-            pos = endPos
-            endPos = patch.find("\n", pos)
-            if endPos < 0:
-                endPos = limit
-            else:
-                endPos += 1
-
+        for pos, endPos in iterateLines(patch):
             if maxLineLength and endPos - pos > maxLineLength:
                 raise DiffDocument.VeryLongLinesError()
 
