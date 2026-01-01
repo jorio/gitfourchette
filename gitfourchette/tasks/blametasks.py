@@ -78,7 +78,7 @@ class OpenBlame(RepoTask):
                 autoFail=False)
             if driver.exitCode() == 0:
                 workdirNode = TraceNode(seedPath, UC_FAKEID, parentIds=[firstNode.commitId],
-                                        statusChar="M")  # TODO actual status char...
+                                        status="M")  # TODO actual status char...
                 trace.insert(0, workdirNode)
 
         return trace
@@ -123,7 +123,7 @@ class OpenBlame(RepoTask):
                 assert not node.parentIds, "existing node already has parents!!!"
                 node.parentIds = parentIds
             except KeyError:
-                node = TraceNode(path, commitId, parentIds, statusChar="M" if parentIds else "A")
+                node = TraceNode(path, commitId, parentIds, status="M" if parentIds else "A")
                 trace.push(node)
 
                 # Tip commit (not referred to by another commit in the trace):
@@ -153,7 +153,7 @@ class OpenBlame(RepoTask):
         except StopIteration:
             delta = next(d for d in deltas if d.old.path == node.path)
             node.path = delta.new.path
-        node.statusChar = delta.status
+        node.status = delta.status
         return delta
 
 
@@ -241,7 +241,7 @@ class AnnotateFile(RepoTask):
     def buildAnnotatedFile(self, blameModel: BlameModel, node: TraceNode):
         assert node.annotatedFile is None, "node annotation already built"
 
-        if node.statusChar == "D":
+        if node.status == "D":
             node.annotatedFile = AnnotatedFile(node)
             return
 

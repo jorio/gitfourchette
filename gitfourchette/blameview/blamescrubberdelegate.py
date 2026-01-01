@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.blameview.blamemodel import BlameModel
-from gitfourchette.filelists.filelistmodel import STATUS_ICON_LETTERS
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogmodel import CommitToolTipZone
 from gitfourchette.graphview.graphpaint import paintGraphFrame
@@ -47,7 +46,7 @@ class BlameScrubberDelegate(CommitLogDelegate):
         iconRect = QRect(rect)
         iconSize = min(16, iconRect.height())
         iconRect.setWidth(iconSize)
-        icon = stockIcon("status_" + STATUS_ICON_LETTERS[int(node.status)])
+        icon = stockIcon(f"status_{node.status.lower()}")
         icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         rect.setLeft(iconRect.right() + 5)
 

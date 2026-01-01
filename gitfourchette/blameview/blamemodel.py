@@ -64,19 +64,7 @@ class TraceNode:
     commitId: Oid
     parentIds: list[Oid] = dataclasses.field(default_factory=list)
     annotatedFile: AnnotatedFile | None = None
-    statusChar: str = "M"
-
-    @property
-    def status(self) -> DeltaStatus:
-        return {
-            "M": DeltaStatus.MODIFIED,
-            "A": DeltaStatus.ADDED,
-            "U": DeltaStatus.UNTRACKED,
-            "D": DeltaStatus.DELETED,
-            "R": DeltaStatus.RENAMED,
-            "C": DeltaStatus.COPIED,
-            "T": DeltaStatus.TYPECHANGE,
-        }.get(self.statusChar, DeltaStatus.UNREADABLE)
+    status: str = "M"
 
     def toLocator(self) -> NavLocator:
         if self.commitId == UC_FAKEID:
