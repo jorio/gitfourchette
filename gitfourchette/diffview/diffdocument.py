@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -187,19 +187,28 @@ class DiffDocument:
         hunkLineNum = -1
         isBinary = False
 
-        for rawLine in patch.splitlines(keepends=True):
-            if maxLineLength and len(rawLine) > maxLineLength:
+        endPos = 0
+        limit = len(patch)
+        while endPos < limit:
+            pos = endPos
+            endPos = patch.find("\n", pos)
+            if endPos < 0:
+                endPos = limit
+            else:
+                endPos += 1
+
+            if maxLineLength and endPos - pos > maxLineLength:
                 raise DiffDocument.VeryLongLinesError()
 
-            firstChar = rawLine[0]
+            firstChar = patch[pos]
 
             # Keep looking for first hunk
             if firstChar != "@" and hunkID < 0:
-                if rawLine.startswith(("Binary files", "GIT binary patch")):
+                if patch.startswith(("Binary files", "GIT binary patch"), pos, endPos):
                     isBinary = True
-                elif rawLine.startswith("index "):
+                elif patch.startswith("index ", pos, endPos):
                     # Complete existing delta with actual hashes
-                    indexLineMatch = _indexLinePattern.match(rawLine)
+                    indexLineMatch = _indexLinePattern.match(patch, pos, endPos)
                     oldHash, newHash = indexLineMatch.groups()
                     assert oldHash == delta.old.id
                     if not delta.new.isIdValid():
@@ -208,6 +217,7 @@ class DiffDocument:
 
             # Start new hunk
             if firstChar == "@":
+                rawLine = patch[pos:endPos]
                 oldLine, _dummy, newLine, _dummy, _dummy = _parseHunkHeader(rawLine)
 
                 hunkID += 1
@@ -224,7 +234,7 @@ class DiffDocument:
                 # Fix up the last LineData and don't create a new one.
                 ld = lineData[-1]
                 ld.text = ld.text.removesuffix("\n")
-                ld.hiddenSuffix = "\n" + rawLine
+                ld.hiddenSuffix = "\n" + patch[pos:endPos]
                 continue
 
             hunkLineNum += 1
@@ -246,7 +256,7 @@ class DiffDocument:
                 numLinesInClump = 0
                 perfectClumpTally = 0
 
-            ld = LineData(text=rawLine[1:],
+            ld = LineData(text=patch[pos+1:endPos],
                           hunkPos=DiffLinePos(hunkID, hunkLineNum),
                           origin=origin,
                           oldLineNo=-1 if origin == "+" else oldLine,
@@ -269,7 +279,7 @@ class DiffDocument:
                 perfectClumpTally -= 1
                 minuses += 1
             else:
-                assert origin == " ", f"unknown origin: '{origin}'"
+                assert origin == " ", f"unknown origin: '{origin.encode('unicode_escape')}'"
                 assert ld.newLineNo == newLine
                 assert ld.oldLineNo == oldLine
                 newLine += 1

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -997,3 +997,44 @@ def testCharacterLevelDiffInUnicodeSurrogatePairs(tempDir, mainWindow, sampleTex
     assert "\uFFFD" not in reconstructLine(2), "placeholder char - incorrect split?"
     assert reconstructLine(1) == sampleText[0]
     assert reconstructLine(2) == sampleText[1]
+
+
+def testDiffExoticLineEndings(tempDir, mainWindow):
+    """
+    Make sure exotic line endings don't interfere with patch display.
+    (Addresses cpython:02c0467f:Modules/_tkinter.c which contains
+    a stray Form Feed character)
+    """
+
+    wd = unpackRepo(tempDir)
+
+    # All "exotic" line endings that could mess with patch parsing, especially
+    # with splitlines() - which we definitely shouldn't use when parsing
+    # patches! Not testing U+2029 because Qt automatically generates new
+    # blocks when it sees one of these.
+    lines = [
+        "begin",
+        "1 carriage return\r",
+        "2 line tabulation\v",
+        "3 form feed\f",
+        "4 file separator\x1c",
+        "5 group separator\x1d",
+        "6 record separator\x1e",
+        "7 c1 control code\x85",
+        "8 unicode line separator\u2028",
+        "end",
+    ]
+
+    text = "\n".join(lines) + "\n"
+
+    writeFile(f"{wd}/exotic.txt", text)
+
+    rw = mainWindow.openRepo(wd)
+
+    reconstructedText = [rw.diffView.document().findBlockByNumber(i).text()
+                         for i in range(rw.diffView.blockCount())]
+
+    expectedLines = lines[:]
+    expectedLines[1] = expectedLines[1].removesuffix("\r") + "<CRLF>"
+
+    assert expectedLines == reconstructedText[1:]
