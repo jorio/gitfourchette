@@ -186,21 +186,18 @@ class AnnotateFile(RepoTask):
                 pass  # default to raw line number already stored in topBlock
 
         # Resolve blob
-        # TODO: 2026: Handle fake UC commit!
-        if node.commitId == UC_FAKEID or node.statusChar == "D":
-            data = None
+        if node.statusChar == "D":
+            text = None
         else:
-            commit = blameModel.repo.peel_commit(node.commitId)
-            blob = commit.tree[node.path]
-            data = blob.data
+            text = node.annotatedFile.fullText
 
         useLexer = False
-        if data is None:#node.blobId == NULL_OID:
+        if text is None:
             text = "*** " + _("File deleted in commit {0}", shortHash(node.commitId)) + " ***"
         elif False and self.model.currentBlame.binary:  # TODO: 2026: Detect binary data
-            text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
+            # text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
+            text = "??? BINARY ???"
         else:
-            text = data.decode('utf-8', errors='replace')
             useLexer = True
 
         newLocator = blameModel.currentLocator
@@ -236,7 +233,11 @@ class AnnotateFile(RepoTask):
         assert node.annotatedFile is None, "node annotation already built"
 
         driver = yield from self.flowCallGit(
-            "blame", "--porcelain", str(node.commitId), "--", node.path)
+            "blame",
+            "--porcelain",
+            *argsIf(node.commitId != UC_FAKEID, str(node.commitId)),
+            "--",
+            node.path)
 
         stdout = driver.stdoutScrollback()
 
@@ -249,5 +250,5 @@ class AnnotateFile(RepoTask):
             annotatedFile.lines.append(annotatedLine)
             allLines.append(lineText)
 
-        annotatedFile.fullText = "".join(allLines)
+        annotatedFile.fullText = "\n".join(allLines)
         node.annotatedFile = annotatedFile

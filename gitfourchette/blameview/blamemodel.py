@@ -121,11 +121,13 @@ class AnnotatedFile:
 
     binary: bool
     lines: list[Line]
+    fullText: str | None
 
     def __init__(self, node: TraceNode):
         sentinel = AnnotatedFile.Line(node.commitId, 0)
         self.lines = [sentinel]
         self.binary = False
+        self.fullText = None
 
     @property
     def commitId(self):
