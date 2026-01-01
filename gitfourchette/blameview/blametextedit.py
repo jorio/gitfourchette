@@ -26,18 +26,13 @@ class BlameTextEdit(CodeView):
         self.model = model
         self.gutter.model = model
 
-    # ---------------------------------------------
-    # Context menu
-
     def contextMenuActions(self, clickedCursor: QTextCursor):
         lineNumber = clickedCursor.blockNumber() + 1
 
-        blame = self.model.currentBlame
-        node = blame.lines[lineNumber].traceNode
-        commitId = node.commitId
-        locator = BlameModel.locatorFromTraceNode(node)
+        commitId = self.model.currentBlame.lines[lineNumber].commitId
+        node = self.model.trace.nodeForCommit(commitId)
+        locator = node.toLocator()
         isWorkdir = locator.context.isWorkdir()
-        canInvoke = bool(self.model.taskInvoker)
 
         if isWorkdir:
             blameLabel = _("Blame File at Uncommitted Revision")
@@ -45,6 +40,8 @@ class BlameTextEdit(CodeView):
         else:
             blameLabel = _("Blame File at {0}", tquo(shortHash(commitId)))
             gotoLabel = _("Show {0} in Repo", tquo(shortHash(commitId)))
+
+        canInvoke = bool(self.model.taskInvoker)
 
         return [
             ActionDef(

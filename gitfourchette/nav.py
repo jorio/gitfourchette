@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -153,8 +153,8 @@ class NavLocator:
         return NavLocator(context=NavContext.STAGED, path=path)
 
     @staticmethod
-    def inWorkdir():
-        return NavLocator(context=NavContext.WORKDIR)
+    def inWorkdir(path: str = ""):
+        return NavLocator(context=NavContext.WORKDIR, path=path)
 
     def isSimilarEnoughTo(self, other: NavLocator):
         """Coarse equality - Compare context, commit & path (ignores flags & position in diff)"""

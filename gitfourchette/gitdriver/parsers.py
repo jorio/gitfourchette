@@ -217,22 +217,24 @@ def parseGitBlame(stdout: str):
     pos = 0
     limit = len(stdout)
 
-    gotHeader = False
+    # Transient data for current line
     commitId = ""
+    originalLineNumber = -1
 
     while pos < limit:
         nextPos = stdout.find('\n', pos)
         if nextPos < 0:
             nextPos = limit
 
-        if not gotHeader:
+        if not commitId:  # Looking for header
             match = _gitBlameHeaderPattern.match(stdout, pos, nextPos)
-            commitId, _ = match.group(0).split(" ", maxsplit=1)
-            gotHeader = True
+            tokens = match.group(0).split(" ")
+            commitId = tokens[0]
+            originalLineNumber = int(tokens[1])
         elif stdout[pos] == '\t':
             text = stdout[pos+1 : nextPos]
-            yield commitId, text
-            gotHeader = False  # next line
+            yield commitId, originalLineNumber, text
+            commitId = ""  # Look for next line
         else:
             # Ignore author, author-mail, etc.
             pass

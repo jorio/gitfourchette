@@ -9,7 +9,7 @@ from __future__ import annotations
 import dataclasses
 
 from gitfourchette.graph import Graph, GraphWeaver
-from gitfourchette.nav import NavContext, NavLocator
+from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.qt import *
@@ -55,15 +55,7 @@ class BlameModel:
 
     @property
     def currentLocator(self) -> NavLocator:
-        return BlameModel.locatorFromTraceNode(self.currentTraceNode)
-
-    @staticmethod
-    def locatorFromTraceNode(node) -> NavLocator:
-        isWorkdir = node.commitId == UC_FAKEID
-        return NavLocator(
-            context=NavContext.WORKDIR if isWorkdir else NavContext.COMMITTED,
-            commit=node.commitId,
-            path=node.path)
+        return self.currentTraceNode.toLocator()
 
 
 @dataclasses.dataclass
@@ -85,6 +77,12 @@ class TraceNode:
             "C": DeltaStatus.COPIED,
             "T": DeltaStatus.TYPECHANGE,
         }.get(self.statusChar, DeltaStatus.UNREADABLE)
+
+    def toLocator(self) -> NavLocator:
+        if self.commitId == UC_FAKEID:
+            return NavLocator.inWorkdir(self.path)
+        else:
+            return NavLocator.inCommit(self.commitId, self.path)
 
 
 class Trace:
@@ -116,25 +114,25 @@ class Trace:
 
 
 class AnnotatedFile:
-    @dataclasses.dataclass
+    @dataclasses.dataclass(frozen=True)
     class Line:
-        traceNode: TraceNode
-        # TODO: 2026: Do we still need line text at all?
-        text: str
+        commitId: Oid
+        originalLineNumber: int
 
     binary: bool
     lines: list[Line]
 
     def __init__(self, node: TraceNode):
-        sentinel = AnnotatedFile.Line(node, "$$$BOGUS$$$")
+        sentinel = AnnotatedFile.Line(node.commitId, 0)
         self.lines = [sentinel]
         self.binary = False
 
     @property
-    def traceNode(self):
-        return self.lines[0].traceNode
+    def commitId(self):
+        # Get commit ID from sentinel line
+        return self.lines[0].commitId
 
-    def findLineByReference(self, target: Line, start: int, searchRange: int = 250) -> int:
+    def findLine(self, target: Line, start: int, searchRange: int = 250) -> int:
         lines = self.lines
         count = len(lines)
         start = min(start, count - 1)
@@ -144,9 +142,9 @@ class AnnotatedFile:
         hi = start + 1
 
         for _i in range(searchRange):
-            if lo >= 0 and lines[lo] is target:
+            if lo >= 0 and lines[lo] == target:
                 return lo
-            if hi < count and lines[hi] is target:
+            if hi < count and lines[hi] == target:
                 return hi
             lo -= 1
             hi += 1

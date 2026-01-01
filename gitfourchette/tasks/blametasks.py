@@ -146,8 +146,6 @@ class AnnotateFile(RepoTask):
     def flow(self, blameWindow: BlameWindow, node: TraceNode,
              saveFilePositionFirst: bool,
              transposeFilePosition: bool):
-        from gitfourchette.blameview.blamewindow import BlameWindow
-
         blameModel = blameWindow.model
 
         # Stop lexing BEFORE changing the document!
@@ -178,12 +176,11 @@ class AnnotateFile(RepoTask):
             assert node.annotatedFile is not None
 
         # Figure out which line number (QTextBlock) to scroll to
-        # TODO: 2026: findLineByReference won't work anymore because references aren't shared across revisions
         topBlock = blameWindow.textEdit.topLeftCornerCursor().blockNumber()
         if transposeFilePosition:  # Attempt to restore position across files
             try:
                 oldLine = previousNode.annotatedFile.lines[1 + topBlock]
-                topBlock = node.annotatedFile.findLineByReference(oldLine, topBlock) - 1
+                topBlock = node.annotatedFile.findLine(oldLine, topBlock) - 1
             except (IndexError,  # Zero lines in annotatedFile ("File deleted in commit" notice)
                     ValueError):  # Could not findLineByReference
                 pass  # default to raw line number already stored in topBlock
@@ -246,11 +243,10 @@ class AnnotateFile(RepoTask):
         annotatedFile = AnnotatedFile(node)
         allLines = []
 
-        for hexHash, lineText in parseGitBlame(stdout):
+        for hexHash, originalLineNumber, lineText in parseGitBlame(stdout):
             oid = Oid(hex=hexHash)
-            lineNode = blameModel.trace.nodeForCommit(oid)
-            line = AnnotatedFile.Line(lineNode, lineText)
-            annotatedFile.lines.append(line)
+            annotatedLine = AnnotatedFile.Line(oid, originalLineNumber)
+            annotatedFile.lines.append(annotatedLine)
             allLines.append(lineText)
 
         annotatedFile.fullText = "".join(allLines)

@@ -6,12 +6,11 @@
 
 from __future__ import annotations
 
-from pygit2 import Commit
-
 from gitfourchette import settings, colors
-from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
+from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.localization import *
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.toolbox import *
@@ -100,30 +99,30 @@ class BlameGutter(CodeGutter):
         painter.setPen(textPen)
 
         lastCaptionDrawnAtLine = -1
-        hunkTraceNode = None
+        hunkCommitId = None
         hunkStartLine = 1
 
         alignRight = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
-        topNode = blame.traceNode
-        topCommitId = topNode.commitId
+        topCommitId = blame.commitId
         topRevisionNumber = self.model.trace.revisionNumber(topCommitId)
 
         for block, top, bottom in self.paintBlocks(event, painter, lineColor):
             lineNumber = 1 + block.blockNumber()
             try:
-                blameNode = blame.lines[lineNumber].traceNode
+                annotatedLine = blame.lines[lineNumber]
+                lineCommitId = annotatedLine.commitId
             except IndexError:
                 break
 
-            if blameNode is not hunkTraceNode:
-                hunkTraceNode = blameNode
+            if lineCommitId != hunkCommitId:
+                hunkCommitId = lineCommitId
                 hunkStartLine = lineNumber
-                isCurrent = blameNode.commitId == topCommitId
+                isCurrent = lineCommitId == topCommitId
                 painter.setFont(self.boldFont if isCurrent else self.font())
                 painter.setPen(boldTextPen if isCurrent else textPen)
                 # Compute heat color
-                revisionNumber = self.model.trace.revisionNumber(blameNode.commitId)
+                revisionNumber = self.model.trace.revisionNumber(lineCommitId)
                 heat = revisionNumber / topRevisionNumber
                 heat = heat ** 2  # ease in cubic
                 heatColor.setAlphaF(lerp(.0, .6, heat))
@@ -138,7 +137,7 @@ class BlameGutter(CodeGutter):
 
             # Draw caption + separator line
             if lastCaptionDrawnAtLine < hunkStartLine:
-                self.drawBlameCaption(blameNode, painter, top, lh)
+                self.drawBlameCaption(lineCommitId, painter, top, lh)
 
                 # Hunk separator line
                 if lastCaptionDrawnAtLine > 0:
@@ -151,16 +150,16 @@ class BlameGutter(CodeGutter):
 
         painter.end()
 
-    def drawBlameCaption(self, node: TraceNode, painter: QPainter, top: int, lh: int):
+    def drawBlameCaption(self, commitId: Oid, painter: QPainter, top: int, lh: int):
         alignLeft = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
         dateL, dateW = self.columnMetrics[0]
         nameL, nameW = self.columnMetrics[1]
 
-        if node.commitId == UC_FAKEID:
+        if commitId == UC_FAKEID:
             dateText = self.locale().toString(QDateTime.currentDateTime(), "yyyy-MM-dd")
             nameText = _("(Uncommitted)")
         else:
-            commit: Commit = self.model.repo[node.commitId]
+            commit = self.model.repo.peel_commit(commitId)
             sig = commit.author
             dateText = signatureDateFormat(sig, "yyyy-MM-dd", localTime=True)
             nameText = abbreviatePerson(sig, AuthorDisplayStyle.LastName)
@@ -180,8 +179,8 @@ class BlameGutter(CodeGutter):
         lineNumber = 1 + textCursor.blockNumber()
 
         try:
-            blame = self.model.currentBlame
-            node = blame.lines[lineNumber].traceNode
+            commitId = self.model.currentBlame.lines[lineNumber].commitId
+            node = self.model.trace.nodeForCommit(commitId)
         except IndexError:
             return False
 
@@ -192,16 +191,16 @@ class BlameGutter(CodeGutter):
         def newLine(heading, caption):
             return f"<tr><td style='color:{muted}; text-align: right;'>{heading}{colon} </td><td>{caption}</td>"
 
-        isWorkdir = node.commitId == UC_FAKEID
+        isWorkdir = commitId == UC_FAKEID
         if isWorkdir:
             text += newLine(_("commit"), _("Not Committed Yet"))
         else:
-            commit = self.model.repo.peel_commit(node.commitId)
-            text += newLine(_("commit"), shortHash(commit.id))
+            commit = self.model.repo.peel_commit(commitId)
+            text += newLine(_("commit"), shortHash(commitId))
             text += newLine(_("author"), commit.author.name)
             text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat, localTime=False))
         text += newLine(_("file name"), node.path)
-        text += newLine(_("revision"), self.model.trace.revisionNumber(node.commitId))
+        text += newLine(_("revision"), self.model.trace.revisionNumber(commitId))
         text += "</table>"
         if not isWorkdir:
             text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"
