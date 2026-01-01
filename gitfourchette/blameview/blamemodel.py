@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 
 from gitfourchette.graph import Graph, GraphWeaver
 from gitfourchette.nav import NavLocator
@@ -44,6 +45,14 @@ class BlameModel:
             allCommitIds = {node.commitId for node in trace.sequence}
             assert len(allCommitIds) == len(trace.sequence), "duplicate commits in sequence"
             self.graph.testConsistency()
+
+        # Dump revs file to speed up calls to 'git blame'
+        # (and to make sure it won't return commits outside the trace)
+        revsFileTemplate = os.path.join(qTempDir(), "blamerevs-XXXXXX.txt")
+        self.revsFile = QTemporaryFile(revsFileTemplate, taskInvoker)
+        self.revsFile.open()
+        self.revsFile.write(trace.serializeRevisionList().encode("utf-8"))
+        self.revsFile.close()
 
     @property
     def repo(self) -> Repo:
@@ -101,6 +110,14 @@ class Trace:
         node = self.byCommit[oid]
         index = self.sequence.index(node)
         return len(self.sequence) - index
+
+    def serializeRevisionList(self) -> str:
+        """ Serialize the file's commit history (including parent rewriting)
+        in a format suitable for "git blame -S <revs-file>". """
+        lines = []
+        for node in self.sequence:
+            lines.append(f"{node.commitId} {' '.join(str(p) for p in node.parentIds)}")
+        return "\n".join(lines)
 
 
 class AnnotatedFile:

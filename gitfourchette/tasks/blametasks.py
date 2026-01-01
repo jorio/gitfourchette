@@ -37,6 +37,7 @@ class OpenBlame(RepoTask):
         blameModel = BlameModel(self.repoModel, trace, self.parentWidget())
         blameWindow = BlameWindow(blameModel)
         blameWindow.repoWidget = self.rw
+        blameModel.revsFile.setParent(blameWindow)
 
         try:
             startNode = trace.nodeForCommit(seed)
@@ -249,6 +250,7 @@ class AnnotateFile(RepoTask):
             "blame",
             "--porcelain",
             *argsIf(node.commitId != UC_FAKEID, str(node.commitId)),
+            "-S", blameModel.revsFile.fileName(),
             "--",
             node.path)
 
