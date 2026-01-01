@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import dataclasses
 
-from gitfourchette.blame import *
 from .util import *
 
 

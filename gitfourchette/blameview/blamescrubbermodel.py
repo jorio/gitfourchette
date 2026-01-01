@@ -1,10 +1,9 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette.blame import *
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.localization import _
@@ -45,9 +44,10 @@ class BlameScrubberModel(QAbstractListModel):
 
         elif role == CommitLogModel.Role.Commit:
             assert onAppThread()
-            assert self.blameModel
-            assert self.blameModel.repo
-            return node.commit
+            try:
+                return self.blameModel.repo.peel_commit(node.commitId)
+            except KeyError:
+                return None
 
         elif role == CommitLogModel.Role.Oid:
             return node.commitId

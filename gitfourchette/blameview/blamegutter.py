@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,7 +9,6 @@ from __future__ import annotations
 from pygit2 import Commit
 
 from gitfourchette import settings, colors
-from gitfourchette.blame import *
 from gitfourchette.blameview.blamemodel import BlameModel
 from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.localization import *

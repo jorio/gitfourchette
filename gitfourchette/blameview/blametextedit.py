@@ -1,12 +1,11 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette.blame import *
 from gitfourchette.blameview.blamegutter import BlameGutter
-from gitfourchette.blameview.blamemodel import BlameModel
+from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
 from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator

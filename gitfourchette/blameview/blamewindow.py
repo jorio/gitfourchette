@@ -1,13 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
-from gitfourchette.blame import *
-from gitfourchette.blameview.blamemodel import BlameModel
+from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
 from gitfourchette.blameview.blamescrubber import BlameScrubber
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
@@ -139,7 +138,9 @@ class BlameWindow(QWidget):
             self.saveFilePosition()
 
         # Figure out which line number (QTextBlock) to scroll to
-        if transposeFilePosition:
+        if True:
+            topBlock = 0
+        elif transposeFilePosition:
             topBlock = self.textEdit.topLeftCornerCursor().blockNumber()
             try:
                 oldLine = self.model.currentTraceNode.annotatedFile.lines[1 + topBlock]
@@ -159,7 +160,9 @@ class BlameWindow(QWidget):
             self.scrubber.setCurrentIndex(scrubberIndex)
 
         useLexer = False
-        if node.blobId == NULL_OID:
+        if True:
+            text = f"*** TODO {node.path} {shortHash(node.commitId)} ***"
+        elif node.blobId == NULL_OID:
             text = "*** " + _("File deleted in commit {0}", shortHash(node.commitId)) + " ***"
         else:
             blob = self.model.repo.peel_blob(node.blobId)
