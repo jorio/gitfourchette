@@ -205,12 +205,12 @@ class AnnotateFile(RepoTask):
         text = node.annotatedFile.fullText
 
         useLexer = False
-        if text is None:
+        if node.annotatedFile.binary:
+            text = _("Binary blob")
+            text = f"*** {text} ***"
+        elif text is None:
             text = _("File deleted in commit {0}", shortHash(node.commitId))
             text = f"*** {text} ***"
-        elif False and self.model.currentBlame.binary:  # TODO: 2026: Detect binary data
-            # text = _("Binary blob, {size} bytes, {hash}", size=len(data), hash=node.blobId)
-            text = "??? BINARY ???"
         else:
             useLexer = True
 
@@ -258,14 +258,29 @@ class AnnotateFile(RepoTask):
 
         annotatedFile = AnnotatedFile(node)
         allLines = []
+        binaryCheckChars = 8000  # similar to git's buffer_is_binary
 
         for hexHash, originalLineNumber, lineText in parseGitBlame(stdout):
             oid = Oid(hex=hexHash)
             annotatedLine = AnnotatedFile.Line(oid, originalLineNumber)
             annotatedFile.lines.append(annotatedLine)
+
+            if annotatedFile.binary:
+                continue
+
             allLines.append(lineText)
 
-        annotatedFile.fullText = "\n".join(allLines)
+            if binaryCheckChars < 0:
+                pass
+            elif lineText.find("\0", 0, binaryCheckChars) >= 0:
+                annotatedFile.binary = True
+                allLines.clear()  # don't care about the text anymore
+            else:
+                binaryCheckChars -= len(lineText)
+
+        if not annotatedFile.binary:
+            annotatedFile.fullText = "\n".join(allLines)
+
         node.annotatedFile = annotatedFile
 
     @staticmethod

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -228,7 +228,6 @@ def testBlameBinaryBlob(tempDir, mainWindow):
     qcbSetIndex(blameWindow.scrubber, "working directory")
     text = blameWindow.textEdit.toPlainText().lower()
     assert "binary blob" in text
-    assert "79 bytes" in text
     blameWindow.close()
 
 
