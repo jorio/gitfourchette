@@ -125,21 +125,35 @@ class OpenBlame(RepoTask):
                 node = TraceNode(path, commitId, parentIds, statusChar="M" if parentIds else "A")
                 trace.push(node)
 
+                # Tip commit (not referred to by another commit in the trace):
+                # May be a deletion or a rename
+                if commitId not in trace.nonTipCommits:
+                    yield from self._refineWithDelta(node)
+
+            trace.nonTipCommits.update(parentIds)
+
         # Last node has no parents - See if it's a rename
         if node is not None and not node.parentIds:
-            driver = yield from self.flowCallGit(
-                "-c", "core.abbrev=no",
-                "show", "--diff-merges=1", "-z", "--raw", "--format=", str(node.commitId))
-            deltas = driver.readShowRawZ()
-            delta = next(d for d in deltas if d.new.path == path)
+            delta = yield from self._refineWithDelta(node)
             if delta.status in "RC":
-                node.statusChar = delta.status
                 bottomPath = delta.old.path
 
-        # TODO: Detect if top commit is deletion (so we don't show an 'M')
-        # TODO: If the top commit is a deletion, it may also be a rename
-        #       that we should expand upwards!
+        # TODO: If the top commit is 'R' we could expand its history upwards!
         return node, bottomPath
+
+    def _refineWithDelta(self, node: TraceNode):
+        driver = yield from self.flowCallGit(
+            "-c", "core.abbrev=no",
+            "show", "--diff-merges=1", "-z", "--raw", "--format=",
+            str(node.commitId))
+        deltas = driver.readShowRawZ()
+        try:
+            delta = next(d for d in deltas if d.new.path == node.path)
+        except StopIteration:
+            delta = next(d for d in deltas if d.old.path == node.path)
+            node.path = delta.new.path
+        node.statusChar = delta.status
+        return delta
 
 
 class AnnotateFile(RepoTask):
@@ -185,11 +199,8 @@ class AnnotateFile(RepoTask):
                     ValueError):  # Could not findLineByReference
                 pass  # default to raw line number already stored in topBlock
 
-        # Resolve blob
-        if node.statusChar == "D":
-            text = None
-        else:
-            text = node.annotatedFile.fullText
+        # Get file text
+        text = node.annotatedFile.fullText
 
         useLexer = False
         if text is None:
@@ -231,6 +242,10 @@ class AnnotateFile(RepoTask):
 
     def buildAnnotatedFile(self, blameModel: BlameModel, node: TraceNode):
         assert node.annotatedFile is None, "node annotation already built"
+
+        if node.statusChar == "D":
+            node.annotatedFile = AnnotatedFile(node)
+            return
 
         driver = yield from self.flowCallGit(
             "blame",

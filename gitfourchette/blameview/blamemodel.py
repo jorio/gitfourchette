@@ -88,10 +88,12 @@ class TraceNode:
 class Trace:
     sequence: list[TraceNode]
     byCommit: dict[Oid, TraceNode]
+    nonTipCommits: set[Oid]
 
     def __init__(self):
         self.sequence = []
         self.byCommit = {}
+        self.nonTipCommits = set()
 
     def insert(self, index: int, node: TraceNode):
         self.sequence.insert(index, node)
