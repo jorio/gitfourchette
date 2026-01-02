@@ -6,6 +6,7 @@
 # -----------------------------------------------------------------------------
 
 import argparse
+import importlib.util
 import os
 import sys
 from pathlib import Path
@@ -22,7 +23,7 @@ def run():
     parser.add_argument("--cov", action="store_true", help="produce coverage report")
     parser.add_argument("--visual", action="store_true", help="run tests visually (takes MUCH longer than offscreen!)")
     parser.add_argument("--qt", default="pyqt6", choices=["pyqt6", "pyside6", "pyqt5"], help="Qt bindings to use (pyqt6 by default)")
-    parser.add_argument("-1", dest="single", action="store_true", help="run a single test at a time (no parallel tests)")
+    parser.add_argument("-1", dest="single", action="store_true", help="run a single test at a time (don't use python-xdist)")
     parser.add_argument("--with-network", action="store_true", help="run tests that require network access")
     parser.add_argument("-g", "--live-logging", action="store_true", help="enable live logging (recommended with -1)")
     args, forwardArgs = parser.parse_known_args()
@@ -36,8 +37,12 @@ def run():
     if args.with_network:
         os.environ["TESTNET"] = "1"
 
-    if not args.single:
+    if args.single:
+        pass
+    elif importlib.util.find_spec("xdist"):
         extraArgs.extend(["-n", "auto"])
+    else:
+        print("*** NOTE: pytest-xdist is not installed. Tests will not be parallelized.")
 
     if args.live_logging:
         extraArgs.extend(["--log-cli-level=0"])
