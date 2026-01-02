@@ -132,9 +132,6 @@ def testOpenBlameNavigateBackForward(blameWindow, method):
     backButton = blameWindow.backButton
     forwardButton = blameWindow.forwardButton
 
-    blameWindow.textEdit.setFocus()
-    waitUntilTrue(blameWindow.textEdit.hasFocus)
-
     def go(backOrForward: Literal["back", "forward"]):
         back = backOrForward == "back"
         if method == "button":
@@ -147,6 +144,10 @@ def testOpenBlameNavigateBackForward(blameWindow, method):
     # Prime history with some items
     qcbSetIndex(scrubber, "Say hello in French")
     qcbSetIndex(scrubber, "Uncommitted")
+
+    # Move window back to foreground if a progress dialog appeared (offscreen mode workaround)
+    blameWindow.activateWindow()
+    waitUntilTrue(lambda: blameWindow.window().isActiveWindow())
 
     # Uncommitted --> back --> French
     assert (True, False) == (backButton.isEnabled(), forwardButton.isEnabled())
@@ -274,8 +275,13 @@ def testBlameGutterToolTips(blameWindow):
     # Jump to uncommitted changes
     qcbSetIndex(blameWindow.scrubber, "uncommitted")
 
+    # Loading the blame for UC may have opened a progress dialog. In this case,
+    # offscreen mode is finicky - we must restore the active window manually.
+    blameWindow.activateWindow()
+    waitUntilTrue(blameWindow.isActiveWindow)
+
     blameWindow.textEdit.setFocus()
-    waitUntilTrue(blameWindow.textEdit.hasFocus)
+    assert blameWindow.textEdit.hasFocus()
 
     toolTipFragments = [
         ["not committed yet", "hello.txt"],
