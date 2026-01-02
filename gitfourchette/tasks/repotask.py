@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -483,57 +483,17 @@ class RepoTask(QObject):
         assert self._isRunningOnAppThread(), "start processes from UI thread"
         assert self.currentProcess is None, "a process is already running in this task"
 
-        envStrs = [f"{k}={v}" for k, v in ToolCommands.filterQProcessEnvironment(process).items()]
-        simpleCommandLine = shlex.join([process.program()] + process.arguments())
-        if FLATPAK:
-            commandLine = simpleCommandLine
-        else:
-            commandLine = shlex.join(envStrs + [process.program()] + process.arguments())
-        logger.info(f"Starting process (from {process.workingDirectory()}): {commandLine}")
-
         self.rootTask._currentProcess = process
 
-        didStart = False
-        def onStateChanged(newState: QProcess.ProcessState):
-            nonlocal didStart
-            if newState == QProcess.ProcessState.Running and not didStart:
-                didStart = True
-                process.errorOccurred.disconnect(self.uiReady)
-            elif newState == QProcess.ProcessState.NotRunning and didStart:
-                self.uiReady.emit()
-            # If NotRunning but never started, let onErrorOccurred (which is
-            # emitted AFTER stateChange) move coroutine along
+        processWrapper = ProcessWrapper(process, self)
+        processWrapper.continueCoroutine.connect(self.uiReady)
 
-        process.stateChanged.connect(onStateChanged)
-        process.errorOccurred.connect(self.uiReady)
-        process.start()
-
-        # Wait for process to go NotRunning, or errorOccurred to be emitted
-        waitToken = FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
-        yield waitToken
-
-        process.stateChanged.disconnect(onStateChanged)
-        if not didStart:
-            process.errorOccurred.disconnect(self.uiReady)
-
-        self.rootTask._currentProcess = None
-
-        if not didStart:
-            message = _("Process failed to start ({0}).", process.error())
-            message += f"<p style='font-size: small'><code>{escape(commandLine)}</code><br>"
-            raise AbortTask(message)
-
-        logger.info(f"Process exited with code {process.exitCode()}")
-
-        if autoFail and process.exitCode() != 0:
-            if isinstance(process, GitDriver):
-                raise AbortTask(process.htmlErrorText(), details=commandLine)
-            stderr = process.readAllStandardError().data().decode(errors="replace")
-            message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
-            message += f"<p style='font-size: small'>{escape(simpleCommandLine)}</p>"
-            if stderr.strip():
-                message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
-            raise AbortTask(message, details=commandLine)
+        try:
+            yield from processWrapper.coStart()
+            yield from processWrapper.coWaitDone(autoFail)
+        finally:
+            self.rootTask._currentProcess = None
+            processWrapper.deleteLater()
 
     def flowCallGit(
             self,
@@ -1134,6 +1094,82 @@ class RepoTaskRunner(QObject):
             if exception.details:
                 qmb.setDetailedText(exception.details)
             qmb.show()
+
+
+class ProcessWrapper(QObject):
+    continueCoroutine = Signal()
+
+    def __init__(self, process: QProcess, parent):
+        super().__init__(parent)
+        self.process = process
+        self._waitingForStart = False
+
+    def _onStartedOrError(self):
+        if self._waitingForStart:
+            self._waitingForStart = False
+            self.continueCoroutine.emit()
+
+    def coStart(self):
+        process = self.process
+        logger.info(f"Starting process (from {process.workingDirectory()}): {self.formatCommand()}")
+
+        process.started.connect(self._onStartedOrError)
+        process.errorOccurred.connect(self._onStartedOrError)
+
+        # Prevent _onStartedOrError from running too soon - Qt docs say the
+        # started/errorOccurred signals may be emitted synchronously by start()
+        # on some systems.
+        self._waitingForStart = False
+
+        process.start()
+
+        if process.state() == QProcess.ProcessState.Starting:
+            # Pause the coroutine until _onStartedOrError is called.
+            self._waitingForStart = True
+            yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+
+        process.started.disconnect(self._onStartedOrError)
+        process.errorOccurred.disconnect(self._onStartedOrError)
+
+        if process.state() != QProcess.ProcessState.Running:
+            if isinstance(process, GitDriver):
+                message = _("Couldn’t start Git ({0}).", process.error())
+            else:
+                message = _("Couldn’t start process ({0}).", process.error())
+            message += f"<p style='font-size: small'><code>{escape(self.formatCommand(simple=True))}</code><br>"
+            raise AbortTask(message)
+
+    def coWaitDone(self, autoFail=True):
+        process = self.process
+        assert process.state() == QProcess.ProcessState.Running
+
+        process.stateChanged.connect(self.continueCoroutine)
+        yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+        assert process.state() != QProcess.ProcessState.Running
+        process.stateChanged.disconnect(self.continueCoroutine)
+
+        if autoFail and process.exitCode() != 0:
+            if isinstance(process, GitDriver):
+                message = process.htmlErrorText()
+            else:
+                simpleCommandLine = self.formatCommand(simple=True)
+                message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
+                message += f"<p style='font-size: small'>{escape(simpleCommandLine)}</p>"
+
+                stderr = process.readAllStandardError().data().decode(errors="replace")
+                if stderr.strip():
+                    message += f"<p style='white-space: pre-wrap'>{escape(stderr)}</p>"
+
+            raise AbortTask(message, details=self.formatCommand())
+
+    def formatCommand(self, simple=False):
+        process = self.process
+        base = [process.program()] + process.arguments()
+        if simple or FLATPAK:
+            return shlex.join(base)
+        else:
+            envStrs = [f"{k}={v}" for k, v in ToolCommands.filterQProcessEnvironment(process).items()]
+            return shlex.join(envStrs + base)
 
 
 class TaskInvocation:

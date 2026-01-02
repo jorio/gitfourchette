@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -727,14 +727,15 @@ def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
     assert isinstance(repoStub, RepoStub)
 
     waitUntilTrue(lambda: repoStub.ui.promptPage.isVisible())
-    assert findTextInWidget(repoStub.ui.promptReadyLabel, "failed to start")
 
     if FLATPAK:
         # flatpak-spawn always starts successfully, so the errorOccurred callback won't run.
         # Instead, look for return code 127 from /usr/bin/env.
+        assert findTextInWidget(repoStub.ui.promptReadyLabel, "code.+127")
         acceptQMessageBox(mainWindow, "code 127")
     else:
-        acceptQMessageBox(mainWindow, "failed to start")
+        assert findTextInWidget(repoStub.ui.promptReadyLabel, "couldn.t start git")
+        acceptQMessageBox(mainWindow, "couldn.t start git")
 
 
 def testGitProcessStuck(tempDir, mainWindow, taskThread):
