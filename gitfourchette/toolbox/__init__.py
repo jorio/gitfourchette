@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -41,6 +41,7 @@ from .qelidedlabel import QElidedLabel
 from .qfaintseparator import QFaintSeparator
 from .qfilepickercheckbox import QFilePickerCheckBox
 from .qhintbutton import QHintButton
+from .qprocessconnection import QProcessConnection
 from .qsignalblockercontext import QSignalBlockerContext
 from .qstatusbar2 import QStatusBar2
 from .qtabwidget2 import QTabWidget2, QTabBar2

@@ -989,9 +989,14 @@ class RepoTaskRunner(QObject):
             busyMessage = _("Busy: {0}…", task.name())
             self.progress.emit(busyMessage, True)
 
+            # Broadcast process start at most once
             if task.broadcastProcesses():
                 process = task.currentProcess
-                self.processStarted.emit(process, task.name())
+                try:
+                    _dummy = process._repoTaskBroadcastYet
+                except AttributeError:
+                    process._repoTaskBroadcastYet = True
+                    self.processStarted.emit(process, task.name())
 
             if RepoTaskRunner.ForceSerial:  # In unit tests, block until process has completed
                 return self._waitForNextToken()

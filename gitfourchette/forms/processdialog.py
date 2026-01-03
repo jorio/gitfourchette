@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from gitfourchette.forms.statusform import StatusForm
 from gitfourchette.qt import *
+from gitfourchette.toolbox import QProcessConnection, QSignalBlockerContext
 
 
 class ProcessDialog(QDialog):
@@ -13,13 +14,15 @@ class ProcessDialog(QDialog):
 
     becameVisible = Signal()
 
-    trackedProcess: QProcess | None
+    processConnection: QProcessConnection
     sentSigterm: bool
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
-        self.trackedProcess = None
+        self.processConnection = QProcessConnection(self)
+        self.processConnection.processLost.connect(self.onProcessLost)
+
         self.sentSigterm = False
 
         # Set up UI
@@ -52,32 +55,34 @@ class ProcessDialog(QDialog):
         self.statusForm.connectAbortButton(self.abortButton)
 
     def connectProcess(self, process: QProcess, title: str):
-        # Forget existing process
-        self.disconnectProcess()
+        # Forget existing process, if any, and keep track of this one.
+        # Block signal 'processConnection.processLost' to avoid closing and
+        # reopening the dialog when chaining processes quickly.
+        with QSignalBlockerContext(self.processConnection):
+            self.processConnection.track(process)
 
         self.setWindowTitle(title)
-        self.trackedProcess = process
-
-        process.errorOccurred.connect(self.onProcessFinished)
-        process.finished.connect(self.onProcessFinished)
 
         if self.isVisible():
             # Dialog already shown, update UI now
-            self.popUp()
-        else:
+            self.connectProcessInStatusForm()
+        elif not self.delayPopUp.isActive():
             # Delay popup to avoid ugly flashing + unnecessary layout work
             # if the process finishes fast enough
             self.delayPopUp.start()
 
     def popUp(self):
-        if self.trackedProcess is None:
+        if not self.processConnection:
             return
 
-        self.statusForm.connectProcess(self.trackedProcess)
+        self.connectProcessInStatusForm()
         self.show()
         self.becameVisible.emit()
 
-    def disconnectProcess(self):
+    def connectProcessInStatusForm(self):
+        self.statusForm.connectProcess(self.processConnection.process)
+
+    def onProcessLost(self, process: QProcess):
         self.delayPopUp.stop()
         self.setVisible(False)
 
@@ -86,21 +91,9 @@ class ProcessDialog(QDialog):
         if APP_TESTMODE and OFFSCREEN:
             self.parentWidget().activateWindow()
 
-        if self.trackedProcess is None:
-            return
-
-        process = self.trackedProcess
-        self.trackedProcess = None
-
-        process.errorOccurred.disconnect(self.onProcessFinished)
-        process.finished.disconnect(self.onProcessFinished)
-
     def close(self) -> bool:
-        self.disconnectProcess()
+        self.processConnection.stopTracking()
         return super().close()
 
     def reject(self):  # bound to abort button and ESC key
         self.statusForm.requestAbort()
-
-    def onProcessFinished(self):
-        self.disconnectProcess()

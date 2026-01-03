@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,7 +13,7 @@ from gitfourchette.forms.ui_statusform import Ui_StatusForm
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import _
 from gitfourchette.qt import *
-from gitfourchette.toolbox import stockIcon, tweakWidgetFont
+from gitfourchette.toolbox import stockIcon, tweakWidgetFont, QProcessConnection
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,9 @@ class StatusForm(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.trackedProcess = None
+        self.processConnection = QProcessConnection(self)
+        self.processConnection.processLost.connect(self.onProcessLost)
+
         self.sentSigterm = False
         self.abortButton = None
         self.abortButtonDefaultText = ""
@@ -70,10 +72,7 @@ class StatusForm(QWidget):
         self.ui.statusLabel.setText(message)
 
     def connectProcess(self, process: QProcess):
-        # Forget any existing process
-        self.disconnectProcess()
-
-        self.trackedProcess = process
+        self.processConnection.track(process)
         self.sentSigterm = False
 
         commandLine = shlex.join([process.program()] + process.arguments())
@@ -94,23 +93,12 @@ class StatusForm(QWidget):
         self.abortButton.setIcon(stockIcon("SP_DialogCloseButton"))
         self.abortButton.clearFocus()
 
-        process.errorOccurred.connect(self.onProcessFinished)
-        process.finished.connect(self.onProcessFinished)
-
         if isinstance(process, GitDriver):
             process.progressMessage.connect(self.setProgressMessage)
             process.progressFraction.connect(self.setProgressValue)
 
-    def disconnectProcess(self):
-        process = self.trackedProcess
-        if not process:
-            return
-
-        self.trackedProcess = None
-
-        process.errorOccurred.disconnect(self.onProcessFinished)
-        process.finished.disconnect(self.onProcessFinished)
-
+    def onProcessLost(self, process: QProcess):
+        assert process is not None
         if isinstance(process, GitDriver):
             with suppress(TypeError, RuntimeError):
                 process.progressMessage.disconnect(self.setProgressMessage)
@@ -129,13 +117,11 @@ class StatusForm(QWidget):
             self.abortButton.setText("SIGKILL")
             self.abortButton.setIcon(stockIcon("sigkill"))
 
-        if self.trackedProcess:
+        process = self.processConnection.process
+        if process:
             if not self.sentSigterm:
-                self.trackedProcess.terminate()
+                process.terminate()
                 self.sentSigterm = True
                 self.ui.titleLabel.setText(_("SIGTERM sent. Waiting for process to terminate…"))
             else:
-                self.trackedProcess.kill()
-
-    def onProcessFinished(self):
-        self.disconnectProcess()
+                process.kill()
