@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -18,7 +18,8 @@ from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitShow
-from gitfourchette.porcelain import version_to_tuple, Oid
+from gitfourchette.nav import NavContext
+from gitfourchette.porcelain import version_to_tuple, Commit, Oid
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
@@ -250,10 +251,60 @@ class GitDriver(QProcess):
                 unstagedDeltas.append(unstaged)
         return numEntries, stagedDeltas, unstagedDeltas
 
+    @classmethod
+    def buildShowCommand(cls, oid: Oid):
+        return [
+            "-c", "core.abbrev=no",
+            "show",
+            "--diff-merges=1",
+            "-z",
+            "--raw",
+            "--format=",  # skip info about the commit itself
+            str(oid),
+        ]
+
     def readShowRawZ(self) -> list[GitDelta]:
         stdout = self.stdoutScrollback()
         deltas = list(parseGitShow(stdout))
         return deltas
+
+    @classmethod
+    def buildDiffCommand(
+            cls,
+            delta: GitDelta | None,
+            commit: Commit | None = None,
+            binary=True
+    ) -> list[str]:
+        tokens = [
+            "-c", "core.abbrev=no",
+            "-c", f"diff.context={settings.prefs.contextLines}",
+            "diff",
+            *argsIf(binary, "--binary"),
+            *argsIf(delta is not None and delta.context == NavContext.STAGED, "--staged"),
+        ]
+
+        # Append commits
+        if commit is not None:
+            assert delta is None or delta.context == NavContext.COMMITTED
+            try:
+                # Compare to first parent
+                firstParent = commit.parent_ids[0]
+            except IndexError:
+                # Root commit: compare to empty tree (sha1(b"tree \0"))
+                firstParent = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+            tokens.append(str(firstParent))
+            tokens.append(str(commit.id))
+
+        # Append paths
+        if delta is not None:
+            tokens.append("--")
+            if delta.status == "?":  # untracked, compare to nothing
+                tokens.append("/dev/null")
+            elif delta.old.path != delta.new.path:
+                tokens.append(delta.old.path)
+            tokens.append(delta.new.path)
+
+        return tokens
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

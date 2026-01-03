@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,7 +10,7 @@ from collections.abc import Generator
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import argsIf, GitDelta, GitDeltaFile, GitConflict
+from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriver
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -250,39 +250,6 @@ class LoadPatch(RepoTask):
             dd: DiffDocument = self.result
             dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta)
 
-    @classmethod
-    def buildDiffCommand(cls, delta: GitDelta | None, commit: Commit | None = None, binary=True) -> list[str]:
-        tokens = [
-            "-c", "core.abbrev=no",
-            "-c", f"diff.context={settings.prefs.contextLines}",
-            "diff",
-            *argsIf(binary, "--binary"),
-            *argsIf(delta is not None and delta.context == NavContext.STAGED, "--staged"),
-        ]
-
-        # Append commits
-        if commit is not None:
-            assert delta is None or delta.context == NavContext.COMMITTED
-            try:
-                # Compare to first parent
-                firstParent = commit.parent_ids[0]
-            except IndexError:
-                # Root commit: compare to empty tree (sha1(b"tree \0"))
-                firstParent = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-            tokens.append(str(firstParent))
-            tokens.append(str(commit.id))
-
-        # Append paths
-        if delta is not None:
-            tokens.append("--")
-            if delta.status == "?":  # untracked, compare to nothing
-                tokens.append("/dev/null")
-            elif delta.old.path != delta.new.path:
-                tokens.append(delta.old.path)
-            tokens.append(delta.new.path)
-
-        return tokens
-
     def _getPatch(self, delta: GitDelta, locator: NavLocator
                   ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | GitConflict | DiffImagePair]:
         if delta.conflict is not None:
@@ -309,7 +276,7 @@ class LoadPatch(RepoTask):
         # Load the patch
 
         commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
-        tokens = LoadPatch.buildDiffCommand(delta, commit, binary=False)
+        tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()
 

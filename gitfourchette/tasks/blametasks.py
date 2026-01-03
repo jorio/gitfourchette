@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel, Trace, TraceNode, AnnotatedFile
-from gitfourchette.gitdriver import argsIf
+from gitfourchette.gitdriver import argsIf, GitDriver
 from gitfourchette.gitdriver.parsers import parseGitBlame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -144,10 +144,8 @@ class OpenBlame(RepoTask):
         return node, bottomPath
 
     def _refineWithDelta(self, node: TraceNode):
-        driver = yield from self.flowCallGit(
-            "-c", "core.abbrev=no",
-            "show", "--diff-merges=1", "-z", "--raw", "--format=",
-            str(node.commitId))
+        tokens = GitDriver.buildShowCommand(node.commitId)
+        driver = yield from self.flowCallGit(*tokens)
         deltas = driver.readShowRawZ()
         try:
             delta = next(d for d in deltas if d.new.path == node.path)

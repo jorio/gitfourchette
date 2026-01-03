@@ -1,15 +1,14 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from pathlib import Path
 
-from gitfourchette.gitdriver import GitDelta
+from gitfourchette.gitdriver import GitDelta, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
-from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 
@@ -41,7 +40,7 @@ class ExportCommitAsPatch(RepoTask):
             summary = summary[:50].strip()
             fileName = f"{self.repo.repo_name()} - {shortHash(oid)} - {summary}.patch"
 
-        tokens = LoadPatch.buildDiffCommand(delta=None, commit=commit)
+        tokens = GitDriver.buildDiffCommand(delta=None, commit=commit)
         driver = yield from self.flowCallGit(*tokens)
         patch = driver.stdoutScrollback()
 
@@ -63,7 +62,7 @@ class ExportWorkdirAsPatch(RepoTask):
         patches = []
 
         # Diff the workdir to HEAD (except untracked files)
-        tokens = LoadPatch.buildDiffCommand(delta=None, commit=None)
+        tokens = GitDriver.buildDiffCommand(delta=None, commit=None)
         driver = yield from self.flowCallGit(*tokens, "HEAD")
         patches.append(driver.stdoutScrollback())
 
@@ -75,7 +74,7 @@ class ExportWorkdirAsPatch(RepoTask):
 
         for delta in self.repoModel.workdirUnstagedDeltas:
             if delta.status == "?":  # Scan for untracked files
-                tokens = LoadPatch.buildDiffCommand(delta, commit=None)
+                tokens = GitDriver.buildDiffCommand(delta, commit=None)
                 driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patches.append(driver.stdoutScrollback())
 
@@ -103,7 +102,7 @@ class ExportPatchCollection(RepoTask):
             names.append(name)
 
             # Get patch (run 'git diff')
-            tokens = LoadPatch.buildDiffCommand(delta, commit)
+            tokens = GitDriver.buildDiffCommand(delta, commit)
             driver = yield from self.flowCallGit(*tokens, autoFail=False)
             patch = driver.stdoutScrollback()
             patches.append(patch)

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -21,7 +21,6 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import *
-from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -597,7 +596,7 @@ class FileList(QListView):
         deltas = list(self.selectedDeltas())
         assert len(deltas) == 1
         delta = deltas[0]
-        tokens = LoadPatch.buildDiffCommand(delta, self.commitObject)
+        tokens = GitDriver.buildDiffCommand(delta, self.commitObject)
         patchData = GitDriver.runSync(*tokens, directory=self.repo.workdir, strict=True)
         ApplyPatchData.invoke(self, patchData, reverse=True,
                               title=_("Revert changes in file"),

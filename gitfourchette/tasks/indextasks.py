@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -12,12 +12,11 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import argsIf, GitDelta
+from gitfourchette.gitdriver import argsIf, GitDelta, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.loadtasks import LoadPatch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
@@ -223,7 +222,7 @@ class DiscardFiles(_BaseStagingTask):
 
             else:
                 # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
-                tokens = LoadPatch.buildDiffCommand(delta)
+                tokens = GitDriver.buildDiffCommand(delta)
                 driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patchText = driver.stdoutScrollback()
                 trash.backupPatch(workdir, patchText, path)

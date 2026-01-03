@@ -17,7 +17,7 @@ from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair, SameTextDiff
-from gitfourchette.gitdriver import GitDelta, GitConflict
+from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -395,13 +395,9 @@ class Jump(RepoTask):
             # Loading a different commit
             area.diffBanner.lastWarningWasDismissed = False
 
-            # Load commit (async)
-            driver = yield from self.flowCallGit(
-                "-c", "core.abbrev=no",
-                "show", "--diff-merges=1", "-z", "--raw",
-                "--format=",  # skip info about the commit itself
-                str(locator.commit))
-
+            # Load commit
+            tokens = GitDriver.buildShowCommand(locator.commit)
+            driver = yield from self.flowCallGit(*tokens)
             deltas = driver.readShowRawZ()
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
