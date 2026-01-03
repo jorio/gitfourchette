@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -30,6 +30,7 @@ class CodeView(QPlainTextEdit):
     contextualHelp = Signal(str)
     selectionActionable = Signal(bool)
     visibilityChanged = Signal(bool)
+    sizeChanged = Signal()
 
     highlighter: CodeHighlighter
     gutter: CodeGutter
@@ -108,6 +109,7 @@ class CodeView(QPlainTextEdit):
         super().resizeEvent(event)
         self.resizeGutter()
         self.updateRubberBand()
+        self.sizeChanged.emit()
 
     def wheelEvent(self, event: QWheelEvent):
         # Drop-in replacement for QPlainTextEdit::wheelEvent which scales text

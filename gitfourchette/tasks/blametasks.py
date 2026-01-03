@@ -186,7 +186,11 @@ class AnnotateFile(RepoTask):
 
         # Load the annotated file
         if node.annotatedFile is None:
-            yield from self.buildAnnotatedFile(blameModel, node)
+            blameWindow.busySpinner.start()
+            try:
+                yield from self.buildAnnotatedFile(blameModel, node)
+            finally:
+                blameWindow.busySpinner.stop()
             assert node.annotatedFile is not None
 
         # Figure out which line number (QTextBlock) to scroll to

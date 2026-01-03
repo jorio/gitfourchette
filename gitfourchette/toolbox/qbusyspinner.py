@@ -46,6 +46,7 @@ class QBusySpinner(QWidget):
         self._lineLength = 4
         self._lineWidth = 2
         self._innerRadius = 2
+        self._haloThickness = 0
         self._currentCounter = 0
         self._isSpinning = False
 
@@ -68,9 +69,18 @@ class QBusySpinner(QWidget):
             self._currentCounter = 0
 
         painter.setPen(Qt.PenStyle.NoPen)
+
+        offset = self._innerRadius + self._lineLength + self._haloThickness
+
+        if self._haloThickness > 0:
+            haloColor = QApplication.palette().color(QPalette.ColorGroup.Normal, QPalette.ColorRole.Base)
+            haloColor.setAlphaF(.85)
+            painter.setBrush(haloColor)
+            painter.drawEllipse(0, 0, 2 * offset, 2 * offset)
+
         for i in range(0, self._numberOfLines):
             painter.save()
-            painter.translate(self._innerRadius + self._lineLength, self._innerRadius + self._lineLength)
+            painter.translate(offset, offset)
             rotateAngle = float(360 * i) / float(self._numberOfLines)
             painter.rotate(rotateAngle)
             painter.translate(self._innerRadius, 0)
@@ -78,7 +88,7 @@ class QBusySpinner(QWidget):
             color = self.currentLineColor(distance, self._numberOfLines, self._trailFadePercentage,
                                           self._minimumTrailOpacity, self._color)
             painter.setBrush(color)
-            rect = QRect(0, int(-self._lineWidth / 2), int(self._lineLength), int(self._lineWidth))
+            rect = QRectF(0, -self._lineWidth / 2, self._lineLength, self._lineWidth)
             painter.drawRect(rect)
             painter.restore()
 
@@ -120,6 +130,10 @@ class QBusySpinner(QWidget):
 
     def setInnerRadius(self, radius):
         self._innerRadius = radius
+        self.updateSize()
+
+    def setHaloThickness(self, radius):
+        self._haloThickness = radius
         self.updateSize()
 
     def color(self):
@@ -169,7 +183,7 @@ class QBusySpinner(QWidget):
         self.update()
 
     def updateSize(self):
-        size = int((self._innerRadius + self._lineLength) * 2)
+        size = int((self._innerRadius + self._lineLength + self._haloThickness) * 2)
         self.setFixedSize(size, size)
 
     def updateTimer(self):

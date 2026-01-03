@@ -8,6 +8,7 @@ from gitfourchette.application import GFApplication
 from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
 from gitfourchette.blameview.blamescrubber import BlameScrubber
 from gitfourchette.blameview.blametextedit import BlameTextEdit
+from gitfourchette.blameview.blamebusyspinner import BlameBusySpinner
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory, NavFlags
@@ -101,6 +102,9 @@ class BlameWindow(QWidget):
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        self.busySpinner = BlameBusySpinner(self.textEdit)
+        self.textEdit.sizeChanged.connect(self.busySpinner.reposition)
 
         app = GFApplication.instance()
         app.mouseSideButtonPressed.connect(self.onMouseSideButtonPressed)
