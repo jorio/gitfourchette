@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -125,11 +125,6 @@ class AboutDialog(QDialog):
             _("Brought to your native language by:") + translatorCredits,
 
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
-
-            _("Portions of this software are based on {lib}, used under {lic}, {copyright}.",
-              lib=linkify("QtWaitingSpinner", "https://github.com/z3ntu/QtWaitingSpinner"),
-              lic=linkify(_("MIT license"), "https://github.com/z3ntu/QtWaitingSpinner/blob/055517b18/LICENSE.md"),
-              copyright="© Alexander Turkin, William Hallatt, Jacob Dawid, Luca Weiss"),
         ]
 
         self.ui.ackBlurb.setText(paragraphs(ackText))

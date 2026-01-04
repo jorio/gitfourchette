@@ -1,0 +1,10 @@
+<svg stroke="gray" stroke-linecap="round" stroke-width="2" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<path stroke-opacity="0.625" d="m12.95 3.05-2.12 2.12"/>
+<path stroke-opacity="0.750" d="m12 8h3"/>
+<path stroke-opacity="0.875" d="m12.95 12.95-2.12-2.12"/>
+<path stroke-opacity="1.000" d="m8 15v-3"/>
+<path stroke-opacity="0.125" d="m3.05 12.95 2.12-2.12"/>
+<path stroke-opacity="0.250" d="m1 8h3"/>
+<path stroke-opacity="0.375" d="m3.05 3.05 2.12 2.12"/>
+<path stroke-opacity="0.500" d="m8 4v-3"/>
+</svg>

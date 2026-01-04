@@ -73,7 +73,6 @@ omit = [
     "gitfourchette/toolbox/excutils.py",  # uncaught exception formatters (shouldn't be needed if all tests pass!)
     "gitfourchette/toolbox/benchmark.py",
     "gitfourchette/toolbox/memoryindicator.py",
-    "gitfourchette/toolbox/qbusyspinner.py",
     "gitfourchette/forms/ui_*.py",  # pyuic generated code
 ]
 

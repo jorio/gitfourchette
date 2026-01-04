@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -26,8 +26,7 @@ class QStatusBar2(QStatusBar):
         self.busyMessageDelayer.timeout.connect(self.commitBusyMessage)
 
         self.busyWidget = QWidget(self)
-        self.busySpinner = QBusySpinner(self.busyWidget, centerOnParent=False)
-        self.busySpinner.stop()
+        self.busySpinner = QBusySpinner(self.busyWidget)
         self.busyLabel = QLabel(self.busyWidget)
         # Emojis such as the lightbulb may increase the label's height
         self.busyWidget.setMaximumHeight(self.fontMetrics().height())
@@ -38,6 +37,7 @@ class QStatusBar2(QStatusBar):
         layout.addWidget(self.busyLabel, 1)
 
         self.busyWidget.setVisible(False)
+        self.isBusyMessageSet = False
 
     def showMessage(self, text: str, msecs=0):
         if self.busyMessageDelayer.isActive():
@@ -48,37 +48,29 @@ class QStatusBar2(QStatusBar):
 
         super().showMessage(text, msecs)
 
-    @property
-    def isBusyMessageVisible(self):
-        # Temporary messages take precedence over busySpinner/busyWidget, so
-        # those widgets might be invisible even though a message is set.
-        # So, busySpinner.isSpinning is a better way to check that a message
-        # is currently set than .isVisible.
-        return self.busySpinner.isSpinning()
-
     def showBusyMessage(self, text: str):
         self.busyLabel.setText(text)
-        if not self.isBusyMessageVisible and not self.busyMessageDelayer.isActive():
+        if not self.isBusyMessageSet and not self.busyMessageDelayer.isActive():
             self.busyMessageDelayer.start()
 
     def commitBusyMessage(self):
         self.busyMessageDelayer.stop()
 
-        if self.busySpinner.isSpinning():
-            # Spinner is already spinning: busy widget already visible.
+        if self.isBusyMessageSet:
             return
 
         # Replace permanent status message with our busyWidget
         # which includes the spinner and the busy message.
-        self.busySpinner.start()
+        self.isBusyMessageSet = True
+        self.busySpinner.setVisible(True)
         self.busyWidget.setVisible(True)
         self.insertPermanentWidget(0, self.busyWidget, 1)
 
     def clearMessage(self):
         self.busyMessageDelayer.stop()
 
-        if self.isBusyMessageVisible:
-            self.busySpinner.stop()
+        if self.isBusyMessageSet:
+            self.isBusyMessageSet = False
             self.removeWidget(self.busyWidget)
             self.busyWidget.setVisible(False)
 
