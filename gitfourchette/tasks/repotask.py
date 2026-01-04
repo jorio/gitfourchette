@@ -212,8 +212,10 @@ class RepoTask(QObject):
     _currentIteration: int
 
     _taskStack: list[RepoTask]
-    """Stack of active tasks in the chain of flowSubtask calls, including the root task at index 0.
-    The reference to the list object is shared by all tasks in the same flowSubtask chain."""
+    """ Chain of nested subtasks. The reference to this object is shared by all
+    subtasks in the same chain. (This is implemented as a FIFO stack of active
+    tasks in the chain of nested 'flowSubtask' calls, including the root task at
+    index 0.) """
 
     @classmethod
     def name(cls) -> str:
@@ -237,7 +239,7 @@ class RepoTask(QObject):
         self._currentProcess = None
         self._postStatus = ""
         self._postStatusLocked = False
-        self._taskStack = [self]
+        self._taskStack = [self]  # will be replaced by shared reference
         self._runningOnUiThread = True  # for debugging
 
     @property
@@ -251,7 +253,16 @@ class RepoTask(QObject):
 
     @property
     def currentProcess(self) -> QProcess | None:
-        return self.rootTask._currentProcess
+        """
+        Return the currently-running QProcess in this chain of subtasks, or None
+        if no process is running in this chain. There can only be up to a single
+        running process per chain, and new subtasks cannot be started while a
+        process is running.
+        """
+        assert not any(t._currentProcess for t in self._taskStack[:-1]), \
+            "only the last subtask may own a running process"
+
+        return self._taskStack[-1]._currentProcess
 
     def parentWidget(self) -> QWidget:
         return findParentWidget(self)
@@ -430,7 +441,7 @@ class RepoTask(QObject):
         if not self._isRunningOnAppThread():
             yield FlowControlToken(FlowControlToken.Kind.ContinueOnUiThread)
 
-        # Pop subtask off stack
+        # Pop subtask off chain of subtasks
         rc = self._popSubtask()
         assert rc is subtask
 
@@ -442,6 +453,10 @@ class RepoTask(QObject):
 
         # Pop last subtask off stack
         subtask = self._taskStack.pop()
+
+        # Clear out reference to shared list
+        assert subtask._taskStack is self._taskStack, "subtask not in same chain as root task?"
+        subtask._taskStack = None
 
         # Percolate effect bits to caller task
         self.effects |= subtask.effects
@@ -481,10 +496,10 @@ class RepoTask(QObject):
 
     def flowStartProcess(self, process: QProcess, autoFail=True) -> Generator[FlowControlToken, None, None]:
         assert self._isRunningOnAppThread(), "start processes from UI thread"
-        assert self.currentProcess is None, "a process is already running in this task"
+        assert not any(t.currentProcess for t in self._taskStack), \
+            "a process is already running in this subtask chain"
 
-        self.rootTask._currentProcess = process
-
+        self._currentProcess = process
         processWrapper = ProcessWrapper(process, self)
         processWrapper.continueCoroutine.connect(self.uiReady)
 
@@ -492,7 +507,7 @@ class RepoTask(QObject):
             yield from processWrapper.coStart()
             yield from processWrapper.coWaitDone(autoFail)
         finally:
-            self.rootTask._currentProcess = None
+            self._currentProcess = None
             processWrapper.deleteLater()
 
     def flowCallGit(
@@ -1079,6 +1094,8 @@ class RepoTaskRunner(QObject):
         assert task in task._taskStack
         while task._taskStack:
             task._popSubtask()
+
+        assert task._taskStack is None, "popping all subtasks should have cleared reference to chain"
 
         task.uiReady.disconnect()
 
