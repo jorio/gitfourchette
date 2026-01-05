@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import weakref
 
 from gitfourchette.graph import Graph, GraphWeaver
 from gitfourchette.nav import NavLocator
@@ -23,6 +24,7 @@ class BlameModel:
     currentTraceNode: TraceNode
     currentBlame: AnnotatedFile
     graph: Graph
+    currentTask: weakref.ref | None
 
     @property
     def nodeSequence(self):
@@ -32,6 +34,7 @@ class BlameModel:
         self.taskInvoker = taskInvoker
         self.repoModel = repoModel
         self.trace = trace
+        self.currentTask = None
 
         # Create graph
         self.graph, graphWeaver = GraphWeaver.newGraph()

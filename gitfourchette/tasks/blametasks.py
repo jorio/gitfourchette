@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import weakref
 from typing import TYPE_CHECKING
 
 from gitfourchette import settings
@@ -157,10 +158,22 @@ class OpenBlame(RepoTask):
 
 
 class AnnotateFile(RepoTask):
+    def broadcastProcesses(self) -> bool:
+        # Don't show ProcessDialog when switching to another revision
+        return False
+
+    def canKill(self, task: RepoTask) -> bool:
+        # Allow interrupting a blame by switching to another revision via the
+        # scrubber or nav buttons
+        return isinstance(task, AnnotateFile) or super().canKill(task)
+
     def flow(self, blameWindow: BlameWindow, node: TraceNode,
              saveFilePositionFirst: bool,
              transposeFilePosition: bool):
         blameModel = blameWindow.model
+
+        # Keep track of this task so BlameWindow can kill it upon closing
+        blameModel.currentTask = weakref.ref(self)
 
         # Stop lexing BEFORE changing the document!
         blameWindow.textEdit.highlighter.stopLexJobs()
@@ -170,11 +183,9 @@ class AnnotateFile(RepoTask):
             saveFilePositionFirst = False
             transposeFilePosition = False
 
-        # Update current locator
+        # Save current locator in nav history
         if saveFilePositionFirst:
             blameWindow.saveFilePosition()
-
-        blameModel.currentTraceNode = node
 
         # Update scrubber
         # Heads up: Look up scrubber row from the sequence of nodes, not via
@@ -184,14 +195,23 @@ class AnnotateFile(RepoTask):
         with QSignalBlockerContext(blameWindow.scrubber):
             blameWindow.scrubber.setCurrentIndex(scrubberIndex)
 
-        # Load the annotated file
+        # Sync back/forward/newer/older states with scrubber and history BEFORE
+        # loading the file to keep the user from spamming a button that's
+        # supposed to be disabled.
+        blameWindow.syncNavButtons()
+
+        # Load the annotated revision if we haven't cached it before.
+        # Note that the user can kill the task here, either by closing the
+        # BlameWindow, or by switching to another commit using the scrubber
+        # or nav buttons.
         if node.annotatedFile is None:
             blameWindow.busySpinner.start()
-            try:
-                yield from self.buildAnnotatedFile(blameModel, node)
-            finally:
-                blameWindow.busySpinner.stop()
+            yield from self.buildAnnotatedFile(blameModel, node)
             assert node.annotatedFile is not None
+
+        # OK, we haven't been interrupted and we're ready to display the file.
+        # Make this TraceNode current in the model.
+        blameModel.currentTraceNode = node
 
         # Figure out which line number (QTextBlock) to scroll to
         topBlock = blameWindow.textEdit.topLeftCornerCursor().blockNumber()
@@ -239,6 +259,7 @@ class AnnotateFile(RepoTask):
             blameWindow.textEdit.highlighter.installLexJob(lexJob)
             blameWindow.textEdit.highlighter.rehighlight()
 
+        blameWindow.busySpinner.stop()
         blameWindow.syncNavButtons()
 
     def buildAnnotatedFile(self, blameModel: BlameModel, node: TraceNode):

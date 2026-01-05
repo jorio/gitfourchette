@@ -7,6 +7,8 @@
 import dataclasses
 import shutil
 import textwrap
+from contextlib import suppress
+
 import pytest
 
 from collections.abc import Generator
@@ -69,7 +71,10 @@ def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
     blameWindow._unitTestRepoWidget = rw
     yield blameWindow
 
-    blameWindow.close()
+    with suppress(RuntimeError):  # The test may have deleted the window already
+        if blameWindow.isVisible():  # Only close if the test hasn't closed the window itself (Qt 5 compat)
+            blameWindow.close()
+
     if QT5:  # Qt 5 needs a breather here to actually close window
         QTest.qWait(0)
 
@@ -275,11 +280,6 @@ def testBlameGutterToolTips(blameWindow):
     # Jump to uncommitted changes
     qcbSetIndex(blameWindow.scrubber, "uncommitted")
 
-    # Loading the blame for UC may have opened a progress dialog. In this case,
-    # offscreen mode is finicky - we must restore the active window manually.
-    blameWindow.activateWindow()
-    waitUntilTrue(blameWindow.isActiveWindow)
-
     blameWindow.textEdit.setFocus()
     assert blameWindow.textEdit.hasFocus()
 
@@ -413,6 +413,48 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     # Go up 1 revision - 'foo' line was deleted, so rely on raw line numbers.
     blameWindow.newerButton.click()
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"
+
+
+def testInterruptLongBlame(blameWindow, taskThread):
+    assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
+    assert "ciao" not in blameWindow.textEdit.toPlainText()
+
+    # Start loading blame for uncommitted changes, which will take a while
+    with DelayGitCommandContext():
+        qcbSetIndex(blameWindow.scrubber, "uncommitted")
+
+    # Wait a bit, but don't let the task run to completion
+    QTest.qWait(500)
+
+    # Scrubber/nav buttons should be in sync with the commit we're attempting to display
+    assert "Uncommitted" in blameWindow.scrubber.currentText()
+    assert blameWindow.olderButton.isEnabled()
+    assert not blameWindow.newerButton.isEnabled()
+
+    # The new text isn't loaded yet
+    assert "ciao mondo" not in blameWindow.textEdit.toPlainText()
+    assert blameWindow.busySpinner.isVisible()
+
+    # Interrupt the task by jumping to another commit
+    qcbSetIndex(blameWindow.scrubber, "first commit")
+    waitUntilTrue(lambda: "hello world" == blameWindow.textEdit.toPlainText().strip())
+    assert not blameWindow.busySpinner.isVisible()
+
+
+def testAbortLongBlame(blameWindow, taskThread):
+    assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
+    assert "ciao" not in blameWindow.textEdit.toPlainText()
+
+    # Start loading blame for uncommitted changes, which will take a while
+    with DelayGitCommandContext(delay=2):
+        qcbSetIndex(blameWindow.scrubber, "uncommitted")
+
+    # Wait a bit, but don't let the task run to completion
+    QTest.qWait(500)
+
+    rw = blameWindow.repoWidget
+    blameWindow.close()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
 
 # -----------------------------------------------------------------------------
