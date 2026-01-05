@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -61,6 +61,7 @@ class SpecialDiffError:
         self.preformatted = preformatted
         self.longform = longform
         self.links = DocumentLinks()
+        self.taskInvoker = None
 
     @staticmethod
     def noChange(delta: GitDelta, stderr: str = ""):
@@ -331,7 +332,7 @@ class SpecialDiffError:
 
             # Tell about any uncommitted changes
             if delta.submoduleWorkdirDirty:
-                discardLink = specialDiff.links.new(lambda invoker: DiscardFiles.invoke(invoker, [delta]))
+                discardLink = specialDiff.links.new(lambda: DiscardFiles.invoke(specialDiff.taskInvoker, [delta]))
 
                 if isTree:
                     uc1 = _("The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:")

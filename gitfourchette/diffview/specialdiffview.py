@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -34,7 +34,7 @@ class SpecialDiffView(QTextBrowser):
         self.htmlHeader = "<html><style>a { font-weight: bold; }</style>" + settings.prefs.addDelColorsStyleTag()
 
     def onAnchorClicked(self, link: QUrl):
-        if self.documentLinks is not None and self.documentLinks.processLink(link, self):
+        if self.documentLinks is not None and self.documentLinks.processLink(link):
             return
         self.linkActivated.emit(link)
 
@@ -79,6 +79,9 @@ class SpecialDiffView(QTextBrowser):
 
         assert self.documentLinks is None
         self.documentLinks = err.links
+
+        # Let DocumentLinks callbacks invoke RepoTasks using this QObject chain
+        err.taskInvoker = document
 
     def displayImageDiff(self, delta: GitDelta, imageA: QImage, imageB: QImage):
         document = QTextDocument(self)

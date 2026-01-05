@@ -1,10 +1,9 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import base64
 import itertools
 import os
 from collections.abc import Callable
@@ -467,21 +466,26 @@ class DocumentLinks:
     Bundle of ad-hoc links bound to callback functions.
     """
 
-    AUTHORITY = "adhoc"
+    UrlAuthority = "adhoc"
 
     def __init__(self):
         self.callbacks = {}
 
-    def new(self, func: Callable[[QObject], None]) -> str:
-        key = base64.urlsafe_b64encode(os.urandom(16)).decode("ascii")
-        self.callbacks[key] = func
-        return makeInternalLink(self.AUTHORITY, urlPath="", urlFragment=key)
+    def new(self, callback: Callable[[], None]) -> str:
+        key = QUuid.createUuid().toString(QUuid.StringFormat.WithoutBraces)
+        self.callbacks[key] = callback
+        return makeInternalLink(self.UrlAuthority, urlFragment=key)
 
-    def processLink(self, url: QUrl | str, invoker: QObject) -> bool:
+    def processLink(self, url: QUrl | str) -> bool:
+        # Convert to QUrl so we can extract elements from it
         if isinstance(url, str):
             url = QUrl(url)
-        if url.scheme() == APP_URL_SCHEME and url.authority() == self.AUTHORITY:
-            cb = self.callbacks[url.fragment()]
-            cb(invoker)
-            return True
-        return False
+
+        # Let something else process this link if it's not for us
+        if url.scheme() != APP_URL_SCHEME or url.authority() != self.UrlAuthority:
+            return False
+
+        key = url.fragment()
+        callback = self.callbacks[key]
+        callback()
+        return True

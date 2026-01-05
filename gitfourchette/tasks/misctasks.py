@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import logging
 import re
+from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
 
@@ -66,13 +67,26 @@ class GetCommitInfo(RepoTask):
         dateText = signatureDateFormat(sig)
         return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
 
-    def flow(self, oid: Oid, withDebugInfo=False, dialogParent: QWidget | None = None):
+    def defaultJumpCallback(self, locator: NavLocator):
+        self.jumpTo = locator
+
+    def flow(
+            self,
+            oid: Oid,
+            withDebugInfo: bool = False,
+            jumpCallback: Callable[[NavLocator], None] | None = None,
+    ):
+        if jumpCallback is None:
+            jumpCallback = self.defaultJumpCallback
+
+        linkBundle = DocumentLinks()
+
         def commitLink(commitId):
             if commitId == UC_FAKEID:
-                commitLocator = NavLocator.inWorkdir()
+                locator = NavLocator.inWorkdir()
             else:
-                commitLocator = NavLocator.inCommit(commitId)
-            link = commitLocator.url()
+                locator = NavLocator.inCommit(commitId)
+            link = linkBundle.new(lambda: jumpCallback(locator))
             html = linkify(shortHash(commitId), link)
             return html
 
@@ -154,10 +168,9 @@ class GetCommitInfo(RepoTask):
         <table>{table}</table>
         """
 
-        dialogParent = dialogParent or self.parentWidget()
         messageBox = asyncMessageBox(
-            dialogParent, 'information', title, markup, macShowTitle=False,
-            buttons=QMessageBox.StandardButton.Ok)
+            self.parentWidget(), "information", title, markup,
+            buttons=QMessageBox.StandardButton.Ok, macShowTitle=False)
 
         if details:
             messageBox.setDetailedText(details)
@@ -174,16 +187,10 @@ class GetCommitInfo(RepoTask):
         label: QLabel = messageBox.findChild(QLabel, "qt_msgbox_label")
         assert label
         label.setOpenExternalLinks(False)
-        label.linkActivated.connect(self.rw.processInternalLink)
+        label.linkActivated.connect(linkBundle.processLink)
         label.linkActivated.connect(messageBox.accept)
 
-        messageBox.show()
-
-        # Instead of yielding `flowDialog`, let `messageBox` outlive the task so
-        # that the user can trigger other tasks while `messageBox` is open above
-        # a non-MainWindow (like BlameWindow). We still need a dummy yield here
-        # to satisfy the requirement that `flow` be a generator.
-        yield from self.flowEnterUiThread()
+        yield from self.flowDialog(messageBox)
 
 
 class VerifyGpgSignature(RepoTask):

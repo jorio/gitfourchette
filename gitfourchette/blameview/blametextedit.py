@@ -59,10 +59,13 @@ class BlameTextEdit(CodeView):
             ),
 
             TaskBook.action(
-                self.model.taskInvoker,
+                self,
                 GetCommitInfo,
-                taskArgs=[commitId, False, self.window()],
+                taskArgs=[commitId, False, self.onGetInfoLocator],
                 icon="SP_MessageBoxInformation",
                 enabled=canInvoke and not isWorkdir,
             ),
         ]
+
+    def onGetInfoLocator(self, locator: NavLocator):
+        self.jumpToCommit.emit(locator)

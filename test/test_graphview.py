@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -193,8 +193,8 @@ def testCommitInfoJumpToParent(tempDir, mainWindow):
     qmb = findQMessageBox(rw, "Merge branch 'a' into c")
 
     # Click on a "parent" link; this should close the message box and jump to another commit
-    label: QLabel = qmb.findChild(QLabel, "qt_msgbox_label")
-    parentLink = re.search(r'<a href="(.*6462e7d\S+)">', label.text(), re.I).group(1)
+    label = qmb.findChild(QLabel, "qt_msgbox_label")
+    parentLink = re.search(r'<a href="(.*\S+)">6462e7d.+</a>', label.text(), re.I).group(1)
     label.linkActivated.emit(parentLink)
     assert rw.navLocator.commit == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
 
