@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.application import GFApplication
-from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
+from gitfourchette.blameview.blamemodel import BlameModel, Revision
 from gitfourchette.blameview.blamescrubber import BlameScrubber
 from gitfourchette.blameview.blametextedit import BlameTextEdit
 from gitfourchette.blameview.blamebusyspinner import BlameBusySpinner
@@ -95,7 +95,7 @@ class BlameWindow(QWidget):
         self.setTabOrder(self.olderButton, self.newerButton)
         self.setTabOrder(self.newerButton, self.textEdit)
 
-        self.textEdit.selectNode.connect(self.setTraceNode)
+        self.textEdit.showRevision.connect(self.showRevision)
         self.textEdit.jumpToCommit.connect(self.jumpToCommit)
 
         self.setWindowModality(Qt.WindowModality.NonModal)
@@ -132,9 +132,9 @@ class BlameWindow(QWidget):
         self.navHistory.push(currentLocator)
         return currentLocator
 
-    def setTraceNode(self, node: TraceNode, saveFilePositionFirst=True, transposeFilePosition=True):
-        from gitfourchette.tasks.blametasks import AnnotateFile
-        invocation = TaskInvocation(self, AnnotateFile, node, saveFilePositionFirst, transposeFilePosition)
+    def showRevision(self, revision: Revision, saveAndTransposePosition=True):
+        from gitfourchette.tasks.blametasks import BlameRevision
+        invocation = TaskInvocation(self, BlameRevision, revision, saveAndTransposePosition)
         self.taskRunner.put(invocation)
 
     def syncNavButtons(self):
@@ -149,15 +149,15 @@ class BlameWindow(QWidget):
 
     def goNewer(self):
         if QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.ShiftModifier:
-            topNode = self.model.nodeSequence[0]
-            self.setTraceNode(topNode)
+            topRevision = self.model.revList.sequence[0]
+            self.showRevision(topRevision)
         else:
             self.goNewerOrOlder(-1)
 
     def goOlder(self):
         if QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.ShiftModifier:
-            bottomNode = self.model.nodeSequence[-1]
-            self.setTraceNode(bottomNode)
+            bottomRevision = self.model.revList.sequence[-1]
+            self.showRevision(bottomRevision)
         else:
             self.goNewerOrOlder(1)
 
@@ -171,26 +171,26 @@ class BlameWindow(QWidget):
         index = self.scrubber.currentIndex()
         index += delta
         assert 0 <= index < self.scrubber.count()
-        node = self.getTraceNodeFromScrubberRow(index)
-        self.setTraceNode(node)
+        revision = self.getRevisionFromScrubberRow(index)
+        self.showRevision(revision)
 
     def goBackOrForwardDelta(self, delta: int):
         self.saveFilePosition()
         locator = self.navHistory.navigateDelta(delta)
         if not locator:
             return
-        node = self.model.trace.nodeForCommit(locator.commit)
-        self.setTraceNode(node, saveFilePositionFirst=False, transposeFilePosition=False)
+        revision = self.model.revList.revisionForCommit(locator.commit)
+        self.showRevision(revision, saveAndTransposePosition=False)
 
     def onScrubberActivated(self, index: int):
-        node = self.getTraceNodeFromScrubberRow(index)
-        self.setTraceNode(node)
+        revision = self.getRevisionFromScrubberRow(index)
+        self.showRevision(revision)
 
-    def getTraceNodeFromScrubberRow(self, index: int) -> TraceNode:
-        return self.scrubber.itemData(index, CommitLogModel.Role.TraceNode)
+    def getRevisionFromScrubberRow(self, index: int) -> Revision:
+        return self.scrubber.itemData(index, CommitLogModel.Role.BlameRevision)
 
     def jumpToCommit(self, locator: NavLocator = NavLocator.Empty):
         if locator == NavLocator.Empty:
-            locator = self.model.currentLocator
+            locator = self.model.currentRevision.toLocator()
         locator = locator.withExtraFlags(NavFlags.ActivateWindow)
         self.exploreCommit.emit(locator)

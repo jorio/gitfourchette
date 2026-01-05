@@ -18,29 +18,27 @@ from gitfourchette.qt import *
 
 class BlameModel:
     repoModel: RepoModel
-    trace: Trace
-    currentBlame: AnnotatedFile
+    revList: RevList
     graph: Graph
+    currentRevision: Revision
+    revsFile: QTemporaryFile
 
-    @property
-    def nodeSequence(self):
-        return self.trace.sequence
-
-    def __init__(self, repoModel: RepoModel, trace: Trace):
+    def __init__(self, repoModel: RepoModel, revList: RevList):
         self.repoModel = repoModel
-        self.trace = trace
+        self.revList = revList
 
         # Create graph
         self.graph, graphWeaver = GraphWeaver.newGraph()
-        for node in trace.sequence:
-            graphWeaver.newCommit(node.commitId, node.parentIds)
-            self.graph.commitRows[node.commitId] = graphWeaver.row
+        for revision in revList.sequence:
+            graphWeaver.newCommit(revision.commitId, revision.parentIds)
+            self.graph.commitRows[revision.commitId] = graphWeaver.row
 
-        self.currentTraceNode = trace.sequence[0]  # fall back to newest commit
+        # Fall back to newest revision
+        self.currentRevision = revList.sequence[0]
 
         if APP_DEBUG:
-            allCommitIds = {node.commitId for node in trace.sequence}
-            assert len(allCommitIds) == len(trace.sequence), "duplicate commits in sequence"
+            allCommitIds = {revision.commitId for revision in revList.sequence}
+            assert len(allCommitIds) == len(revList.sequence), "duplicate commits in sequence"
             self.graph.testConsistency()
 
         # Dump revs file to speed up calls to 'git blame'
@@ -48,29 +46,28 @@ class BlameModel:
         revsFileTemplate = os.path.join(qTempDir(), "blamerevs-XXXXXX.txt")
         self.revsFile = QTemporaryFile(revsFileTemplate, None)
         self.revsFile.open()
-        self.revsFile.write(trace.serializeRevisionList().encode("utf-8"))
+        self.revsFile.write(revList.serializeRevisionList().encode("utf-8"))
         self.revsFile.close()
 
     @property
     def repo(self) -> Repo:
         return self.repoModel.repo
 
-    @property
-    def currentBlame(self) -> AnnotatedFile:
-        return self.currentTraceNode.annotatedFile
-
-    @property
-    def currentLocator(self) -> NavLocator:
-        return self.currentTraceNode.toLocator()
-
 
 @dataclasses.dataclass
-class TraceNode:
+class Revision:
+    @dataclasses.dataclass(frozen=True)
+    class BlameLine:
+        commitId: Oid
+        originalLineNumber: int
+
     path: str
     commitId: Oid
     parentIds: list[Oid] = dataclasses.field(default_factory=list)
-    annotatedFile: AnnotatedFile | None = None
     status: str = "M"
+    blameLines: list[BlameLine] = dataclasses.field(default_factory=list)
+    fullText: str | None = None
+    binary: bool = False
 
     def toLocator(self) -> NavLocator:
         if self.commitId == UC_FAKEID:
@@ -78,68 +75,13 @@ class TraceNode:
         else:
             return NavLocator.inCommit(self.commitId, self.path)
 
+    def isAnnotated(self) -> bool:
+        return bool(self.blameLines)
 
-class Trace:
-    sequence: list[TraceNode]
-    byCommit: dict[Oid, TraceNode]
-    nonTipCommits: set[Oid]
+    def findLine(self, target: BlameLine, start: int, searchRange: int = 250) -> int:
+        assert self.isAnnotated()
 
-    def __init__(self):
-        self.sequence = []
-        self.byCommit = {}
-        self.nonTipCommits = set()
-
-    def insert(self, index: int, node: TraceNode):
-        self.sequence.insert(index, node)
-        self.byCommit[node.commitId] = node
-
-    def push(self, node: TraceNode):
-        self.sequence.append(node)
-        self.byCommit[node.commitId] = node
-
-    def __len__(self):
-        return len(self.sequence)
-
-    def nodeForCommit(self, oid: Oid):
-        return self.byCommit[oid]
-
-    def revisionNumber(self, oid: Oid) -> int:
-        node = self.byCommit[oid]
-        index = self.sequence.index(node)
-        return len(self.sequence) - index
-
-    def serializeRevisionList(self) -> str:
-        """ Serialize the file's commit history (including parent rewriting)
-        in a format suitable for "git blame -S <revs-file>". """
-        lines = []
-        for node in self.sequence:
-            lines.append(f"{node.commitId} {' '.join(str(p) for p in node.parentIds)}")
-        return "\n".join(lines)
-
-
-class AnnotatedFile:
-    @dataclasses.dataclass(frozen=True)
-    class Line:
-        commitId: Oid
-        originalLineNumber: int
-
-    binary: bool
-    lines: list[Line]
-    fullText: str | None
-
-    def __init__(self, node: TraceNode):
-        sentinel = AnnotatedFile.Line(node.commitId, 0)
-        self.lines = [sentinel]
-        self.binary = False
-        self.fullText = None
-
-    @property
-    def commitId(self):
-        # Get commit ID from sentinel line
-        return self.lines[0].commitId
-
-    def findLine(self, target: Line, start: int, searchRange: int = 250) -> int:
-        lines = self.lines
+        lines = self.blameLines
         count = len(lines)
         start = min(start, count - 1)
         searchRange = min(searchRange, count)
@@ -156,3 +98,42 @@ class AnnotatedFile:
             hi += 1
 
         raise ValueError("annotated line not found within given range")
+
+
+class RevList:
+    sequence: list[Revision]
+    byCommit: dict[Oid, Revision]
+    nonTipCommits: set[Oid]
+
+    def __init__(self):
+        self.sequence = []
+        self.byCommit = {}
+        self.nonTipCommits = set()
+
+    def insert(self, index: int, revision: Revision):
+        self.sequence.insert(index, revision)
+        self.byCommit[revision.commitId] = revision
+
+    def push(self, revision: Revision):
+        self.sequence.append(revision)
+        self.byCommit[revision.commitId] = revision
+
+    def __len__(self):
+        return len(self.sequence)
+
+    def revisionForCommit(self, oid: Oid):
+        return self.byCommit[oid]
+
+    def revisionNumber(self, oid: Oid) -> int:
+        revision = self.byCommit[oid]
+        index = self.sequence.index(revision)
+        return len(self.sequence) - index
+
+    def serializeRevisionList(self) -> str:
+        """ Serialize the file's commit history (including parent rewriting)
+        in a format suitable for "git blame -S <revs-file>". """
+        lines = []
+        for revision in self.sequence:
+            parents = ' '.join(str(p) for p in revision.parentIds)
+            lines.append(f"{revision.commitId} {parents}")
+        return "\n".join(lines)

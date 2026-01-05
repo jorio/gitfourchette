@@ -27,35 +27,35 @@ class BlameScrubberModel(QAbstractListModel):
         return 1
 
     def rowCount(self, parent = ...) -> int:
-        return len(self.blameModel.nodeSequence)
+        return len(self.blameModel.revList.sequence)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
         assert index.isValid()
 
         row = index.row()
-        node = self.blameModel.nodeSequence[row]
+        revision = self.blameModel.revList.sequence[row]
 
         if APP_TESTMODE and role == Qt.ItemDataRole.DisplayRole:
             # DisplayRole is intended as a unit test helper only.
             # BlameScrubberDelegate doesn't render this role.
-            if node.commitId == UC_FAKEID:  # for unit tests
+            if revision.commitId == UC_FAKEID:  # for unit tests
                 return _("Uncommitted Changes in Working Directory")
-            return self.blameModel.repo.peel_commit(node.commitId).message
+            return self.blameModel.repo.peel_commit(revision.commitId).message
 
         elif role == CommitLogModel.Role.Commit:
             assert onAppThread()
             try:
-                return self.blameModel.repo.peel_commit(node.commitId)
+                return self.blameModel.repo.peel_commit(revision.commitId)
             except KeyError:
                 return None
 
         elif role == CommitLogModel.Role.Oid:
-            return node.commitId
+            return revision.commitId
 
         elif role == CommitLogModel.Role.SpecialRow:
-            return SpecialRow.UncommittedChanges if node.commitId == UC_FAKEID else SpecialRow.Commit
+            return SpecialRow.UncommittedChanges if revision.commitId == UC_FAKEID else SpecialRow.Commit
 
-        elif role == CommitLogModel.Role.TraceNode:
-            return node
+        elif role == CommitLogModel.Role.BlameRevision:
+            return revision
 
         return None

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ class CommitLogModel(QAbstractListModel):
         ToolTipZones    = Qt.ItemDataRole.UserRole + 2
         AuthorColumnX   = Qt.ItemDataRole.UserRole + 3
         SpecialRow      = Qt.ItemDataRole.UserRole + 4
-        TraceNode       = Qt.ItemDataRole.UserRole + 5  # for BlameScrubber
+        BlameRevision   = Qt.ItemDataRole.UserRole + 5  # for BlameScrubber
 
     repoModel: RepoModel
     _extraRow: SpecialRow

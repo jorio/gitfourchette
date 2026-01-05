@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from gitfourchette import settings
-from gitfourchette.blameview.blamemodel import BlameModel, Trace, TraceNode, AnnotatedFile
+from gitfourchette.blameview.blamemodel import BlameModel, RevList, Revision
 from gitfourchette.gitdriver import argsIf, GitDriver
 from gitfourchette.gitdriver.parsers import parseGitBlame
 from gitfourchette.localization import *
@@ -27,9 +27,9 @@ class OpenBlame(RepoTask):
     def flow(self, path: str, seed: Oid = NULL_OID):
         from gitfourchette.blameview.blamewindow import BlameWindow
 
-        trace = yield from self._buildTrace(path)
+        revList = yield from self._buildRevList(path)
 
-        blameModel = BlameModel(self.repoModel, trace)
+        blameModel = BlameModel(self.repoModel, revList)
 
         blameWindow = BlameWindow(blameModel)
         blameWindow.taskRunner.repoModel = self.repoModel
@@ -45,45 +45,33 @@ class OpenBlame(RepoTask):
         blameWindow.show()
         blameWindow.activateWindow()  # bring to foreground after ProcessDialog
 
-        self.postStatus = _n("{n} revision found.", "{n} revisions found.", n=len(trace))
+        self.postStatus = _n("{n} revision found.", "{n} revisions found.", n=len(revList))
 
         try:
-            startNode = trace.nodeForCommit(seed)
+            start = revList.revisionForCommit(seed)
         except KeyError:
-            startNode = blameModel.currentTraceNode
-        blameWindow.setTraceNode(startNode, False, False)
+            start = blameModel.currentRevision
+        blameWindow.showRevision(start)
 
-    def _buildTrace(self, path: str):
+    def _buildRevList(self, path: str):
         seedPath = path
 
-        trace = Trace()
+        revList = RevList()
         upperBound = NULL_OID
 
         while path:
-            node, path = yield from self._expandTrace(trace, path, upperBound)
-            if node:
-                upperBound = node.commitId
+            revision, path = yield from self._expandRevList(revList, path, upperBound)
+            if revision:
+                upperBound = revision.commitId
 
-        if len(trace) == 0:
+        if len(revList) == 0:
             raise AbortTask(_("File {0} has no history in the repository.", hquoe(seedPath)))
 
-        hasPendingChanges = (
-                seedPath in (d.old.path for d in self.repoModel.workdirStagedDeltas)
-                or seedPath in (d.new.path for d in self.repoModel.workdirStagedDeltas)
-                or seedPath in (d.new.path for d in self.repoModel.workdirUnstagedDeltas))
-        if hasPendingChanges:
-            firstNode = trace.sequence[0]
-            driver = yield from self.flowCallGit(
-                "merge-base", "--is-ancestor", str(firstNode.commitId), "HEAD",
-                autoFail=False)
-            if driver.exitCode() == 0:
-                workdirNode = TraceNode(seedPath, UC_FAKEID, parentIds=[firstNode.commitId],
-                                        status="M")  # TODO actual status char...
-                trace.insert(0, workdirNode)
+        yield from self._insertWorkdirRevision(revList, seedPath)
 
-        return trace
+        return revList
 
-    def _expandTrace(self, trace: Trace, path: str, upperBound: Oid):
+    def _expandRevList(self, revList: RevList, path: str, upperBound: Oid):
         # Notes about some of the arguments:
         # --parents
         #       Enable parent rewriting so we can build a simplified graph
@@ -111,7 +99,7 @@ class OpenBlame(RepoTask):
 
         scrollback = driver.stdoutScrollback()
 
-        node = None
+        revision = None
         bottomPath = ""
 
         for line in scrollback.splitlines():
@@ -119,30 +107,30 @@ class OpenBlame(RepoTask):
             commitId = hashes[0]
             parentIds = hashes[1:]
             try:
-                node = trace.nodeForCommit(commitId)
-                assert not node.parentIds, "existing node already has parents!!!"
-                node.parentIds = parentIds
+                revision = revList.revisionForCommit(commitId)
+                assert not revision.parentIds, "existing revision already has parents!!!"
+                revision.parentIds = parentIds
             except KeyError:
-                node = TraceNode(path, commitId, parentIds, status="M" if parentIds else "A")
-                trace.push(node)
+                revision = Revision(path, commitId, parentIds, status="M" if parentIds else "A")
+                revList.push(revision)
 
                 # Tip commit (not referred to by another commit in the trace):
                 # May be a deletion or a rename
-                if commitId not in trace.nonTipCommits:
-                    yield from self._refineWithDelta(node)
+                if commitId not in revList.nonTipCommits:
+                    yield from self._refineWithDelta(revision)
 
-            trace.nonTipCommits.update(parentIds)
+            revList.nonTipCommits.update(parentIds)
 
-        # Last node has no parents - See if it's a rename
-        if node is not None and not node.parentIds:
-            delta = yield from self._refineWithDelta(node)
+        # Last revision has no parents - See if it's a rename
+        if revision is not None and not revision.parentIds:
+            delta = yield from self._refineWithDelta(revision)
             if delta.status in "RC":
                 bottomPath = delta.old.path
 
         # TODO: If the top commit is 'R' we could expand its history upwards!
-        return node, bottomPath
+        return revision, bottomPath
 
-    def _refineWithDelta(self, node: TraceNode):
+    def _refineWithDelta(self, node: Revision):
         tokens = GitDriver.buildShowCommand(node.commitId)
         driver = yield from self.flowCallGit(*tokens)
         deltas = driver.readShowRawZ()
@@ -154,8 +142,32 @@ class OpenBlame(RepoTask):
         node.status = delta.status
         return delta
 
+    def _insertWorkdirRevision(self, revList: RevList, seedPath: str):
+        rm = self.repoModel
+        hasPendingChanges = (
+                seedPath in (d.old.path for d in rm.workdirStagedDeltas)
+                or seedPath in (d.new.path for d in rm.workdirStagedDeltas)
+                or seedPath in (d.new.path for d in rm.workdirUnstagedDeltas))
 
-class AnnotateFile(RepoTask):
+        if not hasPendingChanges:
+            return
+
+        topRev = revList.sequence[0]
+        driver = yield from self.flowCallGit(
+            "merge-base", "--is-ancestor", str(topRev.commitId), "HEAD",
+            autoFail=False)
+
+        if driver.exitCode() != 0:
+            return
+
+        wdRev = Revision(
+            seedPath, UC_FAKEID, parentIds=[topRev.commitId],
+            status="M")  # TODO actual status char...
+
+        revList.insert(0, wdRev)
+
+
+class BlameRevision(RepoTask):
     def broadcastProcesses(self) -> bool:
         # Don't show ProcessDialog when switching to another revision
         return False
@@ -163,9 +175,9 @@ class AnnotateFile(RepoTask):
     def canKill(self, task: RepoTask) -> bool:
         # Allow interrupting a blame by switching to another revision via the
         # scrubber or nav buttons
-        return isinstance(task, AnnotateFile) or super().canKill(task)
+        return isinstance(task, BlameRevision) or super().canKill(task)
 
-    def flow(self, node: TraceNode, saveFilePositionFirst: bool, transposeFilePosition: bool):
+    def flow(self, revision: Revision, saveAndTransposePosition: bool):
         from gitfourchette.blameview.blamewindow import BlameWindow
 
         blameWindow = self.parentWidget()
@@ -176,20 +188,18 @@ class AnnotateFile(RepoTask):
         # Stop lexing BEFORE changing the document!
         blameWindow.textEdit.highlighter.stopLexJobs()
 
-        previousNode = blameModel.currentTraceNode
-        if previousNode.annotatedFile is None:
-            saveFilePositionFirst = False
-            transposeFilePosition = False
+        previousRevision = blameModel.currentRevision
+        saveAndTransposePosition &= previousRevision.isAnnotated()
 
         # Save current locator in nav history
-        if saveFilePositionFirst:
+        if saveAndTransposePosition:
             blameWindow.saveFilePosition()
 
         # Update scrubber
         # Heads up: Look up scrubber row from the sequence of nodes, not via
         # scrubber.findData(commitId, CommitLogModel.Role.Oid), because this
         # compares references to Oid objects, not Oid values.
-        scrubberIndex = blameModel.nodeSequence.index(node)
+        scrubberIndex = blameModel.revList.sequence.index(revision)
         with QSignalBlockerContext(blameWindow.scrubber):
             blameWindow.scrubber.setCurrentIndex(scrubberIndex)
 
@@ -202,39 +212,38 @@ class AnnotateFile(RepoTask):
         # Note that the user can kill the task here, either by closing the
         # BlameWindow, or by switching to another commit using the scrubber
         # or nav buttons.
-        if node.annotatedFile is None:
+        if not revision.isAnnotated():
             blameWindow.busySpinner.start()
-            yield from self.buildAnnotatedFile(blameModel, node)
-            assert node.annotatedFile is not None
+            yield from self._annotate(revision, blameModel)
+            assert revision.isAnnotated()
 
         # OK, we haven't been interrupted and we're ready to display the file.
         # Make this TraceNode current in the model.
-        blameModel.currentTraceNode = node
+        blameModel.currentRevision = revision
 
         # Figure out which line number (QTextBlock) to scroll to
         topBlock = blameWindow.textEdit.topLeftCornerCursor().blockNumber()
-        if transposeFilePosition:  # Attempt to restore position across files
+        if saveAndTransposePosition:  # Attempt to restore position across files
             try:
-                oldLine = previousNode.annotatedFile.lines[1 + topBlock]
-                topBlock = node.annotatedFile.findLine(oldLine, topBlock) - 1
+                oldLine = previousRevision.blameLines[1 + topBlock]
+                topBlock = revision.findLine(oldLine, topBlock) - 1
             except (IndexError,  # Zero lines in annotatedFile ("File deleted in commit" notice)
                     ValueError):  # Could not findLineByReference
                 pass  # default to raw line number already stored in topBlock
 
         # Get file text
-        text = node.annotatedFile.fullText
-
         useLexer = False
-        if node.annotatedFile.binary:
+        if revision.binary:
             text = _("Binary blob")
             text = f"*** {text} ***"
-        elif text is None:
-            text = _("File deleted in commit {0}", shortHash(node.commitId))
+        elif revision.fullText is None:
+            text = _("File deleted in commit {0}", shortHash(revision.commitId))
             text = f"*** {text} ***"
         else:
-            useLexer = True
+            text = revision.fullText
+            useLexer = bool(text)
 
-        newLocator = blameModel.currentLocator
+        newLocator = blameModel.currentRevision.toLocator()
         newLocator = blameWindow.navHistory.refine(newLocator)
         blameWindow.navHistory.push(newLocator)  # this should update in place
 
@@ -244,18 +253,18 @@ class AnnotateFile(RepoTask):
         blameWindow.textEdit.syncViewportMarginsWithGutter()
 
         title = _("Blame {path} @ {commit} (Revision {rev}/{total})",
-                  path=tquo(node.path),
-                  commit=shortHash(node.commitId) if node.commitId else _("Uncommitted"),
-                  rev=blameModel.trace.revisionNumber(node.commitId),
-                  total=len(blameModel.trace))
+                  path=tquo(revision.path),
+                  commit=shortHash(revision.commitId) if revision.commitId else _("Uncommitted"),
+                  rev=blameModel.revList.revisionNumber(revision.commitId),
+                  total=len(blameModel.revList))
         blameWindow.setWindowTitle(title)
 
-        if transposeFilePosition:
+        if saveAndTransposePosition:
             blockPosition = blameWindow.textEdit.document().findBlockByNumber(topBlock).position()
             blameWindow.textEdit.restoreScrollPosition(blockPosition)
 
         # Install lex job
-        lexJob = self.getLexJob(node) if useLexer else None
+        lexJob = self._getLexJob(revision) if useLexer else None
         if lexJob is not None:
             blameWindow.textEdit.highlighter.installLexJob(lexJob)
             blameWindow.textEdit.highlighter.rehighlight()
@@ -263,33 +272,35 @@ class AnnotateFile(RepoTask):
         blameWindow.busySpinner.stop()
         blameWindow.syncNavButtons()
 
-    def buildAnnotatedFile(self, blameModel: BlameModel, node: TraceNode):
-        assert node.annotatedFile is None, "node annotation already built"
+    def _annotate(self, revision: Revision, blameModel: BlameModel):
+        assert not revision.isAnnotated(), "node annotation already built"
 
-        if node.status == "D":
-            node.annotatedFile = AnnotatedFile(node)
+        # Initialize list with a dummy line #0 so effective numbering can start at 1
+        dummyLine0 = Revision.BlameLine(revision.commitId, 0)
+        revision.blameLines.append(dummyLine0)
+
+        if revision.status == "D":
             return
 
         driver = yield from self.flowCallGit(
             "blame",
             "--porcelain",
-            *argsIf(node.commitId != UC_FAKEID, str(node.commitId)),
+            *argsIf(revision.commitId != UC_FAKEID, str(revision.commitId)),
             "-S", blameModel.revsFile.fileName(),
             "--",
-            node.path)
+            revision.path)
 
         stdout = driver.stdoutScrollback()
 
-        annotatedFile = AnnotatedFile(node)
         allLines = []
         binaryCheckChars = 8000  # similar to git's buffer_is_binary
 
         for hexHash, originalLineNumber, lineText in parseGitBlame(stdout):
             oid = Oid(hex=hexHash)
-            annotatedLine = AnnotatedFile.Line(oid, originalLineNumber)
-            annotatedFile.lines.append(annotatedLine)
+            annotatedLine = Revision.BlameLine(oid, originalLineNumber)
+            revision.blameLines.append(annotatedLine)
 
-            if annotatedFile.binary:
+            if revision.binary:
                 continue
 
             allLines.append(lineText)
@@ -297,33 +308,32 @@ class AnnotateFile(RepoTask):
             if binaryCheckChars < 0:
                 pass
             elif lineText.find("\0", 0, binaryCheckChars) >= 0:
-                annotatedFile.binary = True
+                revision.binary = True
                 allLines.clear()  # don't care about the text anymore
             else:
                 binaryCheckChars -= len(lineText)
 
-        if not annotatedFile.binary:
-            annotatedFile.fullText = "".join(allLines)
-
-        node.annotatedFile = annotatedFile
+        if not revision.binary:
+            revision.fullText = "".join(allLines)
 
     @staticmethod
-    def getLexJob(node: TraceNode) -> LexJob | None:
+    def _getLexJob(revision: Revision) -> LexJob | None:
         if not settings.prefs.isSyntaxHighlightingEnabled():
             return None
 
-        cacheKey = f"blame:{node.commitId}:{node.path}"
+        assert revision.fullText
+        cacheKey = f"blame:{revision.commitId}:{revision.path}"
 
         try:
             return LexJobCache.get(cacheKey)
         except KeyError:
             pass
 
-        lexer = LexerCache.getLexerFromPath(node.path, settings.prefs.pygmentsPlugins)
+        lexer = LexerCache.getLexerFromPath(revision.path, settings.prefs.pygmentsPlugins)
         if lexer is None:
             return None
 
-        lexJob = LexJob(lexer, node.annotatedFile.fullText, cacheKey)
+        lexJob = LexJob(lexer, revision.fullText, cacheKey)
         if lexJob is None:
             return None
 

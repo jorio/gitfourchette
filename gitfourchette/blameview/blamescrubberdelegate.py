@@ -21,7 +21,7 @@ class BlameScrubberDelegate(CommitLogDelegate):
         super().__init__(repoModel=blameModel.repoModel, parent=parent)
 
     def isBold(self, oid: Oid) -> bool:
-        return not self.singleItem and oid == self.blameModel.currentTraceNode.commitId
+        return not self.singleItem and oid == self.blameModel.currentRevision.commitId
 
     def isDim(self, oid: Oid) -> bool:
         return False
@@ -34,7 +34,7 @@ class BlameScrubberDelegate(CommitLogDelegate):
             oid: Oid,
             toolTips: list[CommitToolTipZone]
     ):
-        node = self.blameModel.trace.nodeForCommit(oid)
+        revision = self.blameModel.revList.revisionForCommit(oid)
 
         # Graph frame
         if not self.singleItem:
@@ -46,7 +46,7 @@ class BlameScrubberDelegate(CommitLogDelegate):
         iconRect = QRect(rect)
         iconSize = min(16, iconRect.height())
         iconRect.setWidth(iconSize)
-        icon = stockIcon(f"status_{node.status.lower()}")
+        icon = stockIcon(f"status_{revision.status.lower()}")
         icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         rect.setLeft(iconRect.right() + 5)
 

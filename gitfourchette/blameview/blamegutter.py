@@ -73,8 +73,8 @@ class BlameGutter(CodeGutter):
         return False
 
     def paintEvent(self, event: QPaintEvent):
-        blame = self.model.currentBlame
-        if blame is None:
+        revision = self.model.currentRevision
+        if revision is None:
             return
 
         painter = QPainter(self)
@@ -104,13 +104,13 @@ class BlameGutter(CodeGutter):
 
         alignRight = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
-        topCommitId = blame.commitId
-        topRevisionNumber = self.model.trace.revisionNumber(topCommitId)
+        topCommitId = revision.commitId
+        topRevisionNumber = self.model.revList.revisionNumber(topCommitId)
 
         for block, top, bottom in self.paintBlocks(event, painter, lineColor):
             lineNumber = 1 + block.blockNumber()
             try:
-                annotatedLine = blame.lines[lineNumber]
+                annotatedLine = revision.blameLines[lineNumber]
                 lineCommitId = annotatedLine.commitId
             except IndexError:
                 break
@@ -122,7 +122,7 @@ class BlameGutter(CodeGutter):
                 painter.setFont(self.boldFont if isCurrent else self.font())
                 painter.setPen(boldTextPen if isCurrent else textPen)
                 # Compute heat color
-                revisionNumber = self.model.trace.revisionNumber(lineCommitId)
+                revisionNumber = self.model.revList.revisionNumber(lineCommitId)
                 heat = revisionNumber / topRevisionNumber
                 heat = heat ** 2  # ease in cubic
                 heatColor.setAlphaF(lerp(.0, .6, heat))
@@ -179,8 +179,8 @@ class BlameGutter(CodeGutter):
         lineNumber = 1 + textCursor.blockNumber()
 
         try:
-            commitId = self.model.currentBlame.lines[lineNumber].commitId
-            node = self.model.trace.nodeForCommit(commitId)
+            commitId = self.model.currentRevision.blameLines[lineNumber].commitId
+            revision = self.model.revList.revisionForCommit(commitId)
         except IndexError:
             return False
 
@@ -199,8 +199,8 @@ class BlameGutter(CodeGutter):
             text += newLine(_("commit"), shortHash(commitId))
             text += newLine(_("author"), commit.author.name)
             text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat, localTime=False))
-        text += newLine(_("file name"), node.path)
-        text += newLine(_("revision"), self.model.trace.revisionNumber(commitId))
+        text += newLine(_("file name"), revision.path)
+        text += newLine(_("revision"), self.model.revList.revisionNumber(commitId))
         text += "</table>"
         if not isWorkdir:
             text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"

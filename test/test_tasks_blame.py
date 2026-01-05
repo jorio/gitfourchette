@@ -84,11 +84,11 @@ def testOpenBlameCorrectTrace(blameWindow):
     assert blameModel
 
     # Look at trace
-    assert len(blameModel.trace) == len(BlameFixture.history)
+    assert len(blameModel.revList) == len(BlameFixture.history)
     for oid in BlameFixture.history:
-        assert blameModel.trace.nodeForCommit(oid)
+        assert blameModel.revList.revisionForCommit(oid)
     with pytest.raises(KeyError):
-        blameModel.trace.nodeForCommit(BlameFixture.unrelatedOid)
+        blameModel.revList.revisionForCommit(BlameFixture.unrelatedOid)
 
 
 def testOpenBlameFromFileListContextMenu(tempDir, mainWindow):
@@ -112,22 +112,22 @@ def testOpenBlameJumpAround(blameWindow):
     assert blameModel
     assert blameWindow.scrubber.model().blameModel
 
-    assert NavLocator.inCommit(BlameFixture.revs["spanish"], BlameFixture.path).isSimilarEnoughTo(blameModel.currentLocator)
+    assert NavLocator.inCommit(BlameFixture.revs["spanish"], BlameFixture.path).isSimilarEnoughTo(blameModel.currentRevision.toLocator())
 
     # Jump to French commit (4ec4)
     gotoOid = BlameFixture.revs["french"]
-    gotoNode = blameModel.trace.nodeForCommit(gotoOid)
-    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode, CommitLogModel.Role.TraceNode)
+    gotoNode = blameModel.revList.revisionForCommit(gotoOid)
+    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode, CommitLogModel.Role.BlameRevision)
     qcbSetIndex(blameWindow.scrubber, "say hello in french")
-    assert NavLocator.inCommit(gotoOid, BlameFixture.path).isSimilarEnoughTo(blameModel.currentLocator)
+    assert NavLocator.inCommit(gotoOid, BlameFixture.path).isSimilarEnoughTo(blameModel.currentRevision.toLocator())
     assert blameWindow.textEdit.toPlainText().strip() == "hello world\nhola mundo\nbonjour le monde"
 
     # Jump to uncommitted changes
     gotoOid = BlameFixture.revs["workdir"]
-    gotoNode = blameModel.trace.nodeForCommit(gotoOid)
-    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode, CommitLogModel.Role.TraceNode)
+    gotoNode = blameModel.revList.revisionForCommit(gotoOid)
+    assert BlameFixture.history.index(gotoOid) == blameWindow.scrubber.findData(gotoNode, CommitLogModel.Role.BlameRevision)
     qcbSetIndex(blameWindow.scrubber, "uncommitted")
-    assert NavLocator(context=NavContext.WORKDIR, path=BlameFixture.path).isSimilarEnoughTo(blameModel.currentLocator)
+    assert NavLocator(context=NavContext.WORKDIR, path=BlameFixture.path).isSimilarEnoughTo(blameModel.currentRevision.toLocator())
     assert blameWindow.textEdit.toPlainText().strip() == "ciao mondo\nhello world\nhola mundo\nbonjour le monde"
 
 
@@ -257,7 +257,7 @@ def testBlameStartTraceOnDeletion(tempDir, mainWindow):
     # Traverse to bottom of history
     for _i in range(3):
         blameWindow.olderButton.click()
-    assert blameWindow.model.currentTraceNode.commitId == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
+    assert blameWindow.model.currentRevision.commitId == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")
 
     blameWindow.close()
 
@@ -520,10 +520,10 @@ def testBlameLineByLine(tempDir, mainWindow, scenarioKey):
     rw.blameFile(scenario.path, seedId)
     blameWindow = findWindow("blame", BlameWindow)
 
-    trace = blameWindow.model.trace
-    anno = trace.sequence[0].annotatedFile
+    revision = blameWindow.model.revList.sequence[0]
+    annotatedLines = revision.blameLines[1:]
 
-    for line, expectedOid in zip(anno.lines[1:], scenario.lineCommits, strict=True):
+    for line, expectedOid in zip(annotatedLines, scenario.lineCommits, strict=True):
         assert str(line.commitId).startswith(expectedOid)
 
     blameWindow.close()

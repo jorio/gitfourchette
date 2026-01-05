@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.blameview.blamegutter import BlameGutter
-from gitfourchette.blameview.blamemodel import BlameModel, TraceNode
+from gitfourchette.blameview.blamemodel import BlameModel, Revision
 from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
@@ -15,7 +15,7 @@ from gitfourchette.toolbox import *
 
 
 class BlameTextEdit(CodeView):
-    selectNode = Signal(TraceNode)
+    showRevision = Signal(Revision)
     jumpToCommit = Signal(NavLocator)
 
     model: BlameModel
@@ -28,11 +28,11 @@ class BlameTextEdit(CodeView):
 
     def contextMenuActions(self, clickedCursor: QTextCursor):
         lineNumber = clickedCursor.blockNumber() + 1
-        lineNumber = min(lineNumber, len(self.model.currentBlame.lines) - 1)
+        lineNumber = min(lineNumber, len(self.model.currentRevision.blameLines) - 1)
 
-        commitId = self.model.currentBlame.lines[lineNumber].commitId
-        node = self.model.trace.nodeForCommit(commitId)
-        locator = node.toLocator()
+        commitId = self.model.currentRevision.blameLines[lineNumber].commitId
+        revision = self.model.revList.revisionForCommit(commitId)
+        locator = revision.toLocator()
         isWorkdir = locator.context.isWorkdir()
 
         if isWorkdir:
@@ -46,7 +46,7 @@ class BlameTextEdit(CodeView):
             ActionDef(
                 blameLabel,
                 icon="git-blame",
-                callback=lambda: self.selectNode.emit(node)
+                callback=lambda: self.showRevision.emit(revision)
             ),
 
             ActionDef(
