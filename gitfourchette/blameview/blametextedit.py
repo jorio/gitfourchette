@@ -28,6 +28,7 @@ class BlameTextEdit(CodeView):
 
     def contextMenuActions(self, clickedCursor: QTextCursor):
         lineNumber = clickedCursor.blockNumber() + 1
+        lineNumber = min(lineNumber, len(self.model.currentBlame.lines) - 1)
 
         commitId = self.model.currentBlame.lines[lineNumber].commitId
         node = self.model.trace.nodeForCommit(commitId)

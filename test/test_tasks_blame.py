@@ -229,12 +229,17 @@ def testBlameBinaryBlob(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
     shutil.copyfile(getTestDataPath("image1.png"), f"{wd}/hello.txt")
     mainWindow.openRepo(wd)
+
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
-    QTest.qWait(0)
     blameWindow = findWindow("blame", BlameWindow)
+
     qcbSetIndex(blameWindow.scrubber, "working directory")
     text = blameWindow.textEdit.toPlainText().lower()
     assert "binary blob" in text
+
+    menu = summonContextMenu(blameWindow.textEdit.viewport(), QPoint(4, 4))
+    assert findMenuAction(menu, "blame file at uncommitted")
+
     blameWindow.close()
 
 
@@ -274,6 +279,10 @@ def testBlameContextMenu(blameWindow):
     qcbSetIndex(scrubber, "uncommitted")
     triggerContextMenuAction(viewport, "show diff in working directory")
     assert NavLocator.inUnstaged("hello.txt").isSimilarEnoughTo(rw.navLocator)
+
+    # Right-click beyond last line
+    menu = summonContextMenu(viewport, QPoint(5, viewport.height() - 5))
+    assert findMenuAction(menu, "blame file at.+4ec4389")
 
 
 def testBlameGutterToolTips(blameWindow):
