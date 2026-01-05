@@ -28,12 +28,6 @@ _gitStatusPatterns = {
 
 _gitShowPattern = re.compile(r":(\d+) (\d+) ([\da-f]+) ([\da-f]+) (.)(\d*)\x00([^\x00]*)\x00")
 
-# - Commit hash
-# - Line number in original file
-# - Line number in final file
-# - Number of lines in the group (only in new group)
-_gitBlameHeaderPattern = re.compile(r"[0-9a-f]+( [0-9]+){2,3}")
-
 # The order of this table is SIGNIFICANT!
 _gitSimplifiedModes = [
     FileMode.LINK,              # 0o120000
@@ -234,8 +228,7 @@ def parseGitBlame(stdout: str):
 
     for pos, endPos in iterateLines(stdout):
         if not commitId:  # Looking for header
-            match = _gitBlameHeaderPattern.match(stdout, pos, endPos)
-            tokens = match.group(0).split(" ")
+            tokens = stdout[pos : endPos].split(" ", 2)
             commitId = tokens[0]
             originalLineNumber = int(tokens[1])
         elif stdout[pos] == '\t':
