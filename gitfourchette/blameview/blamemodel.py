@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import dataclasses
 import os
-import weakref
 
 from gitfourchette.graph import Graph, GraphWeaver
 from gitfourchette.nav import NavLocator
@@ -18,23 +17,18 @@ from gitfourchette.qt import *
 
 
 class BlameModel:
-    taskInvoker: QWidget
     repoModel: RepoModel
     trace: Trace
-    currentTraceNode: TraceNode
     currentBlame: AnnotatedFile
     graph: Graph
-    currentTask: weakref.ref | None
 
     @property
     def nodeSequence(self):
         return self.trace.sequence
 
-    def __init__(self, repoModel: RepoModel, trace: Trace, taskInvoker: QWidget):
-        self.taskInvoker = taskInvoker
+    def __init__(self, repoModel: RepoModel, trace: Trace):
         self.repoModel = repoModel
         self.trace = trace
-        self.currentTask = None
 
         # Create graph
         self.graph, graphWeaver = GraphWeaver.newGraph()
@@ -52,7 +46,7 @@ class BlameModel:
         # Dump revs file to speed up calls to 'git blame'
         # (and to make sure it won't return commits outside the trace)
         revsFileTemplate = os.path.join(qTempDir(), "blamerevs-XXXXXX.txt")
-        self.revsFile = QTemporaryFile(revsFileTemplate, taskInvoker)
+        self.revsFile = QTemporaryFile(revsFileTemplate, None)
         self.revsFile.open()
         self.revsFile.write(trace.serializeRevisionList().encode("utf-8"))
         self.revsFile.close()

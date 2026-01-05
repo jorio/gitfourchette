@@ -264,6 +264,7 @@ class GFApplication(QApplication):
     def onInvokeTask(self, call: TaskInvocation) -> RepoTask | None:
         from gitfourchette.mainwindow import MainWindow
         from gitfourchette.repowidget import RepoWidget
+        from gitfourchette.blameview.blamewindow import BlameWindow
         from gitfourchette.toolbox import showInformation
 
         if self.mainWindow is None:
@@ -279,11 +280,11 @@ class GFApplication(QApplication):
         # Find parent in hierarchy
         candidate = call.invoker
         while candidate is not None:
-            if isinstance(candidate, RepoWidget | MainWindow):
+            if isinstance(candidate, RepoWidget | BlameWindow | MainWindow):
                 break
             candidate = candidate.parent()
 
-        if isinstance(candidate, RepoWidget):
+        if isinstance(candidate, RepoWidget | BlameWindow):
             repoWidget = candidate
         elif isinstance(candidate, MainWindow):
             repoWidget = candidate.currentRepoWidget()

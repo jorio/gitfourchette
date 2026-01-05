@@ -13,11 +13,13 @@ from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory, NavFlags
 from gitfourchette.qt import *
-from gitfourchette.tasks import Jump
+from gitfourchette.tasks import TaskInvocation, RepoTaskRunner
 from gitfourchette.toolbox import *
 
 
 class BlameWindow(QWidget):
+    exploreCommit = Signal(NavLocator)
+
     _currentBlameWindows = []
     "Currently open BlameWindows"
 
@@ -31,11 +33,8 @@ class BlameWindow(QWidget):
         self.setObjectName("BlameWindow")
 
         self.model = blameModel
-
+        self.taskRunner = RepoTaskRunner(self)
         self.navHistory = NavHistory()
-
-        # Die in tandem with RepoWidget
-        blameModel.taskInvoker.destroyed.connect(self.close)
 
         self.textEdit = BlameTextEdit(blameModel, self)
         self.textEdit.setUpAsDetachedWindow()
@@ -119,10 +118,8 @@ class BlameWindow(QWidget):
         self.goBackOrForwardDelta(delta)
 
     def closeEvent(self, event: QCloseEvent):
-        if (self.model.currentTask is not None
-                and self.model.currentTask() is self.repoWidget.taskRunner.currentTask):
-            self.repoWidget.taskRunner.killCurrentTask()
-            self.repoWidget.taskRunner.joinKilledTask()
+        self.taskRunner.killCurrentTask()
+        self.taskRunner.joinKilledTask()
 
         assert self in self._currentBlameWindows
         self._currentBlameWindows.remove(self)
@@ -137,12 +134,8 @@ class BlameWindow(QWidget):
 
     def setTraceNode(self, node: TraceNode, saveFilePositionFirst=True, transposeFilePosition=True):
         from gitfourchette.tasks.blametasks import AnnotateFile
-        AnnotateFile.invoke(
-            self.repoWidget,
-            self,
-            node,
-            saveFilePositionFirst,
-            transposeFilePosition)
+        invocation = TaskInvocation(self, AnnotateFile, node, saveFilePositionFirst, transposeFilePosition)
+        self.taskRunner.put(invocation)
 
     def syncNavButtons(self):
         index = self.scrubber.currentIndex()
@@ -200,4 +193,4 @@ class BlameWindow(QWidget):
         if locator == NavLocator.Empty:
             locator = self.model.currentLocator
         locator = locator.withExtraFlags(NavFlags.ActivateWindow)
-        Jump.invoke(self.model.taskInvoker, locator)
+        self.exploreCommit.emit(locator)

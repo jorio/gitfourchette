@@ -434,6 +434,7 @@ def testInterruptLongBlame(blameWindow, taskThread):
 
     # Wait a bit, but don't let the task run to completion
     QTest.qWait(500)
+    assert blameWindow.taskRunner.isBusy()
 
     # Scrubber/nav buttons should be in sync with the commit we're attempting to display
     assert "Uncommitted" in blameWindow.scrubber.currentText()
@@ -460,10 +461,10 @@ def testAbortLongBlame(blameWindow, taskThread):
 
     # Wait a bit, but don't let the task run to completion
     QTest.qWait(500)
+    assert blameWindow.taskRunner.isBusy()
 
-    rw = blameWindow.repoWidget
     blameWindow.close()
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    waitUntilTrue(lambda: not blameWindow.taskRunner.isBusy())
 
 
 # -----------------------------------------------------------------------------

@@ -6,9 +6,6 @@
 
 from __future__ import annotations
 
-import weakref
-from typing import TYPE_CHECKING
-
 from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel, Trace, TraceNode, AnnotatedFile
 from gitfourchette.gitdriver import argsIf, GitDriver
@@ -22,9 +19,6 @@ from gitfourchette.tasks import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
 
-if TYPE_CHECKING:
-    from gitfourchette.blameview.blamewindow import BlameWindow
-
 
 class OpenBlame(RepoTask):
     def prereqs(self) -> TaskPrereqs:
@@ -35,25 +29,29 @@ class OpenBlame(RepoTask):
 
         trace = yield from self._buildTrace(path)
 
-        blameModel = BlameModel(self.repoModel, trace, self.parentWidget())
+        blameModel = BlameModel(self.repoModel, trace)
+
         blameWindow = BlameWindow(blameModel)
-        blameWindow.repoWidget = self.rw
+        blameWindow.taskRunner.repoModel = self.repoModel
+        blameWindow.exploreCommit.connect(self.rw.jump)
         blameModel.revsFile.setParent(blameWindow)
+
+        # Die in tandem with RepoWidget
+        self.rw.destroyed.connect(blameWindow.close)
+
+        windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
+        windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
+        blameWindow.resize(windowWidth, windowHeight)
+        blameWindow.show()
+        blameWindow.activateWindow()  # bring to foreground after ProcessDialog
+
+        self.postStatus = _n("{n} revision found.", "{n} revisions found.", n=len(trace))
 
         try:
             startNode = trace.nodeForCommit(seed)
         except KeyError:
             startNode = blameModel.currentTraceNode
-        yield from self.flowSubtask(AnnotateFile, blameWindow, startNode, False, False)
-
-        windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
-        windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
-        blameWindow.resize(windowWidth, windowHeight)
-
-        blameWindow.show()
-        blameWindow.activateWindow()  # bring to foreground after ProcessDialog
-
-        self.postStatus = _n("{n} revision found.", "{n} revisions found.", n=len(trace))
+        blameWindow.setTraceNode(startNode, False, False)
 
     def _buildTrace(self, path: str):
         seedPath = path
@@ -167,13 +165,13 @@ class AnnotateFile(RepoTask):
         # scrubber or nav buttons
         return isinstance(task, AnnotateFile) or super().canKill(task)
 
-    def flow(self, blameWindow: BlameWindow, node: TraceNode,
-             saveFilePositionFirst: bool,
-             transposeFilePosition: bool):
-        blameModel = blameWindow.model
+    def flow(self, node: TraceNode, saveFilePositionFirst: bool, transposeFilePosition: bool):
+        from gitfourchette.blameview.blamewindow import BlameWindow
 
-        # Keep track of this task so BlameWindow can kill it upon closing
-        blameModel.currentTask = weakref.ref(self)
+        blameWindow = self.parentWidget()
+        assert isinstance(blameWindow, BlameWindow)
+
+        blameModel = blameWindow.model
 
         # Stop lexing BEFORE changing the document!
         blameWindow.textEdit.highlighter.stopLexJobs()
