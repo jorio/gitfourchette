@@ -245,8 +245,11 @@ class AnnotateFile(RepoTask):
         blameWindow.textEdit.restorePosition(newLocator)
         blameWindow.textEdit.syncViewportMarginsWithGutter()
 
-        title = _("Blame {path} @ {commit}", path=tquo(node.path),
-                  commit=shortHash(node.commitId) if node.commitId else _("(Uncommitted)"))
+        title = _("Blame {path} @ {commit} (Revision {rev}/{total})",
+                  path=tquo(node.path),
+                  commit=shortHash(node.commitId) if node.commitId else _("Uncommitted"),
+                  rev=blameModel.trace.revisionNumber(node.commitId),
+                  total=len(blameModel.trace))
         blameWindow.setWindowTitle(title)
 
         if transposeFilePosition:
