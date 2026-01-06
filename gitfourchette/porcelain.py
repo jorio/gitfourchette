@@ -733,13 +733,49 @@ class Repo(_VanillaRepository):
         return (path_obj.is_relative_to(self.workdir)
                 and (include_gitdir or not path_obj.is_relative_to(self.path)))
 
-    def in_gitdir(self, path: str) -> str:
-        """Return an absolutized version of `path` within this repo's .git directory."""
+    def in_gitdir(self, path: str, ignore_wokrtree_status: bool = False) -> str:
+        """
+        Return an absolutized version of `path` within this repo's .git directory.
+
+        If `ignore_worktree_status` is False, it checks what pygit2
+        resolved to be the repository's path; otherwise, it resolves
+        `path` in the worktree's parent.
+
+        If the repository is not a git worktree, `in_gitdir` acts as
+        though `ignore_worktree_status` was set to `False``.
+        """
         assert not _isabs(path)
-        p = _joinpath(self.path, path)
-        if not p.startswith(self.path):
-            raise ValueError("Won't create absolute path outside gitdir")
-        return p
+
+        if ignore_wokrtree_status:
+            p = _joinpath(self.path, path)
+            if not p.startswith(self.path):
+                raise ValueError("Won't create absolute path outside gitdir")
+            return p
+
+        commondir_path = _Path(self.in_gitdir("commondir", ignore_wokrtree_status=True))
+        if not commondir_path.exists():
+            # It doesn't look like we're in a worktree, so fallback
+            return self.in_gitdir(path, ignore_wokrtree_status=True)
+
+        with open(_joinpath(self.path, commondir_path), "r") as commondir:
+            parent_repo_path = _Path(_joinpath(self.path, commondir.read().strip()))
+            return _joinpath(parent_repo_path.resolve(), path)
+
+    @property
+    def is_worktree(self) -> bool:
+        """
+        Return whether or not the current repository is a git worktree.
+
+        Since pygit2 doesn't wrap libgit's git_repository_is_worktree,
+        this is a hacky solution that relies on the existence of
+        certain metadata in what pygit2 resolves to be the
+        repository's path.
+        """
+        with _suppress(ValueError):
+            dotgit_path = self.in_gitdir("gitdir", ignore_wokrtree_status=True)
+            commondir_path = self.in_gitdir("commondir", ignore_wokrtree_status=True)
+
+            return _Path(dotgit_path).exists() and _Path(commondir_path).exists()
 
     def refresh_index(self, force: bool = False):
         """
@@ -1590,6 +1626,10 @@ class Repo(_VanillaRepository):
         otherwise returns None.
         Equivalent to `git rev-parse --show-superproject-working-tree`.
         """
+
+        # Skip the following checks if this is a worktree;
+        if self.is_worktree:
+            return ""
 
         # Try to detect a "modern" submodule setup first
         # (where the submodule's git dir is absorbed in the superproject's .git/modules)
