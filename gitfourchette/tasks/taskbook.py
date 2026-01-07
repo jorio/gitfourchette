@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -186,6 +186,7 @@ class TaskBook:
             tasks.JumpToHEAD: "git-head",
             tasks.JumpToUncommittedChanges: "git-workdir",
             tasks.MergeBranch: "git-merge",
+            tasks.MountCommit: "git-mount",
             tasks.NewBranchFromCommit: "git-branch",
             tasks.NewBranchFromHead: "git-branch",
             tasks.NewBranchFromRef: "git-branch",

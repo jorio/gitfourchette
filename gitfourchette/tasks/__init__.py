@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -59,6 +59,9 @@ from gitfourchette.tasks.jumptasks import (
 )
 from gitfourchette.tasks.loadtasks import (
     LoadPatchInNewWindow,
+)
+from gitfourchette.tasks.mounttasks import (
+    MountCommit,
 )
 from gitfourchette.tasks.nettasks import (
     AutoFetchRemotes,

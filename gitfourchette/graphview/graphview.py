@@ -165,6 +165,7 @@ class GraphView(QListView):
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
                 TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != GpgStatus.Unsigned, icon=gpgIcon, accel="G"),
+                TaskBook.action(self, MountCommit, _("&Mount As Folder"), taskArgs=oid),
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
                 *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
             ]
