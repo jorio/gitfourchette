@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -112,11 +112,6 @@ class MainWindow(QMainWindow):
         self.fillGlobalMenuBar()
 
         self.setAcceptDrops(True)
-
-        app = GFApplication.instance()
-        app.mouseSideButtonPressed.connect(self.onMouseSideButtonPressed)
-        app.fileDraggedToDockIcon.connect(self.onFileDraggedToDockIcon)
-        app.regainForeground.connect(self.onRegainForeground)
 
         self.refreshPrefs()
 
@@ -362,6 +357,12 @@ class MainWindow(QMainWindow):
             self.mainToolBar.setTerminalActions(commandsMenu.actions())
         else:
             self.mainToolBar.setTerminalActions([])
+
+        mountItems = GFApplication.instance().mountManager.makeMenu(self)
+        if mountItems:
+            mountpointsMenu = ActionDef.makeQMenu(menubar, mountItems)
+            mountpointsMenu.setTitle(_("&Mount"))
+            menubar.insertMenu(helpMenu.menuAction(), mountpointsMenu)
 
         # -------------------------------------------------------------
 
@@ -965,6 +966,10 @@ class MainWindow(QMainWindow):
             session.write()
 
     def closeEvent(self, event: QCloseEvent):
+        if not GFApplication.instance().mountManager.checkOnClose(self, self.close):
+            event.setAccepted(False)
+            return
+
         # Save session before closing all tabs.
         self.saveSession(writeNow=True)
 

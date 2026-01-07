@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,6 +10,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from gitfourchette import settings
+from gitfourchette.application import GFApplication
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow, CommitToolTipZone
 from gitfourchette.graphview.graphpaint import paintGraphFrame
@@ -38,6 +39,9 @@ REFBOXES = [
 
     # Working Directory
     RefBox(UC_FAKEREF, "git-workdir", QColor("#808080")),
+
+    # Mounted
+    RefBox("FAKEREF_FUSEMOUNT", "git-mount", QColor(Qt.GlobalColor.gray)),
 
     # Fallback
     RefBox("", "hint", QColor(Qt.GlobalColor.gray), keepPrefix=True)
@@ -78,6 +82,8 @@ class CommitLogDelegate(QStyledItemDelegate):
         self.uncommittedFont = QFont()
         self.refboxFont = QFont()
         self.homeRefboxFont = QFont()
+
+        self.mounts = GFApplication.instance().mountManager
 
     def invalidateMetrics(self):
         self.mustRefreshMetrics = True
@@ -615,6 +621,13 @@ class CommitLogDelegate(QStyledItemDelegate):
             graphRect = QRect(rect)
             paintGraphFrame(painter, graphRect, oid, self.repoModel.graph, self.repoModel.hiddenCommits)
             rect.setLeft(graphRect.right())
+
+        # ------ Mount icon
+        if self.mounts.isMounted(oid):
+            painter.save()
+            self._paintRefbox(painter, rect, toolTips, "FAKEREF_FUSEMOUNT", forceOmitName=True)
+            toolTips[-1].data = _("This commit is currently mounted as a folder.")
+            painter.restore()
 
         # ------ Refboxes
         refsHere = self.repoModel.refsAt.get(oid, None)

@@ -72,9 +72,10 @@ class TreeMount(fuse.Operations):
         mode |= 0o444  # Make everything readable
 
         return {
+            "st_birthtime": self.authorTime,  # Only relevant on macOS
+            "st_ctime": self.committerTime,
             "st_atime": self.committerTime,
-            "st_ctime": self.authorTime,
-            "st_mtime": self.authorTime,
+            "st_mtime": self.committerTime,
             "st_gid": os.getgid(),
             "st_uid": os.getuid(),
             "st_size": size,

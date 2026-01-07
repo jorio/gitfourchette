@@ -186,7 +186,6 @@ class TaskBook:
             tasks.JumpToHEAD: "git-head",
             tasks.JumpToUncommittedChanges: "git-workdir",
             tasks.MergeBranch: "git-merge",
-            tasks.MountCommit: "git-mount",
             tasks.NewBranchFromCommit: "git-branch",
             tasks.NewBranchFromHead: "git-branch",
             tasks.NewBranchFromRef: "git-branch",

@@ -60,9 +60,6 @@ from gitfourchette.tasks.jumptasks import (
 from gitfourchette.tasks.loadtasks import (
     LoadPatchInNewWindow,
 )
-from gitfourchette.tasks.mounttasks import (
-    MountCommit,
-)
 from gitfourchette.tasks.nettasks import (
     AutoFetchRemotes,
     DeleteRemoteBranch,

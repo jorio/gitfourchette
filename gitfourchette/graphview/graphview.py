@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -149,6 +149,15 @@ class GraphView(QListView):
             gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(gpgLookAtCommit)
             gpgIcon = gpgStatus.iconName()
 
+            mounts = GFApplication.instance().mountManager
+            mountCaption = _("&Mount Commit As Folder")
+            if not mounts.supportsMounting():
+                mountActions = []
+            elif mounts.isMounted(oid):
+                mountActions = [ActionDef(mountCaption, icon="git-mount", submenu=mounts.makeMenuItemsForMount(oid, self))]
+            else:
+                mountActions = [ActionDef(mountCaption, icon="git-mount", callback=lambda: mounts.mount(self.repoModel.repo.workdir, oid))]
+
             actions = [
                 *mergeActions,
                 ActionDef.SEPARATOR,
@@ -165,7 +174,7 @@ class GraphView(QListView):
                 ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
                 ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
                 TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != GpgStatus.Unsigned, icon=gpgIcon, accel="G"),
-                TaskBook.action(self, MountCommit, _("&Mount As Folder"), taskArgs=oid),
+                *mountActions,
                 ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
                 *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
             ]

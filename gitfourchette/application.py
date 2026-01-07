@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from gitfourchette.mainwindow import MainWindow
     from gitfourchette.settings import Session
     from gitfourchette.tasks import RepoTask, TaskInvocation
+    from gitfourchette.mount.mountmanager import MountManager
     from gitfourchette.porcelain import GitConfig
     from gitfourchette.sshagent import SshAgent
 
@@ -46,6 +47,7 @@ class GFApplication(QApplication):
     sessionwideGitConfigPath: str
     sessionwideGitConfig: GitConfig
     sshAgent: SshAgent | None
+    mountManager: MountManager | None
 
     @staticmethod
     def instance() -> GFApplication:
@@ -206,6 +208,11 @@ class GFApplication(QApplication):
         if settings.history.isDirty():
             settings.history.write()
         self.stopSshAgent()
+
+        assert not self.mountManager.mountedCommits, "mount points remaining"
+        self.mountManager.deleteLater()
+        self.mountManager = None
+
         LexJobCache.clear()  # don't cache lexed files across sessions (for unit testing)
         # RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
@@ -217,14 +224,27 @@ class GFApplication(QApplication):
         from gitfourchette.toolbox import bquo
         from gitfourchette.settings import QtApiNames
         from gitfourchette.forms.donateprompt import DonatePrompt
+        from gitfourchette.mount.mountmanager import MountManager
 
         assert self.mainWindow is None, "already have a MainWindow"
         assert self.initialSession is not None, "initial session should have been prepared before bootUi"
 
+        # Initialize mountpoint manager
+        self.mountManager = MountManager(self)
+
         self.applyQtStylePref(forceApplyDefault=False)
         self.onRestyle()
         self.mainWindow = MainWindow()
+
+        # Bind window signals
+        self.regainForeground.connect(self.mountManager.checkAliveProcesses)
+        self.regainForeground.connect(self.mainWindow.onRegainForeground)
         self.mainWindow.destroyed.connect(self.onMainWindowDestroyed)
+        self.mouseSideButtonPressed.connect(self.mainWindow.onMouseSideButtonPressed)
+        self.fileDraggedToDockIcon.connect(self.mainWindow.onFileDraggedToDockIcon)
+        self.mountManager.mountPointsChanged.connect(self.mainWindow.fillGlobalMenuBar)
+        self.mountManager.mountPointsChanged.connect(self.mainWindow.update)  # redraw GraphView
+        self.mountManager.statusMessage.connect(self.mainWindow.statusBar2.showMessage)
 
         # To prevent flashing a window with incorrect dimensions,
         # restore the geometry BEFORE calling show()
@@ -232,6 +252,7 @@ class GFApplication(QApplication):
             self.mainWindow.restoreGeometry(self.initialSession.windowGeometry)
         self.mainWindow.show()
 
+        # Initialize SSH agent
         self.applySshAgentPref()
 
         # Restore session then consume it
