@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -152,7 +152,7 @@ def testMainWindowMenuItems(tempDir, mainWindow):
         findMenuAction(mainWindow.menuBar(), "file/recent/repo2")
 
 
-def testTabBarActions(tempDir, mainWindow, mockDesktopServices):
+def testTabBarActions(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"terminal": f'python3 "{editorPath}" "{scratchPath}" "hello world" $COMMAND'})
@@ -179,8 +179,9 @@ def testTabBarActions(tempDir, mainWindow, mockDesktopServices):
         triggerMenuAction(menu, "copy repo path")
         assert QApplication.clipboard().text() == wd
 
-        triggerMenuAction(menu, "open repo folder")
-        assert mockDesktopServices.urls[-1] == QUrl.fromLocalFile(wd)
+        with MockDesktopServicesContext() as services:
+            triggerMenuAction(menu, "open repo folder")
+            assert services.urls[-1] == QUrl.fromLocalFile(wd)
 
         triggerMenuAction(menu, "open terminal")
         terminalShimResult = readTextFile(scratchPath, timeout=1000).splitlines()

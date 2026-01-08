@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,17 +10,19 @@ from gitfourchette.nav import NavLocator
 from .util import *
 
 
-def testOpenFileInQDesktopServices(tempDir, mainWindow, mockDesktopServices):
+def testOpenFileInQDesktopServices(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
     menu = summonContextMenu(rw.committedFiles.viewport())
-    triggerMenuAction(menu, "open file in/working copy")
 
-    url = mockDesktopServices.urls[-1]
-    assert url.isLocalFile()
-    assert url.toLocalFile() == wd + "a/a1"
+    with MockDesktopServicesContext() as services:
+        triggerMenuAction(menu, "open file in/working copy")
+
+        url = services.urls[-1]
+        assert url.isLocalFile()
+        assert url.toLocalFile() == wd + "a/a1"
 
 
 def testTerminal(tempDir, mainWindow):

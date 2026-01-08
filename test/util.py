@@ -133,6 +133,32 @@ class DelayGitCommandContext:
         self.mainWindow.onAcceptPrefsDialog({"gitPath": self.oldCommand})
 
 
+class MockDesktopServicesContext(QObject):
+    urlSlot = Signal(QUrl)
+
+    urls: list[QUrl]
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.protocols = ["http", "https", "file"]
+        self.urls = []
+        self.urlSlot.connect(self.recordUrl)
+
+    def recordUrl(self, url: QUrl):
+        self.urls.append(url)
+
+    def __enter__(self):
+        for protocol in self.protocols:
+            QDesktopServices.setUrlHandler(protocol, self, "urlSlot")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for protocol in self.protocols:
+            QDesktopServices.unsetUrlHandler(protocol)
+        if self.parent() is None:
+            self.deleteLater()
+
+
 def clearSessionwideIdentity():
     config = pygit2.Config.get_global_config()
     toClear = {

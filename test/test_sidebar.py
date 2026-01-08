@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -425,7 +425,7 @@ def testSidebarHeadIconAfterSwitchingBranchesPointingToSameCommit(tempDir, mainW
     assert otherIcon == "git-head"
 
 
-def testSidebarVisitRemoteWebPage(tempDir, mainWindow, mockDesktopServices):
+def testSidebarVisitRemoteWebPage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -433,12 +433,13 @@ def testSidebarVisitRemoteWebPage(tempDir, mainWindow, mockDesktopServices):
 
     rw = mainWindow.openRepo(wd)
 
-    node = rw.sidebar.findNode(lambda n: n.data == "origin" and n.kind == SidebarItem.Remote)
-    menu = rw.sidebar.makeNodeMenu(node)
-    triggerMenuAction(menu, "visit web page")
-    assert mockDesktopServices.urls[-1] == QUrl("https://github.com/libgit2/TestGitRepository")
+    with MockDesktopServicesContext() as services:
+        node = rw.sidebar.findNode(lambda n: n.data == "origin" and n.kind == SidebarItem.Remote)
+        menu = rw.sidebar.makeNodeMenu(node)
+        triggerMenuAction(menu, "visit web page")
+        assert services.urls[-1] == QUrl("https://github.com/libgit2/TestGitRepository")
 
-    node = rw.sidebar.findNodeByRef("refs/remotes/origin/master")
-    menu = rw.sidebar.makeNodeMenu(node)
-    triggerMenuAction(menu, "visit web page")
-    assert mockDesktopServices.urls[-1] == QUrl("https://github.com/libgit2/TestGitRepository/tree/master")
+        node = rw.sidebar.findNodeByRef("refs/remotes/origin/master")
+        menu = rw.sidebar.makeNodeMenu(node)
+        triggerMenuAction(menu, "visit web page")
+        assert services.urls[-1] == QUrl("https://github.com/libgit2/TestGitRepository/tree/master")

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -476,7 +476,7 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
 
-def testFileListShowInFolder(tempDir, mainWindow, mockDesktopServices):
+def testFileListShowInFolder(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -487,10 +487,12 @@ def testFileListShowInFolder(tempDir, mainWindow, mockDesktopServices):
 
     rw.jump(NavLocator.inCommit(Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44"), "a/a1"), check=True)
     assert ["a/a1"] == qlvGetRowData(rw.committedFiles)
-    triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
-    url = mockDesktopServices.urls[-1]
-    assert url.isLocalFile()
-    assert url.toLocalFile() == wd + "a"
+
+    with MockDesktopServicesContext() as services:
+        triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
+        url = services.urls[-1]
+        assert url.isLocalFile()
+        assert url.toLocalFile() == wd + "a"
 
 
 def testMiddleClickToStageFile(tempDir, mainWindow):

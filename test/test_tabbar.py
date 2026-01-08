@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
     assert not mainWindow.tabs.overflowButton.isVisible()
 
 
-def testMiddleClickToCloseTab(tempDir, mainWindow, mockDesktopServices):
+def testMiddleClickToCloseTab(tempDir, mainWindow):
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")
 
@@ -81,7 +81,7 @@ def testMiddleClickToCloseTab(tempDir, mainWindow, mockDesktopServices):
     assert mainWindow.tabs.count() == 0
 
 
-def testDoubleClickTabOpensWorkdir(tempDir, mainWindow, mockDesktopServices):
+def testDoubleClickTabOpensWorkdir(tempDir, mainWindow):
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")
 
@@ -97,9 +97,10 @@ def testDoubleClickTabOpensWorkdir(tempDir, mainWindow, mockDesktopServices):
         tabBar = mainWindow.tabs.tabs
         tabRect = tabBar.tabRect(tabIndex)
 
-        QTest.mouseDClick(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
-        QTest.mouseRelease(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
-        QTest.qWait(0)
-        url: QUrl = mockDesktopServices.urls[-1]
-        assert url.isLocalFile()
-        assert os.path.realpath(url.toLocalFile()) == wd
+        with MockDesktopServicesContext() as services:
+            QTest.mouseDClick(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
+            QTest.mouseRelease(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
+            QTest.qWait(0)
+            url = services.urls[-1]
+            assert url.isLocalFile()
+            assert os.path.realpath(url.toLocalFile()) == wd

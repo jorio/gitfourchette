@@ -416,7 +416,7 @@ def testAllTaskNamesTranslated(mainWindow):
                 raise AssertionError(f"Missing task name translation for {key}")
 
 
-def testDonatePrompt(mainWindow, mockDesktopServices):
+def testDonatePrompt(mainWindow):
     from gitfourchette import settings
     app = GFApplication.instance()
 
@@ -496,13 +496,13 @@ def testDonatePrompt(mainWindow, mockDesktopServices):
     schedulePromptInThePast()
 
     # Intercept prompt and click "donate"
-    with Session() as mainWindow:
-        assert not mockDesktopServices.urls
+    with Session() as mainWindow, MockDesktopServicesContext() as services:
+        assert not services.urls
         donate: DonatePrompt = mainWindow.findChild(DonatePrompt)
         donate.ui.donateButton.click()
         QTest.qWait(1500)
-        assert len(mockDesktopServices.urls) == 1
-        assert mockDesktopServices.urls[0].toString() == "https://ko-fi.com/jorio"
+        assert len(services.urls) == 1
+        assert services.urls[0].toString() == "https://ko-fi.com/jorio"
 
     # Prompt must not show up again
     with Session(end=False) as mainWindow:

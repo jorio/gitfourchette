@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -197,38 +197,6 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
 
     from gitfourchette.exttools.mergedriver import MergeDriver
     assert not MergeDriver._ongoingMerges, "Unit test has leaked MergeDriver objects"
-
-
-@pytest.fixture
-def mockDesktopServices():
-    """
-    Use this fixture to intercept calls to QDesktopServices.openUrl() in unit tests.
-    """
-    from gitfourchette import qt
-
-    protocols = ["http", "https", "file"]
-
-    class MockDesktopServices(qt.QObject):
-        urlSlot = qt.Signal(qt.QUrl)
-        urls: list[qt.QUrl]
-
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.urlSlot.connect(self.recordUrl)
-            self.urls = []
-
-        def recordUrl(self, url: qt.QUrl):
-            self.urls.append(url)
-
-    handler = MockDesktopServices()
-
-    for protocol in protocols:
-        qt.QDesktopServices.setUrlHandler(protocol, handler, "urlSlot")
-
-    yield handler
-
-    for protocol in protocols:
-        qt.QDesktopServices.unsetUrlHandler(protocol)
 
 
 @pytest.fixture
