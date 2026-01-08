@@ -93,6 +93,12 @@ class AboutDialog(QDialog):
         gitVersion = GitDriver.gitVersion() or _("(unknown version)")
         gitInfo = f"<b>git</b> {gitVersion} <small>({gitPath})</small>"
 
+        try:
+            from gitfourchette.mount.treemount import fuse
+            fuseInfo = _("with {0}", f"FUSE {fuse.fuse_version_major}.{fuse.fuse_version_minor}")
+        except (ImportError, OSError, AttributeError):
+            fuseInfo = _("(not available)")
+
         self.ui.componentsBlurb.setText(dedent(f"""<html>\
             {appName} {appVersion}
             {buildInfo}
@@ -103,6 +109,7 @@ class AboutDialog(QDialog):
             <li><b>libgit2</b> {pygit2.LIBGIT2_VERSION} <small>({', '.join(getPygit2FeatureStrings())})</small>
             <li><b>{QT_BINDING}</b> {QT_BINDING_VERSION}{qtBindingSuffix}
             <li><b>Qt</b> {qVersion()}
+            <li><b>mfusepy</b> {fuseInfo}
             <li><b>Pygments</b> {pygmentsVersion or _('(not available)')}
             <li><b>Python</b> {'.'.join(str(i) for i in sys.version_info)}
             </ul>
