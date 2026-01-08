@@ -18,6 +18,7 @@ from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
+from gitfourchette.pycompat import *  # multiprocessing default start method
 
 logger = logging.getLogger(__name__)
 

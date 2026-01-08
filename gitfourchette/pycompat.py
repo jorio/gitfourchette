@@ -2,6 +2,15 @@
 
 import enum as _enum
 import glob as _glob
+import multiprocessing as _multiprocessing
+import sys as _sys
+
+
+# Use same multiprocessing default start method as Python 3.14 on Linux
+if (_sys.version_info < (3, 14)
+        and _sys.platform not in ["darwin", "win32"]
+        and _multiprocessing.get_start_method(True) is None):
+    _multiprocessing.set_start_method("forkserver")
 
 
 # Python 3.10 compatibility (enum.StrEnum is new in Python 3.11)
