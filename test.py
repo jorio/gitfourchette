@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -25,6 +25,7 @@ def run():
     parser.add_argument("--qt", default="pyqt6", choices=["pyqt6", "pyside6", "pyqt5"], help="Qt bindings to use (pyqt6 by default)")
     parser.add_argument("-1", dest="single", action="store_true", help="run a single test at a time (don't use python-xdist)")
     parser.add_argument("--with-network", action="store_true", help="run tests that require network access")
+    parser.add_argument("--with-fuse", action="store_true", help="run tests that require FUSE")
     parser.add_argument("-g", "--live-logging", action="store_true", help="enable live logging (recommended with -1)")
     args, forwardArgs = parser.parse_known_args()
     extraArgs = []
@@ -36,6 +37,9 @@ def run():
 
     if args.with_network:
         os.environ["TESTNET"] = "1"
+
+    if args.with_fuse:
+        os.environ["TESTFUSE"] = "1"
 
     if args.single:
         pass

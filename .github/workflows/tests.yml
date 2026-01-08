@@ -16,10 +16,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # Legacy configs
+        # Legacy config with no optional dependencies and ancient pygit2
         # pytest 8.3.5 is the last version without a mandatory requirement for pygments
-        - {name: '310-pyqt5-nosyntax', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pytest==8.3.5 && pip uninstall -y pygments', downgrade-git: true}
-        - {name: '310-pyqt5-outdated', os: ubuntu-22.04, py: '3.10', qt: pyqt5, piptweak: 'pip install pygit2==1.14.1 pygments==2.12', downgrade-git: true}
+        - {name: '310-pyqt5-legacy', os: ubuntu-22.04, py: '3.10', qt: pyqt5, downgrade-git: true, skip-fuse: true,
+           piptweak: 'pip install pygit2==1.14.1 pytest==8.3.5 && pip uninstall -y pygments mfusepy' }
         # Semi-legacy configs
         - {name: '311-pyqt6', os: ubuntu-latest, py: '3.11', qt: pyqt6, downgrade-git: true}
         - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
@@ -27,7 +27,7 @@ jobs:
         # Up-to-date configs
         - {name: '314-pyqt6', os: ubuntu-latest, py: '3.14', qt: pyqt6}
         - {name: '314-pyside6', os: ubuntu-latest, py: '3.14', qt: pyside6, coverage: true}
-        - {name: '314-pyqt6-mac', os: macos-latest, py: '3.14', qt: pyqt6}
+        - {name: '314-pyqt6-mac', os: macos-latest, py: '3.14', qt: pyqt6, skip-fuse: true}
 
     steps:
     - name: Checkout
@@ -60,13 +60,13 @@ jobs:
 
     - name: Pip dependencies
       run: |
-        pip install -e .[${{ matrix.qt }},pygments,test]
+        pip install -e .[${{ matrix.qt }},pygments,test,mfusepy]
         ${{ matrix.piptweak }}
 
     - run: ruff check
 
     - name: Unit tests
-      run: ./test.py --qt=${{ matrix.qt }} --with-network ${{ matrix.coverage && '--cov' }}
+      run: ./test.py --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v6

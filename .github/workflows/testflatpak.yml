@@ -48,4 +48,4 @@ jobs:
         key: ${{ steps.cache-flatpak-restore.outputs.cache-primary-key }}
 
     - name: Run tests
-      run: dbus-launch ./pkg/flatpak/test_as_flatpak.sh --with-net
+      run: dbus-launch ./pkg/flatpak/test_as_flatpak.sh --with-net --with-fuse

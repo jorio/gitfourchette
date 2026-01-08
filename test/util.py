@@ -25,16 +25,20 @@ from . import *
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
 
 requiresNetwork = pytest.mark.skipif(
-    os.environ.get("TESTNET", "0").lower() in {"0", ""},
-    reason="Requires network - rerun with TESTNET=1 environment variable")
+    os.environ.get("TESTNET", "") in {"0", ""},
+    reason="Requires network (test.py --with-network)")
 
 requiresFlatpak = pytest.mark.skipif(
-    not FREEDESKTOP or (not FLATPAK and not shutil.which("flatpak")),
+    not FLATPAK or (FREEDESKTOP and not shutil.which("flatpak")),
     reason="Requires flatpak")
 
 requiresGpg = pytest.mark.skipif(
     not shutil.which("gpg"),
     reason="Requires gpg")
+
+requiresFuse = pytest.mark.skipif(
+    os.environ.get("TESTFUSE", "") in {"0", ""},
+    reason="Requires FUSE (test.py --with-fuse)")
 
 _T = TypeVar("_T")
 _TInheritsQWidget = TypeVar("_TInheritsQWidget", bound=QWidget)
@@ -333,20 +337,17 @@ def qlvGetSelection(view: QListView, role=Qt.ItemDataRole.DisplayRole):
 
 
 def findMenuAction(menu: QMenu | QMenuBar, pattern: str) -> QAction:
-    def stripAmps(s: str):
-        return s.replace("&", "")
-
     patternParts = pattern.split("/")
 
     for submenuPattern in patternParts[:-1]:
         for submenu in menu.children():
             if (isinstance(submenu, QAction)
                     and submenu.menu()
-                    and re.search(submenuPattern, stripAmps(submenu.text()), re.I)):
+                    and re.search(submenuPattern, stripAccelerators(submenu.text()), re.I)):
                 menu = submenu.menu()
                 break
             elif (isinstance(submenu, QMenu)
-                  and re.search(submenuPattern, stripAmps(submenu.title()), re.I)):
+                  and re.search(submenuPattern, stripAccelerators(submenu.title()), re.I)):
                 menu = submenu
                 break
         else:
@@ -354,7 +355,7 @@ def findMenuAction(menu: QMenu | QMenuBar, pattern: str) -> QAction:
 
     assert isinstance(menu, QMenu)
     for action in menu.actions():
-        actionText = re.sub(r"&([A-Za-z])", r"\1", action.text())
+        actionText = stripAccelerators(action.text())
         if re.search(patternParts[-1], actionText, re.IGNORECASE):
             return action
     raise KeyError(f"didn't find menu item '{pattern}' in menu")
