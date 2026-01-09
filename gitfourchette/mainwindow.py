@@ -55,7 +55,6 @@ class MainWindow(QMainWindow):
     welcomeWidget: WelcomeWidget
     tabs: QTabWidget2
 
-    globalMenus: list[QMenu]
     recentMenu: QMenu
     showStatusBarAction: QAction
     showMenuBarAction: QAction
@@ -108,7 +107,14 @@ class MainWindow(QMainWindow):
         self.mainToolBar.openTerminal.connect(lambda: self.currentRepoWidget().openTerminal())
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
 
-        self.globalMenus = []
+        self.recentMenu = QMenu(self)
+        self.recentMenu.setObjectName("RecentMenu")
+        self.recentMenu.setToolTipsVisible(True)
+        self.fillRecentMenu()
+
+        self.welcomeWidget.ui.recentReposButton.setMenu(self.recentMenu)
+        self.mainToolBar.recentAction.setMenu(self.recentMenu)
+
         self.fillGlobalMenuBar()
 
         self.setAcceptDrops(True)
@@ -169,25 +175,39 @@ class MainWindow(QMainWindow):
     # Menu bar
 
     def fillGlobalMenuBar(self):
-        # Delete old menus
-        for m in self.globalMenus:
-            m.deleteLater()
-        self.globalMenus.clear()
-
         menubar = self.globalMenuBar
+        menuObjectNamePrefix = "MWMainMenu"
+
+        # Delete old menu objects
+        for m in menubar.findChildren(QMenu, options=Qt.FindChildOption.FindDirectChildrenOnly):
+            if m.objectName().startswith(menuObjectNamePrefix):
+                m.deleteLater()
+
         menubar.clear()
 
-        fileMenu = menubar.addMenu(_("&File"))
-        editMenu = menubar.addMenu(_("&Edit"))
-        viewMenu = menubar.addMenu(_("&View"))
-        repoMenu = menubar.addMenu(_("&Repo"))
-        helpMenu = menubar.addMenu(_("&Help"))
+        # -------------------------------------------------------------
+        # Set up root menus
 
-        self.globalMenus = [fileMenu, editMenu, viewMenu, repoMenu, helpMenu]
+        menuNames = {
+            "File": _("&File"),
+            "Edit": _("&Edit"),
+            "View": _("&View"),
+            "Repo": _("&Repo"),
+            "Commands": _("&Commands"),
+            "Mount": _("&Mount"),
+            "Help": _("&Help"),
+        }
 
-        for i, menu in enumerate(self.globalMenus):
-            menu.setObjectName(f"MWMainMenu{i}")
+        rootMenus: dict[str, QMenu] = {}
+        for key, name in menuNames.items():
+            menu = menubar.addMenu(name)
+            menu.setObjectName(f"{menuObjectNamePrefix}{key}")
             menu.setToolTipsVisible(True)
+            rootMenus[key] = menu
+
+        fileMenu, editMenu, viewMenu, repoMenu, commandsMenu, mountMenu, helpMenu = iter(rootMenus.values())
+
+        self.autoHideMenuBar.reconnectToMenus()
 
         # -------------------------------------------------------------
 
@@ -211,7 +231,7 @@ class MainWindow(QMainWindow):
             ActionDef(_("Open &Recent"),
                       icon="folder-open-recent",
                       tip=_("List of recently opened Git repos"),
-                      objectName="RecentMenuPlaceholder"),
+                      submenu=self.recentMenu),
 
             ActionDef.SEPARATOR,
 
@@ -290,17 +310,8 @@ class MainWindow(QMainWindow):
             ActionDef.SEPARATOR,
             TaskBook.action(self, tasks.JumpBack),
             TaskBook.action(self, tasks.JumpForward),
-        )
-
-        if APP_DEBUG:
-            a = viewMenu.addAction(_("Navigation Log"), lambda: logger.info(self.currentRepoWidget().navHistory.getTextLog()))
-            a.setShortcut("Alt+Down")
-
-        ActionDef.addToQMenu(
-            viewMenu,
-
+            ActionDef("Dump Nav Log", lambda: logger.info(self.currentRepoWidget().navHistory.getTextLog()), objectName="DumpNavLogAction"),
             ActionDef.SEPARATOR,
-
             ActionDef(
                 _("&Refresh"),
                 lambda: self.currentRepoWidget().refreshRepo(),
@@ -308,7 +319,6 @@ class MainWindow(QMainWindow):
                 icon="SP_BrowserReload",
                 tip=_("Check for changes in the repo (on the local filesystem only – will not fetch remotes)"),
             ),
-
             ActionDef(
                 _("Reloa&d"),
                 lambda: self.currentRepoWidget().replaceWithStub(),
@@ -320,6 +330,7 @@ class MainWindow(QMainWindow):
         self.showStatusBarAction = viewMenu.findChild(QAction, "ShowStatusBarAction")
         self.showMenuBarAction = viewMenu.findChild(QAction, "ShowMenuBarAction")
         self.showMenuBarAction.setVisible(not MACOS)
+        viewMenu.findChild(QAction, "DumpNavLogAction").setVisible(APP_DEBUG)
 
         # -------------------------------------------------------------
 
@@ -335,20 +346,14 @@ class MainWindow(QMainWindow):
                 )
                 for command in self.userCommands
             ]
-            commandActions += [
-                ActionDef.SEPARATOR,
-                ActionDef(
-                    _("Edit Commands…"),
-                    lambda: self.openPrefsDialog("commands"),
-                    icon="document-edit",
-                ),
-            ]
 
-            commandsMenu = ActionDef.makeQMenu(menubar, commandActions)
-            commandsMenu.setObjectName("MWCommandsMenu")
-            commandsMenu.setTitle(_("&Commands"))
-            menubar.insertMenu(helpMenu.menuAction(), commandsMenu)
-            self.globalMenus.append(commandsMenu)
+            ActionDef.addToQMenu(
+                commandsMenu,
+                *commandActions,
+                ActionDef.SEPARATOR,
+                ActionDef(_("Edit Commands…"), icon="document-edit",
+                          callback=lambda: self.openPrefsDialog("commands")),
+            )
 
             # Don't share commandsMenu with the terminal button: commandsMenu.aboutToShow
             # would fire via the terminal button's popup routine, causing AutoHideMenuBar to
@@ -356,69 +361,75 @@ class MainWindow(QMainWindow):
             # Do share the actions themselves so that the keyboard shortcuts work.
             self.mainToolBar.setTerminalActions(commandsMenu.actions())
         else:
+            commandsMenu.deleteLater()
             self.mainToolBar.setTerminalActions([])
+
+        # -------------------------------------------------------------
 
         mountItems = GFApplication.instance().mountManager.makeMenu(self)
         if mountItems:
-            mountpointsMenu = ActionDef.makeQMenu(menubar, mountItems)
-            mountpointsMenu.setTitle(_("&Mount"))
-            menubar.insertMenu(helpMenu.menuAction(), mountpointsMenu)
+            ActionDef.addToQMenu(mountMenu, *mountItems)
+        else:
+            mountMenu.deleteLater()
 
         # -------------------------------------------------------------
 
-        a = helpMenu.addAction(_("&About {0}", qAppName()), lambda: AboutDialog.popUp(self))
-        a.setIcon(stockIcon("gitfourchette"))
-        a.setMenuRole(QAction.MenuRole.AboutRole)
+        ActionDef.addToQMenu(
+            helpMenu,
 
-        a = helpMenu.addAction(_("{0} User’s Guide", qAppName()),
-                               lambda: QDesktopServices.openUrl(QUrl(USERS_GUIDE_URL)))
-        a.setIcon(stockIcon("help-contents"))
+            ActionDef(
+                _("&About {0}", qAppName()),
+                lambda: AboutDialog.popUp(self),
+                icon="gitfourchette",
+                menuRole=QAction.MenuRole.AboutRole,),
 
-        helpMenu.addSeparator()
+            ActionDef(
+                _("{0} User’s Guide", qAppName()),
+                lambda: QDesktopServices.openUrl(QUrl(USERS_GUIDE_URL)),
+                icon="help-contents"),
 
-        a = helpMenu.addAction(_("Open Trash…"), self.openRescueFolder)
-        a.setIcon(stockIcon("SP_TrashIcon"))
-        a.setToolTip(_("Explore changes that you may have discarded by mistake"))
+            ActionDef.SEPARATOR,
 
-        a = helpMenu.addAction(_("Empty Trash…"), self.clearRescueFolder)
-        a.setToolTip(_("Delete all discarded changes from the trash folder"))
+            ActionDef(
+                _("Open Trash…"),
+                self.openRescueFolder,
+                icon="SP_TrashIcon",
+                tip=_("Explore changes that you may have discarded by mistake")),
 
-        # -------------------------------------------------------------
-
-        recentAction = fileMenu.findChild(QAction, "RecentMenuPlaceholder")
-        self.recentMenu = QMenu(fileMenu)
-        recentAction.setMenu(self.recentMenu)
-        self.recentMenu.setObjectName("RecentMenu")
-        self.recentMenu.setToolTipsVisible(True)
-        self.globalMenus.append(self.recentMenu)
-        self.fillRecentMenu()
-
-        self.autoHideMenuBar.reconnectToMenus()
+            ActionDef(
+                _("Empty Trash…"),
+                self.clearRescueFolder,
+                tip=_("Delete all discarded changes from the trash folder")),
+        )
 
     def fillRecentMenu(self):
-        def onClearRecents():
-            settings.history.clearRepoHistory()
-            settings.history.write()
-            self.fillRecentMenu()
-
-        self.recentMenu.clear()
+        actions = []
         for path in settings.history.getRecentRepoPaths(settings.prefs.maxRecentRepos):
-            nickname = settings.history.getRepoNickname(path, strict=True)
             caption = compactPath(path)
+            nickname = settings.history.getRepoNickname(path, strict=True)
             if nickname:
                 caption += f" ({tquo(nickname)})"
-            caption = escamp(caption)
-            action = self.recentMenu.addAction(caption, lambda p=path: self.openRepo(p, exactMatch=True))
-            action.setToolTip(path)
-        self.recentMenu.addSeparator()
 
-        clearAction = self.recentMenu.addAction(_("Clear List"), onClearRecents)
-        clearAction.setToolTip(_("Clear the list of recently opened repositories"))
-        clearAction.setIcon(stockIcon("edit-clear-history"))
+            openAction = ActionDef(
+                escamp(caption),
+                lambda p=path: self.openRepo(p, exactMatch=True),
+                tip=path)
+            actions.append(openAction)
 
-        self.welcomeWidget.ui.recentReposButton.setMenu(self.recentMenu)
+        self.recentMenu.clear()
+        ActionDef.addToQMenu(
+            self.recentMenu,
+            *actions,
+            ActionDef.SEPARATOR,
+            ActionDef(
+                _("Clear List"), self.onClearRecentMenu, "edit-clear-history",
+                tip=_("Clear the list of recently opened repositories"),
+            ))
 
-        self.mainToolBar.recentAction.setMenu(self.recentMenu)
+    def onClearRecentMenu(self):
+        settings.history.clearRepoHistory()
+        settings.history.write()
+        self.fillRecentMenu()
 
     def showMenuBarHiddenWarning(self):
         return showInformation(

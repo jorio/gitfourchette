@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -48,9 +48,6 @@ class ActionDef:
         return dataclasses.replace(self, **changes)
 
     def toQAction(self, parent: QWidget) -> QAction:
-        if self.submenu:
-            raise NotImplementedError("ActionDef.toQAction cannot be used for submenus")
-
         action = QAction(self.caption, parent=parent)
 
         if self.objectName:
@@ -94,6 +91,10 @@ class ActionDef:
             else:
                 action.setShortcut(self.shortcuts)
 
+        if self.submenu:
+            assert isinstance(self.submenu, QMenu), "ActionDef.toQAction cannot be used for submenus given as a list"
+            action.setMenu(self.submenu)
+
         return action
 
     def makeSubmenu(self, parent: QMenu) -> QMenu:
@@ -120,7 +121,7 @@ class ActionDef:
                 menu.addSeparator()
             elif item.kind == ActionDef.Kind.Section:
                 menu.addSection(item.caption)
-            elif item.submenu:
+            elif item.submenu and not isinstance(item.submenu, QMenu):
                 submenu = item.makeSubmenu(parent=menu)
                 menu.addMenu(submenu)
             elif item.kind == ActionDef.Kind.Action:

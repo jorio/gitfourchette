@@ -356,7 +356,7 @@ def testAutoHideMenuBar(mainWindow):
 
     QTest.keyPress(menuBar, Qt.Key.Key_F, Qt.KeyboardModifier.AltModifier)
     QTest.qWait(0)
-    fileMenu: QMenu = menuBar.findChild(QMenu, "MWMainMenu0")
+    fileMenu: QMenu = menuBar.findChild(QMenu, "MWMainMenuFile")
     assert menuBar.height() != 0
     assert fileMenu.title() == "&File"
     assert fileMenu.isVisibleTo(menuBar)
