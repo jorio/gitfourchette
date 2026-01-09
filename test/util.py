@@ -18,6 +18,7 @@ from typing import TypeVar
 import pygit2
 import pytest
 
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.porcelain import *
 from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
 from . import *
@@ -98,7 +99,10 @@ def getTestDataPath(name):
 
 
 def delayCommand(*tokens: str, delay=5, block=False) -> str:
-    delayTokens = ["python3", getTestDataPath("delay-cmd.py"), f"-d{delay}"]
+    python = "python3"
+    if FLATPAK:
+        python = ToolCommands.FlatpakSandboxedCommandPrefix + python
+    delayTokens = [python, getTestDataPath("delay-cmd.py"), f"-d{delay}"]
     if block:
         delayTokens.append("--block")
     delayTokens.append("--")
@@ -109,8 +113,20 @@ def delayCommand(*tokens: str, delay=5, block=False) -> str:
 class DelayGitCommandContext:
     def __init__(self, delay=5, block=False):
         from gitfourchette import settings
+
         rawCommand = settings.prefs.gitPath
         rawTokens = shlex.split(rawCommand, posix=True)
+
+        if FLATPAK:
+            # Unpack full flatpak-compatible command
+            dummyProcess = QProcess(None)
+            dummyProcess.setProgram(rawTokens[0])
+            dummyProcess.setArguments(rawTokens[1:])
+            dummyProcess.setWorkingDirectory("")
+            ToolCommands.wrapFlatpakCommand(dummyProcess)
+            rawTokens = [dummyProcess.program()] + dummyProcess.arguments()
+            dummyProcess.deleteLater()
+
         self.oldCommand = rawCommand
         self.newCommand = delayCommand(*rawTokens, delay=delay, block=block)
 
