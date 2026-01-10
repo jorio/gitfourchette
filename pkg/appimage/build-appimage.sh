@@ -23,7 +23,7 @@ cd "$ROOT/build"
 
 # Write requirements file so python_appimage knows what to include.
 # The path to gitfourchette's root dir must be absolute.
-echo -e "$PINNED_REQUIREMENTS\n$ROOT[$QT_API,pygments]" > "$HERE/requirements.txt"
+echo -e "$PINNED_REQUIREMENTS\n$ROOT[$QT_API,pygments,mfusepy]" > "$HERE/requirements.txt"
 
 # Use python_appimage to create AppImage contents directory
 python3 -m python_appimage --verbose build app --python-version $PYVER --no-packaging "$HERE"
@@ -35,7 +35,7 @@ rm -rfv $junklist
 popd
 
 # Package the AppImage ourselves
-curl -LO https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$ARCH.AppImage
+wget -N https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$ARCH.AppImage
 chmod +x appimagetool-$ARCH.AppImage
 ./appimagetool-$ARCH.AppImage --no-appstream GitFourchette-$ARCH
 chmod +x GitFourchette-$ARCH.AppImage

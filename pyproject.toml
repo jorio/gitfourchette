@@ -36,9 +36,11 @@ gitfourchette = "gitfourchette.__main__:main"
 [project.optional-dependencies]
 test = ["pytest", "pytest-qt", "pytest-cov", "pytest-xdist", "ruff"]
 pyqt6 = ["pyqt6"]
+# WARNING: PyQt5 support is deprecated and will be removed soon
 pyqt5 = ["pyqt5"]
 pyside6 = ["PySide6 >= 6.9"]
 pygments = ["pygments >= 2.12"]  # syntax highlighting
+mfusepy = ["mfusepy == 3.1.0"]  # mount a git tree as FUSE filesystem
 memory-indicator = ["psutil"]
 
 [tool.setuptools]
@@ -116,18 +118,26 @@ exclude_lines = [
 [tool.coverage.html]
 directory = "coverage_html_report"
 
+#------------------------------------------------------------------------------
+# Linting
+
+[tool.ruff]
+exclude = [
+    'gitfourchette/forms/ui_*.py',
+    'mfusepy.py',
+]
+
 [tool.ruff.lint]
 extend-select = ['W', 'E', 'F', 'C', 'N9', 'B', 'U']
-# E203: whitespace before ':'
-# E221: multiple spaces before operator
 # E501: line too long
 # F403: star imports
 # F405: star imports
 # C901: too complex
-ignore = ['E203', 'E221', 'E501', 'F403', 'F405', 'C901', 'B028']
-exclude = ['gitfourchette/forms/ui_*.py']
+# B028: no explicit stacklevel (warnings.warn)
+ignore = ['E501', 'F403', 'F405', 'C901', 'B028']
 
 [tool.ruff.lint.per-file-ignores]
+# F401: unused import
 'gitfourchette/porcelain.py' = ['F401']
 'gitfourchette/qt.py' = ['F401']
 '**/__init__.py' = ['F401']
