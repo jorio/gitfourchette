@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -154,10 +154,7 @@ class MergeDriver(QObject):
 
     @classmethod
     def findOngoingMerge(cls, conflict: GitConflict) -> MergeDriver | None:
-        try:
-            return next(m for m in cls._ongoingMerges if m.conflict == conflict)
-        except StopIteration:
-            return None
+        return next((m for m in cls._ongoingMerges if m.conflict == conflict), None)
 
     @classmethod
     def _forget(cls, deadId: int):

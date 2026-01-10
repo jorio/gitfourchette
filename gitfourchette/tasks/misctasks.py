@@ -285,12 +285,8 @@ class VerifyGpgSignature(RepoTask):
 
         # Find the most significant status.
         # The order of the keys in _GnupgStatusTable is significant!
-        try:
-            status = next(status
-                          for token, status in cls._GnupgStatusTable.items()
-                          if token in report)
-        except StopIteration:
-            status = GpgStatus.CantCheck
+        status = next((status for token, status in cls._GnupgStatusTable.items() if token in report),
+                      GpgStatus.CantCheck)
 
         # Bump GoodUntrusted to GoodTrusted if we trust this
         if status == GpgStatus.GoodUntrusted and ("TRUST_ULTIMATE" in report) or ("TRUST_FULLY" in report):

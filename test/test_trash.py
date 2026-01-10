@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -69,10 +69,7 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
     acceptQMessageBox(rw, "really discard changes")
 
     def findInTrash(partialFileName: str):
-        try:
-            return next(f for f in trash.trashFiles if partialFileName in f)
-        except StopIteration:
-            return None
+        return next((f for f in trash.trashFiles if partialFileName in f), None)
 
     assert findInTrash("a1.txt")
     assert findInTrash("SomeNewFile.txt")
