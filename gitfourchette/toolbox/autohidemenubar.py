@@ -1,8 +1,10 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
+
+import weakref
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -24,7 +26,7 @@ class AutoHideMenuBar(QObject):
         self.hideScheduler.setSingleShot(True)
         self.hideScheduler.timeout.connect(self.doScheduledHide)
 
-        self.menusConnected: list[QMenu] = []
+        self.menusConnected: list[weakref.ReferenceType[QMenu]] = []
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
@@ -51,17 +53,17 @@ class AutoHideMenuBar(QObject):
 
         menu: QMenu
         for menu in self.menuBar.findChildren(QMenu, options=Qt.FindChildOption.FindDirectChildrenOnly):
-            wasConnected = menu in self.menusConnected
+            menuRef = weakref.ref(menu)
+            wasConnected = menuRef in self.menusConnected
 
             if connect:
                 if not wasConnected:
                     menu.aboutToShow.connect(self.onMenuAboutToShow)
                     menu.aboutToHide.connect(self.onMenuAboutToHide)
-                newConnections.append(menu)
-            else:
-                if wasConnected:
-                    menu.aboutToShow.disconnect(self.onMenuAboutToShow)
-                    menu.aboutToHide.disconnect(self.onMenuAboutToHide)
+                newConnections.append(menuRef)
+            elif wasConnected:
+                menu.aboutToShow.disconnect(self.onMenuAboutToShow)
+                menu.aboutToHide.disconnect(self.onMenuAboutToHide)
 
         self.menusConnected = newConnections
 

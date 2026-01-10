@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -83,7 +83,10 @@ def testLexJobCaching(tempDir, mainWindow):
 
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
-    lexJobId = id(getNewLexJob())
+
+    # Remember which job handles big.py
+    job = getNewLexJob()
+
     assert not getNewLexJob().lexingComplete
     waitUntilTrue(lambda: getNewLexJob().scheduler.isActive(), interval=0)
     assert not getNewLexJob().lexingComplete
@@ -96,17 +99,17 @@ def testLexJobCaching(tempDir, mainWindow):
     # Switch back to DiffView, restore LexJob
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
-    assert lexJobId == id(getNewLexJob())
+    assert job is getNewLexJob()
     assert getNewLexJob().scheduler.isActive()
 
     # Change document in DiffView
     rw.jump(NavLocator.inUnstaged("small.py"), check=True)
-    assert lexJobId != id(getNewLexJob())
+    assert job is not getNewLexJob()
 
     # Restore document
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
-    assert lexJobId == id(getNewLexJob())
+    assert job is getNewLexJob()
 
 
 @pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
@@ -129,19 +132,22 @@ def testEvictLexJobFromCache(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
 
+    def getNewLexJob() -> LexJob:
+        return rw.diffView.highlighter.newLexJob
+
     # Remember which LexJob handles copy0000.py
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("copy0000.py"))
-    lexJobId = id(rw.diffView.highlighter.newLexJob)
+    job = getNewLexJob()
 
     # Check that jumping back and forth to copy0000.py reuses the cached LexJob
     rw.jump(NavLocator.inUnstaged("copy0001.py"), True)
-    assert lexJobId != id(rw.diffView.highlighter.newLexJob)
+    assert job is not getNewLexJob()
     # Giant file that exceeds cache size shouldn't evict our old job
     rw.jump(NavLocator.inUnstaged("giantfile.py"), True)
     assert rw.diffView.isVisible()  # make we're not showing the "diff too large" message
-    assert lexJobId != id(rw.diffView.highlighter.newLexJob)
+    assert job is not getNewLexJob()
     rw.jump(NavLocator.inUnstaged("copy0000.py"), True)
-    assert lexJobId == id(rw.diffView.highlighter.newLexJob)
+    assert job is getNewLexJob()
 
     # Start lexing every file.
     # Touching the last file should cause copy0000.py's LexJob to be evicted.
@@ -151,7 +157,7 @@ def testEvictLexJobFromCache(tempDir, mainWindow):
     # Jump back to copy0000.py
     # Should start a new LexJob because it's been evicted
     rw.jump(NavLocator.inUnstaged("copy0000.py"), check=True)
-    assert lexJobId != id(rw.diffView.highlighter.newLexJob)
+    assert job is not getNewLexJob()
 
 
 # Simple coverage test

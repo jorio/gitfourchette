@@ -1,8 +1,10 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
+
+import weakref
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -139,8 +141,9 @@ class QTabWidget2(QWidget):
         self.stacked = QStackedWidget(self)
         self.stacked.setObjectName("QTW2StackedWidget")
 
-        self.shadowCurrentWidgetId = 0
-        """ Keep an id instead of a real reference to not impede GC of a dead widget """
+        self.shadowCurrentWidgetRef = weakref.ref(self)
+        """ Keep a weakref instead of a real reference to not impede GC of a
+        dead widget. (A weakref on self stands in for "none".) """
 
         self.tabScrollArea = QScrollArea(self)
         self.tabScrollArea.setWidgetResizable(True)
@@ -241,8 +244,9 @@ class QTabWidget2(QWidget):
             self.tabs.setTabIcon(i, QIcon())  # clear icon
 
         # See if we should emit the currentWidgetChanged signal
-        if id(currentWidget) != self.shadowCurrentWidgetId:
-            self.shadowCurrentWidgetId = id(currentWidget)
+        currentWidgetRef = weakref.ref(currentWidget or self)  # self stands in for None
+        if currentWidgetRef != self.shadowCurrentWidgetRef:
+            self.shadowCurrentWidgetRef = currentWidgetRef
             self.currentWidgetChanged.emit()
 
         # Forward signal
@@ -306,7 +310,7 @@ class QTabWidget2(QWidget):
         self.stacked.insertWidget(i, newWidget)
         self.stacked.setCurrentIndex(currentIndex)  # Keep it stable
         if currentIndex == i:
-            self.shadowCurrentWidgetId = id(newWidget)
+            self.shadowCurrentWidgetRef = weakref.ref(newWidget)
             self.currentWidgetChanged.emit()
         return oldWidget
 

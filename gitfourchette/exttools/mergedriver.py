@@ -91,10 +91,10 @@ class MergeDriver(QObject):
 
         # Keep track of this merge
         MergeDriver._ongoingMerges.append(self)
-        self.destroyed.connect(lambda: MergeDriver._forget(id(self)))
+        self.destroyed.connect(lambda: MergeDriver._forget(self))
 
     def deleteNow(self):
-        MergeDriver._forget(id(self))
+        MergeDriver._forget(self)
         # TODO: Terminate process?
         self.deleteLater()
 
@@ -157,5 +157,5 @@ class MergeDriver(QObject):
         return next((m for m in cls._ongoingMerges if m.conflict == conflict), None)
 
     @classmethod
-    def _forget(cls, deadId: int):
-        cls._ongoingMerges = [x for x in cls._ongoingMerges if id(x) != deadId]
+    def _forget(cls, deadMerge: MergeDriver):
+        cls._ongoingMerges = [x for x in cls._ongoingMerges if x is not deadMerge]
