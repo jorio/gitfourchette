@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -838,9 +838,7 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     cancelButton.click()
     waitUntilTrue(okButton.isEnabled)
 
-    # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
-    # we're running non-sandboxed commands through /usr/bin/env
-    failMessage = "git.+exited with.+" + ("143" if FLATPAK else "SIGTERM")
+    failMessage = "git.+exited with.+SIGTERM"
     assert findTextInWidget(blurbLabel, failMessage)
     assert blurbLabel.isVisible()
 
@@ -886,9 +884,7 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     assert findTextInWidget(rw.processDialog.abortButton, "SIGKILL")
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
-    # FLATPAK: Look for return code 143 (SIGTERM=15, 15+128=143) because
-    # we're running non-sandboxed commands through /usr/bin/env
-    failMessage = "git.+exited with.+" + ("143" if FLATPAK else "SIGTERM")
+    failMessage = "git.+exited with.+SIGTERM"
     waitForQMessageBox(rw, failMessage).reject()
 
     rw.refreshRepo()

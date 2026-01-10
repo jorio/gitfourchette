@@ -308,8 +308,16 @@ class GitDriver(QProcess):
 
     def formatExitCode(self) -> str:
         code = self.exitCode()
+
+        if FLATPAK and code > 128 and self.program() == "flatpak-spawn":
+            # flatpak-spawn may shift SIG numbers by 128
+            # (for example: 143-128=15, a.k.a. SIGTERM)
+            codeForName = code - 128
+        else:
+            codeForName = code
+
         try:
-            s = signal.Signals(code)
+            s = signal.Signals(codeForName)
             return f"{code} ({s.name})"
         except ValueError:
             return f"{code}"
