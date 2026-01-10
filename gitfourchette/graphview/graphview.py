@@ -93,6 +93,7 @@ class GraphView(QListView):
         kind = self.currentRowKind
         oid = self.currentCommitId
         repoModel = self.repoModel
+        repo = repoModel.repo
         mainWindow = GFApplication.instance().mainWindow
 
         mergeActions = []
@@ -145,8 +146,8 @@ class GraphView(QListView):
             checkoutAction.shortcuts = self.checkoutShortcut.key()
             resetLabel = _("&Reset {0} to Here…", lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD")
 
-            gpgLookAtCommit = self.repoModel.repo.peel_commit(oid)
-            gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(gpgLookAtCommit)
+            gpgLookAtCommit = repo.peel_commit(oid)
+            gpgStatus, _gpgKeyInfo = repoModel.getCachedGpgStatus(gpgLookAtCommit)
             gpgIcon = gpgStatus.iconName()
 
             mounts = GFApplication.instance().mountManager
@@ -156,7 +157,8 @@ class GraphView(QListView):
             elif mounts.isMounted(oid):
                 mountActions = [ActionDef(mountCaption, icon="git-mount", submenu=mounts.makeMenuItemsForMount(oid, self))]
             else:
-                mountActions = [ActionDef(mountCaption, icon="git-mount", callback=lambda: mounts.mount(self.repoModel.repo.workdir, oid))]
+                mountActions = [ActionDef(mountCaption, icon="git-mount",
+                                          callback=lambda: mounts.mount(repo.path, oid))]
 
             actions = [
                 *mergeActions,

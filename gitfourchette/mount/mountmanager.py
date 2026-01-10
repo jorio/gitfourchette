@@ -9,16 +9,17 @@ from __future__ import annotations
 import dataclasses
 import logging
 import multiprocessing
+from contextlib import suppress
 from pathlib import Path
-
-from pygit2 import Oid
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.localization import *
+from gitfourchette.porcelain import Oid, RepoContext, RepositoryOpenFlag
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 from gitfourchette.pycompat import *  # multiprocessing default start method
+from gitfourchette.exttools.toolcommands import ToolCommands
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +49,20 @@ class MountedCommit:
         ToolProcess.startTerminal(parent, self.mountPoint)
 
     def unmount(self):
-        self.fuseProcess.terminate()
-        self.fuseProcess.join()
-        Path(self.mountPoint).rmdir()
+        if FLATPAK:
+            # TODO: Why is this terminate() finicky inside a flatpak?
+            ToolCommands.runSync(
+                ToolCommands.FlatpakSandboxedCommandPrefix + "fusermount3",
+                "--unmount",
+                self.mountPoint,
+                strict=True)
+        else:
+            self.fuseProcess.terminate()
+
+        self.fuseProcess.join(timeout=5)
+
+        with suppress(OSError):
+            Path(self.mountPoint).rmdir()
 
 
 class MountManager(QObject):
@@ -91,17 +103,20 @@ class MountManager(QObject):
             self.mountedCommits.update(alive)
             self.mountPointsChanged.emit()
 
-    def mount(self, workdir: str, oid: Oid):
+    def mount(self, gitdir: str, oid: Oid):
         self.requireFuse()
 
-        wdStem = Path(workdir).stem
+        with RepoContext(gitdir, flags=RepositoryOpenFlag.NO_SEARCH) as repo:
+            workdir = repo.workdir
 
-        pathObj = Path(qTempDir(), "mnt", f"{wdStem}@{str(oid)[:8]}")
+        # Flatpak version can't mount inside qTempDir, so create a mount point
+        # under the repository's .git directory
+        pathObj = Path(gitdir, f"mount-{str(oid)[:8]}.tmp")
         pathObj.mkdir(parents=True)
         path = str(pathObj)
 
-        fuseProcess = multiprocessing.Process(target=TreeMount.run,
-                                              args=(workdir, str(oid), path))
+        fuseProcess = multiprocessing.Process(
+            target=TreeMount.run, args=(gitdir, str(oid), path))
 
         mc = MountedCommit(workdir, oid, path, fuseProcess)
         self.mountedCommits[oid] = mc

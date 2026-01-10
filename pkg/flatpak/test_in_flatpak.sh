@@ -25,7 +25,7 @@ else
     python -m venv "$VENVDIR"
     source "$VENVDIR/bin/activate"
     python -m ensurepip
-    python -m pip --disable-pip-version-check install --upgrade --force-reinstall '.[test,pygments]'
+    python -m pip --disable-pip-version-check install --upgrade --force-reinstall '.[test,pygments,mfusepy]'
 fi
 
 ./test.py "$@"
