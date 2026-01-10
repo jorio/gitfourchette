@@ -1124,36 +1124,27 @@ class ProcessWrapper(QObject):
     def __init__(self, process: QProcess, parent):
         super().__init__(parent)
         self.process = process
-        self._waitingForStart = False
+        self._didStart = False
 
-    def _onStartedOrError(self):
-        if self._waitingForStart:
-            self._waitingForStart = False
-            self.continueCoroutine.emit()
+    def _onStarted(self):
+        self._didStart = True
 
     def coStart(self):
         process = self.process
         logger.info(f"Starting process (from {process.workingDirectory()}): {self.formatCommand()}")
 
-        process.started.connect(self._onStartedOrError)
-        process.errorOccurred.connect(self._onStartedOrError)
+        with QSignalConnectContext(process.started, self._onStarted):
+            process.start()
 
-        # Prevent _onStartedOrError from running too soon - Qt docs say the
-        # started/errorOccurred signals may be emitted synchronously by start()
-        # on some systems.
-        self._waitingForStart = False
+            if not self._didStart and process.state() == QProcess.ProcessState.Starting:
+                # Pause coroutine until process emits either started or errorOccurred
+                with (
+                    QSignalConnectContext(process.started, self.continueCoroutine),
+                    QSignalConnectContext(process.errorOccurred, self.continueCoroutine),
+                ):
+                    yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
 
-        process.start()
-
-        if process.state() == QProcess.ProcessState.Starting:
-            # Pause the coroutine until _onStartedOrError is called.
-            self._waitingForStart = True
-            yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
-
-        process.started.disconnect(self._onStartedOrError)
-        process.errorOccurred.disconnect(self._onStartedOrError)
-
-        if process.state() != QProcess.ProcessState.Running:
+        if not self._didStart:
             if isinstance(process, GitDriver):
                 message = _("Couldn’t start Git ({0}).", process.error())
             else:
@@ -1163,19 +1154,26 @@ class ProcessWrapper(QObject):
 
     def coWaitDone(self, autoFail=True):
         process = self.process
-        assert process.state() == QProcess.ProcessState.Running
+        assert self._didStart
 
-        process.stateChanged.connect(self.continueCoroutine)
-        yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+        if QT5 and process.state() == QProcess.ProcessState.NotRunning:
+            # Qt 5 may enter NotRunning immediately in ForceSerial mode
+            pass
+        else:
+            # Pause coroutine until process exits Running state
+            assert process.state() == QProcess.ProcessState.Running
+            with QSignalConnectContext(process.stateChanged, self.continueCoroutine):
+                yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+
         assert process.state() != QProcess.ProcessState.Running
-        process.stateChanged.disconnect(self.continueCoroutine)
+        exitCode = process.exitCode()
 
-        if autoFail and process.exitCode() != 0:
+        if autoFail and exitCode != 0:
             if isinstance(process, GitDriver):
                 message = process.htmlErrorText()
             else:
                 simpleCommandLine = self.formatCommand(simple=True)
-                message = _("Process {0} exited with code {1}.", escape(process.program()), process.exitCode())
+                message = _("Process {0} exited with code {1}.", escape(process.program()), exitCode)
                 message += f"<p style='font-size: small'>{escape(simpleCommandLine)}</p>"
 
                 stderr = process.readAllStandardError().data().decode(errors="replace")

@@ -42,6 +42,7 @@ from .qfaintseparator import QFaintSeparator
 from .qfilepickercheckbox import QFilePickerCheckBox
 from .qhintbutton import QHintButton
 from .qprocessconnection import QProcessConnection
+from .qsignalconnectcontext import QSignalConnectContext
 from .qsignalblockercontext import QSignalBlockerContext
 from .qstatusbar2 import QStatusBar2
 from .qtabwidget2 import QTabWidget2, QTabBar2
