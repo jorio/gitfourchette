@@ -354,16 +354,23 @@ def qlvGetSelection(view: QListView, role=Qt.ItemDataRole.DisplayRole):
 
 def findMenuAction(menu: QMenu | QMenuBar, pattern: str) -> QAction:
     patternParts = pattern.split("/")
+    findOptions = Qt.FindChildOption.FindDirectChildrenOnly
 
     for submenuPattern in patternParts[:-1]:
-        for submenu in menu.children():
-            if (isinstance(submenu, QAction)
-                    and submenu.menu()
-                    and re.search(submenuPattern, stripAccelerators(submenu.text()), re.I)):
-                menu = submenu.menu()
-                break
-            elif (isinstance(submenu, QMenu)
-                  and re.search(submenuPattern, stripAccelerators(submenu.title()), re.I)):
+        submenus = [
+            (m, m.title())
+            for m in menu.findChildren(QMenu, options=findOptions)
+        ]
+
+        submenus.extend(
+            (a.menu(), a.text())
+            for a in menu.findChildren(QAction, options=findOptions)
+            if a.menu() is not None
+        )
+
+        for submenu, title in submenus:
+            title = stripAccelerators(title)
+            if re.search(submenuPattern, title, re.I):
                 menu = submenu
                 break
         else:
