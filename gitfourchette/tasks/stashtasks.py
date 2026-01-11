@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -118,17 +118,14 @@ class ApplyStash(RepoTask):
 
         # Although 'git stash apply stash@{<FULL_COMMIT_ID>}' works fine,
         # 'git stash pop' and 'drop' won't delete the stash if we pass the full
-        # commit id. So, use a stash index instead.
+        # commit id. So, use a stash number instead.
         stashIndex = self.repo.find_stash_index(stashCommitId)
         popOrApply = "pop" if deleteAfterApply else "apply"
 
-        driver = yield from self.flowCallGit("stash", popOrApply, "--index", str(stashIndex), autoFail=False)
+        driver = yield from self.flowCallGit("stash", popOrApply, str(stashIndex), autoFail=False)
 
-        yield from self.flowEnterWorkerThread()
         self.repo.refresh_index()
         anyConflicts = self.repo.index.conflicts
-
-        yield from self.flowEnterUiThread()
 
         if driver.exitCode() == 0:
             if deleteAfterApply:
@@ -165,7 +162,7 @@ class DropStash(RepoTask):
 
         self.effects |= TaskEffects.Refs
         stashIndex = self.repo.find_stash_index(stashCommitId)
-        stashName = f"stash@{{{stashIndex}}}"  # 'git stash drop' doesn't support --index
+        stashName = f"stash@{{{stashIndex}}}"  # 'git stash drop' doesn't support stash numbers
         yield from self.flowCallGit("stash", "drop", stashName)
 
         self.postStatus = _("Stash {0} deleted.", tquoe(stashMessage))

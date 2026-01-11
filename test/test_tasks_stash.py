@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -339,6 +339,33 @@ def testApplyStashWithConflicts(tempDir, mainWindow):
     rw.dirtyFiles.selectFile("a/a1.txt")
     assert rw.conflictView.isVisible()
     assert rw.conflictView.currentConflict.ours.path == "a/a1.txt"
+
+
+def testApplyStashWithUnrelatedConflictsInIndex(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd, write_index=True) as repo:
+        writeFile(f"{wd}/master.txt", "unrelated change in index 1 - will wind up in stash's index parent commit")
+        repo.index.add("master.txt")
+
+        writeFile(f"{wd}/a/a1.txt", "UNSTASH THIS")
+        repo.create_stash("helloworld", paths=["a/a1.txt"])
+        repo.restore_files_from_head(paths=["a/a1.txt"])
+
+        assert set(repo.status().keys()) == {"master.txt"}
+        writeFile(f"{wd}/master.txt", "unrelated change in index 2 - conflicts with stash's index parent commit")
+        repo.index.add_all()
+        repo.create_commit_on_head("unrelated", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("stash@{0}")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, r"^apply")
+    acceptQMessageBox(rw, "apply.+stash")
+
+    # Make sure we've been able to apply the stash even though its index
+    # conflicts with ours, i.e. don't pass "--index" to "git stash apply".
+    assert readTextFile(f"{wd}/a/a1.txt") == "UNSTASH THIS"
 
 
 def testRevealStashParent(tempDir, mainWindow):
