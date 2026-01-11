@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -29,11 +29,14 @@ class CommitLogFilter(QSortFilterProxyModel):
         if self.shadowHiddenIds == hiddenIds:
             return
 
+        # Begin invalidating filter
+        self.beginFilterChange()
+
         # Keep a copy so we can detect a change next time we're called
         self.shadowHiddenIds = set(hiddenIds)
 
         # Percolate the update to the model
-        self.invalidateFilter()
+        self.endFilterChange(QSortFilterProxyModel.Direction.Rows)
 
     def filterAcceptsRow(self, sourceRow: int, sourceParent: QModelIndex) -> bool:
         try:

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -19,6 +19,7 @@ PyQt6/PySide6/PyQt5 compatibility layer
 # If you're running unit tests, use the PYTEST_QT_API environment variable instead.
 # If you're packaging the app, you may prefer to force a binding via appconsts.py.
 
+import enum as _enum
 import json as _json
 import logging as _logging
 import os as _os
@@ -221,6 +222,24 @@ if QT5:
 if not hasattr(QCheckBox, 'checkStateChanged'):
     # Note: this forwards an int, not a real CheckState, but the values are the same.
     QCheckBox.checkStateChanged = QCheckBox.stateChanged
+
+# Qt 6.9+; Mandatory replacement for QSortFilterProxyModel.invalidateFilter in Qt 6.13+
+if not hasattr(QSortFilterProxyModel, 'beginFilterChange'):
+    # No-op; let endFilterChange do the actual work
+    QSortFilterProxyModel.beginFilterChange = lambda *a, **k: None
+
+# Qt 6.10+; Mandatory replacement for QSortFilterProxyModel.invalidateFilter in Qt 6.13+
+if not hasattr(QSortFilterProxyModel, 'endFilterChange'):
+    # Proxy to invalidateFilter, ignore Direction argument
+    QSortFilterProxyModel.endFilterChange = lambda self, *a, **k: QSortFilterProxyModel.invalidateFilter(self)
+
+# Qt 6.10; Needed for source compat with QSortFilterProxyModel.endFilterChange
+if not hasattr(QSortFilterProxyModel, 'Direction'):
+    class _QSortFilterProxyModel_Direction(_enum.IntEnum):
+        Rows = 1
+        Columns = 2
+        Both = 3
+    QSortFilterProxyModel.Direction = _QSortFilterProxyModel_Direction
 
 # Pythonic iterator for QTextFragments in a QTextBlock. Use this instead of QTextBlock.__iter__,
 # which in PySide6 is an inconvenient QTextBlock::iterator, and in PyQt6 isn't implemented at all.
