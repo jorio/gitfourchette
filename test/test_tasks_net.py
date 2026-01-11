@@ -32,7 +32,6 @@ from . import reposcenario
 from .util import *
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 def testCloneRepoWithSubmodules(tempDir, mainWindow):
     wd = unpackRepo(tempDir, renameTo="unpacked-repo")
     subWd, _dummy = reposcenario.submodule(wd, True)  # spice it up with a submodule

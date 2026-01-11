@@ -15,7 +15,7 @@ from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_clonedialog import Ui_CloneDialog
 from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
-from gitfourchette.porcelain import pygit2_version_at_least, RepoContext, RepositoryOpenFlag
+from gitfourchette.porcelain import RepoContext, RepositoryOpenFlag
 from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
@@ -99,11 +99,6 @@ class CloneDialog(QDialog):
         validator.connectInput(self.ui.urlEdit.lineEdit(), self.validateUrl)
         validator.connectInput(self.ui.pathEdit, self.validatePath)
         validator.run(silenceEmptyWarnings=True)
-
-        if not pygit2_version_at_least("1.15.1", False):
-            self.ui.recurseSubmodulesCheckBox.setChecked(False)
-            self.ui.recurseSubmodulesCheckBox.setEnabled(False)
-            self.ui.recurseSubmodulesCheckBox.setText("Recursing into submodules requires pygit2 1.15.1+")
 
     def validateUrl(self, url):
         if not url:

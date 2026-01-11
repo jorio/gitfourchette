@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -455,7 +455,6 @@ def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method):
     assert sm not in qlvGetRowData(rw.stagedFiles)
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 @pytest.mark.parametrize("recurse", [True, False])
 @pytest.mark.parametrize("method", ["switch1", "switch2", "detach", "newbranch"])
 def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):

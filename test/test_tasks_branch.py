@@ -649,7 +649,6 @@ def testResetHeadToCommit(tempDir, mainWindow, method):
     assert rw.repo.branches.local['master'].target == oid1
 
 
-@pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")
 def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
     uncommittedPath = f"{wd}/submosub/subhello.txt"

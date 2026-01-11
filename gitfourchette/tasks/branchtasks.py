@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -44,7 +44,6 @@ class SwitchBranch(RepoTask):
 
             recurseCheckbox = None
             anySubmodules = bool(self.repo.listall_submodules_fast())
-            anySubmodules &= pygit2_version_at_least("1.15.1", False)  # TODO: Nuke this once we can drop support for old versions of pygit2
             if anySubmodules:
                 recurseCheckbox = QCheckBox(_("Update submodules recursively"))
                 recurseCheckbox.setChecked(True)
