@@ -18,6 +18,7 @@ def testMountCommitFileListing(tempDir, mainWindow):
 
     with MockDesktopServicesContext() as services:
         triggerContextMenuAction(rw.graphView.viewport(), "mount commit as folder")
+        waitUntilTrue(lambda: services.urls)  # Wait for process to start
         mountPoint = Path(services.urls[-1].toLocalFile())
 
     # Give the process a second to boot up
@@ -54,6 +55,7 @@ def testConfirmUnmountBeforeClosing(tempDir, mainWindow):
 
     with MockDesktopServicesContext() as services:
         triggerContextMenuAction(rw.graphView.viewport(), "mount commit as folder")
+        waitUntilTrue(lambda: services.urls)  # Wait for process to start
         mountPoint = Path(services.urls[-1].toLocalFile())
 
     # Give the process a second to boot up
@@ -89,6 +91,7 @@ def testMountMultipleUnmountAll(tempDir, mainWindow):
 
         with MockDesktopServicesContext() as services:
             triggerContextMenuAction(rw.graphView.viewport(), "mount commit as folder")
+            waitUntilTrue(lambda: services.urls)  # Wait for process to start
             path = Path(services.urls[-1].toLocalFile())
             mountPoints.append(path)
 

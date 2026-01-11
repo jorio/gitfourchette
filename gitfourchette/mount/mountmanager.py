@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-import multiprocessing
+import shlex
+import sys
 from contextlib import suppress
 from pathlib import Path
 
@@ -18,14 +19,13 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
-from gitfourchette.pycompat import *  # multiprocessing default start method
-from gitfourchette.exttools.toolcommands import ToolCommands
 
 logger = logging.getLogger(__name__)
 
 try:
-    from gitfourchette.mount.treemount import TreeMount
+    import gitfourchette.mount.treemount as _dummy
     fuseImportError = None
+    del _dummy
 except (ImportError, OSError) as exc:  # pragma: no cover
     fuseImportError = exc
     logger.info(f"FUSE not available: {fuseImportError}")
@@ -36,7 +36,7 @@ class MountedCommit:
     repoWorkdir: str
     commitId: Oid
     mountPoint: str
-    fuseProcess: multiprocessing.Process
+    fuseProcess: QProcess
 
     def friendlyName(self) -> str:
         repoName = settings.history.getRepoNickname(self.repoWorkdir)
@@ -49,17 +49,8 @@ class MountedCommit:
         ToolProcess.startTerminal(parent, self.mountPoint)
 
     def unmount(self):
-        if FLATPAK:
-            # TODO: Why is this terminate() finicky inside a flatpak?
-            ToolCommands.runSync(
-                ToolCommands.FlatpakSandboxedCommandPrefix + "fusermount3",
-                "--unmount",
-                self.mountPoint,
-                strict=True)
-        else:
-            self.fuseProcess.terminate()
-
-        self.fuseProcess.join(timeout=5)
+        self.fuseProcess.terminate()
+        self.fuseProcess.waitForFinished(5000)
 
         with suppress(OSError):
             Path(self.mountPoint).rmdir()
@@ -97,7 +88,7 @@ class MountManager(QObject):
         e.g. by "ejecting" a drive on macOS.
         """
         alive = {oid: mc for oid, mc in self.mountedCommits.items()
-                 if mc.fuseProcess.is_alive()}
+                 if mc.fuseProcess.state() != QProcess.ProcessState.NotRunning}
         if len(alive) != len(self.mountedCommits):
             self.mountedCommits.clear()
             self.mountedCommits.update(alive)
@@ -120,25 +111,37 @@ class MountManager(QObject):
         pathObj.mkdir(parents=True)
         path = str(pathObj)
 
-        fuseProcess = multiprocessing.Process(
-            target=TreeMount.run, args=(gitdir, str(oid), path))
+        tokens = [
+            sys.executable,
+            "-m",
+            "gitfourchette.mount.treemount",
+            workdir,
+            str(oid),
+            path
+        ]
+        logger.info(f"Starting: {shlex.join(tokens)}")
+
+        fuseProcess = QProcess(self)
+        fuseProcess.setProgram(tokens[0])
+        fuseProcess.setArguments(tokens[1:])
 
         mc = MountedCommit(workdir, oid, path, fuseProcess)
         self.mountedCommits[oid] = mc
 
+        fuseProcess.started.connect(lambda: self.onProcessStarted(mc))
         fuseProcess.start()
-        logger.info(f"PID {fuseProcess.pid}, mountpoint {path}")
+        logger.info(f"PID {fuseProcess.processId()}, mountpoint {path}")
 
         self.statusMessage.emit(
             _("Created a FUSE mount point for {0}. Find it in the {1} menu.",
               tquo(mc.friendlyName()),
               tquo(stripAccelerators(_("&Mount")))))
 
-        self.mountPointsChanged.emit()
-
-        mc.openFolder()
-
         return mc
+
+    def onProcessStarted(self, mc: MountedCommit):
+        self.mountPointsChanged.emit()
+        mc.openFolder()
 
     def copyPath(self, mc: MountedCommit):
         QApplication.clipboard().setText(mc.mountPoint)
