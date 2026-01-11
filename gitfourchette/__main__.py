@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,7 +8,7 @@ import logging
 import signal
 import sys
 
-from gitfourchette.qt import *
+from gitfourchette.appconsts import *
 
 
 def excepthook(exctype, value, tb):
@@ -18,7 +18,13 @@ def excepthook(exctype, value, tb):
     excMessageBox(value, printExc=False)
 
 
+# Called from AppImage entry point
 def main():
+    if APP_BOOTMODE == "mount":
+        from gitfourchette.mount import treemount
+        treemount.main()
+        return
+
     logging.basicConfig(
         stream=sys.stderr,
         level=logging.WARNING,
@@ -26,8 +32,11 @@ def main():
         datefmt="%H:%M:%S")
     logging.captureWarnings(True)
 
-    # inject our own exception hook to show an error dialog in case of unhandled exceptions
-    # (note that this may get overridden when running under a debugger)
+    # Initialize Qt bindings now
+    from gitfourchette import qt
+
+    # Show an error dialog in case of unhandled exceptions.
+    # Note that debuggers may override the exception hook.
     sys.excepthook = excepthook
 
     # Initialize the application
@@ -38,16 +47,17 @@ def main():
     def onSigint(*_dummy):
         # Deferring the quit to the next event loop gives the application
         # some time to wrap up the session.
-        QTimer.singleShot(0, app.quit)
+        qt.QTimer.singleShot(0, app.quit)
     signal.signal(signal.SIGINT, onSigint)
 
     # Force Python interpreter to run every now and then so it can run the Ctrl+C signal handler
     # (Otherwise the app won't actually die until the window regains focus, see https://stackoverflow.com/q/4938723)
     if __debug__:
-        timer = QTimer()
+        timer = qt.QTimer()
         timer.start(300)
         timer.timeout.connect(lambda: None)
 
+    # Start the UI
     app.beginSession()
 
     # Keep the app running

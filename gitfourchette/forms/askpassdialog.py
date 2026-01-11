@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,11 +9,9 @@ from gitfourchette.pycompat import *
 import os
 import re
 import shlex
-import sys
 from enum import StrEnum
 from pathlib import Path
 
-from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.qt import *
@@ -135,27 +133,26 @@ class AskpassDialog(TextInputDialog):
         return dialog
 
     @classmethod
-    def environmentForChildProcess(cls, sandbox: bool = False):
-        launcherScript = Path(qTempDir()) / ("askpass_sandboxed.sh" if sandbox else "askpass.sh")
+    def environmentForChildProcess(cls, sandbox: bool):
+        from gitfourchette.exttools.toolcommands import ToolCommands
+
+        fileName = "askpass_sandboxed.sh" if sandbox else "askpass.sh"
+        launcherScript = Path(qTempDir(), fileName)
 
         if not launcherScript.exists():
-            script = "#!/usr/bin/env bash\n"
-            script += f"export {GFApplication.AskpassEnvKey}=1\n"
+            tokens, env = ToolCommands.spawnNewInstance("askpass", sandbox=sandbox)
 
-            if FLATPAK and not sandbox:
-                tokens = ["flatpak", "run", os.environ["FLATPAK_ID"]]
-            else:
-                script += f"export PYTHONPATH={shlex.quote(':'.join(sys.path))}\n"
-                tokens = sys.orig_argv
-                trimArgs = len(sys.argv) - 1
-                assert trimArgs >= 0
-                if trimArgs:
-                    tokens = tokens[:-trimArgs]
-                assert tokens
+            scriptLines = [
+                '#!/usr/bin/env bash',
 
-            # Throw away stderr to avoid forwarding Qt error spam to ProcessDialog.
-            script += f"""exec {shlex.join(tokens)} "$@" 2>/dev/null\n"""
-            launcherScript.write_text(script, "utf-8")
+                # Environment variables
+                *(f'export {k}={shlex.quote(v)}' for k, v in env.items()),
+
+                # Throw away stderr to avoid forwarding Qt error spam to ProcessDialog.
+                f'exec {shlex.join(tokens)} "$@" 2>/dev/null',
+            ]
+
+            launcherScript.write_text("\n".join(scriptLines), "utf-8")
             launcherScript.chmod(0o755)
 
         return {

@@ -107,7 +107,7 @@ class TreeMount(fuse.Operations):
         return str(absOnHost)
 
 
-if __name__ == '__main__':  # pragma: no cover
+def main():
     import argparse
     parser = argparse.ArgumentParser(description="Mount Git tree with FUSE")
     parser.add_argument("repo")
@@ -115,3 +115,7 @@ if __name__ == '__main__':  # pragma: no cover
     parser.add_argument("mountpoint")
     args = parser.parse_args()
     TreeMount.run(args.repo, args.refish, args.mountpoint)
+
+
+if __name__ == '__main__':
+    main()

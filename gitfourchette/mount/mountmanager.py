@@ -9,11 +9,11 @@ from __future__ import annotations
 import dataclasses
 import logging
 import shlex
-import sys
 from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Oid
@@ -111,19 +111,14 @@ class MountManager(QObject):
         pathObj.mkdir(parents=True)
         path = str(pathObj)
 
-        tokens = [
-            sys.executable,
-            "-m",
-            "gitfourchette.mount.treemount",
-            workdir,
-            str(oid),
-            path
-        ]
+        tokens, env = ToolCommands.spawnNewInstance(sandbox=True, bootMode="mount")
+        tokens += [workdir, str(oid), path]
         logger.info(f"Starting: {shlex.join(tokens)}")
 
         fuseProcess = QProcess(self)
         fuseProcess.setProgram(tokens[0])
         fuseProcess.setArguments(tokens[1:])
+        ToolCommands.setQProcessEnvironment(fuseProcess, env)
 
         mc = MountedCommit(workdir, oid, path, fuseProcess)
         self.mountedCommits[oid] = mc

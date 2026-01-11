@@ -30,8 +30,6 @@ logger = logging.getLogger(__name__)
 
 
 class GFApplication(QApplication):
-    AskpassEnvKey = "_GITFOURCHETTE_START_IN_ASKPASS_MODE"
-
     restyle = Signal()
     prefsChanged = Signal(list)
     regainForeground = Signal()
@@ -57,7 +55,7 @@ class GFApplication(QApplication):
 
     @classmethod
     def standaloneAskpassMode(cls) -> bool:
-        return os.environ.get(cls.AskpassEnvKey, "") not in ["", "0"]
+        return APP_BOOTMODE == "askpass"
 
     def __init__(self, argv: list[str], bootScriptPath: str = "", ):
         super().__init__(argv)

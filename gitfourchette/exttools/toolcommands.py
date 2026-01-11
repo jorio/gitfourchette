@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import shutil
+import sys
 import textwrap
 from collections.abc import Sequence
 from contextlib import suppress
@@ -316,3 +317,43 @@ class ToolCommands:
             path.write_text(script, "utf-8")
             path.chmod(0o755)
         return str(path)
+
+    @classmethod
+    def spawnNewInstance(cls, bootMode: str = "", sandbox: bool = True) -> tuple[list[str], dict[str, str]]:
+        """
+        Prepare a command and environment variables to spawn another instance of
+        this application.
+        """
+
+        env = {}
+
+        if bootMode:
+            env["APP_BOOTMODE"] = bootMode
+
+        if FLATPAK and not sandbox:
+            # Command to be called by host system's git, which lives outside the
+            # flatpak sandbox. Spawn another instance of our flatpak.
+            tokens = ["flatpak", "run", FLATPAK_ID]
+        elif "APPIMAGE" in INITIAL_ENVIRONMENT:
+            # "sys.executable" points to the .AppImage file, but DON'T USE THAT
+            # to spawn a child - may cause SIGTTIN in the parent process!
+            # Use "sys.orig_argv" instead: it points to python within the
+            # AppImage's tmpfs mountpoint. Make a barebones command by stripping
+            # any extra arguments passed to the entry point:
+            keepArgs = len(sys.orig_argv) - len(sys.argv) - 1
+            tokens = sys.orig_argv[:keepArgs]
+        else:
+            # Just spawn another Python interpreter.
+            tokens = [sys.executable, "-m", "gitfourchette"]
+
+        # The new instance is supposed to be a child process, so it will inherit
+        # the environment variables of the current process. We don't need to
+        # explicitly copy them to 'env'. For reference, some of the relevant
+        # variables for a successful child process include:
+        # - PYTHONPATH (":".join(sys.path))
+        # - For AppImage only: APPIMAGE, APPDIR, ARGV0, SSL_CERT_FILE
+        # Without these, askpass.sh may fail to start unless it's a child
+        # process of a GitFourchette instance.
+
+        assert tokens
+        return tokens, env

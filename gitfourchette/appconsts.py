@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -27,6 +27,12 @@ APP_FREEZE_DATE = ""
 APP_FREEZE_QT = ""
 # END_FREEZE_CONSTS
 # -----------------------------------------------------------------------------
+
+APP_BOOTMODE = _os.environ.get("APP_BOOTMODE", "")
+"""
+Pass 'APP_BOOTMODE=askpass' or 'APP_BOOTMODE=mount' to start the program to an
+alternate main loop.
+"""
 
 APP_TESTMODE = _envBool("APP_TESTMODE") or "pytest" in _sys.modules
 """
