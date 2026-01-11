@@ -11,4 +11,5 @@ source_root="$here/../.."
 flatpak run \
   --env=PYTHONPYCACHEPREFIX=/tmp/__DONT_POLLUTE_HOST_PYCACHE__ \
   --cwd="$source_root" \
-  --command=python org.gitfourchette.gitfourchette -m gitfourchette
+  --command=python org.gitfourchette.gitfourchette \
+  -m gitfourchette "$@"

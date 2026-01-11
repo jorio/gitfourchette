@@ -22,10 +22,11 @@ if [ -d "$VENVDIR" ]; then
     echo ""
     source "$VENVDIR/bin/activate"
 else
-    python -m venv "$VENVDIR"
+    python -m venv "$VENVDIR" --system-site-packages
     source "$VENVDIR/bin/activate"
-    python -m ensurepip
-    python -m pip --disable-pip-version-check install --upgrade --force-reinstall '.[test,pygments,mfusepy]'
+    pip --disable-pip-version-check install --ignore-installed --upgrade --force-reinstall '.[test,pygments,mfusepy]'
 fi
+
+pip list --local
 
 ./test.py "$@"
