@@ -1,3 +1,3 @@
 #! /bin/bash -i
-{{ python-executable }} -u "${APPDIR}/opt/python{{ python-version }}/bin/gitfourchette" "$@"
+"{{ python-executable }}" -u "${APPDIR}/opt/python{{ python-version }}/bin/gitfourchette" "$@"
 
