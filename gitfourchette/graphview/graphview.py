@@ -157,8 +157,7 @@ class GraphView(QListView):
             elif mounts.isMounted(oid):
                 mountActions = [ActionDef(mountCaption, icon="git-mount", submenu=mounts.makeMenuItemsForMount(oid, self))]
             else:
-                mountActions = [ActionDef(mountCaption, icon="git-mount",
-                                          callback=lambda: mounts.mount(repo.path, oid))]
+                mountActions = [ActionDef(mountCaption, icon="git-mount", callback=lambda: mounts.mount(repo.workdir, oid))]
 
             actions = [
                 *mergeActions,

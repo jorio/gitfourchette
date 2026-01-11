@@ -15,7 +15,7 @@ from pathlib import Path
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.localization import *
-from gitfourchette.porcelain import Oid, RepoContext, RepositoryOpenFlag
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 from gitfourchette.pycompat import *  # multiprocessing default start method
@@ -103,15 +103,20 @@ class MountManager(QObject):
             self.mountedCommits.update(alive)
             self.mountPointsChanged.emit()
 
-    def mount(self, gitdir: str, oid: Oid):
+    def mount(self, workdir: str, oid: Oid):
         self.requireFuse()
 
-        with RepoContext(gitdir, flags=RepositoryOpenFlag.NO_SEARCH) as repo:
-            workdir = repo.workdir
+        if FLATPAK:
+            # Flatpak version can't mount inside qTempDir, so create the mount
+            # point somewhere on the disk. Avoid the repo's .git directory.
+            mountParentDir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericCacheLocation)
+        else:
+            mountParentDir = qTempDir()
 
-        # Flatpak version can't mount inside qTempDir, so create a mount point
-        # under the repository's .git directory
-        pathObj = Path(gitdir, f"mount-{str(oid)[:8]}.tmp")
+        wdName = Path(workdir).name
+        pathObj = Path(mountParentDir, f"mnt-{wdName}@{str(oid)[:8]}")
+        if pathObj.is_dir():
+            pathObj.rmdir()
         pathObj.mkdir(parents=True)
         path = str(pathObj)
 
