@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -217,7 +217,6 @@ class History(PrefsFile):
     repos: dict = dataclasses.field(default_factory=dict)
     cloneHistory: list = dataclasses.field(default_factory=list)
     fileDialogPaths: dict = dataclasses.field(default_factory=dict)
-    workingKeys: dict = dataclasses.field(default_factory=dict)
     startups: int = 0
 
     _maxSeq = -1
@@ -335,15 +334,6 @@ class History(PrefsFile):
 
     def invalidateSequenceNumber(self):
         self._maxSeq = -1
-
-    def setRemoteWorkingKey(self, url: str, keyPath: str):
-        if not url:
-            return
-        if keyPath:
-            self.workingKeys[url] = keyPath
-        else:
-            self.workingKeys.pop(url, None)
-        self.setDirty()
 
 
 @dataclasses.dataclass
