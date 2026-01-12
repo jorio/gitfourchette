@@ -140,7 +140,7 @@ class AskpassDialog(TextInputDialog):
         launcherScript = Path(qTempDir(), fileName)
 
         if not launcherScript.exists():
-            tokens = ToolCommands.spawnNewInstance(f"{APP_SYSTEM_NAME}-askpass", sandbox=sandbox)
+            tokens = ToolCommands.spawnNewInstance(__name__, sandbox=sandbox)
 
             # Discard stderr to avoid forwarding Qt error spam to ProcessDialog.
             script = ('#!/usr/bin/env bash\n'

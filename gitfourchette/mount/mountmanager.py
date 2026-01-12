@@ -23,9 +23,8 @@ from gitfourchette.toolbox import *
 logger = logging.getLogger(__name__)
 
 try:
-    import gitfourchette.mount.treemount as _dummy
+    import gitfourchette.mount.treemount
     fuseImportError = None
-    del _dummy
 except (ImportError, OSError) as exc:  # pragma: no cover
     fuseImportError = exc
     logger.info(f"FUSE not available: {fuseImportError}")
@@ -111,7 +110,7 @@ class MountManager(QObject):
         pathObj.mkdir(parents=True)
         path = str(pathObj)
 
-        tokens = ToolCommands.spawnNewInstance(f"{APP_SYSTEM_NAME}-mount", sandbox=True)
+        tokens = ToolCommands.spawnNewInstance(gitfourchette.mount.treemount.__name__, sandbox=True)
         tokens += [workdir, str(oid), path]
         logger.info(f"Starting: {shlex.join(tokens)}")
 

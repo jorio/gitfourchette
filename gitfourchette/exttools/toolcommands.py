@@ -319,26 +319,21 @@ class ToolCommands:
         return str(path)
 
     @classmethod
-    def spawnNewInstance(cls, script: str, sandbox: bool = True) -> list[str]:
+    def spawnNewInstance(cls, module: str, sandbox: bool = True) -> list[str]:
         """
         Prepare a command to spawn another instance of this application.
         """
-
-        modules = {
-            f"{APP_SYSTEM_NAME}-askpass": f"{APP_SYSTEM_NAME}.forms.askpassdialog",
-            f"{APP_SYSTEM_NAME}-mount": f"{APP_SYSTEM_NAME}.mount.treemount",
-        }
-        module = modules[script]
+        assert module.startswith("gitfourchette"), module
 
         if FLATPAK and not sandbox:
             # Command to be called by host system's git, which lives outside the
             # flatpak sandbox. Spawn another instance of our flatpak.
-            tokens = ["flatpak", "run", f"--command={script}", FLATPAK_ID]
+            tokens = ["flatpak", "run", "--command=python", FLATPAK_ID, "-m", module]
         elif "APPIMAGE" in INITIAL_ENVIRONMENT:
             # AVOID "sys.executable" (path to .AppImage file) to spawn a child,
             # may cause SIGTTIN in parent process!
-            python = Path(sys.orig_argv[0])  # python in AppImage tmpfs mount
-            tokens = [str(python), "-u", str(python.with_name(script))]
+            python = sys.orig_argv[0]  # python in AppImage tmpfs mount
+            tokens = [python, "-m", module]
         elif PYINSTALLER_MEIPASS:
             tokens = [sys.executable, f"--start-module={module}"]
         else:
