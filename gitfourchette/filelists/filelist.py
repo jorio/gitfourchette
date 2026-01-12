@@ -95,19 +95,21 @@ class FileListDelegate(QStyledItemDelegate):
 
         if dirPortion is not None:
             textColor = QPalette.ColorRole.WindowText if not isSelected else QPalette.ColorRole.HighlightedText
+            dirColor = QPalette.ColorRole.PlaceholderText if not isSelected else textColor
 
             # Draw directory with muted color
-            mutedColor = option.palette.color(colorGroup, textColor)
-            mutedColor.setAlphaF(0.4)
+            mutedColor = option.palette.color(colorGroup, dirColor)
+            if isSelected:
+                mutedColor.setAlphaF(.7)
             painter.setPen(mutedColor)
-            painter.drawText(textRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, dirPortion)
+            painter.drawText(textRect, option.displayAlignment, dirPortion)
 
             # Draw filename with normal color
             painter.setPen(option.palette.color(colorGroup, textColor))
             dirWidth = painter.fontMetrics().horizontalAdvance(dirPortion)
             fileRect = QRect(textRect)
             fileRect.setLeft(textRect.left() + dirWidth)
-            painter.drawText(fileRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, filePortion)
+            painter.drawText(fileRect, option.displayAlignment, filePortion)
         else:
             painter.drawText(textRect, option.displayAlignment, text)
 
