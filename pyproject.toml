@@ -32,6 +32,10 @@ Changelog = "https://github.com/jorio/gitfourchette/blob/master/CHANGELOG.md"
 
 [project.gui-scripts]
 gitfourchette = "gitfourchette.__main__:main"
+gitfourchette-askpass = "gitfourchette.forms.askpassdialog:main"
+
+[project.scripts]
+gitfourchette-mount = "gitfourchette.mount.treemount:main"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-qt", "pytest-cov", "pytest-xdist", "ruff"]

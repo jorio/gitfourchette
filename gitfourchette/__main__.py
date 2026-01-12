@@ -4,27 +4,37 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import importlib
 import logging
-import signal
 import sys
 
-from gitfourchette.appconsts import *
 
+# For PyInstaller
+def customStartModule():
+    try:
+        fullArg = sys.argv[1]
+    except IndexError:
+        return False
 
-def excepthook(exctype, value, tb):
-    sys.__excepthook__(exctype, value, tb)  # run default excepthook
+    magic = "--start-module="
 
-    from gitfourchette.toolbox import excMessageBox
-    excMessageBox(value, printExc=False)
+    if not fullArg.startswith(magic):
+        return False
+
+    moduleName = fullArg.removeprefix(magic)
+    if not moduleName.startswith("gitfourchette."):
+        print("unsupported start module", file=sys.stderr)
+        sys.exit(1)
+
+    sys.argv.pop(1)
+    sys.orig_argv.remove(fullArg)
+    module = importlib.import_module(moduleName)
+    module.main()
+    return True
 
 
 # Called from AppImage entry point
 def main():
-    if APP_BOOTMODE == "mount":
-        from gitfourchette.mount import treemount
-        treemount.main()
-        return
-
     logging.basicConfig(
         stream=sys.stderr,
         level=logging.WARNING,
@@ -32,38 +42,10 @@ def main():
         datefmt="%H:%M:%S")
     logging.captureWarnings(True)
 
-    # Initialize Qt bindings now
-    from gitfourchette import qt
-
-    # Show an error dialog in case of unhandled exceptions.
-    # Note that debuggers may override the exception hook.
-    sys.excepthook = excepthook
-
-    # Initialize the application
     from gitfourchette.application import GFApplication
-    app = GFApplication(sys.argv, __file__)
-
-    # Quit app cleanly on Ctrl+C (all repos and associated file handles will be freed)
-    def onSigint(*_dummy):
-        # Deferring the quit to the next event loop gives the application
-        # some time to wrap up the session.
-        qt.QTimer.singleShot(0, app.quit)
-    signal.signal(signal.SIGINT, onSigint)
-
-    # Force Python interpreter to run every now and then so it can run the Ctrl+C signal handler
-    # (Otherwise the app won't actually die until the window regains focus, see https://stackoverflow.com/q/4938723)
-    if __debug__:
-        timer = qt.QTimer()
-        timer.start(300)
-        timer.timeout.connect(lambda: None)
-
-    # Start the UI
-    app.beginSession()
-
-    # Keep the app running
-    returnCode = app.exec()
-    sys.exit(returnCode)
+    GFApplication.main()
 
 
 if __name__ == "__main__":
-    main()
+    if not customStartModule():
+        main()

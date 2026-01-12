@@ -9,6 +9,7 @@ from __future__ import annotations
 import gc
 import logging
 import os
+import sys
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -36,33 +37,37 @@ class GFApplication(QApplication):
     fileDraggedToDockIcon = Signal(str)
     mouseSideButtonPressed = Signal(bool)
 
+    # Lightweight state
+    installedLocale: QLocale | None
+    qtbaseTranslator: QTranslator
+    tempDir: QTemporaryDir
+    platformDefaultStyleName: str
+
+    # Heavyweight state
     mainWindow: MainWindow | None
     initialSession: Session | None
     commandLinePaths: list
-    installedLocale: QLocale | None
-    qtbaseTranslator: QTranslator | None
-    tempDir: QTemporaryDir
     sessionwideGitConfigPath: str
     sessionwideGitConfig: GitConfig
     sshAgent: SshAgent | None
     mountManager: MountManager | None
 
-    @staticmethod
-    def instance() -> GFApplication:
+    @classmethod
+    def instance(cls) -> GFApplication:
         me = QApplication.instance()
-        assert isinstance(me, GFApplication)
+        assert isinstance(me, cls)
         return me
 
     @classmethod
-    def standaloneAskpassMode(cls) -> bool:
-        return APP_BOOTMODE == "askpass"
+    def main(cls):
+        app = cls(sys.argv)
+        app.beginSession()
+        returnCode = app.exec()
+        sys.exit(returnCode)
 
-    def __init__(self, argv: list[str], bootScriptPath: str = "", ):
+    def __init__(self, argv: list[str], barebones=False):
         super().__init__(argv)
         self.setObjectName("GFApplication")
-
-        if not bootScriptPath and argv:
-            bootScriptPath = argv[0]
 
         self.mainWindow = None
         self.initialSession = None
@@ -71,15 +76,25 @@ class GFApplication(QApplication):
         self.qtbaseTranslator = QTranslator(self)
         self.sshAgent = None
 
+        # Show an error dialog in case of unhandled exceptions.
+        # Note that debuggers may override the exception hook.
+        self.injectExceptHook()
+
         # Don't use app.setOrganizationName because it changes QStandardPaths.
         self.setApplicationName(APP_SYSTEM_NAME)  # used by QStandardPaths
         self.setApplicationDisplayName(APP_DISPLAY_NAME)  # user-friendly name
         self.setApplicationVersion(APP_VERSION)
         self.setDesktopFileName(APP_IDENTIFIER)  # Wayland uses this to resolve window icons
 
-        # Add asset search path relative to boot script
-        assetSearchPath = str(Path(bootScriptPath).parent / "assets")
-        QDir.addSearchPath("assets", assetSearchPath)
+        # Add assets search path
+        if PYINSTALLER_MEIPASS:
+            # PyInstaller, e.g. GitFourchette.app/Contents/Frameworks
+            assetsParentPath = Path(PYINSTALLER_MEIPASS)
+        else:
+            # Relative to boot script
+            assetsParentPath = Path(__file__ or sys.argv[0]).parent
+        assetsSearchPath = str(assetsParentPath / "assets")
+        QDir.addSearchPath("assets", assetsSearchPath)
 
         # Set app icon
         # - Except in macOS app bundles, which automatically use the embedded .icns file
@@ -94,8 +109,13 @@ class GFApplication(QApplication):
         # (for command line parser to display localized text)
         self.installTranslators()
 
-        # If starting in standalone askpass mode, we've initialized enough things
-        if self.standaloneAskpassMode():
+        self.createTempDir()
+
+        self.installSigintHandler()
+
+        # ---------------------------------------------------------------------
+        # End of barebones initialization
+        if barebones:
             return
 
         # Process command line
@@ -115,9 +135,22 @@ class GFApplication(QApplication):
         from gitfourchette.globalshortcuts import GlobalShortcuts
         from gitfourchette.tasks import TaskBook, TaskInvocation
 
-        # Prepare session-wide temporary directory
-        if os.environ.get("GITFOURCHETTE_TEMPDIR", ""):
-            tempDirPath = Path(os.environ["GITFOURCHETTE_TEMPDIR"])
+        # Prime singletons
+        GlobalShortcuts.initialize()
+        TaskBook.initialize()
+        TaskInvocation.initializeGlobalSignal().connect(self.onInvokeTask)
+
+        # Get initial session tabs
+        commandLinePaths = parser.positionalArguments()
+        commandLinePaths = [str(Path(p).resolve()) for p in commandLinePaths]
+        self.commandLinePaths = commandLinePaths
+
+    # -------------------------------------------------------------------------
+
+    def createTempDir(self):
+        tempDirPath = os.environ.get("GITFOURCHETTE_TEMPDIR", "")
+        if tempDirPath:
+            pass
         elif FLATPAK:
             # Flatpak guarantees that "/run/user/1000/app/org.gitfourchette.gitfourchette" sits on a tmpfs,
             # and "/tmp" actually resolves to "/run/user/1000/app/org.gitfourchette.gitfourchette/tmp".
@@ -131,22 +164,40 @@ class GFApplication(QApplication):
         self.tempDir = QTemporaryDir(tempDirTemplate)
         self.tempDir.setAutoRemove(True)
 
-        # Prime singletons
-        GlobalShortcuts.initialize()
-        TaskBook.initialize()
-        TaskInvocation.initializeGlobalSignal().connect(self.onInvokeTask)
+    def injectExceptHook(self):
+        # Show an error dialog in case of unhandled exceptions.
+        # Note that debuggers may override the exception hook.
+        sys.excepthook = self.customExceptHook
 
-        # Get initial session tabs
-        commandLinePaths = parser.positionalArguments()
-        commandLinePaths = [str(Path(p).resolve()) for p in commandLinePaths]
-        self.commandLinePaths = commandLinePaths
+    @staticmethod
+    def customExceptHook(exctype, value, tb):
+        # Run default excepthook first
+        sys.__excepthook__(exctype, value, tb)
+
+        from gitfourchette.toolbox import excMessageBox
+        excMessageBox(value, printExc=False)
+
+    def installSigintHandler(self):
+        import signal
+        signal.signal(signal.SIGINT, self.onSigint)
+
+        # Force Python interpreter to run every now and then so it can run the
+        # Ctrl+C signal handler. Without this, the app won't actually die until
+        # the window regains focus (https://stackoverflow.com/q/4938723).
+        if __debug__:
+            timer = QTimer(self)
+            timer.start(300)
+            timer.timeout.connect(lambda: None)
+
+    def onSigint(self, *_dummy):
+        # Deferring the quit to the next event loop gives the application some
+        # time to wrap up the session.
+        QTimer.singleShot(0, self.quit)
+        # TODO: Actually return SIGINT from main
+
+    # -------------------------------------------------------------------------
 
     def beginSession(self, bootUi=True):
-        if self.standaloneAskpassMode():
-            from gitfourchette.forms.askpassdialog import AskpassDialog
-            AskpassDialog.run()
-            return
-
         from gitfourchette.toolbox.messageboxes import NonCriticalOperation
         from gitfourchette.porcelain import GitConfig
         from gitfourchette import settings
@@ -387,6 +438,8 @@ class GFApplication(QApplication):
         # Install translations from the '.mo' file.
         # If we couldn't find a file, this will fall back to American English.
         installGettextTranslator(moFilePath)
+
+    # -------------------------------------------------------------------------
 
     def applyLanguagePref(self):
         from gitfourchette import settings

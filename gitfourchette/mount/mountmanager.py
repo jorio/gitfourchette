@@ -111,14 +111,13 @@ class MountManager(QObject):
         pathObj.mkdir(parents=True)
         path = str(pathObj)
 
-        tokens, env = ToolCommands.spawnNewInstance(sandbox=True, bootMode="mount")
+        tokens = ToolCommands.spawnNewInstance(f"{APP_SYSTEM_NAME}-mount", sandbox=True)
         tokens += [workdir, str(oid), path]
         logger.info(f"Starting: {shlex.join(tokens)}")
 
         fuseProcess = QProcess(self)
         fuseProcess.setProgram(tokens[0])
         fuseProcess.setArguments(tokens[1:])
-        ToolCommands.setQProcessEnvironment(fuseProcess, env)
 
         mc = MountedCommit(workdir, oid, path, fuseProcess)
         self.mountedCommits[oid] = mc

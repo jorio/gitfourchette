@@ -140,22 +140,29 @@ class AskpassDialog(TextInputDialog):
         launcherScript = Path(qTempDir(), fileName)
 
         if not launcherScript.exists():
-            tokens, env = ToolCommands.spawnNewInstance("askpass", sandbox=sandbox)
+            tokens = ToolCommands.spawnNewInstance(f"{APP_SYSTEM_NAME}-askpass", sandbox=sandbox)
 
-            scriptLines = [
-                '#!/usr/bin/env bash',
+            # Discard stderr to avoid forwarding Qt error spam to ProcessDialog.
+            script = ('#!/usr/bin/env bash\n'
+                      f'exec {shlex.join(tokens)} "$@" 2>/dev/null\n')
 
-                # Environment variables
-                *(f'export {k}={shlex.quote(v)}' for k, v in env.items()),
-
-                # Throw away stderr to avoid forwarding Qt error spam to ProcessDialog.
-                f'exec {shlex.join(tokens)} "$@" 2>/dev/null',
-            ]
-
-            launcherScript.write_text("\n".join(scriptLines), "utf-8")
+            launcherScript.write_text(script, "utf-8")
             launcherScript.chmod(0o755)
 
         return {
             "SSH_ASKPASS": str(launcherScript),
             "SSH_ASKPASS_REQUIRE": "force",
         }
+
+
+def main():
+    from gitfourchette.application import GFApplication
+    import sys
+    app = GFApplication(sys.argv, barebones=True)
+    _dontCollectMe = AskpassDialog.run()
+    returnCode = app.exec()
+    return sys.exit(returnCode)
+
+
+if __name__ == "__main__":
+    main()

@@ -319,32 +319,31 @@ class ToolCommands:
         return str(path)
 
     @classmethod
-    def spawnNewInstance(cls, bootMode: str = "", sandbox: bool = True) -> tuple[list[str], dict[str, str]]:
+    def spawnNewInstance(cls, script: str, sandbox: bool = True) -> list[str]:
         """
-        Prepare a command and environment variables to spawn another instance of
-        this application.
+        Prepare a command to spawn another instance of this application.
         """
 
-        env = {}
-
-        if bootMode:
-            env["APP_BOOTMODE"] = bootMode
+        modules = {
+            f"{APP_SYSTEM_NAME}-askpass": f"{APP_SYSTEM_NAME}.forms.askpassdialog",
+            f"{APP_SYSTEM_NAME}-mount": f"{APP_SYSTEM_NAME}.mount.treemount",
+        }
+        module = modules[script]
 
         if FLATPAK and not sandbox:
             # Command to be called by host system's git, which lives outside the
             # flatpak sandbox. Spawn another instance of our flatpak.
-            tokens = ["flatpak", "run", FLATPAK_ID]
+            tokens = ["flatpak", "run", f"--command={script}", FLATPAK_ID]
         elif "APPIMAGE" in INITIAL_ENVIRONMENT:
-            # "sys.executable" points to the .AppImage file, but DON'T USE THAT
-            # to spawn a child - may cause SIGTTIN in the parent process!
-            # Use "sys.orig_argv" instead: it points to python within the
-            # AppImage's tmpfs mountpoint. Make a barebones command by stripping
-            # any extra arguments passed to the entry point:
-            keepArgs = len(sys.orig_argv) - len(sys.argv) - 1
-            tokens = sys.orig_argv[:keepArgs]
+            # AVOID "sys.executable" (path to .AppImage file) to spawn a child,
+            # may cause SIGTTIN in parent process!
+            python = Path(sys.orig_argv[0])  # python in AppImage tmpfs mount
+            tokens = [str(python), "-u", str(python.with_name(script))]
+        elif PYINSTALLER_MEIPASS:
+            tokens = [sys.executable, f"--start-module={module}"]
         else:
             # Just spawn another Python interpreter.
-            tokens = [sys.executable, "-m", "gitfourchette"]
+            tokens = [sys.executable, "-m", module]
 
         # The new instance is supposed to be a child process, so it will inherit
         # the environment variables of the current process. We don't need to
@@ -356,4 +355,4 @@ class ToolCommands:
         # process of a GitFourchette instance.
 
         assert tokens
-        return tokens, env
+        return tokens

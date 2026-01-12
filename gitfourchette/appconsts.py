@@ -28,12 +28,6 @@ APP_FREEZE_QT = ""
 # END_FREEZE_CONSTS
 # -----------------------------------------------------------------------------
 
-APP_BOOTMODE = _os.environ.get("APP_BOOTMODE", "")
-"""
-Pass 'APP_BOOTMODE=askpass' or 'APP_BOOTMODE=mount' to start the program to an
-alternate main loop.
-"""
-
 APP_TESTMODE = _envBool("APP_TESTMODE") or "pytest" in _sys.modules
 """
 Unit testing mode (don't touch real user prefs, etc.).
@@ -60,5 +54,5 @@ Verbose QObject Python destructors (__del__).
 """
 
 if APP_TESTMODE:
-    APP_SYSTEM_NAME += "testmode"
+    # Don't change APP_SYSTEM_NAME: it's used to resolve modules
     APP_DISPLAY_NAME += "TestMode"
