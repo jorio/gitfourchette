@@ -569,9 +569,9 @@ class RepoTask(QObject):
             else:
                 sshCommand = GitConfigHelper.get_default_value("core.sshCommand")
             sshCommand = sshCommand or "/usr/bin/ssh"
+            sshCommandTokens = ToolCommands.splitCommandTokens(sshCommand)
             # Add custom options and join back into a string
-            sshCommandTokens = shlex.split(sshCommand, posix=True) + sshOptions
-            sshCommand = shlex.join(sshCommandTokens)
+            sshCommand = shlex.join(sshCommandTokens + sshOptions)
             # Pass to git (note: it's also possible to pass '-c core.sshCommand={sshCommand}')
             env["GIT_SSH_COMMAND"] = sshCommand
 

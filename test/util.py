@@ -115,7 +115,7 @@ class DelayGitCommandContext:
         from gitfourchette import settings
 
         rawCommand = settings.prefs.gitPath
-        rawTokens = shlex.split(rawCommand, posix=True)
+        rawTokens = ToolCommands.splitCommandTokens(rawCommand)
 
         if FLATPAK:
             # Unpack full flatpak-compatible command

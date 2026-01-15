@@ -33,6 +33,8 @@ class ToolCommands:
     @staticmethod
     def splitCommandTokens(command: str) -> list[str]:
         # Treat command as POSIX even on Windows!
+        if WINDOWS:
+            command = command.replace("\\", "/")
         return shlex.split(command, posix=True)
 
     @classmethod

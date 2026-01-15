@@ -63,7 +63,7 @@ class GitDriver(QProcess):
 
     @classmethod
     def setGitPath(cls, gitPath: str):
-        cls._commandStem = shlex.split(gitPath, posix=True)
+        cls._commandStem = ToolCommands.splitCommandTokens(gitPath)
         cls._cachedGitVersionValid = False
 
     @classmethod

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -342,7 +342,7 @@ class PrefsDialog(QDialog):
             builtInGit = ToolPresets.flatpakBuiltInGit()
             if builtInGit:
                 presets[_("Built-in git (sandboxed)")] = builtInGit
-            presets[_("Auto-detected system git")] = ToolCommands.which("git") or "/usr/bin/git"
+            presets[_("Auto-detected system git")] = ToolPresets.defaultGit(hostOnly=True)
             return self.strControlWithPresets(key, value, presets)
         elif issubclass(valueType, enum.Enum):
             return self.enumControl(key, value, type(value))

@@ -1,10 +1,11 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import os
+import shlex
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.qt import *
@@ -231,8 +232,11 @@ class ToolPresets:
         return ""
 
     @classmethod
-    def defaultGit(cls) -> str:
-        return cls.flatpakBuiltInGit() or ToolCommands.which("git") or "/usr/bin/git"
+    def defaultGit(cls, hostOnly=False) -> str:
+        return shlex.quote(
+            (not hostOnly and cls.flatpakBuiltInGit())
+            or ToolCommands.which("git")
+            or "/usr/bin/git")
 
 
 ToolPresets._filterToolPresets()
