@@ -6,9 +6,11 @@
 
 from __future__ import annotations
 
+import gc
 import logging
 import os
 import tempfile
+import warnings
 from collections.abc import Generator
 from typing import TYPE_CHECKING
 
@@ -166,10 +168,22 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     for dialog in app.mainWindow.findChildren(qt.QDialog):
         if dialog.isVisible():
             leakedWindows.append(dialog.windowTitle() + "(unclosed dialog)")
+    dialog = None  # don't hamper GC
 
     # Kill the main window
     app.mainWindow.close()
     app.mainWindow.deleteLater()
+
+    # Windows compat: Process deferred deletes now so repo models let go of their file handles
+    for _i in range(100):
+        assert qt.QThread.currentThread().loopLevel() == 0
+        app.sendPostedEvents(None, qt.QEvent.Type.DeferredDelete)
+        qt.QTest.qWait(0)
+        if 0 == gc.collect():
+            # if i > 0: warnings.warn(f"GC iterations: {i+1}")
+            break
+    else:
+        warnings.warn("GC loop")
 
     # Wait for main window to die
     waitUntilTrue(lambda: not app.mainWindow)
@@ -186,6 +200,7 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
         if window.isVisible():
             leakedWindows.append(window.title() + "(top-level window)")
             window.deleteLater()
+    window = None  # don't hamper GC
 
     # Skip cleanup asserts if the test itself failed
     if request.session.testsfailed > failCount:
