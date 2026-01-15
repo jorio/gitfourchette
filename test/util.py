@@ -203,28 +203,24 @@ def unpackRepo(
 ) -> str:
     tempDirPath = tempDir if isinstance(tempDir, str) else tempDir.name
 
-    path = f"{tempDirPath}/{testRepoName}"
-    path = os.path.realpath(path)
-    assert not os.path.exists(path)
+    path = Path(tempDirPath, testRepoName)
+    path = path.resolve()
+    assert not path.exists()
 
-    for ext in ".tar", ".zip":
-        archivePath = getTestDataPath(f"{testRepoName}{ext}")
-        if os.path.isfile(archivePath):
-            shutil.unpack_archive(archivePath, os.path.dirname(path))
-            assert os.path.isdir(path)
-            break
-    else:
-        raise FileNotFoundError(f"can't find archive '{testRepoName}' in test data")
+    zipPath = getTestDataPath(f"{testRepoName}.zip")
+    shutil.unpack_archive(zipPath, path.parent)
+    assert path.is_dir()
 
     if renameTo:
-        path2 = f"{tempDirPath}/{renameTo}"
-        shutil.move(path, path2)
-        path = path2
+        oldPath, path = path, Path(tempDirPath, renameTo)
+        shutil.move(oldPath, path)
 
-    assert not path.endswith("/")
-    path += "/"  # ease direct comparison with workdir path produced by libgit2 (it appends a slash)
+    if WINDOWS:
+        with RepoContext(str(path)) as repo:
+            repo.config["core.autocrlf"] = True
 
-    return path
+    assert not str(path).endswith("/")
+    return str(path) + "/"  # ease direct comparison with workdir path produced by libgit2 (it appends a slash)
 
 
 def makeBareCopy(

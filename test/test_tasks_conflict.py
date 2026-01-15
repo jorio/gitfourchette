@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -133,9 +133,6 @@ def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
-        if WINDOWS:
-            repo.config["core.autocrlf"] = "input"
-
         # Prepare "their" modification (modify a1.txt)
         writeFile(f"{wd}/a/a1.txt", "they modified")
         repo.index.add_all(["a/a1.txt"])
