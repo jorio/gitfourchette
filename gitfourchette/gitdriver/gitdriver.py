@@ -297,12 +297,13 @@ class GitDriver(QProcess):
 
         # Append paths
         if delta is not None:
-            tokens.append("--")
             if delta.status == "?":  # untracked, compare to nothing
-                tokens.append("/dev/null")
+                # --no-index is mandatory on Windows here
+                tokens += ["--no-index", "--", "/dev/null", delta.new.path]
             elif delta.old.path != delta.new.path:
-                tokens.append(delta.old.path)
-            tokens.append(delta.new.path)
+                tokens += ["--", delta.old.path, delta.new.path]
+            else:
+                tokens += ["--", delta.new.path]
 
         return tokens
 
