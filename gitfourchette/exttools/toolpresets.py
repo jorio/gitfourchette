@@ -70,9 +70,14 @@ class ToolPresets:
     }
 
     _windowsTerminals = {
-        "Command Prompt": "cmd /c start cmd",
-        "Git Bash"      : "cmd /c start bash",
-        "PowerShell"    : "cmd /c start powershell",
+        # By default, git-bash starts bash with -i --login, which appends the
+        # contents of our kicker script to the user's .bash_history.
+        # To bypass this, invoke mintty manually.
+        "Git Bash"      : "git-bash --command=usr/bin/mintty.exe --exec $COMMAND",
+        # Can't use cmd or powershell on Windows for now, because we generate a bash script
+        # that wraps the command to run.
+        # "Command Prompt": "cmd /c start cmd /k $COMMAND",
+        # "PowerShell"    : "cmd /c start powershell -NoExit -Command $COMMAND",
     }
 
     _freedesktopTerminals = {
@@ -126,7 +131,7 @@ class ToolPresets:
             cls.Terminals.update(cls._windowsTerminals)
             defaultDiffPreset = "WinMerge"
             defaultMergePreset = "WinMerge"
-            defaultTerminalPreset = "PowerShell"
+            defaultTerminalPreset = "Git Bash"
         else:
             excludeTools = macTools + winTools
             cls.Terminals.update(cls._freedesktopTerminals)

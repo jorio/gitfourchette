@@ -13,6 +13,8 @@ debrief()
     [ $exitcode -ne 0 ] && exitcolor=31  # red
     printf "\n%b %s \e[${exitcolor}m$exitcode\e[0m" "$brand" "$_GF_EXITMESSAGE"
 
+    # In test mode, don't start a shell
+    [ $_GF_TESTMODE -ne 0 ] && echo "TEST MODE: EXITING NOW." && exit $exitcode
 
     while true; do
       # Ask user whether to start a shell or exit
@@ -33,6 +35,7 @@ cd "$_GF_WORKDIR" || debrief
 if [ -n "$_GF_COMMAND" ]; then
     printf "%b \e[4m%s\e[0m \e[2m(%s)\e[0m\n" "$brand" "$_GF_COMMAND" "$_GF_WORKDIR"
     eval "$_GF_COMMAND"
+
     debrief
 fi
 

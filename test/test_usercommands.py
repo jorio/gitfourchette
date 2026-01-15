@@ -13,17 +13,22 @@ from .util import *
 
 # Give macOS a very generous timeout because it can take a long time to spawn a
 # shell via termcmd.sh, especially when many tests are running in parallel.
-TIMEOUT = 30_000 if MACOS else 2_500
+TIMEOUT = 30_000 if (MACOS or WINDOWS) else 2_500
 
 
 @pytest.fixture
 def commandsScratchFile(tempDir, mainWindow):
     shim = getTestDataPath("editor-shim.py")
     scratch = qTempDir() + "/scratch.txt"
-    wrapper = f"python3 {shim} {scratch}"
+    wrapper = f"'{shim}' '{scratch}'"
+
+    if not WINDOWS:
+        terminalShim = "/bin/sh -c $COMMAND"
+    else:
+        terminalShim = "git-bash --command=usr/bin/mintty.exe --exec $COMMAND"
 
     mainWindow.onAcceptPrefsDialog({
-        "terminal": "/bin/sh -c $COMMAND",
+        "terminal": terminalShim,
         "commands": f"""
             {wrapper} 'hello world'
             # ------

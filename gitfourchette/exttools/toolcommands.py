@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -18,7 +18,6 @@ from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.toolbox.benchmark import benchmark
 
 _logger = logging.getLogger(__name__)
 
@@ -247,7 +246,6 @@ class ToolCommands:
         process.setArguments(tokens[1:])
 
     @classmethod
-    @benchmark
     def runSync(cls, *args: str, directory: str = "", strict=False) -> str:
         process = QProcess(None)
         process.setProgram(args[0])
@@ -310,6 +308,7 @@ class ToolCommands:
             _GF_EXITMESSAGE={shlex.quote(exitMessage)}
             _GF_KEYPROMPT={shlex.quote(keyPrompt)}
             _GF_WORKDIR={shlex.quote(workdir)}
+            _GF_TESTMODE={"1" if APP_TESTMODE else "0"}
             source {shlex.quote(str(termcmdPath))}
         """)
 
