@@ -5,6 +5,10 @@ build/
 dist/
 gitfourchette.egg-info/
 
+# Automatically-generated wrappers for python helper scripts in unit tests
+test/data/*.py.bat
+
+# PyCharm
 /.idea/*
 !/.idea/icon.svg
 !/.idea/modules.xml

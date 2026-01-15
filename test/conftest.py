@@ -140,7 +140,7 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     # Let vanilla git clone submodules from filesystem remotes (for offline tests)
     globalGitConfig["protocol.file.allow"] = "always"
     # Prevent OpenSSH from looking at host user's key files
-    globalGitConfig["core.sshCommand"] = getTestDataPath("isolated-ssh.sh")
+    globalGitConfig["core.sshCommand"] = getTestDataPath("isolated-ssh.sh" if not qt.WINDOWS else "isolated-ssh.bat")
 
     # Clear the clipboard so all tests can assume a fresh clipboard
     clipboardBackup = app.clipboard().text()

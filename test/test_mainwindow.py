@@ -155,7 +155,7 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 def testTabBarActions(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"terminal": f'python3 "{editorPath}" "{scratchPath}" "hello world" $COMMAND'})
+    mainWindow.onAcceptPrefsDialog({"terminal": f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND'})
 
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")

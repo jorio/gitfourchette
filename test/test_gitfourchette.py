@@ -708,8 +708,8 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     editorPath = getTestDataPath("pause.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
-    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in python3")
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in pause")
     assert readFile(scratchPath, 1000).decode().strip() == "about to sleep"
     mainWindow.closeAllTabs()
     pause(3)

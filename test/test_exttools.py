@@ -22,13 +22,13 @@ def testOpenFileInQDesktopServices(tempDir, mainWindow):
 
         url = services.urls[-1]
         assert url.isLocalFile()
-        assert url.toLocalFile() == wd + "a/a1"
+        assert Path(url.toLocalFile()) == Path(wd, "a/a1")
 
 
 def testTerminal(tempDir, mainWindow):
     shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"terminal": f"python3 {shim} '{scratch}' 'hello world' $COMMAND"})
+    mainWindow.onAcceptPrefsDialog({"terminal": f"'{shim}' '{scratch}' 'hello world' $COMMAND"})
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -40,7 +40,8 @@ def testTerminal(tempDir, mainWindow):
     assert scratchLines[1].endswith(".sh")  # launcher script
 
     launcherScript = Path(scratchLines[1]).read_text("utf-8")
-    assert f"WORKDIR={Path(wd)}" in launcherScript
+    assert f"WORKDIR={Path(wd)}" in launcherScript \
+        or f"WORKDIR='{Path(wd)}'" in launcherScript
 
 
 def testTerminalNotConfiguredYet(tempDir, mainWindow):
@@ -57,7 +58,7 @@ def testTerminalNotConfiguredYet(tempDir, mainWindow):
 def testTerminalPlaceholderTokenMissing(tempDir, mainWindow):
     shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"terminal": f"python3 {shim} '{scratch}' 'hello world'"})
+    mainWindow.onAcceptPrefsDialog({"terminal": f"'{shim}' '{scratch}' 'hello world'"})
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -69,7 +70,6 @@ def testTerminalPlaceholderTokenMissing(tempDir, mainWindow):
     findQDialog(mainWindow, "settings").reject()
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 @pytest.mark.skipif(MACOS and not OFFSCREEN, reason="macOS+non offscreen is finicky with this test")
 def testTerminalCommandNotFound(tempDir, mainWindow):

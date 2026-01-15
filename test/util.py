@@ -93,16 +93,21 @@ def pygit2OlderThan(version: str):
         return True  # Our version is older
 
 
-def getTestDataPath(name):
-    path = Path(__file__).resolve().parent / "data"
-    return str(path / name)
+def getTestDataPath(name: str):
+    path = Path(__file__).resolve().parent / "data" / name
+
+    if WINDOWS and path.suffix == ".py" and path.exists():
+        bat = path.with_suffix(".py.bat")
+        bat.write_text(f"@echo off\npython3 %~dp0\\{path.name} %*")
+        path = bat
+
+    return str(path)
 
 
 def delayCommand(*tokens: str, delay=5, block=False) -> str:
-    python = "python3"
+    delayTokens = [getTestDataPath("delay-cmd.py"), f"-d{delay}"]
     if FLATPAK:
-        python = ToolCommands.FlatpakSandboxedCommandPrefix + python
-    delayTokens = [python, getTestDataPath("delay-cmd.py"), f"-d{delay}"]
+        delayTokens.insert(0, ToolCommands.FlatpakSandboxedCommandPrefix + "python")
     if block:
         delayTokens.append("--block")
     delayTokens.append("--")

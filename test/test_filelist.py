@@ -363,8 +363,8 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'python3 "{editorPath}" "{scratchPath}" $L $R'})
-    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in python3")
+    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in editor-shim")
     scratchText = readFile(scratchPath, 1000, unlink=True).decode("utf-8")
     assert "[OLD]b2.txt" in scratchText
     assert "[NEW]b2.txt" in scratchText
