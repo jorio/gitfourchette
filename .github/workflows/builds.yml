@@ -1,0 +1,66 @@
+name: Builds
+
+on: [workflow_dispatch]
+
+env:
+  PYVER: "3.14"
+  QT_API: "pyqt6"
+
+jobs:
+  appimage:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:  # Use oldest available Ubuntu for maximum glibc compatibility
+          - { name: x86_64, os: ubuntu-22.04 }
+          - { name: aarch64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.platform.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with: { python-version: "${{ env.PYVER }}" }
+      - run: python -m pip install --upgrade pip setuptools wheel pygit2  # build dependencies
+      - run: python -m pip install --upgrade git+https://github.com/niess/python-appimage@984f77a
+      - name: Build AppImage
+        run: |
+          PYVER=$PYVER QT_API=$QT_API PINNED_REQUIREMENTS='pyqt6==6.9.1' ./pkg/appimage/build-appimage.sh
+          echo "ARTIFACT_NAME=$(cd build && ls GitFourchette*.AppImage)" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v6
+        with:
+          path: build/GitFourchette*.AppImage
+          name: ${{env.ARTIFACT_NAME}}
+          compression-level: 0
+
+  pyinstaller:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: macos-latest }
+          - { os: windows-2022 }
+    runs-on: ${{ matrix.platform.os }}
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with: { python-version: "${{ env.PYVER }}" }
+      - run: python --version
+      - run: python -m pip install --upgrade pip setuptools wheel
+      - run: python -m pip install --upgrade -e .[$QT_API,pygments,mfusepy]  # install dependencies (installing GF itself isn't necessary)
+      - run: python .github/workflows/artifactname.py >> $GITHUB_ENV
+      - run: python -m pip install --upgrade pyinstaller
+      - run: python -m PyInstaller pkg/pyinstaller/gitfourchette.spec
+      # upload-artifact has trouble with symlinks, use ditto to zip up the app
+      - if: ${{ runner.os == 'macOS' }}
+        run: |
+          ditto -c -k --keepParent dist/GitFourchette.app application.zip
+          rm -rf dist/*
+          mv application.zip dist/${{env.ARTIFACT_NAME}}.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{env.ARTIFACT_NAME}}
+          path: dist
