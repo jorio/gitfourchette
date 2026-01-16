@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -52,20 +52,22 @@ def tempGpgHome(tempDir):
 
     environBackup = os.environ.copy()
 
-    if MACOS:
-        # On macOS, gpg doesn't seem to like when GNUPGHOME exceeds 82 characters.
-        # The tempDir fixture already uses 57+ characters (/private/var/folders/xx/.../T/).
-        # Create a temp dir with as short a path as possible.
-        tempHome = QTemporaryDir(f"{QDir.tempPath()}/GFTestGPG")
-    else:
-        # Use tempDir fixture outside of macOS.
-        # The Flatpak environment CANNOT use QDir.tempPath()!
-        tempHome = QTemporaryDir(f"{tempDir.name}/EphemeralGpgHome")
+    # On macOS/Windows, gpg is flaky when GNUPGHOME exceeds 82 (Mac) or 86 (Win) characters.
+    # On macOS, the tempDir fixture already uses 57+ characters (/private/var/folders/xx/.../T/).
+    # Create a temp dir with as short a path as possible.
+    ephemeralHome = Path(tempDir.name, "gpg")
+    assert not ephemeralHome.exists()
+    ephemeralHome.mkdir()
+    path = str(ephemeralHome)
 
-    path = tempHome.path()
-    assert not MACOS or len(path) <= 82, "this path might be too long for GNUPGHOME"
+    lengthLimit = 82 if MACOS else 86 if WINDOWS else 1000
+    assert len(path) <= lengthLimit, "this path might be too long for GNUPGHOME"
 
-    os.environ["GNUPGHOME"] = path
+    envPath = path
+    if WINDOWS:  # gpg acts weird on the temp path if it starts with 'C:/' instead of '/C/'
+        envPath = re.sub(r"^([A-Z]):[/\\]", r"/\1/", envPath)
+
+    os.environ["GNUPGHOME"] = envPath
 
     stdout = runGpg("--batch", "--list-keys", directory=path)
     assert stdout.strip() == "", "gpg already found some keys! home not sealed off?"
@@ -81,13 +83,13 @@ def tempGpgHome(tempDir):
     os.environ.update(environBackup)
 
 
-def copySshKey(tempPath: str, testKeyName: str):
+def copySshKey(tempPath: str, testKeyName: str) -> str:
     pubPath = f"{tempPath}/{testKeyName}.pub"
     privPath = f"{tempPath}/{testKeyName}"
     shutil.copyfile(getTestDataPath(f"keys/{testKeyName}.pub"), pubPath)
     shutil.copyfile(getTestDataPath(f"keys/{testKeyName}"), privPath)
     os.chmod(privPath, 0o600)
-    return pubPath
+    return Path(pubPath).as_posix()
 
 
 def setUpForSshSigning(tempPath: str, repoWorkdir: str, testKeyName: str = "simple"):
@@ -108,6 +110,14 @@ def makeSignedCommit(wd: str, keyId: str = "", message: str = "SIGNED COMMIT"):
     output = runGit("-c", "core.abbrev=no", "commit", "--allow-empty", f"-S{keyId}", f"-m{message}", directory=wd)
     commitHash = re.match(r"^\[.+\s([0-9a-f]+)]", output).group(1)
     return Oid(hex=commitHash)
+
+
+def summonGraphViewAuthorToolTip(graphView: QListView, row: int = 1):
+    rowHeight = graphView.sizeHintForRow(0)
+    toolTipPoint = QPoint(graphView.viewport().width() - 16, row * rowHeight + 2)
+    toolTip = summonToolTip(graphView.viewport(), toolTipPoint)
+    toolTip = stripHtml(toolTip)
+    return toolTip
 
 
 @requiresGpg
@@ -144,7 +154,7 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
 
     # The commit we've just created should be auto-trusted.
     # Look for GPG signing information in GraphView tooltip
-    toolTip = summonToolTip(rw.graphView.viewport(), QPoint(rw.graphView.viewport().width() - 16, 30))
+    toolTip = summonGraphViewAuthorToolTip(rw.graphView)
     assert re.search("good signature; key trusted", toolTip, re.I)
     assert re.search(aliceKeyId, toolTip, re.I)
 
@@ -200,7 +210,7 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
 
     # The commit we've just created should be auto-trusted.
     # Look for signing information in GraphView tooltip
-    toolTip = summonToolTip(rw.graphView.viewport(), QPoint(rw.graphView.viewport().width() - 16, 30))
+    toolTip = summonGraphViewAuthorToolTip(rw.graphView)
     assert re.search("good signature; key trusted", toolTip, re.I)
 
     # Look for signing information in GetCommitInfo dialog

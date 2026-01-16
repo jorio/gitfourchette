@@ -108,7 +108,7 @@ def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
     # to make it easier to send repository paths out of the sandbox.
     location = os.environ.get("GITFOURCHETTE_TEMPDIR", None)
 
-    td = tempfile.TemporaryDirectory(prefix="gitfourchettetest-", dir=location)
+    td = tempfile.TemporaryDirectory(prefix="gitfixture-", dir=location)
     yield td
     td.cleanup()
 

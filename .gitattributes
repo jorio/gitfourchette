@@ -1,0 +1,2 @@
+# SSH keys must not have CRLF line endings on Windows
+test/data/*keys/* text eol=lf
