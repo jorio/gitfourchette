@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -81,8 +81,6 @@ class RepoWidget(QWidget):
 
         # The stylesheet must be refreshed so that subsequent tweakFont calls can take effect.
         self.setStyleSheet("* {}")
-
-        self.dead = False
 
         # Use RepoTaskRunner to schedule git operations to run on a separate thread.
         self.taskRunner = taskRunner
@@ -380,7 +378,7 @@ class RepoWidget(QWidget):
     def closeEvent(self, event: QCloseEvent):
         """ Called when closing a repo tab """
         try:
-            self.cleanup()
+            self.prepareForDeletion()
         except Exception as exc:  # pragma: no cover
             excMessageBox(exc, abortUnitTest=True)
         return super().closeEvent(event)
@@ -389,14 +387,13 @@ class RepoWidget(QWidget):
         super().showEvent(event)
         self.becameVisible.emit()
 
-    def cleanup(self):
+    def prepareForDeletion(self):
         assert onAppThread()
-        assert not self.dead, "RepoWidget already dead"
-        self.dead = True
+        assert not hasattr(self, "_dead"), "RepoWidget already dead"
+        self._dead = True
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
-        self.taskRunner.killCurrentTask()
-        self.taskRunner.joinKilledTask()
+        self.taskRunner.prepareForDeletion()
 
         # Save sidebar collapse cache
         with NonCriticalOperation("Write repo prefs"):  # May raise OSError

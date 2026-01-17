@@ -118,11 +118,15 @@ class BlameWindow(QWidget):
         self.goBackOrForwardDelta(delta)
 
     def closeEvent(self, event: QCloseEvent):
-        self.taskRunner.killCurrentTask()
-        self.taskRunner.joinKilledTask()
-
         assert self in self._currentBlameWindows
         self._currentBlameWindows.remove(self)
+
+        self.scrubber.scrubberDelegate.prepareForDeletion()
+        self.scrubber.deleteLater()
+
+        self.taskRunner.prepareForDeletion()
+        self.model.prepareForDeletion()
+
         super().closeEvent(event)
 
     # -------------------------------------------------------------------------

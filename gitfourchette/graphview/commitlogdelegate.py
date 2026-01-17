@@ -85,6 +85,11 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         self.mounts = GFApplication.instance().mountManager
 
+    def prepareForDeletion(self):
+        del self.repoModel
+        del self.searchBar
+        del self.mounts
+
     def invalidateMetrics(self):
         self.mustRefreshMetrics = True
 

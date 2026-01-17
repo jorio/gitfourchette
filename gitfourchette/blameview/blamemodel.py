@@ -49,6 +49,9 @@ class BlameModel:
         self.revsFile.write(revList.serializeRevisionList().encode("utf-8"))
         self.revsFile.close()
 
+    def prepareForDeletion(self):
+        del self.repoModel
+
     @property
     def repo(self) -> Repo:
         return self.repoModel.repo

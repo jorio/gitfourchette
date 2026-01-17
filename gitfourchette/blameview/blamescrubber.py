@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -15,8 +15,7 @@ class BlameScrubber(QComboBox):
     def __init__(self, blameModel: BlameModel, parent: QWidget):
         super().__init__(parent)
 
-        self.scrubberListDelegate = BlameScrubberDelegate(blameModel, singleItem=False, parent=self)
-        self.scrubberMiniDelegate = BlameScrubberDelegate(blameModel, singleItem=True, parent=self)
+        self.scrubberDelegate = BlameScrubberDelegate(blameModel, parent=self)
         self.scrubberModel = BlameScrubberModel(blameModel, parent=self)
 
         self.setMinimumWidth(128)
@@ -26,7 +25,7 @@ class BlameScrubber(QComboBox):
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.view().setUniformItemSizes(True)
 
-        self.setItemDelegate(self.scrubberListDelegate)
+        self.setItemDelegate(self.scrubberDelegate)
         self.setModel(self.scrubberModel)
 
         enforceComboBoxMaxVisibleItems(self, 25)
@@ -45,4 +44,8 @@ class BlameScrubber(QComboBox):
         itemOption.widget = self
         itemOption.rect = rect
         modelIndex = self.model().index(self.currentIndex(), 0)
-        self.scrubberMiniDelegate.paint(painter, itemOption, modelIndex, fillBackground=False)
+
+        delegate = self.scrubberDelegate
+        delegate.singleItem = True
+        delegate.paint(painter, itemOption, modelIndex, fillBackground=False)
+        delegate.singleItem = False

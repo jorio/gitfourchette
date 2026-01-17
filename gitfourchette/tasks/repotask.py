@@ -824,6 +824,12 @@ class RepoTaskRunner(QObject):
                 or self._pendingTask is not None
                 or self._workerThread.isRunning())
 
+    def prepareForDeletion(self):
+        self.killCurrentTask()
+        self.joinKilledTask()
+        self.repoModel = None
+        self.repo = None
+
     def killCurrentTask(self):
         """
         Interrupt current task next time it yields a FlowControlToken.

@@ -15,10 +15,14 @@ from gitfourchette.toolbox import stockIcon
 
 
 class BlameScrubberDelegate(CommitLogDelegate):
-    def __init__(self, blameModel: BlameModel, singleItem: bool, parent: QWidget):
+    def __init__(self, blameModel: BlameModel, parent: QWidget):
         self.blameModel = blameModel
-        self.singleItem = singleItem
+        self.singleItem = False
         super().__init__(repoModel=blameModel.repoModel, parent=parent)
+
+    def prepareForDeletion(self):
+        del self.blameModel
+        super().prepareForDeletion()
 
     def isBold(self, oid: Oid) -> bool:
         return not self.singleItem and oid == self.blameModel.currentRevision.commitId

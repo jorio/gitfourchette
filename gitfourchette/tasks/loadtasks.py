@@ -191,9 +191,9 @@ class PrimeRepo(RepoTask):
         if not locator:
             locator = NavLocator(NavContext.WORKDIR).withExtraFlags(NavFlags.AllowWriteIndex)
 
-        repoStub.closing.connect(rw.cleanup)
+        repoStub.closing.connect(rw.prepareForDeletion)
         yield from self.flowSubtask(Jump, locator)
-        repoStub.closing.disconnect(rw.cleanup)
+        repoStub.closing.disconnect(rw.prepareForDeletion)
         assert not repoStub.didClose, "unexpectedly continuing InstallRepoWidget after RepoStub was closed during Jump"
 
         rw.refreshNumUncommittedChanges()

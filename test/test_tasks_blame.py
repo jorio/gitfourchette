@@ -67,15 +67,16 @@ def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
 
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
 
-    blameWindow._unitTestMainWindow = mainWindow
     blameWindow._unitTestRepoWidget = rw
     yield blameWindow
+
+    del blameWindow._unitTestRepoWidget
 
     with suppress(RuntimeError):  # The test may have deleted the window already
         if blameWindow.isVisible():  # Only close if the test hasn't closed the window itself (Qt 5 compat)
             blameWindow.close()
 
-    if QT5:  # Qt 5 needs a breather here to actually close window
+    if QT5 or WINDOWS:  # Qt 5 needs a breather here to actually close window
         QTest.qWait(0)
 
 
@@ -103,7 +104,7 @@ def testOpenBlameFromFileListContextMenu(tempDir, mainWindow):
     blameWindow = findWindow("blame", BlameWindow)
     assert isinstance(blameWindow, BlameWindow)
     blameWindow.close()
-    if QT5:  # Qt 5 needs a breather here to actually close window
+    if QT5 or WINDOWS:  # Qt 5 needs a breather here to actually close window
         QTest.qWait(0)
 
 
