@@ -8,7 +8,6 @@ import os
 import re
 import shlex
 import shutil
-import sys
 import tempfile
 import warnings
 from collections.abc import Callable
@@ -351,6 +350,20 @@ def qlvGetSelection(view: QListView, role=Qt.ItemDataRole.DisplayRole):
         assert index.isValid()
         data.append(index.data(role))
     return data
+
+
+def qlvSummonToolTip(listView: QListView, row: int, x: int = -16):
+    # If passing in a negative x, summon tooltip from right edge of viewport
+    if x < 0:
+        x = listView.viewport().width() + x
+
+    assert listView.uniformItemSizes(), "this function assumes uniform item heights"
+    rowHeight = listView.sizeHintForRow(0)
+    y = row * rowHeight + 2
+
+    toolTipPoint = QPoint(x, y)
+    toolTip = summonToolTip(listView.viewport(), toolTipPoint)
+    return toolTip
 
 
 def findMenuAction(menu: QMenu | QMenuBar, pattern: str) -> QAction:
@@ -699,19 +712,26 @@ def summonContextMenu(target: QWidget, localPoint=QPoint_zero):
 
 def summonToolTip(target: QWidget, localPoint=QPoint_zero):
     if WAYLAND and not OFFSCREEN:
-        print("*** THIS TEST MUST BE RUN IN OFFSCREEN MODE IN WAYLAND.", file=sys.stderr)
+        warnings.warn("*** ON WAYLAND, THIS TEST SHOULD RUN IN OFFSCREEN MODE. ***")
+
+    # Sometimes, especially on Windows, a tooltip may remain from wherever the
+    # mouse happened to be. Just discard it.
+    if QToolTip.isVisible():
+        QToolTip.hideText()
+        waitUntilTrue(lambda: not QToolTip.isVisible())
 
     # Move the cursor so that context-sensitive tooltips still work.
     # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
     # but offscreen tests will still work fine.
     QCursor.setPos(target.mapToGlobal(localPoint))
+    QTest.qWait(0)
 
     # QTest.mouseMove doesn't trigger the tooltip in offscreen tests,
     # so post a QHelpEvent instead.
-    assert not QToolTip.isVisible()
+    assert not QToolTip.isVisible(), f"QToolTip still visible: {stripHtml(QToolTip.text())}"
     helpEvent = QHelpEvent(QEvent.Type.ToolTip, localPoint, target.mapToGlobal(localPoint))
     QApplication.instance().postEvent(target, helpEvent)
-    waitUntilTrue(QToolTip.isVisible, 300)
+    waitUntilTrue(QToolTip.isVisible)
     text = QToolTip.text()
     QToolTip.hideText()
     waitUntilTrue(lambda: not QToolTip.isVisible())  # may need some time to fade out

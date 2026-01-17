@@ -112,14 +112,6 @@ def makeSignedCommit(wd: str, keyId: str = "", message: str = "SIGNED COMMIT"):
     return Oid(hex=commitHash)
 
 
-def summonGraphViewAuthorToolTip(graphView: QListView, row: int = 1):
-    rowHeight = graphView.sizeHintForRow(0)
-    toolTipPoint = QPoint(graphView.viewport().width() - 16, row * rowHeight + 2)
-    toolTip = summonToolTip(graphView.viewport(), toolTipPoint)
-    toolTip = stripHtml(toolTip)
-    return toolTip
-
-
 @requiresGpg
 @pytest.mark.parametrize("amend", [False, True])
 def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
@@ -154,7 +146,8 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
 
     # The commit we've just created should be auto-trusted.
     # Look for GPG signing information in GraphView tooltip
-    toolTip = summonGraphViewAuthorToolTip(rw.graphView)
+    toolTip = qlvSummonToolTip(rw.graphView, 1)
+    toolTip = stripHtml(toolTip)
     assert re.search("good signature; key trusted", toolTip, re.I)
     assert re.search(aliceKeyId, toolTip, re.I)
 
@@ -210,7 +203,8 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
 
     # The commit we've just created should be auto-trusted.
     # Look for signing information in GraphView tooltip
-    toolTip = summonGraphViewAuthorToolTip(rw.graphView)
+    toolTip = qlvSummonToolTip(rw.graphView, 1)
+    toolTip = stripHtml(toolTip)
     assert re.search("good signature; key trusted", toolTip, re.I)
 
     # Look for signing information in GetCommitInfo dialog

@@ -276,39 +276,38 @@ def testRefSortFavorsHeadBranch(tempDir, mainWindow):
 def testCommitToolTip(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    viewport = rw.graphView.viewport()
-    y = 30
+    row = 1
 
     mainWindow.resize(1500, 600)
     QTest.qWait(0)
     with pytest.raises(TimeoutError):
-        summonToolTip(viewport, QPoint(16, y))
+        qlvSummonToolTip(rw.graphView, row, x=16)
 
     QTest.qWait(100)
-    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
+    toolTip = qlvSummonToolTip(rw.graphView, row)
     assert "Delete c/c2-2.txt" not in toolTip
     assert "a.u.thor@example.com" in toolTip
 
     mainWindow.resize(300, 600)
     QTest.qWait(0)
-    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
+    toolTip = qlvSummonToolTip(rw.graphView, row)
     assert "Delete c/c2-2.txt" in toolTip
     assert "a.u.thor@example.com" in toolTip
 
     # Amend, committer and author are different
     rw.repo.amend_commit_on_head("AMENDED 1", committer=TEST_SIGNATURE)
     rw.refreshRepo()
-    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
+    toolTip = qlvSummonToolTip(rw.graphView, row)
     assert re.search("Committed by.+Test Person", toolTip)
 
     # Amend, committer and author are the same person, but they use different times
+    longMessage = "AMENDED 2\n\nand while we're here, let's cover the code path that wraps very long commit messages in tooltips, yadda yadda, filler filler"
     signature2 = Signature(TEST_SIGNATURE.name, TEST_SIGNATURE.email, TEST_SIGNATURE.time + 3600, 0)
-    rw.repo.amend_commit_on_head("AMENDED 2\n\nand while we're here, let's cover the code path that wraps "
-                                 "very long commit messages in tooltips, yadda yadda, filler filler",
-                                 committer=TEST_SIGNATURE, author=signature2)
+    rw.repo.amend_commit_on_head(longMessage, committer=TEST_SIGNATURE, author=signature2)
     rw.refreshRepo()
-    toolTip = summonToolTip(viewport, QPoint(viewport.width() - 16, y))
-    assert "AMENDED 2<br><br>and while" in toolTip
+    toolTip = qlvSummonToolTip(rw.graphView, row)
+    toolTip = stripHtml(toolTip)
+    assert longMessage in toolTip
     assert "(committed)" in toolTip
     assert "(authored)" in toolTip
 
