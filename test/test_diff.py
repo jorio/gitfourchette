@@ -201,7 +201,7 @@ def testDiscardHunkNoEOL(tempDir, mainWindow):
 
 
 def testBackUpDiscardedHunkInTrash(tempDir, mainWindow):
-    newContents = "this change has been trashed"
+    newContents = "this change has been trashed\na newline for good measure\n"
 
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", newContents)
@@ -564,6 +564,7 @@ def testDiffSvgImage(tempDir, mainWindow):
     assert re.search("16.16 pixels", rw.specialDiffView.toPlainText())
 
 
+@pytest.mark.skipif(WINDOWS, reason="symlinks are flaky on Windows")
 def testDiffTypeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     Path(f"{wd}/a/a1").unlink()

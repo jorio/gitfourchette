@@ -492,7 +492,7 @@ def testFileListShowInFolder(tempDir, mainWindow):
         triggerContextMenuAction(rw.committedFiles.viewport(), "open folder")
         url = services.urls[-1]
         assert url.isLocalFile()
-        assert url.toLocalFile() == wd + "a"
+        assert Path(wd, "a").samefile(url.toLocalFile())
 
 
 def testMiddleClickToStageFile(tempDir, mainWindow):

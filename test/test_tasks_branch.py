@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -784,7 +784,7 @@ def testFastForwardOtherBranch(tempDir, mainWindow):
 
     # Make sure we're still on no-parent unaffected
     assert rw.repo.head_branch_shorthand == "no-parent"
-    assert b"c1\n" == readFile(f"{wd}/c/c1.txt")
+    assert "c1\n" == readTextFile(f"{wd}/c/c1.txt")
     assert not os.path.exists(f"{wd}/a/a1")
     assert not os.path.exists(f"{wd}/master.txt")
 

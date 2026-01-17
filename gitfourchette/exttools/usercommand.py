@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -182,12 +182,12 @@ class UserCommand:
     @classmethod
     def evalFileDir(cls, context: RepoWidget) -> str:
         path = Path(cls.evalFile(context))
-        return str(path.parent)
+        return path.parent.as_posix()
 
     @classmethod
     def evalFileDirAbs(cls, context: RepoWidget) -> str:
         path = Path(cls.evalFileAbs(context))
-        return str(path.parent)
+        return path.parent.as_posix()
 
     @classmethod
     def evalRemote(cls, context: RepoWidget) -> str:

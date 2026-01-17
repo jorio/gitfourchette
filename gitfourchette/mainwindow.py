@@ -1045,8 +1045,10 @@ class MainWindow(QMainWindow):
             self.cloneDialog(data)
         elif action == DropAction.Blame:
             rw = self.currentRepoWidget()
-            relPath = str(Path(data).relative_to(rw.workdir))  # May raise ValueError('X is not in the subpath of Y')
-            rw.blameFile(relPath)
+            path = Path(data)
+            path = path.relative_to(rw.workdir)  # May raise ValueError('X is not in the subpath of Y')
+            pathStr = path.as_posix()  # WINDOWS: Convert to forward slashes to match internal git representation
+            rw.blameFile(pathStr)
         elif action == DropAction.Open:
             self.openRepo(data, exactMatch=True)
         elif action == DropAction.Patch:

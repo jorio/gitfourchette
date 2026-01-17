@@ -162,7 +162,7 @@ def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
     rw.diffArea.discardButton.click()
     acceptQMessageBox(rw, r"really discard changes.+b1\.txt")
 
-    assert readFile(f"{wd}/b/b1.txt").decode() == "b1\nb1\nstaged change\n"
+    assert readTextFile(f"{wd}/b/b1.txt") == "b1\nb1\nstaged change\n"
 
 
 def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
@@ -199,7 +199,6 @@ def testResetIndexWithConflicts(tempDir, mainWindow):
     assert not rw.mergeBanner.isVisible()
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testMergeTool(tempDir, mainWindow):
     noopMergeToolPath = getTestDataPath("editor-shim.py")
     mergeToolPath = getTestDataPath("merge-shim.py")
@@ -207,47 +206,48 @@ def testMergeTool(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
-    conflictUI = rw.conflictView.ui
+    cv = rw.conflictView
 
     # Initiate merge of branch-conflicts into master
     node = rw.sidebar.findNodeByRef("refs/heads/branch-conflicts")
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
     acceptQMessageBox(rw, "branch-conflicts.+into.+master.+may cause conflicts")
-    rw.jump(NavLocator.inUnstaged(".gitignore"))
+
+    rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
     assert rw.repo.index.conflicts
-    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged(".gitignore"))
-    assert rw.conflictView.isVisible()
+    assert cv.isVisible()
 
     # ------------------------------
     # Try merging with a tool that doesn't touch the output file
 
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B'})
 
-    assert "editor-shim" in conflictUI.mergeButton.text()
-    assert conflictUI.mergeButton.isVisible()
-    conflictUI.mergeButton.click()
+    assert "editor-shim" in cv.ui.mergeButton.text()
+    assert cv.ui.mergeButton.isVisible()
+    cv.ui.mergeButton.click()
 
-    scratchLines = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8").strip().splitlines()
+    assert not cv.ui.mergeToolStatus.isVisible()
+    waitUntilTrue(cv.ui.mergeToolStatus.isVisible)
+    assert findTextInWidget(cv.ui.mergeToolStatus, r"didn.t complete")
+
+    scratchLines = readTextFile(scratchPath, unlink=True).strip().splitlines()
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
 
-    waitUntilTrue(lambda: conflictUI.mergeToolStatus.isVisible())
-    waitUntilTrue(lambda: re.search("didn.t complete", conflictUI.mergeToolStatus.text(), re.I))
-
-    rw.conflictView.cancelMergeInProgress()
+    cv.cancelMergeInProgress()
 
     # ------------------------------
     # Try merging with a missing command
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}-BOGUSCOMMAND" "{scratchPath}" $M $L $R $B'})
-    assert "editor-shim" in conflictUI.mergeButton.text()
-    conflictUI.mergeButton.click()
+    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}-BOGUS" "{scratchPath}" $M $L $R $B'})
+    assert findTextInWidget(cv.ui.mergeButton, "BOGUS")  # warning: may be elided
+    cv.ui.mergeButton.click()
 
     notInstalledMessage = waitForQMessageBox(rw, "not.+installed on your machine")
     notInstalledMessage.reject()
 
-    rw.conflictView.cancelMergeInProgress()
+    cv.cancelMergeInProgress()
 
     # ------------------------------
     # Try merging with a tool that errors out (e.g. locked file)
@@ -256,25 +256,30 @@ def testMergeTool(tempDir, mainWindow):
     os.chmod(scratchPath, 0o400)
 
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo'})
-    assert "merge-shim" in conflictUI.mergeButton.text()
-    assert "exit code" not in conflictUI.mergeToolStatus.text().lower()
-    conflictUI.mergeButton.click()
 
-    waitUntilTrue(lambda: "exit code" in conflictUI.mergeToolStatus.text().lower())
+    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert not findTextInWidget(cv.ui.mergeToolStatus, "exit code")
+    cv.ui.mergeButton.click()
+
+    waitUntilTrue(lambda: findTextInWidget(cv.ui.mergeToolStatus, "exit code"))
+
+    os.chmod(scratchPath, 0o777)  # WINDOWS: Must revert mode before unlinking!
     os.unlink(scratchPath)
 
-    rw.conflictView.cancelMergeInProgress()
+    cv.cancelMergeInProgress()
 
     # ------------------------------
     # Now try merging with a good tool
 
     mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar'})
-    assert "merge-shim" in conflictUI.mergeButton.text()
-    conflictUI.mergeButton.click()
+    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    cv.ui.mergeButton.click()
 
-    assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeInProgressPage
+    assert cv.ui.mergeInProgressPage.isVisible()
+    assert not cv.ui.mergeCompletePage.isVisible()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
 
-    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8").strip()
+    scratchText = readTextFile(scratchPath, unlink=True)
     scratchLines = scratchText.strip().splitlines()
 
     mergedPath = scratchLines[0]
@@ -285,68 +290,67 @@ def testMergeTool(tempDir, mainWindow):
     assert "[OURS]" in oursPath
     assert "[THEIRS]" in theirsPath
     assert "CookieBar" == scratchLines[-1]
-    assert "merge complete!" == readFile(mergedPath, timeout=1000).decode("utf-8").strip()
-
-    waitUntilTrue(lambda: conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage)
+    assert "merge complete!" == readTextFile(mergedPath).strip()
 
     # ------------------------------
     # Hit "Merge Again"
 
     assert not os.path.exists(scratchPath)  # should have been unlinked above
 
-    conflictUI.reworkMergeButton.click()
-    assert conflictUI.stackedWidget.currentWidget() is conflictUI.mergeInProgressPage
+    cv.ui.reworkMergeButton.click()
+    assert cv.ui.mergeInProgressPage.isVisible()
+    assert not cv.ui.mergeCompletePage.isVisible()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
 
-    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
+    scratchText = readTextFile(scratchPath, unlink=True)
     scratchLines = scratchText.strip().splitlines()
 
     # Make sure the same command was run
     assert scratchLines[0] == mergedPath
     assert scratchLines[1] == oursPath
     assert scratchLines[2] == theirsPath
-    assert "merge complete!" == readFile(mergedPath, timeout=1000).decode("utf-8").strip()
+    assert "merge complete!" == readTextFile(mergedPath).strip()
 
     # ------------------------------
     # Accept merge resolution
 
-    waitUntilTrue(lambda: conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage)
-    conflictUI.confirmMergeButton.click()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
+    cv.ui.confirmMergeButton.click()
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inStaged(".gitignore"))
 
     assert rw.mergeBanner.isVisible()
-    assert "all conflicts fixed" in rw.mergeBanner.label.text().lower()
+    assert findTextInWidget(rw.mergeBanner.label, "all conflicts fixed")
     assert not rw.repo.index.conflicts
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testFake3WayMerge(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
 
     wd = unpackRepo(tempDir, "testrepoformerging")
-
     with RepoContext(wd) as repo:
         repo.checkout_local_branch("i18n")
 
     rw = mainWindow.openRepo(wd)
-    conflictUI = rw.conflictView.ui
+    cv = rw.conflictView
 
     # Initiate merge of branch-conflicts into master
     node = rw.sidebar.findNodeByRef("refs/heads/pep8-fixes")
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+i18n")
     acceptQMessageBox(rw, "pep8-fixes.+into.+i18n.+may cause conflicts")
-    rw.jump(NavLocator.inUnstaged("bye.txt"))
+    rw.jump(NavLocator.inUnstaged("bye.txt"), check=True)
     assert rw.repo.index.conflicts
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("bye.txt"))
-    assert conflictUI.mergePage.isVisible()
+    assert cv.ui.mergePage.isVisible()
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
-    assert "merge-shim" in conflictUI.mergeButton.text()
-    conflictUI.mergeButton.click()
+    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert not cv.ui.mergeCompletePage.isVisible()
+    cv.ui.mergeButton.click()
 
-    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
-    scratchLines = scratchText.strip().splitlines()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
 
+    scratchLines = readTextFile(scratchPath).strip().splitlines()
     mergedPath = scratchLines[0]
     oursPath = scratchLines[1]
     theirsPath = scratchLines[2]
@@ -355,14 +359,10 @@ def testFake3WayMerge(tempDir, mainWindow):
     assert "[OURS]" in oursPath
     assert "[THEIRS]" in theirsPath
     assert "[NO-ANCESTOR]" in fakeAncestorPath
-    mergedContents = readFile(mergedPath, timeout=1000).decode("utf-8").strip()
-    assert "merge complete!" == mergedContents
+    assert "merge complete!" == readTextFile(mergedPath).strip()
     assert readFile(fakeAncestorPath) == readFile(rw.repo.in_workdir("bye.txt"))
 
-    waitUntilTrue(lambda: conflictUI.stackedWidget.currentWidget() is conflictUI.mergeCompletePage)
 
-
-@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testMergeToolInBackground(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
@@ -372,6 +372,7 @@ def testMergeToolInBackground(tempDir, mainWindow):
     writeFile(f"{wd}/SomeOtherFile.txt", "hello")
 
     rw = mainWindow.openRepo(wd)
+    cv = rw.conflictView
     node = rw.sidebar.findNodeByRef("refs/heads/branch-conflicts")
 
     # Initiate merge of branch-conflicts into master
@@ -379,37 +380,36 @@ def testMergeToolInBackground(tempDir, mainWindow):
     acceptQMessageBox(rw, "branch-conflicts.+into.+master.+may cause conflicts")
     rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
     assert rw.repo.index.conflicts
-    assert rw.conflictView.isVisible()
+    assert cv.isVisible()
 
-    assert "merge-shim" in rw.conflictView.ui.mergeButton.text()
-    assert rw.conflictView.ui.mergePage.isVisible()
-    rw.conflictView.ui.mergeButton.click()
-    assert rw.conflictView.ui.mergeInProgressPage.isVisible()
+    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert cv.ui.mergePage.isVisible()
+    cv.ui.mergeButton.click()
+    assert cv.ui.mergeInProgressPage.isVisible()
 
     # Immediately switch to another file
     rw.jump(NavLocator.inUnstaged("SomeOtherFile.txt"), check=True)
 
-    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
-    scratchLines = scratchText.strip().splitlines()
+    # Wait for the merge tool to complete in the background
+    scratchLines = readTextFile(scratchPath, timeout=5000).strip().splitlines()
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
-    assert "merge complete!" == readFile(scratchLines[0]).decode("utf-8").strip()
+    assert "merge complete!" == readTextFile(scratchLines[0]).strip()
 
     # Switch back to the merge conflict
     rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
-    waitUntilTrue(lambda: rw.conflictView.ui.mergeCompletePage.isVisible())
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
 
     # Confirm the merge
-    rw.conflictView.ui.confirmMergeButton.click()
+    cv.ui.confirmMergeButton.click()
 
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inStaged(".gitignore"))
     assert rw.mergeBanner.isVisible()
-    assert "all conflicts fixed" in rw.mergeBanner.label.text().lower()
+    assert findTextInWidget(rw.mergeBanner.label, "all conflicts fixed")
     assert not rw.repo.index.conflicts
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: no editor shim for Windows yet!")
 def testDiscardMergeResolution(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
@@ -418,31 +418,30 @@ def testDiscardMergeResolution(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
 
     rw = mainWindow.openRepo(wd)
+    cv = rw.conflictView
     node = rw.sidebar.findNodeByRef("refs/heads/branch-conflicts")
 
     # Initiate merge of branch-conflicts into master
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
     acceptQMessageBox(rw, "branch-conflicts.+into.+master.+may cause conflicts")
     assert ".gitignore" in rw.repo.index.conflicts
-    assert rw.conflictView.isVisible()
+    assert cv.isVisible()
 
-    assert "merge-shim" in rw.conflictView.ui.mergeButton.text()
-    assert rw.conflictView.ui.mergePage.isVisible()
-    rw.conflictView.ui.mergeButton.click()
-    assert rw.conflictView.ui.mergeInProgressPage.isVisible()
+    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert cv.ui.mergePage.isVisible()
+    cv.ui.mergeButton.click()
+    assert cv.ui.mergeInProgressPage.isVisible()
 
-    scratchText = readFile(scratchPath, timeout=1000, unlink=True).decode("utf-8")
-    scratchLines = scratchText.strip().splitlines()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
+    scratchLines = readTextFile(scratchPath).strip().splitlines()
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
-    assert "merge complete!" == readFile(scratchLines[0]).decode("utf-8").strip()
-
-    waitUntilTrue(lambda: rw.conflictView.ui.mergeCompletePage.isVisible())
+    assert "merge complete!" == readTextFile(scratchLines[0]).strip()
 
     # Discard the merge
-    rw.conflictView.ui.discardMergeButton.click()
+    cv.ui.discardMergeButton.click()
 
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged(".gitignore"))
-    assert rw.conflictView.ui.mergePage.isVisible()
+    assert cv.ui.mergePage.isVisible()
     assert ".gitignore" in rw.repo.index.conflicts

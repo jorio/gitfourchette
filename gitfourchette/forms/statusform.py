@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 #       /usr/bin/git cherry-pick
 #       git --option cherry-pick
 #       git -c config.item cherry-pick
-_gitVerbPattern = re.compile(r"git(?=\s).*?\s([a-z][a-z\-]*)(?=$|\s)")
+#       'c:\program files\git.EXE' cherry-pick
+_gitVerbPattern = re.compile(r"git(?:\.exe|\.EXE)?['\"]?(?=\s).*?\s([a-z][a-z\-]*)(?=$|\s)")
 
 
 class StatusForm(QWidget):

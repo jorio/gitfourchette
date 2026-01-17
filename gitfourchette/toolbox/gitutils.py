@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,7 +13,7 @@ from gitfourchette.trtables import TrTables
 
 INITIALS_PATTERN = re.compile(r"(?:^|[\s\-.'‘’\"“”])+([^\s\-.'‘’\"“”])[^\s\-.]*")
 FIRST_NAME_PATTERN = re.compile(r"(\S(\.?-|\.\s?|\s))*\S+")
-WINDOWS_PATH_PATTERN = re.compile(r"^[A-Za-z]:[/\\]")
+WINDOWS_PATH_PATTERN = re.compile(r"['\"]?^[A-Za-z]:[/\\]")
 
 REMOTE_URL_PATTERNS = [
     # HTTP/HTTPS

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -86,7 +86,7 @@ def testPrefsFontControl(tempDir, mainWindow):
 
     rw.jump(NavLocator.inCommit(rw.repo.head_commit_id))
     defaultFamily = rw.diffView.document().defaultFont().family()
-    if WINDOWS:
+    if WINDOWS and OFFSCREEN:
         randomFamily = "Sans Serif"
     else:
         randomFamily = next(family for family in QFontDatabase.families(QFontDatabase.WritingSystem.Latin)

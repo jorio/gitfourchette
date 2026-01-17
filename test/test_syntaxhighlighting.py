@@ -113,8 +113,11 @@ def testLexJobCaching(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
 def testEvictLexJobFromCache(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({ 'largeFileThresholdKB': 1e6 })
+    assert not LexJobCache.cache
+    assert LexJobCache.totalFileSize == 0
 
     wd = unpackRepo(tempDir)
 

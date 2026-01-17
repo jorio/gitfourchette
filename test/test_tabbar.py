@@ -50,10 +50,13 @@ def testTabOverflow(tempDir, mainWindow):
 
 
 def testTabOverflowSingleTab(tempDir, mainWindow):
+    from gitfourchette import settings
+
+    wd = unpackRepo(tempDir)
+    settings.history.setRepoNickname(wd, "ridiculously_long_" * 16)
+
     mainWindow.resize(640, 480)  # make sure it's narrow enough for overflow
 
-    # Don't set a super long name for Windows (max path length restriction)
-    wd = unpackRepo(tempDir, renameTo="W" * 128)
     mainWindow.openRepo(wd)
     QTest.qWait(1)
     assert not mainWindow.tabs.overflowButton.isVisible()
