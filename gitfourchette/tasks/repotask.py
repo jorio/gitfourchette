@@ -302,15 +302,6 @@ class RepoTask(QObject):
         """
         return True
 
-    def terminateCurrentProcess(self):
-        """
-        Terminate the current process associated with this task, if any.
-        This sends SIGTERM to the process, allowing it to clean up gracefully.
-        """
-        if self.currentProcess and self.currentProcess.state() != QProcess.ProcessState.NotRunning:
-            logger.info(f"Terminating process {self.currentProcess.program()} (PID {self.currentProcess.processId()})")
-            self.currentProcess.terminate()
-
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
 
@@ -842,7 +833,7 @@ class RepoTaskRunner(QObject):
         """
         if self._currentTask:
             self._interruptCurrentTask = True
-            self._currentTask.terminateCurrentProcess()
+            ToolCommands.terminatePlus(self._currentTask.currentProcess)
 
     def joinKilledTask(self):
         """

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -172,11 +172,11 @@ class ToolProcess(QProcess):
 
         if not self.detached:
             pid = self.processId()
-            if pid > 0:
+            if pid > 0 and not WINDOWS:
                 # SIGINT works better with non-Flatpak Meld
                 os.kill(pid, SIGINT)
             else:
-                self.terminate()
+                ToolCommands.terminatePlus(self)
 
         self.setParent(None)
         self.deleteLater()

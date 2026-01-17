@@ -317,11 +317,22 @@ class GitDriver(QProcess):
         else:
             codeForName = code
 
+        if WINDOWS:
+            code32 = code & 0xFFFFFFFF
+            if code32 == 0xC000013A:
+                return f"SIGTERM equivalent (0x{code32:08X})"
+            elif code32 == 0xF291:
+                return f"SIGKILL equivalent (0x{code32:08X})"
+            else:
+                return f"{code}"
+
         try:
             s = signal.Signals(codeForName)
             return f"{code} ({s.name})"
         except ValueError:
-            return f"{code}"
+            pass
+
+        return f"{code}"
 
     def formatCommandLine(self):
         return shlex.join([self.program()] + self.arguments())

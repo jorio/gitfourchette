@@ -9,6 +9,7 @@ import re
 import shlex
 from contextlib import suppress
 
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.ui_statusform import Ui_StatusForm
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import _
@@ -119,10 +120,11 @@ class StatusForm(QWidget):
             self.abortButton.setIcon(stockIcon("sigkill"))
 
         process = self.processConnection.process
-        if process:
-            if not self.sentSigterm:
-                process.terminate()
-                self.sentSigterm = True
-                self.ui.titleLabel.setText(_("SIGTERM sent. Waiting for process to terminate…"))
-            else:
-                process.kill()
+        if not process:
+            return
+        elif not self.sentSigterm:
+            ToolCommands.terminatePlus(process)
+            self.sentSigterm = True
+            self.ui.titleLabel.setText(_("SIGTERM sent. Waiting for process to terminate…"))
+        else:
+            process.kill()

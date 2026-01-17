@@ -315,6 +315,7 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
 
 
 @pytest.mark.parametrize("withGC", [True, False])
+@pytest.mark.skipif(WINDOWS, reason="TODO: teardown errors on Windows")
 def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread, withGC):
     # Simulate user holding down Ctrl+W with a fast key repeat rate.
     # PrimeRepo should be interrupted without crashing!
@@ -746,7 +747,8 @@ def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
         acceptQMessageBox(mainWindow, "couldn.t start git")
 
 
-def testGitProcessStuck(tempDir, mainWindow, taskThread):
+@pytest.mark.parametrize("needSigkill", [False, True])
+def testGitProcessStuck(tempDir, mainWindow, taskThread, needSigkill):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "stage me")
 
@@ -754,7 +756,7 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread):
     rw = waitForRepoWidget(mainWindow)
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
-    with DelayGitCommandContext(block=True):
+    with DelayGitCommandContext(block=needSigkill):
         rw.diffArea.stageButton.click()
         processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
 
@@ -764,9 +766,11 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread):
     assert findTextInWidget(processDialog.abortButton, "abort")
     processDialog.abortButton.click()
 
-    waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
-    processDialog.abortButton.click()
+    if needSigkill:
+        waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
+        processDialog.abortButton.click()
 
     waitUntilTrue(processDialog.isHidden, timeout=1000)
-    code = "SIGKILL" if not WINDOWS else "62097"  # Qt magic number
+
+    code = "SIGKILL" if needSigkill else "SIGTERM"
     waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()

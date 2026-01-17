@@ -18,6 +18,7 @@ from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
+import gitfourchette.exttools.win32ctrlc
 
 _logger = logging.getLogger(__name__)
 
@@ -352,3 +353,27 @@ class ToolCommands:
 
         assert tokens
         return tokens
+
+    @classmethod
+    def terminatePlus(cls, process: QProcess | None):
+        """
+        QProcess.terminate() plus Windows console-mode quirks
+        """
+        if process is None:
+            return
+
+        if process.state() == QProcess.ProcessState.NotRunning:
+            return
+
+        _logger.info(f"Terminating process {process.program()} (PID {process.processId()})")
+        process.terminate()
+
+        if WINDOWS:
+            tokens = ToolCommands.spawnNewInstance(gitfourchette.exttools.win32ctrlc.__name__)
+            tokens.append(str(process.processId()))
+
+            ctrlC = QProcess(None)
+            ctrlC.setObjectName("win32ctrlc")
+            ctrlC.setProgram(tokens[0])
+            ctrlC.setArguments(tokens[1:])
+            ctrlC.startDetached()

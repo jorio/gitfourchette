@@ -95,9 +95,21 @@ def pygit2OlderThan(version: str):
 def getTestDataPath(name: str):
     path = Path(__file__).resolve().parent / "data" / name
 
+    # Windows isn't usually set up to run .py files directly, so wrap those in
+    # a batch script. This isn't necessary on Linux/Mac as long as the scripts
+    # contain the proper shebang.
     if WINDOWS and path.suffix == ".py" and path.exists():
         bat = path.with_suffix(".py.bat")
-        bat.write_text(f"@echo off\npython3 %~dp0\\{path.name} %*")
+
+        lines = [
+            "@ECHO OFF",
+            # Get rid of "Terminate batch job" prompt that blocks the script
+            # when receiving CTRL_C_EVENT - see https://superuser.com/q/35698
+            f"python3 %~dp0\\{path.name} %* &CALL:justbail",
+            ":justbail EXIT/B %ERRORLEVEL%",
+        ]
+
+        bat.write_text("\n".join(lines))
         path = bat
 
     return str(path)
