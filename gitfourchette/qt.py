@@ -219,6 +219,17 @@ if QT5:
     QFontDatabase.isFixedPitch = lambda *a, **k: _QFontDatabase_isFixedPitch(QFontDatabase(), *a, **k)
     QFontDatabase.isPrivateFamily = lambda *a, **k: _QFontDatabase_isPrivateFamily(QFontDatabase(), *a, **k)
 
+# Return Consolas as default fixed font instead of Courier New on Windows.
+if WINDOWS:
+    def _QFontDatabase_systemFont_override(type: QFontDatabase.SystemFont):
+        font = _QFontDatabase_systemFont(type)
+        if type == QFontDatabase.SystemFont.FixedFont:
+            font.setFamily("Consolas")
+        return font
+
+    _QFontDatabase_systemFont = QFontDatabase.systemFont
+    QFontDatabase.systemFont = _QFontDatabase_systemFont_override
+
 # Qt 6.7 replaces QCheckBox.stateChanged with checkStateChanged.
 if not hasattr(QCheckBox, 'checkStateChanged'):
     # Note: this forwards an int, not a real CheckState, but the values are the same.
