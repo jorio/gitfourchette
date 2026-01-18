@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-09-08 18:30+0000\n"
-"Last-Translator: Alex Nadzharov <anadjarov@gmail.com>\n"
+"PO-Revision-Date: 2026-01-19 04:01+0000\n"
+"Last-Translator: Konstantin Adamov <xrayadamo@gmail.com>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/ru/>\n"
 "Language: ru\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 5.14-dev\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #: application.py:90 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -28,15 +28,19 @@ msgstr "Пути репозиториев, которые будут откры�
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
 msgstr ""
+"Ваша предпочитаемая привязка Qt {0} недоступна на этом компьютере. Вместо "
+"этого используется {1}."
 
 #: application.py:226
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not recognized by {app}. Using {1} instead. (Supported values: {known})"
 msgstr ""
+"Ваша предпочитаемая привязка Qt {0} не распознана приложением {app}. Вместо "
+"неё используется {1}. (Поддерживаемые значения: {known})"
 
 #: application.py:230
 msgid "Qt binding unavailable"
-msgstr ""
+msgstr "Недоступна привязка Qt"
 
 #: application.py:270 toolbox/messageboxes.py:40
 msgid "Please open a repository before performing this action."
@@ -44,20 +48,20 @@ msgstr "Пожалуйста, откройте репозиторий перед
 
 #: blameview/blamegutter.py:157 blameview/blamewindow.py:184
 msgid "(Uncommitted)"
-msgstr ""
+msgstr "(Не закоммичено)"
 
 #: blameview/blamegutter.py:187 filelists/filelistmodel.py:67
 #: forms/prefsdialog.py:199 tasks/misctasks.py:70 tasks/nettasks.py:248
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: blameview/blamegutter.py:193
 msgid "Not Committed Yet"
-msgstr ""
+msgstr "Ещё не закоммичено"
 
 #: blameview/blamegutter.py:193 blameview/blamegutter.py:196
 msgid "commit"
-msgstr ""
+msgstr "коммит"
 
 #: blameview/blamegutter.py:197
 msgid "author"
@@ -73,65 +77,65 @@ msgstr "имя файла"
 
 #: blameview/blamegutter.py:200
 msgid "revision"
-msgstr ""
+msgstr "редакция"
 
 #: blameview/blamescrubberdelegate.py:55 blameview/blamescrubbermodel.py:43
 msgid "Uncommitted Changes in Working Directory"
-msgstr ""
+msgstr "Незакоммиченные изменения в рабочей директории"
 
 #: blameview/blametextedit.py:44
 msgid "Blame File at Uncommitted Revision"
-msgstr ""
+msgstr "Аннотирование файла для незакоммиченной редакции"
 
 #: blameview/blametextedit.py:45
 msgid "Show Diff in Working Directory"
-msgstr ""
+msgstr "Показать изменения в рабочей директории"
 
 #: blameview/blametextedit.py:47
 #, python-brace-format
 msgid "Blame File at {0}"
-msgstr ""
+msgstr "Аннотирование файла в {0}"
 
 #: blameview/blametextedit.py:48
 #, python-brace-format
 msgid "Show {0} in Repo"
-msgstr ""
+msgstr "Показать {0} в репозитории"
 
 #: blameview/blamewindow.py:50
 msgid "Jump"
-msgstr ""
+msgstr "Прыгнуть"
 
 #: blameview/blamewindow.py:51
 msgid "View this commit in the repo"
-msgstr ""
+msgstr "Просмотреть этот коммит в репозитории"
 
 #: blameview/blamewindow.py:56
 msgid "Shift+Click:"
-msgstr ""
+msgstr "Шифт+Нажатие:"
 
 #: blameview/blamewindow.py:59
 msgid "Older"
-msgstr ""
+msgstr "Старее"
 
 #: blameview/blamewindow.py:61
 msgid "Go to next older revision"
-msgstr ""
+msgstr "Перейти к более старой редакции"
 
 #: blameview/blamewindow.py:61
 msgid "Jump to bottom"
-msgstr ""
+msgstr "Перейти в конец"
 
 #: blameview/blamewindow.py:65
 msgid "Newer"
-msgstr ""
+msgstr "Никогда"
 
 #: blameview/blamewindow.py:67
 msgid "Go to next newer revision"
-msgstr ""
+msgstr "Перейти к более новой редакции"
 
 #: blameview/blamewindow.py:67
 msgid "Jump to top"
-msgstr ""
+msgstr "Перейти в начало"
 
 #: blameview/blamewindow.py:71
 msgid "Back"
@@ -139,129 +143,131 @@ msgstr "Назад"
 
 #: blameview/blamewindow.py:73 tasks/taskbook.py:63
 msgid "Navigate back"
-msgstr ""
+msgstr "Перейти назад"
 
 #: blameview/blamewindow.py:77
 msgid "Forward"
-msgstr ""
+msgstr "Вперед"
 
 #: blameview/blamewindow.py:79 tasks/taskbook.py:64 tasks/taskbook.py:65
 msgid "Navigate forward"
-msgstr ""
+msgstr "Перейти вперед"
 
 #: blameview/blamewindow.py:163
 #, python-brace-format
 msgid "File deleted in commit {0}"
-msgstr ""
+msgstr "Файл удален в коммите {0}"
 
 #: blameview/blamewindow.py:169
 #, python-brace-format
 msgid "Binary blob, {size} bytes, {hash}"
-msgstr ""
+msgstr "Бинарный объект, {size} байт(ов), {hash}"
 
 #: blameview/blamewindow.py:183
 #, python-brace-format
 msgid "Blame {path} @ {commit}"
-msgstr ""
+msgstr "Аннотировать {path} @ {commit}"
 
 #: codeview/codeview.py:65
 msgid "Find text in code|Find text"
-msgstr ""
+msgstr "Найти текст в коде|Найти текст"
 
 #: codeview/codeview.py:339
 msgid "&Word Wrap"
-msgstr ""
+msgstr "&Перенос строки"
 
 #: codeview/codeview.py:340
 msgid "Configure Appearance…"
-msgstr ""
+msgstr "Настроить Внешний Вид…"
 
 #: codeview/codeview.py:505
 msgid "End of document reached."
-msgstr ""
+msgstr "Достигнут конец документа."
 
 #: codeview/codeview.py:506
 msgid "Top of document reached."
-msgstr ""
+msgstr "Достигнуто начало документа."
 
 #: codeview/codeview.py:507
 #, python-brace-format
 msgid "No more occurrences of {0} found."
-msgstr ""
+msgstr "Больше не найдено вхождений {0}."
 
 #: codeview/codeview.py:513
 msgid "Wrap Around"
-msgstr ""
+msgstr "Поиск по Кругу"
 
 #: diffarea.py:109
 msgid "Unstaged files: will not be included in the commit unless you stage them."
 msgstr ""
+"Неподготовленные файлы: не будут включены в коммит, пока вы их не "
+"переместите в область подготовленных."
 
 #: diffarea.py:117
 msgid "Stage"
-msgstr ""
+msgstr "Подготовить к Коммиту"
 
 #: diffarea.py:119
 msgid "Stage selected files"
-msgstr ""
+msgstr "Подготовить выбранные файлы"
 
 #: diffarea.py:124 diffview/diffview.py:76
 msgid "Discard"
-msgstr ""
+msgstr "Отменить изменения"
 
 #: diffarea.py:126
 msgid "Discard changes in selected files"
-msgstr ""
+msgstr "Отменить изменения в выбранных файлах"
 
 #: diffarea.py:161
 msgid "Staged files: will be included in the commit."
-msgstr ""
+msgstr "Подготовленные файлы: будут включены в коммит."
 
 #: diffarea.py:169
 msgid "Unstage"
-msgstr ""
+msgstr "Убрать из подготовленных"
 
 #: diffarea.py:171
 msgid "Unstage selected files"
-msgstr ""
+msgstr "Убрать выбранные файлы из подготовленных"
 
 #: diffarea.py:176 forms/commitdialog.py:55 tasks/committasks.py:423
 #: tasks/committasks.py:468
 msgctxt "verb"
 msgid "Commit"
-msgstr ""
+msgstr "Коммит"
 
 #: diffview/diffdocument.py:191
 msgid "This file contains very long lines."
-msgstr ""
+msgstr "Этот файл содержит очень длинные строки."
 
 #: diffview/diffdocument.py:192 diffview/specialdiff.py:118
 msgid "[Load diff anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Загрузить diff всё равно] (это может занять некоторое время)"
 
 #: diffview/diffdocument.py:269
 msgid "<no newline at end of file>"
-msgstr ""
+msgstr "<нет новой строки в конце файла>"
 
 #: diffview/diffview.py:53
 msgid "Find text in diff|Find in diff"
-msgstr ""
+msgstr "Найти текст в diff|Найти в diff"
 
 #: diffview/diffview.py:64
 msgid "Stage Selection"
-msgstr ""
+msgstr "Подготовить выбранное"
 
 #: diffview/diffview.py:66
 msgid "Stage selected lines"
-msgstr ""
+msgstr "Подготовить выбранные строки"
 
 #: diffview/diffview.py:70
 msgid "Unstage Selection"
-msgstr ""
+msgstr "Убрать выбранное из подготовленных"
 
 #: diffview/diffview.py:73
 msgid "Unstage selected lines"
-msgstr ""
+msgstr "Убрать выбранные строки из подготовленных"
 
 #: diffview/diffview.py:79
 msgid "Discard selected lines"
