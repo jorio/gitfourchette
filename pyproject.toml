@@ -64,6 +64,11 @@ version = {attr = "gitfourchette.appconsts.APP_VERSION"}
 # To override, set the PYTEST_QT_API environment variable.
 qt_api = "pyqt6"
 
+[tool.pytest.ini_options]
+markers = [
+    "notParallelizableOnWindows: mark the test as using win32ctrlc, which is incompatible with pytest-xdist",
+]
+
 #------------------------------------------------------------------------------
 # Coverage
 

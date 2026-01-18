@@ -382,6 +382,7 @@ def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
 
 
 @requiresGpg
+@pytest.mark.notParallelizableOnWindows
 def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
     from gitfourchette.settings import GraphRowHeight
 

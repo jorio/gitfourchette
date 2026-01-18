@@ -803,6 +803,7 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
     assert rw.repo.branches.remote["remote2/master"].target != newOid
 
 
+@pytest.mark.notParallelizableOnWindows
 def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
@@ -850,6 +851,7 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
         assert repo.branches.remote["remote2/master"].target == oldOid
 
 
+@pytest.mark.notParallelizableOnWindows
 def testAbortPullInProgress(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
     bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
@@ -1002,6 +1004,7 @@ def testAutoFetchFailure(tempDir, mainWindow):
     assert re.search("couldn.t auto-fetch", mainWindow.statusBar2.currentMessage(), re.I)
 
 
+@pytest.mark.notParallelizableOnWindows
 def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     from gitfourchette import settings
     gitCmd = settings.prefs.gitPath
@@ -1042,6 +1045,7 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     assert "localfs/new-remote-branch" not in rw.repo.branches.remote
 
 
+@pytest.mark.notParallelizableOnWindows
 def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
     """Test that terminating a task also terminates its associated process."""
     wd = unpackRepo(tempDir)

@@ -23,6 +23,8 @@ from gitfourchette.application import GFApplication
 if TYPE_CHECKING:
     # For '-> MainWindow' type annotation, without pulling in MainWindow in the actual fixture
     from gitfourchette.mainwindow import MainWindow
+    import _pytest.nodes
+    import _pytest.config
 
 
 def setUpGitConfigSearchPaths(prefix=""):
@@ -69,7 +71,6 @@ def setUpGitConfigSearchPaths(prefix=""):
     else:
         os.environ["GIT_CONFIG_SYSTEM"] = vanillaGitConfigPath(ConfigLevel.SYSTEM)
         assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_SYSTEM", None) != os.environ["GIT_CONFIG_SYSTEM"]
-
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -222,3 +223,12 @@ def taskThread():
     tasks.RepoTaskRunner.ForceSerial = False
     yield
     tasks.RepoTaskRunner.ForceSerial = True
+
+
+def pytest_runtest_setup(item: _pytest.nodes.Node):
+    from gitfourchette.qt import WINDOWS
+
+    if (WINDOWS
+            and any(item.iter_markers("notParallelizableOnWindows"))
+            and os.environ.get("PYTEST_XDIST_WORKER", "")):
+        pytest.skip("On Windows, this test cannot be run with pytest-xdist. Retry with 'test.py -1'")

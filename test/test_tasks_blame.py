@@ -425,6 +425,7 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"
 
 
+@pytest.mark.notParallelizableOnWindows
 def testInterruptLongBlame(blameWindow, taskThread):
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
     assert "ciao" not in blameWindow.textEdit.toPlainText()
@@ -452,6 +453,7 @@ def testInterruptLongBlame(blameWindow, taskThread):
     assert not blameWindow.busySpinner.isVisible()
 
 
+@pytest.mark.notParallelizableOnWindows
 def testAbortLongBlame(blameWindow, taskThread):
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
     assert "ciao" not in blameWindow.textEdit.toPlainText()

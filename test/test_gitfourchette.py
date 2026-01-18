@@ -314,6 +314,7 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
     assert headCommit.committer.email == headCommit.author.email
 
 
+@pytest.mark.notParallelizableOnWindows
 @pytest.mark.parametrize("withGC", [True, False])
 @pytest.mark.skipif(WINDOWS, reason="TODO: teardown errors on Windows")
 def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread, withGC):
@@ -747,6 +748,7 @@ def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
         acceptQMessageBox(mainWindow, "couldn.t start git")
 
 
+@pytest.mark.notParallelizableOnWindows
 @pytest.mark.parametrize("needSigkill", [False, True])
 def testGitProcessStuck(tempDir, mainWindow, taskThread, needSigkill):
     wd = unpackRepo(tempDir)
