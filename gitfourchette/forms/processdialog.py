@@ -10,7 +10,7 @@ from gitfourchette.toolbox import QProcessConnection, QSignalBlockerContext
 
 
 class ProcessDialog(QDialog):
-    PopUpDelay = 200
+    PopUpDelay = 300 if not WINDOWS else 600
 
     becameVisible = Signal()
 
