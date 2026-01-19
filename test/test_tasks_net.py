@@ -829,7 +829,6 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
         okButton.click()
         assert not okButton.isEnabled()
         assert statusLabel.isVisible()
-        assert findTextInWidget(statusLabel, "please wait")
 
         # Wait for wrapper script to actually start
         waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))

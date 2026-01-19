@@ -276,13 +276,14 @@ def testDiffInNewWindow(tempDir, mainWindow, closeManually):
     rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in new window")
-    waitUntilTrue(lambda: not mainWindow.isActiveWindow())
+    QTest.qWait(0)
 
     diffWindow = next(w for w in QApplication.topLevelWidgets() if w.objectName() == diffWindowObjectName)
-    diffWidget: DiffView = diffWindow.findChild(DiffView)
+    diffWidget = diffWindow.findChild(DiffView)
     assert diffWindow is not mainWindow
     assert diffWindow is diffWidget.window()
     assert "c2.txt" in diffWindow.windowTitle()
+    assert diffWindow.isActiveWindow()
     assert not mainWindow.isActiveWindow()
 
     # Initiate search

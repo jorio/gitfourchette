@@ -495,8 +495,8 @@ class RepoTask(QObject):
         processWrapper.continueCoroutine.connect(self.uiReady)
 
         try:
-            yield from processWrapper.coStart()
-            yield from processWrapper.coWaitDone(autoFail)
+            yield from processWrapper.coWaitStart()
+            yield from processWrapper.coWaitFinished(autoFail)
         finally:
             self._currentProcess = None
             processWrapper.deleteLater()
@@ -1118,6 +1118,13 @@ class RepoTaskRunner(QObject):
 class ProcessWrapper(QObject):
     continueCoroutine = Signal()
 
+    SynchronousStartMaxDelay = 30
+    """
+    Skip the signal/slot song and dance if the process is able to spawn within
+    this delay (in milliseconds). This may reduce the time to complete the
+    coroutine, but note that the UI will freeze during this delay.
+    """
+
     def __init__(self, process: QProcess, parent):
         super().__init__(parent)
         self.process = process
@@ -1126,13 +1133,18 @@ class ProcessWrapper(QObject):
     def _onStarted(self):
         self._didStart = True
 
-    def coStart(self):
+    def coWaitStart(self):
+        logger.info(self.formatCommand(simple=True))
+
         process = self.process
-        logger.info(f"Starting process (from {process.workingDirectory()}): {self.formatCommand()}")
+        process.start()
+
+        # Attempt synchronous start
+        if process.waitForStarted(ProcessWrapper.SynchronousStartMaxDelay):
+            self._didStart = True
+            return
 
         with QSignalConnectContext(process.started, self._onStarted):
-            process.start()
-
             if not self._didStart and process.state() == QProcess.ProcessState.Starting:
                 # Pause coroutine until process emits either started or errorOccurred
                 with (
@@ -1149,7 +1161,7 @@ class ProcessWrapper(QObject):
             message += f"<p style='font-size: small'><code>{escape(self.formatCommand(simple=True))}</code><br>"
             raise AbortTask(message)
 
-    def coWaitDone(self, autoFail=True):
+    def coWaitFinished(self, autoFail=True):
         process = self.process
         assert self._didStart
 
@@ -1157,10 +1169,16 @@ class ProcessWrapper(QObject):
             # Qt 5 may enter NotRunning immediately in ForceSerial mode
             pass
         else:
-            # Pause coroutine until process exits Running state
             assert process.state() == QProcess.ProcessState.Running
-            with QSignalConnectContext(process.stateChanged, self.continueCoroutine):
-                yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
+
+            # Attempt synchronous wait (not on Windows - too sluggish)
+            if not WINDOWS and process.waitForFinished(ProcessWrapper.SynchronousStartMaxDelay):
+                pass
+            else:
+                # The process is taking a while to finish.
+                # Pause the coroutine until the process exits the Running state.
+                with QSignalConnectContext(process.stateChanged, self.continueCoroutine):
+                    yield FlowControlToken(FlowControlToken.Kind.WaitProcessReady)
 
         assert process.state() != QProcess.ProcessState.Running
         exitCode = process.exitCode()
