@@ -1034,15 +1034,6 @@ class Repo(_VanillaRepository):
             if local_branch.upstream is not None:
                 local_branch.upstream = None
 
-    def create_remote(self, name: str, url: str):
-        self.remotes.create(name, url)
-
-    def edit_remote(self, name: str, new_name: str, new_url: str):
-        self.remotes.set_url(name, new_url)
-        if name != new_name:
-            self.remotes.rename(name, new_name)  # rename AFTER setting everything else!
-            self.scrub_empty_config_section("remote", name)
-
     def delete_remote(self, name: str):
         self.remotes.delete(name)
         self.scrub_empty_config_section("remote", name)

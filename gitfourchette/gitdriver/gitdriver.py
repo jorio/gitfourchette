@@ -102,6 +102,19 @@ class GitDriver(QProcess):
         return cls.gitVersionTuple() >= (2, 41)
 
     @classmethod
+    def supportsDashDashBeforePositionalArgs(cls) -> bool:
+        """
+        True if git commands that ONLY take positional arguments (no switches)
+        will accept a double dash before the argument list.
+        Example: 'git remote remove -- <name>'
+        (Note: Commands that accept switches always accept '--')
+        """
+        # TODO: Find out the earliest version that actually supports this.
+        # 2.34 definitely doesn't support it; and 2.43 is the next version that
+        # I've been able to test quickly.
+        return cls.gitVersionTuple() >= (2, 43)
+
+    @classmethod
     def parseTable(cls, pattern: str, stdout: str, linesep="\n", strict=True) -> list:
         table = []
 

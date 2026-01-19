@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,6 +9,7 @@ Remote management tasks.
 """
 
 from gitfourchette.forms.remotedialog import RemoteDialog
+from gitfourchette.gitdriver import GitDriver, argsIf
 from gitfourchette.localization import *
 from gitfourchette.porcelain import GitConfigHelper
 from gitfourchette.qt import *
@@ -39,16 +40,13 @@ class NewRemote(RepoTask):
         newSkipFetchAll = dlg.ui.skipFetchAllCheckBox.isChecked()
         dlg.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
-        self.repo.create_remote(newRemoteName, newRemoteUrl)
+        yield from self.flowCallGit("remote", "add", "--", newRemoteName, newRemoteUrl)
         self.repo.set_remote_skipfetchall(newRemoteName, newSkipFetchAll)
 
         self.postStatus = _("Remote {0} added.", tquo(newRemoteName))
 
         if fetchAfterAdd:
-            yield from self.flowEnterUiThread()
-
             from gitfourchette.tasks import FetchRemotes
             yield from self.flowSubtask(FetchRemotes, newRemoteName)
 
@@ -84,10 +82,27 @@ class EditRemote(RepoTask):
         newSkipFetchAll = dlg.ui.skipFetchAllCheckBox.isChecked()
         dlg.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
-        self.repo.edit_remote(oldRemoteName, newRemoteName, newRemoteUrl)
+
+        if oldRemoteName != newRemoteName:
+            yield from self.flowCallGit(
+                "remote",
+                "rename",
+                *argsIf(GitDriver.supportsDashDashBeforePositionalArgs(), "--progress", "--"),
+                oldRemoteName,
+                newRemoteName)
+
+        if oldRemoteUrl != newRemoteUrl:
+            yield from self.flowCallGit(
+                "remote",
+                "set-url",
+                "--",
+                newRemoteName,
+                newRemoteUrl)
+
         self.repo.set_remote_skipfetchall(newRemoteName, newSkipFetchAll)
+
+        self.postStatus = _("Remote {0} modified.", tquo(newRemoteName))
 
 
 class DeleteRemote(RepoTask):
@@ -100,8 +115,12 @@ class DeleteRemote(RepoTask):
             verb=_("Remove remote"),
             buttonIcon="SP_DialogDiscardButton")
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs | TaskEffects.Remotes
-        self.repo.delete_remote(remoteName)
+
+        yield from self.flowCallGit(
+            "remote",
+            "remove",
+            *argsIf(GitDriver.supportsDashDashBeforePositionalArgs(), "--"),
+            remoteName)
 
         self.postStatus = _("Remote {0} removed.", tquo(remoteName))

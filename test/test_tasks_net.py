@@ -988,8 +988,8 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
 
 def testAutoFetchFailure(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.edit_remote("origin", "origin", "https://this-will-fail-to-resolve.invalid/whatever.git")
+    GitDriver.runSync("remote", "set-url", "origin", "https://this-will-fail-to-resolve.invalid/whatever.git",
+                      directory=wd, strict=True)
 
     mainWindow.onAcceptPrefsDialog({"autoFetch": True, "autoFetchMinutes": 1})
 
