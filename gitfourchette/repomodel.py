@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -193,7 +193,6 @@ class RepoModel:
         self.syncSubmodules()
         self.syncRemotes()
         self.syncUpstreams()
-        self.superproject = repo.get_superproject()
 
     def __del__(self):
         logger.debug("__del__ RepoModel")

@@ -1622,43 +1622,6 @@ class Repo(_VanillaRepository):
             # Unborn or something...
             raise NotImplementedError(f"Cannot fast-forward with {repr(merge_analysis)}.")
 
-    def get_superproject(self) -> str:
-        """
-        If this repo is a submodule, returns the path to the superproject's working directory,
-        otherwise returns None.
-        Equivalent to `git rev-parse --show-superproject-working-tree`.
-        """
-
-        # Skip the following checks if this is a worktree;
-        if self.is_worktree:
-            return ""
-
-        # Try to detect a "modern" submodule setup first
-        # (where the submodule's git dir is absorbed in the superproject's .git/modules)
-        gitpath = self.path  # e.g. "/home/user/superproj/.git/modules/src/extern/subproj/"
-        git_modules_pos = gitpath.rfind("/.git/modules/")
-        if git_modules_pos >= 0:
-            outer_wd = gitpath[:git_modules_pos]  # e.g. "/home/user/superproj"
-            with _suppress(KeyError):
-                tentative_wd = self.config['core.worktree']
-                if not _isabs(tentative_wd):
-                    tentative_wd = gitpath + "/" + tentative_wd
-                tentative_wd = _normpath(tentative_wd)
-                actual_wd = _normpath(self.workdir)
-                if actual_wd == tentative_wd:
-                    return outer_wd
-
-        # Try to detect "legacy" submodule that manages its own .git dir
-        norm_wd = _normpath(self.workdir)
-        outer_seed = _dirname(norm_wd)
-        with _suppress(GitError), RepoContext(outer_seed) as outer_repo:
-            assert outer_repo.workdir.endswith("/")
-            likely_submo_key = norm_wd.removeprefix(outer_repo.workdir)
-            if likely_submo_key in outer_repo.listall_submodules_fast():
-                return _normpath(outer_repo.workdir)
-
-        return ""
-
     def get_branch_from_refname(self, refname: str) -> tuple[Branch, bool]:
         prefix, shorthand = RefPrefix.split(refname)
         if prefix == RefPrefix.HEADS:

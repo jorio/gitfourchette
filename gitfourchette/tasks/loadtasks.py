@@ -79,6 +79,10 @@ class PrimeRepo(RepoTask):
         repoModel = RepoModel(repo)
         self.setRepoModel(repoModel)  # required to execute subtasks later
 
+        # Get superproject
+        driver = yield from self.flowCallGit("rev-parse", "--show-superproject-working-tree", workdir=path)
+        repoModel.superproject = driver.stdoutScrollback().rstrip()
+
         # ---------------------------------------------------------------------
         # EXIT UI THREAD
         # ---------------------------------------------------------------------
