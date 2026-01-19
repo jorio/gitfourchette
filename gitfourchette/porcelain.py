@@ -682,6 +682,7 @@ class Repo(_VanillaRepository):
         self._cached_remote_list = []
         self._cached_upstream_table = {}
         self._cached_submodule_table = {}
+        self._cached_commondir = ""
 
     def __del__(self):
         _logger.debug("__del__ Repo")
@@ -733,33 +734,47 @@ class Repo(_VanillaRepository):
         return (path_obj.is_relative_to(self.workdir)
                 and (include_gitdir or not path_obj.is_relative_to(self.path)))
 
-    def in_gitdir(self, path: str, ignore_wokrtree_status: bool = False) -> str:
+    @property
+    def commondir(self):
+        """
+        Return the absolute path to this worktree's $GIT_COMMON_DIR.
+        If this Repo isn't a worktree, the return value resolves to the same
+        path as `Repo.path`.
+        """
+        if not self._cached_commondir:
+            path = self.path
+            commondir = _Path(path, "commondir")
+            if commondir.exists():
+                path = commondir.read_text().rstrip()
+                path = commondir.parent / path
+                path = path.resolve(strict=True)
+                path = str(path)
+                # For compatibility with Repository.path, tack a '/' to the end
+                assert not path.endswith(_os.sep)
+                path += _os.sep
+            self._cached_commondir = path
+        return self._cached_commondir
+
+    def in_gitdir(self, path: str, common: bool = True) -> str:
         """
         Return an absolutized version of `path` within this repo's .git directory.
 
-        If `ignore_worktree_status` is False, it checks what pygit2
-        resolved to be the repository's path; otherwise, it resolves
-        `path` in the worktree's parent.
+        If `common` is False, return `path` inside the worktree's private $GIT_DIR.
+        Otherwise, return `path` inside $GIT_COMMON_DIR, i.e. the ".git" directory
+        common to all worktrees. (See manpages for gitrepository-layout git-worktree)
 
-        If the repository is not a git worktree, `in_gitdir` acts as
-        though `ignore_worktree_status` was set to `False``.
+        The `common` argument has no effect if this repo isn't a worktree.
         """
         assert not _isabs(path)
 
-        if ignore_wokrtree_status:
-            p = _joinpath(self.path, path)
-            if not p.startswith(self.path):
-                raise ValueError("Won't create absolute path outside gitdir")
-            return p
+        parent = self.commondir if common else self.path
 
-        commondir_path = _Path(self.in_gitdir("commondir", ignore_wokrtree_status=True))
-        if not commondir_path.exists():
-            # It doesn't look like we're in a worktree, so fallback
-            return self.in_gitdir(path, ignore_wokrtree_status=True)
+        p = _Path(parent, path).resolve()
 
-        with open(_joinpath(self.path, commondir_path), "r") as commondir:
-            parent_repo_path = _Path(_joinpath(self.path, commondir.read().strip()))
-            return _joinpath(parent_repo_path.resolve(), path)
+        if not p.is_relative_to(parent):
+            raise ValueError("Won't resolve absolute path outside gitdir")
+
+        return str(p)
 
     @property
     def is_worktree(self) -> bool:
@@ -771,11 +786,7 @@ class Repo(_VanillaRepository):
         certain metadata in what pygit2 resolves to be the
         repository's path.
         """
-        with _suppress(ValueError):
-            dotgit_path = self.in_gitdir("gitdir", ignore_wokrtree_status=True)
-            commondir_path = self.in_gitdir("commondir", ignore_wokrtree_status=True)
-
-            return _Path(dotgit_path).exists() and _Path(commondir_path).exists()
+        return not _Path(self.path).samefile(self.commondir)
 
     def refresh_index(self, force: bool = False):
         """
@@ -1838,9 +1849,10 @@ class Repo(_VanillaRepository):
         """
         Faster alternative to `list(repo.remotes.names())`.
         """
+        config_path = self.in_gitdir("config", common=True)
         try:
             # strict=False to bypass DuplicateSectionError
-            config = self._get_cached_config("listall_remotes_fast", self.in_gitdir("config"), strict=False)
+            config = self._get_cached_config("listall_remotes_fast", config_path, strict=False)
         except OSError:
             self._cached_remote_list = []
         except _UnchangedConfigFile:
@@ -1854,9 +1866,10 @@ class Repo(_VanillaRepository):
         """
         Much faster alternative to looking up `Branch.upstream_name` in every branch.
         """
+        config_path = self.in_gitdir("config", common=True)
         try:
             # strict=False to bypass DuplicateSectionError
-            config = self._get_cached_config("listall_upstreams", self.in_gitdir("config"), strict=False)
+            config = self._get_cached_config("listall_upstreams", config_path, strict=False)
         except OSError:
             self._cached_upstream_table = {}
         except _UnchangedConfigFile:
