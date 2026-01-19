@@ -453,13 +453,16 @@ class RepoWidget(QWidget):
         self.statusMessage.emit(clipboardStatusMessage(text))
 
     def openGitignore(self):
-        self._openLocalConfigFile(self.repo.in_workdir(".gitignore"))
+        path = self.repo.in_workdir(".gitignore")
+        self._openLocalConfigFile(path)
 
     def openLocalConfig(self):
-        self._openLocalConfigFile(os.path.join(self.repo.path, "config"))
+        path = self.repo.in_gitdir("config")
+        self._openLocalConfigFile(path)
 
     def openLocalExclude(self):
-        self._openLocalConfigFile(os.path.join(self.repo.path, "info", "exclude"))
+        path = self.repo.in_gitdir("info/exclude")
+        self._openLocalConfigFile(path)
 
     def _openLocalConfigFile(self, fullPath: str):
         def createAndOpen():
