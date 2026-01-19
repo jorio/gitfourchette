@@ -510,7 +510,8 @@ class CherrypickCommit(RepoTask):
         yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
 
         # Force cherry-picking state for compatibility with libgit2 backend
-        cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD"))
+        # (Note: CHERRY_PICK_HEAD is private to the worktree, hence common=False)
+        cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD", common=False))
         cherryPickHead.write_text(str(oid) + "\n")
 
         # Refresh libgit2 index for conflict analysis

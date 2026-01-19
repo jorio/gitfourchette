@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,6 +13,7 @@ from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem
@@ -581,8 +582,14 @@ def testAbortRevertCommit(tempDir, mainWindow):
     assert not os.path.exists(f"{wd}/c/c2-2.txt")
 
 
-def testCherrypick(tempDir, mainWindow):
+@pytest.mark.parametrize("worktree", [False, True])
+def testCherrypick(tempDir, mainWindow, worktree):
     wd = unpackRepo(tempDir)
+
+    if worktree:
+        barePath = makeBareCopy(wd, "bareOrigin", preFetch=True)
+        wd = f"{barePath}/MyCoolWorktree"
+        GitDriver.runSync("worktree", "add", wd, directory=barePath, strict=True)
 
     with RepoContext(wd) as repo:
         repo.checkout_local_branch("no-parent")
