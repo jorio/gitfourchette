@@ -11,6 +11,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from gitfourchette.forms.processdialog import ProcessDialog
+from gitfourchette.gitdriver import GitDriver
 from .util import *
 
 from gitfourchette.application import GFApplication
@@ -699,6 +700,18 @@ def testHideSelectedBranch(tempDir, mainWindow, taskThread):
     assert rw.navLocator.commit == rw.diffArea.contextHeader.locator.commit
     assert str(masterId)[:7] not in rw.diffArea.diffHeader.text()
     assert str(rw.navLocator.commit)[:7] in rw.diffArea.diffHeader.text()
+
+
+def testOpenWorktreeSubdirectoryOfBareRepo(tempDir, mainWindow):
+    referenceWd = unpackRepo(tempDir)
+    barePath = makeBareCopy(referenceWd, "", False)
+
+    worktreePath = f"{barePath}/MyCoolWorktree"
+    GitDriver.runSync("worktree", "add", worktreePath,  directory=barePath, strict=True)
+    writeFile(f"{worktreePath}/hello.txt", "hello")
+
+    rw = mainWindow.openRepo(worktreePath)
+    assert NavLocator.inUnstaged("hello.txt").isSimilarEnoughTo(rw.navLocator)
 
 
 @pytest.mark.skipif(MACOS, reason="TODO: macOS quirks")
