@@ -125,7 +125,6 @@ def testNewRepo(tempDir, mainWindow):
     unbornNode = rw.sidebar.findNodeByKind(SidebarItem.UnbornHead)
     unbornNodeIndex = unbornNode.createIndex(rw.sidebar.sidebarModel)
     assert re.search(r"branch.+will be created", unbornNodeIndex.data(Qt.ItemDataRole.ToolTipRole), re.I)
-    # TODO: test that we honor "init.defaultBranch"...without touching user's git config
 
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "empty commit")

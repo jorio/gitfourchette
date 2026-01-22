@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -7,8 +7,6 @@
 import logging
 import os
 from collections.abc import Callable
-
-import pygit2
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -27,24 +25,26 @@ class NewRepo(RepoTask):
         path = yield from self.flowFileDialog(fileDialog)
 
         # macOS's native file picker may return a directory that doesn't exist yet
-        # (it expects us to create it ourselves). libgit2 won't detect the parent repo
-        # if the directory doesn't exist.
+        # (it expects us to create it ourselves). "git rev-parse" won't detect the
+        # parent repo if the directory doesn't exist.
         parentDetectionPath = path
         if not os.path.exists(parentDetectionPath):
             parentDetectionPath = os.path.dirname(parentDetectionPath)
 
-        parentPath = pygit2.discover_repository(parentDetectionPath) or ""
-        if parentPath:
+        # Discover parent repo. If found, ask user if they want to open the
+        # parent repo or create a subrepo inside it.
+        revParse = yield from self.flowCallGit("rev-parse", "--show-toplevel", workdir=parentDetectionPath, autoFail=False)
+        if revParse.exitCode() == 0:
+            parentPath = revParse.stdoutScrollback().rstrip()
             yield from self._confirmCreateSubrepo(path, parentPath, openRepo)
 
-        # if not allowNonEmptyDirectory and os.path.exists(path) and os.listdir(path):
+        # Ask if user wants to create .git in an existing source tree
         if os.path.exists(path) and os.listdir(path):
             message = _("Are you sure you want to initialize a Git repository in {0}? "
                         "This directory isn’t empty.", bquo(path))
             yield from self.flowConfirm(title=_("Directory isn’t empty"), text=message, icon="warning")
 
-        # TODO: With git?
-        pygit2.init_repository(path)
+        yield from self.flowCallGit("init", "--", path)
         openRepo(path)
 
     def _confirmCreateSubrepo(self, path: str, parentPath: str, openRepo: Callable[[str], None]):
