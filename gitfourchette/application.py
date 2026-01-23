@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from gitfourchette.settings import Session
     from gitfourchette.tasks import RepoTask, TaskInvocation
     from gitfourchette.mount.mountmanager import MountManager
-    from gitfourchette.porcelain import GitConfig
     from gitfourchette.sshagent import SshAgent
 
 logger = logging.getLogger(__name__)
@@ -47,8 +46,6 @@ class GFApplication(QApplication):
     mainWindow: MainWindow | None
     initialSession: Session | None
     commandLinePaths: list
-    sessionwideGitConfigPath: str
-    sessionwideGitConfig: GitConfig
     sshAgent: SshAgent | None
     mountManager: MountManager | None
 
@@ -199,7 +196,6 @@ class GFApplication(QApplication):
 
     def beginSession(self, bootUi=True):
         from gitfourchette.toolbox.messageboxes import NonCriticalOperation
-        from gitfourchette.porcelain import GitConfig
         from gitfourchette import settings
         import pygit2
 
@@ -212,11 +208,6 @@ class GFApplication(QApplication):
         if FLATPAK:
             userXdgGitDir = os.path.expanduser("~/.config/git")
             pygit2.settings.search_path[pygit2.enums.ConfigLevel.XDG] = userXdgGitDir
-
-        # Prepare session-wide git config file
-        self.sessionwideGitConfigPath = str(tempDirPath / "session.gitconfig")
-        self.sessionwideGitConfig = GitConfig(self.sessionwideGitConfigPath)
-        self.initializeSessionwideGitConfig()
 
         # Load prefs file
         settings.prefs.reset()
@@ -554,17 +545,6 @@ class GFApplication(QApplication):
             return True
 
         return False
-
-    # -------------------------------------------------------------------------
-
-    def initializeSessionwideGitConfig(self):
-        # On Windows, core.autocrlf is usually set to true in the system config.
-        # However, libgit2 cannot find the system config if git wasn't installed
-        # with the official installer, e.g. via scoop. If a repo was cloned with
-        # autocrlf=true, GF's staging area would be unusable on Windows without
-        # setting autocrlf=true in the config.
-        if WINDOWS:
-            self.sessionwideGitConfig["core.autocrlf"] = "true"
 
     # -------------------------------------------------------------------------
 

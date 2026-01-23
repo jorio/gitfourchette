@@ -46,13 +46,11 @@ class PrimeRepo(RepoTask):
         # if this coroutine raises an exception
         self.repoStub = repoStub
 
-        from gitfourchette.application import GFApplication
         from gitfourchette.mainwindow import MainWindow
         from gitfourchette.repowidget import RepoWidget
         from gitfourchette.repomodel import RepoModel
         from gitfourchette.tasks import Jump
 
-        app = GFApplication.instance()
         mainWindow: MainWindow = repoStub.window()
         assert isinstance(repoStub, RepoStub)
         assert isinstance(mainWindow, MainWindow)
@@ -68,12 +66,6 @@ class PrimeRepo(RepoTask):
 
         if repo.is_bare:
             raise NotImplementedError(_("Sorry, {app} doesn’t support bare repositories.", app=qAppName()))
-
-        # Bind to sessionwide git config file.
-        # Level -1 was chosen because it's the only level for which changing branch settings
-        # in a repo won't leak into this file (e.g. change branch upstream).
-        sessionwideConfigPath = app.sessionwideGitConfigPath
-        repo.config.add_file(sessionwideConfigPath, level=-1)
 
         # Create RepoModel
         repoModel = RepoModel(repo)
