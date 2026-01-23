@@ -520,12 +520,19 @@ class FastForwardBranch(RepoTask):
 
 
 class MergeBranch(RepoTask):
-    def flow(self, them: str, silentFastForward=False, autoFastForwardOptionName=""):
-        assert them.startswith('refs/')
-
-        theirBranch, theirBranchIsRemote = self.repo.get_branch_from_refname(them)
-        assert isinstance(theirBranch, Branch)
-        _theirPrefix, theirShorthand = RefPrefix.split(them)
+    def flow(self, them: str | Oid, silentFastForward=False, autoFastForwardOptionName=""):
+        # Figure out oid
+        if isinstance(them, str):
+            assert them.startswith("refs/")
+            reference = self.repo.references[them]
+            target = reference.target
+            theirShorthand = reference.shorthand
+            assert reference.type == ReferenceType.DIRECT
+            assert isinstance(target, Oid)
+        else:
+            assert isinstance(them, Oid)
+            target = them
+            theirShorthand = shortHash(them)
 
         # Run merge analysis on background thread
         yield from self.flowEnterWorkerThread()
@@ -533,9 +540,6 @@ class MergeBranch(RepoTask):
         anyStagedFiles = self.repo.any_staged_changes
         anyConflicts = self.repo.any_conflicts
         myShorthand = self.repo.head_branch_shorthand
-        target = theirBranch.target
-        assert theirBranch.type == ReferenceType.DIRECT
-        assert isinstance(target, Oid), "branch isn't a direct reference!"
         analysis, pref = self.repo.merge_analysis(target)
         wantMergeCommit = True
 

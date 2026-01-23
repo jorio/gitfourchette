@@ -643,13 +643,13 @@ class RepoWidget(QWidget):
             tasks.AbortMerge.invoke(self)
 
         if rstate == RepositoryState.MERGE:
-            try:
+            mergingWhat = ""
+            with suppress(IndexError, KeyError):
                 mergehead = self.repoModel.mergeheads[0]
-                name = self.repoModel.refsAt[mergehead][0]
-                name = RefPrefix.split(name)[1]
-                bannerTitle = _("Merging {0}", bquo(name))
-            except (IndexError, KeyError):
-                pass
+                mergingWhat = shortHash(mergehead)  # Take commit hash first in case refsAt raises KeyError
+                mergingWhat = self.repoModel.refsAt[mergehead][0]
+                mergingWhat = RefPrefix.split(mergingWhat)[1]
+            bannerTitle = _("Merging {0}", bquo(mergingWhat))
 
             if not repo.any_conflicts:
                 bannerText += _("All conflicts fixed. Commit to conclude.")

@@ -1622,14 +1622,6 @@ class Repo(_VanillaRepository):
             # Unborn or something...
             raise NotImplementedError(f"Cannot fast-forward with {repr(merge_analysis)}.")
 
-    def get_branch_from_refname(self, refname: str) -> tuple[Branch, bool]:
-        prefix, shorthand = RefPrefix.split(refname)
-        if prefix == RefPrefix.HEADS:
-            return self.branches.local[shorthand], False
-        elif prefix == RefPrefix.REMOTES:
-            return self.branches.remote[shorthand], True
-        raise ValueError("ref is not a local or remote branch")
-
     def repo_name(self):
         return _basename(_normpath(self.workdir))
 

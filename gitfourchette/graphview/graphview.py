@@ -96,8 +96,6 @@ class GraphView(QListView):
         repo = repoModel.repo
         mainWindow = GFApplication.instance().mainWindow
 
-        mergeActions = []
-
         if kind == SpecialRow.UncommittedChanges:
             actions = [
                 TaskBook.action(self, NewCommit, accel="C"),
@@ -132,19 +130,17 @@ class GraphView(QListView):
             ]
 
         elif kind == SpecialRow.Commit:
-            # Merge actions
-            if repoModel.homeBranch:
-                with suppress(KeyError, StopIteration):
-                    refsHere = repoModel.refsAt[oid]
-                    target = next(ref for ref in refsHere if ref.startswith((RefPrefix.HEADS, RefPrefix.REMOTES)))
-                    mergeCaption = _("&Merge into {0}…", lquo(repoModel.homeBranch))
-                    mergeActions = [
-                        TaskBook.action(self, MergeBranch, name=mergeCaption, taskArgs=(target,)),
-                    ]
+            myRef = lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD"
+
+            # Figure out a nice ref name to initiate a merge, or fall back to commit id
+            try:
+                refsHere = repoModel.refsAt[oid]
+                mergeWhat = next(ref for ref in refsHere if ref.startswith((RefPrefix.HEADS, RefPrefix.REMOTES)))
+            except (KeyError, StopIteration):
+                mergeWhat = oid
 
             checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
             checkoutAction.shortcuts = self.checkoutShortcut.key()
-            resetLabel = _("&Reset {0} to Here…", lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD")
 
             gpgLookAtCommit = repo.peel_commit(oid)
             gpgStatus, _gpgKeyInfo = repoModel.getCachedGpgStatus(gpgLookAtCommit)
@@ -160,13 +156,12 @@ class GraphView(QListView):
                 mountActions = [ActionDef(mountCaption, icon="git-mount", callback=lambda: mounts.mount(repo.workdir, oid))]
 
             actions = [
-                *mergeActions,
-                ActionDef.SEPARATOR,
                 TaskBook.action(self, NewBranchFromCommit, _("New &Branch Here…"), taskArgs=oid),
                 TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid),
                 ActionDef.SEPARATOR,
                 checkoutAction,
-                TaskBook.action(self, ResetHead, resetLabel, taskArgs=oid),
+                TaskBook.action(self, MergeBranch, _("&Merge into {0}…", myRef), taskArgs=(mergeWhat,)),
+                TaskBook.action(self, ResetHead, _("&Reset {0} to Here…", myRef), taskArgs=oid),
                 ActionDef.SEPARATOR,
                 TaskBook.action(self, CherrypickCommit, _("Cherry &Pick…"), taskArgs=oid),
                 TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),

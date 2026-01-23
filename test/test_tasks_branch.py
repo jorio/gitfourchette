@@ -1012,6 +1012,30 @@ def testMergeDeniedDueToConflictingFileInWorktree(tempDir, mainWindow):
     assert rw.repo.state() != RepositoryState.MERGE
 
 
+def testMergeNonTipCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    with RepoContext(wd) as repo:
+        repo.checkout_local_branch("ff-branch")
+        repo.create_commit_on_head("moving tip beyond e97b4cf", TEST_SIGNATURE, TEST_SIGNATURE)
+        repo.checkout_local_branch("master")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(Oid(hex="e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87"), "welcome.txt"), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "merge into.+master")
+
+    qmb = findQMessageBox(rw, "master.+can simply be fast-forwarded to.+e97b4c")
+    mergeCommitButton = next(b for b in qmb.buttons() if findTextInWidget(b, "create merge commit"))
+    mergeCommitButton.click()
+
+    assert findTextInWidget(rw.mergeBanner.label, "merging.+e97b4cf")
+    assert findTextInWidget(rw.mergeBanner.label, "all conflicts fixed")
+
+    rw.diffArea.commitButton.click()
+    findQDialog(rw, "commit").accept()
+    assert re.search("merge commit.+e97b4c", rw.repo.head_commit_message, re.I)
+
+
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
 def testMightLoseDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
