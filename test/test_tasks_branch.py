@@ -996,6 +996,22 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     assert rw.repo.state() == RepositoryState.NONE
 
 
+def testMergeDeniedDueToConflictingFileInWorktree(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    writeFile(f"{wd}/bye.txt", "yikes")
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("refs/heads/i18n")
+
+    # Initiate merge of 'i18n' into 'master'
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
+    acceptQMessageBox(rw, "i18n.+into.+master.+may cause conflicts")
+
+    acceptQMessageBox(rw, "untracked working tree files would be overwritten by merge")
+    assert rw.repo.state() != RepositoryState.MERGE
+
+
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
 def testMightLoseDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)

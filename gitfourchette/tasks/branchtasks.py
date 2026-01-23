@@ -630,7 +630,15 @@ class MergeBranch(RepoTask):
         )
 
         if driver.exitCode() != 0:
-            logger.warning(f"git merge error scrollback: {driver.stderrScrollback()}")
+            # If there are conflicts, "git merge" exits with nonzero and the
+            # repo enters the MERGE state. If git exited with nonzero WITHOUT
+            # entering the MERGE state, some other problem occurred.
+            # (I guess we could infer this from the value of the exit code, but
+            # it doesn't seem to be documented.)
+            logger.warning(f"git merge rc={driver.exitCode()} - stderr: {driver.stderrScrollback()}")
+
+            if self.repo.state() != RepositoryState.MERGE:
+                raise AbortTask(driver.htmlErrorText())
 
         if wantMergeCommit:
             self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
