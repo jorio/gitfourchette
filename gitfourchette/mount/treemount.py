@@ -43,6 +43,11 @@ class TreeMount(fuse.Operations):
         self.tree = commit.tree
         self.mountPointPathObj = Path(mountPoint)  # to produce absolute paths in readlink
 
+        try:
+            self.defaultGid, self.defaultUid = os.getgid(), os.getuid()
+        except AttributeError:  # Windows doesn't have these
+            self.defaultGid, self.defaultUid = 0, 0
+
     def _resolve(self, path: str, t: type[TPeelable] = Object) -> TPeelable:
         assert path.startswith("/")
         path = path.removeprefix("/")
@@ -76,8 +81,8 @@ class TreeMount(fuse.Operations):
             "st_ctime": self.committerTime,
             "st_atime": self.committerTime,
             "st_mtime": self.committerTime,
-            "st_gid": os.getgid(),
-            "st_uid": os.getuid(),
+            "st_gid": self.defaultGid,
+            "st_uid": self.defaultUid,
             "st_size": size,
             "st_mode": mode,
         }

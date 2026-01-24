@@ -48,11 +48,12 @@ class MountedCommit:
         ToolProcess.startTerminal(parent, self.mountPoint)
 
     def unmount(self):
-        self.fuseProcess.terminate()
+        ToolCommands.terminatePlus(self.fuseProcess)
         self.fuseProcess.waitForFinished(5000)
 
-        with suppress(OSError):
-            Path(self.mountPoint).rmdir()
+        if not WINDOWS:  # WinFSP fully manages the mount point folder
+            with suppress(OSError):
+                Path(self.mountPoint).rmdir()
 
 
 class MountManager(QObject):
@@ -107,7 +108,8 @@ class MountManager(QObject):
         pathObj = Path(mountParentDir, f"mnt-{wdName}@{str(oid)[:8]}")
         if pathObj.is_dir():
             pathObj.rmdir()
-        pathObj.mkdir(parents=True)
+        if not WINDOWS:  # WinFSP insists on creating it itself
+            pathObj.mkdir(parents=True)
         path = str(pathObj)
 
         tokens = ToolCommands.spawnNewInstance(gitfourchette.mount.treemount.__name__, sandbox=True)
