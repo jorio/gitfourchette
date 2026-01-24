@@ -6,10 +6,8 @@
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
-from gitfourchette.diffview.specialdiff import SpecialDiffError
-from gitfourchette.gitdriver import GitDelta
+from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta
 from gitfourchette.localization import *
-from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import stockIcon, escape, DocumentLinks
 
@@ -83,35 +81,41 @@ class SpecialDiffView(QTextBrowser):
         # Let DocumentLinks callbacks invoke RepoTasks using this QObject chain
         err.taskInvoker = document
 
-    def displayImageDiff(self, delta: GitDelta, imageA: QImage, imageB: QImage):
-        document = QTextDocument(self)
-        document.setObjectName("ImageDiffDocument")
+    def displayImageDelta(self, d: ImageDelta):
+        image = d.newImage or d.oldImage
+        assert image is not None, "both image sides are None"
 
-        sizeA = imageA.sizeInBytes()
-        sizeB = imageB.sizeInBytes()
+        markup = self.htmlHeader
+        markup += "<table>"
 
-        humanSizeA = self.locale().formattedDataSize(sizeA)
-        humanSizeB = self.locale().formattedDataSize(sizeB)
+        for i, size, tag, intro in [
+            (d.oldImage, d.oldSize, "del", _("Old image:") if d.newImage else _("Deleted image:")),
+            (d.newImage, d.newSize, "add", _("New image:"))
+        ]:
+            if i is None:
+                continue
 
-        textA = _("Old:") + " " + _("{w}×{h} pixels, {size}", w=imageA.width(), h=imageA.height(), size=humanSizeA)
-        textB = _("New:") + " " + _("{w}×{h} pixels, {size}", w=imageB.width(), h=imageB.height(), size=humanSizeB)
+            c1 = f"<b><{tag}>{intro}</tag></b>"
+            c2 = _("{w} × {h} pixels", w=i.width(), h=i.height())
+            c3 = self.locale().formattedDataSize(size)
 
-        if delta.old.isId0():
-            header = f"<add>{textB}</add>"
-            image = imageB
-        elif delta.new.isId0():
-            header = f"<del>{textA} " + _("(<b>deleted file</b> displayed below)") + "</del>"
-            image = imageA
-        else:
-            header = f"<del>{textA}</del><br><add>{textB} " + _("(<b>new file</b> displayed below)") + "</add>"
-            image = imageB
+            c4 = ""
+            if i is image and d.oldImage and d.newImage:
+                c4 = f"<b><{tag}>{_('(shown below)')}</{tag}></b>"
+
+            markup += (f"<tr><td>{c1} </td>"
+                       f"<td style='text-align: right'>{c2}, </td>"
+                       f"<td style='text-align: right'>{c3}</td>"
+                       f"<td> {c4}</td></tr>")
+
+        markup += "</table>"
+        markup += "<p style='text-align: center'><img src='image' /></p>"
 
         image.setDevicePixelRatio(self.devicePixelRatio())
-        document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("image"), image)
 
-        document.setHtml(
-            f"{self.htmlHeader}"
-            f"<p>{header}</p>"
-            "<p style='text-align: center'><img src='image' /></p>")
+        document = QTextDocument(self)
+        document.setObjectName("ImageDiffDocument")
+        document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("image"), image)
+        document.setHtml(markup)
 
         self.replaceDocument(document)

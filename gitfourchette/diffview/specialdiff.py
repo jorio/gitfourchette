@@ -33,17 +33,19 @@ class SameTextDiff:
     pass
 
 
-class DiffImagePair:
-    oldImage: QImage
-    newImage: QImage
-    delta: GitDelta
+class ImageDelta:
+    oldSize: int
+    newSize: int
+    oldImage: QImage | None
+    newImage: QImage | None
 
     def __init__(self, repo: Repo, delta: GitDelta):
         imageDataA = delta.old.read(repo)
         imageDataB = delta.new.read(repo)
-        self.oldImage = QImage.fromData(imageDataA)
-        self.newImage = QImage.fromData(imageDataB)
-        self.delta = delta
+        self.oldSize = len(imageDataA)
+        self.newSize = len(imageDataB)
+        self.oldImage = QImage.fromData(imageDataA) if imageDataA else None
+        self.newImage = QImage.fromData(imageDataB) if imageDataB else None
 
 
 class SpecialDiffError:
@@ -154,7 +156,7 @@ class SpecialDiffError:
         return SpecialDiffError(_("This file’s type has changed."), table)
 
     @staticmethod
-    def binaryDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError | DiffImagePair:
+    def binaryDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError | ImageDelta:
         locale = QLocale()
         oldSize = delta.old.sizeBallpark(repo)
         newSize = delta.new.sizeBallpark(repo)
@@ -167,7 +169,7 @@ class SpecialDiffError:
                 threshold = settings.prefs.imageFileThresholdKB * 1024
             if largestSize > threshold > 0:
                 return SpecialDiffError.imageTooLarge(largestSize, threshold, locator)
-            return DiffImagePair(repo, delta)
+            return ImageDelta(repo, delta)
 
         oldSizeText = locale.formattedDataSize(oldSize)
         newSizeText = locale.formattedDataSize(newSize)

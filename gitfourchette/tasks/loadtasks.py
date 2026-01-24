@@ -14,7 +14,7 @@ from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriv
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
-from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair
+from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta
 from gitfourchette.graph import GraphBuildLoop
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
@@ -247,7 +247,7 @@ class LoadPatch(RepoTask):
             dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta)
 
     def _getPatch(self, delta: GitDelta, locator: NavLocator
-                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | GitConflict | DiffImagePair]:
+                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | GitConflict | ImageDelta]:
         if delta.conflict is not None:
             return delta.conflict
 

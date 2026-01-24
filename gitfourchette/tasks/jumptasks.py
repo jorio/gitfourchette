@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,6 +9,7 @@ Tasks that navigate to a specific area of the repository.
 
 Unlike most other tasks, jump tasks directly manipulate the UI extensively, via RepoWidget.
 """
+
 import dataclasses
 import logging
 import os
@@ -16,7 +17,7 @@ import re
 from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
-from gitfourchette.diffview.specialdiff import SpecialDiffError, DiffImagePair, SameTextDiff
+from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta, SameTextDiff
 from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
@@ -98,7 +99,7 @@ class Jump(RepoTask):
     class Result(Exception):
         locator: NavLocator
         header: str
-        document: SameTextDiff | DiffDocument | GitConflict | DiffImagePair | SpecialDiffError | None
+        document: SameTextDiff | DiffDocument | GitConflict | ImageDelta | SpecialDiffError | None
         delta: GitDelta | None = None
 
     def canKill(self, task: RepoTask):
@@ -473,9 +474,9 @@ class Jump(RepoTask):
             area.setDiffStackPage("special")
             area.specialDiffView.displaySpecialDiffError(document)
 
-        elif isinstance(document, DiffImagePair):
+        elif isinstance(document, ImageDelta):
             area.setDiffStackPage("special")
-            area.specialDiffView.displayImageDiff(document.delta, document.oldImage, document.newImage)
+            area.specialDiffView.displayImageDelta(document)
 
         else:
             raise NotImplementedError(f"Can't display {type(document)}")
