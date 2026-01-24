@@ -164,6 +164,7 @@ class Jump(RepoTask):
 
         # If DiffView is already set up to display this specific patch,
         # we don't need to bother shelling out to 'git diff'.
+        # TODO: Would also be nice for image diffs!
         if self.isDiffViewAlreadySetUpFor(locator, delta):
             return Jump.Result(rw.diffView.currentLocator, "", SameTextDiff())
 

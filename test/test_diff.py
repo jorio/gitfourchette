@@ -513,26 +513,44 @@ def testDiffImage(tempDir, mainWindow):
     shutil.copyfile(getTestDataPath("image1.png"), f"{wd}/image.png")
 
     rw = mainWindow.openRepo(wd)
+    imageView = rw.specialDiffView
+
+    def findText(text):
+        return qteFind(imageView, text, plainText=True)
+
+    # Test 'A' delta
     rw.jump(NavLocator.inUnstaged("image.png"), check=True)
-    assert rw.specialDiffView.isVisible()
-    assert re.search("6.6 pixels", rw.specialDiffView.toPlainText())
+    assert imageView.isVisible()
+    assert findText("6 . 6 pixels")
     rw.diffArea.dirtyFiles.stage()
     rw.diffArea.commitButton.click()
     findQDialog(rw, "commit").ui.summaryEditor.setText("commit an image")
     findQDialog(rw, "commit").accept()
 
+    # Test old/new delta
     shutil.copyfile(getTestDataPath("image2.png"), f"{wd}/image.png")
     rw.refreshRepo()
     rw.jump(NavLocator.inUnstaged("image.png"), check=True)
-    assert rw.specialDiffView.isVisible()
-    assert re.search("6.6 pixels", rw.specialDiffView.toPlainText())
-    assert re.search("4.4 pixels", rw.specialDiffView.toPlainText())
+    assert imageView.isVisible()
+    assert findText("old image.+6 . 6 pixels")
+    assert findText("new image.+4 . 4 pixels.+shown below")
 
+    # Test that we can swap between old and new images
+    qteClickLink(imageView, "old image")
+    assert findText("old image.+6 . 6 pixels.+shown below")
+    assert findText("new image.+4 . 4 pixels")
+    qteClickLink(imageView, "new image")
+    assert findText("old image.+6 . 6 pixels")
+    assert findText("new image.+4 . 4 pixels.+shown below")
+
+    # Test 'del' delta
     os.unlink(f"{wd}/image.png")
     rw.refreshRepo()
     rw.jump(NavLocator.inUnstaged("image.png"), check=True)
-    assert rw.specialDiffView.isVisible()
-    assert re.search("6.6 pixels", rw.specialDiffView.toPlainText())
+    assert imageView.isVisible()
+    assert findText("6 . 6 pixels")
+    with pytest.raises(KeyError):
+        findText("4 . 4 pixels")
 
 
 def testDiffLargeImage(tempDir, mainWindow):
@@ -562,7 +580,7 @@ def testDiffSvgImage(tempDir, mainWindow):
 
     mainWindow.onAcceptPrefsDialog({"renderSvg": True})
     assert rw.specialDiffView.isVisible()
-    assert re.search("16.16 pixels", rw.specialDiffView.toPlainText())
+    assert re.search("16 . 16 pixels", rw.specialDiffView.toPlainText())
 
 
 @pytest.mark.skipif(WINDOWS, reason="symlinks are flaky on Windows")

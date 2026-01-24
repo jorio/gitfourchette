@@ -81,41 +81,63 @@ class SpecialDiffView(QTextBrowser):
         # Let DocumentLinks callbacks invoke RepoTasks using this QObject chain
         err.taskInvoker = document
 
-    def displayImageDelta(self, d: ImageDelta):
-        image = d.newImage or d.oldImage
-        assert image is not None, "both image sides are None"
+    def displayImageDelta(self, d: ImageDelta, swap=False):
+        if not swap:
+            image = d.newImage or d.oldImage
+        else:
+            image = d.oldImage or d.newImage
+        hasBothSides = d.newImage and d.oldImage
 
-        markup = self.htmlHeader
-        markup += "<table>"
+        green, red = settings.prefs.addDelColors()
+        borderColor = red if image is d.oldImage else green
 
-        for i, size, tag, intro in [
+        links = DocumentLinks()
+        swapLink = links.new(lambda: self.displayImageDelta(d, swap=not swap))
+
+        markup = self.htmlHeader + "<center><table>"
+
+        for i, size, tag, name in [
             (d.oldImage, d.oldSize, "del", _("Old image:") if d.newImage else _("Deleted image:")),
             (d.newImage, d.newSize, "add", _("New image:"))
         ]:
             if i is None:
                 continue
 
-            c1 = f"<b><{tag}>{intro}</tag></b>"
-            c2 = _("{w} × {h} pixels", w=i.width(), h=i.height())
+            if hasBothSides and i is not image:
+                c1 = f"<a href='{swapLink}'>{name}</a>"
+            else:
+                c1 = f"<b><{tag}>{name}</tag></b>"
+
+            c2 = f"{i.width()} &times; {i.height()} {_('pixels')},"
             c3 = self.locale().formattedDataSize(size)
 
-            c4 = ""
-            if i is image and d.oldImage and d.newImage:
-                c4 = f"<b><{tag}>{_('(shown below)')}</{tag}></b>"
+            if hasBothSides and i is image:
+                c4 = f"<b><{tag}>&darr; {_('shown below')} &darr;</{tag}></b>"
+            else:
+                c4 = ""
 
             markup += (f"<tr><td>{c1} </td>"
-                       f"<td style='text-align: right'>{c2}, </td>"
-                       f"<td style='text-align: right'>{c3}</td>"
-                       f"<td> {c4}</td></tr>")
+                       f"<td style='text-align: right'>{c2} </td>"
+                       f"<td style='text-align: right'>{c3} </td>"
+                       f"<td style='text-align: center'> {c4}</td>"
+                       f"</tr>")
 
-        markup += "</table>"
-        markup += "<p style='text-align: center'><img src='image' /></p>"
-
-        image.setDevicePixelRatio(self.devicePixelRatio())
+        markup += (
+            "</table>"
+            f"<table style='border: 4px solid {borderColor.name()}; border-collapse: collapse;'>"
+            "<tr><td><img src='image'/></tr></td>"
+            "</table>"
+            "</center>")
 
         document = QTextDocument(self)
         document.setObjectName("ImageDiffDocument")
-        document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("image"), image)
         document.setHtml(markup)
 
+        if image is not None:
+            image.setDevicePixelRatio(self.devicePixelRatio())
+            document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("image"), image)
+
         self.replaceDocument(document)
+
+        assert self.documentLinks is None
+        self.documentLinks = links
