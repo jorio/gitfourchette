@@ -494,6 +494,13 @@ class RepoTask(QObject):
         processWrapper = ProcessWrapper(process, self)
         processWrapper.continueCoroutine.connect(self.uiReady)
 
+        if self.isFreelyInterruptible():
+            # If the process is fast enough, the synchronous waits may cause the
+            # coroutine to run as a single uninterruptible block. Don't wait
+            # synchronously to give the user a chance to interrupt the task.
+            processWrapper.waitForStartedMaxDelay = 0
+            processWrapper.waitForFinishedMaxDelay = 0
+
         try:
             yield from processWrapper.coWaitStart()
             yield from processWrapper.coWaitFinished(autoFail)
@@ -1118,17 +1125,22 @@ class RepoTaskRunner(QObject):
 class ProcessWrapper(QObject):
     continueCoroutine = Signal()
 
-    SynchronousStartMaxDelay = 30
+    SynchronousMaxDelay = 30
     """
-    Skip the signal/slot song and dance if the process is able to spawn within
-    this delay (in milliseconds). This may reduce the time to complete the
-    coroutine, but note that the UI will freeze during this delay.
+    Skip the coroutine pause/continuation overhead if the process is able to
+    spawn within this delay (in milliseconds). This may reduce the time to
+    complete the coroutine, but the UI will freeze during this delay.
     """
 
     def __init__(self, process: QProcess, parent):
         super().__init__(parent)
         self.process = process
         self._didStart = False
+
+        self.waitForStartedMaxDelay = ProcessWrapper.SynchronousMaxDelay
+        self.waitForFinishedMaxDelay = ProcessWrapper.SynchronousMaxDelay
+        if WINDOWS:  # On Windows, git needs more time to finish
+            self.waitForFinishedMaxDelay = 0
 
     def _onStarted(self):
         self._didStart = True
@@ -1140,7 +1152,7 @@ class ProcessWrapper(QObject):
         process.start()
 
         # Attempt synchronous start
-        if process.waitForStarted(ProcessWrapper.SynchronousStartMaxDelay):
+        if process.waitForStarted(self.waitForStartedMaxDelay):
             self._didStart = True
             return
 
@@ -1171,10 +1183,8 @@ class ProcessWrapper(QObject):
         else:
             assert process.state() == QProcess.ProcessState.Running
 
-            # Attempt synchronous wait (not on Windows - too sluggish)
-            if not WINDOWS and process.waitForFinished(ProcessWrapper.SynchronousStartMaxDelay):
-                pass
-            else:
+            # Attempt synchronous wait
+            if not process.waitForFinished(self.waitForFinishedMaxDelay):
                 # The process is taking a while to finish.
                 # Pause the coroutine until the process exits the Running state.
                 with QSignalConnectContext(process.stateChanged, self.continueCoroutine):
