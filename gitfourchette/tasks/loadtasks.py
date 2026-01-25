@@ -367,7 +367,8 @@ class LoadPatch(RepoTask):
     def _postProcess(self, diff: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
         # See if that's an LFS pointer
         isLfs = False
-        if (isinstance(diff, DiffDocument)
+        if (not settings.prefs.rawLfsPointers
+                and isinstance(diff, DiffDocument)
                 and len(diff.lineData) >= 2
                 and diff.lineData[1].text == LfsPointerMagic):
             oldIsLfs = delta.old.resolveLfsPointer(self.repo)

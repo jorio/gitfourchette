@@ -365,7 +365,7 @@ class TrTables:
         return {
             "general": _p("Prefs", "General"),
             "diff": _p("Prefs", "Code"),
-            "imageDiff": _p("Prefs", "Images"),
+            "imageDiff": _p("Prefs", "Images & LFS"),
             "tabs": _p("Prefs", "Tabs"),
             "graph": _p("Prefs", "Commit History"),
             "trash": _p("Prefs", "Trash"),
@@ -414,7 +414,12 @@ class TrTables:
             "showStrayCRs": _("Display alien line endings (CRLF)"),
             "colorblind": _("“-/+” colors"),
             "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),
-            "renderSvg": _("Treat SVG files as"),
+            "renderSvg": _("SVG files"),
+            "renderSvg_false": _("Display as text"),
+            "renderSvg_true": _("Display as images"),
+            "rawLfsPointers": _("LFS pointers"),
+            "rawLfsPointers_false": _("Display real contents from LFS files"),
+            "rawLfsPointers_true": _("Display raw pointer text"),
 
             "tabCloseButton": _("Show tab close button"),
             "expandingTabs": _("Expand tabs to available width"),

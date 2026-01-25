@@ -99,6 +99,7 @@ class Prefs(PrefsFile):
     _category_imageDiff         : int                   = 0
     imageFileThresholdKB        : int                   = 5000
     renderSvg                   : bool                  = False
+    rawLfsPointers              : bool                  = False
 
     _category_graph             : int                   = 0
     chronologicalOrder          : bool                  = True
