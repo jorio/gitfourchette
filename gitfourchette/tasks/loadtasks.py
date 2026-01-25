@@ -346,7 +346,10 @@ class LoadPatch(RepoTask):
         else:
             oldPath = "/dev/null"
 
-        if delta.new.lfsId:
+        if delta.new.source.isDirty():
+            # Load raw unstaged file straight from the workdir
+            newPath = repo.in_workdir(delta.new.path)
+        elif delta.new.lfsId:
             newPath = repo.in_gitdir(delta.new.lfsObjectPath())
             if not Path(newPath).exists():
                 missingObjects.append(delta.new.lfsId)
@@ -375,7 +378,7 @@ class LoadPatch(RepoTask):
                 and len(diff.lineData) >= 2
                 and diff.lineData[1].text == LfsPointerMagic):
             oldIsLfs = delta.old.resolveLfsPointer(self.repo)
-            newIsLfs = delta.new.resolveLfsPointer(self.repo)
+            newIsLfs = locator.context.isDirty() or delta.new.resolveLfsPointer(self.repo)
             isLfs = oldIsLfs or newIsLfs
 
         # Override with raw diff of LFS file contents
