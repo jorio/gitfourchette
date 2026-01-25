@@ -6,7 +6,7 @@ on:
 jobs:
   tests:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v6
@@ -24,5 +24,5 @@ jobs:
         pip install -e .[pyqt6,pygments,test,mfusepy]
         pip install pytest-timeout
 
-    - run: python3 test.py --with-network -v --timeout=30 -k "not test_tasks_submodule and not test_usercommands"
+    - run: python3 test.py --with-network -v --timeout=30 -k "not testUserCommand"
     - run: python3 test.py --with-network -v --timeout=30 -1 -m notParallelizableOnWindows

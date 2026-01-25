@@ -93,24 +93,33 @@ def pygit2OlderThan(version: str):
 
 
 def getTestDataPath(name: str):
-    path = Path(__file__).resolve().parent / "data" / name
+    dataDir = Path(__file__).resolve().parent / "data"
+    path = dataDir / name
 
     # Windows isn't usually set up to run .py files directly, so wrap those in
     # a batch script. This isn't necessary on Linux/Mac as long as the scripts
     # contain the proper shebang.
     if WINDOWS and path.suffix == ".py" and path.exists():
-        bat = path.with_suffix(".py.bat")
+        wrappersDir = dataDir / "windows_wrappers.tmp"
+        relPath = path.relative_to(wrappersDir, walk_up=True)
 
-        lines = [
-            "@ECHO OFF",
+        text = (
+            "@ECHO OFF\n"
             # Get rid of "Terminate batch job" prompt that blocks the script
             # when receiving CTRL_C_EVENT - see https://superuser.com/q/35698
-            f"python3 %~dp0\\{path.name} %* &CALL:justbail",
-            ":justbail EXIT/B %ERRORLEVEL%",
-        ]
+            f"python3 %~dp0\\{relPath} %* &CALL:justbail\n"
+            ":justbail EXIT/B %ERRORLEVEL%\n"
+        )
+        batPath = (wrappersDir / path.name).with_suffix(".bat")
 
-        bat.write_text("\n".join(lines))
-        path = bat
+        # Only write the file once - overwriting while another distributed test
+        # is running may cause an access error. (read_text() converts line
+        # endings to LF, so this comparison is fine)
+        if not batPath.exists() or batPath.read_text() != text:
+            batPath.parent.mkdir(parents=True, exist_ok=True)
+            batPath.write_text(text)
+
+        path = batPath
 
     return str(path)
 

@@ -25,7 +25,7 @@ def commandsScratchFile(tempDir, mainWindow):
     if not WINDOWS:
         terminalShim = "/bin/sh -c $COMMAND"
     else:
-        terminalShim = "git-bash --command=usr/bin/mintty.exe --exec $COMMAND"
+        terminalShim = "git-bash --no-needs-console --command=usr/bin/bash.exe -c $COMMAND"
 
     mainWindow.onAcceptPrefsDialog({
         "terminal": terminalShim,
@@ -191,6 +191,9 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
 
     output = readTextFile(commandsScratchFile, TIMEOUT).strip()
     assert re.search(params.output, output)
+
+    if WINDOWS:  # Let bash wrap up... TODO: Figure out a cleaner way
+        QTest.qWait(100)
 
 
 @pytest.mark.parametrize(["scenario", "menuName", "error"], [

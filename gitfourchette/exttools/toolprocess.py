@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import logging
 import os
 import shlex
@@ -253,6 +254,9 @@ class ToolProcess(QProcess):
     @classmethod
     def startTerminal(cls, parent: QWidget, workdir: str, command: str = ""):
         launcherScriptPath = ToolCommands.makeTerminalScript(workdir, command)
+
+        if WINDOWS:  # Compatibility with bash.exe
+            launcherScriptPath = Path(launcherScriptPath).as_posix()
 
         return cls.startProcess(
             parent=parent,
