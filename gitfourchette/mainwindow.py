@@ -1160,6 +1160,7 @@ class MainWindow(QMainWindow):
             "contextLines",
             "maxCommits",
             "renderSvg",
+            "rawLfsPointers",
             "syntaxHighlighting",
         ]
 
