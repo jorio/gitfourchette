@@ -142,6 +142,8 @@ class GitDeltaFile:
             # Already resolved
             return True
 
+        assert not self.source.isDirty(), "don't attempt to resolve lfs ptr in unstaged/untracked files"
+
         data = self.read(repo)
         if not data.startswith(LfsPointerMagicBytes):
             return False
