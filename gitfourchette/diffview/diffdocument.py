@@ -172,7 +172,7 @@ class DiffDocument:
         pass
 
     @staticmethod
-    def fromPatch(delta: GitDelta, patch: str, maxLineLength=0) -> DiffDocument:
+    def fromPatch(delta: GitDelta, patch: str, maxLineLength=0, lfs=False) -> DiffDocument:
         lineData: list[LineData] = []
 
         clumpID = 0
@@ -197,7 +197,7 @@ class DiffDocument:
             if firstChar != "@" and hunkID < 0:
                 if patch.startswith(("Binary files", "GIT binary patch"), pos, endPos):
                     isBinary = True
-                elif patch.startswith("index ", pos, endPos):
+                elif not lfs and patch.startswith("index ", pos, endPos):
                     # Complete existing delta with actual hashes
                     indexLineMatch = _indexLinePattern.match(patch, pos, endPos)
                     oldHash, newHash = indexLineMatch.groups()
