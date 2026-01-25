@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -272,6 +272,7 @@ class CloneDialog(QDialog):
             self.ui.shallowCloneDepthSpinBox,
             self.ui.shallowCloneSuffix,
             self.ui.keyFilePicker,
+            self.ui.protocolButton,
             self.cloneButton
         ]
         for widget in grayable:

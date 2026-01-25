@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -14,7 +14,7 @@ class ProtocolButton(QToolButton):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setFixedWidth(self.fontMetrics().horizontalAdvance("---https---"))
+        self.setFixedWidth(self.sizeHint().width() + self.fontMetrics().horizontalAdvance("--https--"))
         self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.setToolTip(_("Change URL protocol"))
 
