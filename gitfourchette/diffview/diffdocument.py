@@ -14,7 +14,6 @@ from dataclasses import dataclass
 
 from gitfourchette import colors
 from gitfourchette import settings
-from gitfourchette.gitdriver import GitDelta
 from gitfourchette.gitdriver.parsers import iterateLines
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -158,6 +157,8 @@ class DiffDocument:
     pluses: int
     minuses: int
     maxLine: int
+    oldHash: str
+    newHash: str
 
     # Syntax highlighting
     oldLexJob: LexJob | None = None
@@ -173,7 +174,7 @@ class DiffDocument:
         pass
 
     @staticmethod
-    def fromPatch(delta: GitDelta, patch: str, maxLineLength=0, lfs=False) -> DiffDocument:
+    def fromPatch(patch: str, maxLineLength=0) -> DiffDocument:
         lineData: list[LineData] = []
 
         clumpID = 0
@@ -187,6 +188,8 @@ class DiffDocument:
         newLine = -1
         hunkLineNum = -1
         isBinary = False
+        oldHash = ""
+        newHash = ""
 
         for pos, endPos in iterateLines(patch):
             if maxLineLength and endPos - pos > maxLineLength:
@@ -198,13 +201,10 @@ class DiffDocument:
             if firstChar != "@" and hunkID < 0:
                 if patch.startswith(("Binary files", "GIT binary patch"), pos, endPos):
                     isBinary = True
-                elif not lfs and patch.startswith("index ", pos, endPos):
-                    # Complete existing delta with actual hashes
+                elif patch.startswith("index ", pos, endPos):
+                    # The 'index' line can be used to complete an existing delta with actual blob hashes
                     indexLineMatch = _indexLinePattern.match(patch, pos, endPos)
                     oldHash, newHash = indexLineMatch.groups()
-                    assert oldHash == delta.old.id
-                    if not delta.new.isIdValid():
-                        delta.new.id = newHash
                 continue
 
             # Start new hunk
@@ -291,7 +291,8 @@ class DiffDocument:
 
         diffDocument = DiffDocument(document=textDocument, lineData=lineData, style=DiffStyle(),
                                     pluses=pluses, minuses=minuses,
-                                    maxLine=max(newLine, oldLine))
+                                    maxLine=max(newLine, oldLine),
+                                    oldHash=oldHash, newHash=newHash)
 
         # Begin batching text insertions for performance.
         # This prevents Qt from recomputing the document's layout after every line insertion.
