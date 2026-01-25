@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import dataclasses
 import os
+import re
 import warnings
 from pathlib import Path
 
@@ -17,6 +18,10 @@ HexHashFFFF = "f" * 40
 
 HexHashEmptyBlob = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"  # hashlib.sha1(b'blob 0\0').hexdigest()
 """ The SHA-1 hash of an empty Git blob. """
+
+LfsPointerMagic = "version https://git-lfs.github.com/spec/v1\n"
+LfsPointerMagicBytes = LfsPointerMagic.encode("utf-8")
+LfsPointerPattern = re.compile(rf"^{LfsPointerMagic}oid sha256:([0-9a-f]+)\nsize (\d+)")
 
 
 @dataclasses.dataclass
@@ -38,6 +43,9 @@ class GitDeltaFile:
     Cached file contents. Not used in object comparisons.
     None means that the file hasn't been cached yet (isDataValid() == False).
     """
+
+    lfsId: str = ""
+    lfsSize: int = -1
 
     def __post_init__(self):
         assert self.id.isnumeric() or self.id.islower()
@@ -63,7 +71,16 @@ class GitDeltaFile:
         return self.mode & FileMode.BLOB == FileMode.BLOB
 
     def read(self, repo: Repo) -> bytes:
-        if self._data is None:
+        if self._data is not None:
+            # Data already loaded
+            pass
+        elif self.lfsId:
+            # LFS pointer resolved, load data
+            lfsPath = repo.in_gitdir(self.lfsObjectPath())
+            self._data = Path(lfsPath).read_bytes()
+            assert self.lfsSize == len(self._data), "LFS object size mismatch"
+        else:
+            # Load blob from standard git object database
             try:
                 if not self.isIdValid():  # unknown hash (FFFFFFF...)
                     raise KeyError()
@@ -107,13 +124,38 @@ class GitDeltaFile:
     def sizeBallpark(self, repo: Repo) -> int:
         if self.isId0():
             return 0
+
+        if self.lfsSize >= 0:
+            return self.lfsSize
+
         if self.isIdValid():
             try:
                 return repo.peel_blob(self.id).size
             except KeyError:
                 pass
+
         _, size = self.stat(repo)
         return size
+
+    def resolveLfsPointer(self, repo: Repo) -> bool:
+        if self.lfsId:
+            # Already resolved
+            return True
+
+        data = self.read(repo)
+        if not data.startswith(LfsPointerMagicBytes):
+            return False
+
+        lfsPointerText = data.decode("utf-8", errors="replace")
+        match = LfsPointerPattern.match(lfsPointerText)
+        self.lfsId = match.group(1)
+        self.lfsSize = int(match.group(2))
+        self._data = None  # invalidate data so that next call to read() resolves LFS data
+        return True
+
+    def lfsObjectPath(self):
+        sha = self.lfsId
+        return f"lfs/objects/{sha[:2]}/{sha[2:4]}/{sha}" if sha else ""
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o})"

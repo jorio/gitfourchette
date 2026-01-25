@@ -177,6 +177,14 @@ class SpecialDiffError:
         return SpecialDiffError(_("File appears to be binary."), sizeText)
 
     @staticmethod
+    def missingLfsObjects(lfsObjectIds: list[str]) -> SpecialDiffError:
+        # TODO: Add link to invoke 'git lfs smudge < POINTER_CONTENTS.TXT > /dev/null'
+        #       If successful, this will cache the LFS object in .git/lfs/objects
+        return SpecialDiffError(
+            _n("LFS object not cached.", "LFS objects not cached.", n=len(lfsObjectIds)),
+            preformatted="\n".join(lfsObjectIds))
+
+    @staticmethod
     def treeDiff(delta: GitDelta):
         from gitfourchette.tasks import AbsorbSubmodule
 

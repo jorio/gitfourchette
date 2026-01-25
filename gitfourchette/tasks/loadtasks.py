@@ -6,11 +6,13 @@
 
 import logging
 from collections.abc import Generator
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriver
+from gitfourchette.gitdriver.gitdeltafile import LfsPointerMagic
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -29,6 +31,8 @@ RENAME_COUNT_THRESHOLD = 100
 """ Don't find_similar beyond this number of files in the main diff """
 
 LONG_LINE_THRESHOLD = 10_000
+
+TMultiDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
 
 
 class PrimeRepo(RepoTask):
@@ -232,21 +236,29 @@ class LoadPatch(RepoTask):
 
     def flow(self, delta: GitDelta, locator: NavLocator):
         try:
-            self.result = yield from self._getPatch(delta, locator)
+            diff = yield from self._getPatch(delta, locator)
+            diff = yield from self._postProcess(diff, delta, locator)
+            assert onAppThread()
         except Exception as exc:
             # Yikes! Don't prevent loading a repo
             summary, details = excStrings(exc)
-            self.result = SpecialDiffError(escape(summary), icon="SP_MessageBoxCritical", preformatted=details)
+            diff = SpecialDiffError(escape(summary), icon="SP_MessageBoxCritical", preformatted=details)
 
-        self.header = self._makeHeader(self.result, locator)
+        header = self._makeHeader(diff, delta, locator)
 
         # Prime lexer
-        if type(self.result) is DiffDocument:
-            dd: DiffDocument = self.result
-            dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta)
+        if isinstance(diff, DiffDocument):
+            diff.oldLexJob, diff.newLexJob = self._primeLexJobs(delta)
 
-    def _getPatch(self, delta: GitDelta, locator: NavLocator
-                  ) -> Generator[FlowControlToken, None, DiffDocument | SpecialDiffError | GitConflict | ImageDelta]:
+        self.result = diff
+        self.header = header
+
+    def _getPatch(
+            self,
+            delta: GitDelta,
+            locator: NavLocator,
+            loadLfs=False,
+    ) -> Generator[FlowControlToken, None, TMultiDiffDocument]:
         if delta.conflict is not None:
             return delta.conflict
 
@@ -260,8 +272,7 @@ class LoadPatch(RepoTask):
         if (settings.prefs.renderSvg
                 and delta.new.path.lower().endswith(".svg")
                 and isImageFormatSupported("file.svg")):
-            binaryDiff = SpecialDiffError.binaryDiff(self.repo, delta, locator)
-            return binaryDiff
+            return SpecialDiffError.binaryDiff(self.repo, delta, locator)
 
         # Special formatting for TYPECHANGE.
         if delta.status == "T":  # TYPECHANGE
@@ -270,8 +281,13 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Load the patch
 
-        commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
-        tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)
+        if loadLfs:
+            tokens, missingObjects = self._buildLfsRawDiffCommand(delta)
+            if missingObjects:
+                return SpecialDiffError.missingLfsObjects(missingObjects)
+        else:
+            commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
+            tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()
 
@@ -286,6 +302,11 @@ class LoadPatch(RepoTask):
 
         maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
+        # Build diff in background thread. This allows interrupting the task
+        # when the mouse is being dragged over a bunch of different files or
+        # commits, which improves the UI's responsivity.
+        yield from self.flowEnterWorkerThread()
+
         # Special case for unstaged files: Before loading the patch, update the
         # GitDelta with fresh filesystem stats (st_mtime_ns). This allows
         # bypassing LoadPatch in a future refresh of the UI if the file isn't
@@ -296,8 +317,9 @@ class LoadPatch(RepoTask):
             delta.new.diskStat = delta.new.stat(self.repo)
 
         try:
-            diffDocument = DiffDocument.fromPatch(delta, patch, maxLineLength)
-            diffDocument.document.moveToThread(QApplication.instance().thread())
+            diff = DiffDocument.fromPatch(delta, patch, maxLineLength, loadLfs)
+            diff.document.moveToThread(QApplication.instance().thread())
+            return diff
         except DiffDocument.BinaryError:
             return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:
@@ -310,18 +332,71 @@ class LoadPatch(RepoTask):
                 linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
                 "SP_MessageBoxWarning")
         finally:
+            # Exit background thread
             yield from self.flowEnterUiThread()
 
-        return diffDocument
+    def _buildLfsRawDiffCommand(self, delta: GitDelta) -> tuple[list[str], list[str]]:
+        repo = self.repo
+        missingObjects = []
 
-    def _makeHeader(self, result, locator):
+        if delta.old.lfsId:
+            oldPath = repo.in_gitdir(delta.old.lfsObjectPath())
+            if not Path(oldPath).exists():
+                missingObjects.append(delta.old.lfsId)
+        else:
+            oldPath = "/dev/null"
+
+        if delta.new.lfsId:
+            newPath = repo.in_gitdir(delta.new.lfsObjectPath())
+            if not Path(newPath).exists():
+                missingObjects.append(delta.new.lfsId)
+        else:
+            newPath = "/dev/null"
+
+        # Empty --git-dir argument: Prevent loading LFS attributes from the repo
+        # to get a raw diff, not a diff of LFS pointers.
+        tokens = [
+            "--git-dir=",
+            "-c", "core.abbrev=no",
+            "-c", f"diff.context={settings.prefs.contextLines}",
+            "diff", "--no-index", "--", oldPath, newPath,
+        ]
+
+        return tokens, missingObjects
+
+    def _postProcess(self, diff: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
+        # See if that's an LFS pointer
+        isLfs = False
+        if (isinstance(diff, DiffDocument)
+                and len(diff.lineData) >= 2
+                and diff.lineData[1].text == LfsPointerMagic):
+            oldIsLfs = delta.old.resolveLfsPointer(self.repo)
+            newIsLfs = delta.new.resolveLfsPointer(self.repo)
+            isLfs = oldIsLfs or newIsLfs
+
+        # Override with raw diff of LFS file contents
+        if isLfs:
+            diff = yield from self._getPatch(delta, locator, loadLfs=True)
+
+        return diff
+
+    def _makeHeader(self, result: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
         header = "<html>" + settings.prefs.addDelColorsStyleTag() + escape(locator.path)
 
         if isinstance(result, DiffDocument):
             if result.pluses:
-                header += f" <add>+{result.pluses}</add>"
+                header += f" <b><add>+{result.pluses}</add></b>"
             if result.minuses:
-                header += f" <del>-{result.minuses}</del>"
+                header += f" <b><del>-{result.minuses}</del></b>"
+
+        if delta.new.lfsId or delta.old.lfsId:
+            if delta.new.lfsId and not delta.old.lfsId:
+                lfsTag, lfsText = "add", _("LFS pointer added")
+            elif not delta.new.lfsId and delta.old.lfsId:
+                lfsTag, lfsText = "del", _("LFS pointer removed")
+            else:
+                lfsTag, lfsText = "", _("LFS pointer changed")
+            header += f" : <b><{lfsTag}>{lfsText}</{lfsTag}></b>"
 
         locationText = ""
         if locator.context == NavContext.COMMITTED:

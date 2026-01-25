@@ -26,7 +26,7 @@ from gitfourchette.porcelain import NULL_OID, Oid
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF
 from gitfourchette.tasks import TaskPrereqs
-from gitfourchette.tasks.loadtasks import LoadPatch
+from gitfourchette.tasks.loadtasks import LoadPatch, TMultiDiffDocument
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken
 from gitfourchette.toolbox import *
 
@@ -102,7 +102,7 @@ class Jump(RepoTask):
     class Result(Exception):
         locator: NavLocator
         header: str
-        document: SameTextDiff | DiffDocument | GitConflict | ImageDelta | SpecialDiffError | None
+        document: SameTextDiff | TMultiDiffDocument | None
         delta: GitDelta | None = None
 
     def canKill(self, task: RepoTask):
