@@ -319,7 +319,7 @@ class LoadPatch(RepoTask):
             delta.new.diskStat = delta.new.stat(self.repo)
 
         try:
-            diff = DiffDocument.fromPatch(delta, patch, maxLineLength, loadLfs)
+            diff = DiffDocument.fromPatch(patch, maxLineLength)
             diff.document.moveToThread(QApplication.instance().thread())
             return diff
         except DiffDocument.BinaryError:
@@ -367,10 +367,13 @@ class LoadPatch(RepoTask):
         return tokens, missingObjects
 
     def _postProcess(self, diff: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
+        if not isinstance(diff, DiffDocument):
+            return diff
+
         # See if that's an LFS pointer
         isLfs = False
+
         if (not settings.prefs.rawLfsPointers
-                and isinstance(diff, DiffDocument)
                 and len(diff.lineData) >= 2
                 and diff.lineData[1].text == LfsPointerMagic):
             oldIsLfs = delta.old.resolveLfsPointer(self.repo)
@@ -380,6 +383,13 @@ class LoadPatch(RepoTask):
         # Override with raw diff of LFS file contents
         if isLfs:
             diff = yield from self._getPatch(delta, locator, loadLfs=True)
+
+        # Complete existing delta with actual blob hashes
+        # (NOT if it's an LFS file!)
+        if not isLfs:
+            assert diff.oldHash == delta.old.id
+            if not delta.new.isIdValid():
+                delta.new.id = diff.newHash
 
         return diff
 
