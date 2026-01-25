@@ -13,6 +13,7 @@ import re
 import shlex
 import signal
 from enum import StrEnum
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -319,6 +320,44 @@ class GitDriver(QProcess):
                 tokens += ["--", delta.new.path]
 
         return tokens
+
+    @classmethod
+    def buildDiffCommandLFS(
+            cls,
+            delta: GitDelta,
+            gitdir: str,
+            workdir: str,
+    ) -> tuple[list[str], str, str]:
+        oldMissing = ""
+        newMissing = ""
+
+        if delta.old.lfsId:
+            oldPath = Path(gitdir, delta.old.lfsObjectPath())
+            if not oldPath.exists():
+                oldMissing = delta.old.lfsId
+        else:
+            oldPath = "/dev/null"
+
+        if delta.new.source.isDirty():
+            # Load raw unstaged file straight from the workdir
+            newPath = Path(workdir, delta.new.path)
+        elif delta.new.lfsId:
+            newPath = Path(gitdir, delta.new.lfsObjectPath())
+            if not newPath.exists():
+                newMissing = delta.new.lfsId
+        else:
+            newPath = "/dev/null"
+
+        # Empty --git-dir argument: Prevent loading LFS attributes from the repo
+        # to get a raw diff, not a diff of LFS pointers.
+        tokens = [
+            "--git-dir=",
+            "-c", "core.abbrev=no",
+            "-c", f"diff.context={settings.prefs.contextLines}",
+            "diff", "--no-index", "--", str(oldPath), str(newPath),
+        ]
+
+        return tokens, oldMissing, newMissing
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

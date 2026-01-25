@@ -6,13 +6,13 @@
 
 import logging
 from collections.abc import Generator
-from pathlib import Path
+
+from pygit2.enums import AttrCheck
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriver
-from gitfourchette.gitdriver.gitdeltafile import LfsPointerMagic
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -237,18 +237,23 @@ class LoadPatch(RepoTask):
     def flow(self, delta: GitDelta, locator: NavLocator):
         try:
             diff = yield from self._getPatch(delta, locator)
-            diff = yield from self._postProcess(diff, delta, locator)
-            assert onAppThread()
         except Exception as exc:
             # Yikes! Don't prevent loading a repo
             summary, details = excStrings(exc)
             diff = SpecialDiffError(escape(summary), icon="SP_MessageBoxCritical", preformatted=details)
 
-        header = self._makeHeader(diff, delta, locator)
+        assert onAppThread()
 
-        # Prime lexer
         if isinstance(diff, DiffDocument):
+            # Complete existing delta with actual blob hashes
+            assert diff.oldHash == delta.old.id
+            if not delta.new.isIdValid():
+                delta.new.id = diff.newHash
+
+            # Prime lexer
             diff.oldLexJob, diff.newLexJob = self._primeLexJobs(delta)
+
+        header = self._makeHeader(diff, delta, locator)
 
         self.result = diff
         self.header = header
@@ -257,7 +262,6 @@ class LoadPatch(RepoTask):
             self,
             delta: GitDelta,
             locator: NavLocator,
-            loadLfs=False,
     ) -> Generator[FlowControlToken, None, TMultiDiffDocument]:
         if delta.conflict is not None:
             return delta.conflict
@@ -268,12 +272,6 @@ class LoadPatch(RepoTask):
         if delta.similarity == 100:
             return SpecialDiffError.noChange(delta)
 
-        # Render SVG file if user wants to.
-        if (settings.prefs.renderSvg
-                and delta.new.path.lower().endswith(".svg")
-                and isImageFormatSupported("file.svg")):
-            return SpecialDiffError.binaryDiff(self.repo, delta, locator)
-
         # Special formatting for TYPECHANGE.
         if delta.status == "T":  # TYPECHANGE
             return SpecialDiffError.typeChange(delta)
@@ -281,13 +279,41 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Load the patch
 
+        isDirtyContext = locator.context.isDirty()
+        commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
+
+        # See if we should load an LFS object
+        loadLfs = False
+        if not settings.prefs.rawLfsPointers:
+            if commit is not None:
+                check = AttrCheck.INCLUDE_COMMIT
+            elif isDirtyContext:
+                check = AttrCheck.FILE_THEN_INDEX
+            else:
+                check = AttrCheck.INDEX_ONLY
+            attribute = self.repo.get_attr(delta.new.path, "diff", check, None if commit is None else commit.id)
+            if attribute == "lfs":
+                oldIsLfs = delta.old.resolveLfsPointer(self.repo)
+                newIsLfs = delta.new.resolveLfsPointer(self.repo, forceRaw=isDirtyContext)
+                loadLfs = oldIsLfs or newIsLfs
+
+        # Render SVG file if user wants to.
+        if (settings.prefs.renderSvg
+                and delta.new.path.lower().endswith(".svg")
+                and isImageFormatSupported("file.svg")):
+            return SpecialDiffError.binaryDiff(self.repo, delta, locator)
+
+        # Build diff command
         if loadLfs:
-            tokens, missingObjects = self._buildLfsRawDiffCommand(delta)
-            if missingObjects:
-                return SpecialDiffError.missingLfsObjects(missingObjects)
+            gd = self.repo.in_gitdir("")
+            wd = self.repo.in_workdir("")
+            tokens, oldMissing, newMissing = GitDriver.buildDiffCommandLFS(delta, gd, wd)
+            if oldMissing or newMissing:
+                return SpecialDiffError.missingLfsObjects(oldMissing, newMissing)
         else:
-            commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
             tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)
+
+        # Run diff command
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()
 
@@ -313,7 +339,7 @@ class LoadPatch(RepoTask):
         # modified. (We don't need to stat non-unstaged files because blob
         # hashes are known in advance, so for those, we can simply compare the
         # hashes stored in GitDelta to figure out if it's fresh.)
-        if locator.context.isDirty():
+        if isDirtyContext:
             delta.new.diskStat = delta.new.stat(self.repo)
 
         try:
@@ -334,65 +360,6 @@ class LoadPatch(RepoTask):
         finally:
             # Exit background thread
             yield from self.flowEnterUiThread()
-
-    def _buildLfsRawDiffCommand(self, delta: GitDelta) -> tuple[list[str], list[str]]:
-        repo = self.repo
-        missingObjects = []
-
-        if delta.old.lfsId:
-            oldPath = repo.in_gitdir(delta.old.lfsObjectPath())
-            if not Path(oldPath).exists():
-                missingObjects.append(delta.old.lfsId)
-        else:
-            oldPath = "/dev/null"
-
-        if delta.new.source.isDirty():
-            # Load raw unstaged file straight from the workdir
-            newPath = repo.in_workdir(delta.new.path)
-        elif delta.new.lfsId:
-            newPath = repo.in_gitdir(delta.new.lfsObjectPath())
-            if not Path(newPath).exists():
-                missingObjects.append(delta.new.lfsId)
-        else:
-            newPath = "/dev/null"
-
-        # Empty --git-dir argument: Prevent loading LFS attributes from the repo
-        # to get a raw diff, not a diff of LFS pointers.
-        tokens = [
-            "--git-dir=",
-            "-c", "core.abbrev=no",
-            "-c", f"diff.context={settings.prefs.contextLines}",
-            "diff", "--no-index", "--", oldPath, newPath,
-        ]
-
-        return tokens, missingObjects
-
-    def _postProcess(self, diff: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
-        if not isinstance(diff, DiffDocument):
-            return diff
-
-        # See if that's an LFS pointer
-        isLfs = False
-
-        if (not settings.prefs.rawLfsPointers
-                and len(diff.lineData) >= 2
-                and diff.lineData[1].text == LfsPointerMagic):
-            oldIsLfs = delta.old.resolveLfsPointer(self.repo)
-            newIsLfs = locator.context.isDirty() or delta.new.resolveLfsPointer(self.repo)
-            isLfs = oldIsLfs or newIsLfs
-
-        # Override with raw diff of LFS file contents
-        if isLfs:
-            diff = yield from self._getPatch(delta, locator, loadLfs=True)
-
-        # Complete existing delta with actual blob hashes
-        # (NOT if it's an LFS file!)
-        if not isLfs:
-            assert diff.oldHash == delta.old.id
-            if not delta.new.isIdValid():
-                delta.new.id = diff.newHash
-
-        return diff
 
     def _makeHeader(self, result: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
         header = "<html>" + settings.prefs.addDelColorsStyleTag() + escape(locator.path)

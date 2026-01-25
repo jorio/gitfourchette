@@ -22,6 +22,7 @@ HexHashEmptyBlob = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"  # hashlib.sha1(b'
 LfsPointerMagic = "version https://git-lfs.github.com/spec/v1\n"
 LfsPointerMagicBytes = LfsPointerMagic.encode("utf-8")
 LfsPointerPattern = re.compile(rf"^{LfsPointerMagic}oid sha256:([0-9a-f]+)\nsize (\d+)")
+_LfsRawWdFakeHash = "RAW_WD"
 
 
 @dataclasses.dataclass
@@ -74,6 +75,10 @@ class GitDeltaFile:
         if self._data is not None:
             # Data already loaded
             pass
+        elif self.lfsId == _LfsRawWdFakeHash:
+            assert self.lfsSize < 0
+            self._data = repo.apply_filters_to_workdir(self.path)
+            self.lfsSize = len(self._data)
         elif self.lfsId:
             # LFS pointer resolved, load data
             lfsPath = repo.in_gitdir(self.lfsObjectPath())
@@ -137,12 +142,17 @@ class GitDeltaFile:
         _, size = self.stat(repo)
         return size
 
-    def resolveLfsPointer(self, repo: Repo) -> bool:
+    def resolveLfsPointer(self, repo: Repo, forceRaw=False) -> bool:
         if self.lfsId:
             # Already resolved
             return True
 
-        assert not self.source.isDirty(), "don't attempt to resolve lfs ptr in unstaged/untracked files"
+        if self.source.isDirty():
+            # Force read from wd
+            assert forceRaw
+            self.lfsId = _LfsRawWdFakeHash
+            self.lfsSize = -1
+            return True
 
         data = self.read(repo)
         if not data.startswith(LfsPointerMagicBytes):
@@ -157,6 +167,8 @@ class GitDeltaFile:
 
     def lfsObjectPath(self):
         sha = self.lfsId
+        assert sha
+        assert sha != _LfsRawWdFakeHash
         return f"lfs/objects/{sha[:2]}/{sha[2:4]}/{sha}" if sha else ""
 
     def __repr__(self) -> str:

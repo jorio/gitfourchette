@@ -177,12 +177,18 @@ class SpecialDiffError:
         return SpecialDiffError(_("File appears to be binary."), sizeText)
 
     @staticmethod
-    def missingLfsObjects(lfsObjectIds: list[str]) -> SpecialDiffError:
+    def missingLfsObjects(oldMissing: str, newMissing: str) -> SpecialDiffError:
         # TODO: Add link to invoke 'git lfs smudge < POINTER_CONTENTS.TXT > /dev/null'
         #       If successful, this will cache the LFS object in .git/lfs/objects
-        return SpecialDiffError(
-            _n("LFS object not cached.", "LFS objects not cached.", n=len(lfsObjectIds)),
-            preformatted="\n".join(lfsObjectIds))
+        title = _n("One of the LFS objects needed to display this diff is missing from the cache.",
+                   "The LFS objects needed to display this diff are missing from the cache.",
+                   n=2 if oldMissing and newMissing else 1)
+        table = "<table>"
+        for intro, missing in [(_("Old:"), oldMissing), (_("New:"), newMissing)]:
+            info = _("Missing LFS object") if missing else _("LFS object found")
+            table += f'<tr><td>{intro} </td><td>{info} {missing}</td></tr>'
+        table += "</table>"
+        return SpecialDiffError(title, longform=table)
 
     @staticmethod
     def treeDiff(delta: GitDelta):
