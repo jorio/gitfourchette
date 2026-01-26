@@ -1548,25 +1548,6 @@ class Repo(_VanillaRepository):
         path = _joinpath(path, ".git")
         return _exists(path)
 
-    def recurse_submodules(self) -> _typing.Generator[Submodule, None, None]:
-        # TODO: Remove this when we can stop supporting pygit2 <= 1.15.0
-        pygit2_version_at_least("1.15.1", feature_name="recurse_submodules")
-
-        def gen_frontier(repo: Repo) -> _typing.Generator[Submodule, None, None]:
-            for name in repo.listall_submodules_dict():
-                yield repo.submodules[name]
-
-        frontier: list[Submodule] = list(gen_frontier(self))
-
-        while frontier:
-            submodule = frontier.pop(0)
-            yield submodule
-
-            # Extend frontier AFTER the yield statement so user code can
-            # potentially add nested submodules here
-            with RepoContext(submodule.open()) as subrepo:
-                frontier.extend(gen_frontier(subrepo))
-
     def fast_forward_branch(self, local_branch_name: str, target_branch_name: str = ""):
         """
         Fast-forward a local branch to another branch (local or remote).
@@ -1676,56 +1657,6 @@ class Repo(_VanillaRepository):
             self.index.remove(inner_w)
 
         self.index.write()
-
-    def restore_submodule_gitlink(self, inner_wd: str) -> bool:
-        """
-        If a submodule's worktree was deleted, recreate the ".git" file that
-        connects the submodule's worktree to the repo within ".git/modules".
-
-        Return True if the gitlink file needed to be restored.
-        """
-        assert not _isabs(inner_wd)
-
-        sub_wd = self.in_workdir(inner_wd)
-        sub_dotgit = _joinpath(sub_wd, ".git")
-        sub_gitdir = _joinpath(self.path, "modules", inner_wd)
-
-        def can_restore():
-            if _exists(sub_dotgit):
-                # The .git file already exists in the submo's worktree
-                return False
-
-            sub_configpath = _joinpath(sub_gitdir, "config")
-            if not _isfile(sub_configpath):
-                # Can't find corresponding bare repo in .git/modules
-                return False
-
-            # Double-check worktree path...
-            try:
-                wd2 = GitConfig(sub_configpath)["core.worktree"]
-            except KeyError:
-                # Worktree isn't explicitly configured. Assume we can just go.
-                return True
-
-            # Make it an absolute path
-            if not _isabs(wd2):
-                wd2 = _joinpath(sub_gitdir, wd2)
-                wd2 = _abspath(wd2)
-
-            # The worktree that's configured for this submodule
-            # has to match the path we're given.
-            # (Normalize path separators for Windows.)
-            return _normpath(sub_wd) == wd2
-
-        if not can_restore():
-            return False
-
-        # Restore gitlink file
-        _os.makedirs(_dirname(sub_dotgit), exist_ok=True)
-        with open(sub_dotgit, "w", encoding="utf-8") as f:
-            rel_gitdir = _relpath(sub_gitdir, sub_wd)
-            f.write(f"gitdir: {rel_gitdir}\n")
-        return True
 
     def get_config_value(self, key: str | tuple):
         key = GitConfigHelper.sanitize_key(key)

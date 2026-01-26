@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -317,40 +317,18 @@ class PullBranch(RepoTask):
 
 
 class UpdateSubmodule(RepoTask):
-    def flow(self, submoduleName: str, init=True):
-        yield from self.flowEnterWorkerThread()
+    def flow(self, submoduleName: str):
+        submodule = self.repo.submodules[submoduleName]
         self.effects |= TaskEffects.Workdir
-
-        repo = self.repo
-        submodule = repo.submodules[submoduleName]
-        submodulePath = submodule.path
-
-        if repo.restore_submodule_gitlink(submodulePath):
-            with RepoContext(repo.in_workdir(submodulePath)) as subrepo:
-                tree = subrepo[submodule.head_id].peel(Tree)
-                subrepo.checkout_tree(tree)
-
-        yield from self.flowEnterUiThread()
-        yield from self.flowCallGit(
-            "submodule",
-            "update",
-            *argsIf(init, "--init"),
-            "--",
-            submodulePath)
-
-        # The weird construct (n=1) is to stop xgettext from complaining about duplicate singular strings.
-        self.postStatus = _n("Submodule updated.", "{n} submodules updated.", 1)
+        yield from self.flowCallGit("submodule", "update", "--init", "--", submodule.path)
+        self.postStatus = _("Submodule updated.")
 
 
 class UpdateSubmodulesRecursive(RepoTask):
     def flow(self):
-        count = 0
-
-        for submodule in self.repo.recurse_submodules():
-            count += 1
-            yield from self.flowSubtask(UpdateSubmodule, submodule.name)
-
-        self.postStatus = _n("Submodule updated.", "{n} submodules updated.", count)
+        self.effects |= TaskEffects.Workdir
+        yield from self.flowCallGit("submodule", "update", "--init", "--recursive")
+        self.postStatus = _("Submodules updated recursively.")
 
 
 class PushRefspecs(RepoTask):
