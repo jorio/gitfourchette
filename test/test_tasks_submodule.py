@@ -182,7 +182,7 @@ def testAbsorbSubmodule(tempDir, mainWindow):
 
     with RepoContext(subWd) as subRepo:
         originURL = subRepo.remotes["origin"].url
-        subRepo.delete_remote("origin")
+        subRepo.remotes.delete("origin")
 
     rw = mainWindow.openRepo(wd)
     assert rw.isVisibleTo(mainWindow)

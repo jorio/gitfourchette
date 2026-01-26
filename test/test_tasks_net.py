@@ -654,7 +654,7 @@ def testPushNoBranch(tempDir, mainWindow):
 def testPushNoRemotes(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
-        repo.delete_remote("origin")
+        repo.remotes.delete("origin")
     rw = mainWindow.openRepo(wd)
 
     node = rw.sidebar.findNodeByRef("refs/heads/master")
@@ -845,9 +845,8 @@ def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     cancelButton.click()
 
     assert rw.repo.branches.remote["remote2/master"].target == oldOid
-    with RepoContext(wd) as repo:
-        repo.fetch_remote("remote2", None)
-        assert repo.branches.remote["remote2/master"].target == oldOid
+    GitDriver.runSync("fetch", "remote2", directory=wd, strict=True)
+    assert rw.repo.branches.remote["remote2/master"].target == oldOid
 
 
 @pytest.mark.notParallelizableOnWindows

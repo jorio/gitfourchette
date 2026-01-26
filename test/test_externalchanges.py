@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import pytest
 
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -26,10 +27,7 @@ def testExternalUnstage(tempDir, mainWindow):
     assert (qlvGetRowData(rw.dirtyFiles), qlvGetRowData(rw.stagedFiles)) == ([], ["master.txt"])
 
     # Unstage master.txt outside of GF
-    with RepoContext(wd, write_index=True) as repo2:
-        patch = repo2.get_staged_changes()[0]
-        assert "master.txt" in patch.text
-        repo2.unstage_files([patch])
+    GitDriver.runSync("restore", "--staged", "master.txt", directory=wd, strict=True)
 
     rw.refreshRepo()
     assert (qlvGetRowData(rw.dirtyFiles), qlvGetRowData(rw.stagedFiles)) == (["master.txt"], [])

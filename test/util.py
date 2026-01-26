@@ -284,7 +284,7 @@ def makeBareCopy(
             remoteNames = repo.listall_remotes_fast()[:]
             remoteNames.remove(addAsRemote)
             for remoteName in remoteNames:
-                repo.delete_remote(remoteName)
+                repo.remotes.delete(remoteName)
 
     return barePath
 

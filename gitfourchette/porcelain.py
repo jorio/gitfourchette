@@ -230,11 +230,6 @@ class CheckoutBreakdown(CheckoutCallbacks):
         return False  # let error propagate
 
 
-class StashApplyBreakdown(StashApplyCallbacks, CheckoutBreakdown):
-    def stash_apply_progress(self, pr):
-        _logger.info(f"stash apply progress: {pr}")
-
-
 def version_to_tuple(s: str) -> tuple[int, ...]:
     v = []
     for n in s.split("."):
@@ -776,18 +771,6 @@ class Repo(_VanillaRepository):
 
         return str(p)
 
-    @property
-    def is_worktree(self) -> bool:
-        """
-        Return whether or not the current repository is a git worktree.
-
-        Since pygit2 doesn't wrap libgit's git_repository_is_worktree,
-        this is a hacky solution that relies on the existence of
-        certain metadata in what pygit2 resolves to be the
-        repository's path.
-        """
-        return not _Path(self.path).samefile(self.commondir)
-
     def refresh_index(self, force: bool = False):
         """
         Reload the index. Call this before manipulating the staging area
@@ -797,27 +780,6 @@ class Repo(_VanillaRepository):
         unless you pass force=True.
         """
         self.index.read(force)
-
-    def get_uncommitted_changes(self, show_binary: bool = False, context_lines: int = 3) -> Diff:
-        """
-        Get a Diff of all uncommitted changes in the working directory,
-        compared to the commit at HEAD.
-
-        In other words, this function compares the workdir to HEAD.
-        """
-
-        flags = (DiffOption.INCLUDE_UNTRACKED
-                 | DiffOption.RECURSE_UNTRACKED_DIRS
-                 | DiffOption.SHOW_UNTRACKED_CONTENT
-                 | DiffOption.INCLUDE_TYPECHANGE
-                 )
-
-        if show_binary:
-            flags |= DiffOption.SHOW_BINARY
-
-        dirty_diff = self.diff('HEAD', None, cached=False, flags=flags, context_lines=context_lines)
-        dirty_diff.find_similar()
-        return dirty_diff
 
     def get_unstaged_changes(self, update_index: bool = False, show_binary: bool = False, context_lines: int = 3) -> Diff:
         """
@@ -886,50 +848,6 @@ class Repo(_VanillaRepository):
         # ---This also works, but it's slower.
         # status = repo.status(untracked_files="no")
         # return any(0 != (flag & FileStatus.INDEX_MASK) for flag in status.values())
-
-    def commit_diffs(self, commit_id: Oid, show_binary: bool = False, find_similar_threshold: int = -1, context_lines: int = 3
-                     ) -> tuple[list[Diff], bool]:
-        """
-        Get a list of Diffs of a commit compared to its parents.
-        Return tuple[list[Diff], bool]. The bool in the returned tuple indicates whether find_similar was skipped.
-        """
-        flags = DiffOption.INCLUDE_TYPECHANGE
-
-        if show_binary:
-            flags |= DiffOption.SHOW_BINARY
-
-        commit: Commit = self.get(commit_id)
-        skipped_find_similar = False
-
-        if commit.parents:
-            all_diffs = []
-
-            parent: Commit
-            for i, parent in enumerate(commit.parents):
-                if i == 0:
-                    diff = self.diff(parent, commit, flags=flags, context_lines=context_lines)
-                    if find_similar_threshold < 0 or len(diff) < find_similar_threshold:
-                        diff.find_similar()
-                    else:
-                        skipped_find_similar = True
-                    all_diffs.append(diff)
-                elif not parent.parents:
-                    # This parent is parentless: assume merging in new files from this parent
-                    # (e.g. "untracked files on ..." parents of stash commits)
-                    tree: Tree = parent.peel(Tree)
-                    diff = tree.diff_to_tree(swap=True, flags=flags, context_lines=context_lines)
-                    all_diffs.append(diff)
-                else:
-                    # Skip non-parentless parent in merge commits
-                    pass
-
-        else:
-            # Parentless commit: diff with empty tree
-            # (no tree passed to diff_to_tree == force diff against empty tree)
-            diff = commit.tree.diff_to_tree(swap=True, flags=flags, context_lines=context_lines)
-            all_diffs = [diff]
-
-        return all_diffs, skipped_find_similar
 
     def checkout_local_branch(self, name: str):
         """Switch to a local branch."""
@@ -1034,19 +952,6 @@ class Repo(_VanillaRepository):
             if local_branch.upstream is not None:
                 local_branch.upstream = None
 
-    def delete_remote(self, name: str):
-        self.remotes.delete(name)
-        self.scrub_empty_config_section("remote", name)
-
-    def delete_remote_branch(self, remote_branch_name: str, remoteCallbacks: RemoteCallbacks):
-        remote_name, branch_name = split_remote_branch_shorthand(remote_branch_name)
-
-        refspec = f":{RefPrefix.HEADS}{branch_name}"
-        _logger.info(f"Delete remote branch: refspec: \"{refspec}\"")
-
-        remote = self.remotes[remote_name]
-        remote.push([refspec], callbacks=remoteCallbacks)
-
     def get_remote_skipfetchall(self, remote_name: str) -> bool:
         key = GitConfigHelper.sanitize_key(("remote", remote_name, "skipFetchAll"))
         try:
@@ -1063,88 +968,6 @@ class Repo(_VanillaRepository):
         else:
             with _suppress(KeyError):
                 del self.config[key]
-
-    def rename_remote_branch(self, old_shorthand: str, new_name: str, remote_callbacks: RemoteCallbacks):
-        """
-        Rename a branch on the remote, then adjust local branch upstreams (if any).
-
-        Warning: this function does not refresh the state of the remote branch before renaming it!
-        """
-        remote_name, old_branch_name = split_remote_branch_shorthand(old_shorthand)
-        old_remote_ref = RefPrefix.REMOTES + old_shorthand
-
-        # Find local branches using this upstream
-        adjust_upstreams = []
-        for lb in self.branches.local:
-            with _suppress(KeyError):  # KeyError if upstream branch doesn't exist
-                if self.branches.local[lb].upstream_name == old_remote_ref:
-                    adjust_upstreams.append(lb)
-
-        # First, make a new branch pointing to the same ref as the old one
-        refspec1 = f"{RefPrefix.REMOTES}{old_shorthand}:{RefPrefix.HEADS}{new_name}"
-
-        # Next, delete the old branch
-        refspec2 = f":{RefPrefix.HEADS}{old_branch_name}"
-
-        _logger.info(f"Rename remote branch: remote: {remote_name}; refspec: {[refspec1, refspec2]}; "
-                     f"adjust upstreams: {adjust_upstreams}")
-
-        remote = self.remotes[remote_name]
-        remote.push([refspec1, refspec2], callbacks=remote_callbacks)
-
-        new_remote_branch = self.branches.remote[remote_name + "/" + new_name]
-        for lb in adjust_upstreams:
-            self.branches.local[lb].upstream = new_remote_branch
-
-    def delete_stale_remote_head_symbolic_ref(self, remote_name: str):
-        """
-        Delete `refs/remotes/{remoteName}/HEAD` to work around a bug in libgit2
-        where `git_revwalk__push_glob` errors out on that symbolic ref
-        if it points to a branch that doesn't exist anymore.
-
-        This bug may prevent fetching.
-        """
-
-        head_refname = f"{RefPrefix.REMOTES}{remote_name}/HEAD"
-        head_ref = self.references.get(head_refname)
-
-        # Only risk deleting remote HEAD if it's symbolic
-        if head_ref and head_ref.type == ReferenceType.SYMBOLIC:
-            try:
-                head_ref.resolve()
-            except KeyError:  # pygit2 wraps GIT_ENOTFOUND with KeyError
-                # Stale -- nuke it
-                self.references.delete(head_refname)
-                _logger.info("Deleted stale remote HEAD symbolic ref: " + head_refname)
-
-    def fetch_remote(self, remote_name: str, remote_callbacks: RemoteCallbacks) -> TransferProgress:
-        # Delete `refs/remotes/{remoteName}/HEAD` before fetching.
-        # See docstring for that function for why.
-        self.delete_stale_remote_head_symbolic_ref(remote_name)
-
-        remote = self.remotes[remote_name]
-        transfer = remote.fetch(callbacks=remote_callbacks, prune=FetchPrune.PRUNE)
-        return transfer
-
-    def fetch_remote_branch(
-            self, remote_branch_name: str, remote_callbacks: RemoteCallbacks
-    ) -> TransferProgress:
-        """
-        Fetch a remote branch.
-        Prunes the remote branch if it has disappeared from the server.
-        """
-        remote_name, branch_name = split_remote_branch_shorthand(remote_branch_name)
-
-        # Delete .git/refs/{remote_name}/HEAD to work around a bug in libgit2
-        # where git_revwalk__push_glob chokes on refs/remotes/{remote_name}/HEAD
-        # if it points to a branch that doesn't exist anymore.
-        self.delete_stale_remote_head_symbolic_ref(remote_name)
-
-        remote = self.remotes[remote_name]
-        #            src (remote)........... : dst (local ref to update).............
-        refspec = f"+refs/heads/{branch_name}:refs/remotes/{remote_name}/{branch_name}"
-        transfer = remote.fetch(refspecs=[refspec], callbacks=remote_callbacks, prune=FetchPrune.PRUNE)
-        return transfer
 
     def get_commit_message(self, commit_id: Oid) -> str:
         commit = self.peel_commit(commit_id)
@@ -1372,16 +1195,6 @@ class Repo(_VanillaRepository):
 
         self.checkout_tree(self.head_tree, paths=paths, strategy=_RESTORE_STRATEGY)
 
-    def restore_files_from_index(self, paths: list[str], restore_all=False):
-        """
-        Discard unstaged changes in the given files.
-        Staged changes will remain.
-        """
-        assert bool(paths) ^ restore_all, "if you want to reset all files, pass empty path list and restore_all=True"
-
-        self.refresh_index()  # in case an external program modified the staging area
-        self.checkout_index(paths=paths, strategy=_RESTORE_STRATEGY)
-
     def discard_mode_changes(self, paths: list[str]):
         """
         Discards mode changes in the given files.
@@ -1398,46 +1211,6 @@ class Repo(_VanillaRepository):
                 continue
             if mode in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]:
                 _os.chmod(self.in_workdir(p), mode)
-
-    def unstage_files(self, patches: list[Patch]):
-        index = self.index
-
-        head_tree: Tree | None
-        if self.head_is_unborn:
-            head_tree = None
-        else:
-            head_tree = self.head_tree
-
-        for patch in patches:
-            delta = patch.delta
-            old_path = delta.old_file.path
-            new_path = delta.new_file.path
-            if delta.status == DeltaStatus.ADDED:
-                assert (not head_tree) or (old_path not in head_tree)
-                index.remove(old_path)
-            elif delta.status == DeltaStatus.RENAMED:
-                # TODO: Two-step removal to completely unstage a rename -- is this what we want?
-                assert new_path in index
-                index.remove(new_path)
-            else:
-                assert head_tree
-                assert old_path in head_tree
-                obj = head_tree[old_path]
-                index.add(IndexEntry(old_path, obj.id, obj.filemode))
-        index.write()
-
-    def unstage_mode_changes(self, patches: list[Patch]):
-        index = self.index
-
-        for patch in patches:
-            of = patch.delta.old_file
-            nf = patch.delta.new_file
-            if (of.mode != nf.mode
-                    and patch.delta.status not in [DeltaStatus.ADDED, DeltaStatus.DELETED, DeltaStatus.UNTRACKED]
-                    and of.mode in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]):
-                index.add(IndexEntry(nf.path, nf.id, of.mode))
-
-        index.write()
 
     def create_stash(self, message: str, paths: list[str]) -> Oid:
         """
@@ -1477,20 +1250,6 @@ class Repo(_VanillaRepository):
                         if stash.commit_id == commit_id)
         except StopIteration as exc:
             raise KeyError(f"Stash not found: {commit_id}") from exc
-
-    def stash_apply_id(self, commit_id: Oid):
-        i = self.find_stash_index(commit_id)
-        with StashApplyBreakdown() as callbacks:
-            self.stash_apply(i, callbacks=callbacks)
-
-    def stash_pop_id(self, commit_id: Oid):
-        i = self.find_stash_index(commit_id)
-        with StashApplyBreakdown() as callbacks:
-            self.stash_pop(i, callbacks=callbacks)
-
-    def stash_drop_id(self, commit_id: Oid):
-        i = self.find_stash_index(commit_id)
-        self.stash_drop(i)
 
     def applies_breakdown(self, patch_data: bytes | str, location=ApplyLocation.WORKDIR) -> Diff:
         diff = Diff.parse_diff(patch_data)
@@ -1667,20 +1426,6 @@ class Repo(_VanillaRepository):
             raise error
 
         return staged_paths
-
-    def reset_merge(self):
-        """
-        "git reset --merge" resets the index and updates the files in the working tree that are different between
-        <commit> and HEAD, but keeps those which are different between the index and working tree (i.e. which have
-        changes which have not been added). If a file that is different between <commit> and the index has unstaged
-        changes, reset is aborted.
-
-        In other words, --merge does something like a git read-tree -u -m <commit>, but carries forward unmerged
-        index entries.
-        """
-        staged_paths = self.get_reset_merge_file_list()
-        if staged_paths:
-            self.restore_files_from_head(staged_paths)
 
     @property
     def message_without_conflict_comments(self) -> str:

@@ -721,7 +721,7 @@ def testRecallCommit(tempDir, mainWindow):
     lostId = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
-        repo.delete_remote("origin")
+        repo.remotes.delete("origin")
         repo.checkout_local_branch("no-parent")
         repo.delete_local_branch("master")
     rw = mainWindow.openRepo(wd)
