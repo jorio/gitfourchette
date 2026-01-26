@@ -6,8 +6,9 @@
 
 from . import reposcenario
 from .util import *
-from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.forms.stashdialog import StashDialog
+from gitfourchette.sidebar.sidebarmodel import SidebarItem
 import os
 import pytest
 
@@ -184,7 +185,7 @@ def testNewStashCantStashSubmodule(tempDir, mainWindow):
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "stash changes")
 
-    acceptQMessageBox(rw, "no.+changes to stash.+submodules cannot be stashed")
+    acceptQMessageBox(rw, "submodules cannot be stashed")
 
 
 def testPopStash(tempDir, mainWindow):
@@ -350,7 +351,7 @@ def testApplyStashWithUnrelatedConflictsInIndex(tempDir, mainWindow):
 
         writeFile(f"{wd}/a/a1.txt", "UNSTASH THIS")
         repo.create_stash("helloworld", paths=["a/a1.txt"])
-        repo.restore_files_from_head(paths=["a/a1.txt"])
+        GitDriver.runSync("checkout", "HEAD", "--", "a/a1.txt", directory=wd, strict=True)
 
         assert set(repo.status().keys()) == {"master.txt"}
         writeFile(f"{wd}/master.txt", "unrelated change in index 2 - conflicts with stash's index parent commit")

@@ -122,11 +122,6 @@ FileStatus_WT_MASK = (
         | FileStatus.WT_RENAMED
         | FileStatus.WT_UNREADABLE)
 
-_RESTORE_STRATEGY = (
-        CheckoutStrategy.FORCE
-        | CheckoutStrategy.REMOVE_UNTRACKED
-        | CheckoutStrategy.DISABLE_PATHSPEC_MATCH)
-
 
 class RefPrefix:
     HEADS = "refs/heads/"
@@ -1185,16 +1180,6 @@ class Repo(_VanillaRepository):
         if error:
             raise error
 
-    def restore_files_from_head(self, paths: list[str], restore_all=False):
-        """
-        Reset the given files to their state at the HEAD commit.
-        Any staged, unstaged, or untracked changes in those files will be lost.
-        """
-        assert bool(paths) ^ restore_all, "if you want to reset all files, pass empty path list and restore_all=True"
-        assert not self.head_is_unborn
-
-        self.checkout_tree(self.head_tree, paths=paths, strategy=_RESTORE_STRATEGY)
-
     def discard_mode_changes(self, paths: list[str]):
         """
         Discards mode changes in the given files.
@@ -1215,7 +1200,8 @@ class Repo(_VanillaRepository):
     def create_stash(self, message: str, paths: list[str]) -> Oid:
         """
         Creates a stash that backs up all changes to the given files.
-        Does NOT remove the changes from the workdir (you can use resetFiles afterwards).
+        Does NOT remove the changes from the workdir!
+        (You can call 'git clean'/'git restore' manually afterwards).
         """
 
         assert paths, "path list cannot be empty"

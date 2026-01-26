@@ -48,35 +48,48 @@ class NewStash(RepoTask):
         if not status:
             raise AbortTask(_("There are no uncommitted changes to stash."), "information")
 
-        # Prevent stashing any submodules
-        with Benchmark("Query submodules"):
-            for submodulePath in self.repo.listall_submodules_fast():
-                status.pop(submodulePath, None)
+        # Prevent stashing any submodules: remove them from the available files
+        for submodulePath in self.repo.listall_submodules_fast():
+            status.pop(submodulePath, None)
 
+        # If the selection only contained submodules, bail here
         if not status:
-            raise AbortTask(_("There are no uncommitted changes to stash (submodules cannot be stashed)."), "information")
+            raise AbortTask(_("Submodules cannot be stashed."), "information")
 
+        # Ask user what to stash
         dlg = StashDialog(status, paths or [], self.parentWidget())
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
         yield from self.flowDialog(dlg)
 
-        tickedFiles = dlg.tickedPaths()
-
+        paths = dlg.tickedPaths()
         stashMessage = dlg.ui.messageEdit.text()
         keepIntact = dlg.ui.keepCheckBox.isChecked()
         dlg.deleteLater()
 
+        # Rationale for sticking with libgit2 here: 'git stash' always brings in
+        # ALL the staged changes, even if we explicitly pass some paths.
         yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Refs
+        self.repo.create_stash(stashMessage, paths=paths)
+        self.postStatus = _n("File stashed.", "{n} files stashed.", len(paths))
+        yield from self.flowEnterUiThread()
 
-        self.repo.create_stash(stashMessage, paths=tickedFiles)
+        if keepIntact:
+            return
 
-        if not keepIntact:
-            self.effects |= TaskEffects.Workdir
-            self.repo.restore_files_from_head(tickedFiles)
+        # Clean up with vanilla git so smudge filters apply properly
+        self.effects |= TaskEffects.Workdir
 
-        self.postStatus = _n("File stashed.", "{n} files stashed.", len(tickedFiles))
+        # Clean untracked files
+        cleanPaths = [p for p in paths if status[p] == FileStatus.WT_NEW]
+        if cleanPaths:
+            yield from self.flowCallGit("clean", "--force", "--", *cleanPaths)
+
+        # Restore other files
+        restorePaths = [p for p in paths if p not in cleanPaths]
+        if restorePaths:
+            yield from self.flowCallGit("restore", "--progress", "--source=HEAD", "--worktree", "--staged", "--", *restorePaths)
 
 
 class ApplyStash(RepoTask):
