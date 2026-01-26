@@ -82,7 +82,7 @@ class ProcessDialog(QDialog):
     def connectProcessInStatusForm(self):
         self.statusForm.connectProcess(self.processConnection.process)
 
-    def onProcessLost(self, process: QProcess):
+    def onProcessLost(self):
         self.delayPopUp.stop()
         self.setVisible(False)
 

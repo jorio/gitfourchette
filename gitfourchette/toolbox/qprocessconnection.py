@@ -13,7 +13,7 @@ class QProcessConnection(QObject):
     """
     Emits processLost when a QProcess stops running or fails to start outright.
     """
-    processLost = Signal(object)
+    processLost = Signal()
 
     process: QProcess | None
 
@@ -36,13 +36,13 @@ class QProcessConnection(QObject):
 
     def stopTracking(self):
         process = self.process
-        self.process = None
 
         if process is not None:
             with suppress(TypeError, RuntimeError):
                 process.finished.disconnect(self.stopTracking)
             with suppress(TypeError, RuntimeError):
                 process.errorOccurred.disconnect(self.stopTracking)
-            self.processLost.emit(process)
+            self.processLost.emit()
 
+        self.process = None
         return process

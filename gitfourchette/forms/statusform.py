@@ -99,7 +99,8 @@ class StatusForm(QWidget):
             process.progressMessage.connect(self.setProgressMessage)
             process.progressFraction.connect(self.setProgressValue)
 
-    def onProcessLost(self, process: QProcess):
+    def onProcessLost(self):
+        process = self.processConnection.process
         assert process is not None
         if isinstance(process, GitDriver):
             with suppress(TypeError, RuntimeError):
