@@ -241,6 +241,8 @@ class GFApplication(QApplication):
             self.bootUi()
 
     def endSession(self, clearTempDir=True):
+        self.removeEventFilter(self)  # Stop catching events
+
         from gitfourchette import settings
         from gitfourchette.syntax import LexJobCache
         if settings.prefs.isDirty():
@@ -319,6 +321,7 @@ class GFApplication(QApplication):
     def onMainWindowDestroyed(self):
         logger.debug("Main window destroyed")
         self.mainWindow = None
+        self.removeEventFilter(self)  # Stop catching events
 
     # -------------------------------------------------------------------------
 
@@ -499,6 +502,8 @@ class GFApplication(QApplication):
         self.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
     def eventFilter(self, watched, event: QEvent):
+        assert self.mainWindow, "eventFilter shouldn't catch events post-mortem"
+
         eventType = event.type()
         isPress = eventType == QEvent.Type.MouseButtonPress
 
