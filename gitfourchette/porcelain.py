@@ -1634,30 +1634,6 @@ class Repo(_VanillaRepository):
         assert refname in self.references
         self.references.delete(refname)
 
-    def remove_submodule(self, submodule_name: str):
-        inner_w = self.listall_submodules_dict()[submodule_name]
-        config_abspath = self.in_workdir(DOT_GITMODULES)
-
-        # Delete "submodule.{name}.*" from local config (optional)
-        GitConfigHelper.delete_section(_joinpath(self.path, "config"), "submodule", submodule_name)
-
-        # Delete "submodule.{name}.*" from .gitmodules
-        did_delete = GitConfigHelper.delete_section(config_abspath, "submodule", submodule_name)
-
-        if GitConfigHelper.is_empty(config_abspath):
-            # That was the only submodule, so remove .gitmodules
-            _os.unlink(config_abspath)
-            self.index.remove(DOT_GITMODULES)
-        else:
-            self.index.add(DOT_GITMODULES)
-
-        if did_delete:
-            if _exists(self.in_workdir(inner_w)):  # don't raise FileNotFoundError if workdir is already gone
-                _shutil.rmtree(self.in_workdir(inner_w))
-            self.index.remove(inner_w)
-
-        self.index.write()
-
     def get_config_value(self, key: str | tuple):
         key = GitConfigHelper.sanitize_key(key)
         try:

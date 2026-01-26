@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -90,6 +90,9 @@ class RemoveSubmodule(RepoTask):
         return TaskPrereqs.NoUnborn | TaskPrereqs.NoConflicts
 
     def flow(self, submoduleName: str):
+        submodule = self.repo.submodules[submoduleName]
+        path = submodule.path
+
         yield from self.flowConfirm(
             text=paragraphs(
                 _("Really remove submodule {0}?", bquo(submoduleName)),
@@ -99,7 +102,13 @@ class RemoveSubmodule(RepoTask):
             buttonIcon="SP_DialogDiscardButton",
             verb="Remove")
 
-        yield from self.flowEnterWorkerThread()
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs  # we don't have TaskEffects.Submodules so .Refs is the next best thing
+        self.effects |= TaskEffects.Head  # also force refresh libgit2 index TODO: better naming
 
-        self.repo.remove_submodule(submoduleName)
+        # 1. Unregister from .git/config & remove worktree
+        yield from self.flowCallGit("submodule", "deinit", "--", path)
+
+        # 2. Unregister from .gitmodules (& remove worktree again)
+        yield from self.flowCallGit("rm", "--", path)
+
+        self._postStatus = _("Submodule {0} removed.", tquo(submoduleName))

@@ -98,7 +98,7 @@ class GitDriver(QProcess):
     def supportsFetchPorcelain(cls) -> bool:
         # fetch --porcelain is only available since git 2.41 (June 2023)
         # Ubuntu 22.04 LTS ships with git 2.34.1.
-        # macOS 15 ships with git 2.39.5.
+        # Debian 12 and macOS 15 ship with git 2.39.5.
         return cls.gitVersionTuple() >= (2, 41)
 
     @classmethod
@@ -109,10 +109,10 @@ class GitDriver(QProcess):
         Example: 'git remote remove -- <name>'
         (Note: Commands that accept switches always accept '--')
         """
-        # TODO: Find out the earliest version that actually supports this.
-        # 2.34 definitely doesn't support it; and 2.43 is the next version that
-        # I've been able to test quickly.
-        return cls.gitVersionTuple() >= (2, 43)
+        # Note: I haven't bothered bisecting the exact version of git that
+        # introduced support for this. It appeared somewhere between 2.34 and
+        # 2.39 (the next version above 2.34 that I easily had access to).
+        return cls.gitVersionTuple() >= (2, 39)
 
     @classmethod
     def parseTable(cls, pattern: str, stdout: str, linesep="\n", strict=True) -> list:
