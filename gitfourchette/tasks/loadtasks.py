@@ -6,8 +6,7 @@
 
 import logging
 from collections.abc import Generator
-
-from pygit2.enums import AttrCheck
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -285,17 +284,7 @@ class LoadPatch(RepoTask):
         # See if we should load an LFS object
         loadLfs = False
         if not settings.prefs.rawLfsPointers:
-            if commit is not None:
-                check = AttrCheck.INCLUDE_COMMIT
-            elif isDirtyContext:
-                check = AttrCheck.FILE_THEN_INDEX
-            else:
-                check = AttrCheck.INDEX_ONLY
-            attribute = self.repo.get_attr(delta.new.path, "diff", check, None if commit is None else commit.id)
-            if attribute == "lfs":
-                oldIsLfs = delta.old.resolveLfsPointer(self.repo)
-                newIsLfs = delta.new.resolveLfsPointer(self.repo, forceRaw=isDirtyContext)
-                loadLfs = oldIsLfs or newIsLfs
+            loadLfs = delta.cacheLfsPointers(self.repo, commit.id if commit else None)
 
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg
@@ -305,11 +294,16 @@ class LoadPatch(RepoTask):
 
         # Build diff command
         if loadLfs:
-            gd = self.repo.in_gitdir("")
-            wd = self.repo.in_workdir("")
-            tokens, oldMissing, newMissing = GitDriver.buildDiffCommandLFS(delta, gd, wd)
-            if oldMissing or newMissing:
-                return SpecialDiffError.missingLfsObjects(oldMissing, newMissing)
+            missing = []
+            for pointer in delta.old.lfs, delta.new.lfs:
+                path = pointer.objectPath
+                if path != "/dev/null" and not Path(path).exists():
+                    missing.append(pointer.id)
+                else:
+                    missing.append("")
+            if any(missing):
+                return SpecialDiffError.missingLfsObjects(missing[0], missing[1])
+            tokens = GitDriver.buildDiffCommandLFS(delta)
         else:
             tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)
 
@@ -370,10 +364,10 @@ class LoadPatch(RepoTask):
             if result.minuses:
                 header += f" <b><del>-{result.minuses}</del></b>"
 
-        if delta.new.lfsId or delta.old.lfsId:
-            if delta.new.lfsId and not delta.old.lfsId:
+        if delta.new.lfs or delta.old.lfs:
+            if delta.new.lfs and not delta.old.lfs:
                 lfsTag, lfsText = "add", _("LFS pointer added")
-            elif not delta.new.lfsId and delta.old.lfsId:
+            elif not delta.new.lfs and delta.old.lfs:
                 lfsTag, lfsText = "del", _("LFS pointer removed")
             else:
                 lfsTag, lfsText = "", _("LFS pointer changed")

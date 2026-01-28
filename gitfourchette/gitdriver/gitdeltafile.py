@@ -6,23 +6,20 @@
 
 import dataclasses
 import os
-import re
 import warnings
 from pathlib import Path
 
+from pygit2.enums import AttrCheck
+
+from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import FileMode, Repo, id7
+from gitfourchette.porcelain import FileMode, Repo, Oid, id7
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
 
 HexHashEmptyBlob = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"  # hashlib.sha1(b'blob 0\0').hexdigest()
 """ The SHA-1 hash of an empty Git blob. """
-
-LfsPointerMagic = "version https://git-lfs.github.com/spec/v1\n"
-LfsPointerMagicBytes = LfsPointerMagic.encode("utf-8")
-LfsPointerPattern = re.compile(rf"^{LfsPointerMagic}oid sha256:([0-9a-f]+)\nsize (\d+)")
-_LfsRawWdFakeHash = "RAW_WD"
 
 
 @dataclasses.dataclass
@@ -45,8 +42,10 @@ class GitDeltaFile:
     None means that the file hasn't been cached yet (isDataValid() == False).
     """
 
-    lfsId: str = ""
-    lfsSize: int = -1
+    lfs: LfsPointer = dataclasses.field(default_factory=LfsPointer, compare=False)
+    """
+    Cached LFS object information extracted from the LFS pointer (if any).
+    """
 
     def __post_init__(self):
         assert self.id.isnumeric() or self.id.islower()
@@ -73,17 +72,20 @@ class GitDeltaFile:
 
     def read(self, repo: Repo) -> bytes:
         if self._data is not None:
-            # Data already loaded
+            # Data already cached
             pass
-        elif self.lfsId == _LfsRawWdFakeHash:
-            assert self.lfsSize < 0
+
+        elif self.lfs.state == LfsPointerState.Bypass:
+            # Would be an LFS file once staged, read it direct from the workdir
+            assert self.lfs.size < 0
             self._data = repo.apply_filters_to_workdir(self.path)
-            self.lfsSize = len(self._data)
-        elif self.lfsId:
-            # LFS pointer resolved, load data
-            lfsPath = repo.in_gitdir(self.lfsObjectPath())
-            self._data = Path(lfsPath).read_bytes()
-            assert self.lfsSize == len(self._data), "LFS object size mismatch"
+            self.lfs = dataclasses.replace(self.lfs, size=len(self._data))
+
+        elif self.lfs.state == LfsPointerState.Valid:
+            # LFS pointer resolved, load data from LFS object db
+            self._data = Path(self.lfs.objectPath).read_bytes()
+            assert self.lfs.size == len(self._data), "LFS object size mismatch"
+
         else:
             # Load blob from standard git object database
             try:
@@ -130,8 +132,8 @@ class GitDeltaFile:
         if self.isId0():
             return 0
 
-        if self.lfsSize >= 0:
-            return self.lfsSize
+        if self.lfs.size >= 0:
+            return self.lfs.size
 
         if self.isIdValid():
             try:
@@ -142,34 +144,42 @@ class GitDeltaFile:
         _, size = self.stat(repo)
         return size
 
-    def resolveLfsPointer(self, repo: Repo, forceRaw=False) -> bool:
-        if self.lfsId:
+    def cacheLfsPointer(self, repo: Repo, commitId: Oid | None = None):
+        if self.lfs.state != LfsPointerState.Unknown:
             # Already resolved
-            return True
+            return
+
+        if commitId is not None:
+            check = AttrCheck.INCLUDE_COMMIT
+        elif self.source.isDirty():
+            check = AttrCheck.FILE_THEN_INDEX
+        else:
+            check = AttrCheck.INDEX_THEN_FILE#AttrCheck.INDEX_ONLY
+        attr = repo.get_attr(self.path, "diff", check, commitId)
+
+        if attr != "lfs":
+            self.lfs = LfsPointer(LfsPointerState.NoPointer)
+            return
 
         if self.source.isDirty():
-            # Force read from wd
-            assert forceRaw
-            self.lfsId = _LfsRawWdFakeHash
-            self.lfsSize = -1
-            return True
+            # Force read data from wd
+            self.lfs = LfsPointer(LfsPointerState.Bypass, objectPath=repo.in_workdir(self.path))
+            return
 
         data = self.read(repo)
         if not data.startswith(LfsPointerMagicBytes):
-            return False
+            self.lfs = LfsPointer(LfsPointerState.NoPointer)
+            return
 
-        lfsPointerText = data.decode("utf-8", errors="replace")
-        match = LfsPointerPattern.match(lfsPointerText)
-        self.lfsId = match.group(1)
-        self.lfsSize = int(match.group(2))
-        self._data = None  # invalidate data so that next call to read() resolves LFS data
-        return True
+        text = data.decode("utf-8", errors="replace")
+        match = LfsPointerPattern.match(text)
+        sha = match.group(1)
+        size = int(match.group(2))
+        objectPath = repo.in_gitdir(f"lfs/objects/{sha[:2]}/{sha[2:4]}/{sha}")
+        self.lfs = LfsPointer(LfsPointerState.Valid, sha, size, objectPath)
 
-    def lfsObjectPath(self):
-        sha = self.lfsId
-        assert sha
-        assert sha != _LfsRawWdFakeHash
-        return f"lfs/objects/{sha[:2]}/{sha[2:4]}/{sha}" if sha else ""
+        # Invalidate data so that next read() uses LFS data
+        self._data = None
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o})"

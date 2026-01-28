@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,8 @@ import dataclasses
 
 from gitfourchette.gitdriver.gitconflict import GitConflict
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, NavContext
+from gitfourchette.porcelain import Repo, Oid
+from gitfourchette.toolbox import benchmark
 
 
 @dataclasses.dataclass
@@ -30,3 +32,9 @@ class GitDelta:
 
     def isSubtreeCommitPatch(self) -> bool:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
+
+    @benchmark
+    def cacheLfsPointers(self, repo: Repo, commitId: Oid | None = None):
+        self.old.cacheLfsPointer(repo, commitId)
+        self.new.cacheLfsPointer(repo, commitId)
+        return self.old.lfs or self.new.lfs
