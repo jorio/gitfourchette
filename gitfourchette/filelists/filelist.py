@@ -127,18 +127,6 @@ class FileList(QListView):
 
     repoModel: RepoModel
 
-    navContext: NavContext
-    """
-    COMMITTED, STAGED or DIRTY.
-    Does not change throughout the lifespan of this FileList.
-    """
-
-    commitId: Oid
-    """
-    The commit that is currently being shown.
-    Only valid if navContext == COMMITTED.
-    """
-
     _selectionBackup: list[str]
     """
     Backup of selected paths before refreshing the view.
@@ -156,8 +144,6 @@ class FileList(QListView):
         self.setModel(flModel)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
-        self.navContext = navContext
-        self.commitId = NULL_OID
         self._selectionBackup = []
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -194,6 +180,14 @@ class FileList(QListView):
         return self.repoModel.repo
 
     @property
+    def navContext(self) -> NavContext:
+        return self.flModel.navContext
+
+    @property
+    def commitId(self) -> Oid:
+        return self.flModel.commitId
+
+    @property
     def commitObject(self) -> Commit | None:
         if self.commitId == NULL_OID:
             return None
@@ -215,7 +209,6 @@ class FileList(QListView):
 
     def clear(self):
         self.flModel.clear()
-        self.commitId = NULL_OID
         assert self.isEmpty()
         self.updateFocusPolicy()
 
