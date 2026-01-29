@@ -102,7 +102,7 @@ class CommittedFiles(FileList):
         return actions
 
     def setCommit(self, oid: Oid):
-        self.commitId = oid
+        self.flModel.commitId = oid
 
     def openNewRevision(self):
         self.openRevision(beforeCommit=False)

@@ -9,7 +9,6 @@ import dataclasses
 from gitfourchette.gitdriver.gitconflict import GitConflict
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, NavContext
 from gitfourchette.porcelain import Repo, Oid
-from gitfourchette.toolbox import benchmark
 
 
 @dataclasses.dataclass
@@ -33,8 +32,7 @@ class GitDelta:
     def isSubtreeCommitPatch(self) -> bool:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
 
-    @benchmark
-    def cacheLfsPointers(self, repo: Repo, commitId: Oid | None = None):
+    def cacheLfsPointers(self, repo: Repo, commitId: Oid):
         self.old.cacheLfsPointer(repo, commitId)
         self.new.cacheLfsPointer(repo, commitId)
         return self.old.lfs or self.new.lfs

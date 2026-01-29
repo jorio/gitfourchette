@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -43,7 +43,13 @@ def deltaModeText(om: FileMode, nm: FileMode) -> str:
     return ""
 
 
-def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpart: bool = False):
+def fileTooltip(
+        repo: Repo,
+        delta: GitDelta,
+        navContext: NavContext,
+        commitId: Oid,
+        isCounterpart: bool = False
+) -> str:
     locale = QLocale()
     of = delta.old
     nf = delta.new
@@ -84,6 +90,7 @@ def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpa
     elif of.mode != nf.mode:
         text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
 
+    # Get mtime & size
     mTimeNS, size = -1, -1
     sizeIsAccurate = False
     if nf.isBlob() and not nf.isId0():
@@ -97,11 +104,17 @@ def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpa
             size = repo.peel_blob(nf.id).size
             sizeIsAccurate = True
 
+    # Cache LFS pointer info
+    if not settings.prefs.rawLfsPointers:
+        delta.cacheLfsPointers(repo, commitId)
+
     # Size (if applicable)
     if size != -1:
         sizeText = locale.formattedDataSize(size, 1)
         if not sizeIsAccurate:
             sizeText = _("{size} on disk", size=sizeText)
+        if delta.new.lfs.size >= 0:
+            sizeText = f"{locale.formattedDataSize(delta.new.lfs.size, 1)} <b>(LFS)<b>"
         text += newLine(_("size"), sizeText)
 
     # Modified time
@@ -112,9 +125,16 @@ def fileTooltip(repo: Repo, delta: GitDelta, navContext: NavContext, isCounterpa
         text += newLine(_("modified"), timeText)
 
     # Blob/Commit IDs
-    # (Not for unmerged conflicts)
-    # (Not for untracked trees - those never have a valid ID)
-    if sc != 'U' and nf.mode != FileMode.TREE:
+    if sc == 'U' or nf.mode == FileMode.TREE:
+        # Hide hashes for:
+        # - unmerged conflicts
+        # - untracked trees: those never have a valid ID
+        pass
+    elif of.lfs or nf.lfs:
+        oldId = shortHash(of.lfs.id) if of.lfs.id else _("(not computed)")
+        newId = shortHash(nf.lfs.id) if nf.lfs.id else _("(not computed)")
+        text += newLine(_("LFS object hash"), f"{oldId} \u2192 {newId}")
+    else:
         oldId = shortHash(of.id) if of.isIdValid() else _("(not computed)")
         newId = shortHash(nf.id) if nf.isIdValid() else _("(not computed)")
         idLegend = _("commit hash") if nf.mode == FileMode.COMMIT else _("blob hash")
@@ -140,7 +160,18 @@ class FileListModel(QAbstractListModel):
     deltas: list[GitDelta]
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
+
     navContext: NavContext
+    """
+    COMMITTED, STAGED or DIRTY.
+    Does not change throughout the lifespan of this FileListModel.
+    """
+
+    commitId: Oid
+    """
+    The commit that is currently being shown.
+    Only valid if navContext == COMMITTED.
+    """
 
     def __init__(self, parent: QWidget, navContext: NavContext):
         super().__init__(parent)
@@ -161,6 +192,7 @@ class FileListModel(QAbstractListModel):
         self.deltas = []
         self.fileRows = {}
         self.highlightedCounterpartRow = -1
+        self.commitId = NULL_OID
         self.modelReset.emit()
 
     def setContents(self, deltas: Iterable[GitDelta]):
@@ -214,7 +246,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             isCounterpart = row == self.highlightedCounterpartRow
-            return fileTooltip(self.repo, delta, self.navContext, isCounterpart)
+            return fileTooltip(self.repo, delta, self.navContext, self.commitId, isCounterpart)
 
         elif role == Qt.ItemDataRole.SizeHintRole:
             return QSize(-1, self.parentWidget.fontMetrics().height())

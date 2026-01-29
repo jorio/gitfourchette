@@ -278,13 +278,13 @@ class LoadPatch(RepoTask):
         # ---------------------------------------------------------------------
         # Load the patch
 
-        isDirtyContext = locator.context.isDirty()
         commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
 
         # See if we should load an LFS object
         loadLfs = False
         if not settings.prefs.rawLfsPointers:
-            loadLfs = delta.cacheLfsPointers(self.repo, commit.id if commit else None)
+            commitId = commit.id if commit else NULL_OID
+            loadLfs = delta.cacheLfsPointers(self.repo, commitId)
 
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg
@@ -333,7 +333,7 @@ class LoadPatch(RepoTask):
         # modified. (We don't need to stat non-unstaged files because blob
         # hashes are known in advance, so for those, we can simply compare the
         # hashes stored in GitDelta to figure out if it's fresh.)
-        if isDirtyContext:
+        if locator.context.isDirty():
             delta.new.diskStat = delta.new.stat(self.repo)
 
         try:
