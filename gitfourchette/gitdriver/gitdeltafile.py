@@ -13,7 +13,7 @@ from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import FileMode, Repo, Oid, id7, NULL_OID
+from gitfourchette.porcelain import FileMode, Repo, Oid, id7
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
@@ -144,17 +144,11 @@ class GitDeltaFile:
         _, size = self.stat(repo)
         return size
 
-    def cacheLfsPointer(self, repo: Repo, commitId: Oid):
+    def cacheLfsPointer(self, repo: Repo, commitId: Oid, check: AttrCheck):
         if self.lfs.state != LfsPointerState.Unknown:
             # Already resolved
             return
 
-        if commitId != NULL_OID:
-            check = AttrCheck.INCLUDE_COMMIT
-        elif self.source.isDirty():
-            check = AttrCheck.FILE_THEN_INDEX
-        else:
-            check = AttrCheck.INDEX_THEN_FILE#AttrCheck.INDEX_ONLY
         attr = repo.get_attr(self.path, "diff", check, commitId)
 
         if attr != "lfs":
