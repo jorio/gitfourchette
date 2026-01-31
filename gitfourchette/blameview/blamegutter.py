@@ -36,14 +36,21 @@ class BlameGutter(CodeGutter):
         self.columnMetrics = []
         self.preferredWidth = 0
         self.lineHeight = 12
+
+        self.lineColor = QColor()
+        self.textColor = QColor()
+        self.boldTextColor = QColor()
+        self.freshColor = QColor()
+        self.heatColor = QColor()
+
         self.refreshMetrics()
 
     def syncFont(self, codeFont: QFont):
         pointSize = codeFont.pointSizeF()
-        defaultFont = self.font()
-        defaultFont.setPointSizeF(pointSize)
+        codeFont = self.font()
+        codeFont.setPointSizeF(pointSize)
         self.boldFont.setPointSizeF(pointSize)
-        self.setFont(defaultFont)
+        super().syncFont(codeFont)
 
     def refreshMetrics(self):
         fontMetrics = self.fontMetrics()
@@ -64,6 +71,18 @@ class BlameGutter(CodeGutter):
 
         self.lineHeight = max(fontMetrics.height(), self.codeView.fontMetrics().height())
 
+        # Cache foreground colors
+        standardForegroundColor = self.palette().color(QPalette.ColorRole.Text)
+        fgRgb = standardForegroundColor.getRgb()[:3]
+        self.lineColor = QColor(*fgRgb, 80)
+        self.textColor = QColor(*fgRgb, 160)
+        self.boldTextColor = QColor(*fgRgb, 210)
+
+        # Cache background colors (make copies so alpha can be changed)
+        self.heatColor = QColor(colors.orange)
+        self.freshColor = QColor(colors.aqua)
+        self.freshColor.setAlphaF(.6 if isDarkTheme(self.palette()) else .8)
+
     def calcWidth(self) -> int:
         return self.preferredWidth
 
@@ -78,24 +97,17 @@ class BlameGutter(CodeGutter):
             return
 
         painter = QPainter(self)
-
-        # Set up colors
-        palette = self.palette()
-        themeFG = palette.color(QPalette.ColorRole.Text)  # standard theme foreground color
-        lineColor = QColor(*themeFG.getRgb()[:3], 80)
-        textColor = QColor(*themeFG.getRgb()[:3], 160)
-        boldTextColor = QColor(*themeFG.getRgb()[:3], 210)
-        heatColor = QColor(colors.orange)
+        bgColor = self.heatColor
 
         # Gather some metrics
         rightEdge = self.rect().width() - 1
         lh = self.lineHeight
 
-        lc2 = QColor(lineColor)
+        lc2 = QColor(self.lineColor)
         lc2.setAlphaF(lc2.alphaF()/2)
-        linePen = QPen(lc2)#, 1, Qt.PenStyle.DashLine)
-        textPen = QPen(textColor)
-        boldTextPen = QPen(boldTextColor)
+        linePen = QPen(lc2)
+        textPen = QPen(self.textColor)
+        boldTextPen = QPen(self.boldTextColor)
         painter.setPen(textPen)
 
         lastCaptionDrawnAtLine = -1
@@ -107,7 +119,7 @@ class BlameGutter(CodeGutter):
         topCommitId = revision.commitId
         topRevisionNumber = self.model.revList.revisionNumber(topCommitId)
 
-        for block, top, bottom in self.paintBlocks(event, painter, lineColor):
+        for block, top, bottom in self.paintBlocks(event, painter, self.lineColor):
             lineNumber = 1 + block.blockNumber()
             try:
                 annotatedLine = revision.blameLines[lineNumber]
@@ -121,15 +133,19 @@ class BlameGutter(CodeGutter):
                 isCurrent = lineCommitId == topCommitId
                 painter.setFont(self.boldFont if isCurrent else self.font())
                 painter.setPen(boldTextPen if isCurrent else textPen)
-                # Compute heat color
                 revisionNumber = self.model.revList.revisionNumber(lineCommitId)
-                heat = revisionNumber / topRevisionNumber
-                heat = heat ** 2  # ease in cubic
-                heatColor.setAlphaF(lerp(.0, .6, heat))
+                # Compute heat color
+                if revisionNumber == topRevisionNumber:
+                    bgColor = self.freshColor
+                else:
+                    heat = revisionNumber / (topRevisionNumber - 1)
+                    heat = heat ** 2  # ease in cubic
+                    bgColor = self.heatColor
+                    bgColor.setAlphaF(lerp(.0, .6, heat))
 
             # Fill heat rectangle
             heatTop = top if lastCaptionDrawnAtLine >= 0 else 0
-            painter.fillRect(QRect(0, heatTop, rightEdge, bottom-heatTop), heatColor)
+            painter.fillRect(QRect(0, heatTop, rightEdge, bottom-heatTop), bgColor)
 
             # Draw line number
             lineNumL, lineNumW = self.columnMetrics[-1]
