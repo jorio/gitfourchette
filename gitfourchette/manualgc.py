@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -16,7 +16,7 @@ garbage at opportune times.
 import gc
 import logging
 
-from gitfourchette.appconsts import APP_DEBUG
+from gitfourchette.appconsts import APP_DEBUG, APP_VERBOSEDEL
 from gitfourchette.qt import QApplication, QThread
 
 _logger = logging.getLogger(__name__)
@@ -42,7 +42,9 @@ def gcHint():
 
     for gen, c, t in zip(range(3), gc.get_count(), gc.get_threshold(), strict=True):
         if c <= t:
-            _logger.debug(f"GC gen {gen}: {c}/{t}, stop")
+            if APP_VERBOSEDEL:
+                _logger.debug(f"GC gen {gen}: {c}/{t}, stop")
             break
         num = gc.collect(gen)
-        _logger.debug(f"GC gen {gen}: {c}/{t}, {num}")
+        if APP_VERBOSEDEL:
+            _logger.debug(f"GC gen {gen}: {c}/{t}, {num}")

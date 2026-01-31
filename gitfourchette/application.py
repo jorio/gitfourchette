@@ -387,7 +387,7 @@ class GFApplication(QApplication):
         self.installedLocale = locale
 
         if previousLocale is not None and locale.name() == previousLocale.name():
-            logger.debug(f"Previous locale is similar enough to new locale ({locale.name()}), not reloading translators")
+            # Previous locale is similar enough to new locale. Don't reload translators.
             return
 
         # Try to load gettext translator for application strings.

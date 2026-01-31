@@ -67,6 +67,8 @@ markers = [
     "notParallelizableOnWindows: mark the test as using win32ctrlc, which is incompatible with pytest-xdist",
 ]
 
+log_format = "%(levelname)-7s %(module)-16s%(lineno)4d | %(message)s"
+
 #------------------------------------------------------------------------------
 # Coverage
 

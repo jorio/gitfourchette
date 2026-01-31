@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -47,7 +47,7 @@ class Benchmark:
         self.phase = phase
 
     def exit(self, exc_type=None):
-        ms = 1000 * (time.perf_counter() - self.startTime)
+        ms = 1000 * self.elapsed()
         kb = (getRSS() - self.startBytes) // 1024
 
         description = "/".join(Benchmark.nesting)
@@ -60,6 +60,9 @@ class Benchmark:
         Benchmark.nesting.pop()
         self.startTime = 0.0
         self.phase = ""
+
+    def elapsed(self):
+        return time.perf_counter() - self.startTime
 
     def __enter__(self):
         self.enter()

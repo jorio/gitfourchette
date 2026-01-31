@@ -1091,7 +1091,7 @@ class RepoTaskRunner(QObject):
     def _releaseCurrentTask(self):
         task = self._currentTask
 
-        logger.debug(f"<<< {task}")
+        logger.debug(f"<<< {task} ({self._currentTaskBenchmark.elapsed()*1000:.1f} ms)")
         self.progress.emit("", False)
         self._currentTaskBenchmark.__exit__(None, None, None)
 

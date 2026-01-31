@@ -620,7 +620,8 @@ class RefreshRepo(RepoTask):
 
         # Refresh sidebar
         rw.sidebar.backUpSelection()
-        if refsChanged | stashesChanged | submodulesChanged | remotesChanged | homeBranchChanged | upstreamsChanged:
+        anyChanges = refsChanged | stashesChanged | submodulesChanged | remotesChanged | homeBranchChanged | upstreamsChanged
+        if anyChanges:
             with QSignalBlockerContext(rw.sidebar):
                 rw.sidebar.refresh(repoModel)
 
@@ -682,8 +683,9 @@ class RefreshRepo(RepoTask):
         rw.refreshWindowTitle()
         rw.refreshBanner()
 
-        logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "
-                     f"Sub={int(submodulesChanged)} Rem={int(remotesChanged)} Ups={int(upstreamsChanged)}")
+        if anyChanges:
+            logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "
+                         f"Sub={int(submodulesChanged)} Rem={int(remotesChanged)} Ups={int(upstreamsChanged)}")
 
     def syncTopOfGraph(self, oldRefs: dict[str, Oid]):
         repoModel = self.repoModel

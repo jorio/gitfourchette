@@ -1091,12 +1091,13 @@ class Repo(_VanillaRepository):
             if ref.type != ReferenceType.DIRECT:
                 continue
 
-            try:
-                commit: Commit = ref.peel(Commit)
-                tips.append((name, commit))
-            except InvalidSpecError as e:
-                # Some refs might not be committish, e.g. in linux's source repo
-                _logger.info(f"{e} - Skipping ref '{name}'")
+            # Skip non-commit references
+            obj = ref.peel()
+            if obj.type != ObjectType.COMMIT:
+                continue
+
+            assert isinstance(obj, Commit)
+            tips.append((name, obj))
 
         if include_stashes:
             for i, stash in enumerate(self.listall_stashes()):
