@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -39,7 +39,14 @@ class DonatePrompt(QDialog):
         formatWidgetText(self.ui.postponeButton, month=nextMonth)
 
         amount = QLocale().toCurrencyString(DonatePrompt.SuggestedAmount, "$", 0)
-        formatWidgetText(self.ui.donateButton, amount=amount)
+        donateText = formatWidgetText(self.ui.donateButton, amount=amount)
+        self.ui.donateButton.setText(donateText + "\n")  # Make room for URL label
+        donateButtonLabel = QLabel(f"&nbsp;<br><small><u>{DONATE_URL}</u></small>")
+        donateButtonLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        donateLayout = QVBoxLayout(self.ui.donateButton)
+        donateLayout.setContentsMargins(QMargins())
+        donateLayout.addWidget(donateButtonLabel)
+        self.ui.donateButton.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.ui.donateButton.clicked.connect(self.onDonateButtonPressed)
         self.ui.byeButton.clicked.connect(self.onByeButtonPressed)
