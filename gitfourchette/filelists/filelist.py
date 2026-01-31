@@ -412,8 +412,8 @@ class FileList(QListView):
         qmb.show()
 
     def openWorkdirFile(self):
-        def run(patch: Patch):
-            entryPath = self.repo.in_workdir(patch.delta.new_file.path)
+        def run(delta: GitDelta):
+            entryPath = self.repo.in_workdir(delta.new.path)
             ToolProcess.startTextEditor(self, entryPath)
 
         self.confirmBatch(run, _("Open in external editor"),

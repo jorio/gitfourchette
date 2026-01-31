@@ -6,23 +6,7 @@
 
 import pytest
 
-from gitfourchette.nav import NavLocator
 from .util import *
-
-
-def testOpenFileInQDesktopServices(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-    rw = mainWindow.openRepo(wd)
-
-    rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
-    menu = summonContextMenu(rw.committedFiles.viewport())
-
-    with MockDesktopServicesContext() as services:
-        triggerMenuAction(menu, "open file in/working copy")
-
-        url = services.urls[-1]
-        assert url.isLocalFile()
-        assert Path(url.toLocalFile()) == Path(wd, "a/a1")
 
 
 def testTerminal(tempDir, mainWindow):

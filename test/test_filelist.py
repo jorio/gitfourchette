@@ -370,6 +370,29 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     assert "[NEW]b2.txt" in scratchText
 
 
+# Cover all FileList subclasses (unstaged, staged, committed)
+@pytest.mark.parametrize("locator", [
+    NavLocator.inUnstaged("a/a1.txt"),
+    NavLocator.inStaged("a/a1.txt"),
+    NavLocator.inCommit(Oid(hex="c070ad8c08840c8116da865b2d65593a6bb9cd2a"), "a/a1.txt"),
+])
+def testOpenFileInQDesktopServices(tempDir, mainWindow, locator):
+    wd = unpackRepo(tempDir)
+    reposcenario.fileWithStagedAndUnstagedChanges(wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(locator, check=True)
+    fileList = rw.diffArea.fileListByContext(locator.context)
+    pattern = "edit in external editor" if locator.context.isWorkdir() else "open file in/working copy"
+
+    with MockDesktopServicesContext() as services:
+        triggerContextMenuAction(fileList.viewport(), pattern)
+
+        url = services.urls[-1]
+        assert url.isLocalFile()
+        assert Path(url.toLocalFile()) == Path(wd, "a/a1.txt")
+
+
 @requiresFlatpak
 def testEditFileInMissingFlatpak(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({"externalDiff": "flatpak run org.gitfourchette.BogusEditorName $L $R"})
