@@ -203,10 +203,6 @@ def testOpenBlameNavigateUpDown(blameWindow):
     assert (True, False) == (olderButton.isEnabled(), newerButton.isEnabled())
     assert "Uncommitted" in scrubber.currentText()
 
-    # Weird issue with PyQt6 6.9.1? The shift-clicking in this test may cause
-    # later tests to fail unless we perform a no-modifier click now.
-    QTest.mouseClick(newerButton, Qt.MouseButton.LeftButton)
-
 
 def testBlameJumpToCommit(blameWindow):
     rw = blameWindow._unitTestRepoWidget
@@ -387,10 +383,10 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     numPaddingLines = 250
     padding = "/* " + "\n".join(f"padding {i}" for i in range(1, numPaddingLines + 1)) + " */\n"
     fileHistory = [
-        f"{padding}int foo=1;\nint bar=2;\nint baz=3;\n{padding}",
-        f"{padding}int foo=1;\nint bar=2;\nint baz=3000;\n{padding}",
-        f"{padding}int gotcha=0;\nint foo=1;\nint bar=2;\nint baz=3000;\n{padding}",
-        f"{padding}int gotcha=0;\nint bar=2;\nint baz=3000;\n{padding}",
+        f"/*Rev0*/{padding}int foo=1;\nint bar=2;\nint baz=3;\n{padding}",
+        f"/*Rev1*/{padding}int foo=1;\nint bar=2;\nint baz=3000;\n{padding}",
+        f"/*Rev2*/{padding}int gotcha=0;\nint foo=1;\nint bar=2;\nint baz=3000;\n{padding}",
+        f"/*Rev3*/{padding}int gotcha=0;\nint bar=2;\nint baz=3000;\n{padding}",
     ]
 
     wd = unpackRepo(tempDir)
@@ -407,6 +403,9 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
 
     blameWindow = findWindow("blame", BlameWindow)
+    assert blameWindow.textEdit.toPlainText() == fileHistory[0]
+    assert blameWindow.scrubber.count() == len(fileHistory)
+    assert blameWindow.scrubber.currentText() == "revision 0"
     vsb = blameWindow.textEdit.verticalScrollBar()
     assert vsb.isVisible()
     vsb.setValue(numPaddingLines)
@@ -414,14 +413,20 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
 
     # Go up 1 revision - Line numbers identical. Exact 'foo' line should be found.
     blameWindow.newerButton.click()
+    assert blameWindow.scrubber.currentText() == "revision 1"
+    assert blameWindow.textEdit.toPlainText() == fileHistory[1]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
 
     # Go up 1 revision - One new line was added above 'foo' line. Exact 'foo' line should still be found.
     blameWindow.newerButton.click()
+    assert blameWindow.scrubber.currentText() == "revision 2"
+    assert blameWindow.textEdit.toPlainText() == fileHistory[2]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
 
     # Go up 1 revision - 'foo' line was deleted, so rely on raw line numbers.
     blameWindow.newerButton.click()
+    assert blameWindow.scrubber.currentText() == "revision 3"
+    assert blameWindow.textEdit.toPlainText() == fileHistory[3]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"
 
 

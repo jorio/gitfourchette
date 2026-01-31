@@ -135,6 +135,8 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     app = GFApplication.instance()
     app.beginSession(bootUi=False)
 
+    assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
+
     # Prepare session-wide git config with a fallback signature.
     setUpGitConfigSearchPaths(os.path.join(app.tempDir.path(), "MaskedGitConfig"))
     globalGitConfig = porcelain.GitConfigHelper.ensure_file(porcelain.GitConfigLevel.GLOBAL)
@@ -163,6 +165,11 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
 
     # Restore the clipboard
     app.clipboard().setText(clipboardBackup)
+
+    # Don't leak any modifier keys to the next test
+    for keyName in "Shift Control Alt Meta".split():
+        qt.QTest.keyRelease(app.mainWindow, getattr(qt.Qt.Key, f"Key_{keyName}"))
+    assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
 
     # Look for any unclosed dialogs after the test
     leakedWindows = []
