@@ -80,7 +80,7 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=EXCLUDES,
-    noarchive=False,  # True: keep pyc files
+    noarchive=True,  # True: keep pyc files (reduces false positives on Virustotal)
 )
 
 def filterPath(p: Path):
