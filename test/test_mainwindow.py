@@ -189,3 +189,28 @@ def testTabBarActions(tempDir, mainWindow):
         assert terminalShimResult[1].endswith(".sh")  # path to launcher script
 
         menu.close()
+
+
+def testToolbarCustomization(tempDir, mainWindow):
+    tb = mainWindow.mainToolBar
+    assert tb.isVisible()
+
+    styles = {
+        "alongside icons": Qt.ToolButtonStyle.ToolButtonTextBesideIcon,
+        "icons only": Qt.ToolButtonStyle.ToolButtonIconOnly,
+        "text only": Qt.ToolButtonStyle.ToolButtonTextOnly,
+        "under icon": Qt.ToolButtonStyle.ToolButtonTextUnderIcon,
+    }
+    for menuText, expectedStyle in styles.items():
+        triggerContextMenuAction(tb, f"text position/{menuText}")
+        assert tb.toolButtonStyle() == expectedStyle
+
+    previousSize = -1
+    for sizeName in "small medium large huge".split():
+        triggerContextMenuAction(tb, f"icon size/{sizeName}")
+        currentSize = tb.iconSize().width()
+        assert currentSize > previousSize
+        previousSize = currentSize
+
+    triggerContextMenuAction(tb, "show toolbar")
+    assert not tb.isVisible()

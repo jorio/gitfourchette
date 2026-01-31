@@ -94,13 +94,25 @@ def testUserCommandsMenuHiddenByDefault(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
 
+    # No commands with fresh config
     with pytest.raises(KeyError):
         findMenuAction(mainWindow.menuBar(), "commands/edit commands")
+    assert mainWindow.mainToolBar.terminalAction.menu() is None
 
+    # Add some commands
     mainWindow.onAcceptPrefsDialog({"commands": "helloworld"})
     QTest.qWait(0)
     assert findMenuAction(mainWindow.menuBar(), "commands/helloworld")
     assert findMenuAction(mainWindow.menuBar(), "commands/edit commands")
+    assert findMenuAction(mainWindow.mainToolBar.terminalAction.menu(), "helloworld")
+    assert findMenuAction(mainWindow.mainToolBar.terminalAction.menu(), "edit commands")
+
+    # Clear the commands
+    mainWindow.onAcceptPrefsDialog({"commands": ""})
+    QTest.qWait(0)
+    with pytest.raises(KeyError):
+        findMenuAction(mainWindow.menuBar(), "commands/edit commands")
+    assert mainWindow.mainToolBar.terminalAction.menu() is None
 
 
 locOriginMaster = NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1")
