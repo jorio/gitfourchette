@@ -91,10 +91,6 @@ class BlameWindow(QWidget):
         layout.addWidget(self.textEdit)
         layout.setSpacing(0)
 
-        self.setTabOrder(self.scrubber, self.olderButton)
-        self.setTabOrder(self.olderButton, self.newerButton)
-        self.setTabOrder(self.newerButton, self.textEdit)
-
         self.textEdit.showRevision.connect(self.showRevision)
         self.textEdit.jumpToCommit.connect(self.jumpToCommit)
 
