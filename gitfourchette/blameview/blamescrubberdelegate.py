@@ -41,10 +41,9 @@ class BlameScrubberDelegate(CommitLogDelegate):
         revision = self.blameModel.revList.revisionForCommit(oid)
 
         # Graph frame
-        if not self.singleItem:
-            graphRect = QRect(rect)
-            paintGraphFrame(painter, graphRect, oid, self.blameModel.graph, set())
-            rect.setLeft(graphRect.right())
+        graphRect = QRect(rect)
+        paintGraphFrame(painter, graphRect, oid, self.blameModel.graph, set())
+        rect.setLeft(graphRect.right())
 
         # Icon
         iconRect = QRect(rect)
