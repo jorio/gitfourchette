@@ -156,10 +156,8 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtwebsockets*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ar.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_bg.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ca.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_cs.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_da.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_de.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_es.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_fa.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_fi.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_gd.qm
@@ -167,7 +165,6 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_gl.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_he.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_hr.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_hu.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_it.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ja.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ka.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ko.qm
@@ -178,11 +175,9 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_nn.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_pl.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_pt_BR.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_pt_PT.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ru.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_sk.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_sl.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_sv.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_tr.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_uk.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_zh_CN.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_zh_TW.qm

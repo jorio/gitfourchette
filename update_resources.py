@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -322,7 +322,7 @@ def compileMoFiles():
         if moSizeKB < 100:
             wipLanguages += [moPath.stem]
 
-    Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages))
+    Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages) + "\n")
 
 
 def formatTranslatorCredits(jsonReportPath: str):
@@ -330,7 +330,7 @@ def formatTranslatorCredits(jsonReportPath: str):
     table = json.loads(blob)
 
     renameLanguages = {
-        "Chinese (Simplified Han script)": "Chinese (Simpl.)",
+        "Chinese (Simplified Han script)": "S. Chinese",
     }
 
     def formatPerson(person):
@@ -341,19 +341,26 @@ def formatTranslatorCredits(jsonReportPath: str):
         else:
             return f"{full} ({user})"
 
-    markup = "<table>\n"
+    tableRows = []
 
     for entry in table:
         for language, people in entry.items():
+            if language == "French":  # I manage that one
+                continue
             languageName = renameLanguages.get(language, language)
-            peopleList = "\n\t<br>".join(formatPerson(person)
-                                         for person in people if person["username"] != "jorio")
-            markup += ("<tr>\n"
-                       f"\t<td align=right>{languageName}: </td>\n"
-                       f"\t<td>{peopleList}</td>\n"
-                       "</tr>\n")
+            peopleList = "\n\t<br>".join(formatPerson(p) for p in people if p["username"] != "jorio")
+            totalContribs = sum(p["change_count"] for p in people)
+            row = ("<tr>\n"
+                   f"\t<td align=right>{languageName}: </td>\n"
+                   f"\t<td>{peopleList}</td>\n"
+                   "</tr>\n")
+            tableRows.append((totalContribs, row))
 
-    markup += "</table>\n"
+    # Sort languages by total amount of contributions
+    tableRows.sort(reverse=True)
+
+    allRows = ''.join(tr for _, tr in tableRows)
+    markup = f"<table>\n{allRows}</table>"
 
     Path(LANG_DIR, "credits.html").write_text(markup)
 
