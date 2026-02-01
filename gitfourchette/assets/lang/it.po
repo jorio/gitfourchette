@@ -296,7 +296,7 @@ msgstr "Ripristina linee…"
 #: diffview/diffview.py:251
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr "Esporta pezzo {0] come patch…"
+msgstr "Esporta pezzo {0} come patch…"
 
 #: diffview/diffview.py:252
 msgid "Revert Hunk…"
@@ -827,7 +827,7 @@ msgstr "Percorso alla cartella di lavoro del repo"
 
 #: filelists/committedfiles.py:40
 msgid "Open Diff in New &Window"
-msgstr "Apri le differenze in un'altra %finestra"
+msgstr "Apri le differenze in un'altra &finestra"
 
 #: filelists/committedfiles.py:49
 msgid "&Revert This Change…"
@@ -858,7 +858,7 @@ msgstr[1] "&Apri {n} file in {0}"
 
 #: filelists/committedfiles.py:66
 msgid "&Current Revision (Working Copy)"
-msgstr "Revisione %corrente (copia di lavoro)"
+msgstr "Revisione &corrente (copia di lavoro)"
 
 #: filelists/committedfiles.py:73
 msgid "&Save a Copy…"
@@ -1060,14 +1060,14 @@ msgstr[1] "E&sporta differenze come patch…"
 #: filelists/filelist.py:309
 #, python-brace-format
 msgid "&Edit in {tool}"
-msgstr "%Modifica in {tool}"
+msgstr "&Modifica in {tool}"
 
 #: filelists/filelist.py:314
 #, python-brace-format
 msgid "Edit &HEAD Version in {tool}"
 msgid_plural "Edit &HEAD Versions in {tool}"
-msgstr[0] "Modifica versione %HEAD in {tool}"
-msgstr[1] "Modifica versioni %HEAD in {tool}"
+msgstr[0] "Modifica versione &HEAD in {tool}"
+msgstr[1] "Modifica versioni &HEAD in {tool}"
 
 #: filelists/filelist.py:376
 msgid "Open in external editor"
@@ -1308,7 +1308,7 @@ msgstr "Passa al commit {0}"
 
 #: forms/checkoutcommitdialog.py:38
 msgid "Move &detached HEAD here"
-msgstr "Muovi qui la HEAD %distaccata"
+msgstr "Muovi qui la HEAD &distaccata"
 
 #: forms/checkoutcommitdialog.py:40
 #, python-brace-format
@@ -1319,7 +1319,7 @@ msgstr "&Reimposta qui la punta del ramo {0}…"
 #: sidebar/sidebar.py:212 sidebar/sidebar.py:308
 #, python-brace-format
 msgid "&Merge into {0}…"
-msgstr "%Unisci in {0}…"
+msgstr "&Unisci in {0}…"
 
 #: forms/checkoutcommitdialog.py:43
 msgid "Detach HEAD"
@@ -1359,7 +1359,7 @@ msgstr "Reimposta la posizione di clonazione predefinita"
 
 #: forms/clonedialog.py:69
 msgid "C&lone"
-msgstr "C%lona"
+msgstr "C&lona"
 
 #: forms/clonedialog.py:77
 #, python-brace-format
@@ -1429,7 +1429,7 @@ msgstr "Rettifica messaggio di commit"
 
 #: forms/commitdialog.py:54
 msgid "A&mend"
-msgstr "Re%ttifica"
+msgstr "Re&ttifica"
 
 #: forms/commitdialog.py:55
 #, python-brace-format
@@ -1650,11 +1650,11 @@ msgstr "Cartella di lavoro"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally"
-msgstr "%Elimina in locale"
+msgstr "&Elimina in locale"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally && Remotely"
-msgstr "%Elimina in locale e da remoto"
+msgstr "&Elimina in locale e da remoto"
 
 #: forms/deletetagdialog.py:47
 #, python-brace-format
@@ -2249,7 +2249,7 @@ msgstr "Lista dei rami che puntano a questo commit."
 #: forms/ui_checkoutcommitdialog.py:98
 msgctxt "CheckoutCommitDialog"
 msgid "Enter &detached HEAD here"
-msgstr "Muovi qui la %HEAD distaccata"
+msgstr "Muovi qui la &HEAD distaccata"
 
 #: forms/ui_checkoutcommitdialog.py:99
 msgctxt "CheckoutCommitDialog"
