@@ -264,8 +264,12 @@ def testSubpatchNoEOL(tempDir, mainWindow):
     assert rw.repo.status() == {}
 
 
-@pytest.mark.parametrize("closeManually", [True, False])
-def testDiffInNewWindow(tempDir, mainWindow, closeManually):
+@pytest.mark.parametrize("closeKey", [
+    "",
+    QKeySequence.StandardKey.Close,
+    "Escape,Escape",  # The test leaves the search bar open, so hit Escape twice
+])
+def testDiffInNewWindow(tempDir, mainWindow, closeKey):
     diffWindowObjectName = "DetachedDiffWindow"
 
     wd = unpackRepo(tempDir)
@@ -291,10 +295,10 @@ def testDiffInNewWindow(tempDir, mainWindow, closeManually):
     assert diffWidget.searchBar.isVisible()
 
     # Make sure the diff is closed when the repowidget is gone
-    if closeManually:
-        QTest.keySequence(diffWidget, QKeySequence.StandardKey.Close)  # Note: "Ctrl+W" may not work in offscreen tests!
-    else:
+    if not closeKey:
         mainWindow.closeAllTabs()
+    else:
+        QTest.keySequence(diffWidget, closeKey)
 
     QTest.qWait(0)  # doesn't get a chance to clean up windows without this...
     assert diffWindowObjectName not in [w.objectName() for w in QApplication.topLevelWidgets()]

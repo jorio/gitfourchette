@@ -92,7 +92,12 @@ def testOpenBlameCorrectTrace(blameWindow):
         blameModel.revList.revisionForCommit(BlameFixture.unrelatedOid)
 
 
-def testOpenBlameFromFileListContextMenu(tempDir, mainWindow):
+@pytest.mark.parametrize("closeKey", [
+    "",
+    QKeySequence.StandardKey.Close,
+    "Escape",
+])
+def testOpenBlameFromFileListContextMenu(tempDir, mainWindow, closeKey):
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
 
@@ -103,7 +108,12 @@ def testOpenBlameFromFileListContextMenu(tempDir, mainWindow):
 
     blameWindow = findWindow("blame", BlameWindow)
     assert isinstance(blameWindow, BlameWindow)
-    blameWindow.close()
+
+    if not closeKey:
+        blameWindow.close()
+    else:
+        QTest.keySequence(blameWindow.textEdit, closeKey)
+
     if QT5 or WINDOWS:  # Qt 5 needs a breather here to actually close window
         QTest.qWait(0)
 

@@ -87,7 +87,7 @@ class CodeView(QPlainTextEdit):
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
 
-        makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
+        makeWidgetShortcut(self, self.onEscapeKey, "Escape")
 
     def setUpAsDetachedWindow(self):
         # In a detached window, we can't rely on the main window's menu bar to
@@ -151,6 +151,12 @@ class CodeView(QPlainTextEdit):
     def hideEvent(self, event: QHideEvent):
         super().hideEvent(event)
         self.visibilityChanged.emit(False)
+
+    def onEscapeKey(self):
+        if self.isDetachedWindow and not self.searchBar.isVisible():
+            self.window().close()
+        else:
+            self.searchBar.hideOrBeep()
 
     # ---------------------------------------------
     # Document replacement
