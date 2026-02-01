@@ -241,7 +241,6 @@ class LoadPatch(RepoTask):
         self.header = self._makeHeader(self.result, locator)
 
         # Prime lexer
-        yield from self.flowEnterUiThread()
         if type(self.result) is DiffDocument:
             dd: DiffDocument = self.result
             dd.oldLexJob, dd.newLexJob = self._primeLexJobs(delta)
@@ -281,7 +280,9 @@ class LoadPatch(RepoTask):
         if threshold != 0 and len(patch) > threshold and not locator.hasFlags(NavFlags.AllowLargeFiles):
             return SpecialDiffError.diffTooLarge(len(patch), threshold, locator)
 
-        yield from self.flowEnterWorkerThread() # TODO: Is this really necessary?
+        # Building the diff document on the background thread lets the user
+        # interrupt the task, e.g. if dragging the mouse across many commits.
+        yield from self.flowEnterWorkerThread()
 
         maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
@@ -308,6 +309,8 @@ class LoadPatch(RepoTask):
                 _("This file contains very long lines."),
                 linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
                 "SP_MessageBoxWarning")
+        finally:
+            yield from self.flowEnterUiThread()
 
         return diffDocument
 
