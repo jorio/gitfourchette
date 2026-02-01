@@ -18,7 +18,7 @@ from collections.abc import Generator
 
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta, SameTextDiff
-from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver
+from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver, argsIf
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -39,9 +39,12 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     """
     Refresh stage/dirty diffs in the RepoModel.
     """
-    # TODO: --no-optional-locks?
-    # TODO: Honor allowWriteIndex
-    gitStatus = yield from task.flowCallGit("status", "--porcelain=v2", "-z", "--untracked-files=all")
+    gitStatus = yield from task.flowCallGit(
+        *argsIf(not allowWriteIndex, "--no-optional-locks"),
+        "status",
+        "--porcelain=v2",
+        "-z",
+        "--untracked-files=all")
     numEntries, stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z()
 
     if APP_DEBUG:
