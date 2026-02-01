@@ -1,5 +1,31 @@
 # GitFourchette version history
 
+## 1.6.0 (2026-02-01)
+
+New features:
+
+- **Mount commits as folders.** This lets you browse the workdir at a specific point in time using your system's file manager. Available by right-clicking a commit in the Commit History. (FUSE 3 required + new optional dependency 'mfusepy')
+- **Auto-fetch remotes periodically (experimental).** Enable this *Settings → Advanced → Auto-fetch remotes every N minutes.*
+
+Quality of life improvements:
+
+- FileList: Improve path readability by muting color of directory string (#77)
+- GraphView context menu: Show branch name instead of "Reset HEAD to Here" (#71)
+- GraphView context menu: Offer merging for any commit, not just branch tips (#74)
+- Image diffs: Ability to toggle between old/new images
+- Blame: Emphasize "new" lines with a different background color in the gutter
+- Allow pressing the Escape key to quickly close detached diff/blame windows
+
+Bug fixes:
+
+- Fix impossible to open worktrees located in a subdirectory of a bare repo (#82)
+- When a merge is blocked by untracked files that would be overwritten, show an error message (instead of denying the merge silently)
+
+Maintenance:
+
+- Continued from the work started in v1.5.0, more operations now use "standard" Git instead of libgit2. This should be transparent to most users; others may benefit from better interoperability with their Git setup. (Reworked operations include: Workdir Status, Commit Diffs, Export Patch, Blame/Revlist, Register/Remove Submodule, New Repository, Add/Remove/Edit Remote, Restore files after stashing)
+- Some work on Windows compatibility (experimental)
+
 ## 1.5.0 (2025-09-08)
 
 **Major change: Better integration with standard Git tooling.** GitFourchette now uses git instead of libgit2 to edit repositories and communicate with remotes. This enables seamless integration into workflows that depend on OpenSSH, hooks, etc.

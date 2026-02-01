@@ -70,7 +70,7 @@ class AboutDialog(QDialog):
         versionText = _("Version {0}", appVersion)
         self.ui.versionLabel.setText(dedent(f"""\
             <span style='color:{mutedTextColorHex(self)}'><b>{versionText}</b> {buildInfo}
-            <br>Copyright © 2025 Iliyas Jorio"""))
+            <br>Copyright © 2026 Iliyas Jorio"""))
 
         # ---------------------------------------------------------------------
         # About page
