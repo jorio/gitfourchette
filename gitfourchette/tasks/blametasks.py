@@ -40,7 +40,9 @@ class OpenBlame(RepoTask):
         self.rw.destroyed.connect(blameWindow.close)
 
         windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
-        windowWidth = blameWindow.textEdit.gutter.calcWidth() + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81) + blameWindow.textEdit.verticalScrollBar().width()
+        windowWidth = (blameWindow.textEdit.gutter.calcWidth()
+                       + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81)
+                       + blameWindow.textEdit.verticalScrollBar().width())
         blameWindow.resize(windowWidth, windowHeight)
         blameWindow.show()
         blameWindow.activateWindow()  # bring to foreground after ProcessDialog
@@ -67,7 +69,11 @@ class OpenBlame(RepoTask):
         if len(revList) == 0:
             raise AbortTask(_("File {0} has no history in the repository.", hquoe(seedPath)))
 
-        yield from self._insertWorkdirRevision(revList, seedPath)
+        wdDelta = self.repoModel.findWorkdirDelta(seedPath)
+        if wdDelta is not None:
+            topRev = revList.sequence[0]
+            wdRev = Revision(wdDelta.new.path, UC_FAKEID, parentIds=[topRev.commitId], status=wdDelta.status)
+            revList.insert(0, wdRev)
 
         return revList
 
@@ -142,29 +148,6 @@ class OpenBlame(RepoTask):
         node.status = delta.status
         return delta
 
-    def _insertWorkdirRevision(self, revList: RevList, seedPath: str):
-        rm = self.repoModel
-        hasPendingChanges = (
-                seedPath in (d.old.path for d in rm.workdirStagedDeltas)
-                or seedPath in (d.new.path for d in rm.workdirStagedDeltas)
-                or seedPath in (d.new.path for d in rm.workdirUnstagedDeltas))
-
-        if not hasPendingChanges:
-            return
-
-        topRev = revList.sequence[0]
-        driver = yield from self.flowCallGit(
-            "merge-base", "--is-ancestor", str(topRev.commitId), "HEAD",
-            autoFail=False)
-
-        if driver.exitCode() != 0:
-            return
-
-        wdRev = Revision(
-            seedPath, UC_FAKEID, parentIds=[topRev.commitId],
-            status="M")  # TODO actual status char...
-
-        revList.insert(0, wdRev)
 
 
 class BlameRevision(RepoTask):
@@ -237,7 +220,10 @@ class BlameRevision(RepoTask):
             text = _("Binary blob")
             text = f"*** {text} ***"
         elif revision.fullText is None:
-            text = _("File deleted in commit {0}", shortHash(revision.commitId))
+            if revision.commitId == NULL_OID:
+                text = _("File deleted in working directory")
+            else:
+                text = _("File deleted in commit {0}", shortHash(revision.commitId))
             text = f"*** {text} ***"
         else:
             text = revision.fullText

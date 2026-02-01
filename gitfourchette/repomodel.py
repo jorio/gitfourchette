@@ -583,3 +583,22 @@ class RepoModel:
             return
         assert self.gpgStatusCache[oid][0] == GpgStatus.Pending
         self.gpgVerifyQueue.add(oid)
+
+    def findWorkdirDelta(self, path: str):
+        """
+        Return a delta for this path among the uncommitted changes.
+        Return None if the file has no uncommitted changes.
+        """
+
+        staged = self.workdirStagedDeltas
+        unstaged = self.workdirUnstagedDeltas
+
+        # Look at UNSTAGED changes first as they are the freshest
+        for deltas in (unstaged, staged):
+            try:
+                return next(d for d in deltas if path in (d.old.path, d.new.path))
+            except StopIteration:
+                pass
+
+        # File has no uncommitted changes
+        return None

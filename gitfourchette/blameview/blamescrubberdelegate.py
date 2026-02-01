@@ -49,7 +49,8 @@ class BlameScrubberDelegate(CommitLogDelegate):
         iconRect = QRect(rect)
         iconSize = min(16, iconRect.height())
         iconRect.setWidth(iconSize)
-        icon = stockIcon(f"status_{revision.status.lower()}")
+        statusLetter = "A" if revision.status == "?" else revision.status
+        icon = stockIcon(f"status_{statusLetter.lower()}")
         icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         rect.setLeft(iconRect.right() + 5)
 

@@ -419,9 +419,17 @@ class RepoWidget(QWidget):
         LexJobCache.clear()
 
     def blameFile(self, path="", atCommit=NULL_OID):
+        # Path not specified: pick one from the current locator
         if not path:
-            path = self.navLocator.path
+            loc = self.navLocator
+            path = loc.path
             atCommit = self.navLocator.commit
+
+            # If it's an uncommitted rename, start tracing the file's history
+            # from its old name.
+            if loc.context.isWorkdir():
+                assert atCommit == NULL_OID
+                path = self.repoModel.findWorkdirDelta(loc.path).old.path
 
         if not path:
             showInformation(self, tasks.OpenBlame.name(), _("Please select a file before performing this action."))

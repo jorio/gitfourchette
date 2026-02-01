@@ -14,6 +14,7 @@ import pytest
 from collections.abc import Generator
 from typing import Literal
 
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from .util import *
 
@@ -543,6 +544,47 @@ def testBlameLineByLine(tempDir, mainWindow, scenarioKey):
 
     for line, expectedOid in zip(annotatedLines, scenario.lineCommits, strict=True):
         assert str(line.commitId).startswith(expectedOid)
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
+
+
+def testBlameDeletedFileInWorkdir(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    os.unlink(f"{wd}/master.txt")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "blame")
+
+    blameWindow = findWindow("blame", BlameWindow)
+    assert findTextInWidget(blameWindow.scrubber, "uncommitted changes")
+    qteFind(blameWindow.textEdit, "file deleted in working directory", plainText=True)
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
+
+
+@pytest.mark.parametrize("method", ["menubar", "context"])
+def testBlameRenamedFileInWorkdir(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    GitDriver.runSync("mv", "master.txt", "renamed.txt", directory=wd, strict=True)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inStaged("renamed.txt"), check=True)
+
+    if method == "menubar":
+        triggerMenuAction(mainWindow.menuBar(), "view/blame")
+    elif method == "context":
+        triggerContextMenuAction(rw.stagedFiles.viewport(), "blame")
+    else:
+        raise NotImplementedError(f"unsupported method {method}")
+
+    blameWindow = findWindow("blame", BlameWindow)
+    assert findTextInWidget(blameWindow.scrubber, "uncommitted changes")
+    assert qteFind(blameWindow.textEdit, "On master\nOn master", plainText=True)
 
     blameWindow.close()
     if QT5:  # Qt 5 needs a breather here to actually close window

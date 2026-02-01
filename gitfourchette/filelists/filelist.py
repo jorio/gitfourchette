@@ -715,7 +715,11 @@ class FileList(QListView):
 
     def blameFile(self):
         def run(delta: GitDelta):
-            OpenBlame.invoke(self, delta.new.path, self.commitId)
+            if delta.context.isWorkdir():
+                path = delta.old.path
+            else:
+                path = delta.new.path
+            OpenBlame.invoke(self, path, self.commitId)
 
         self.confirmBatch(run, OpenBlame.name(), _("Really open <b>{n} windows</b>?"))
 

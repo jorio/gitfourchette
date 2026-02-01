@@ -435,8 +435,8 @@ def triggerContextMenuAction(widget: QWidget, pattern: str):
         pass
 
 
-def qteFind(qte: QTextEdit, pattern: str, plainText=False):
-    assert isinstance(qte, QTextEdit)
+def qteFind(qte: QTextEdit | QPlainTextEdit, pattern: str, plainText=False):
+    assert isinstance(qte, (QTextEdit, QPlainTextEdit))
     if plainText:
         match = re.search(pattern, qte.toPlainText(), re.I | re.M | re.DOTALL)
         found = bool(match)
@@ -684,11 +684,13 @@ def findChildWithText(
 
 
 def findTextInWidget(
-        widget: QLabel | QAbstractButton | QStatusBar | QAction,
+        widget: QAction | QLabel | QAbstractButton | QStatusBar | QComboBox,
         pattern: str
 ) -> re.Match[str] | None:
     if isinstance(widget, QStatusBar):
         text = widget.currentMessage()
+    elif isinstance(widget, QComboBox):
+        text = widget.currentText()
     else:
         text = widget.text()
     if "<" not in text:  # unlikely to be HTML
