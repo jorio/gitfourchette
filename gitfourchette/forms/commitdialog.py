@@ -1,11 +1,13 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import settings
 from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.forms.ui_commitdialog import Ui_CommitDialog
+from gitfourchette.gitmoji.gitmojicompleter import GitmojiCompleter
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -110,6 +112,9 @@ class CommitDialog(QDialog):
 
         # Focus on summary editor before showing
         self.ui.summaryEditor.setFocus()
+
+        if settings.prefs.gitmoji:
+            GitmojiCompleter(self.ui.summaryEditor)
 
     def sanitizeLineBreaksInSummary(self, text: str):
         if '\n' not in text:
