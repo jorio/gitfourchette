@@ -29,6 +29,7 @@ from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.forms.welcomewidget import WelcomeWidget
 from gitfourchette.gitdriver import GitDriver
+from gitfourchette.gitmoji.gitmojimodel import GitmojiModel
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -1096,6 +1097,11 @@ class MainWindow(QMainWindow):
 
         self.showMenuBarAction.setCheckable(True)
         self.showMenuBarAction.setChecked(settings.prefs.showMenuBar)
+
+        if settings.prefs.gitmoji:
+            GitmojiModel.loadTable()
+        else:
+            GitmojiModel.clearTable()
 
         app.prefsChanged.emit(list(prefDiff))
 

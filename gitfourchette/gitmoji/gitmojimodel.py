@@ -21,19 +21,20 @@ class GitmojiModel(QAbstractItemModel):
     GitmojiTable = {}
     GitmojiKeys = []
 
-    def __init__(self, parent: QObject):
-        super().__init__(parent)
+    @classmethod
+    def clearTable(cls):
+        cls.GitmojiTable.clear()
+        cls.GitmojiKeys.clear()
 
-        if self.GitmojiTable:
-            return
-
+    @classmethod
+    def loadTable(cls):
         jsonPath = Path(QFile("assets:gitmojis.json").fileName())
         jsonBlob = jsonPath.read_text()
         jsonData = json.loads(jsonBlob)
         rawTable = {j["code"]: GitmojiItem(j["emoji"], j["description"])
                     for j in jsonData["gitmojis"]}
-        GitmojiModel.GitmojiKeys = sorted(rawTable.keys())
-        GitmojiModel.GitmojiTable = {k: rawTable[k] for k in GitmojiModel.GitmojiKeys}
+        cls.GitmojiKeys = sorted(rawTable.keys())
+        cls.GitmojiTable = {k: rawTable[k] for k in cls.GitmojiKeys}
 
     def rowCount(self, parent = ...):
         return len(self.GitmojiKeys)

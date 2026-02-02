@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,7 @@ import re
 from collections.abc import Iterable, Callable, Container
 from html import escape as escape
 
+from gitfourchette.gitmoji.gitmojimodel import GitmojiModel
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 
@@ -41,6 +42,18 @@ def messageSummary(body: str, elision=" [\u2026]"):
         message = message[:newline]
         if messageContinued:
             message += elision
+
+    # Parse plaintext gitmoji
+    if message.startswith(":") and GitmojiModel.GitmojiTable:
+        nextColon = message.find(":", 1)
+        if nextColon >= 0:
+            gitmojiCode = message[0:nextColon+1]
+            try:
+                gitmoji = GitmojiModel.GitmojiTable[gitmojiCode]
+                message = gitmoji.emoji + message[nextColon+1:]
+            except KeyError:
+                pass
+
     return message, messageContinued
 
 
