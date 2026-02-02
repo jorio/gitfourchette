@@ -72,6 +72,12 @@ class LoggingLevel(enum.IntEnum):
     Warning = logging.WARNING
 
 
+class GitmojiCompletion(enum.StrEnum):
+    Off = ""
+    Emoji = "emoji"
+    PlainText = "plaintext"
+
+
 @dataclasses.dataclass
 class Prefs(PrefsFile):
     _filename = "prefs.json"
@@ -147,7 +153,7 @@ class Prefs(PrefsFile):
     animations                  : bool                  = True
     condensedFonts              : bool                  = True
     pygmentsPlugins             : bool                  = False
-    gitmoji                     : bool                  = True
+    gitmoji                     : GitmojiCompletion     = GitmojiCompletion.Emoji
     verbosity                   : LoggingLevel          = LoggingLevel.Debug if APP_TESTMODE else LoggingLevel.Warning
     forceQtApi                  : QtApiNames            = QtApiNames.Automatic
 

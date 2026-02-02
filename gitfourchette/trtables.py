@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, GitmojiCompletion
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -248,6 +248,12 @@ class TrTables:
                 GpgStatus.Bad                   : _("Bad signature"),
                 GpgStatus.ProcessError          : _("Failed to start verification process"),
             },
+
+            GitmojiCompletion: {
+                GitmojiCompletion.Off           : _p("gitmoji", "Off"),
+                GitmojiCompletion.Emoji         : _p("gitmoji", "Insert Unicode emoji"),
+                GitmojiCompletion.PlainText     : _p("gitmoji", "Insert plain-text :code:"),
+            }
         }
 
     @staticmethod
@@ -490,6 +496,11 @@ class TrTables:
             "condensedFonts_help": "<p>" + _(
                 "When a branch name or author name is too long to fit in its allotted space, "
                 "condense the font before truncating the text."),
+            "gitmoji": _("Gitmoji support # in your commit messages"),
+            "gitmoji_help": _("Gitmoji is an initiative to standardize emojis in commit messages. "
+                              "This option enables a gitmoji picker when you start typing a "
+                              "commit message that begins with a colon (e.g. {0}).",
+                              "<code>:bug:</code>&nbsp;&rarr;&nbsp;&#x1f41b;"),
 
             "externalEditor": _("Text editor"),
             "externalDiff": _("Diff tool"),

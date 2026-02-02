@@ -4,8 +4,10 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import settings
 from gitfourchette.gitmoji.gitmojimodel import GitmojiModel
 from gitfourchette.qt import *
+from gitfourchette.settings import GitmojiCompletion
 
 
 class GitmojiCompleter(QObject):
@@ -21,7 +23,10 @@ class GitmojiCompleter(QObject):
         lineEdit.setCompleter(self.completer)
         self.completer.popup().setItemDelegate(GitmojiItemDelegate(self))
         self.destroyed.connect(self.onDestroy)
-        self.completer.activated.connect(self.onCompleterActivated)
+
+        if settings.prefs.gitmoji == GitmojiCompletion.Emoji:
+            self.completer.activated.connect(self.onCompleterActivated)
+
         QApplication.instance().installEventFilter(self)
 
     def onDestroy(self):
