@@ -98,6 +98,11 @@ A hash consisting of all zeros.
 Used in some places to denote the absence of an object.
 """
 
+EMPTYTREE_OID = Oid(raw=b'4b825dc642cb6eb9a060e54bf8d69288fbee4904')
+"""
+SHA-1 hash of the empty tree (sha1(b"tree \0")).
+"""
+
 DOT_GITMODULES = ".gitmodules"
 
 CORE_STASH_MESSAGE_PATTERN = _re.compile(r"^On (?:[^\s:]+|\(no branch\)): (.+)")

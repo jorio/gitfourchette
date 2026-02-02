@@ -410,11 +410,9 @@ class Jump(RepoTask):
             area.diffBanner.lastWarningWasDismissed = False
 
             # Load commit
-            tokens = GitDriver.buildShowCommand(locator.commit)
+            tokens = GitDriver.buildDiffRawCommand(commit, compareFrom=repoModel.pinnedCommit)
             driver = yield from self.flowCallGit(*tokens)
-            deltas = driver.readShowRawZ()
-            # TODO: PINNED COMMITS 2026
-            # subtask = yield from self.flowSubtask(LoadCommit, locator, repoModel.pinnedCommit)
+            deltas = driver.readDiffRawZ()
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 

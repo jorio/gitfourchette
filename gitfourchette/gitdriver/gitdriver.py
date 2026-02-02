@@ -19,7 +19,7 @@ from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitShow
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, Commit, Oid
+from gitfourchette.porcelain import version_to_tuple, Commit, Oid, NULL_OID, EMPTYTREE_OID
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
@@ -265,18 +265,17 @@ class GitDriver(QProcess):
         return numEntries, stagedDeltas, unstagedDeltas
 
     @classmethod
-    def buildShowCommand(cls, oid: Oid):
+    def buildDiffRawCommand(cls, commit: Commit, compareFrom: Oid = NULL_OID):
+        compareFrom = cls._compareCommitFrom(commit, compareFrom)
+
         return [
             "-c", "core.abbrev=no",
-            "show",
-            "--diff-merges=1",
-            "-z",
-            "--raw",
-            "--format=",  # skip info about the commit itself
-            str(oid),
+            "diff", "-s", "-z", "--raw",
+            str(compareFrom),
+            str(commit.tree_id),
         ]
 
-    def readShowRawZ(self) -> list[GitDelta]:
+    def readDiffRawZ(self) -> list[GitDelta]:
         stdout = self.stdoutScrollback()
         deltas = list(parseGitShow(stdout))
         return deltas
@@ -286,7 +285,8 @@ class GitDriver(QProcess):
             cls,
             delta: GitDelta | None,
             commit: Commit | None = None,
-            binary=True
+            compareFrom: Oid = NULL_OID,
+            binary=True,
     ) -> list[str]:
         tokens = [
             "-c", "core.abbrev=no",
@@ -299,14 +299,9 @@ class GitDriver(QProcess):
         # Append commits
         if commit is not None:
             assert delta is None or delta.context == NavContext.COMMITTED
-            try:
-                # Compare to first parent
-                firstParent = commit.parent_ids[0]
-            except IndexError:
-                # Root commit: compare to empty tree (sha1(b"tree \0"))
-                firstParent = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-            tokens.append(str(firstParent))
-            tokens.append(str(commit.id))
+            compareFrom = cls._compareCommitFrom(commit, compareFrom)
+            tokens.append(str(compareFrom))
+            tokens.append(str(commit.tree_id))
 
         # Append paths
         if delta is not None:
@@ -319,6 +314,17 @@ class GitDriver(QProcess):
                 tokens += ["--", delta.new.path]
 
         return tokens
+
+    @classmethod
+    def _compareCommitFrom(cls, commit: Commit, compareTo: Oid = NULL_OID) -> Oid:
+        if compareTo != NULL_OID:
+            return compareTo
+
+        # Compare to first parent's tree (or empty tree if root commit)
+        try:
+            return commit.parents[0].tree_id
+        except IndexError:
+            return EMPTYTREE_OID
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

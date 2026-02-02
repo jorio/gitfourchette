@@ -137,9 +137,9 @@ class OpenBlame(RepoTask):
         return revision, bottomPath
 
     def _refineWithDelta(self, node: Revision):
-        tokens = GitDriver.buildShowCommand(node.commitId)
+        tokens = GitDriver.buildDiffRawCommand(node.commitId)
         driver = yield from self.flowCallGit(*tokens)
-        deltas = driver.readShowRawZ()
+        deltas = driver.readDiffRawZ()
         try:
             delta = next(d for d in deltas if d.new.path == node.path)
         except StopIteration:
