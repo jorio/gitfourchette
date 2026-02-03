@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, ClickToStage
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -248,6 +248,12 @@ class TrTables:
                 GpgStatus.Bad                   : _("Bad signature"),
                 GpgStatus.ProcessError          : _("Failed to start verification process"),
             },
+
+            ClickToStage: {
+                ClickToStage.Off                : _p("click to stage", "Off"),
+                ClickToStage.MiddleClick        : _p("click to stage", "Middle-click files & diff lines"),
+                ClickToStage.DoubleClick        : _p("click to stage", "Double-click files"),
+            }
         }
 
     @staticmethod
@@ -348,6 +354,8 @@ class TrTables:
         from gitfourchette.exttools.usercommand import UserCommand
         from gitfourchette.appconsts import APP_DISPLAY_NAME
         from gitfourchette.repomodel import GpgStatus
+        from gitfourchette.qt import QKeySequence
+        from gitfourchette.globalshortcuts import GlobalShortcuts
 
         sshAuthSock = os.environ.get("SSH_AUTH_SOCK", "")
         if sshAuthSock:
@@ -361,6 +369,9 @@ class TrTables:
             sshAuthSockHelp = _("Note: Per {k}, no ssh-agent seems to be running on your system.")
         sshAuthSockHelp = "<blockquote>" + sshAuthSockHelp.format(
             k="SSH_AUTH_SOCK", v=escape(sshAuthSock), c="AddKeysToAgent")
+
+        stageKey = QKeySequence(GlobalShortcuts.stageHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
+        discardKey = QKeySequence(GlobalShortcuts.discardHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
 
         return {
             "general": _p("Prefs", "General"),
@@ -387,11 +398,12 @@ class TrTables:
             "showMenuBar": _("Show menu bar"),
             "showMenuBar_help": _("When the menu bar is hidden, press the Alt key to show it again."),
             "resetDontShowAgain": _("Restore all “don’t show this again” messages"),
-            "middleClickToStage": _("Middle-click to stage/unstage a file or the selected lines"),
-            "middleClickToStage_help": paragraphs(
-                _("This option lets you:"),
-                "\u25aa " + _("Middle-click a file name in the Unstaged/Staged boxes to stage/unstage this file;"),
-                "\u25aa " + _("Select lines in the diff, then middle-click to stage/unstage your selection."),
+            "clickToStage": _("Click to stage"),
+            "clickToStage_help": paragraphs(
+                _("Quickly stage or unstage files in the uncommitted changes by middle-clicking or double-clicking them."),
+                _("If you choose the “Middle-click” option, you will also be able to middle-click the selected lines in the diff to stage them."),
+                _("Note: You can always stage/unstage by pressing {0} or {1} when the file lists or the diff have keyboard focus.",
+                  stageKey, discardKey)
             ),
             "pygmentsPlugins": _("Allow third-party Pygments plugins"),
             "pygmentsPlugins_help": "<p>" + _("Let {app} load third-party Pygments plugins installed on your system. "

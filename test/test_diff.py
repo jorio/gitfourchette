@@ -68,7 +68,7 @@ def testDiffDeletedFile(tempDir, mainWindow):
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 @pytest.mark.parametrize("method", ["key", "button", "mmbviewport", "mmbgutter"])
 def testDiffViewStageLines(tempDir, mainWindow, method):
-    mainWindow.onAcceptPrefsDialog({"middleClickToStage": True})
+    mainWindow.onAcceptPrefsDialog({"clickToStage": "middle"})
 
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/NewFile.txt", "line A\nline B\nline C\nline D\nline E")

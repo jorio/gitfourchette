@@ -518,7 +518,15 @@ def testFileListShowInFolder(tempDir, mainWindow):
         assert Path(wd, "a").samefile(url.toLocalFile())
 
 
-def testMiddleClickToStageFile(tempDir, mainWindow):
+@pytest.mark.parametrize("clickType", ["middle", "double"])
+def testMiddleClickOrDoubleClickToStageFile(tempDir, mainWindow, clickType):
+    def specialClick(widget: QWidget):
+        clickPos = QPoint(2, 2)
+        if clickType == "middle":
+            QTest.mouseClick(widget, Qt.MouseButton.MiddleButton, pos=clickPos)
+        elif clickType == "double":
+            QTest.mouseDClick(widget, Qt.MouseButton.LeftButton, pos=clickPos)
+
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
     rw = mainWindow.openRepo(wd)
@@ -528,19 +536,19 @@ def testMiddleClickToStageFile(tempDir, mainWindow):
     initialStatus = rw.repo.status()
     assert initialStatus == {'a/a1.txt': FileStatus.INDEX_MODIFIED | FileStatus.WT_MODIFIED}
 
-    # Middle-clicking has no effect as long as middleClickToStage is off (by default)
-    QTest.mouseClick(rw.stagedFiles.viewport(), Qt.MouseButton.MiddleButton, pos=QPoint(2, 2))
+    # Special-clicking has no effect as long as the setting is off (by default)
     assert initialStatus == rw.repo.status()
 
-    # Enable middleClickToStage
-    settings.prefs.middleClickToStage = True
+    # Enable special-click to stage
+    settings.prefs.clickToStage = clickType
 
-    # Unstage file by middle-clicking
-    QTest.mouseClick(rw.stagedFiles.viewport(), Qt.MouseButton.MiddleButton, pos=QPoint(2, 2))
+    # Unstage file by special-clicking
+    specialClick(rw.stagedFiles.viewport())
+    # pauseDialog("Get ready to unstage")
     assert rw.repo.status() == {'a/a1.txt': FileStatus.WT_MODIFIED}
 
-    # Stage file by middle-clicking
-    QTest.mouseClick(rw.dirtyFiles.viewport(), Qt.MouseButton.MiddleButton, pos=QPoint(2, 2))
+    # Stage file by special-clicking
+    specialClick(rw.dirtyFiles.viewport())
     assert rw.repo.status() == {'a/a1.txt': FileStatus.INDEX_MODIFIED}
 
 

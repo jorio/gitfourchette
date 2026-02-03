@@ -20,6 +20,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
+from gitfourchette.settings import ClickToStage
 from gitfourchette.tasks import *
 from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
@@ -568,7 +569,12 @@ class FileList(QListView):
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         super().mouseReleaseEvent(event)  # Let standard QListView selection occur first
-        if event.button() == Qt.MouseButton.MiddleButton:
+        if event.button() == Qt.MouseButton.MiddleButton and settings.prefs.clickToStage == ClickToStage.MiddleClick:
+            self.onSpecialMouseClick()
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent):
+        super().mouseDoubleClickEvent(event)  # Let standard QListView selection occur first
+        if event.button() == Qt.MouseButton.LeftButton and settings.prefs.clickToStage == ClickToStage.DoubleClick:
             self.onSpecialMouseClick()
 
     def onSpecialMouseClick(self):
