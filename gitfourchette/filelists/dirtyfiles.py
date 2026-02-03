@@ -174,3 +174,6 @@ class DirtyFiles(FileList):
             return
 
         NewIgnorePattern.invoke(self, selected[0])
+
+    def onItemDoubleClicked(self, index: QModelIndex):
+        self.stage()

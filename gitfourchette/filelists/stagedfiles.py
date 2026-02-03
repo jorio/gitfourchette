@@ -88,3 +88,6 @@ class StagedFiles(FileList):
     def onSpecialMouseClick(self):
         if settings.prefs.middleClickToStage:
             self.unstage()
+
+    def onItemDoubleClicked(self, index: QModelIndex):
+        self.unstage()

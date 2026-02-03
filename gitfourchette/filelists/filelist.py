@@ -616,6 +616,17 @@ class FileList(QListView):
         """ Override this if you want to react to a middle click. """
         pass
 
+    def mouseDoubleClickEvent(self, event: QMouseEvent):
+        index = self.indexAt(event.pos())
+        if index.isValid():
+            self.onItemDoubleClicked(index)
+        else:
+            super().mouseDoubleClickEvent(event)
+
+    def onItemDoubleClicked(self, index: QModelIndex):
+        """ Override this if you want to react to a double click. """
+        pass
+
     def selectedDeltas(self) -> Generator[GitDelta, None, None]:
         for index in self.selectedIndexes():
             yield index.data(FileListModel.Role.Delta)
