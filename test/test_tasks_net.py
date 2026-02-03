@@ -754,6 +754,8 @@ def testPushDeleteTag(tempDir, mainWindow):
         assert "etiquette" not in bareRepo.listall_tags()
 
 
+@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
+                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testForcePushWithLeasePass(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
@@ -771,6 +773,8 @@ def testForcePushWithLeasePass(tempDir, mainWindow):
     assert rw.repo.branches.remote["remote2/master"].target == newOid
 
 
+@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
+                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testForcePushWithLeaseRejected(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -804,6 +808,8 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
 
 @pytest.mark.notParallelizableOnWindows
+@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
+                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
