@@ -170,6 +170,7 @@ class RepoModel:
         self.initializedSubmodules = set()
         self.remotes = []
         self.upstreams = {}
+        self.aheadBehind = {}  # filled in outside RepoModel (needs git call)
 
         self.hiddenRefs = set()
         self.hiddenCommits = set()

@@ -11,6 +11,7 @@ from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriver
+from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -71,9 +72,15 @@ class PrimeRepo(RepoTask):
         repoModel = RepoModel(repo)
         self.setRepoModel(repoModel)  # required to execute subtasks later
 
-        # Get superproject
-        driver = yield from self.flowCallGit("rev-parse", "--show-superproject-working-tree", workdir=path)
-        repoModel.superproject = driver.stdoutScrollback().rstrip()
+        # Fill in superproject
+        with Benchmark("superproject"):
+            driver = yield from self.flowCallGit("rev-parse", "--show-superproject-working-tree", workdir=path)
+            repoModel.superproject = driver.stdoutScrollback().rstrip()
+
+        # Fill in ahead/behind
+        with Benchmark("ahead-behind"):
+            driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname:short) %(upstream:track)", "refs/heads")
+            repoModel.aheadBehind = dict(parseAheadBehind(driver.stdoutScrollback()))
 
         # ---------------------------------------------------------------------
         # EXIT UI THREAD

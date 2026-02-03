@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import pytest
+import re
 
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import UC_FAKEID
@@ -443,3 +444,34 @@ def testSidebarVisitRemoteWebPage(tempDir, mainWindow):
         menu = rw.sidebar.makeNodeMenu(node)
         triggerMenuAction(menu, "visit web page")
         assert services.urls[-1] == QUrl("https://github.com/libgit2/TestGitRepository/tree/master")
+
+
+def testSidebarAheadBehind(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        b = repo.create_branch_from_commit("ahead17", Oid(hex=("6e1475206e57110fcef4b92320436c1e9872a322")))
+        b.upstream = repo.branches.remote["origin/no-parent"]
+
+        b = repo.create_branch_from_commit("behind3", Oid(hex=("6e1475206e57110fcef4b92320436c1e9872a322")))
+        b.upstream = repo.branches.remote["origin/master"]
+
+        b = repo.create_branch_from_commit("ahead10-behind1", Oid(hex=("c070ad8c08840c8116da865b2d65593a6bb9cd2a")))
+        b.upstream = repo.branches.remote["origin/no-parent"]
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/ahead17")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search("17 commits ahead", tip, re.I)
+    assert not re.search("commits? behind", tip, re.I)
+
+    index = rw.sidebar.indexForRef("refs/heads/behind3")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search("3 commits behind", tip, re.I)
+    assert not re.search("commits? ahead", tip, re.I)
+
+    index = rw.sidebar.indexForRef("refs/heads/ahead10-behind1")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search("10 commits ahead", tip, re.I)
+    assert re.search("1 commit behind", tip, re.I)

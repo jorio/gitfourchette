@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -210,6 +210,7 @@ class SidebarModel(QAbstractItemModel):
     class Role:
         Ref = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         IconKey = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
+        AheadBehind = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 2)
 
     @property
     def _parentWidget(self) -> QWidget:
@@ -591,17 +592,36 @@ class SidebarModel(QAbstractItemModel):
                 if not BRANCH_FOLDERS:
                     return branchName
                 return branchName.rsplit("/", 1)[-1]
+            elif role == SidebarModel.Role.AheadBehind:
+                try:
+                    return self.repoModel.aheadBehind[branchName]
+                except KeyError:
+                    return None
             elif refRole:
                 return refName
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (local branch)", btag(branchName))
+
                 # Try to get the upstream
-                with suppress(KeyError):
+                try:
                     upstream = self.repoModel.upstreams[branchName]
                     text += "\n" + _("Upstream: {0}", escape(upstream))
+                except KeyError:
+                    text += "\n" + _("No upstream branch")
+                else:
+                    try:
+                        ahead, behind = self.repoModel.aheadBehind[branchName]
+                        if ahead:
+                            text += "\n \u2191 " + _n("{n} commit ahead", "{n} commits ahead", ahead)
+                        if behind:
+                            text += "\n \u2193 " + _n("{n} commit behind", "{n} commits behind", behind)
+                    except KeyError:
+                        text += "\n" + _("Up-to-date with upstream")
+
                 if branchName == self._checkedOut:
                     text += f"\n{stockIconImgTag('git-head')} HEAD " + _("(this is the checked-out branch)")
+
                 text += self.visibilityToolTip(node)
                 self.cacheToolTip(index, text)
                 return text

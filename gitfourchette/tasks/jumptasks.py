@@ -19,6 +19,7 @@ from collections.abc import Generator
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta, SameTextDiff
 from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver, argsIf
+from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -616,6 +617,15 @@ class RefreshRepo(RepoTask):
             # Load commits from changed refs only
             if refsChanged:
                 self.syncTopOfGraph(oldRefs)
+
+        # Refresh ahead/behind. Although Repository.ahead_behind exists, it's
+        # slower than "git --for-each-ref" in complex graphs.
+        # TODO: Would it be faster to calc this with our pre-cached graph?
+        if refsChanged or upstreamsChanged:
+            # TODO: This bit is duplicated with PrimeRepo
+            with Benchmark("ahead-behind"):
+                driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname:short) %(upstream:track)", "refs/heads")
+                repoModel.aheadBehind = dict(parseAheadBehind(driver.stdoutScrollback()))
 
         # Schedule a repaint of the entire GraphView if the refs changed
         if effectFlags & (TaskEffects.Head | TaskEffects.Refs):
