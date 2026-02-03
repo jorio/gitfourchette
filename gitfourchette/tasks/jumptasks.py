@@ -41,6 +41,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     """
     gitStatus = yield from task.flowCallGit(
         *argsIf(not allowWriteIndex, "--no-optional-locks"),
+        "-c", "status.renames=true",
         "status",
         "--porcelain=v2",
         "-z",
