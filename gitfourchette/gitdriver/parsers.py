@@ -37,6 +37,8 @@ _gitSimplifiedModes = [
 ]
 
 
+_aheadBehindPattern = re.compile(r"(.+) \[(?:behind (\d+)|ahead (\d+), behind (\d+)|ahead (\d+))]")
+
 def distillMode(realMode: int) -> FileMode:
     """
     Git uses simplified file modes that may not accurately reflect a file's
@@ -238,3 +240,17 @@ def parseGitBlame(stdout: str):
         else:
             # Ignore author, author-mail, etc.
             pass
+
+
+def parseAheadBehind(stdout: str):
+    for pos, endPos in iterateLines(stdout):
+        match = _aheadBehindPattern.match(stdout, pos, endPos)
+        if not match:
+            continue
+        ref, behindOnly, dualAhead, dualBehind, aheadOnly = match.groups()
+        if behindOnly:
+            yield ref, (0, int(behindOnly))
+        elif aheadOnly:
+            yield ref, (int(aheadOnly), 0)
+        else:
+            yield ref, (int(dualAhead), int(dualBehind))

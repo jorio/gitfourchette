@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -17,6 +17,9 @@ PE_COLLAPSED = QStyle.PrimitiveElement.PE_IndicatorArrowRight
 EXPAND_TRIANGLE_WIDTH = 6
 PADDING = 4
 EYE_WIDTH = 16
+
+SYMBOL_AHEAD = "\u2191"
+SYMBOL_BEHIND = "\u2193"
 
 
 class SidebarClickZone(enum.IntEnum):
@@ -149,11 +152,40 @@ class SidebarDelegate(QStyledItemDelegate):
             icon.paint(painter, r, option.decorationAlignment, mode=iconMode)
             option.rect.adjust(r.width() + PADDING*150//100, 0, 0, 0)
 
-        # Draw text
+        # Prepare text
         textRect = QRect(option.rect)
         if makeRoomForEye:
             textRect.adjust(0, 0, -EYE_WIDTH, 0)
+
         font: QFont = index.data(Qt.ItemDataRole.FontRole) or option.font
+        baseFontSize = font.pointSizeF()
+
+        # Draw ahead/behind indicators
+        aheadBehind = index.data(SidebarModel.Role.AheadBehind)
+        if aheadBehind and not makeRoomForEye:
+            a, b = aheadBehind
+
+            # Set a smaller font
+            font.setPointSizeF(baseFontSize * (.67 if a and b else .75))
+            painter.setFont(font)
+            metrics = painter.fontMetrics()
+
+            textA = f"{a} {SYMBOL_AHEAD}" if a else ""
+            textB = f"{b} {SYMBOL_BEHIND}" if b else ""
+            advanceA = metrics.horizontalAdvance(textA) if a else 0
+            advanceB = metrics.horizontalAdvance(textB) if b else 0
+
+            AF = Qt.AlignmentFlag
+            painter.drawText(textRect, AF.AlignRight | (AF.AlignTop if b else AF.AlignVCenter) , textA)
+            painter.drawText(textRect, AF.AlignRight | (AF.AlignBottom if a else AF.AlignVCenter), textB)
+
+            # Restore font size
+            font.setPointSizeF(baseFontSize)
+
+            # Clip rect
+            textRect.setRight(textRect.right() - max(advanceA, advanceB))
+
+        # Draw text
         painter.setFont(font)
         fullText = index.data(Qt.ItemDataRole.DisplayRole)
         isCannedString = node.kind <= SidebarItem.SubmodulesHeader
