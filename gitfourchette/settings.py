@@ -72,6 +72,12 @@ class LoggingLevel(enum.IntEnum):
     Warning = logging.WARNING
 
 
+class ClickToStage(enum.StrEnum):
+    Off = ""
+    MiddleClick = "middle"
+    DoubleClick = "double"
+
+
 @dataclasses.dataclass
 class Prefs(PrefsFile):
     _filename = "prefs.json"
@@ -140,9 +146,9 @@ class Prefs(PrefsFile):
     _category_advanced          : int                   = 0
     maxRecentRepos              : int                   = 20
     shortHashChars              : int                   = 7
+    clickToStage                : ClickToStage          = ClickToStage.Off
     autoRefresh                 : bool                  = True
     autoFetchMinutes            : int                   = 5
-    middleClickToStage          : bool                  = False
     flattenLanes                : bool                  = True
     animations                  : bool                  = True
     condensedFonts              : bool                  = True

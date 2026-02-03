@@ -1,10 +1,9 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette import settings
 from gitfourchette.filelists.filelist import FileList
 from gitfourchette.gitdriver import GitDelta
 from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -163,8 +162,7 @@ class DirtyFiles(FileList):
         self._mergeKeep(keepOurs=False)
 
     def onSpecialMouseClick(self):
-        if settings.prefs.middleClickToStage:
-            self.stage()
+        self.stage()
 
     def ignoreSelection(self):
         selected = list(self.selectedPaths())
