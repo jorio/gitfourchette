@@ -9,6 +9,7 @@ import enum
 from gitfourchette.qt import *
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarModel, SidebarItem, SidebarLayout, SYMBOL_AHEAD, SYMBOL_BEHIND
 from gitfourchette.toolbox import stockIcon, FittedText
+from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
 PE_EXPANDED = QStyle.PrimitiveElement.PE_IndicatorArrowDown
 PE_COLLAPSED = QStyle.PrimitiveElement.PE_IndicatorArrowRight
@@ -186,11 +187,13 @@ class SidebarDelegate(QStyledItemDelegate):
             advanceB = metrics.horizontalAdvance(textB) if b else 0
 
             AF = Qt.AlignmentFlag
+            painter.setPen(RecolorSvgIconEngine.IconColors.mainColor)
             painter.drawText(textRect, AF.AlignRight | (AF.AlignTop if b else AF.AlignVCenter) , textA)
             painter.drawText(textRect, AF.AlignRight | (AF.AlignBottom if a else AF.AlignVCenter), textB)
 
             # Restore font size
             font.setPointSizeF(baseFontSize)
+            painter.setPen(penColor)
 
             # Clip rect
             textRect.setRight(textRect.right() - max(advanceA, advanceB))

@@ -11,6 +11,22 @@ from gitfourchette.toolbox.qtutils import mixColors
 
 
 class RecolorSvgIconEngine(QIconEngine):
+    class IconColors:
+        background = QColor(0xFFFFFF)
+        foreground = QColor(0x000000)
+        highlight = QColor(0x00FFFF)
+        mainColor = QColor(0xFF00FF)
+        preferDarkVariants = False
+
+        @classmethod
+        def refresh(cls):
+            palette = QApplication.palette()
+            cls.background = palette.color(QPalette.ColorRole.Window)
+            cls.foreground = palette.color(QPalette.ColorRole.WindowText)
+            cls.highlight = palette.color(QPalette.ColorRole.HighlightedText)
+            cls.mainColor = mixColors(cls.background, cls.foreground, .58)
+            cls.preferDarkVariants = cls.background.lightness() < cls.foreground.lightness()
+
     def __init__(self, iconPath: str, colorTable: str = ""):
         super().__init__()
 
@@ -32,20 +48,14 @@ class RecolorSvgIconEngine(QIconEngine):
         GFApplication.instance().restyle.connect(self.initVariants)
 
     def initVariants(self):
-        palette = QApplication.palette()
-        bgColor = palette.color(QPalette.ColorRole.Window)
-        fgColor = palette.color(QPalette.ColorRole.WindowText)
-        hlColor = palette.color(QPalette.ColorRole.HighlightedText)
-        mainColor = mixColors(bgColor, fgColor, .58)
-        isDark = bgColor.lightness() < fgColor.lightness()
-
-        self.referenceSvg = self.darkSvg if isDark else self.lightSvg
+        IC = RecolorSvgIconEngine.IconColors
+        self.referenceSvg = self.darkSvg if IC.preferDarkVariants else self.lightSvg
         self.basePixmapKey = hash(self.referenceSvg) ^ hash(self.colorTable)
         self.renderers = {
-            QIcon.Mode.Normal: self._recolor(mainColor),
-            QIcon.Mode.Disabled: self._recolor(mainColor, opacity=.33),
-            QIcon.Mode.Selected: self._recolor(hlColor),
-            QIcon.Mode.SelectedInactive: self._recolor(fgColor)
+            QIcon.Mode.Normal: self._recolor(IC.mainColor),
+            QIcon.Mode.Disabled: self._recolor(IC.mainColor, opacity=.33),
+            QIcon.Mode.Selected: self._recolor(IC.highlight),
+            QIcon.Mode.SelectedInactive: self._recolor(IC.foreground),
         }
         self.referenceSize = self.renderers[QIcon.Mode.Normal].defaultSize()
 
