@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,6 +13,18 @@ _stockIconCache: dict[int, QIcon] = {}
 # Override some icon IDs depending on desktop environment
 _overrideIconIds = {}
 _overrideIconIdsReady = False
+
+_autoDarkVariants = {
+    "achtung",
+    "status_a",
+    "status_c",  # just in case we ever add this one
+    "status_d",
+    "status_m",
+    "status_r",
+    "status_t",
+    "status_x",
+    # status_u intentionally omitted. Its white outline should stand out against a white background.
+}
 
 
 def _iconOverrideTable():
@@ -39,6 +51,10 @@ def stockIcon(iconId: str, colorTable="") -> QIcon:
         _overrideIconIds.clear()
         _overrideIconIds.update(_iconOverrideTable())
     iconId = _overrideIconIds.get(iconId, iconId)
+
+    if RecolorSvgIconEngine.IconColors.preferDarkVariants and iconId in _autoDarkVariants:
+        assert not colorTable
+        colorTable = "white=#000 black=#fff"
 
     # Compute cache key
     key = hash(iconId) ^ hash(colorTable)

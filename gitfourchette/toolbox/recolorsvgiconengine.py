@@ -30,17 +30,22 @@ class RecolorSvgIconEngine(QIconEngine):
     def __init__(self, iconPath: str, colorTable: str = ""):
         super().__init__()
 
-        self.colorTable = colorTable
+        # Read in SVG data
+        iconPath = Path(iconPath)
+        self.baseSvg = iconPath.read_text("utf-8").strip()
 
-        lightPath = Path(iconPath)
-        self.lightSvg = lightPath.read_text("utf-8").strip()
-        self.informalIconName = lightPath.name
+        # Metadata
+        self.basePixmapKey = hash(self.baseSvg) ^ hash(colorTable)
+        self.informalIconName = iconPath.name  # for debugging
 
-        try:
-            darkPath = lightPath.with_stem(lightPath.stem + "@dark")
-            self.darkSvg = darkPath.read_text("utf-8").strip()
-        except FileNotFoundError:
-            self.darkSvg = self.lightSvg
+        # Lex color table
+        self.replaceColors = {}
+        for entry in colorTable.split():
+            original, replacement = entry.split("=", 1)
+            self.replaceColors[original] = replacement
+
+        self.renderers = {}
+        self.referenceSize = QSize(0, 0)
 
         self.initVariants()
 
@@ -49,8 +54,6 @@ class RecolorSvgIconEngine(QIconEngine):
 
     def initVariants(self):
         IC = RecolorSvgIconEngine.IconColors
-        self.referenceSvg = self.darkSvg if IC.preferDarkVariants else self.lightSvg
-        self.basePixmapKey = hash(self.referenceSvg) ^ hash(self.colorTable)
         self.renderers = {
             QIcon.Mode.Normal: self._recolor(IC.mainColor),
             QIcon.Mode.Disabled: self._recolor(IC.mainColor, opacity=.33),
@@ -102,17 +105,18 @@ class RecolorSvgIconEngine(QIconEngine):
         return pixmap
 
     def _recolor(self, replaceGray: QColor, opacity: float = 1.0) -> QSvgRenderer:
-        """ Create a QSvgRenderer for a recolored variant of referenceSvg. """
+        """
+        Create a QSvgRenderer for a recolored variant of the base SVG icon.
+        """
 
-        # self.colorTable takes precedence over replaceGray
-        colorTable = self.colorTable.split()
-        colorTable.append(f"gray={replaceGray.name()}")
+        data = self.baseSvg
 
-        data = self.referenceSvg
+        for original, replacement in self.replaceColors.items():
+            data = data.replace(original, replacement)
 
-        for pair in colorTable:
-            oldColor, newColor = pair.split("=")
-            data = data.replace(oldColor, newColor)
+        # colorLUT takes precedence over replaceGray
+        if "gray" not in self.replaceColors:
+            data = data.replace("gray", replaceGray.name())
 
         if opacity != 1.0:
             dataLines = data.splitlines()

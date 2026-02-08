@@ -154,13 +154,14 @@ def patchSection(path: Path, contents: str):
 
 
 def writeStatusIcon(fill='#ff00ff', char='X', round=2):
-    for suffix, color in (["", "white"], ["@dark", "black"]):
-        svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\n"
-        svg += f"<rect rx='{round}' ry='{round}' x='0.5' y='0.5' width='15' height='15' stroke='{color}' stroke-width='1' fill='{fill}'/>\n"
-        svg += f"<text x='8' y='12' font-weight='bold' font-size='11' font-family='sans-serif' text-anchor='middle' fill='{color}'>{char}</text>\n"
-        svg += "</svg>"
-        svgPath = Path(ASSETS_DIR) / f"icons/status_{char.lower()}{suffix}.svg"
-        writeIfDifferent(svgPath, svg)
+    svg = "\n".join([
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>",
+        f"<rect rx='{round}' ry='{round}' x='0.5' y='0.5' width='15' height='15' stroke='white' stroke-width='1' fill='{fill}'/>",
+        f"<text x='8' y='12' font-weight='bold' font-size='11' font-family='sans-serif' text-anchor='middle' fill='white'>{char}</text>",
+        "</svg>",
+    ])
+    svgPath = Path(ASSETS_DIR) / f"icons/status_{char.lower()}.svg"
+    writeIfDifferent(svgPath, svg)
 
 
 def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=True):
