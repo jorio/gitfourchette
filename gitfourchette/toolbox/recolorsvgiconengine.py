@@ -9,8 +9,20 @@ from pathlib import Path
 from gitfourchette.qt import *
 from gitfourchette.toolbox.qtutils import mixColors
 
+_Gray = "gray"
+"""
+Name of the placeholder color in the icons' SVG markup.
+This color will be replaced with IconColors.mainColor.
+"""
+
 
 class RecolorSvgIconEngine(QIconEngine):
+    """
+    QIcon renderer that adjusts the colors in an SVG icon. The colors are chosen
+    based on the global color palette, active/disabled/selected icon modes, and
+    an optional color remapping table.
+    """
+
     class IconColors:
         background = QColor(0xFFFFFF)
         foreground = QColor(0x000000)
@@ -31,19 +43,30 @@ class RecolorSvgIconEngine(QIconEngine):
         super().__init__()
 
         # Read in SVG data
+        assert iconPath.endswith(".svg")
         iconPath = Path(iconPath)
-        self.baseSvg = iconPath.read_text("utf-8").strip()
+        svg = iconPath.read_text("utf-8").strip()
 
-        # Metadata
-        self.basePixmapKey = hash(self.baseSvg) ^ hash(colorTable)
-        self.informalIconName = iconPath.name  # for debugging
-
-        # Lex color table
-        self.replaceColors = {}
+        # Replace colors in hardcoded color table
+        hardcodedColors = {}
         for entry in colorTable.split():
             original, replacement = entry.split("=", 1)
-            self.replaceColors[original] = replacement
+            hardcodedColors[original] = replacement
+            svg = svg.replace(original, "{" + original + "}")
+        svg = svg.format_map(hardcodedColors)
 
+        # Inject format token for gray (unless colorTable overrides it)
+        if _Gray not in hardcodedColors:
+            svg = svg.replace(_Gray, "{" + _Gray + "}")
+
+        # Inject format token for surrounding tag (used for opacity)
+        beg = svg.index(">") + 1
+        end = svg.rindex("</svg>")
+        svg = svg[:beg] + "{prefix}" + svg[beg:end] + "{suffix}" + svg[end:]
+
+        self.svg = svg
+        self.informalIconName = iconPath.name  # for debugging
+        self.basePixmapKey = hash(svg)
         self.renderers = {}
         self.referenceSize = QSize(0, 0)
 
@@ -109,22 +132,19 @@ class RecolorSvgIconEngine(QIconEngine):
         Create a QSvgRenderer for a recolored variant of the base SVG icon.
         """
 
-        data = self.baseSvg
-
-        for original, replacement in self.replaceColors.items():
-            data = data.replace(original, replacement)
-
-        # colorLUT takes precedence over replaceGray
-        if "gray" not in self.replaceColors:
-            data = data.replace("gray", replaceGray.name())
+        tokens = {
+            _Gray: replaceGray.name(),
+            "prefix": "",
+            "suffix": ""
+        }
 
         if opacity != 1.0:
-            dataLines = data.splitlines()
-            dataLines[0] += f"<g opacity='{opacity}'>"
-            dataLines[-1] = "</g>" + dataLines[-1]
-            data = "\n".join(dataLines)
+            tokens["prefix"] = f"<g opacity='{opacity}'>"
+            tokens["suffix"] = "</g>"
 
+        data = self.svg.format_map(tokens)
         blob = data.encode("utf-8")
+
         renderer = QSvgRenderer(blob)
         renderer.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
         return renderer
