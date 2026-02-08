@@ -475,3 +475,22 @@ def testSidebarAheadBehind(tempDir, mainWindow):
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
     assert re.search("10 commits ahead", tip, re.I)
     assert re.search("1 commit behind", tip, re.I)
+
+    index = rw.sidebar.indexForRef("refs/heads/no-parent")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert not re.search("commits? ahead", tip, re.I)
+    assert not re.search("commit? behind", tip, re.I)
+    assert re.search("up-to-date with upstream", tip, re.I)
+
+
+def testSidebarUpstreamLost(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.config["branch.master.merge"] = "refs/heads/missing-upstream"
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/master")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search(r"upstream missing \(origin/missing-upstream\)", tip, re.I)

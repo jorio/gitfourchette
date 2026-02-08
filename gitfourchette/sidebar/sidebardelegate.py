@@ -7,7 +7,7 @@
 import enum
 
 from gitfourchette.qt import *
-from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarModel, SidebarItem, SidebarLayout
+from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarModel, SidebarItem, SidebarLayout, SYMBOL_AHEAD, SYMBOL_BEHIND
 from gitfourchette.toolbox import stockIcon, FittedText
 
 PE_EXPANDED = QStyle.PrimitiveElement.PE_IndicatorArrowDown
@@ -17,9 +17,6 @@ PE_COLLAPSED = QStyle.PrimitiveElement.PE_IndicatorArrowRight
 EXPAND_TRIANGLE_WIDTH = 6
 PADDING = 4
 EYE_WIDTH = 16
-
-SYMBOL_AHEAD = "\u2191"
-SYMBOL_BEHIND = "\u2193"
 
 
 class SidebarClickZone(enum.IntEnum):

@@ -23,6 +23,9 @@ from gitfourchette.trtables import TrTables
 logger = logging.getLogger(__name__)
 
 BRANCH_FOLDERS = True
+SYMBOL_AHEAD = "\u2191"
+SYMBOL_BEHIND = "\u2193"
+SYMBOL_UPDOWN = "\u21c5"
 
 
 class SidebarItem(enum.IntEnum):
@@ -602,26 +605,10 @@ class SidebarModel(QAbstractItemModel):
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (local branch)", btag(branchName))
-
-                # Try to get the upstream
-                try:
-                    upstream = self.repoModel.upstreams[branchName]
-                    text += "\n" + _("Upstream: {0}", escape(upstream))
-                except KeyError:
-                    text += "\n" + _("No upstream branch")
-                else:
-                    try:
-                        ahead, behind = self.repoModel.aheadBehind[branchName]
-                        if ahead:
-                            text += "\n \u2191 " + _n("{n} commit ahead", "{n} commits ahead", ahead)
-                        if behind:
-                            text += "\n \u2193 " + _n("{n} commit behind", "{n} commits behind", behind)
-                    except KeyError:
-                        text += "\n" + _("Up-to-date with upstream")
-
+                text += "\n" + self.upstreamToolTip(branchName)
                 if branchName == self._checkedOut:
-                    text += f"\n{stockIconImgTag('git-head')} HEAD " + _("(this is the checked-out branch)")
-
+                    checkedOutText = _("(this is the checked-out branch)")
+                    text += f"\n{stockIconImgTag('git-head')} HEAD {checkedOutText}"
                 text += self.visibilityToolTip(node)
                 self.cacheToolTip(index, text)
                 return text
@@ -853,3 +840,37 @@ class SidebarModel(QAbstractItemModel):
         else:
             return ""
         return f"<br>{stockIconImgTag(icon)} {text}"
+
+    def upstreamToolTip(self, branchName: str):
+        parts = []
+
+        try:
+            upstream = self.repoModel.upstreams[branchName]
+            parts.append(_("Upstream: {0}", escape(upstream)))
+        except KeyError:
+            return _("No upstream branch")
+
+        try:
+            upstreamTarget = self.repoModel.refs[RefPrefix.REMOTES + upstream]
+        except KeyError:
+            icon = stockIconImgTag('git-upstream-missing')
+            text = _("Upstream missing ({0})", escape(upstream))
+            return f"{icon} {text}"
+
+        if upstreamTarget == self.repoModel.refs[RefPrefix.HEADS + branchName]:
+            text = _("Up-to-date with upstream")
+            parts.append(f" {SYMBOL_UPDOWN} {text}")
+        else:
+            try:
+                ahead, behind = self.repoModel.aheadBehind[branchName]
+                if ahead:
+                    text = _n("{n} commit ahead", "{n} commits ahead", ahead)
+                    parts.append(f" {SYMBOL_AHEAD} {text}")
+                if behind:
+                    text = _n("{n} commit behind", "{n} commits behind", behind)
+                    parts.append(f" {SYMBOL_BEHIND} {text}")
+            except KeyError:
+                pass
+
+        return "\n".join(parts)
+
