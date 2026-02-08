@@ -15,7 +15,7 @@ from gitfourchette.application import GFApplication
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
-from gitfourchette.porcelain import Oid, RefPrefix
+from gitfourchette.porcelain import Oid, RefPrefix, Repo
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEREF
 from gitfourchette.repoprefs import RefSort
@@ -183,6 +183,15 @@ class Sidebar(QTreeView):
             isCurrentBranch = branch and branch.is_checked_out()
             hasUpstream = bool(branch.upstream)
             upstreamBranchName = "" if not hasUpstream else branch.upstream.shorthand
+            upstreamSubmenuTitle = _("&Upstream Branch")
+
+            upstreamMissing = False
+            if not upstreamBranchName:
+                with suppress(KeyError):
+                    upstreamBranchName = self.sidebarModel.repoModel.upstreams[branchName]
+                    hasUpstream = True
+                    upstreamMissing = True
+                    upstreamSubmenuTitle += " " +_("(Missing)")
 
             thisBranchDisplay = lquoe(branchName)
             activeBranchDisplay = lquoe(activeBranchName)
@@ -217,7 +226,7 @@ class Sidebar(QTreeView):
                     self,
                     FetchRemoteBranch,
                     _("&Fetch {0}", upstreamBranchDisplay) if hasUpstream else _("Fetch"),
-                    taskArgs=branch.upstream.shorthand if hasUpstream else None,
+                    taskArgs=upstreamBranchName if hasUpstream else None,
                 ).replace(enabled=hasUpstream),
 
                 TaskBook.action(
@@ -231,7 +240,7 @@ class Sidebar(QTreeView):
                     FastForwardBranch,
                     _("Fast-Forward to {0}…", upstreamBranchDisplay) if hasUpstream else _("Fast-Forward…"),
                     taskArgs=branchName,
-                ).replace(enabled=hasUpstream),
+                ).replace(enabled=hasUpstream and not upstreamMissing),
 
                 TaskBook.action(
                     self,
@@ -241,8 +250,10 @@ class Sidebar(QTreeView):
                 ),
 
                 ActionDef(
-                    _("&Upstream Branch"),
-                    submenu=self.makeUpstreamSubmenu(repo, branchName, upstreamBranchName)),
+                    upstreamSubmenuTitle,
+                    submenu=self.makeUpstreamSubmenu(repo, branchName, upstreamBranchName, upstreamMissing),
+                    icon="git-upstream-missing" if upstreamMissing else ""
+                ),
 
                 ActionDef.SEPARATOR,
 
@@ -937,17 +948,35 @@ class Sidebar(QTreeView):
         QApplication.clipboard().setText(text)
         self.statusMessage.emit(clipboardStatusMessage(text))
 
-    def makeUpstreamSubmenu(self, repo, lbName, ubName) -> list:
-        RADIO_GROUP = "UpstreamSelection"
+    def makeUpstreamSubmenu(
+            self,
+            repo: Repo,
+            lbName: str,
+            ubName: str,
+            ubMissing: bool
+    ) -> list[ActionDef]:
+        radioGroup = "UpstreamSelection"
 
-        menu = [
-            ActionDef(
-                _("Stop tracking upstream branch") if ubName else _("Not tracking any upstream branch"),
-                lambda: EditUpstreamBranch.invoke(self, lbName, ""),
-                checkState=1 if not ubName else -1,
-                radioGroup=RADIO_GROUP),
-        ]
+        menu = []
 
+        # Missing upstream
+        if ubMissing:
+            assert ubName
+            menu.append(ActionDef(
+                ubName + " " + _("(Missing)"),
+                checkState=1,
+                icon="git-upstream-missing",
+                enabled=False,
+                radioGroup=radioGroup))
+
+        # Stop tracking/Not tracking
+        menu.append(ActionDef(
+            _("Stop tracking upstream branch") if ubName else _("Not tracking any upstream branch"),
+            lambda: EditUpstreamBranch.invoke(self, lbName, ""),
+            checkState=1 if not ubName else -1,
+            radioGroup=radioGroup))
+
+        # All remote branches
         for remoteBranches in repo.listall_remote_branches(value_style="shorthand").values():
             if not remoteBranches:
                 continue
@@ -957,8 +986,9 @@ class Sidebar(QTreeView):
                     escamp(rbShorthand),
                     lambda rb=rbShorthand: EditUpstreamBranch.invoke(self, lbName, rb),
                     checkState=1 if ubName == rbShorthand else -1,
-                    radioGroup=RADIO_GROUP))
+                    radioGroup=radioGroup))
 
+        # "No remotes" label
         if len(menu) <= 1:
             if not repo.remotes:
                 explainer = _("No remotes.")

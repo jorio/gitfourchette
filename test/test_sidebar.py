@@ -483,7 +483,7 @@ def testSidebarAheadBehind(tempDir, mainWindow):
     assert re.search("up-to-date with upstream", tip, re.I)
 
 
-def testSidebarUpstreamLost(tempDir, mainWindow):
+def testSidebarMissingUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -494,3 +494,11 @@ def testSidebarUpstreamLost(tempDir, mainWindow):
     index = rw.sidebar.indexForRef("refs/heads/master")
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
     assert re.search(r"upstream missing \(origin/missing-upstream\)", tip, re.I)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    missingUpstreamAction = findMenuAction(menu, r"upstream.+\(missing\)/origin.missing-upstream \(missing\)")
+    assert missingUpstreamAction.isChecked()
+
+    # If we ever choose to not disable this action, the action callback should be tested as well.
+    assert not missingUpstreamAction.isEnabled()
