@@ -245,6 +245,7 @@ class GFApplication(QApplication):
 
         from gitfourchette import settings
         from gitfourchette.syntax import LexJobCache
+        from gitfourchette.toolbox.iconbank import clearStockIconCache
         if settings.prefs.isDirty():
             settings.prefs.write()
         if settings.history.isDirty():
@@ -259,6 +260,7 @@ class GFApplication(QApplication):
         # RemoteLink.clearSessionPassphrases()  # don't cache passphrases across sessions (for unit testing)
         gc.collect()  # clean up Repository file handles (for Windows unit tests)
         if clearTempDir:
+            clearStockIconCache()
             self.tempDir.remove()
 
     def bootUi(self):
@@ -558,7 +560,9 @@ class GFApplication(QApplication):
         from gitfourchette.syntax.colorscheme import ColorScheme
         from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
+        # Force RecolorSvgIconEngine to re-render the icons
         QPixmapCache.clear()
+        RecolorSvgIconEngine.IconColors.refresh()
 
         styleSheet = Path(QFile("assets:style.qss").fileName()).read_text()
         if isDarkTheme():  # Append dark override
@@ -567,8 +571,6 @@ class GFApplication(QApplication):
         self.setStyleSheet(styleSheet)
 
         ColorScheme.refreshFallbackScheme()
-
-        RecolorSvgIconEngine.IconColors.refresh()
 
     # -------------------------------------------------------------------------
     # Utilities
