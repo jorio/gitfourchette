@@ -35,7 +35,7 @@ class SidebarDelegate(QStyledItemDelegate):
     def __init__(self, parent: QTreeView):
         super().__init__(parent)
         self.treeView = parent
-        self.sidebarModel = parent.model()
+        self.sidebarModel: SidebarModel = parent.model()
         assert isinstance(self.sidebarModel, SidebarModel)
 
     @staticmethod
@@ -157,9 +157,22 @@ class SidebarDelegate(QStyledItemDelegate):
         font: QFont = index.data(Qt.ItemDataRole.FontRole) or option.font
         baseFontSize = font.pointSizeF()
 
-        # Draw ahead/behind indicators
+        # Draw ahead/behind/missing upstream indicators
+        missingUpstream = index.data(SidebarModel.Role.MissingUpstream)
         aheadBehind = index.data(SidebarModel.Role.AheadBehind)
-        if aheadBehind and not makeRoomForEye:
+        if makeRoomForEye:
+            # No upstream indicators
+            pass
+
+        elif missingUpstream:
+            r = QRect(option.rect)
+            r.setLeft(textRect.right() - EYE_WIDTH)
+            unpluggedIcon = stockIcon("git-upstream-missing")
+            unpluggedIcon.paint(painter, r, mode=iconMode)
+            # Clip rect
+            textRect.setRight(r.left())
+
+        elif aheadBehind:
             a, b = aheadBehind
 
             # Set a smaller font
@@ -205,7 +218,7 @@ class SidebarDelegate(QStyledItemDelegate):
                 eyeIconName = "view-hidden-indirect"
             else:
                 eyeIconName = "view-visible"
-            eyeIcon = stockIcon(eyeIconName)
-            eyeIcon.paint(painter, r, mode=iconMode)
+            unpluggedIcon = stockIcon(eyeIconName)
+            unpluggedIcon.paint(painter, r, mode=iconMode)
 
         painter.restore()

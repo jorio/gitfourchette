@@ -214,6 +214,7 @@ class SidebarModel(QAbstractItemModel):
         Ref = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         IconKey = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
         AheadBehind = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 2)
+        MissingUpstream = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 3)
 
     @property
     def _parentWidget(self) -> QWidget:
@@ -600,6 +601,14 @@ class SidebarModel(QAbstractItemModel):
                     return self.repoModel.aheadBehind[branchName]
                 except KeyError:
                     return None
+            elif role == SidebarModel.Role.MissingUpstream:
+                try:
+                    upstream = self.repoModel.upstreams[branchName]
+                    if upstream and (RefPrefix.REMOTES + upstream) not in self.repoModel.refs:
+                        return upstream
+                except KeyError:
+                    pass
+                return None
             elif refRole:
                 return refName
             elif toolTipRole:
