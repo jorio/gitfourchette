@@ -665,28 +665,23 @@ def testFileListNaturalSort(tempDir, mainWindow):
 def testUnstageRenamedFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/a.txt", "content")
-    
+
     with RepoContext(wd) as repo:
         repo.index.add("a.txt")
         repo.create_commit_on_head("initial", TEST_SIGNATURE, TEST_SIGNATURE)
 
-    os.rename(f"{wd}/a.txt", f"{wd}/b.txt")
-    
-    with RepoContext(wd) as repo:
+        os.rename(f"{wd}/a.txt", f"{wd}/b.txt")
         repo.index.add_all()
         repo.index.write()
 
     rw = mainWindow.openRepo(wd)
-    
-    staged = list(qlvGetRowData(rw.stagedFiles))
+
+    staged = qlvGetRowData(rw.stagedFiles)
     assert staged == ["b.txt"]
-    
+
     rw.diffArea.stagedFiles.selectAll()
     triggerContextMenuAction(rw.diffArea.stagedFiles.viewport(), "unstage")
-    
-    rw.refreshRepo()
-    
+
     status = rw.repo.status()
-    
     assert status['a.txt'] == FileStatus.WT_DELETED
     assert status['b.txt'] == FileStatus.WT_NEW
