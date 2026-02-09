@@ -234,7 +234,12 @@ class UnstageFiles(_BaseStagingTask):
             QApplication.beep()
             raise AbortTask()
 
-        paths = [delta.new.path for delta in deltas]
+        paths = []
+        for delta in deltas:
+            paths.append(delta.new.path)
+            if delta.status == "R":
+                paths.append(delta.old.path)
+
         self.effects |= TaskEffects.Workdir
         # Not using 'restore --staged' because it doesn't work in an empty repo
         yield from self.flowCallGit("reset", "--", *paths)
