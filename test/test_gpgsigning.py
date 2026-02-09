@@ -260,6 +260,7 @@ def testVerifyGoodPgpSignatureWithMissingKey(tempDir, mainWindow, tempGpgHome):
     qmb.setFocus()
     waitUntilTrue(qmb.hasFocus)
     QTest.keyClick(qmb, Qt.Key.Key_Escape)
+    QTest.qWait(0)  # Let qmb catch the keyboard event
 
     # Import key and verify again
     runGpg("--batch", "--import", getTestDataPath("gpgkeys/alice.key"), directory=wd)
