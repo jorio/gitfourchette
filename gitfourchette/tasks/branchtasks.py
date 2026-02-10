@@ -94,6 +94,9 @@ class RenameBranch(RepoTask):
         dlg.setValidator(lambda name: nameValidationMessage(name, forbiddenBranchNames, nameTaken))
         dlg.okButton.setText(_("Rename"))
 
+        # Pre-select leaf name (e.g. in "folder/leaf" select only "leaf")
+        NewBranchDialog.preSelectLeaf(dlg.lineEdit)
+
         yield from self.flowDialog(dlg)
         dlg.deleteLater()
         newBranchName = dlg.lineEdit.text()

@@ -166,6 +166,9 @@ def testRenameBranch(tempDir, mainWindow, method):
     assert okButton
     assert okButton.isEnabled()
 
+    # Branch name must be pre-selected
+    assert nameEdit.selectedText() == "master"
+
     badNames = [
         # Existing refs or folders
         "no-parent",
@@ -194,6 +197,34 @@ def testRenameBranch(tempDir, mainWindow, method):
 
     assert 'master' not in repo.branches.local
     assert 'mainbranch' in repo.branches.local
+
+
+def testRenameBranchInFolder(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("folder1/folder2/leaf")
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/folder1/folder2/leaf")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "rename")
+
+    dlg = findQDialog(rw, "rename.+branch")
+    nameEdit: QLineEdit = dlg.findChild(QLineEdit)
+    okButton: QPushButton = dlg.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok)
+
+    assert okButton
+    assert okButton.isEnabled()
+
+    # Branch name must be pre-selected
+    assert nameEdit.text() == "folder1/folder2/leaf"
+    assert nameEdit.selectedText() == "leaf"
+    QTest.keyClicks(nameEdit, "feuille")
+    assert nameEdit.text() == "folder1/folder2/feuille"
+
+    dlg.accept()
+    assert "folder1/folder2/leaf" not in repo.branches.local
+    assert "folder1/folder2/feuille" in repo.branches.local
 
 
 def testRenameBranchIdenticalName(tempDir, mainWindow):
@@ -458,6 +489,7 @@ def testNewBranchFromCommit(tempDir, mainWindow, method):
 
     dlg: NewBranchDialog = findQDialog(rw, "new branch")
     assert dlg.ui.nameEdit.text() == "first-merge"  # nameEdit should be pre-filled with name of a (remote) branch pointing to this commit
+    assert dlg.ui.nameEdit.selectedText() == "first-merge"
     assert not dlg.ui.upstreamCheckBox.isChecked()  # don't auto-track upstream from commits
     assert not dlg.ui.upstreamComboBox.isEnabled()
     assert dlg.ui.upstreamComboBox.currentText() == "origin/first-merge"  # do suggest an upstream
@@ -554,6 +586,27 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
     assert "no-parent-2" in localBranches
     assert localBranches["no-parent-2"].target == localBranches["no-parent"].target
     assert rw.sidebar.findNodeByRef("refs/heads/no-parent-2")
+
+
+def testNewBranchFromLocalBranchInFolder(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("folder1/folder2/leaf")
+
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/folder1/folder2/leaf")
+    menu = rw.sidebar.makeNodeMenu(node)
+    findMenuAction(menu, "new.+branch.+here").trigger()
+
+    dlg: NewBranchDialog = findQDialog(rw, "new.+branch")
+    assert dlg.ui.nameEdit.text() == "folder1/folder2/leaf-2"
+    assert dlg.ui.nameEdit.selectedText() == "leaf-2"
+
+    dlg.accept()
+    localBranches = rw.repo.branches.local
+    assert localBranches["folder1/folder2/leaf"].target == localBranches["folder1/folder2/leaf-2"].target
+
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "graphmenu", "graphkey"])

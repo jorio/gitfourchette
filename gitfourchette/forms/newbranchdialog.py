@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -59,7 +59,20 @@ class NewBranchDialog(QDialog):
 
         self.ui.nameEdit.setFocus()
         self.ui.nameEdit.selectAll()
+        self.preSelectLeaf(self.ui.nameEdit)
 
     @property
     def acceptButton(self):
         return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+
+    @staticmethod
+    def preSelectLeaf(nameEdit: QLineEdit):
+        """
+        Pre-select leaf name (e.g. in "folder/leaf" select only "leaf")
+        """
+        text = nameEdit.text()
+        try:
+            afterSlash = text.rindex("/") + 1
+            nameEdit.setSelection(afterSlash, len(text) - afterSlash)
+        except ValueError:
+            pass
