@@ -18,6 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel, GpgStatus
+from gitfourchette.settings import CommitHashDisplay
 from gitfourchette.toolbox import *
 
 
@@ -168,10 +169,16 @@ class CommitLogDelegate(QStyledItemDelegate):
             dateWidth = 0
         elif rect.width() <= NARROW_WIDTH[1]:
             authorWidth = int(lerp(authorWidth/2, authorWidth, rect.width(), NARROW_WIDTH[0], NARROW_WIDTH[1]))
-        leftBoundHash = rect.left()
-        leftBoundSummary = leftBoundHash + hcw * settings.prefs.shortHashChars + XSPACING
+        
+        hashLeft = settings.prefs.commitHashDisplay == CommitHashDisplay.Left
+        hashRight = settings.prefs.commitHashDisplay == CommitHashDisplay.Right
+        hashWidth = hcw * settings.prefs.shortHashChars + XSPACING * (3 if hashRight else 1)
+        hashMonospace = hashLeft
+
+        leftBoundSummary = rect.left() + (hashWidth if hashLeft else 0)
         leftBoundDate = rect.width() - dateWidth
-        leftBoundName = leftBoundDate - authorWidth
+        leftBoundName = leftBoundDate - authorWidth - (hashWidth if hashRight else 0)
+        leftBoundHash = rect.left() if hashLeft else leftBoundDate - hashWidth
         rightBound = rect.right()
 
         # Get the info we need about the commit
@@ -208,7 +215,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         else:
             commit = None
             oid = None
-            hashText = "·" * settings.prefs.shortHashChars
+            hashText = "·" * settings.prefs.shortHashChars if hashLeft else ""
             authorText = ""
             dateText = ""
             searchTerm = ""
@@ -248,14 +255,19 @@ class CommitLogDelegate(QStyledItemDelegate):
             SearchBar.highlightNeedle(painter, rect, fullText, needlePos, needleLen)
 
         # ------ Hash
-        charRect = QRect(leftBoundHash, rect.top(), hcw, rect.height())
-        painter.save()
-        if not isSelected:  # use muted color for hash if not selected
-            painter.setPen(palette.color(colorGroup, QPalette.ColorRole.PlaceholderText))
-        for hashChar in hashText:
-            painter.drawText(charRect, Qt.AlignmentFlag.AlignCenter, hashChar)
-            charRect.translate(hcw, 0)
-        painter.restore()
+        if hashLeft or hashRight:
+            width = hcw if hashMonospace else hashWidth
+            charRect = QRect(leftBoundHash, rect.top(), width, rect.height())
+            painter.save()
+            if not isSelected:  # use muted color for hash if not selected
+                painter.setPen(palette.color(colorGroup, QPalette.ColorRole.PlaceholderText))
+            if hashMonospace:
+                for hashChar in hashText:
+                    painter.drawText(charRect, Qt.AlignmentFlag.AlignCenter, hashChar)
+                    charRect.translate(hcw, 0)
+            else:
+                painter.drawText(charRect, Qt.AlignmentFlag.AlignVCenter, hashText)
+            painter.restore()
 
         # ------ Highlight searched hash
         if searchTerm and searchTermLooksLikeHash and commit and str(commit).startswith(searchTerm):
