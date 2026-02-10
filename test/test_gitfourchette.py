@@ -445,7 +445,10 @@ def testDonatePrompt(mainWindow):
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             if self.end:
+                # Essentially a condensed version of the mainWindow fixture's cleanup code.
                 app.mainWindow.close()
+                app.mainWindow.deleteLater()
+                waitUntilTrue(lambda: not app.mainWindow)
                 app.endSession(clearTempDir=False)
 
     def daysToNextPrompt() -> int:
@@ -460,7 +463,7 @@ def testDonatePrompt(mainWindow):
         # Don't schedule the prompt before hitting 10 launches
         assert 0 == settings.prefs.donatePrompt
 
-        with Session(begin=i != 0):
+        with Session(begin=i != 0) as mainWindow:
             assert not mainWindow.findChild(DonatePrompt)
 
     # Tenth launch should schedule donate prompt to appear in 60 days
