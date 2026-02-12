@@ -195,6 +195,7 @@ class TrTables:
                 PathDisplayStyle.FullPaths      : _("Full paths"),
                 PathDisplayStyle.AbbreviateDirs : _("Abbreviate directories"),
                 PathDisplayStyle.FileNameOnly   : _("Show filename only"),
+                PathDisplayStyle.FileNameFirst  : _("Filename first"),
             },
 
             AuthorDisplayStyle: {
