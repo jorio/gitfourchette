@@ -45,3 +45,4 @@ class QElidedLabel(QLabel):
             for line in self.text().splitlines())
 
         qp.drawText(r, self.alignment(), elidedText)
+        qp.end()

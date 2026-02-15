@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -63,7 +63,6 @@ class DropZone(QWidget):
         iconPad = iconSize // 4
 
         painter = QPainter(self)
-        painter.save()
 
         rect = QRectF(self.rect())
 
@@ -86,4 +85,4 @@ class DropZone(QWidget):
         rect.setTop(iconRect.bottom() + iconPad)
         painter.drawRoundedRect(rect, pad, pad)
 
-        painter.restore()
+        painter.end()

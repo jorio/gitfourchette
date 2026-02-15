@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -19,7 +19,7 @@ class CodeRubberBand(QWidget):
         CT = T//2  # clipped thickness
         OT = 1  # outline extra thickness
 
-        palette: QPalette = self.palette()
+        palette = self.palette()
         painter = QPainter(self)
         rect: QRect = self.rect().marginsRemoved(QMargins(HT, HT, HT, HT))
 
@@ -50,3 +50,5 @@ class CodeRubberBand(QWidget):
         painter.setClipRect(rect.marginsAdded(QMargins(HT, CT-HT, HT, CT-HT)))
         painter.setPen(pen)
         painter.drawPath(path)
+
+        painter.end()
