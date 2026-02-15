@@ -358,7 +358,7 @@ class GitDriver(QProcess):
         if reformatHintText:
             stderr = self.reformatHintText(stderr)
         elif stderr:
-            stderr = "<pre>" + escape(stderr)
+            stderr = "<pre style='white-space: pre-wrap;'>" + escape(stderr)
 
         if subtitle:
             subtitle = f"<p>{subtitle}</p>"
