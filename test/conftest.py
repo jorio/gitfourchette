@@ -73,8 +73,47 @@ def setUpGitConfigSearchPaths(prefix=""):
         assert INITIAL_ENVIRONMENT.get("GIT_CONFIG_SYSTEM", None) != os.environ["GIT_CONFIG_SYSTEM"]
 
 
+def setUpTestGitConfig(path: str):
+    """
+    The host system's git configuration is masked during unit tests.
+    This sets up a replacement global config for the tests.
+    """
+
+    from gitfourchette.porcelain import GitConfigHelper, GitConfigLevel
+    from gitfourchette.qt import WINDOWS
+    from .util import TEST_SIGNATURE, getTestDataPath
+
+    sshCommand = getTestDataPath("isolated-ssh.sh" if not WINDOWS else "isolated-ssh.bat")
+
+    config = {
+        # Fallback signature
+        "user.name": TEST_SIGNATURE.name,
+        "user.email": TEST_SIGNATURE.email,
+
+        # Let vanilla git clone submodules from filesystem remotes (for offline tests)
+        "protocol.file.allow": "always",
+
+        # Prevent OpenSSH from looking at host user's key files
+        "core.sshCommand": sshCommand,
+
+        # Allow using LFS (usually set up in /etc/gitconfig)
+        "filter.lfs.clean": "git-lfs clean -- %f",
+        "filter.lfs.smudge": "git-lfs smudge -- %f",
+        "filter.lfs.process": "git-lfs filter-process -- %f",
+        "filter.lfs.required": "true",
+    }
+
+    setUpGitConfigSearchPaths(path)
+    globalGitConfig = GitConfigHelper.ensure_file(GitConfigLevel.GLOBAL)
+    for k, v in config.items():
+        globalGitConfig[k] = v
+
+
 @pytest.fixture(scope='session', autouse=True)
 def maskHostGitConfig():
+    """
+    Keep libgit2 from looking at the host systems's git config.
+    """
     setUpGitConfigSearchPaths("")
 
 
@@ -116,9 +155,9 @@ def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
 
 @pytest.fixture
 def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
-    from gitfourchette import qt, trash, porcelain, tasks
+    from gitfourchette import qt, trash, tasks
     from gitfourchette.appconsts import APP_TESTMODE
-    from .util import TEST_SIGNATURE, waitUntilTrue, getTestDataPath
+    from .util import waitUntilTrue
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert APP_TESTMODE
@@ -135,17 +174,12 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     app = GFApplication.instance()
     app.beginSession(bootUi=False)
 
-    assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
+    # Prepare test git config
+    maskedGitConfigPath = os.path.join(app.tempDir.path(), "MaskedGitConfig")
+    setUpTestGitConfig(maskedGitConfigPath)
 
-    # Prepare session-wide git config with a fallback signature.
-    setUpGitConfigSearchPaths(os.path.join(app.tempDir.path(), "MaskedGitConfig"))
-    globalGitConfig = porcelain.GitConfigHelper.ensure_file(porcelain.GitConfigLevel.GLOBAL)
-    globalGitConfig["user.name"] = TEST_SIGNATURE.name
-    globalGitConfig["user.email"] = TEST_SIGNATURE.email
-    # Let vanilla git clone submodules from filesystem remotes (for offline tests)
-    globalGitConfig["protocol.file.allow"] = "always"
-    # Prevent OpenSSH from looking at host user's key files
-    globalGitConfig["core.sshCommand"] = getTestDataPath("isolated-ssh.sh" if not qt.WINDOWS else "isolated-ssh.bat")
+    # Make sure no modifier keys were leaked from a previous test
+    assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
 
     # Clear the clipboard so all tests can assume a fresh clipboard
     clipboardBackup = app.clipboard().text()

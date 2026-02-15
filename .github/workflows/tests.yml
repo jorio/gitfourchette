@@ -49,6 +49,7 @@ jobs:
       run: |
         which git
         git version
+        git lfs version 2>/dev/null || echo '*** LFS not available on this runner ***'
         which gpg
         gpg --version
 

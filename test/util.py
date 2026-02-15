@@ -10,6 +10,7 @@ import shlex
 import shutil
 import tempfile
 import warnings
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar, Literal
@@ -222,6 +223,18 @@ def clearSessionwideIdentity():
         assert key not in config
 
 
+class ZipFileFixModes(zipfile.ZipFile):
+    """ ZipFile that correctly sets file modes on extraction. """
+    def _extract_member(self, member, targetpath, pwd):
+        if not isinstance(member, zipfile.ZipInfo):
+            member = self.getinfo(member)
+        path = super()._extract_member(member, targetpath, pwd)
+        attr = member.external_attr >> 16
+        if attr:
+             os.chmod(path, attr)
+        return path
+
+
 def unpackRepo(
         tempDir: tempfile.TemporaryDirectory | str,
         testRepoName="TestGitRepository",
@@ -234,7 +247,7 @@ def unpackRepo(
     assert not path.exists()
 
     zipPath = getTestDataPath(f"{testRepoName}.zip")
-    shutil.unpack_archive(zipPath, path.parent)
+    ZipFileFixModes(zipPath).extractall(path.parent)
     assert path.is_dir()
 
     if renameTo:
@@ -690,18 +703,20 @@ def findChildWithText(
 
 
 def findTextInWidget(
-        widget: QAction | QLabel | QAbstractButton | QStatusBar | QComboBox,
+        widget: QAction | QLabel | QAbstractButton | QStatusBar | QComboBox | QTextEdit | QPlainTextEdit,
         pattern: str
 ) -> re.Match[str] | None:
     if isinstance(widget, QStatusBar):
         text = widget.currentMessage()
     elif isinstance(widget, QComboBox):
         text = widget.currentText()
+    elif isinstance(widget, (QTextEdit, QPlainTextEdit)):
+        text = widget.toPlainText()
     else:
         text = widget.text()
     if "<" not in text:  # unlikely to be HTML
         text = stripAccelerators(text)
-    return re.search(pattern, text, re.I | re.M)
+    return re.search(pattern, text, re.I | re.M | re.S)
 
 
 def mouseSpecialClick(widget: QWidget, clickType: Literal["middle", "double"], pos: QPoint = QPoint_zero):

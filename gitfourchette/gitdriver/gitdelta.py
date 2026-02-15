@@ -8,8 +8,10 @@ import dataclasses
 
 from pygit2.enums import AttrCheck
 
+from gitfourchette.appconsts import APP_DEBUG
 from gitfourchette.gitdriver.gitconflict import GitConflict
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, NavContext
+from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState
 from gitfourchette.porcelain import Repo, Oid, NULL_OID
 
 
@@ -21,6 +23,10 @@ class GitDelta:
     similarity: int = 0
     submoduleStatus: str = ""  # Only in UNSTAGED contexts
     conflict: GitConflict | None = None  # Only in UNSTAGED contexts
+
+    if APP_DEBUG:
+        def __post_init__(self):
+            assert not self.old.source.isDirty(), "old source cannot be unstaged/untracked"
 
     @property
     def context(self) -> NavContext:
@@ -34,36 +40,49 @@ class GitDelta:
     def isSubtreeCommitPatch(self) -> bool:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
 
-    def cacheLfsPointers(self, repo: Repo, commitId: Oid):
-        if not (self.old.lfs.state and self.new.lfs.state):
-            self._cacheLfsPointers(repo, commitId)
-        return self.old.lfs or self.new.lfs
-
-    def _cacheLfsPointers(self, repo: Repo, newCommitId: Oid):
+    def cacheLfsPointers(self, repo: Repo, newCommitId: Oid) -> bool:
         old = self.old
         new = self.new
 
-        try:
-            oldCommitId = repo[newCommitId].parent_ids[0]
-        except (KeyError, IndexError):
-            oldCommitId = newCommitId
-
-        if oldCommitId != NULL_OID:
-            oldCheck = AttrCheck.INCLUDE_COMMIT
-        elif old.source.isDirty():
-            oldCheck = AttrCheck.INDEX_ONLY
+        # Cache "old" LFS pointer
+        if old.lfs.state:
+            # Already cached
+            pass
+        elif self.status in "?A":
+            # Untracked/unstaged: No pointer yet
+            old.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
-            oldCheck = AttrCheck.INDEX_THEN_FILE
+            try:
+                oldCommitId = repo[newCommitId].parent_ids[0]
+            except (KeyError, IndexError):
+                oldCommitId = newCommitId
 
-        if oldCommitId == NULL_OID and not repo.head_is_unborn:
-            oldCheck |= AttrCheck.INCLUDE_HEAD
+            if oldCommitId != NULL_OID:
+                oldCheck = AttrCheck.INCLUDE_COMMIT
+            else:
+                assert not old.source.isDirty(), "old source cannot be dirty"
+                oldCheck = AttrCheck.INDEX_THEN_FILE
 
-        if newCommitId != NULL_OID:
-            newCheck = AttrCheck.INCLUDE_COMMIT
-        elif new.source.isDirty():
-            newCheck = AttrCheck.FILE_THEN_INDEX
+            if oldCommitId == NULL_OID and not repo.head_is_unborn:
+                oldCheck |= AttrCheck.INCLUDE_HEAD
+
+            old.cacheLfsPointer(repo, oldCommitId, oldCheck)
+
+        # Cache "new" LFS pointer
+        if new.lfs.state:
+            # Already cached
+            pass
+        elif self.status == "D":
+            # Deletion: No pointer
+            new.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
-            newCheck = AttrCheck.INDEX_ONLY
+            if newCommitId != NULL_OID:
+                newCheck = AttrCheck.INCLUDE_COMMIT
+            elif new.source.isDirty():
+                newCheck = AttrCheck.FILE_THEN_INDEX
+            else:
+                newCheck = AttrCheck.INDEX_ONLY
 
-        self.old.cacheLfsPointer(repo, oldCommitId, oldCheck)
-        self.new.cacheLfsPointer(repo, newCommitId, newCheck)
+            new.cacheLfsPointer(repo, newCommitId, newCheck)
+
+        return bool(old.lfs or new.lfs)
