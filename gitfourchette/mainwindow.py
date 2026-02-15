@@ -37,6 +37,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
 from gitfourchette.settings import TabBarClick
+from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import TaskBook, RepoTaskRunner, TaskInvocation
 from gitfourchette.tasks.newrepotasks import NewRepo
 from gitfourchette.toolbox import *
@@ -1196,8 +1197,12 @@ class MainWindow(QMainWindow):
             cancelButton.setText(_("&Not Now"))
             qmb.show()
 
-        # If any changed setting matches autoReload, schedule a "forced" refresh of all loaded RepoWidgets
+        # If any changed setting matches autoReload, schedule a forced refresh
+        # of the current diff in all loaded RepoWidgets.
         if any(k in autoReload for k in prefDiff):
+            # Nuke cached syntax highlighting
+            LexJobCache.clear()
+
             for rw in self.tabs.widgets():
                 if not isinstance(rw, RepoWidget):
                     continue

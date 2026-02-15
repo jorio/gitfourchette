@@ -251,9 +251,12 @@ class LoadPatch(RepoTask):
         assert onAppThread()
 
         if isinstance(diff, DiffDocument):
-            # Complete existing delta with actual blob hashes
-            assert diff.oldHash == delta.old.id
-            if not delta.new.isIdValid():
+            # Complete existing delta with actual blob hashes.
+            # WARNING: GitDelta.id represents a *vanilla* blob, not an LFS blob,
+            # so don't update the id if we're diffing an unpacked LFS object.
+            if not delta.old.lfs:
+                assert diff.oldHash == delta.old.id
+            if not delta.new.lfs and not delta.new.isIdValid():
                 delta.new.id = diff.newHash
 
             # Prime lexer
@@ -396,26 +399,38 @@ class LoadPatch(RepoTask):
         if lexer is None:
             return None, None
 
-        def primeLexJob(file: GitDeltaFile):
-            if file.isId0() or file.isEmptyBlob():
-                return None
-
-            assert file.isIdValid(), "need valid blob id for lexing"
-
-            try:
-                return LexJobCache.get(file.id)
-            except KeyError:
-                data = file.read(self.repo)
-                return LexJob(lexer, data, file.id)
-
-        oldLexJob = primeLexJob(delta.old)
-        newLexJob = primeLexJob(delta.new)
-
-        for job in oldLexJob, newLexJob:
-            if job is not None and job.fileKey not in LexJobCache.cache:
-                LexJobCache.put(job)
-
+        oldLexJob = self._primeSingleLexJob(lexer, delta.old)
+        newLexJob = self._primeSingleLexJob(lexer, delta.new)
         return oldLexJob, newLexJob
+
+    def _primeSingleLexJob(self, lexer, file: GitDeltaFile):
+        if file.isId0() or file.isEmptyBlob():
+            return None
+
+        # Figure out a key to look up this file in the lex cache.
+        if file.isIdValid():
+            # Use blob SHA-1 (most common case)
+            key = file.id
+        elif file.hasDiskStat():
+            # Blob SHA-1 not available, but we've got a stat
+            # (E.g. unstaged modification to an LFS file)
+            key = file.diskStat
+        else:
+            raise NotImplementedError("need valid blob id or stat for lexing")
+
+        try:
+            return LexJobCache.get(key)
+        except KeyError:
+            pass
+
+        data = file.read(self.repo)
+        job = LexJob(lexer, data, key)
+
+        assert job.fileKey == key
+        assert job.fileKey not in LexJobCache.cache
+        LexJobCache.put(job)
+
+        return job
 
 
 class LoadPatchInNewWindow(LoadPatch):

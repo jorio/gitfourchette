@@ -10,7 +10,7 @@ from gitfourchette.nav import NavLocator
 from .util import *
 
 
-def testLfsImageDiff(tempDir, mainWindow):
+def testLfsImageDiffInCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     rw = mainWindow.openRepo(wd)
 
@@ -25,7 +25,18 @@ def testLfsImageDiff(tempDir, mainWindow):
     assert findTextInWidget(rw.specialDiffView, "new image.+6.+6 pixels.+79 bytes")
 
 
-def testLfsToggleRawPointers(tempDir, mainWindow):
+def testLfsTextDiffInCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    rw = mainWindow.openRepo(wd)
+
+    commitId = Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da")
+    rw.jump(NavLocator.inCommit(commitId, "textfile.c"), check=True)
+
+    assert findTextInWidget(rw.diffView, r"int hello\(void\)")  # deleted line
+    assert findTextInWidget(rw.diffView, r"int foobar\(void\)")  # added line
+
+
+def testLfsToggleRawPointersInImageFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     rw = mainWindow.openRepo(wd)
 
@@ -41,6 +52,20 @@ def testLfsToggleRawPointers(tempDir, mainWindow):
     assert findTextInWidget(rw.specialDiffView, "new image.+6.+6 pixels.+79 bytes")
 
 
+def testLfsToggleRawPointersInTextFile(tempDir, mainWindow):
+    mainWindow.onAcceptPrefsDialog({"rawLfsPointers": True})
+
+    wd = unpackRepo(tempDir, "lfsrepo")
+    rw = mainWindow.openRepo(wd)
+
+    commitId = Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da")
+    rw.jump(NavLocator.inCommit(commitId, "textfile.c"), check=True)
+    assert findTextInWidget(rw.diffView, "git-lfs.github.com.spec.v1")
+
+    mainWindow.onAcceptPrefsDialog({"rawLfsPointers": False})
+    assert findTextInWidget(rw.diffView, "foobar")
+
+
 def testLfsFileToolTip(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     rw = mainWindow.openRepo(wd)
@@ -54,7 +79,7 @@ def testLfsFileToolTip(tempDir, mainWindow):
     assert re.search(r"lfs object hash:.+4b8c427", tip, re.I | re.S)
 
 
-def testLfsAddInWorkdir(tempDir, mainWindow):
+def testLfsAddImageInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
 
     image2 = getTestDataPath("image2.png")
@@ -79,7 +104,7 @@ def testLfsAddInWorkdir(tempDir, mainWindow):
     assert re.search(r"lfs object hash:.+" + sha[:7], tip, re.I | re.S)
 
 
-def testLfsChangeInWorkdir(tempDir, mainWindow):
+def testLfsChangeImageInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
 
     image2 = getTestDataPath("image2.png")
@@ -103,7 +128,7 @@ def testLfsChangeInWorkdir(tempDir, mainWindow):
     assert re.search(r"lfs object hash:.+4b8c427.+87e67da", tip, re.I | re.S)
 
 
-def testLfsRemoveInWorkdir(tempDir, mainWindow):
+def testLfsRemoveImageInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     os.remove(f"{wd}/image1.png")
 
@@ -120,3 +145,20 @@ def testLfsRemoveInWorkdir(tempDir, mainWindow):
     rw.diffArea.stageButton.click()
     rw.jump(NavLocator.inStaged("image1.png"), check=True)
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
+
+
+def testLfsChangeTextInWorkdir(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+
+    writeFile(f"{wd}/textfile.c", "// Still an LFS file\nint bogus = 0;\n")
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inUnstaged("textfile.c"), check=True)
+    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer changed")
+    assert findTextInWidget(rw.diffView, "Still an LFS file")
+
+    rw.diffArea.stageButton.click()
+    rw.jump(NavLocator.inStaged("textfile.c"), check=True)
+    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer changed")
+    assert findTextInWidget(rw.diffView, "Still an LFS file")

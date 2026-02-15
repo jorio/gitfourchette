@@ -21,6 +21,8 @@ HexHashFFFF = "f" * 40
 HexHashEmptyBlob = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"  # hashlib.sha1(b'blob 0\0').hexdigest()
 """ The SHA-1 hash of an empty Git blob. """
 
+_NoDiskStat = (-1, -1)
+
 
 @dataclasses.dataclass
 class GitDeltaFile:
@@ -29,7 +31,7 @@ class GitDeltaFile:
     mode: FileMode = FileMode.UNREADABLE
     source: NavContext = NavContext.EMPTY
 
-    diskStat: tuple[int, int] = (-1, -1)
+    diskStat: tuple[int, int] = _NoDiskStat
     """
     Filled in for unstaged files only. Allows quick comparison of GitDeltaFiles
     taken at two points in time for the same unstaged file. Internally, this is
@@ -66,6 +68,9 @@ class GitDeltaFile:
 
     def isDataValid(self) -> bool:
         return self._data is not None
+
+    def hasDiskStat(self) -> bool:
+        return self.diskStat != _NoDiskStat
 
     def isBlob(self) -> bool:
         return self.mode & FileMode.BLOB == FileMode.BLOB
@@ -119,7 +124,7 @@ class GitDeltaFile:
         return str(pathObj)
 
     def stat(self, repo: Repo) -> tuple[int, int]:
-        diskStat = (-1, -1)
+        diskStat = _NoDiskStat
         absPath = repo.in_workdir(self.path)
         try:
             stat = os.lstat(absPath)
