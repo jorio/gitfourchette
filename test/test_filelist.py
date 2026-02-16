@@ -499,7 +499,7 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
 
     triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/name first")
-    assert ["c2-2.txt c"] == qlvGetRowData(rw.committedFiles)
+    assert ["c2-2.txt \0c"] == qlvGetRowData(rw.committedFiles)
 
 
 def testFileListShowInFolder(tempDir, mainWindow):

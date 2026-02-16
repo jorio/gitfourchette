@@ -38,7 +38,7 @@ def abbreviatePath(path: str, style: PathDisplayStyle = PathDisplayStyle.FullPat
         split = path.rsplit('/', 1)
         if len(split) == 1:
             return path
-        return split[-1] + ' ' + split[0]
+        return split[-1] + ' \0' + split[0]
     elif style == PathDisplayStyle.FileNameOnly:
         return path.rsplit('/', 1)[-1]
     else:

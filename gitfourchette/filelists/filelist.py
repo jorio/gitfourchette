@@ -72,8 +72,7 @@ class FileListDelegate(QStyledItemDelegate):
         if font:
             painter.setFont(font)
         fullText = index.data(Qt.ItemDataRole.DisplayRole)
-        elideMode = Qt.TextElideMode.ElideRight if settings.prefs.pathDisplayStyle == PathDisplayStyle.FileNameFirst else option.textElideMode
-        text = painter.fontMetrics().elidedText(fullText, elideMode, textRect.width())
+        text = painter.fontMetrics().elidedText(fullText, option.textElideMode, textRect.width())
 
         # Split path into directory and filename for better readability
         firstPortion = None
@@ -85,22 +84,10 @@ class FileListDelegate(QStyledItemDelegate):
         isFileNameFirst = settings.prefs.pathDisplayStyle == PathDisplayStyle.FileNameFirst
 
         if isFileNameFirst:
-            # Rely on the raw path to identify the filename, as filenames can contain spaces
-            fullPath = index.data(FileListModel.Role.FilePath)
-            fName = os.path.basename(fullPath)
-
-            prefix = fName + " "
-            if not text.startswith(prefix) and '\u2026' in text:
-                ellipsisPos = text.find('\u2026')
-                if fName.startswith(text[:ellipsisPos]):
-                    prefix = text[:ellipsisPos + 1]
-
-            if text.startswith(prefix):
-                 firstPortion = prefix
-                 secondPortion = text[len(prefix):]
-            else:
-                 firstPortion = text
-                 secondPortion = ""
+            try:
+                firstPortion, secondPortion = text.split('\0')
+            except ValueError:
+                firstPortion, secondPortion = text, ""
 
             firstColor = QPalette.ColorRole.WindowText
             secondColor = QPalette.ColorRole.PlaceholderText
@@ -236,6 +223,8 @@ class FileList(QListView):
 
     def refreshPrefs(self):
         self.setVerticalScrollMode(settings.prefs.listViewScrollMode)
+        nameFirst = settings.prefs.pathDisplayStyle == PathDisplayStyle.FileNameFirst
+        self.setTextElideMode(Qt.TextElideMode.ElideRight if nameFirst else Qt.TextElideMode.ElideMiddle)
 
     @property
     def repo(self) -> Repo:
