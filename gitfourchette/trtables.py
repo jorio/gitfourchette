@@ -104,7 +104,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
+        from gitfourchette.settings import CommitHashDisplay, GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -205,6 +205,12 @@ class TrTables:
                 AuthorDisplayStyle.Initials     : _("Initials"),
                 AuthorDisplayStyle.FullEmail    : _("Full email"),
                 AuthorDisplayStyle.EmailUserName: _("Abbreviated email"),
+            },
+
+            CommitHashDisplay: {
+                CommitHashDisplay.Left          : _p("show commit hashes", "On left"),
+                CommitHashDisplay.Right         : _p("show commit hashes", "On right"),
+                CommitHashDisplay.Hide          : _p("show commit hashes", "Hide"),
             },
 
             GraphRowHeight: {
@@ -382,6 +388,7 @@ class TrTables:
             "shortTimeFormat_help": TrTables._timeFormatTable(),
             "pathDisplayStyle": _("Path display style"),
             "authorDisplayStyle": _("Author display style"),
+            "commitHashDisplay": _("Show commit hashes"),
             "maxRecentRepos": _("Remember up to # recent repositories"),
             "showStatusBar": _("Show status bar"),
             "showToolBar": _("Show toolbar"),
