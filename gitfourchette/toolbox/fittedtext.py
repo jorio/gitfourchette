@@ -7,6 +7,7 @@
 from math import ceil
 
 from gitfourchette.qt import *
+from gitfourchette.settings import CondensedFonts
 
 class FittedText:
     enable = True
@@ -37,9 +38,16 @@ class FittedText:
             mode=Qt.TextElideMode.ElideRight,
             limit=defaultStretchLimit,
             bypassSetting=False,
+            # When set, stretch the text as though the max width were this value:
+            stretchMaxWidth: int | None = None,
     ) -> tuple[str, QFont, int]:
         metrics = QFontMetricsF(wideFont)
         width = ceil(metrics.horizontalAdvance(text))
+        if stretchMaxWidth is None:
+            stretchMaxWidth = maxWidth
+        if cls.enable == CondensedFonts.Always:
+            # Stretch as hard as we can -- as though there's no space
+            stretchMaxWidth = 0
 
         if width < 1:
             return text, wideFont, 0
@@ -48,7 +56,7 @@ class FittedText:
             font = wideFont
         else:
             # Figure out upper bound for the stretch factor
-            baselineStretch = int(100 * maxWidth / width)
+            baselineStretch = int(100 * stretchMaxWidth / width)
 
             if baselineStretch >= 100:
                 # No condensing needed - early out

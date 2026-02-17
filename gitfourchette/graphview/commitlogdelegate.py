@@ -18,6 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel, GpgStatus
+from gitfourchette.settings import GraphRefBoxWidth
 from gitfourchette.toolbox import *
 
 
@@ -474,7 +475,9 @@ class CommitLogDelegate(QStyledItemDelegate):
         maxWidth = settings.prefs.refBoxMaxWidth
         if text and maxWidth != 0:
             text, fittedFont, textWidth = FittedText.fit(
-                font, maxWidth, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.Condensed)
+                font, maxWidth, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.Condensed,
+                stretchMaxWidth=min(maxWidth, GraphRefBoxWidth.Standard),
+            )
         else:
             textWidth = -rPadding  # Negate rPadding
 
