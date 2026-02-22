@@ -81,37 +81,46 @@ class SpecialDiffView(QTextBrowser):
         # Let DocumentLinks callbacks invoke RepoTasks using this QObject chain
         err.taskInvoker = document
 
-    def displayImageDelta(self, d: ImageDelta, swap=False):
+    def displayImageDelta(self, delta: ImageDelta, swap=False):
         if not swap:
-            image = d.newImage or d.oldImage
+            image = delta.new.image or delta.old.image
         else:
-            image = d.oldImage or d.newImage
-        hasBothSides = d.newImage and d.oldImage
+            image = delta.old.image or delta.new.image
+        hasBothSides = delta.old.image and delta.new.image
+        showLfsStatus = delta.old.deltaFile.lfs or delta.new.deltaFile.lfs
 
         green, red = settings.prefs.addDelColors()
-        borderColor = red if image is d.oldImage else green
+        borderColor = red if image is delta.old.image else green
 
         links = DocumentLinks()
-        swapLink = links.new(lambda: self.displayImageDelta(d, swap=not swap))
+        swapLink = links.new(lambda: self.displayImageDelta(delta, swap=not swap))
 
         markup = self.htmlHeader + "<center><table>"
 
-        for i, size, tag, name in [
-            (d.oldImage, d.oldSize, "del", _("Old image:") if d.newImage else _("Deleted image:")),
-            (d.newImage, d.newSize, "add", _("New image:"))
-        ]:
-            if i is None:
+        for file in delta.old, delta.new:
+            if file.image is None:
                 continue
 
-            if hasBothSides and i is not image:
+            tag = "add" if file is delta.new else "del"
+
+            name = (_("New image") if file is delta.new else
+                    _("Old image") if delta.new.image else
+                    _("Deleted image"))
+
+            if showLfsStatus:
+                lfsInfo = "LFS" if file.deltaFile.lfs else _("not LFS")
+                name = f"{name}, {lfsInfo}"
+            name += _(":")
+
+            if hasBothSides and file.image is not image:
                 c1 = f"<a href='{swapLink}'>{name}</a>"
             else:
-                c1 = f"<b><{tag}>{name}</tag></b>"
+                c1 = f"<b><{tag}>{name}</{tag}></b>"
 
-            c2 = f"{i.width()} &times; {i.height()} {_('pixels')},"
-            c3 = self.locale().formattedDataSize(size)
+            c2 = f"{file.image.width()} &times; {file.image.height()} {_('pixels')},"
+            c3 = self.locale().formattedDataSize(file.size)
 
-            if hasBothSides and i is image:
+            if hasBothSides and file.image is image:
                 c4 = f"<b><{tag}>&darr; {_('shown below')} &darr;</{tag}></b>"
             else:
                 c4 = ""

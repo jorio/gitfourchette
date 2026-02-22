@@ -166,3 +166,15 @@ def testLfsChangeTextInWorkdir(tempDir, mainWindow):
     rw.jump(NavLocator.inStaged("textfile.c"), check=True)
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer changed")
     assert findTextInWidget(rw.diffView, "Still an LFS file")
+
+
+def testLfsStopTrackingImageInCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    rw = mainWindow.openRepo(wd)
+
+    commitId = Oid(hex="8bee978d3eeecdd9e271a5ff8c7cd25ff29d37ad")
+    rw.jump(NavLocator.inCommit(commitId, "image1.png"), check=True)
+
+    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "old image, lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "new image, not lfs")

@@ -8,13 +8,14 @@
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import re
 from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import GitDelta, GitDriver
+from gitfourchette.gitdriver import GitDelta, GitDriver, GitDeltaFile
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -34,18 +35,28 @@ class SameTextDiff:
 
 
 class ImageDelta:
-    oldSize: int
-    newSize: int
-    oldImage: QImage | None
-    newImage: QImage | None
+    @dataclasses.dataclass
+    class ImageDeltaFile:
+        size: int
+        image: QImage | None
+        deltaFile: GitDeltaFile
+
+    old: ImageDeltaFile
+    new: ImageDeltaFile
 
     def __init__(self, repo: Repo, delta: GitDelta):
-        imageDataA = delta.old.read(repo)
-        imageDataB = delta.new.read(repo)
-        self.oldSize = len(imageDataA)
-        self.newSize = len(imageDataB)
-        self.oldImage = QImage.fromData(imageDataA) if imageDataA else None
-        self.newImage = QImage.fromData(imageDataB) if imageDataB else None
+        oldData = delta.old.read(repo)
+        newData = delta.new.read(repo)
+
+        self.old = ImageDelta.ImageDeltaFile(
+            size=len(oldData),
+            image=QImage.fromData(oldData) if oldData else None,
+            deltaFile=delta.old)
+
+        self.new = ImageDelta.ImageDeltaFile(
+            size=len(newData),
+            image=QImage.fromData(newData) if newData else None,
+            deltaFile=delta.new)
 
 
 class SpecialDiffError:
