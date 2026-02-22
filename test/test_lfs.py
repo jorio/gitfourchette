@@ -79,6 +79,7 @@ def testLfsFileToolTip(tempDir, mainWindow):
     assert re.search(r"lfs object hash:.+4b8c427", tip, re.I | re.S)
 
 
+@requiresLfs
 def testLfsAddImageInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
 
@@ -104,6 +105,7 @@ def testLfsAddImageInWorkdir(tempDir, mainWindow):
     assert re.search(r"lfs object hash:.+" + sha[:7], tip, re.I | re.S)
 
 
+@requiresLfs
 def testLfsChangeImageInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
 
@@ -128,6 +130,7 @@ def testLfsChangeImageInWorkdir(tempDir, mainWindow):
     assert re.search(r"lfs object hash:.+4b8c427.+87e67da", tip, re.I | re.S)
 
 
+@requiresLfs
 def testLfsRemoveImageInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     os.remove(f"{wd}/image1.png")
@@ -147,6 +150,7 @@ def testLfsRemoveImageInWorkdir(tempDir, mainWindow):
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
 
 
+@requiresLfs
 def testLfsChangeTextInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
 

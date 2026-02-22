@@ -25,16 +25,24 @@ from . import *
 
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
 
+HAS_LFS = bool(shutil.which("git-lfs"))
+HAS_GPG = bool(shutil.which("gpg"))
+HAS_FLATPAK = FREEDESKTOP and bool(shutil.which("flatpak"))
+
 requiresNetwork = pytest.mark.skipif(
     os.environ.get("TESTNET", "") in {"0", ""},
     reason="Requires network (test.py --with-network)")
 
 requiresFlatpak = pytest.mark.skipif(
-    not FLATPAK or (FREEDESKTOP and not shutil.which("flatpak")),
+    not FLATPAK or not HAS_FLATPAK,
     reason="Requires flatpak")
 
+requiresLfs = pytest.mark.skipif(
+    not HAS_LFS,
+    reason="Requires git-lfs")
+
 requiresGpg = pytest.mark.skipif(
-    not shutil.which("gpg"),
+    not HAS_GPG,
     reason="Requires gpg")
 
 requiresFuse = pytest.mark.skipif(

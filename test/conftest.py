@@ -81,7 +81,7 @@ def setUpTestGitConfig(path: str):
 
     from gitfourchette.porcelain import GitConfigHelper, GitConfigLevel
     from gitfourchette.qt import WINDOWS
-    from .util import TEST_SIGNATURE, getTestDataPath
+    from .util import HAS_LFS, TEST_SIGNATURE, getTestDataPath
 
     sshCommand = getTestDataPath("isolated-ssh.sh" if not WINDOWS else "isolated-ssh.bat")
 
@@ -95,13 +95,16 @@ def setUpTestGitConfig(path: str):
 
         # Prevent OpenSSH from looking at host user's key files
         "core.sshCommand": sshCommand,
-
-        # Allow using LFS (usually set up in /etc/gitconfig)
-        "filter.lfs.clean": "git-lfs clean -- %f",
-        "filter.lfs.smudge": "git-lfs smudge -- %f",
-        "filter.lfs.process": "git-lfs filter-process -- %f",
-        "filter.lfs.required": "true",
     }
+
+    if HAS_LFS:
+        # Allow using LFS (usually set up in /etc/gitconfig)
+        config.update({
+            "filter.lfs.clean": "git-lfs clean -- %f",
+            "filter.lfs.smudge": "git-lfs smudge -- %f",
+            "filter.lfs.process": "git-lfs filter-process -- %f",
+            "filter.lfs.required": "true",
+        })
 
     setUpGitConfigSearchPaths(path)
     globalGitConfig = GitConfigHelper.ensure_file(GitConfigLevel.GLOBAL)
