@@ -295,6 +295,9 @@ class LoadPatch(RepoTask):
         if not settings.prefs.rawLfsPointers:
             commitId = commit.id if commit else NULL_OID
             loadLfs = delta.cacheLfsPointers(self.repo, commitId)
+            # If a text file was converted from LFS to non-LFS, base the diff on standard Git blobs
+            if delta.status != "D":
+                loadLfs &= bool(delta.new.lfs)
 
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg

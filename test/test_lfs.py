@@ -178,3 +178,21 @@ def testLfsStopTrackingImageInCommit(tempDir, mainWindow):
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
     assert findTextInWidget(rw.diffArea.specialDiffView, "old image, lfs")
     assert findTextInWidget(rw.diffArea.specialDiffView, "new image, not lfs")
+
+
+def testLfsStopTrackingTextInCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    rw = mainWindow.openRepo(wd)
+
+    commitId = Oid(hex="3fb301f7e37f712d11b575103d0c2eabb3d6e514")
+    rw.jump(NavLocator.inCommit(commitId, "textfile.c"), check=True)
+
+    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
+
+    diffLines = rw.diffView.lineData
+    # LFS pointer: red lines
+    assert diffLines[1].text.startswith("version https://git-lfs.github.com/spec/v1")
+    assert diffLines[1].origin == "-"
+    # Vanilla blob: green lines
+    assert diffLines[5].text.startswith(" * This is a text file")
+    assert diffLines[5].origin == "+"
