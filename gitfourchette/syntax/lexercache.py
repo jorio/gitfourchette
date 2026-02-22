@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os.path
+import re
 from contextlib import suppress
 
 try:
@@ -23,14 +24,24 @@ from gitfourchette.toolbox.benchmark import benchmark
 logger = logging.getLogger(__name__)
 
 # Override Pygments priorities
-extensionDisambiguations = {
-    ".G": "",
+_disambiguations = {
+    ".ASM": "nasm",
+    ".G": None,
     ".S": "gas",
+    ".as": "actionscript3",
+    ".asax": "aspx-cs",
+    ".ascx": "aspx-cs",
+    ".ashx": "aspx-cs",
+    ".asm": "nasm",
+    ".asmx": "aspx-cs",
     ".aspx": "aspx-cs",
+    ".axd": "aspx-cs",
     ".bas": "qbasic",
+    ".cl": "common-lisp",
     ".cp": "cpp",
     ".ecl": "prolog",
-    ".g": "",
+    ".fs": "fsharp",
+    ".g": None,
     ".gd": "gdscript",
     ".h": "c",
     ".hh": "cpp",
@@ -38,11 +49,12 @@ extensionDisambiguations = {
     ".inc": "php",
     ".inf": "ini",
     ".m": "objective-c",
+    ".mm": "objective-c++",
     ".pl": "perl6",
     ".pm": "perl6",
     ".pro": "prolog",
     ".prolog": "prolog",
-    ".rl": "",
+    ".rl": None,
     ".s": "gas",
     ".sql": "sql",
     ".t": "perl6",
@@ -53,6 +65,12 @@ extensionDisambiguations = {
     ".xml": "xml",
     ".xsl": "xslt",
     ".xslt": "xslt",
+}
+
+# These are not defined by Pygments
+_forcedAssociations = {
+    ".gitmodules": "ini",
+    ".svg": "xml",
 }
 
 
@@ -109,54 +127,58 @@ class LexerCache:
     @classmethod
     @benchmark
     def warmUp(cls, allowPlugins: bool):
-        aliasTable = {}
+        """
+        Cache lexerAliases (map of filename patterns to lexer names).
+        Turn off plugins for a significant speedup.
+        """
 
-        def shouldKeep(contenderAlias, contenderExtension):
-            if contenderExtension in extensionDisambiguations:
-                return contenderAlias == extensionDisambiguations[contenderExtension]
+        # Map lexer names to filename patterns
+        lexers: dict[str, set[str]] = {}
 
-            try:
-                aliasTable[contenderExtension]
-            except KeyError:
-                return True
-
-            # print(contenderExtension, existingAlias, "vs", contenderAlias)
-            # existing = pygments.lexers.find_lexer_class_by_name(existingAlias)  # slow!
-            # contender = pygments.lexers.find_lexer_class_by_name(contenderAlias)  # slow!
-            # return contender.priority > existing.priority
-            return False
-
-        # Significant speedup with plugins=False
+        simpleExtension = re.compile(r'^\*\.[^.*\[]+$')
         for _name, aliases, patterns, _mimeTypes in pygments.lexers.get_all_lexers(plugins=allowPlugins):
-            if not patterns or not aliases:
+            if not patterns or not aliases:  # Skip lexers without filename associations
                 continue
-            alias = aliases[0]
+
+            lexerName = aliases[0]
+            patternSet = set()
+            if lexerName in lexers:  # pragma: no cover
+                logger.warning(f"Duplicated lexer name: {lexerName}")
+            lexers[lexerName] = patternSet
+
             for pattern in patterns:
-                if pattern.startswith('*.') and not pattern.endswith('*') and pattern.count('.') == 1 and '[' not in pattern:
-                    # Simple file extension
-                    ext = pattern[1:]
-                    if shouldKeep(alias, ext):
-                        aliasTable[ext] = alias
-                elif '*' not in pattern:
-                    # Verbatim file name
-                    aliasTable[pattern] = alias
+                if simpleExtension.match(pattern):  # *.ext
+                    pattern = pattern[1:]  # Strip "*" prefix
+                elif '*' in pattern:
+                    # Skip anything else with a wildcard (keep verbatim filenames)
+                    continue
+
+                if lexerName == _disambiguations.get(pattern, lexerName):
+                    patternSet.add(pattern)
 
         # Patch missing extensions
-        # TODO: What's pygments' rationale for omitting '*.svg'?
-        with suppress(KeyError):
-            aliasTable['.svg'] = aliasTable['.xml']
+        for ext, lexerName in _forcedAssociations.items():
+            try:
+                lexers[lexerName].add(ext)
+            except KeyError:  # pragma: no cover
+                logger.warning(f"Missing lexer {lexerName}")
 
-        def removeLexer(lexerName: str):
-            nonlocal aliasTable
-            aliasTable = {ext: alias for ext, alias in aliasTable.items() if alias != lexerName}
-
-        # No Pygments overhead for null lexers
-        removeLexer("text")
+        # Avoid Pygments overhead for plaintext lexers
+        lexers.pop("text", None)
 
         # Disable Lua syntax highlighting in bad Pygments versions (issue #55)
         if pygmentsVersion.startswith(("2.19.0", "2.19.1")):  # pragma: no cover
-            logger.warning(f"The Lua lexer in Pygments {pygmentsVersion} is known to have issues. "
-                           f"Disabling Lua syntax highlighting.")
-            removeLexer("lua")
+            logger.warning(f"Disabling Lua support in Pygments {pygmentsVersion} (issue #55)")
+            lexers.pop("lua", None)
 
-        cls.lexerAliases = aliasTable
+        # Map filename patterns to lexers
+        patternsToLexers = {}
+        for lexerName, patternSet in lexers.items():
+            if False:  # pragma: no cover - replace with 'if True' to debug missing disambiguations
+                overwrite = patternSet.intersection(patternsToLexers)
+                if overwrite:
+                    logger.warning(f"Missing disambiguation: Lexer '{lexerName}' will take precedence over { { p: patternsToLexers[p] for p in overwrite } }")
+
+            patternsToLexers.update(dict.fromkeys(patternSet, lexerName))
+
+        cls.lexerAliases = patternsToLexers
