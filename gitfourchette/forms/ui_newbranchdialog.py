@@ -67,6 +67,7 @@ class Ui_NewBranchDialog(object):
         self.nameLabel.setBuddy(self.nameEdit)
 
         self.retranslateUi(NewBranchDialog)
+        self.nameEdit.textEdited.connect(NewBranchDialog.branchTextEdited) # type: ignore
         self.buttonBox.rejected.connect(NewBranchDialog.reject) # type: ignore
         self.buttonBox.accepted.connect(NewBranchDialog.accept) # type: ignore
         self.upstreamCheckBox.toggled['bool'].connect(self.upstreamComboBox.setEnabled) # type: ignore

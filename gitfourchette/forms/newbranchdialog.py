@@ -65,6 +65,17 @@ class NewBranchDialog(QDialog):
     def acceptButton(self):
         return self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
 
+    def branchTextEdited(self, text: str):
+        """
+        Allow using spacebar to input valid branch names
+        """
+        if ' ' in text:
+            cursor_pos = self.ui.nameEdit.cursorPosition()
+            newText = text.replace(' ', '-')
+            self.ui.nameEdit.setText(newText)
+            # Restore the cursor position so it doesn't jump to the end
+            self.ui.nameEdit.setCursorPosition(cursor_pos)
+
     @staticmethod
     def preSelectLeaf(nameEdit: QLineEdit):
         """

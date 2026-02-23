@@ -85,6 +85,17 @@ class RenameBranch(RepoTask):
 
         nameTaken = _("This name is already taken by another local branch.")
 
+        def branchTextEdited(text: str):
+            """
+            Allow using spacebar to input valid branch names
+            """
+            if ' ' in text:
+                cursorPosition = dlg.lineEdit.cursorPosition()
+                newText = text.replace(' ', '-')
+                dlg.lineEdit.setText(newText)
+                # Restore the cursor position so it doesn't jump to the end
+                dlg.lineEdit.setCursorPosition(cursorPosition)
+
         dlg = TextInputDialog(
             self.parentWidget(),
             _("Rename local branch"),
@@ -92,6 +103,7 @@ class RenameBranch(RepoTask):
             subtitle=_("Current name: {0}", oldBranchName))
         dlg.setText(oldBranchName)
         dlg.setValidator(lambda name: nameValidationMessage(name, forbiddenBranchNames, nameTaken))
+        dlg.lineEdit.textEdited.connect(branchTextEdited)
         dlg.okButton.setText(_("Rename"))
 
         # Pre-select leaf name (e.g. in "folder/leaf" select only "leaf")
@@ -150,6 +162,17 @@ class RenameBranchFolder(RepoTask):
                       "Folder {name} contains {n} branches.",
                       len(folderBranches), name=lquoe(oldFolderName))
 
+        def branchTextEdited(text: str):
+            """
+            Allow using spacebar to input valid branch names
+            """
+            if ' ' in text:
+                cursorPosition = dlg.lineEdit.cursorPosition()
+                newText = text.replace(' ', '-')
+                dlg.lineEdit.setText(newText)
+                # Restore the cursor position so it doesn't jump to the end
+                dlg.lineEdit.setCursorPosition(cursorPosition)
+
         dlg = TextInputDialog(
             self.parentWidget(),
             _("Rename branch folder"),
@@ -159,6 +182,7 @@ class RenameBranchFolder(RepoTask):
         dlg.setValidator(validate)
         dlg.okButton.setText(_("Rename"))
         dlg.lineEdit.setPlaceholderText(_("Leave blank to move the branches to the root folder."))
+        dlg.lineEdit.textEdited.connect(branchTextEdited)
 
         yield from self.flowDialog(dlg)
         dlg.deleteLater()
