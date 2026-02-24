@@ -51,6 +51,29 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     if APP_DEBUG:
         assert not any(d.submoduleStatus.startswith("S") for d in stagedDeltas), "only expecting full submo status in unstaged deltas"
 
+    # Pre-cache LFS state for unstaged files via `git check-attr` if
+    # .gitattributes has any unstaged changes.
+    # LFS state is usually queried via libgit2's git_get_attr. However, it's
+    # unreliable when .gitattributes has unstaged changes, because it falls back
+    # to the indexed revision of .gitattributes when an attr was deleted from
+    # the file but still exists in the index. Ideally, libgit2 should offer a
+    # GIT_ATTR_CHECK_FILE_ONLY flag so we don't have to do this.
+    with Benchmark("check-attr unstaged"):
+        if any(d.new.path.endswith(".gitattributes") for d in unstagedDeltas):
+            unstagedTable = {d.new.path: d for d in unstagedDeltas}
+
+            checkAttrDriver = yield from task.flowCallGit(
+                "check-attr", "-z", "filter", "--", *unstagedTable.keys())
+
+            # Can't use stdoutTable because all fields are zero-separated.
+            tokens = checkAttrDriver.stdoutScrollback().removesuffix("\0").split("\0")
+            for i in range(0, len(tokens), 3):
+                # (filename, attribute, unspecified/unset/set/value) triplets
+                fileName = tokens[i]
+                value = tokens[i + 2]
+                delta = unstagedTable[fileName]
+                delta.new.cacheLfsPointer(task.repo, NULL_OID, value)
+
     # Fill in submodule commit hashes.
     # (This might be parallelizable if we've got tons of modified submodules)
     for delta in unstagedDeltas:

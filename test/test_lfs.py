@@ -6,6 +6,7 @@
 
 import re
 
+from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -196,3 +197,44 @@ def testLfsStopTrackingTextInCommit(tempDir, mainWindow):
     # Vanilla blob: green lines
     assert diffLines[5].text.startswith(" * This is a text file")
     assert diffLines[5].origin == "+"
+
+
+def testLfsStopTrackingTextInWorkdir(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+
+    # Remove LFS filter on '*.c' files
+    attributes = readTextFile(f"{wd}/.gitattributes")
+    lines = attributes.splitlines(keepends=True)
+    lines = [line for line in lines if "*.c" not in line]
+    attributes = "".join(lines)
+    writeFile(f"{wd}/.gitattributes", attributes)
+
+    rw = mainWindow.openRepo(wd)
+
+    def checkLfsPointerRemoved():
+        assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
+        diffLines = rw.diffView.lineData
+        # LFS pointer: red lines
+        assert diffLines[1].text.startswith("version https://git-lfs.github.com/spec/v1")
+        assert diffLines[1].origin == "-"
+        # Vanilla blob: green lines
+        assert diffLines[5].text.startswith(" * This is a text file")
+        assert diffLines[5].origin == "+"
+
+    # Unstaged
+    rw.jump(NavLocator.inUnstaged("textfile.c"), check=True)
+    checkLfsPointerRemoved()
+
+    # Staged (Note: we're not staging .gitattributes together with the file
+    # here, but the LFS pointer should still be recognized as being removed)
+    rw.diffArea.stageButton.click()
+    rw.jump(NavLocator.inStaged("textfile.c"), check=True)
+    checkLfsPointerRemoved()
+
+    # Make commit then look at the file inside the commit
+    rw.diffArea.commitButton.click()
+    commitDialog = findQDialog(rw, "Commit", CommitDialog)
+    commitDialog.ui.summaryEditor.setText("Untrack text file")
+    commitDialog.accept()
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "textfile.c"), check=True)
+    checkLfsPointerRemoved()

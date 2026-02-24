@@ -79,6 +79,11 @@ class GitDelta:
             if newCommitId != NULL_OID:
                 newCheck = AttrCheck.INCLUDE_COMMIT
             elif new.source.isDirty():
+                # Note: If .gitattributes itself contains unstaged changes, then
+                # this check is unreliable with libgit2 alone (we'd need an
+                # AttrCheck.FILE_ONLY flag). For that specific case,
+                # `loadWorkdir` should already have cached the 'new' lfs pointer
+                # state via `git check-attr`.
                 newCheck = AttrCheck.FILE_THEN_INDEX
             else:
                 newCheck = AttrCheck.INDEX_ONLY
