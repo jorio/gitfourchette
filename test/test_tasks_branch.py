@@ -73,8 +73,7 @@ def testNewBranchNaming(tempDir, mainWindow):
     dlg: NewBranchDialog = findQDialog(rw, "new branch")
     nameEdit = dlg.ui.nameEdit
 
-    nameEdit.setText("hellobranch")
-    nameEdit.textEdited.emit("hello branch")
+    nameEdit.setText("hello branch")
 
     assert nameEdit.text() == "hello-branch"
 
@@ -206,7 +205,7 @@ def testRenameBranch(tempDir, mainWindow, method):
         "nope.lock", "nope/", "nope.",
         "nope/.nope", "nope//nope", "nope@{nope", "no..pe",
         ".nope", "/nope",
-        "no pe", "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
+        "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
         "nul", "nope/nul", "nul/nope", "lpt3", "com2",
     ]
     fixableNames = [
@@ -338,13 +337,20 @@ def testRenameBranchFolder(tempDir, mainWindow, method, newName):
         "nope.lock", "nope/", "nope.",
         "nope/.nope", "nope//nope", "nope@{nope", "no..pe",
         ".nope", "/nope",
-        "no pe", "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
+        "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
         "nul", "nope/nul", "nul/nope", "lpt3", "com2",
+    ]
+    fixableNames = [
+        # Illegal patterns that can be automatically fixed by the input field
+        "no pe",
     ]
     for bad in badNames:
         nameEdit.setText(bad)
         assert not okButton.isEnabled(), f"name shouldn't pass validation: {bad}"
         print(bad, "-->", nameEdit.actions()[0].toolTip())
+    for fixable in fixableNames:
+        nameEdit.setText(fixable)
+        assert okButton.isEnabled(), f"name should pass validation: {fixable}"
 
     nameEdit.setText(newName)
     assert okButton.isEnabled()

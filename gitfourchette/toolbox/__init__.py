@@ -98,3 +98,4 @@ from .textutils import (
 )
 from .urltooltip import UrlToolTip
 from .validatormultiplexer import ValidatorMultiplexer
+from .validators import ReplaceSpacesWithDashes
