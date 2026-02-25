@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -19,7 +19,6 @@ REVERSE_ORIGIN_MAP = {
 }
 
 QUOTE_PATH_ESCAPES = {
-    ' ': ' ',
     '"': '\\"',
     '\a': '\\a',
     '\b': '\\b',
@@ -29,31 +28,42 @@ QUOTE_PATH_ESCAPES = {
     '\f': '\\f',
     '\r': '\\r',
     '\\': '\\\\',
+    # Although we're not technically escaping the space character, it's
+    # included in this dict to force any paths containing spaces to be quoted.
+    ' ': ' ',
 }
+""" Predefined character escapes for `quotePath`. """
 
 
 def quotePath(path: str) -> str:
-    quote = False
-    safePath = []
+    # If no escaping is needed, we can spit back the input path verbatim.
+    verbatim = True
 
-    for c in path:
-        codepoint = ord(c)
-        if 0x21 <= codepoint <= 0x7e:  # copy ASCII characters '!' through '~' verbatim
-            safePath.append(c)
-            continue
+    # Build a safe (quoted + escaped) path.
+    safePath = ['"']
 
-        if not quote:
-            safePath.insert(0, '"')
-            quote = True
-
+    for char in path:
+        # See if we should escape this character
         try:
-            safePath.append(QUOTE_PATH_ESCAPES[c])
+            char = QUOTE_PATH_ESCAPES[char]
+            verbatim = False
         except KeyError:
-            safePath.append(f"\\{codepoint:03o}")
+            # This character has no predefined escape.
+            # If it's a printable ASCII char, we can copy it verbatim,
+            # otherwise it should be encoded as octal-escaped UTF-8.
+            isPrintableAscii = 0x21 <= ord(char) <= 0x7e
+            if not isPrintableAscii:
+                char = "".join(f"\\{byte:03o}" for byte in char.encode("utf-8"))
+                verbatim = False
 
-    if quote:
-        safePath.append('"')
+        safePath.append(char)
 
+    if verbatim:
+        # None of the characters had to be escaped
+        assert path == "".join(safePath).removeprefix('"')
+        return path
+
+    safePath.append('"')
     return "".join(safePath)
 
 
@@ -93,17 +103,8 @@ def getPatchPreamble(delta: GitDelta, reverse=False) -> str:
     # "---"/"+++" lines and it'll therefore fail to parse its own output.
     preamble.append(f"index {old.id}..{'f' * 40}\n")
 
-    if oldExists:
-        # TODO: Should we quote this?
-        preamble.append(f"--- a/{old.path}\n")
-    else:
-        preamble.append("--- /dev/null\n")
-
-    if newExists:
-        # TODO: Should we quote this?
-        preamble.append(f"+++ b/{old.path}\n")
-    else:
-        preamble.append("+++ /dev/null\n")
+    preamble.append(f"--- {oldPathQuoted if oldExists else '/dev/null'}\n")
+    preamble.append(f"+++ {newPathQuoted if newExists else '/dev/null'}\n")
 
     return "".join(preamble)
 

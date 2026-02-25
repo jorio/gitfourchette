@@ -130,22 +130,44 @@ def testDiffViewStageAllLinesThenJumpToNextFile(tempDir, mainWindow):
     assert 0 == rw.diffView.textCursor().blockNumber()
 
 
-def testPartialPatchSpacesInFilename(tempDir, mainWindow):
+def _nonWindowsPath(p: str):
+    return pytest.param(p, marks=pytest.mark.skipif(WINDOWS, reason="This path would be illegal on Windows"))
+
+
+@pytest.mark.parametrize("filename", [
+    # Spaces
+    "g o t c h a.txt",
+
+    # Unicode
+    "götchä電腦檔案.txt",
+
+    # Backslash character shouldn't interfere with the escaping of the special
+    # character that follows it
+    _nonWindowsPath("gotcha\\\1.txt"),
+
+    # Quote character shouldn't interfere with quoting
+    _nonWindowsPath("gotcha\".txt"),
+    _nonWindowsPath("got cha\".txt"),
+
+    # Nasty ASCII control chars
+    _nonWindowsPath("gotcha" + "".join(chr(i) for i in range(1, 0x20)) + "\x7F.txt"),
+])
+def testPartialPatchFilenameWithSpecialCharacters(tempDir, mainWindow, filename):
     wd = unpackRepo(tempDir)
-    writeFile(F"{wd}/file with spaces.txt", "line A\nline B\nline C\n")
+    writeFile(f"{wd}/{filename}", "line A\nline B\nline C\n")
     rw = mainWindow.openRepo(wd)
 
     qlvClickNthRow(rw.dirtyFiles, 0)
-    assert rw.repo.status() == {"file with spaces.txt": FileStatus.WT_NEW}
+    assert rw.repo.status() == {filename: FileStatus.WT_NEW}
 
     rw.diffView.setFocus()
     waitUntilTrue(rw.diffView.hasFocus)
     qteClickBlock(rw.diffView, 1)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
 
-    assert rw.repo.status() == {"file with spaces.txt": FileStatus.INDEX_NEW | FileStatus.WT_MODIFIED}
+    assert rw.repo.status() == {filename: FileStatus.INDEX_NEW | FileStatus.WT_MODIFIED}
 
-    stagedId = rw.repo.index["file with spaces.txt"].id
+    stagedId = rw.repo.index[filename].id
     stagedBlob = rw.repo.peel_blob(stagedId)
     assert stagedBlob.data == b"line A\n"
 
