@@ -59,6 +59,29 @@ def testNewBranch(tempDir, mainWindow, method, switch):
         assert repo.head_branch_shorthand == 'master'
 
 
+def testNewBranchNaming(tempDir, mainWindow):
+    """Test that spaces in branch names are automatically replaced with dashes"""
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    repo = rw.repo
+
+    node = sb.findNodeByKind(SidebarItem.LocalBranchesHeader)
+    menu = sb.makeNodeMenu(node)
+    triggerMenuAction(menu, "new branch")
+
+    dlg: NewBranchDialog = findQDialog(rw, "new branch")
+    nameEdit = dlg.ui.nameEdit
+
+    nameEdit.setText("hello branch")
+
+    assert nameEdit.text() == "hello-branch"
+
+    dlg.accept()
+
+    assert 'hello-branch' in repo.branches.local
+
+
 def testNewBranchThenSwitchBlockedByConflicts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.statelessConflictingChange(wd)
@@ -182,12 +205,21 @@ def testRenameBranch(tempDir, mainWindow, method):
         "nope.lock", "nope/", "nope.",
         "nope/.nope", "nope//nope", "nope@{nope", "no..pe",
         ".nope", "/nope",
-        "no pe", "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
+        "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
         "nul", "nope/nul", "nul/nope", "lpt3", "com2",
+    ]
+    fixableNames = [
+        # Illegal patterns that can be automatically fixed by the input field
+        "no pe",
     ]
     for bad in badNames:
         nameEdit.setText(bad)
         assert not okButton.isEnabled(), f"name shouldn't pass validation: {bad}"
+        QTest.qWait(1)  # go through ValidatorMultiplexer's tooltip code path for coverage
+    for fixable in fixableNames:
+        nameEdit.setText(fixable)
+        nameEdit.textEdited.emit(fixable)
+        assert okButton.isEnabled(), f"name should pass validation: {fixable}"
         QTest.qWait(1)  # go through ValidatorMultiplexer's tooltip code path for coverage
 
     nameEdit.setText("mainbranch")
@@ -305,13 +337,20 @@ def testRenameBranchFolder(tempDir, mainWindow, method, newName):
         "nope.lock", "nope/", "nope.",
         "nope/.nope", "nope//nope", "nope@{nope", "no..pe",
         ".nope", "/nope",
-        "no pe", "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
+        "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
         "nul", "nope/nul", "nul/nope", "lpt3", "com2",
+    ]
+    fixableNames = [
+        # Illegal patterns that can be automatically fixed by the input field
+        "no pe",
     ]
     for bad in badNames:
         nameEdit.setText(bad)
         assert not okButton.isEnabled(), f"name shouldn't pass validation: {bad}"
         print(bad, "-->", nameEdit.actions()[0].toolTip())
+    for fixable in fixableNames:
+        nameEdit.setText(fixable)
+        assert okButton.isEnabled(), f"name should pass validation: {fixable}"
 
     nameEdit.setText(newName)
     assert okButton.isEnabled()

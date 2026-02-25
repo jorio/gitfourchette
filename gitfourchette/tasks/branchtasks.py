@@ -92,6 +92,7 @@ class RenameBranch(RepoTask):
             subtitle=_("Current name: {0}", oldBranchName))
         dlg.setText(oldBranchName)
         dlg.setValidator(lambda name: nameValidationMessage(name, forbiddenBranchNames, nameTaken))
+        dlg.lineEdit.setValidator(ReplaceSpacesWithDashes())
         dlg.okButton.setText(_("Rename"))
 
         # Pre-select leaf name (e.g. in "folder/leaf" select only "leaf")
@@ -159,6 +160,7 @@ class RenameBranchFolder(RepoTask):
         dlg.setValidator(validate)
         dlg.okButton.setText(_("Rename"))
         dlg.lineEdit.setPlaceholderText(_("Leave blank to move the branches to the root folder."))
+        dlg.lineEdit.setValidator(ReplaceSpacesWithDashes())
 
         yield from self.flowDialog(dlg)
         dlg.deleteLater()

@@ -59,6 +59,7 @@ class NewBranchDialog(QDialog):
 
         self.ui.nameEdit.setFocus()
         self.ui.nameEdit.selectAll()
+        self.ui.nameEdit.setValidator(ReplaceSpacesWithDashes())
         self.preSelectLeaf(self.ui.nameEdit)
 
     @property
