@@ -187,7 +187,8 @@ class SidebarDelegate(QStyledItemDelegate):
             advanceB = metrics.horizontalAdvance(textB) if b else 0
 
             AF = Qt.AlignmentFlag
-            painter.setPen(RecolorSvgIconEngine.IconColors.mainColor)
+            if not isSelected:
+                painter.setPen(RecolorSvgIconEngine.IconColors.mainColor)
             painter.drawText(textRect, AF.AlignRight | (AF.AlignTop if b else AF.AlignVCenter) , textA)
             painter.drawText(textRect, AF.AlignRight | (AF.AlignBottom if a else AF.AlignVCenter), textB)
 
