@@ -179,16 +179,31 @@ def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=T
 
     if not cleanupOutput:
         pass
+
     elif "from PyQt" in text:
+        # Clean up pyuic6 output (pyqt6, generated code is compatible with pyside6 too)
         text = re.sub(r"^from PyQt[56] import .+$", myImport, text, count=1, flags=re.M)
         text = re.sub(r"_translate(?=\(\")", "_p", text, flags=re.M)
+
         nukePatterns = [
+            # No need to spell out Qt module names with gitfourchette.qt
             r"(?<!\w)Qt(Core|Gui|Widgets)\.",
+
+            # We substituted _translate calls above already
             r"^\s+_translate = QCoreApplication\.translate\n",
+
+            # QMetaObject.connectSlotsByName may cause PyQt to hang if running
+            # under pytest-cov. GitFourchette doesn't need this feature anyway:
+            # https://riverbankcomputing.com/static/Docs/PyQt6/signals_slots.html#connecting-slots-by-name
+            r"^\s+QMetaObject\.connectSlotsByName\(.+\)\n",
         ]
+
         ignoreDiffs = ["# Created by: PyQt6 UI code generator"]
         text = text.strip() + "\n"
+
     elif "from PySide" in text:
+        # WARNING: pyside6-uic cleanup provided here for convenience,
+        # but note that the generated code incompatible with pyqt6!
         text = re.sub(r"^from PySide6.* import \([^\)]+\)$", myImport, text, count=1, flags=re.M)
         text = re.sub(r"QCoreApplication\.translate\((.+), None\)", r"_p(\1)", text, flags=re.M)
         nukePatterns = [
@@ -196,9 +211,11 @@ def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=T
             r"^#endif // QT_CONFIG\(.+\n",
             r"^from PySide6.* import \([^\)]+\)$\n",
             r"^ {4}# (setupUi|retranslateUi)$\n",
+            r"^\s+QMetaObject\.connectSlotsByName\(.+\)\n",
         ]
         ignoreDiffs = ["## Created by: Qt User Interface Compiler version"]
         text = text.strip() + "\n"
+
     else:
         print("Unknown uic output")
 

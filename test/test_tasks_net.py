@@ -522,8 +522,6 @@ def testPullRemoteBranchCausesConflict(tempDir, mainWindow):
     assert rw.navLocator.context.isWorkdir()
 
 
-@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
-                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 @pytest.mark.parametrize("asNewBranch", [False, True])
 def testPush(tempDir, mainWindow, asNewBranch):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
@@ -587,8 +585,6 @@ def testPush(tempDir, mainWindow, asNewBranch):
         assert rw.repo.branches["master"].upstream_name == "refs/remotes/localfs/new"
 
 
-@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
-                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testShadowUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, keepOldUpstream=True)
@@ -754,8 +750,6 @@ def testPushDeleteTag(tempDir, mainWindow):
         assert "etiquette" not in bareRepo.listall_tags()
 
 
-@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
-                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testForcePushWithLeasePass(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
@@ -773,8 +767,6 @@ def testForcePushWithLeasePass(tempDir, mainWindow):
     assert rw.repo.branches.remote["remote2/master"].target == newOid
 
 
-@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
-                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testForcePushWithLeaseRejected(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -808,8 +800,6 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
 
 @pytest.mark.notParallelizableOnWindows
-@pytest.mark.skipif((PYQT5 or PYQT6) and os.environ.get("COV_CORE_SOURCE", None) is not None,
-                    reason="QMetaObject.connectSlotsByName somehow hangs under coverage with PyQt6")
 def testAbortPushInProgress(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
