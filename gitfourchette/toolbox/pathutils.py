@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -25,7 +25,11 @@ def compactPath(path: str) -> str:
     return path
 
 
-def abbreviatePath(path: str, style: PathDisplayStyle = PathDisplayStyle.FullPaths) -> str:
+def abbreviatePath(
+        path: str,
+        style: PathDisplayStyle = PathDisplayStyle.FullPaths,
+        allowNul: bool = False
+) -> str:
     if style == PathDisplayStyle.AbbreviateDirs:
         splitLong = path.split('/')
         for i in range(len(splitLong) - 1):
@@ -34,12 +38,17 @@ def abbreviatePath(path: str, style: PathDisplayStyle = PathDisplayStyle.FullPat
             else:
                 splitLong[i] = splitLong[i][0]
         return '/'.join(splitLong)
+
     elif style == PathDisplayStyle.FileNameFirst:
-        split = path.rsplit('/', 1)
-        if len(split) == 1:
+        try:
+            directory, file = path.rsplit('/', 1)
+            separator = '\0 ' if allowNul else '  '
+            return separator.join((file, directory))
+        except ValueError:
             return path
-        return split[-1] + ' \0' + split[0]
+
     elif style == PathDisplayStyle.FileNameOnly:
         return path.rsplit('/', 1)[-1]
+
     else:
         return path

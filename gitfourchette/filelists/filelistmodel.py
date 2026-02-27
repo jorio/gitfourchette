@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -18,12 +18,6 @@ from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
-
-STATUS_ICON_LETTERS = "xadmrxxatxu"
-"""
-Table of status_*.svg icons for each enum entry
-in pygit2.enums.DeltaStatus.
-"""
 
 
 def deltaModeText(om: FileMode, nm: FileMode) -> str:
@@ -196,7 +190,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.DisplayRole:
             # TODO: Canonical path for submodules?
-            text = abbreviatePath(delta.new.path, settings.prefs.pathDisplayStyle)
+            text = abbreviatePath(delta.new.path, settings.prefs.pathDisplayStyle, allowNul=True)
 
             # Show important mode info in brackets
             modeInfo = deltaModeText(delta.old.mode, delta.new.mode)
