@@ -63,7 +63,6 @@ from .qtutils import (
     appendShortcutToToolTipText,
     appendShortcutToToolTip,
     openFolder, showInFolder,
-    DisableWidgetContext,
     DisableWidgetUpdatesContext,
     QScrollBackupContext,
     makeInternalLink,

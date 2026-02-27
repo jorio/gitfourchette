@@ -1177,7 +1177,7 @@ class ProcessWrapper(QObject):
         process = self.process
         assert self._didStart
 
-        if QT5 and process.state() == QProcess.ProcessState.NotRunning:
+        if QT5 and process.state() == QProcess.ProcessState.NotRunning:  # pragma: no cover
             # Qt 5 may enter NotRunning immediately in ForceSerial mode
             pass
         else:

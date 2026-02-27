@@ -227,17 +227,6 @@ def itemViewVisibleRowRange(view: QAbstractItemView):
     return range(top.row(), bottom.row() + 1)
 
 
-class DisableWidgetContext:
-    def __init__(self, objectToBlock: QWidget):
-        self.objectToBlock = objectToBlock
-
-    def __enter__(self):
-        self.objectToBlock.setEnabled(False)
-
-    def __exit__(self, excType, excValue, excTraceback):
-        self.objectToBlock.setEnabled(True)
-
-
 class DisableWidgetUpdatesContext:
     def __init__(self, widget: QWidget):
         self.widget = widget
@@ -382,7 +371,7 @@ def makeWidgetShortcut(
 ) -> QShortcut:
     assert keys, "no shortcut keys given"
     shortcut = QShortcut(parent)
-    if QT5:  # Only one key per shortcut in Qt 5
+    if QT5:  # pragma: no cover - Only one key per shortcut in Qt 5
         shortcut.setKey(keys[0])
     else:
         shortcut.setKeys(keys)

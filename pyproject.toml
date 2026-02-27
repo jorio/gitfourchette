@@ -79,6 +79,7 @@ source = [
 
 omit = [
     "gitfourchette/**/__main__.py",
+    "gitfourchette/exttools/win32ctrlc.py",
     "gitfourchette/pycompat.py",
     "gitfourchette/qt.py",
     "gitfourchette/toolbox/excutils.py",  # uncaught exception formatters (shouldn't be needed if all tests pass!)
@@ -105,14 +106,16 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
     "assert False",
-    "warnings.warn\\(",
+    "warnings\\.warn\\(",
+    "logger\\.warning\\(",
 
     # Don't complain if non-runnable code isn't run:
     "if 0:",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
     "if not APP_TESTMODE:",
-    "if APP_FREEZE_.+:",
+    "if APP_FREEZE_\\w+:",
+    "if APP_VERBOSEDEL:",
     "if MACOS:",
     "if WINDOWS:",
     "if FLATPAK:",

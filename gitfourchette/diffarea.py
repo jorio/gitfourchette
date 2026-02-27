@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -442,13 +442,6 @@ class DiffArea(QWidget):
 
     # -------------------------------------------------------------------------
     # Clear
-
-    def clear(self):
-        with QSignalBlockerContext(self.committedFiles, self.dirtyFiles, self.stagedFiles):
-            self.committedFiles.clear()
-            self.dirtyFiles.clear()
-            self.stagedFiles.clear()
-            self.clearDocument()
 
     def clearDocument(self, locator: NavLocator):
         # Enter empty special page
