@@ -724,6 +724,8 @@ def findTextInWidget(
         text = widget.text()
     if "<" not in text:  # unlikely to be HTML
         text = stripAccelerators(text)
+    else:
+        text = stripHtml(text)
     return re.search(pattern, text, re.I | re.M | re.S)
 
 

@@ -107,7 +107,8 @@ class SpecialDiffView(QTextBrowser):
                     _("Old image") if delta.new.image else
                     _("Deleted image"))
 
-            if showLfsStatus:
+            # Show LFS info if either side is an LFS pointer:
+            if showLfsStatus and not file.deltaFile.lfs.isTentative():
                 lfsInfo = "LFS" if file.deltaFile.lfs else _("not LFS")
                 name = f"{name}, {lfsInfo}"
             name += _(":")

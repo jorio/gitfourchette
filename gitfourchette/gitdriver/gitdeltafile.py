@@ -23,6 +23,9 @@ HexHashEmptyBlob = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"  # hashlib.sha1(b'
 
 _NoDiskStat = (-1, -1)
 
+_UnknownLfsPointer = LfsPointer(LfsPointerState.Unknown)
+_NoLfsPointer = LfsPointer(LfsPointerState.NoPointer)
+
 
 @dataclasses.dataclass
 class GitDeltaFile:
@@ -44,7 +47,7 @@ class GitDeltaFile:
     None means that the file hasn't been cached yet (isDataValid() == False).
     """
 
-    lfs: LfsPointer = dataclasses.field(default_factory=LfsPointer, compare=False)
+    lfs: LfsPointer = dataclasses.field(default=_UnknownLfsPointer, compare=False)
     """
     Cached LFS object information extracted from the LFS pointer (if any).
     """
@@ -80,7 +83,7 @@ class GitDeltaFile:
             # Data already cached
             pass
 
-        elif self.lfs.state == LfsPointerState.Bypass:
+        elif self.lfs.state == LfsPointerState.UnstagedTentative:
             # Would be an LFS file once staged, read it direct from the workdir
             assert self.lfs.size < 0
             self._data = repo.apply_filters_to_workdir(self.path)
@@ -154,6 +157,11 @@ class GitDeltaFile:
             # Already resolved
             return
 
+        # Deletion = there's no LFS pointer anymore
+        if self.isId0():
+            self.lfs = _NoLfsPointer
+            return
+
         if isinstance(checkOrKnownValue, str):
             attr = checkOrKnownValue
         else:
@@ -161,18 +169,19 @@ class GitDeltaFile:
             attr = repo.get_attr(self.path, "filter", check, commitId)
 
         if attr != "lfs":
-            self.lfs = LfsPointer(LfsPointerState.NoPointer)
+            self.lfs = _NoLfsPointer
             return
 
         if self.source.isDirty():
             # Force read data from wd
             assert commitId == NULL_OID
-            self.lfs = LfsPointer(LfsPointerState.Bypass, objectPath=repo.in_workdir(self.path))
+            objectPath = repo.in_workdir(self.path)
+            self.lfs = LfsPointer(LfsPointerState.UnstagedTentative, objectPath=objectPath)
             return
 
         data = self.read(repo)
         if not data.startswith(LfsPointerMagicBytes):
-            self.lfs = LfsPointer(LfsPointerState.NoPointer)
+            self.lfs = _NoLfsPointer
             return
 
         text = data.decode("utf-8", errors="replace")

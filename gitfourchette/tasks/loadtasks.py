@@ -372,22 +372,24 @@ class LoadPatch(RepoTask):
             if result.minuses:
                 header += f" <b><del>-{result.minuses}</del></b>"
 
-        if delta.new.lfs or delta.old.lfs:
-            if delta.new.lfs and not delta.old.lfs:
-                lfsTag, lfsText = "add", _("LFS pointer added")
-            elif not delta.new.lfs and delta.old.lfs:
-                lfsTag, lfsText = "del", _("LFS pointer removed")
-            else:
-                lfsTag, lfsText = "", _("LFS pointer changed")
-            header += f" : <b><{lfsTag}>{lfsText}</{lfsTag}></b>"
-
-        locationText = ""
+        suffix = []
         if locator.context == NavContext.COMMITTED:
-            locationText = _p("at (specific commit)", "at {0}", shortHash(locator.commit))
+            suffix.append(_p("at (specific commit)", "at {0}", shortHash(locator.commit)))
         elif locator.context.isWorkdir():
-            locationText = locator.context.translateName().lower()
-        if locationText:
-            header += f" <span style='color: gray;'>({locationText})</span>"
+            suffix.append(locator.context.translateName().lower())
+
+        if not delta.new.lfs.isTentative():
+            if delta.new.lfs and not delta.old.lfs:
+                suffix.append(tagify(_("LFS pointer [added]"), "<add>"))
+            elif not delta.new.lfs and delta.old.lfs:
+                suffix.append(tagify(_("LFS pointer [removed]"), "<del>"))
+            elif delta.new.lfs and delta.old.lfs:
+                suffix.append(_("LFS pointer changed"))
+        elif delta.old.lfs:
+            suffix[0] = _("unstaged changes to LFS object")
+
+        if suffix:
+            header += f" <span style='color: gray;'>({', '.join(suffix)})</span>"
 
         return header
 

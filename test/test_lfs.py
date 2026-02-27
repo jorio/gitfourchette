@@ -94,7 +94,8 @@ def testLfsAddImageInWorkdir(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inUnstaged("image2.png"), check=True)
-    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer added")
+    # Not an LFS object until it's staged
+    assert not findTextInWidget(rw.diffArea.diffHeader, "LFS")
 
     rw.diffArea.stageButton.click()
     assert lfsObjectPath.exists()
@@ -119,7 +120,7 @@ def testLfsChangeImageInWorkdir(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inUnstaged("image1.png"), check=True)
-    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer changed")
+    assert findTextInWidget(rw.diffArea.diffHeader, "unstaged changes to LFS object")
 
     rw.diffArea.stageButton.click()
     assert lfsObjectPath.exists()
@@ -160,7 +161,7 @@ def testLfsChangeTextInWorkdir(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inUnstaged("textfile.c"), check=True)
-    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer changed")
+    assert findTextInWidget(rw.diffArea.diffHeader, "unstaged changes to LFS object")
     assert findTextInWidget(rw.diffView, "Still an LFS file")
 
     rw.diffArea.stageButton.click()

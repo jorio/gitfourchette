@@ -107,7 +107,7 @@ def fileTooltip(
         sizeText = locale.formattedDataSize(size, 1)
         if not sizeIsAccurate:
             sizeText = _("{size} on disk", size=sizeText)
-        if delta.new.lfs.size >= 0:
+        if delta.new.lfs.size >= 0 and not delta.new.lfs.isTentative():
             sizeText = f"{locale.formattedDataSize(delta.new.lfs.size, 1)} <b>(LFS)<b>"
         text += newLine(_("size"), sizeText)
 
