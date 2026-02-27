@@ -13,11 +13,13 @@ from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.codeview.coderubberband import CodeRubberBand
+from gitfourchette.diffview.diffdocument import DiffTextFormats
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.qt import *
+from gitfourchette.syntax import ColorScheme
 from gitfourchette.toolbox import *
 
 if TYPE_CHECKING:
@@ -289,16 +291,22 @@ class CodeView(QPlainTextEdit):
 
         if changeColorScheme:
             scheme = settings.prefs.syntaxHighlightingScheme()
-            self.highlighter.setColorScheme(scheme)
-            self.highlighter.rehighlight()
+            self.setColorScheme(scheme)
 
-            # See selection-background-color in .qss asset.
-            dark = scheme.isDark() if scheme else isDarkTheme()
-            self.setProperty("dark", "true" if dark else "false")
+    def setColorScheme(self, scheme: ColorScheme):
+        DiffTextFormats.refresh(scheme, settings.prefs.colorblind)
 
-            # Had better luck setting colors with a stylesheet than via setPalette().
-            styleSheet = scheme.basicQss(self)
-            self.setStyleSheet(styleSheet)
+        self.highlighter.setColorScheme(scheme)
+        self.highlighter.rehighlight()
+
+        # See selection-background-color in .qss asset.
+        dark = scheme.isDark() if scheme else isDarkTheme()
+        self.setProperty("dark", "true" if dark else "false")
+
+        # Had better luck setting colors with a stylesheet than via setPalette().
+        styleSheet = scheme.basicQss(self)
+        self.setStyleSheet(styleSheet)
+
 
     def refreshWordWrap(self):
         if settings.prefs.wordWrap:

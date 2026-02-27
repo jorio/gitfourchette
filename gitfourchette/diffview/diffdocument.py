@@ -18,7 +18,7 @@ from gitfourchette.gitdriver import GitDelta
 from gitfourchette.gitdriver.parsers import iterateLines
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.syntax import LexJob
+from gitfourchette.syntax import LexJob, ColorScheme
 from gitfourchette.toolbox import *
 
 
@@ -94,11 +94,18 @@ class LineData:
         return _parseHunkHeader(self.text)
 
 
-class DiffStyle:
-    def __init__(self):
-        colorblind = settings.prefs.colorblind
-        syntaxScheme = settings.prefs.syntaxHighlightingScheme()
-        bgColor = syntaxScheme.backgroundColor
+class DiffTextFormats:
+    addBF = QTextBlockFormat()
+    delBF = QTextBlockFormat()
+    doppelgangerAddCF = QTextCharFormat()
+    doppelgangerDelCF = QTextCharFormat()
+    hunkBF = QTextBlockFormat()
+    hunkCF = QTextCharFormat()
+    warningCF = QTextCharFormat()
+
+    @classmethod
+    def refresh(cls, scheme: ColorScheme, colorblind: bool):
+        bgColor = scheme.backgroundColor
 
         # Base del/add backgrounds.
         # Instead of using an alpha value, blend with the background color.
@@ -114,47 +121,39 @@ class DiffStyle:
         if colorblind:
             delColor2 = mixColors(delColor1, colors.orange, .6)
             addColor2 = mixColors(addColor1, colors.teal, .6)
-        elif settings.prefs.syntaxHighlightingScheme().isDark():
+        elif scheme.isDark():
             delColor2 = mixColors(delColor1, QColor(0x993333), .6)
             addColor2 = mixColors(addColor1, QColor(0x339933), .6)
         else:
             delColor2 = mixColors(delColor1, QColor(0x993333), .25)
             addColor2 = mixColors(addColor1, QColor(0x339933), .25)
 
-        if syntaxScheme.isDark():
+        if scheme.isDark():
             warningColor = colors.red
             hunkColor = colors.blue.lighter(125)
         else:
             warningColor = colors.red.darker(125)
             hunkColor = QColor(0x0050f0)
 
-        self.addBF1 = QTextBlockFormat()
-        self.delBF1 = QTextBlockFormat()
-        self.addBF1.setBackground(addColor1)
-        self.delBF1.setBackground(delColor1)
+        cls.addBF.setBackground(addColor1)
+        cls.delBF.setBackground(delColor1)
 
-        self.addCF2 = QTextCharFormat()
-        self.delCF2 = QTextCharFormat()
-        self.addCF2.setBackground(addColor2)
-        self.delCF2.setBackground(delColor2)
+        cls.doppelgangerAddCF.setBackground(addColor2)
+        cls.doppelgangerDelCF.setBackground(delColor2)
 
-        self.hunkBF = QTextBlockFormat()
-        self.hunkCF = QTextCharFormat()
-        self.hunkCF.setFontItalic(True)
-        self.hunkCF.setForeground(hunkColor)
+        cls.hunkCF.setFontItalic(True)
+        cls.hunkCF.setForeground(hunkColor)
 
-        self.warningCF = QTextCharFormat()
-        self.warningCF.setFontUnderline(True)
-        self.warningCF.setFontWeight(QFont.Weight.Bold)
-        self.warningCF.setBackground(syntaxScheme.backgroundColor)
-        self.warningCF.setForeground(warningColor)
+        cls.warningCF.setFontUnderline(True)
+        cls.warningCF.setFontWeight(QFont.Weight.Bold)
+        cls.warningCF.setBackground(scheme.backgroundColor)
+        cls.warningCF.setForeground(warningColor)
 
 
 @dataclass
 class DiffDocument:
     document: QTextDocument
     lineData: list[LineData]
-    style: DiffStyle
     pluses: int
     minuses: int
     maxLine: int
@@ -289,7 +288,7 @@ class DiffDocument:
         textDocument.setObjectName("DiffDocument")
         textDocument.setDocumentLayout(QPlainTextDocumentLayout(textDocument))
 
-        diffDocument = DiffDocument(document=textDocument, lineData=lineData, style=DiffStyle(),
+        diffDocument = DiffDocument(document=textDocument, lineData=lineData,
                                     pluses=pluses, minuses=minuses,
                                     maxLine=max(newLine, oldLine))
 
@@ -313,7 +312,6 @@ class DiffDocument:
     def buildTextDocument(self, cursor: QTextCursor):
         assert self.document.isEmpty()
 
-        style = self.style
         defaultBF = cursor.blockFormat()
         defaultCF = cursor.charFormat()
         showStrayCRs = settings.prefs.showStrayCRs
@@ -323,13 +321,13 @@ class DiffDocument:
             # Decide block format & character format
             origin = ld.origin
             if not origin:
-                bf = style.hunkBF
-                cf = style.hunkCF
+                bf = DiffTextFormats.hunkBF
+                cf = DiffTextFormats.hunkCF
             elif origin == '+':
-                bf = style.addBF1
+                bf = DiffTextFormats.addBF
                 cf = defaultCF
             elif origin == '-':
-                bf = style.delBF1
+                bf = DiffTextFormats.delBF
                 cf = defaultCF
             else:
                 bf = defaultBF
@@ -363,7 +361,7 @@ class DiffDocument:
 
             if trailer:
                 ld.trailerLength = len(trailer)
-                cursor.setCharFormat(style.warningCF)
+                cursor.setCharFormat(DiffTextFormats.warningCF)
                 cursor.insertText(trailer)
 
             ld.cursorEnd = cursor.position()
@@ -375,8 +373,6 @@ class DiffDocument:
             return
 
         doppelgangerBlocksQueue = []
-        delFormat = self.style.delCF2
-        addFormat = self.style.addCF2
 
         for lineNumber, line in enumerate(self.lineData):
             if line.doppelganger < 0:  # Skip lines without doppelgangers
@@ -395,7 +391,10 @@ class DiffDocument:
             else:
                 blocks = doppelgangerBlocksQueue.pop(0)  # Consume blocks set aside by my doppelganger
 
-            charFormat = delFormat if line.origin == "-" else addFormat
+            if line.origin == "-":
+                charFormat = DiffTextFormats.doppelgangerDelCF
+            else:
+                charFormat = DiffTextFormats.doppelgangerAddCF
 
             cursorPos = line.cursorStart
             oldBlockEnd = 0
