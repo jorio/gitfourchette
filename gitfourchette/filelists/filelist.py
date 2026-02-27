@@ -31,112 +31,75 @@ class FileListDelegate(QStyledItemDelegate):
     Item delegate for QListView that supports highlighting search terms from a SearchBar
     """
 
-    def searchTerm(self, option: QStyleOptionViewItem):
-        assert isinstance(option.widget, FileList)
-        searchBar: SearchBar = option.widget.searchBar
-        return searchBar.searchTerm if searchBar.isVisible() else ""
-
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+        widget: FileList = option.widget
         hasFocus = option.state & QStyle.StateFlag.State_HasFocus
         isSelected = option.state & QStyle.StateFlag.State_Selected
-        style = option.widget.style()
         colorGroup = QPalette.ColorGroup.Normal if hasFocus else QPalette.ColorGroup.Inactive
-        searchTerm = self.searchTerm(option)
 
-        painter.save()
+        # Gather data from model
+        icon: QIcon = index.data(Qt.ItemDataRole.DecorationRole)
+        font: QFont = index.data(Qt.ItemDataRole.FontRole)
+        fullText: str = index.data(Qt.ItemDataRole.DisplayRole)
+        searchTerm: str = widget.searchBar.searchTerm if widget.searchBar.isVisible() else ""
 
         # Prepare icon and text rects
-        icon: QIcon = index.data(Qt.ItemDataRole.DecorationRole)
-        if icon is not None and not icon.isNull():
-            iconRect = QRect(option.rect.topLeft() + QPoint(2, 0), option.decorationSize)
-        else:
-            iconRect = QRect()
+        iconRect = QRect(option.rect.topLeft() + QPoint(2, 0), option.decorationSize)
 
         textRect = QRect(option.rect)
         textRect.setLeft(iconRect.right() + 4)
         textRect.setRight(textRect.right() - 2)
 
-        # Set highlighted text color if this item is selected
-        if isSelected:
-            painter.setPen(option.palette.color(colorGroup, QPalette.ColorRole.HighlightedText))
-
-        # Draw default background
-        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, option.widget)
-
-        # Draw icon
-        if not iconRect.isEmpty():
-            icon.paint(painter, iconRect, option.decorationAlignment)
-
-        # Draw text
-        font: QFont = index.data(Qt.ItemDataRole.FontRole)
+        # Begin painting
+        painter.save()
         if font:
             painter.setFont(font)
-        fullText = index.data(Qt.ItemDataRole.DisplayRole)
-        text = painter.fontMetrics().elidedText(fullText, option.textElideMode, textRect.width())
+        fontMetrics = painter.fontMetrics()
+
+        # Draw default background
+        widget.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, widget)
+
+        # Draw icon
+        if icon:
+            icon.paint(painter, iconRect, option.decorationAlignment)
+
+        # Prepare elided text
+        text = fontMetrics.elidedText(fullText, option.textElideMode, textRect.width())
 
         # Split path into directory and filename for better readability
-        firstPortion = None
-        secondPortion = None
-        firstColor = QPalette.ColorRole.PlaceholderText
-        secondColor = QPalette.ColorRole.WindowText
-
-        # Determine split based on style
         isFileNameFirst = settings.prefs.pathDisplayStyle == PathDisplayStyle.FileNameFirst
-
         if isFileNameFirst:
-            try:
-                firstPortion, secondPortion = text.split('\0')
-            except ValueError:
-                firstPortion, secondPortion = text, ""
-
-            firstColor = QPalette.ColorRole.WindowText
-            secondColor = QPalette.ColorRole.PlaceholderText
-
+            parts = text.split('\0', 1)
         else:
-            if '/' in fullText:
-                slashesInFull = fullText.count('/')
-                slashesInElided = text.count('/')
+            slash = text.rfind('/')
+            if slash < fullText.rfind('/'):
+                # The last slash is either elided, or it's after the ellipsis.
+                ellipsis = text.rfind('\u2026')
+                slash = max(slash, ellipsis)
+            parts = [text[:slash + 1], text[slash + 1:]]
 
-                if slashesInFull > slashesInElided:
-                    # A slash was elided - gray everything up to the ellipsis
-                    ellipsisPos = text.find('\u2026')
-                    firstPortion = text[:ellipsisPos + 1]
-                    secondPortion = text[ellipsisPos + 1:]
-                elif slashesInElided > 0:
-                    # No slash elided - gray up to the last slash
-                    lastSlash = text.rfind('/')
-                    firstPortion = text[:lastSlash + 1]
-                    secondPortion = text[lastSlash + 1:]
+        # Draw text parts
+        textRectBackup = QRect(textRect)
+        for partNo, part in enumerate(parts):
+            isDirectoryPart = isFileNameFirst == (partNo > 0)
 
-            if firstPortion is None:
-                 firstPortion = ""
-                 secondPortion = text
+            colorRole = (QPalette.ColorRole.HighlightedText if isSelected
+                         else QPalette.ColorRole.PlaceholderText if isDirectoryPart
+                         else QPalette.ColorRole.WindowText)
 
-            firstColor = QPalette.ColorRole.PlaceholderText
-            secondColor = QPalette.ColorRole.WindowText
+            textColor = option.palette.color(colorGroup, colorRole)
+            if isSelected and isDirectoryPart:
+                textColor.setAlphaF(0.7)
 
-        # Draw the parts
-        if firstPortion:
-            fg1 = option.palette.color(colorGroup, firstColor if not isSelected else QPalette.ColorRole.HighlightedText)
-            if firstColor == QPalette.ColorRole.PlaceholderText and isSelected:
-                 fg1 = QColor(option.palette.color(colorGroup, QPalette.ColorRole.HighlightedText))
-                 fg1.setAlphaF(0.7)
+            painter.setPen(textColor)
+            painter.drawText(textRect, option.displayAlignment, part)
 
-            painter.setPen(fg1)
-            painter.drawText(textRect, option.displayAlignment, firstPortion)
+            # Prepare rect for next part
+            partWidth = fontMetrics.horizontalAdvance(part)
+            textRect.setLeft(textRect.left() + partWidth)
 
-            # Prepare rect for second part
-            part1Width = painter.fontMetrics().horizontalAdvance(firstPortion)
-            textRect.setLeft(textRect.left() + part1Width)
-
-        if secondPortion:
-            fg2 = option.palette.color(colorGroup, secondColor if not isSelected else QPalette.ColorRole.HighlightedText)
-            if secondColor == QPalette.ColorRole.PlaceholderText and isSelected:
-                 fg2 = QColor(option.palette.color(colorGroup, QPalette.ColorRole.HighlightedText))
-                 fg2.setAlphaF(0.7)
-
-            painter.setPen(fg2)
-            painter.drawText(textRect, option.displayAlignment, secondPortion)
+        # Restore text rect
+        textRect = textRectBackup
 
         # Highlight search term
         if searchTerm and searchTerm in fullText.lower():
@@ -147,11 +110,9 @@ class FileListDelegate(QStyledItemDelegate):
             else:
                 needleLen = len(searchTerm)
 
-            # Use original textRect (before we advanced it for the second part)
-            textRect.setLeft(textRect.left() - part1Width if firstPortion else 0)
             SearchBar.highlightNeedle(painter, textRect, text, needlePos, needleLen)
 
-
+        # Finish painting
         painter.restore()
 
 

@@ -487,19 +487,33 @@ def testFileListCopyPath(tempDir, mainWindow):
 
 def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+
+    # For coverage: cover all rendering paths in FileListDelegate
+    writeFile(f"{wd}/hello/there/file.txt", "hello")
+    writeFile(f"{wd}/hello/world/ridiculously_long_file_name_that_will_be_elided.txt", "hello")
+    writeFile(f"{wd}/ridiculously_long_file_name_that_will_be_elided.txt", "hello")
+    writeFile(f"{wd}/ridiculously_long_directory_name_that_will_be_elided/another_ridiculously_long_directory_name_that_will_be_elided/file.txt", "hello")
+    writeFile(f"{wd}/ridiculously_long_directory_name_that_will_be_elided/ridiculously_long_file_name_that_will_be_elided.txt", "hello")
+    writeFile(f"{wd}/ridiculously_long_directory_name_that_will_be_elided/file.txt", "hello")
+
+    mainWindow.resize(800, 600)
     rw = mainWindow.openRepo(wd)
 
-    rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
-    assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
+    rw.jump(NavLocator.inUnstaged("hello/there/file.txt"), check=True)
 
-    triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/name only")
-    assert ["c2-2.txt"] == qlvGetRowData(rw.committedFiles)
+    fileList = rw.dirtyFiles
+    fileList.setFocus()
+    assert "hello/there/file.txt" == qlvGetRowData(fileList)[0]
 
-    triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/full")
-    assert ["c/c2-2.txt"] == qlvGetRowData(rw.committedFiles)
-
-    triggerContextMenuAction(rw.committedFiles.viewport(), "path display style/name first")
-    assert ["c2-2.txt\0 c"] == qlvGetRowData(rw.committedFiles)
+    for caption, expectedDisplay in {
+        "name only": "file.txt",
+        "full": "hello/there/file.txt",
+        "abbreviate directories": "h/t/file.txt",
+        "name first": "file.txt\0 hello/there",
+    }.items():
+        triggerContextMenuAction(fileList.viewport(), f"path display style/{caption}")
+        fileList.viewport().update()
+        assert expectedDisplay == qlvGetRowData(fileList)[0]
 
 
 def testFileListShowInFolder(tempDir, mainWindow):
