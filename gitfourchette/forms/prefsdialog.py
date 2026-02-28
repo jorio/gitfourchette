@@ -43,6 +43,13 @@ def hBoxWidget(*controls):
     return _boxWidget(QHBoxLayout, *controls)
 
 
+def makeshiftSpacer(height=1):
+    spacer = QWidget()
+    spacer.setEnabled(False)
+    spacer.setFixedSize(1, height)
+    return spacer
+
+
 class PrefsDialog(QDialog):
     lastCategory = 0
 
@@ -132,14 +139,19 @@ class PrefsDialog(QDialog):
 
             # Spacer
             if key.startswith(self.SpacerPrefix):
-                form.addRow(" ", None)
+                form.addRow(makeshiftSpacer())
                 continue
 
             # Label
             if key.startswith(self.LabelPrefix):
                 labelKey = key.removeprefix(self.LabelPrefix)
                 labelText = TrTables.prefKey(labelKey)
-                form.addRow(labelText, None)
+                label = QLabel(labelText)
+                label.setEnabled(False)
+                tweakWidgetFont(label, bold=True)
+                if form.count():  # add a spacer before the label
+                    form.addRow(makeshiftSpacer())
+                form.addRow(label)
                 continue
 
             # Skip hidden settings
@@ -546,6 +558,9 @@ class PrefsDialog(QDialog):
                 control.addItem(name, data)
             if prefValue == enumMember:
                 control.setCurrentIndex(control.count() - 1)
+
+            if data == ("",):
+                control.insertSeparator(control.count())
 
         control.activated.connect(lambda i: self.assign(prefKey, control.itemData(i)[0]))  # unpack the tuple!
 

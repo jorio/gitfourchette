@@ -61,6 +61,8 @@ class QTabBar2(QTabBar):
         event.accept()
 
     def mouseReleaseEvent(self, event: QMouseEvent):
+        runStandardHandler = True
+
         if event.buttons() != Qt.MouseButton.NoButton:
             # Signals will only fire if clicking a single button at a time
             pass
@@ -68,17 +70,23 @@ class QTabBar2(QTabBar):
         elif event.button() == Qt.MouseButton.MiddleButton:
             i = self.tabAt(event.position().toPoint())
             if i >= 0 and i == self.middleClickedIndex:
+                # Bypass standard mouseReleaseEvent to avoid hardcoded behavior
+                # on PySide6+GNOME where middle-clicking a tab emits
+                # tabCloseRequested, if tabsClosable is enabled.
+                runStandardHandler = False
                 self.tabMiddleClicked.emit(i)
 
         elif event.button() == Qt.MouseButton.LeftButton:
             i = self.tabAt(event.position().toPoint())
             if i >= 0 and i == self.doubleClickedIndex:
+                runStandardHandler = False
                 self.tabDoubleClicked.emit(i)
 
         self.middleClickedIndex = -1
         self.doubleClickedIndex = -1
 
-        super().mouseReleaseEvent(event)
+        if runStandardHandler:
+            super().mouseReleaseEvent(event)
 
     def focusInEvent(self, event: QFocusEvent):
         """Suggest scrolling to current tab when we receive keyboard focus"""
@@ -125,6 +133,7 @@ class QTabWidget2OverflowGradient(QWidget):
 class QTabWidget2(QWidget):
     currentChanged: Signal = Signal(int)
     tabCloseRequested: Signal = Signal(int)
+    tabMiddleClicked: Signal = Signal(int)
     tabDoubleClicked: Signal = Signal(int)
     tabContextMenuRequested: Signal = Signal(QPoint, int)
 
@@ -157,7 +166,7 @@ class QTabWidget2(QWidget):
         self.tabs.tabMoved.connect(self.onTabMoved)
         self.tabs.currentChanged.connect(self.onCurrentChanged)
         self.tabs.tabCloseRequested.connect(self.tabCloseRequested)
-        self.tabs.tabMiddleClicked.connect(self.tabCloseRequested)
+        self.tabs.tabMiddleClicked.connect(self.tabMiddleClicked)
         self.tabs.tabDoubleClicked.connect(self.tabDoubleClicked)
         self.tabs.suggestScrollToCurrentTab.connect(self.ensureCurrentTabVisible)
         self.tabs.setMovable(True)

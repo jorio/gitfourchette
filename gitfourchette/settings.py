@@ -78,6 +78,13 @@ class ClickToStage(enum.StrEnum):
     DoubleClick = "double"
 
 
+class TabBarClick(enum.StrEnum):
+    Nothing = ""
+    Close = "close"
+    Folder = "folder"
+    Terminal = "terminal"
+
+
 @dataclasses.dataclass
 class Prefs(PrefsFile):
     _filename = "prefs.json"
@@ -137,7 +144,11 @@ class Prefs(PrefsFile):
     tabCloseButton              : bool                  = True
     expandingTabs               : bool                  = True
     autoHideTabs                : bool                  = False
-    doubleClickTabOpensFolder   : bool                  = True
+
+    _category_mouseShortcuts    : int                   = 0
+    _label_tabBarClicks         : int                   = 0
+    doubleClickTabBar           : TabBarClick           = TabBarClick.Folder
+    middleClickTabBar           : TabBarClick           = TabBarClick.Close
 
     _category_trash             : int                   = 0
     maxTrashFiles               : int                   = 250

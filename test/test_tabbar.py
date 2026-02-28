@@ -4,10 +4,9 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import os.path
-
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.repowidget import RepoWidget
+from gitfourchette.settings import TabBarClick
 from .util import *
 
 
@@ -66,44 +65,49 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
     assert not mainWindow.tabs.overflowButton.isVisible()
 
 
-def testMiddleClickToCloseTab(tempDir, mainWindow):
-    wd0 = unpackRepo(tempDir, renameTo="repo0")
-    wd1 = unpackRepo(tempDir, renameTo="repo1")
+@pytest.mark.parametrize("click", ["middle", "double"])
+@pytest.mark.parametrize("action", TabBarClick)
+def testTabSpecialClick(tempDir, mainWindow, click, action):
+    mainWindow.onAcceptPrefsDialog({f"{click}ClickTabBar": action})
 
-    mainWindow.openRepo(wd0)
-    mainWindow.openRepo(wd1)
-    QTest.qWait(1)
-    assert mainWindow.tabs.count() == 2
+    if action == "terminal":
+        editorPath = getTestDataPath("editor-shim.py")
+        scratchPath = f"{tempDir.name}/scratch file.txt"
+        mainWindow.onAcceptPrefsDialog({"terminal": f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND'})
 
-    for _dummy in range(2):
-        tabBar = mainWindow.tabs.tabs
-        tabRect = tabBar.tabRect(0)
-        QTest.mouseClick(tabBar, Qt.MouseButton.MiddleButton, pos=tabRect.center())
-        QTest.qWait(0)
-
-    assert mainWindow.tabs.count() == 0
-
-
-def testDoubleClickTabOpensWorkdir(tempDir, mainWindow):
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")
 
     mainWindow._openRepo(wd0, foreground=True)  # RepoWidget
     mainWindow._openRepo(wd1, foreground=False)  # RepoStub
-    assert mainWindow.tabs.count() == 2
     assert isinstance(mainWindow.tabs.widget(0), RepoWidget)
     assert isinstance(mainWindow.tabs.widget(1), RepoStub)
 
-    for tabIndex, wd in enumerate([wd0, wd1]):
-        wd = os.path.realpath(wd)
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.count() == 2
 
-        tabBar = mainWindow.tabs.tabs
-        tabRect = tabBar.tabRect(tabIndex)
+    for tabIndex in range(tabBar.count() - 1, -1, -1):
+        tab = mainWindow.tabs.widget(tabIndex)
+        pos = tabBar.tabRect(tabIndex).center()
+        wd = tab.workdir
 
         with MockDesktopServicesContext() as services:
-            QTest.mouseDClick(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
-            QTest.mouseRelease(tabBar, Qt.MouseButton.LeftButton, pos=tabRect.center())
+            mouseSpecialClick(tabBar, click, pos=pos)
             QTest.qWait(0)
-            url = services.urls[-1]
-            assert url.isLocalFile()
-            assert os.path.realpath(url.toLocalFile()) == wd
+
+        assert bool(services.urls) == (action == "folder")
+
+        if action == TabBarClick.Nothing:
+            pass
+        elif action == TabBarClick.Close:
+            assert not any(Path(wd).samefile(tab.workdir) for tab in mainWindow.tabs.widgets())
+        elif action == TabBarClick.Folder:
+            assert Path(wd).samefile(services.lastUrlAsLocalFile())
+        elif action == TabBarClick.Terminal:
+            scratchText = readTextFile(scratchPath, timeout=30000, unlink=True)
+            assert "hello world" in scratchText
+            assert "terminal" in scratchText
+        else:
+            raise NotImplementedError(f"unknown action {action}")
+
+    assert tabBar.count() == (0 if action == "close" else 2)

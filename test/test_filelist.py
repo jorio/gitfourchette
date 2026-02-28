@@ -590,13 +590,6 @@ def testFileListShowInFolder(tempDir, mainWindow):
 
 @pytest.mark.parametrize("clickType", ["middle", "double"])
 def testMiddleClickOrDoubleClickToStageFile(tempDir, mainWindow, clickType):
-    def specialClick(widget: QWidget):
-        clickPos = QPoint(2, 2)
-        if clickType == "middle":
-            QTest.mouseClick(widget, Qt.MouseButton.MiddleButton, pos=clickPos)
-        elif clickType == "double":
-            QTest.mouseDClick(widget, Qt.MouseButton.LeftButton, pos=clickPos)
-
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
     rw = mainWindow.openRepo(wd)
@@ -612,13 +605,14 @@ def testMiddleClickOrDoubleClickToStageFile(tempDir, mainWindow, clickType):
     # Enable special-click to stage
     settings.prefs.clickToStage = clickType
 
+    clickPos = QPoint(2, 2)
+
     # Unstage file by special-clicking
-    specialClick(rw.stagedFiles.viewport())
-    # pauseDialog("Get ready to unstage")
+    mouseSpecialClick(rw.stagedFiles.viewport(), clickType, clickPos)
     assert rw.repo.status() == {'a/a1.txt': FileStatus.WT_MODIFIED}
 
     # Stage file by special-clicking
-    specialClick(rw.dirtyFiles.viewport())
+    mouseSpecialClick(rw.dirtyFiles.viewport(), clickType, clickPos)
     assert rw.repo.status() == {'a/a1.txt': FileStatus.INDEX_MODIFIED}
 
 

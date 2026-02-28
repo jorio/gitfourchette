@@ -13,6 +13,7 @@ import time
 from collections.abc import Sequence, Callable
 from contextlib import suppress
 from pathlib import Path
+from typing import Literal
 
 from gitfourchette import settings
 from gitfourchette import tasks
@@ -35,6 +36,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
+from gitfourchette.settings import TabBarClick
 from gitfourchette.tasks import TaskBook, RepoTaskRunner, TaskInvocation
 from gitfourchette.tasks.newrepotasks import NewRepo
 from gitfourchette.toolbox import *
@@ -80,6 +82,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentWidgetChanged.connect(self.onTabCurrentWidgetChanged)
         self.tabs.tabCloseRequested.connect(self.closeTab)
         self.tabs.tabContextMenuRequested.connect(self.onTabContextMenu)
+        self.tabs.tabMiddleClicked.connect(self.onTabMiddleClicked)
         self.tabs.tabDoubleClicked.connect(self.onTabDoubleClicked)
 
         self.welcomeWidget = WelcomeWidget(self)
@@ -530,11 +533,35 @@ class MainWindow(QMainWindow):
         menu.aboutToHide.connect(menu.deleteLater)
         menu.popup(globalPoint)
 
+    def onTabMiddleClicked(self, i: int):
+        self.onTabSpecialClick(i, "middle")
+
     def onTabDoubleClicked(self, i: int):
-        if i < 0 or not settings.prefs.doubleClickTabOpensFolder:
+        self.onTabSpecialClick(i, "double")
+
+    def onTabSpecialClick(self, i: int, click: Literal["middle", "double"]):
+        if i < 0:
             return
+
+        if click == "double":
+            action = settings.prefs.doubleClickTabBar
+        elif click == "middle":
+            action = settings.prefs.middleClickTabBar
+        else:
+            raise NotImplementedError(f"unknown special click kind '{click}'")
+
         widget: RepoWidget | RepoStub = self.tabs.widget(i)
-        openFolder(widget.workdir)
+
+        if action == TabBarClick.Nothing:
+            pass
+        elif action == TabBarClick.Folder:
+            openFolder(widget.workdir)
+        elif action == TabBarClick.Close:
+            self.closeTab(i)
+        elif action == TabBarClick.Terminal:
+            ToolProcess.startTerminal(self, widget.workdir)
+        else:
+            raise NotImplementedError(f"unknown special click action '{action}'")
 
     # -------------------------------------------------------------------------
     # Repo loading

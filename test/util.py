@@ -12,7 +12,7 @@ import tempfile
 import warnings
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, Literal
 
 import pygit2
 import pytest
@@ -191,6 +191,12 @@ class MockDesktopServicesContext(QObject):
 
     def recordUrl(self, url: QUrl):
         self.urls.append(url)
+
+    def lastUrlAsLocalFile(self):
+        url = self.urls[-1]
+        if not url.isLocalFile():
+            raise ValueError(f"last URL isn't a local file: {url}")
+        return url.toLocalFile()
 
     def __enter__(self):
         for protocol in self.protocols:
@@ -696,6 +702,16 @@ def findTextInWidget(
     if "<" not in text:  # unlikely to be HTML
         text = stripAccelerators(text)
     return re.search(pattern, text, re.I | re.M)
+
+
+def mouseSpecialClick(widget: QWidget, clickType: Literal["middle", "double"], pos: QPoint = QPoint_zero):
+    if clickType == "middle":
+        QTest.mouseClick(widget, Qt.MouseButton.MiddleButton, pos=pos)
+    elif clickType == "double":
+        QTest.mouseDClick(widget, Qt.MouseButton.LeftButton, pos=pos)
+        QTest.mouseRelease(widget, Qt.MouseButton.LeftButton, pos=pos)
+    else:
+        raise NotImplementedError(f"unknown special click type {clickType}")
 
 
 def postMouseWheelEvent(target: QWidget, angleDelta: int, point=QPoint_zero, modifiers=Qt.KeyboardModifier.NoModifier):

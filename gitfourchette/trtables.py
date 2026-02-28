@@ -104,7 +104,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, ClickToStage
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, ClickToStage, TabBarClick
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -254,7 +254,14 @@ class TrTables:
                 ClickToStage.Off                : _p("click to stage", "Off"),
                 ClickToStage.MiddleClick        : _p("click to stage", "Middle-click files & diff lines"),
                 ClickToStage.DoubleClick        : _p("click to stage", "Double-click files"),
-            }
+            },
+
+            TabBarClick: {
+                TabBarClick.Nothing             : _("Do nothing"),
+                TabBarClick.Folder              : _("Open repo folder"),
+                TabBarClick.Terminal            : _("Open repo in a terminal"),
+                TabBarClick.Close               : _("Close the tab"),
+            },
         }
 
     @staticmethod
@@ -432,7 +439,6 @@ class TrTables:
             "tabCloseButton": _("Show tab close button"),
             "expandingTabs": _("Expand tabs to available width"),
             "autoHideTabs": _("Auto-hide tabs if only one repo is open"),
-            "doubleClickTabOpensFolder": _("Double-click a tab to open repo folder"),
 
             "chronologicalOrder": _("Sort commits"),
             "chronologicalOrder_true": _("Chronologically"),
@@ -541,6 +547,12 @@ class TrTables:
                   "for the duration of your session and have it remember passphrases."),
                 sshAuthSockHelp,
             ),
+
+            "mouseShortcuts": _("Mouse Shortcuts"),
+            "mouseShortcuts_HEADER": _("Tip: If your mouse has side buttons, you can use them to navigate back/forward in the repo."),
+            "tabBarClicks": _("Mouse shortcuts in main tab bar:"),
+            "doubleClickTabBar": _("Double click"),
+            "middleClickTabBar": _("Middle click"),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",
