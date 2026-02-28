@@ -49,6 +49,13 @@ class PrefsDialog(QDialog):
     prefDiff: dict[str, Any]
     "Delta to on-disk preferences."
 
+    CategoryPrefix = "_category_"
+    SpacerPrefix = "_spacer"
+    LabelPrefix = "_label_"
+    ControlQObjectNamePrefix = "prefctl_"
+    LocCategoryHeaderSuffix = "_HEADER"
+    LocSettingHelpSuffix = "_help"
+
     @benchmark
     def __init__(self, parent: QWidget, focusOn: str = ""):
         super().__init__(parent)
@@ -110,111 +117,129 @@ class PrefsDialog(QDialog):
         self.setModal(True)
 
     def _fillControls(self, focusOn):
-        category = "general"
-        categoryForms: dict[str, QFormLayout] = {}
         skipKeys = self.getHiddenSettingKeys()
+        form: QFormLayout | None = None
 
-        for prefKey in prefs.__dict__:
-            # Switch category
-            if prefKey.startswith("_category_"):
-                category = prefKey.removeprefix("_category_")
+        for key in prefs.__dict__:
+            # New category tab
+            if key.startswith(self.CategoryPrefix):
+                category = key.removeprefix(self.CategoryPrefix)
+                # Stop past the hidden category
+                if category == "hidden":
+                    break
+                form = self._newCategoryForm(category)
                 continue
 
-            if prefKey.startswith("_spacer"):
-                form = categoryForms[category]
+            # Spacer
+            if key.startswith(self.SpacerPrefix):
                 form.addRow(" ", None)
                 continue
 
-            # Skip irrelevant settings
-            if prefKey in skipKeys or prefKey.startswith("_") or category == "hidden":
+            # Label
+            if key.startswith(self.LabelPrefix):
+                labelKey = key.removeprefix(self.LabelPrefix)
+                labelText = TrTables.prefKey(labelKey)
+                form.addRow(labelText, None)
                 continue
 
-            # Get the value of this setting
-            prefValue = prefs.__dict__[prefKey]
+            # Skip hidden settings
+            if key in skipKeys or key.startswith("_"):
+                continue
 
-            # Get caption and suffix
-            suffix = ""
-            caption = TrTables.prefKey(prefKey)
-            if "#" in caption:
-                caption, suffix = caption.split("#")
-                caption = caption.rstrip()
-                suffix = suffix.lstrip()
+            # Add the control to the form layout, with a leading caption if any
+            control, formRowItems = self._newRow(key)
+            form.addRow(*formRowItems)
 
-            # Get a QFormLayout for this setting's category
-            try:
-                # Get form for existing category
-                form = categoryForms[category]
-            except KeyError:
-                # Create form in new tab for this category
-                formContainer = QWidget(self)
-                form = QFormLayout(formContainer)
-                form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-                categoryForms[category] = form
-                categoryName = TrTables.prefKey(category)
-                self.categoryKeys.append(category)
-                self.stackedWidget.addWidget(formContainer)
-                self.categoryList.addItem(QListWidgetItem(stockIcon(f"prefs-{category.lower()}"), categoryName))
-
-                headerText = TrTables.prefKey(f"{category}_HEADER")
-                if headerText != f"{category}_HEADER":
-                    headerText = headerText.format(app=qAppName())
-                    explainer = QLabel(headerText)
-                    explainer.setWordWrap(True)
-                    explainer.setTextFormat(Qt.TextFormat.RichText)
-                    tweakWidgetFont(explainer, 88)
-                    form.addRow(explainer)
-
-            # Make the actual control widget
-            control = self.makeControlWidget(prefKey, prefValue, caption)
-            control.setObjectName(f"prefctl_{prefKey}")  # Name the control so that unit tests can find it
-            rowWidgets = [control]
-
-            # Tack an extra QLabel to the end if there's a suffix
-            if suffix:
-                rowWidgets.append(QLabel(suffix))
-
-            if prefKey == "autoFetchMinutes":
-                self.prependCheckBox(rowWidgets, "autoFetch", caption)
-
-            # Any help text? Then make a help button for it & set tooltip text on the main control
-            toolTip = TrTables.prefKeyNoDefault(prefKey + "_help")
-            if toolTip:
-                toolTip = toolTip.format(app=qAppName())
-                rowWidgets[0].setToolTip(toolTip)
-                hintButton = QHintButton(self, toolTip)
-                hintButton.setMaximumHeight(2 + hintButton.fontMetrics().height())
-                rowWidgets.append(hintButton)
-
-            # Gather what to add to the form as a single item.
-            # If we have more than a single widget to add to the form, lay them out in a row.
-            if len(rowWidgets) == 1:
-                formField = rowWidgets[0]
-            else:
-                rowLayout = QHBoxLayout()
-                for w in rowWidgets:
-                    rowLayout.addWidget(w)
-                if control.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Minimum:
-                    # Stick help button to right edge of non-expanding widget
-                    rowLayout.addStretch()
-                formField = rowLayout
-
-            # Add `formField` to the form layout, with a leading caption if any
-            if not caption or isinstance(rowWidgets[0], QCheckBox):
-                # No caption, make field span entire row
-                form.addRow(formField)
-            else:
-                # There's a leading caption, so add it as the label in the row
-                caption += _(":")
-                captionLabel = QLabel(caption)
-                captionLabel.setBuddy(rowWidgets[0])
-                if toolTip:
-                    captionLabel.setToolTip(toolTip)
-                form.addRow(captionLabel, formField)
-
-            # If the current key matches the setting we want to focus on, bring this tab to the foreground
-            if focusOn == prefKey:
-                self.setCategory(self.stackedWidget.indexOf(form.parentWidget()))
+            # If the current key matches the setting we want to focus on,
+            # bring this tab to the foreground
+            if focusOn == key:
+                categoryIndex = self.stackedWidget.indexOf(form.parentWidget())
+                self.setCategory(categoryIndex)
                 control.setFocus()
+
+    def _newCategoryForm(self, category: str) -> QFormLayout:
+        formContainer = QWidget(self)
+
+        form = QFormLayout(formContainer)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+
+        categoryName = TrTables.prefKey(category)
+        categoryIcon = stockIcon(f"prefs-{category.lower()}")
+
+        self.categoryKeys.append(category)
+        self.stackedWidget.addWidget(formContainer)
+        self.categoryList.addItem(QListWidgetItem(categoryIcon, categoryName))
+
+        headerText = TrTables.prefKeyNoDefault(category + self.LocCategoryHeaderSuffix)
+        if headerText:
+            headerText = headerText.format(app=qAppName())
+            explainer = QLabel(headerText)
+            explainer.setWordWrap(True)
+            explainer.setTextFormat(Qt.TextFormat.RichText)
+            tweakWidgetFont(explainer, 88)
+            form.addRow(explainer)
+
+        return form
+
+    def _newRow(self, key: str) -> tuple[QWidget, list]:
+        # Get caption and suffix
+        suffix = ""
+        caption = TrTables.prefKey(key)
+        if "#" in caption:
+            caption, suffix = caption.split("#")
+            caption = caption.rstrip()
+            suffix = suffix.lstrip()
+
+        # Get the value of this setting
+        prefValue = prefs.__dict__[key]
+
+        # Make the actual control widget
+        control = self.makeControlWidget(key, prefValue, caption)
+        rowWidgets = [control]
+
+        # Name the control so that unit tests can find it
+        control.setObjectName(self.ControlQObjectNamePrefix + key)
+
+        # Tack an extra QLabel to the end if there's a suffix
+        if suffix:
+            rowWidgets.append(QLabel(suffix))
+
+        if key == "autoFetchMinutes":
+            self.prependCheckBox(rowWidgets, "autoFetch", caption)
+
+        # Any help text? Then make a help button for it & set tooltip text on the main control
+        tip = TrTables.prefKeyNoDefault(key + self.LocSettingHelpSuffix)
+        if tip:
+            tip = tip.format(app=qAppName())
+            control.setToolTip(tip)
+            hintButton = QHintButton(self, tip)
+            hintButton.setMaximumHeight(2 + hintButton.fontMetrics().height())
+            rowWidgets.append(hintButton)
+
+        # Gather what to add to the form as a single item.
+        # If we have more than a single widget to add to the form, lay them out in a row.
+        if len(rowWidgets) == 1:
+            formField = control
+        else:
+            rowLayout = QHBoxLayout()
+            for w in rowWidgets:
+                rowLayout.addWidget(w)
+            if control.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Minimum:
+                # Stick help button to right edge of non-expanding widget
+                rowLayout.addStretch()
+            formField = rowLayout
+
+        # No caption, make field span entire row
+        if not caption or isinstance(rowWidgets[0], QCheckBox):
+            return control, [formField]
+
+        # There's a leading caption, so add it as the label in the row
+        caption += _(":")
+        label = QLabel(caption)
+        label.setBuddy(rowWidgets[0])
+        if tip:
+            label.setToolTip(tip)
+        return control, [label, formField]
 
     def setCategory(self, row: int):
         self.categoryList.setCurrentRow(row)
