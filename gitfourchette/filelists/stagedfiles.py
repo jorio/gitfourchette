@@ -83,6 +83,3 @@ class StagedFiles(FileList):
     def unstageModeChange(self):
         deltas = list(self.selectedDeltas())
         UnstageModeChanges.invoke(self, deltas)
-
-    def onSpecialMouseClick(self):
-        self.unstage()

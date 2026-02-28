@@ -22,7 +22,6 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.settings import ClickToStage
 from gitfourchette.subpatch import extractSubpatch
 from gitfourchette.tasks import ApplyPatch, ApplyPatchData
 from gitfourchette.toolbox import *
@@ -336,7 +335,7 @@ class DiffView(CodeView):
         ApplyPatch.invoke(self, self.currentDelta, patchData, purpose)
 
     def onMiddleClick(self):
-        if settings.prefs.clickToStage != ClickToStage.MiddleClick:
+        if not settings.prefs.middleClickStageLines:
             return
 
         navContext = self.currentLocator.context
@@ -510,7 +509,7 @@ class DiffView(CodeView):
         stageKey = QKeySequence(GlobalShortcuts.stageHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
         discardKey = QKeySequence(GlobalShortcuts.discardHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
         unstageKey = discardKey
-        if settings.prefs.clickToStage == ClickToStage.MiddleClick:
+        if settings.prefs.middleClickStageLines:
             stageKey += " " + _("or Middle-Click")
             unstageKey += " " + _("or Middle-Click")
 

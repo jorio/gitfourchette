@@ -161,9 +161,6 @@ class DirtyFiles(FileList):
     def mergeTakeTheirs(self):
         self._mergeKeep(keepOurs=False)
 
-    def onSpecialMouseClick(self):
-        self.stage()
-
     def ignoreSelection(self):
         selected = list(self.selectedPaths())
         assert len(selected) == 1, "QAction bound to ignoreSelection should be disabled"

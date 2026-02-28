@@ -72,10 +72,12 @@ class LoggingLevel(enum.IntEnum):
     Warning = logging.WARNING
 
 
-class ClickToStage(enum.StrEnum):
-    Off = ""
-    MiddleClick = "middle"
-    DoubleClick = "double"
+class FileListClick(enum.StrEnum):
+    Nothing = ""
+    Stage = "stage"
+    Blame = "blame"
+    Edit = "edit"
+    Folder = "folder"
 
 
 class TabBarClick(enum.StrEnum):
@@ -149,6 +151,11 @@ class Prefs(PrefsFile):
     _label_tabBarClicks         : int                   = 0
     doubleClickTabBar           : TabBarClick           = TabBarClick.Folder
     middleClickTabBar           : TabBarClick           = TabBarClick.Close
+    _label_fileListClicks       : int                   = 0
+    doubleClickFileList         : FileListClick         = FileListClick.Blame
+    middleClickFileList         : FileListClick         = FileListClick.Stage
+    _label_diffViewClicks       : int                   = 0
+    middleClickStageLines       : bool                  = True
 
     _category_trash             : int                   = 0
     maxTrashFiles               : int                   = 250
@@ -157,7 +164,6 @@ class Prefs(PrefsFile):
     _category_advanced          : int                   = 0
     maxRecentRepos              : int                   = 20
     shortHashChars              : int                   = 7
-    clickToStage                : ClickToStage          = ClickToStage.Off
     autoRefresh                 : bool                  = True
     autoFetchMinutes            : int                   = 5
     flattenLanes                : bool                  = True

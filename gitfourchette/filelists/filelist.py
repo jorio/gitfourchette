@@ -7,6 +7,7 @@
 import os
 from collections.abc import Callable, Generator, Iterable
 from contextlib import suppress
+from typing import Literal
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -20,7 +21,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.settings import ClickToStage
+from gitfourchette.settings import FileListClick
 from gitfourchette.tasks import *
 from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
@@ -561,17 +562,39 @@ class FileList(QListView):
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         super().mouseReleaseEvent(event)  # Let standard QListView selection occur first
-        if event.button() == Qt.MouseButton.MiddleButton and settings.prefs.clickToStage == ClickToStage.MiddleClick:
-            self.onSpecialMouseClick()
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.onSpecialClick("middle")
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         super().mouseDoubleClickEvent(event)  # Let standard QListView selection occur first
-        if event.button() == Qt.MouseButton.LeftButton and settings.prefs.clickToStage == ClickToStage.DoubleClick:
-            self.onSpecialMouseClick()
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.onSpecialClick("double")
 
-    def onSpecialMouseClick(self):
-        """ Override this if you want to react to a middle click. """
-        pass
+    def onSpecialClick(self, click: Literal["middle", "double"]):
+        if click == "double":
+            action = settings.prefs.doubleClickFileList
+        elif click == "middle":
+            action = settings.prefs.middleClickFileList
+        else:
+            raise NotImplementedError(f"unknown special click kind '{click}'")
+
+        if action == FileListClick.Nothing:
+            pass
+        elif action == FileListClick.Folder:
+            self.showInFolder()
+        elif action == FileListClick.Blame:
+            self.blameFile()
+        elif action == FileListClick.Edit:
+            self.openWorkdirFile()
+        elif action == FileListClick.Stage:
+            if self.navContext == NavContext.UNSTAGED:
+                self.stage()
+            elif self.navContext == NavContext.STAGED:
+                self.unstage()
+            else:
+                QApplication.beep()
+        else:
+            raise NotImplementedError(f"unknown special click action '{click}'")
 
     def selectedDeltas(self) -> Generator[GitDelta, None, None]:
         for index in self.selectedIndexes():

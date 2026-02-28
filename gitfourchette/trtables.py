@@ -104,7 +104,7 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, ClickToStage, TabBarClick
+        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, TabBarClick, FileListClick
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -250,17 +250,19 @@ class TrTables:
                 GpgStatus.ProcessError          : _("Failed to start verification process"),
             },
 
-            ClickToStage: {
-                ClickToStage.Off                : _p("click to stage", "Off"),
-                ClickToStage.MiddleClick        : _p("click to stage", "Middle-click files & diff lines"),
-                ClickToStage.DoubleClick        : _p("click to stage", "Double-click files"),
-            },
-
             TabBarClick: {
                 TabBarClick.Nothing             : _("Do nothing"),
                 TabBarClick.Folder              : _("Open repo folder"),
-                TabBarClick.Terminal            : _("Open repo in a terminal"),
-                TabBarClick.Close               : _("Close the tab"),
+                TabBarClick.Terminal            : _("Open repo in terminal"),
+                TabBarClick.Close               : _("Close tab"),
+            },
+
+            FileListClick: {
+                FileListClick.Nothing           : _("Do nothing"),
+                FileListClick.Stage             : _("Stage/unstage file"),
+                FileListClick.Blame             : _("Blame file"),
+                FileListClick.Edit              : _("Open file in external editor"),
+                FileListClick.Folder            : _("Show file in folder"),
             },
         }
 
@@ -362,8 +364,6 @@ class TrTables:
         from gitfourchette.exttools.usercommand import UserCommand
         from gitfourchette.appconsts import APP_DISPLAY_NAME
         from gitfourchette.repomodel import GpgStatus
-        from gitfourchette.qt import QKeySequence
-        from gitfourchette.globalshortcuts import GlobalShortcuts
 
         sshAuthSock = os.environ.get("SSH_AUTH_SOCK", "")
         if sshAuthSock:
@@ -377,9 +377,6 @@ class TrTables:
             sshAuthSockHelp = _("Note: Per {k}, no ssh-agent seems to be running on your system.")
         sshAuthSockHelp = "<blockquote>" + sshAuthSockHelp.format(
             k="SSH_AUTH_SOCK", v=escape(sshAuthSock), c="AddKeysToAgent")
-
-        stageKey = QKeySequence(GlobalShortcuts.stageHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
-        discardKey = QKeySequence(GlobalShortcuts.discardHotkeys[0]).toString(QKeySequence.SequenceFormat.NativeText)
 
         return {
             "general": _p("Prefs", "General"),
@@ -406,13 +403,6 @@ class TrTables:
             "showMenuBar": _("Show menu bar"),
             "showMenuBar_help": _("When the menu bar is hidden, press the Alt key to show it again."),
             "resetDontShowAgain": _("Restore all “don’t show this again” messages"),
-            "clickToStage": _("Click to stage"),
-            "clickToStage_help": paragraphs(
-                _("Quickly stage or unstage files in the uncommitted changes by middle-clicking or double-clicking them."),
-                _("If you choose the “Middle-click” option, you will also be able to middle-click the selected lines in the diff to stage them."),
-                _("Note: You can always stage/unstage by pressing {0} or {1} when the file lists or the diff have keyboard focus.",
-                  stageKey, discardKey)
-            ),
             "pygmentsPlugins": _("Allow third-party Pygments plugins"),
             "pygmentsPlugins_help": "<p>" + _("Let {app} load third-party Pygments plugins installed on your system. "
                                               "These plugins extend syntax highlighting with new languages "
@@ -550,9 +540,16 @@ class TrTables:
 
             "mouseShortcuts": _("Mouse Shortcuts"),
             "mouseShortcuts_HEADER": _("Tip: If your mouse has side buttons, you can use them to navigate back/forward in the repo."),
-            "tabBarClicks": _("Mouse shortcuts in main tab bar:"),
-            "doubleClickTabBar": _("Double click"),
-            "middleClickTabBar": _("Middle click"),
+            "tabBarClicks": _("Repository tabs:"),
+            "doubleClickTabBar": _("Double-click tab"),
+            "middleClickTabBar": _("Middle-click tab"),
+            "fileListClicks": _("File lists:"),
+            "doubleClickFileList": _("Double-click file"),
+            "middleClickFileList": _("Middle-click file"),
+            "diffViewClicks": _("Diff view:"),
+            "middleClickStageLines": _("Middle-click selection"),
+            "middleClickStageLines_true": _("Stage/unstage selected lines"),
+            "middleClickStageLines_false": _("Do nothing"),
 
             "userCommands_GUIDE": TrTables.userCommandsGuide(),
             "commands": "",

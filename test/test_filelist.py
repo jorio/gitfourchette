@@ -6,8 +6,10 @@
 
 import os.path
 
+from gitfourchette.blameview.blamewindow import BlameWindow
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
 from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.settings import FileListClick
 
 from .util import *
 from . import reposcenario
@@ -589,7 +591,7 @@ def testFileListShowInFolder(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("clickType", ["middle", "double"])
-def testMiddleClickOrDoubleClickToStageFile(tempDir, mainWindow, clickType):
+def testSpecialClickToStageFile(tempDir, mainWindow, clickType):
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
     rw = mainWindow.openRepo(wd)
@@ -603,7 +605,7 @@ def testMiddleClickOrDoubleClickToStageFile(tempDir, mainWindow, clickType):
     assert initialStatus == rw.repo.status()
 
     # Enable special-click to stage
-    settings.prefs.clickToStage = clickType
+    setattr(settings.prefs, f"{clickType}ClickFileList", FileListClick.Stage)
 
     clickPos = QPoint(2, 2)
 
@@ -614,6 +616,40 @@ def testMiddleClickOrDoubleClickToStageFile(tempDir, mainWindow, clickType):
     # Stage file by special-clicking
     mouseSpecialClick(rw.dirtyFiles.viewport(), clickType, clickPos)
     assert rw.repo.status() == {'a/a1.txt': FileStatus.INDEX_MODIFIED}
+
+    # For coverage: attempt a special click in a past commit, this should be a no-op
+    triggerMenuAction(mainWindow.menuBar(), "view/go to head commit")
+    assert rw.committedFiles.isVisible()
+    mouseSpecialClick(rw.committedFiles.viewport(), clickType, clickPos)
+    assert rw.repo.status() == {'a/a1.txt': FileStatus.INDEX_MODIFIED}
+
+
+@pytest.mark.parametrize("click", ["middle", "double"])
+@pytest.mark.parametrize("action", [v for v in FileListClick if v != FileListClick.Stage])
+def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
+    mainWindow.onAcceptPrefsDialog({f"{click}ClickFileList": action})
+
+    wd = unpackRepo(tempDir)
+    reposcenario.fileWithStagedAndUnstagedChanges(wd)
+    rw = mainWindow.openRepo(wd)
+
+    clickPos = QPoint(2, 2)
+
+    # Unstage file by special-clicking
+    with MockDesktopServicesContext() as services:
+        mouseSpecialClick(rw.stagedFiles.viewport(), click, clickPos)
+
+    if action == FileListClick.Nothing:
+        pass
+    elif action == FileListClick.Blame:
+        blameWindow = findWindow(r"Blame.+a\/a1\.txt", BlameWindow)
+        blameWindow.close()
+    elif action == FileListClick.Edit:
+        assert Path(wd, "a", "a1.txt").samefile(services.lastUrlAsLocalFile())
+    elif action == FileListClick.Folder:
+        assert Path(wd, "a").samefile(services.lastUrlAsLocalFile())
+    else:
+        raise NotImplementedError(f"unknown action {action}")
 
 
 def testGrayOutStageButtonsAfterDiscardingOnlyFile(tempDir, mainWindow):
