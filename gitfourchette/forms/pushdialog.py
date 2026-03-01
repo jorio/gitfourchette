@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -21,16 +21,10 @@ logger = logging.getLogger(__name__)
 
 class PushDialog(QDialog):
     def onPickLocalBranch(self):
-        localBranch = self.currentLocalBranch
-
-        if localBranch.upstream:
-            self.ui.trackingLabel.setText(_("tracking {0}", lquo(localBranch.upstream.shorthand)))
-        else:
-            self.ui.trackingLabel.setText(_("non-tracking"))
-
-        remoteIndex = self.getUpstreamIndex(localBranch.upstream.shorthand if localBranch.upstream else "")
-        self.ui.remoteBranchEdit.setCurrentIndex(remoteIndex)
-        self.onPickRemoteBranch(remoteIndex)
+        upstreamShorthand = self.currentLocalBranchUpstreamShorthand
+        upstreamIndex = self.getUpstreamIndex(upstreamShorthand)
+        self.ui.remoteBranchEdit.setCurrentIndex(upstreamIndex)
+        self.onPickRemoteBranch(upstreamIndex)
         self.updateTrackCheckBox()
 
         self.remoteBranchNameValidator.run()
@@ -40,12 +34,19 @@ class PushDialog(QDialog):
         remoteTooltip = self.ui.remoteBranchEdit.itemData(index, Qt.ItemDataRole.ToolTipRole)
 
         if self.willPushToNewBranch:
+            upstreamShorthand = self.currentLocalBranchUpstreamShorthand
+            if upstreamShorthand and not self.currentLocalBranch.upstream:
+                _remoteName, suggestedName = split_remote_branch_shorthand(upstreamShorthand)
+            else:
+                suggestedName = self.currentLocalBranchName
+
             reservedNames = self.reservedRemoteBranchNames[remoteName]
-            remoteBranchName = withUniqueSuffix(self.currentLocalBranchName, reservedNames)
+            suggestedName = withUniqueSuffix(suggestedName, reservedNames)
+
             self.ui.remoteNameLabel.setText(f"\u21AA {remoteName}/")
             self.ui.remoteNameLabel.setToolTip(remoteTooltip)
             self.ui.newRemoteBranchStackedWidget.setCurrentIndex(0)
-            self.ui.newRemoteBranchNameEdit.setText(remoteBranchName)
+            self.ui.newRemoteBranchNameEdit.setText(suggestedName)
             self.ui.newRemoteBranchNameEdit.setFocus(Qt.FocusReason.TabFocusReason)
         else:
             self.ui.newRemoteBranchStackedWidget.setCurrentIndex(1)
@@ -60,14 +61,18 @@ class PushDialog(QDialog):
         localBranch = self.currentLocalBranch
         lbName = localBranch.shorthand
         rbName = self.currentRemoteBranchFullName
-        lbUpstream = localBranch.upstream.shorthand if localBranch.upstream else "???"
 
+        lbUpstream = self.currentLocalBranchUpstreamShorthand
+        hasUpstream = bool(lbUpstream)
+        isTrackingHomeBranch = hasUpstream and lbUpstream == self.currentRemoteBranchFullName
+
+        # Convert to quoted names
         lbName = hquoe(lbName)
         rbName = hquoe(rbName)
         lbUpstream = hquoe(lbUpstream)
 
-        hasUpstream = bool(localBranch.upstream)
-        isTrackingHomeBranch = hasUpstream and localBranch.upstream.shorthand == self.currentRemoteBranchFullName
+        if hasUpstream and not localBranch.upstream:
+            lbUpstream += " " + _("(missing on remote)")
 
         if not resetCheckedState:
             willTrack = self.ui.trackCheckBox.isChecked()
@@ -109,6 +114,15 @@ class PushDialog(QDialog):
         return self.repo.branches.local[self.currentLocalBranchName]
 
     @property
+    def currentLocalBranchUpstreamShorthand(self) -> str:
+        localBranch = self.currentLocalBranch
+        try:
+            upstreamName = localBranch.upstream_name
+        except KeyError:  # "config value 'branch.XXXX.remote' was not found"
+            return ""
+        return upstreamName.removeprefix(RefPrefix.REMOTES)
+
+    @property
     def willForcePush(self) -> bool:
         return not self.willPushToNewBranch and self.ui.forcePushCheckBox.isChecked()
 
@@ -145,7 +159,7 @@ class PushDialog(QDialog):
         rbn = self.currentRemoteBranchName
         return f"{prefix}refs/heads/{lbn}:refs/heads/{rbn}"
 
-    def getUpstreamIndex(self, upstream: str):
+    def getUpstreamIndex(self, upstream: str) -> int:
         comboBox = self.ui.remoteBranchEdit
 
         # Find the upstream as-is
@@ -159,13 +173,22 @@ class PushDialog(QDialog):
         if index >= 0:
             return index
 
+        # The local branch is bound to an upstream that's missing from our combobox.
+        # Fall back to "New branch" item for the remote.
+        if upstream:
+            fallbackRemote, _dummy = split_remote_branch_shorthand(upstream)
+            fallbackRemote += "/"
+            index = comboBox.findData(fallbackRemote)
+            if index >= 0:
+                return index
+
         # Just find the first "New branch" item
         for index in range(comboBox.count()):
             data = comboBox.itemData(index)
             if data.endswith("/"):
                 return index
 
-        return -1
+        raise NotImplementedError(f"no suitable fallback index for upstream '{upstream}'")
 
     def fillRemoteComboBox(self):
         comboBox = self.ui.remoteBranchEdit

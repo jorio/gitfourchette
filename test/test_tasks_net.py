@@ -659,6 +659,35 @@ def testPushNoRemotes(tempDir, mainWindow):
     acceptQMessageBox(rw, "add a remote")
 
 
+def testPushMissingUpstream(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+
+    with RepoContext(wd) as repo:
+        # Connect 'master' to a missing upstream branch on 'localfs'.
+        repo.config["branch.master.merge"] = "refs/heads/missing-upstream"
+
+        # Add a dummy remote that comes before 'localfs' alphabetically,
+        # ensuring that PushDialog doesn't fall back to an unrelated remote.
+        repo.config["remote.aaafirst.url"] = "https://github.com/libgit2/pygit2"
+
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "push")
+
+    pushDialog = findQDialog(rw, "Push", t=PushDialog)
+    assert re.match("new remote branch on .localfs.", pushDialog.ui.remoteBranchEdit.currentText(), re.I)
+    assert pushDialog.ui.newRemoteBranchNameEdit.isVisible()
+    assert pushDialog.ui.newRemoteBranchNameEdit.text() == "missing-upstream"
+
+    pushDialog.startOperationButton.click()
+
+    with RepoContext(bareCopy) as bareRepo:
+        assert "missing-upstream" in bareRepo.branches
+
+
 def testPushTagOnCreate(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, keepOldUpstream=True)
