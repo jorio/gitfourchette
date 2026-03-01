@@ -10,6 +10,7 @@ from typing import Any
 
 from gitfourchette import settings
 from gitfourchette.gitdriver import GitDelta
+from gitfourchette.gitdriver.lfspointer import LfsPointerState
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
@@ -150,6 +151,7 @@ class FileListModel(QAbstractListModel):
     class Role:
         Delta = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         FilePath = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
+        Decoration2 = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 2)
 
     deltas: list[GitDelta]
     fileRows: dict[str, int]
@@ -237,6 +239,16 @@ class FileListModel(QAbstractListModel):
                 letter = "A"
             letter = letter.lower()
             return stockIcon(f"status_{letter}")
+
+        elif role == FileListModel.Role.Decoration2:
+            if not settings.prefs.rawLfsPointers:
+                # Cache LFS pointer on demand
+                if delta.new.lfs.state == LfsPointerState.Unknown:
+                    delta.cacheLfsPointers(self.repo, self.commitId)
+                if delta.old.lfs and not delta.new.lfs:
+                    return stockIcon("git-lfs-removed")
+                elif delta.new.lfs.state == LfsPointerState.Valid:
+                    return stockIcon("git-lfs")
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             isCounterpart = row == self.highlightedCounterpartRow

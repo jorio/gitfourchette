@@ -78,7 +78,7 @@ class GitDeltaFile:
     def isBlob(self) -> bool:
         return self.mode & FileMode.BLOB == FileMode.BLOB
 
-    def read(self, repo: Repo) -> bytes:
+    def read(self, repo: Repo, maxSize: int = -1) -> bytes:
         if self._data is not None:
             # Data already cached
             pass
@@ -99,12 +99,16 @@ class GitDeltaFile:
             try:
                 if not self.isIdValid():  # unknown hash (FFFFFFF...)
                     raise KeyError()
-                self._data = repo.peel_blob(self.id).data
+                blob = repo.peel_blob(self.id)
             except KeyError:
                 # Blob ID isn't in the database. Typically, that means
                 # it's an unstaged file. Read it from the workdir.
                 assert self.source.isDirty(), f"expecting untracked/unstaged, got {self.source}"
                 self._data = repo.apply_filters_to_workdir(self.path)
+            else:
+                if 0 <= maxSize < blob.size:
+                    raise OverflowError("blob size exceeds limit")
+                self._data = blob.data
 
         assert self.isDataValid(), "data should be valid here"
         return self._data
@@ -153,33 +157,45 @@ class GitDeltaFile:
         return size
 
     def cacheLfsPointer(self, repo: Repo, commitId: Oid, checkOrKnownValue: AttrCheck | str):
+        # No-op if LFS pointer already resolved
         if self.lfs.state != LfsPointerState.Unknown:
-            # Already resolved
             return
 
-        # Deletion = there's no LFS pointer anymore
+        # No LFS pointer if the file doesn't exist at this point
         if self.isId0():
             self.lfs = _NoLfsPointer
             return
 
+        # Get filter attribute for this file
         if isinstance(checkOrKnownValue, str):
             attr = checkOrKnownValue
         else:
             check = checkOrKnownValue
             attr = repo.get_attr(self.path, "filter", check, commitId)
 
+        # File must have 'lfs' filter attribute past this point
         if attr != "lfs":
             self.lfs = _NoLfsPointer
             return
 
+        # Unstaged: Force read data from wd
         if self.source.isDirty():
-            # Force read data from wd
             assert commitId == NULL_OID
             objectPath = repo.in_workdir(self.path)
             self.lfs = LfsPointer(LfsPointerState.UnstagedTentative, objectPath=objectPath)
             return
 
-        data = self.read(repo)
+        # Analyze the non-LFS blob to make sure it's really an LFS pointer.
+        # Note: The mere act of looking up a blob can be expensive for large
+        # blobs (libgit2 seems to pre-cache the contents?), but the performance
+        # hit will only be felt if a file has the 'lfs' attribute and was
+        # improperly committed as non-LFS.
+        try:
+            data = self.read(repo, maxSize=256)
+        except OverflowError:
+            # Don't bother loading large blobs; unlikely to be a valid pointer
+            data = b""
+
         if not data.startswith(LfsPointerMagicBytes):
             self.lfs = _NoLfsPointer
             return

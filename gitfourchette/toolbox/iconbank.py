@@ -17,6 +17,8 @@ _overrideIconIdsReady = False
 
 _autoDarkVariants = {
     "achtung",
+    "git-lfs",
+    "git-lfs-removed",
     "status_a",
     "status_c",  # just in case we ever add this one
     "status_d",

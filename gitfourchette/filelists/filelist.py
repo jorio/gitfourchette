@@ -41,16 +41,14 @@ class FileListDelegate(QStyledItemDelegate):
 
         # Gather data from model
         icon: QIcon = index.data(Qt.ItemDataRole.DecorationRole)
+        emblem: QIcon | None = index.data(FileListModel.Role.Decoration2)
         font: QFont = index.data(Qt.ItemDataRole.FontRole)
         fullText: str = index.data(Qt.ItemDataRole.DisplayRole)
         searchTerm: str = widget.searchBar.searchTerm if widget.searchBar.isVisible() else ""
 
         # Prepare icon and text rects
-        iconRect = QRect(option.rect.topLeft() + QPoint(2, 0), option.decorationSize)
-
-        textRect = QRect(option.rect)
-        textRect.setLeft(iconRect.right() + 4)
-        textRect.setRight(textRect.right() - 2)
+        rect = QRect(option.rect)
+        rect.adjust(2, 0, -2, 0)
 
         # Begin painting
         painter.save()
@@ -62,11 +60,16 @@ class FileListDelegate(QStyledItemDelegate):
         widget.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, widget)
 
         # Draw icon
-        if icon:
-            icon.paint(painter, iconRect, option.decorationAlignment)
+        for i in [icon, emblem]:
+            if i is None:
+                continue
+            iconRect = QRect(rect)
+            iconRect.setWidth(option.decorationSize.width())
+            i.paint(painter, iconRect, option.decorationAlignment)
+            rect.setLeft(iconRect.right() + 4)
 
         # Prepare elided text
-        text = fontMetrics.elidedText(fullText, option.textElideMode, textRect.width())
+        text = fontMetrics.elidedText(fullText, option.textElideMode, rect.width())
 
         # Split path into directory and filename for better readability
         isFileNameFirst = settings.prefs.pathDisplayStyle == PathDisplayStyle.FileNameFirst
@@ -81,7 +84,7 @@ class FileListDelegate(QStyledItemDelegate):
             parts = [text[:slash + 1], text[slash + 1:]]
 
         # Draw text parts
-        textRectBackup = QRect(textRect)
+        textRectBackup = QRect(rect)
         for partNo, part in enumerate(parts):
             isDirectoryPart = isFileNameFirst == (partNo > 0)
 
@@ -94,14 +97,14 @@ class FileListDelegate(QStyledItemDelegate):
                 textColor.setAlphaF(0.7)
 
             painter.setPen(textColor)
-            painter.drawText(textRect, option.displayAlignment, part)
+            painter.drawText(rect, option.displayAlignment, part)
 
             # Prepare rect for next part
             partWidth = fontMetrics.horizontalAdvance(part)
-            textRect.setLeft(textRect.left() + partWidth)
+            rect.setLeft(rect.left() + partWidth)
 
         # Restore text rect
-        textRect = textRectBackup
+        rect = textRectBackup
 
         # Highlight search term
         if searchTerm and searchTerm in fullText.lower():
@@ -112,7 +115,7 @@ class FileListDelegate(QStyledItemDelegate):
             else:
                 needleLen = len(searchTerm)
 
-            SearchBar.highlightNeedle(painter, textRect, text, needlePos, needleLen)
+            SearchBar.highlightNeedle(painter, rect, text, needlePos, needleLen)
 
         # Finish painting
         painter.restore()
