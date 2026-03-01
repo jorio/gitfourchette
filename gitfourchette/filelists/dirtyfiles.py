@@ -168,9 +168,5 @@ class DirtyFiles(FileList):
 
     def ignoreSelection(self):
         selected = list(self.selectedPaths())
-
-        if len(selected) != 1:
-            QApplication.beep()
-            return
-
+        assert len(selected) == 1, "QAction bound to ignoreSelection should be disabled"
         NewIgnorePattern.invoke(self, selected[0])

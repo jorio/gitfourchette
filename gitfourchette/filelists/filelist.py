@@ -455,6 +455,7 @@ class FileList(QListView):
     def copyPaths(self):
         text = '\n'.join(self.repo.in_workdir(path) for path in self.selectedPaths())
         if not text:
+            QApplication.beep()
             return
 
         if WINDOWS:  # Ensure backslash directory separators

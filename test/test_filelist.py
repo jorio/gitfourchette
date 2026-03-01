@@ -262,6 +262,25 @@ def testSearchFileList(tempDir, mainWindow):
     assert not searchBar.isVisible()
 
 
+def testSearchFileListElidedTerm(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/aaaafirst", "first")
+    writeFile(f"{wd}/WWWWWWWWWWWWWWWWWWWWWWW_elided_WWWWWWWWWWWWWWWWWWWWWWW", "hello")
+
+    mainWindow.resize(800, 600)
+    rw = mainWindow.openRepo(wd)
+
+    assert "W_elided_W" not in rw.navLocator.path
+
+    rw.dirtyFiles.setFocus()
+    QTest.keySequence(rw, QKeySequence.StandardKey.Find)
+    assert rw.dirtyFiles.searchBar.isVisible()
+    rw.dirtyFiles.searchBar.lineEdit.setText("elided")
+    QTest.qWait(0)  # give search bar time to fire the search signal
+
+    assert "W_elided_W" in rw.navLocator.path
+
+
 def testSearchEmptyFileList(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
@@ -330,10 +349,10 @@ def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):
     assert hits > 0, "bad test! filename needle not found in any of the commits!"
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows: can't just execute a python script")
-@pytest.mark.skipif(MACOS and not OFFSCREEN, reason="flaky on macOS unless executed offscreen")
 def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a/a1", "modified in workdir")
+
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
 
@@ -341,10 +360,14 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
     mainWindow.onAcceptPrefsDialog({"externalEditor": f'"{editorPath}" "{scratchPath}"'})
 
+    def getRevisionPath():
+        return readTextFile(scratchPath, timeout=1000, unlink=True).strip()
+
     # Now open the file in our shim
-    # HEAD revision
+    # Workdir revision
     triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/current")
-    assert b"a/a1" in readFile(scratchPath, timeout=1000, unlink=True)
+    revisionPath = getRevisionPath()
+    assert Path(wd, "a/a1").samefile(revisionPath)
 
     # New revision
     triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/before.+commit")
@@ -352,7 +375,15 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
 
     # Old revision
     triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/as of.+commit")
-    assert b"a1@49322bb" in readFile(scratchPath, timeout=1000, unlink=True)
+    revisionPath = getRevisionPath()
+    assert "a1@49322bb" in revisionPath
+    assert readTextFile(revisionPath).strip() == "a1"
+
+    # HEAD revision (of a file with workdir modifications)
+    rw.jump(NavLocator.inUnstaged("a/a1"), check=True)
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "edit head version in.+editor-shim")
+    revisionPath = getRevisionPath()
+    assert readTextFile(revisionPath).strip() == "a1"
 
 
 def testOpenFileInExternalDiffTool(tempDir, mainWindow):
@@ -478,11 +509,33 @@ def testFileListCopyPath(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
+    # Copy no paths
+    rw.dirtyFiles.setFocus()
+    QTest.keySequence(rw.committedFiles, "Ctrl+C")
+    clipped = QApplication.clipboard().text()
+    assert not clipped
+
+    # Prepare multiple changed paths
+    Path(wd, "a/a1").unlink()
+    writeFile(f"{wd}/a/new", "unstaged change")
+    writeFile(f"{wd}/master.txt", "unstaged change")
+    rw.refreshRepo()
+
+    # Copy multiple paths in unstaged files
+    rw.dirtyFiles.setFocus()
+    rw.dirtyFiles.selectAll()
+    QTest.keySequence(rw.committedFiles, "Ctrl+C")
+    clipped = QApplication.clipboard().text()
+    lines = clipped.strip().splitlines()
+    for line, relPath in zip(lines, ["a/a1", "a/new", "master.txt"], strict=True):
+        assert Path(wd, relPath).resolve() == Path(line).resolve()
+
+    # Copy single path in a commit
     rw.jump(NavLocator.inCommit(Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17"), "c/c2-2.txt"), check=True)
     rw.committedFiles.setFocus()
     QTest.keySequence(rw.committedFiles, "Ctrl+C")
     clipped = QApplication.clipboard().text()
-    assert clipped == os.path.normpath(f"{wd}/c/c2-2.txt")
+    assert Path(wd, "c/c2-2.txt").resolve() == Path(clipped).resolve()
 
 
 def testFileListChangePathDisplayStyle(tempDir, mainWindow):
@@ -648,15 +701,28 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir)
 
+    # For coverage of different failure paths:
+    # - delete a file
+    # - create a bunch of new files
+    Path(wd, "a/a1").unlink()
     for i in range(10):
         writeFile(f"{wd}/batch{i}.txt", f"hello{i}")
+
+    # Include one change that will work
     writeFile(f"{wd}/master.txt", "this one will work")
 
     rw = mainWindow.openRepo(wd)
     rw.diffArea.dirtyFiles.selectAll()
     triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor-shim")
-    acceptQMessageBox(rw, "really open.+11 files.+in external diff tool")
-    acceptQMessageBox(rw, "can.t open external diff tool on a new file")
+    acceptQMessageBox(rw, "really open.+12 files.+in external diff tool")
+
+    # Dismiss errors
+    acceptQMessageBox(rw, "can.t open external diff tool on a deleted file.+"
+                          "can.t open external diff tool on a new file")
+
+    # Make sure we've been able to open the diff tool on master.txt,
+    # despite errors on the other files
+    assert "master.txt" in readTextFile(scratchPath, timeout=5000)
 
 
 def testFileListNaturalSort(tempDir, mainWindow):
@@ -702,3 +768,28 @@ def testUnstageRenamedFile(tempDir, mainWindow):
     status = rw.repo.status()
     assert status['a.txt'] == FileStatus.WT_DELETED
     assert status['b.txt'] == FileStatus.WT_NEW
+
+
+def testCantStageMixedSelection(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "submoroot")
+    writeFile(f"{wd}/hello.txt", "content")
+
+    with RepoContext(f"{wd}/submosub") as submoRepo:
+        submoRepo.reset(Oid(hex="6c138ceb12d6fc505ebe9015dcc48a0616e1de23"), ResetMode.HARD)
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.dirtyFiles.selectAll()
+    menu = summonContextMenu(rw.dirtyFiles.viewport())
+    assert findMenuAction(menu, "can.t stage this selection in bulk")
+    menu.close()
+
+    with RepoContext(wd, write_index=True) as repo:
+        repo.index.add("hello.txt")
+        repo.index.add("submosub")
+    rw.refreshRepo()
+
+    rw.stagedFiles.selectAll()
+    menu = summonContextMenu(rw.stagedFiles.viewport())
+    assert findMenuAction(menu, "can.t unstage this selection in bulk")
+    menu.close()
