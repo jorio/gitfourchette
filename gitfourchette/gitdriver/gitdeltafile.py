@@ -13,7 +13,7 @@ from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import FileMode, Repo, Oid, id7, NULL_OID
+from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, NULL_OID, PYGIT2_VERSION
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
@@ -95,20 +95,22 @@ class GitDeltaFile:
             assert self.lfs.size == len(self._data), "LFS object size mismatch"
 
         else:
-            # Load blob from standard git object database
             try:
+                # Load blob from standard git object database
                 if not self.isIdValid():  # unknown hash (FFFFFFF...)
                     raise KeyError()
-                blob = repo.peel_blob(self.id)
+
+                # Honor size heuristic, if any
+                if 0 <= maxSize < self.sizeBallpark(repo):
+                    raise OverflowError("blob size exceeds limit")
+
+                self._data = repo.peel_blob(self.id).data
+
             except KeyError:
                 # Blob ID isn't in the database. Typically, that means
                 # it's an unstaged file. Read it from the workdir.
                 assert self.source.isDirty(), f"expecting untracked/unstaged, got {self.source}"
                 self._data = repo.apply_filters_to_workdir(self.path)
-            else:
-                if 0 <= maxSize < blob.size:
-                    raise OverflowError("blob size exceeds limit")
-                self._data = blob.data
 
         assert self.isDataValid(), "data should be valid here"
         return self._data
@@ -149,9 +151,22 @@ class GitDeltaFile:
 
         if self.isIdValid():
             try:
-                return repo.peel_blob(self.id).size
+                blobType, blobSize = repo.odb.read_header(self.id)
+                assert blobType == ObjectType.BLOB
+                return blobSize
             except KeyError:
+                # Fall back to workdir stat
                 pass
+            except AttributeError:  # pragma: no cover (Odb.read_header missing in old versions of pygit2)
+                # The mere act of looking up a blob can be much slower than Odb.read_header for large blobs!
+                # TODO: Remove once we can stop supporting pygit2 <= 1.19.1
+                warnings.warn(f"pygit2 {PYGIT2_VERSION} is too old for fast blob size ballpark")
+                try:
+                    return repo.peel_blob(self.id).size
+                except KeyError:
+                    pass
+
+        assert self.source.isWorkdir(), "can't estimate non-workdir blob size without a blob ID"
 
         _, size = self.stat(repo)
         return size
@@ -186,10 +201,6 @@ class GitDeltaFile:
             return
 
         # Analyze the non-LFS blob to make sure it's really an LFS pointer.
-        # Note: The mere act of looking up a blob can be expensive for large
-        # blobs (libgit2 seems to pre-cache the contents?), but the performance
-        # hit will only be felt if a file has the 'lfs' attribute and was
-        # improperly committed as non-LFS.
         try:
             data = self.read(repo, maxSize=256)
         except OverflowError:
