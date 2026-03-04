@@ -299,6 +299,26 @@ class LoadPatch(RepoTask):
             if delta.status != "D":
                 loadLfs &= bool(delta.new.lfs)
 
+        # Determine size/line limits
+        likelyImage = isImageFormatSupported(delta.old.path) and isImageFormatSupported(delta.new.path)
+        if locator.hasFlags(NavFlags.AllowLargeFiles):
+            maxLineLength = 0
+            maxFileSize = 0
+        else:
+            maxLineLength = LONG_LINE_THRESHOLD
+            if likelyImage:
+                maxFileSize = settings.prefs.imageFileThresholdKB * 1024
+            else:
+                maxFileSize = settings.prefs.largeFileThresholdKB * 1024
+
+        # Don't load large diffs
+        if maxFileSize != 0 and GitDeltaFile.SupportsFastSizeBallpark:
+            oldBallpark = delta.old.sizeBallpark(self.repo)
+            newBallpark = delta.new.sizeBallpark(self.repo)
+            ballpark = max(oldBallpark, newBallpark)
+            if maxFileSize < ballpark:
+                return SpecialDiffError.fileTooLarge(ballpark, maxFileSize, locator, image=likelyImage)
+
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg
                 and delta.new.path.lower().endswith(".svg")
@@ -324,16 +344,14 @@ class LoadPatch(RepoTask):
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
         patch = driver.stdoutScrollback()
 
-        # Don't load large diffs.
-        threshold = settings.prefs.largeFileThresholdKB * 1024
-        if threshold != 0 and len(patch) > threshold and not locator.hasFlags(NavFlags.AllowLargeFiles):
-            return SpecialDiffError.diffTooLarge(len(patch), threshold, locator)
+        # Don't display large diffs (legacy pygit2 version)
+        # TODO: Remove this once we drop support for pygit2 <= 1.19.1
+        if not GitDeltaFile.SupportsFastSizeBallpark and 0 < maxFileSize < len(patch):  # pragma: no cover (old pygit2)
+            return SpecialDiffError.fileTooLarge(len(patch), maxFileSize, locator, image=False, legacy=True)
 
         # Building the diff document on the background thread lets the user
         # interrupt the task, e.g. if dragging the mouse across many commits.
         yield from self.flowEnterWorkerThread()
-
-        maxLineLength = 0 if locator.hasFlags(NavFlags.AllowLargeFiles) else LONG_LINE_THRESHOLD
 
         # Special case for unstaged files: Before loading the patch, update the
         # GitDelta with fresh filesystem stats (st_mtime_ns). This allows

@@ -13,7 +13,7 @@ from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, NULL_OID, PYGIT2_VERSION
+from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, NULL_OID, pygit2_version_at_least
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
@@ -51,6 +51,8 @@ class GitDeltaFile:
     """
     Cached LFS object information extracted from the LFS pointer (if any).
     """
+
+    SupportsFastSizeBallpark = pygit2_version_at_least("1.19.2", False, "fast size ballpark")
 
     def __post_init__(self):
         assert self.id.isnumeric() or self.id.islower()
@@ -149,7 +151,7 @@ class GitDeltaFile:
         if self.lfs.size >= 0:
             return self.lfs.size
 
-        if self.isIdValid():
+        if self.isIdValid() and self.SupportsFastSizeBallpark:
             try:
                 blobType, blobSize = repo.odb.read_header(self.id)
                 assert blobType == ObjectType.BLOB
@@ -157,14 +159,14 @@ class GitDeltaFile:
             except KeyError:
                 # Fall back to workdir stat
                 pass
-            except AttributeError:  # pragma: no cover (Odb.read_header missing in old versions of pygit2)
-                # The mere act of looking up a blob can be much slower than Odb.read_header for large blobs!
-                # TODO: Remove once we can stop supporting pygit2 <= 1.19.1
-                warnings.warn(f"pygit2 {PYGIT2_VERSION} is too old for fast blob size ballpark")
-                try:
-                    return repo.peel_blob(self.id).size
-                except KeyError:
-                    pass
+
+        if self.isIdValid() and not self.SupportsFastSizeBallpark:  # pragma: no cover (Odb.read_header missing in old versions of pygit2)
+            # The mere act of looking up a blob can be much slower than Odb.read_header for large blobs!
+            # TODO: Remove once we can stop supporting pygit2 <= 1.19.1
+            try:
+                return repo.peel_blob(self.id).size
+            except KeyError:
+                pass
 
         assert self.source.isWorkdir(), "can't estimate non-workdir blob size without a blob ID"
 

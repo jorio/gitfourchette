@@ -507,7 +507,7 @@ def testDiffLargeFile(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged(path="bigfile.txt"), check=True)
     assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
-    assert "diff is very large" in rw.specialDiffView.toPlainText().lower()
+    assert findTextInWidget(rw.specialDiffView, "diff is very large" if pygit2OlderThan("1.19.2") else "file is very large")
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
     assert rw.diffView.isVisible()
@@ -527,7 +527,7 @@ def testDiffLargeFilesWithVeryLongLines(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged(path="longlines.txt"), check=True)
     assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
-    assert "diff is very large" in rw.specialDiffView.toPlainText().lower()
+    assert findTextInWidget(rw.specialDiffView, "diff is very large" if pygit2OlderThan("1.19.2") else "file is very large")
 
     qteClickLink(rw.specialDiffView, "load.+anyway")
     assert rw.diffView.isVisible()

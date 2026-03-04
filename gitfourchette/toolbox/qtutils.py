@@ -7,16 +7,18 @@
 import itertools
 import os
 from collections.abc import Callable
+from pathlib import Path
 
 from gitfourchette.qt import *
-
-_supportedImageFormats = None
 
 QModelIndex_default = QModelIndex()
 QPoint_zero = QPoint()
 
 ShortcutKeys = QKeySequence | QKeySequence.StandardKey | Qt.Key | str
 MultiShortcut = list[QKeySequence]
+
+SupportedImageSuffixes = {'.' + fmt.data().decode('ascii', errors='replace')
+                          for fmt in QImageReader.supportedImageFormats()}
 
 
 def openFolder(path: str):
@@ -89,15 +91,8 @@ def isImageFormatSupported(filename: str):
     Guesses whether an image is in a supported format from its filename.
     This is for when QImageReader.imageFormat(path) doesn't cut it (e.g. if the file doesn't exist on disk).
     """
-    global _supportedImageFormats
-
-    if _supportedImageFormats is None:
-        _supportedImageFormats = [str(fmt.data(), 'ascii') for fmt in QImageReader.supportedImageFormats()]
-
-    ext = os.path.splitext(filename)[-1]
-    ext = ext.removeprefix(".").lower()
-
-    return ext in _supportedImageFormats
+    ext = Path(filename).suffix.lower()
+    return ext in SupportedImageSuffixes
 
 
 def setFontFeature(font: QFont, fourCC: str, value: int = 1):

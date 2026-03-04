@@ -121,38 +121,30 @@ class SpecialDiffError:
         return SpecialDiffError(message, "\n".join(details), longform="\n".join(longform))
 
     @staticmethod
-    def diffTooLarge(size, threshold, locator):
-        locale = QLocale()
-        humanSize = locale.formattedDataSize(size, 1)
-        humanThreshold = locale.formattedDataSize(threshold, 0)
-        loadAnyway = locator.withExtraFlags(NavFlags.AllowLargeFiles)
-        configure = makeInternalLink("prefs", "largeFileThresholdKB")
-        longform = toRoomyUL([
-            linkify(_("[Load diff anyway] (this may take a moment)"), loadAnyway.url()),
-            linkify(_("[Configure diff preview limit] (currently: {0})", humanThreshold), configure),
-        ])
-        return SpecialDiffError(
-            _("This diff is very large."),
-            _("Diff size: {0}", humanSize),
-            "SP_MessageBoxWarning",
-            longform=longform)
+    def fileTooLarge(size: int, threshold: int, locator: NavLocator, image: bool, legacy: bool = False):
+        if image:
+            prefKey = "imageFileThresholdKB"
+            titleText = _("This image is very large.")
+            loadText = _("[Load image anyway] (this may take a moment)")
+            configText = _("[Configure image preview limit] (currently: {0})")
+        else:
+            prefKey = "largeFileThresholdKB"
+            titleText = _("This file is very large.") if not legacy else _("This diff is very large.")
+            loadText = _("[Load diff anyway] (this may take a moment)")
+            configText = _("[Configure diff preview limit] (currently: {0})")
 
-    @staticmethod
-    def imageTooLarge(size, threshold, locator):
         locale = QLocale()
-        humanSize = locale.formattedDataSize(size, 1)
+        humanSize = locale.formattedDataSize(size, 1) if not legacy else ""  # legacy: hide size
         humanThreshold = locale.formattedDataSize(threshold, 0)
-        loadAnyway = locator.withExtraFlags(NavFlags.AllowLargeFiles)
-        configure = makeInternalLink("prefs", "imageFileThresholdKB")
+        loadLink = locator.withExtraFlags(NavFlags.AllowLargeFiles).url()
+        configLink = makeInternalLink("prefs", prefKey)
+
         longform = toRoomyUL([
-            linkify(_("[Load image anyway] (this may take a moment)"), loadAnyway.url()),
-            linkify(_("[Configure image preview limit] (currently: {0})", humanThreshold), configure),
+            linkify(loadText, loadLink),
+            linkify(configText.format(humanThreshold), configLink),
         ])
-        return SpecialDiffError(
-            _("This image is very large."),
-            _("Image size: {0}", humanSize),
-            "SP_MessageBoxWarning",
-            longform=longform)
+
+        return SpecialDiffError(titleText, humanSize, "SP_MessageBoxWarning", longform=longform)
 
     @staticmethod
     def typeChange(delta: GitDelta):
@@ -179,7 +171,7 @@ class SpecialDiffError:
             else:
                 threshold = settings.prefs.imageFileThresholdKB * 1024
             if largestSize > threshold > 0:
-                return SpecialDiffError.imageTooLarge(largestSize, threshold, locator)
+                return SpecialDiffError.fileTooLarge(largestSize, threshold, locator, image=True)
             return ImageDelta(repo, delta)
 
         oldSizeText = locale.formattedDataSize(oldSize)
