@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import settings
 from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.forms.ui_commitdialog import Ui_CommitDialog
 from gitfourchette.localization import *
@@ -45,6 +46,8 @@ class CommitDialog(QDialog):
 
         self.ui.signature.setSignature(authorSignature)
         self.ui.signature.signatureChanged.connect(self.refreshSignaturePreview)
+
+        self.ui.signOffCheckBox.setVisible(settings.prefs.signOffEnabled)
 
         # Make summary text edit font larger
         tweakWidgetFont(self.ui.summaryEditor, 130)

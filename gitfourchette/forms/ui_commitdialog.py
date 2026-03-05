@@ -72,6 +72,10 @@ class Ui_CommitDialog(object):
         self.revealSignature.setChecked(False)
         self.revealSignature.setObjectName("revealSignature")
         self.buttonLayout.addWidget(self.revealSignature)
+        self.signOffCheckBox = QCheckBox(parent=CommitDialog)
+        self.signOffCheckBox.setChecked(False)
+        self.signOffCheckBox.setObjectName("signOffCheckBox")
+        self.buttonLayout.addWidget(self.signOffCheckBox)
         self.signatureButton = QHintButton(parent=CommitDialog)
         self.signatureButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.signatureButton.setAutoRaise(True)
@@ -107,6 +111,8 @@ class Ui_CommitDialog(object):
         self.counterLabel.setToolTip(_p("CommitDialog", "<p>Length of the summary. Convention is to stay under 50 characters and avoid going over 72. If that’s not enough, use the long-form description.</p>"))
         self.descriptionEditor.setPlaceholderText(_p("CommitDialog", "Long-form description (optional)"))
         self.revealSignature.setText(_p("CommitDialog", "&Edit Author"))
+        self.signOffCheckBox.setText(_p("CommitDialog", "&Sign off"))
+        self.signOffCheckBox.setToolTip(_p("CommitDialog", "Add a Signed-off-by line (Developer Certificate of Origin)"))
         self.signatureButton.setText(_p("CommitDialog", "Preview"))
 from gitfourchette.forms.gpgbutton import GpgButton
 from gitfourchette.forms.signatureform import SignatureForm

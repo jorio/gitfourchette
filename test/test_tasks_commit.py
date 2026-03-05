@@ -57,6 +57,7 @@ def testCommit(tempDir, mainWindow):
     assert headCommit.author.email == "custom.author@example.com"
     assert headCommit.author.time == QDateTime19991231.toSecsSinceEpoch()
     assert headCommit.committer.name == TEST_SIGNATURE.name
+    assert "Signed-off-by:" not in headCommit.message
 
     assert len(headCommit.parents) == 1
     diff = rw.repo.diff(headCommit.parents[0], headCommit)
@@ -831,6 +832,64 @@ def testDeleteTag(tempDir, mainWindow, method):
 
     findQDialog(rw, "delete tag").accept()
     assert tagToDelete not in rw.repo.listall_tags()
+
+
+def testSignOffFeatureHiddenWhenDisabled(tempDir, mainWindow):
+    """With the feature disabled by default, the Sign off checkbox is hidden in the commit dialog."""
+    # Stage an empty file and open the commit dialog
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.commitButton.click()
+    acceptQMessageBox(rw, "empty commit")
+    dialog = findQDialog(rw, "commit")
+
+    # Feature should be disabled by default
+    assert not dialog.ui.signOffCheckBox.isVisible()
+    dialog.reject()
+
+
+def testSignOffFeatureVisibleWhenEnabledInSettings(tempDir, mainWindow):
+    """Enabling the feature in the settings window makes the Sign off checkbox appear in the commit dialog."""
+    # Enable the feature via the settings window
+    prefsDialog = mainWindow.openPrefsDialog("signOffEnabled")
+    checkBox: QCheckBox = prefsDialog.findChild(QCheckBox, "prefctl_signOffEnabled")
+    assert checkBox is not None
+    checkBox.setChecked(True)
+    prefsDialog.accept()
+
+    # Commit dialog should now show the Sign off checkbox
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.commitButton.click()
+    acceptQMessageBox(rw, "empty commit")
+    dialog = findQDialog(rw, "commit")
+    assert dialog.ui.signOffCheckBox.isVisible()
+    dialog.reject()
+
+
+def testSignOffAddsSignedOffByLine(tempDir, mainWindow):
+    """When the feature is enabled and the user checks Sign off, the commit gets a Signed-off-by line."""
+    # Enable the feature
+    mainWindow.onAcceptPrefsDialog({"signOffEnabled": True})
+
+    # Stage a change and open the commit dialog
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/signed.txt", "signed change\n")
+    rw = mainWindow.openRepo(wd)
+    qlvClickNthRow(rw.dirtyFiles, 0)
+    QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)
+    rw.diffArea.commitButton.click()
+
+    # Create a commit with sign-off
+    dialog = findQDialog(rw, "commit")
+    assert dialog.ui.signOffCheckBox.isVisible()
+    dialog.ui.summaryEditor.setText("Commit with sign-off")
+    dialog.ui.signOffCheckBox.setChecked(True)
+    dialog.accept()
+
+    # Commit should have a Signed-off-by line
+    headCommit = rw.repo.head_commit
+    assert "Signed-off-by:" in headCommit.message
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick"])

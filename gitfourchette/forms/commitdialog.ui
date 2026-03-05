@@ -126,6 +126,19 @@
       </widget>
      </item>
      <item>
+      <widget class="QCheckBox" name="signOffCheckBox">
+       <property name="text">
+        <string>&amp;Sign off</string>
+       </property>
+       <property name="toolTip">
+        <string>Add a Signed-off-by line (Developer Certificate of Origin)</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QHintButton" name="signatureButton">
        <property name="focusPolicy">
         <enum>Qt::FocusPolicy::NoFocus</enum>
