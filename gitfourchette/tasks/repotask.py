@@ -25,7 +25,6 @@ from gitfourchette.repomodel import RepoModel
 from gitfourchette.toolbox import *
 
 if TYPE_CHECKING:
-    from gitfourchette.forms.statusform import StatusForm
     from gitfourchette.repowidget import RepoWidget
 
 logger = logging.getLogger(__name__)
@@ -515,8 +514,18 @@ class RepoTask(QObject):
             workdir="",
             env: dict[str, str] | None = None,
             autoFail=True,
-            statusForm: StatusForm | None = None,
     ) -> Generator[FlowControlToken, None, GitDriver]:
+        process = self.createGitProcess(*args, customKey=customKey, workdir=workdir, env=env)
+        yield from self.flowStartProcess(process, autoFail=autoFail)
+        return process
+
+    def createGitProcess(
+            self,
+            *args: str,
+            customKey="",
+            workdir="",
+            env: dict[str, str] | None = None,
+    ) -> GitDriver:
         from gitfourchette import settings
         from gitfourchette.application import GFApplication
         from gitfourchette.porcelain import GitConfigHelper
@@ -582,10 +591,6 @@ class RepoTask(QObject):
         ToolCommands.setQProcessEnvironment(process, env)
         ToolCommands.wrapFlatpakCommand(process)
 
-        if statusForm is not None:
-            statusForm.connectProcess(process)
-
-        yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
 
     def flowDialog(self, dialog: QDialog, abortTaskIfRejected=True, proceedSignal=None):

@@ -393,7 +393,9 @@ class PushBranch(RepoTask):
         if "--set-upstream" in command:
             self.effects |= TaskEffects.Upstreams
 
-        driver = yield from self.flowCallGit(*command, autoFail=False, statusForm=dialog.ui.statusForm)
+        driver = self.createGitProcess(*command)
+        dialog.ui.statusForm.connectProcess(driver)
+        yield from self.flowStartProcess(driver, autoFail=False)
 
         gitFailed = driver.exitCode() != 0
 

@@ -314,7 +314,7 @@ class CloneTask(RepoTask):
         dialog.enableInputs(False)
 
         # Clone the repo
-        driver = yield from self.flowCallGit(
+        driver = self.createGitProcess(
             "clone",
             "--progress",
             *argsIf(recursive, "--recurse-submodules"),
@@ -324,9 +324,9 @@ class CloneTask(RepoTask):
             "--",
             url,
             path,
-            customKey=privKeyPath,
-            autoFail=False,
-            statusForm=dialog.ui.statusForm)
+            customKey=privKeyPath)
+        dialog.ui.statusForm.connectProcess(driver)
+        yield from self.flowStartProcess(driver, autoFail=False)
 
         if driver.exitCode() != 0:
             QApplication.beep()
