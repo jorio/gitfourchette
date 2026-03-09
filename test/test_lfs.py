@@ -239,3 +239,45 @@ def testLfsStopTrackingTextInWorkdir(tempDir, mainWindow):
     commitDialog.accept()
     rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "textfile.c"), check=True)
     checkLfsPointerRemoved()
+
+
+def testLfsConvertTextToLfsInCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    rw = mainWindow.openRepo(wd)
+
+    commitId = Oid(hex="227336fd324c065828168c2e9000a7ceee1ce9dc")
+    rw.jump(NavLocator.inCommit(commitId, "textfilemigrate.c"), check=True)
+
+    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer added")
+
+    diffLines = rw.diffView.lineData
+    # Vanilla blob: red lines
+    assert diffLines[1].text.startswith("/* This is another text file")
+    assert diffLines[1].origin == "-"
+    # LFS pointer: red lines
+    assert diffLines[3].text.startswith("version https://git-lfs.github.com/spec/v1")
+    assert diffLines[3].origin == "+"
+
+
+@requiresLfs
+def testLfsConvertTextToLfsInWorkdir(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+
+    with RepoContext(wd) as repo:
+        repo.checkout_commit(Oid(hex="748c251f524c4448370bcd4f3a11c7e128aba8c5"))
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inUnstaged("textfilemigrate.c"), check=True)
+    rw.diffArea.stageButton.click()
+    rw.jump(NavLocator.inStaged("textfilemigrate.c"), check=True)
+
+    assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer added")
+
+    diffLines = rw.diffView.lineData
+    # Vanilla blob: red lines
+    assert diffLines[1].text.startswith("/* This is another text file")
+    assert diffLines[1].origin == "-"
+    # LFS pointer: red lines
+    assert diffLines[3].text.startswith("version https://git-lfs.github.com/spec/v1")
+    assert diffLines[3].origin == "+"

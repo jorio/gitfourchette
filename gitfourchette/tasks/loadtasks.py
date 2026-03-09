@@ -294,10 +294,17 @@ class LoadPatch(RepoTask):
         loadLfs = False
         if not settings.prefs.rawLfsPointers:
             commitId = commit.id if commit else NULL_OID
-            loadLfs = delta.cacheLfsPointers(self.repo, commitId)
-            # If a text file was converted from LFS to non-LFS, base the diff on standard Git blobs
-            if delta.status != "D":
-                loadLfs &= bool(delta.new.lfs)
+            delta.cacheLfsPointers(self.repo, commitId)
+
+            hasOldLfs = bool(delta.old.lfs)
+            hasNewLfs = bool(delta.new.lfs)
+
+            if delta.status == "D":
+                loadLfs = hasOldLfs
+            elif delta.status in "?A":
+                loadLfs = hasNewLfs
+            else:
+                loadLfs = hasOldLfs and hasNewLfs
 
         # Determine size/line limits
         likelyImage = isImageFormatSupported(delta.old.path) and isImageFormatSupported(delta.new.path)

@@ -40,7 +40,7 @@ class GitDelta:
     def isSubtreeCommitPatch(self) -> bool:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
 
-    def cacheLfsPointers(self, repo: Repo, newCommitId: Oid) -> bool:
+    def cacheLfsPointers(self, repo: Repo, newCommitId: Oid):
         old = self.old
         new = self.new
 
@@ -89,5 +89,3 @@ class GitDelta:
                 newCheck = AttrCheck.INDEX_ONLY
 
             new.cacheLfsPointer(repo, newCommitId, newCheck)
-
-        return bool(old.lfs or new.lfs)
