@@ -4,13 +4,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2026-03-11 10:09+0000\n"
+"Last-Translator: vrabe <git@vrabe.tw>\n"
+"Language-Team: Chinese (Traditional Han script) <https://hosted.weblate.org/"
+"projects/gitfourchette/gitfourchette/zh_Hant/>\n"
 "Language: zh_Hant\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.17-dev\n"
 
 #: application.py:120 forms/aboutdialog.py:56
 msgid "The comfortable Git UI for Linux."
@@ -3571,7 +3574,7 @@ msgstr ""
 
 #: sidebar/sidebar.py:226
 msgid "Pull…"
-msgstr ""
+msgstr "拉取…"
 
 #: sidebar/sidebar.py:232
 #, python-brace-format
@@ -4719,7 +4722,7 @@ msgstr ""
 
 #: tasks/misctasks.py:133
 msgid "Hash"
-msgstr ""
+msgstr "雜湊值"
 
 #: tasks/misctasks.py:135
 msgid "Author"
@@ -4875,7 +4878,7 @@ msgstr ""
 #: tasks/nettasks.py:298 tasks/taskbook.py:115
 msgctxt "toolbar"
 msgid "Pull"
-msgstr ""
+msgstr "拉取"
 
 #: tasks/nettasks.py:324
 msgid "Submodule updated."
@@ -5906,17 +5909,17 @@ msgstr ""
 #: trtables.py:179
 msgctxt "SidebarModel"
 msgid "Stashes"
-msgstr ""
+msgstr "貯存區"
 
 #: trtables.py:180
 msgctxt "SidebarModel"
 msgid "Remotes"
-msgstr ""
+msgstr "遠端"
 
 #: trtables.py:181
 msgctxt "SidebarModel"
 msgid "Tags"
-msgstr ""
+msgstr "標籤"
 
 #: trtables.py:182 trtables.py:190
 msgctxt "SidebarModel"
@@ -5926,7 +5929,7 @@ msgstr ""
 #: trtables.py:183
 msgctxt "SidebarModel"
 msgid "Local branch"
-msgstr ""
+msgstr "本機分支"
 
 #: trtables.py:184
 msgctxt "SidebarModel"
@@ -5941,7 +5944,7 @@ msgstr ""
 #: trtables.py:186
 msgctxt "SidebarModel"
 msgid "Remote branch"
-msgstr ""
+msgstr "遠端分支"
 
 #: trtables.py:187
 msgctxt "SidebarModel"
