@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -51,10 +51,8 @@ class DiffHighlighter(CodeHighlighter):
             lexJob = self.oldLexJob
             lineNumber = lineData.oldLineNo
 
-        # While oldLexJob or newLexJob may be None in the case of a NULL_OID revision
-        # (e.g. the 'old' revision of an untracked file), there shouldn't be any lines
-        # from that revision in the diff.
-        assert lexJob is not None
+        if lexJob is None:
+            return
 
         column = 0
         scheme = self.scheme.highContrastScheme if lineData.origin in "+-" else self.scheme.scheme

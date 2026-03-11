@@ -429,6 +429,12 @@ class LoadPatch(RepoTask):
         if lexer is None:
             return None, None
 
+        # Avoid awkward syntax highlighting of LFS pointers
+        # when diffing against a vanilla Git blob
+        if (not delta.old.isId0() and not delta.new.isId0()
+                and bool(delta.old.lfs) != bool(delta.new.lfs)):
+            return None, None
+
         oldLexJob = self._primeSingleLexJob(lexer, delta.old)
         newLexJob = self._primeSingleLexJob(lexer, delta.new)
         return oldLexJob, newLexJob
