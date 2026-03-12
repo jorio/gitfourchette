@@ -48,6 +48,7 @@ class TaskBook:
             tasks.DeleteTag: _("Delete tag"),
             tasks.DiscardFiles: _("Discard changes"),
             tasks.DiscardModeChanges: _("Discard mode changes"),
+            tasks.DownloadLfsObjects: _("Download LFS objects"),
             tasks.DropStash: _("Delete stash"),
             tasks.EditRemote: _("Edit remote"),
             tasks.EditUpstreamBranch: _("Edit upstream branch"),

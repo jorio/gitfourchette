@@ -44,6 +44,9 @@ class LfsPointer:
     objectPath: str = "/dev/null"
     """ Absolute path to the LFS object file. """
 
+    pointerText: str = ""
+    """ Raw LFS pointer text (i.e. the contents of the regular Git blob). """
+
     def __bool__(self) -> bool:
         return self.state > LfsPointerState.Unknown
 

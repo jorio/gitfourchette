@@ -58,6 +58,7 @@ from gitfourchette.tasks.jumptasks import (
     RefreshRepo,
 )
 from gitfourchette.tasks.loadtasks import (
+    DownloadLfsObjects,
     LoadPatchInNewWindow,
 )
 from gitfourchette.tasks.nettasks import (

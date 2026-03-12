@@ -480,7 +480,7 @@ class RepoTask(QObject):
         yield token
         parentWidget.becameVisible.disconnect(self.uiReady)
 
-    def flowStartProcess(self, process: QProcess, autoFail=True) -> Generator[FlowControlToken, None, None]:
+    def flowStartProcess(self, process: QProcess, autoFail=True, stdin: str = "") -> Generator[FlowControlToken, None, None]:
         assert self._isRunningOnAppThread(), "start processes from UI thread"
         assert not any(t.currentProcess for t in self._taskStack), \
             "a process is already running in this subtask chain"
@@ -498,6 +498,8 @@ class RepoTask(QObject):
 
         try:
             yield from processWrapper.coWaitStart()
+            if stdin:
+                process.write(stdin.encode("utf-8"))
             yield from processWrapper.coWaitFinished(autoFail)
         finally:
             self._currentProcess = None

@@ -186,14 +186,27 @@ class SpecialDiffError:
 
     @staticmethod
     def missingLfsObjects(error: LfsObjectCacheMissingError) -> SpecialDiffError:
+        from gitfourchette.tasks import DownloadLfsObjects
+
         locale = QLocale()
+        numObjects = len(error.pointers)
         title = _n("Object missing from local LFS cache.",
-                   "Objects missing from local LFS cache.",
-                   n=len(error.pointers))
-        subtitle = "<br>".join(
+                   "Objects missing from local LFS cache.", n=numObjects)
+        specialDiff = SpecialDiffError(title, icon="SP_MessageBoxWarning")
+
+        totalMissingSize = sum(ptr.size for ptr in error.pointers)
+        humanMissingSize = locale.formattedDataSize(totalMissingSize)
+
+        loadUrl = specialDiff.taskLink(DownloadLfsObjects, error)
+        loadText = _n("Download object to display the diff",
+                      "Download objects to display the diff", n=numObjects)
+        specialDiff.details = f"{linkify(loadText, loadUrl)} ({humanMissingSize})"
+
+        specialDiff.longform = "<small>" + "<br>".join(
             f"LFS oid {hquo(shortHash(p.id))}, {locale.formattedDataSize(p.size)}"
             for p in error.pointers)
-        return SpecialDiffError(title, subtitle, icon="SP_MessageBoxWarning")
+
+        return specialDiff
 
     @staticmethod
     def treeDiff(repo: Repo, delta: GitDelta):

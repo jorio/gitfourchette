@@ -221,7 +221,7 @@ class GitDeltaFile:
         sha = match.group(1)
         size = int(match.group(2))
         objectPath = repo.in_gitdir(f"lfs/objects/{sha[:2]}/{sha[2:4]}/{sha}")
-        self.lfs = LfsPointer(LfsPointerState.Valid, sha, size, objectPath)
+        self.lfs = LfsPointer(LfsPointerState.Valid, sha, size, objectPath, text)
 
         # Invalidate data so that next read() uses LFS data
         self._data = None

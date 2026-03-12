@@ -493,3 +493,17 @@ class LoadPatchInNewWindow(LoadPatch):
         diffWindow.show()
 
         diff.setUpAsDetachedWindow()  # Required for detached windows
+
+
+class DownloadLfsObjects(RepoTask):
+    def flow(self, errors: LfsObjectCacheMissingError, informativeName: str = ""):
+        for pointer in errors.pointers:
+            # If successful, `git lfs smudge` will cache the LFS object in .git/lfs/objects
+            # Note: the name isn't significant and is only for progress reporting
+            driver = self.createGitProcess("lfs", "smudge", informativeName or pointer.id[:7])
+
+            # Discard stdout
+            driver.setStandardOutputFile(QProcess.nullDevice())
+
+            yield from self.flowStartProcess(driver, stdin=pointer.pointerText)
+            self.effects |= TaskEffects.DefaultRefresh
