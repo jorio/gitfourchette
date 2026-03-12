@@ -281,7 +281,7 @@ class LoadPatch(RepoTask):
             return SpecialDiffError.submoduleDiff(self.repo, delta, locator)
 
         if delta.similarity == 100:
-            return SpecialDiffError.noChange(delta)
+            return SpecialDiffError.noChange(self.repo, delta)
 
         # Special formatting for TYPECHANGE.
         if delta.status == "T":  # TYPECHANGE
@@ -370,7 +370,7 @@ class LoadPatch(RepoTask):
             return SpecialDiffError.binaryDiff(self.repo, delta, locator)
         except DiffDocument.NoChangeError:
             stderr = driver.stderrScrollback()
-            return SpecialDiffError.noChange(delta, stderr)
+            return SpecialDiffError.noChange(self.repo, delta, stderr)
         except DiffDocument.VeryLongLinesError:
             loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
             return SpecialDiffError(

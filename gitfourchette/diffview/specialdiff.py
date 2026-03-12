@@ -21,6 +21,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.tasks import RepoTask
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -77,8 +78,11 @@ class SpecialDiffError:
         self.links = DocumentLinks()
         self.taskInvoker = None
 
+    def taskLink(self, taskClass: type[RepoTask], *args, **kwargs) -> str:
+        return self.links.new(lambda: taskClass.invoke(self.taskInvoker, *args, **kwargs))
+
     @staticmethod
-    def noChange(delta: GitDelta, stderr: str = ""):
+    def noChange(repo: Repo, delta: GitDelta, stderr: str = ""):
         message = _("File contents didn’t change.")
         details: list[str] = []
         longform: list[str] = []
@@ -93,7 +97,7 @@ class SpecialDiffError:
 
         if not oldFileExists:
             if delta.new.mode == FileMode.TREE:
-                return SpecialDiffError.treeDiff(delta)
+                return SpecialDiffError.treeDiff(repo, delta)
             else:
                 assert delta.status in "A?"  # added or untracked
                 message = _("New empty file.")
@@ -192,25 +196,25 @@ class SpecialDiffError:
         return SpecialDiffError(title, subtitle, icon="SP_MessageBoxWarning")
 
     @staticmethod
-    def treeDiff(delta: GitDelta):
+    def treeDiff(repo: Repo, delta: GitDelta):
         from gitfourchette.tasks import AbsorbSubmodule
+
+        message = _("This untracked subtree is the root of another Git repository.")
+        specialDiff = SpecialDiffError(message)
 
         treePath = os.path.normpath(delta.new.path)
         treeName = os.path.basename(treePath)
-        message = _("This untracked subtree is the root of another Git repository.")
 
-        # TODO: if we had the full path to the root repo, we could just make a standard file link, and we wouldn't need the "opensubfolder" authority
         prompt1 = _("Open {0}", bquo(treeName))
-        openLink = makeInternalLink("opensubfolder", treePath)
+        openLink = QUrl.fromLocalFile(repo.in_workdir(treePath)).toString()
 
         prompt2 = _("Absorb {0} as submodule", bquo(treeName))
         prompt2 = _("Recommended action:") + " [" + prompt2 + "]"
-        taskLink = AbsorbSubmodule.makeInternalLink(path=treePath)
+        absorbLink = specialDiff.taskLink(AbsorbSubmodule, path=treePath)
 
-        return SpecialDiffError(
-            message,
-            linkify(prompt1, openLink),
-            longform=toRoomyUL([linkify(prompt2, taskLink)]))
+        specialDiff.details = linkify(prompt1, openLink)
+        specialDiff.longform = toRoomyUL([linkify(prompt2, absorbLink)])
+        return specialDiff
 
     @staticmethod
     def submoduleDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError:
@@ -336,11 +340,11 @@ class SpecialDiffError:
                 else:
                     m = _("To complete the addition of this submodule, "
                           "you should [absorb the submodule] into the parent repository.")
-                m = linkify(m, AbsorbSubmodule.makeInternalLink(path=path))
+                m = linkify(m, specialDiff.taskLink(AbsorbSubmodule, path=path))
 
             elif not isRegistered:
                 m = _("To complete the addition of this submodule, [register it in {gitmodules}].")
-                m = linkify(m, RegisterSubmodule.makeInternalLink(path=path))
+                m = linkify(m, specialDiff.taskLink(RegisterSubmodule, path=path))
 
             if m:
                 m = m.format(gitmodules=f"<tt>{DOT_GITMODULES}</tt>")
@@ -349,7 +353,7 @@ class SpecialDiffError:
 
             # Tell about any uncommitted changes
             if delta.submoduleWorkdirDirty:
-                discardLink = specialDiff.links.new(lambda: DiscardFiles.invoke(specialDiff.taskInvoker, [delta]))
+                discardLink = specialDiff.taskLink(DiscardFiles, [delta])
 
                 if isTree:
                     uc1 = _("The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:")

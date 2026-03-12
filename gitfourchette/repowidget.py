@@ -27,7 +27,7 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.sidebar.sidebar import Sidebar
 from gitfourchette.syntax import LexJobCache
-from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskEffects, TaskBook
+from gitfourchette.tasks import RepoTaskRunner, TaskEffects, TaskBook
 from gitfourchette.tasks.misctasks import VerifyGpgQueue
 from gitfourchette.tasks.nettasks import AutoFetchRemotes
 from gitfourchette.toolbox import *
@@ -807,16 +807,8 @@ class RepoWidget(QWidget):
             # Reload the repo
             maxCommits = int(kwargs.get("n", self.repoModel.nextTruncationThreshold))
             self.replaceWithStub(self.pendingLocator, maxCommits)
-        elif url.authority() == "opensubfolder":
-            p = self.repo.in_workdir(simplePath)
-            self.openRepo.emit(p, NavLocator())
         elif url.authority() == "prefs":
             self.openPrefs.emit(simplePath)
-        elif url.authority() == "exec":
-            cmdName = simplePath
-            taskClass = tasks.__dict__[cmdName]
-            assert issubclass(taskClass, RepoTask)
-            taskClass.invoke(self, **kwargs)
         else:  # pragma: no cover
             warnings.warn(f"Unsupported authority in internal link: {url.toDisplayString()}")
 

@@ -304,10 +304,6 @@ class RepoTask(QObject):
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
 
-    @classmethod
-    def makeInternalLink(cls, **kwargs):
-        return makeInternalLink("exec", urlPath=cls.__name__, urlFragment="", **kwargs)
-
     @property
     def postStatus(self):
         """ Display this message in the status bar after completion. """
