@@ -11,7 +11,7 @@ from pathlib import Path
 
 from pygit2.enums import AttrCheck
 
-from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern
+from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern, LfsObjectCacheMissingError
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, NULL_OID, pygit2_version_at_least
 
@@ -93,7 +93,10 @@ class GitDeltaFile:
 
         elif self.lfs.state == LfsPointerState.Valid:
             # LFS pointer resolved, load data from LFS object db
-            self._data = Path(self.lfs.objectPath).read_bytes()
+            try:
+                self._data = Path(self.lfs.objectPath).read_bytes()
+            except FileNotFoundError as fnf:
+                raise LfsObjectCacheMissingError(self.lfs) from fnf
             assert self.lfs.size == len(self._data), "LFS object size mismatch"
 
         else:

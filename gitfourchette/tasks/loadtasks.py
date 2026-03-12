@@ -6,12 +6,12 @@
 
 import logging
 from collections.abc import Generator
-from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriver
+from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
@@ -243,6 +243,8 @@ class LoadPatch(RepoTask):
     def flow(self, delta: GitDelta, locator: NavLocator):
         try:
             diff = yield from self._getPatch(delta, locator)
+        except LfsObjectCacheMissingError as lfsMissing:
+            diff = SpecialDiffError.missingLfsObjects(lfsMissing)
         except Exception as exc:
             # Yikes! Don't prevent loading a repo
             summary, details = excStrings(exc)
@@ -334,15 +336,6 @@ class LoadPatch(RepoTask):
 
         # Build diff command
         if loadLfs:
-            missing = []
-            for pointer in delta.old.lfs, delta.new.lfs:
-                path = pointer.objectPath
-                if path != "/dev/null" and not Path(path).exists():
-                    missing.append(pointer.id)
-                else:
-                    missing.append("")
-            if any(missing):
-                return SpecialDiffError.missingLfsObjects(missing[0], missing[1])
             tokens = GitDriver.buildDiffCommandLFS(delta)
         else:
             tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)

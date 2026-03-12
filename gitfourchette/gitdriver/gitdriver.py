@@ -13,10 +13,12 @@ import re
 import shlex
 import signal
 from enum import StrEnum
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.gitdriver.gitdelta import GitDelta
+from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitShow
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import version_to_tuple, Commit, Oid
@@ -322,6 +324,14 @@ class GitDriver(QProcess):
 
     @classmethod
     def buildDiffCommandLFS(cls, delta: GitDelta) -> list[str]:
+        # Check that both LFS object paths are available
+        missing = [
+            p for p in (delta.old.lfs, delta.new.lfs)
+            if p.objectPath != "/dev/null" and not Path(p.objectPath).exists()
+        ]
+        if missing:
+            raise LfsObjectCacheMissingError(*missing)
+
         # Empty --git-dir argument: Prevent loading LFS attributes from the repo
         # to get a raw diff, not a diff of LFS pointers.
         tokens = [

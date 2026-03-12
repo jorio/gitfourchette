@@ -16,6 +16,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.gitdriver import GitDelta, GitDriver, GitDeltaFile
+from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -180,16 +181,15 @@ class SpecialDiffError:
         return SpecialDiffError(_("File appears to be binary."), sizeText)
 
     @staticmethod
-    def missingLfsObjects(oldMissing: str, newMissing: str) -> SpecialDiffError:
-        title = _n("One of the LFS objects needed to display this diff is missing from the cache.",
-                   "The LFS objects needed to display this diff are missing from the cache.",
-                   n=2 if oldMissing and newMissing else 1)
-        table = "<table>"
-        for intro, missing in [(_("Old:"), oldMissing), (_("New:"), newMissing)]:
-            info = _("Missing LFS object") if missing else _("LFS object found")
-            table += f'<tr><td>{intro} </td><td>{info} {missing}</td></tr>'
-        table += "</table>"
-        return SpecialDiffError(title, longform=table)
+    def missingLfsObjects(error: LfsObjectCacheMissingError) -> SpecialDiffError:
+        locale = QLocale()
+        title = _n("Object missing from local LFS cache.",
+                   "Objects missing from local LFS cache.",
+                   n=len(error.pointers))
+        subtitle = "<br>".join(
+            f"LFS oid {hquo(shortHash(p.id))}, {locale.formattedDataSize(p.size)}"
+            for p in error.pointers)
+        return SpecialDiffError(title, subtitle, icon="SP_MessageBoxWarning")
 
     @staticmethod
     def treeDiff(delta: GitDelta):

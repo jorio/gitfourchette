@@ -281,3 +281,35 @@ def testLfsConvertTextToLfsInWorkdir(tempDir, mainWindow):
     # LFS pointer: red lines
     assert diffLines[3].text.startswith("version https://git-lfs.github.com/spec/v1")
     assert diffLines[3].origin == "+"
+
+
+def testLfsObjectCacheMissing(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+
+    path1 = Path(wd, ".git", "lfs")
+    path1.rename(path1.with_name("lfs-yanked"))
+
+    with RepoContext(wd) as repo:
+        repo.reset(Oid(hex="e17a94b1a3dbabdb1371b961e7d7bf3f0fefcd8b"), ResetMode.HARD)
+
+    rw = mainWindow.openRepo(wd)
+
+    # Untrack LFS image
+    rw.jump(NavLocator.inCommit(Oid(hex="8bee978d3eeecdd9e271a5ff8c7cd25ff29d37ad"), "image1.png"), check=True)
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, "objects? missing from local lfs cache.+4b8c427.+79 bytes")
+
+    # Modify LFS text file
+    rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, "objects? missing from local lfs cache.+2f065e4.+86 bytes.+d9ad1fb.+87 bytes")
+
+    # Add LFS text file
+    rw.jump(NavLocator.inCommit(Oid(hex="5d74f8e6ac1271eb706807e2cbfe67eef5e1e8a8"), "textfile.c"), check=True)
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, "objects? missing from local lfs cache.+2f065e4.+86 bytes")
+
+    # Add LFS image
+    rw.jump(NavLocator.inCommit(Oid(hex="0b0ff287d62e3ed6ea2725f078ab67b4d2a70f77"), "image1.png"), check=True)
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, "objects? missing from local lfs cache.+4b8c427.+79 bytes")

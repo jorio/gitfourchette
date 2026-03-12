@@ -49,3 +49,9 @@ class LfsPointer:
 
     def isTentative(self) -> bool:
         return self.state == LfsPointerState.UnstagedTentative
+
+
+class LfsObjectCacheMissingError(LookupError):
+    def __init__(self, *pointers: LfsPointer):
+        super().__init__()
+        self.pointers = pointers
