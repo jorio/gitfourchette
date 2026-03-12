@@ -25,7 +25,11 @@ logger = logging.getLogger(__name__)
 #       git --option cherry-pick
 #       git -c config.item cherry-pick
 #       'c:\program files\git.EXE' cherry-pick
-_gitVerbPattern = re.compile(r"git(?:\.exe|\.EXE)?['\"]?(?=\s).*?\s([a-z][a-z\-]*)(?=$|\s)")
+# Additionally, capture any "lfs" prefix, e.g.:
+#       git --option lfs smudge   (--> 'lfs smudge')
+_gitVerbPattern = re.compile(r"git(?:\.exe|\.EXE)?['\"]?(?=\s).*?\s"
+                             r"((?:lfs\s+)?[a-z][a-z\-]*)"
+                             r"(?=$|\s)")
 
 
 class StatusForm(QWidget):
