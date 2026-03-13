@@ -105,6 +105,7 @@ class AboutDialog(QDialog):
             <br>{_("Powered by:")}
             <ul style='margin: 0'>
             <li>{gitInfo}
+            <li><b>git-lfs</b> {GitDriver.lfsVersion() or _('(not available)')}
             <li><b>pygit2</b> {pygit2.__version__}
             <li><b>libgit2</b> {pygit2.LIBGIT2_VERSION} <small>({', '.join(getPygit2FeatureStrings())})</small>
             <li><b>{QT_BINDING}</b> {QT_BINDING_VERSION}{qtBindingSuffix}

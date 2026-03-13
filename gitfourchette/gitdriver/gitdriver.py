@@ -51,6 +51,9 @@ class GitDriver(QProcess):
     _cachedGitVersion = ""
     _cachedGitVersionTuple = (0,)
 
+    _cachedLfsVersionValid = False
+    _cachedLfsVersion = ""
+
     progressMessage = Signal(str)
     progressFraction = Signal(int, int)
 
@@ -95,6 +98,24 @@ class GitDriver(QProcess):
     def gitVersionTuple(cls) -> tuple[int, ...]:
         cls._cacheGitVersion()
         return cls._cachedGitVersionTuple
+
+    @classmethod
+    def _cacheLfsVersion(cls):
+        if cls._cachedLfsVersionValid:
+            return
+
+        # strict=False because it doesn't have to be installed
+        rawVersionText = cls.runSync("lfs", "version", strict=False)
+        text = rawVersionText.removeprefix("git-lfs/").strip()
+        text = text.split(' ', 1)[0]
+
+        cls._cachedLfsVersion = text
+        cls._cachedLfsVersionValid = True
+
+    @classmethod
+    def lfsVersion(cls) -> str:
+        cls._cacheLfsVersion()
+        return cls._cachedLfsVersion
 
     @classmethod
     def supportsFetchPorcelain(cls) -> bool:
