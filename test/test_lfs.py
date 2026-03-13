@@ -337,3 +337,31 @@ def testLfsDownloadMissingObjectsToCache(tempDir, mainWindow):
     assert not rw.specialDiffView.isVisible()
     assert "int hello(void)" in rw.diffView.toPlainText()
     assert "int foobar(void)" in rw.diffView.toPlainText()
+
+
+def testLfsSaveRevision(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/before.+commit")
+    acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
+
+    # Make sure we've exported the actual contents, not the LFS pointer
+    assert "int hello(void)" in readTextFile(f"{tempDir.name}/textfile@before-74ff368.c")
+
+
+def testLfsSaveRevisionMissingObjectFromCache(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+
+    GitDriver.runSync("reset", "--hard", "e17a94b1", directory=wd, strict=True)
+    shutil.rmtree(Path(wd, ".git", "lfs"))
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "save a copy/before this commit")
+    acceptQMessageBox(rw, "save revision.+ran into an issue.+object missing from local LFS cache")

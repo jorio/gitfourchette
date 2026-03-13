@@ -8,6 +8,8 @@ import dataclasses
 import enum
 import re
 
+from gitfourchette.localization import *
+
 LfsPointerMagic = "version https://git-lfs.github.com/spec/v1\n"
 LfsPointerMagicBytes = LfsPointerMagic.encode("utf-8")
 LfsPointerPattern = re.compile(rf"^{LfsPointerMagic}oid sha256:([0-9a-f]+)\nsize (\d+)")
@@ -56,5 +58,7 @@ class LfsPointer:
 
 class LfsObjectCacheMissingError(LookupError):
     def __init__(self, *pointers: LfsPointer):
-        super().__init__()
+        title = _n("Object missing from local LFS cache.",
+                   "Objects missing from local LFS cache.", n=len(pointers))
+        super().__init__(title)
         self.pointers = pointers

@@ -16,6 +16,7 @@ from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.gitdriver import GitDelta, GitDriver
+from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -377,7 +378,9 @@ class FileList(QListView):
                 try:
                     callback(delta)
                     errors.add_file_success()
-                except OSError as exc:  # typically FileNotFoundError
+                except (OSError,  # typically FileNotFoundError
+                        LfsObjectCacheMissingError
+                        ) as exc:
                     errors.add_file_error(delta.new.path, exc)
 
             if errors:
