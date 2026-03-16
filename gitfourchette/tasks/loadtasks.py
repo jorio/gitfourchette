@@ -328,6 +328,12 @@ class LoadPatch(RepoTask):
             if maxFileSize < ballpark:
                 return SpecialDiffError.fileTooLarge(ballpark, maxFileSize, locator, image=likelyImage)
 
+        # If either side is LFS, but not both, see if the contents have changed
+        # during the conversion. Performance note: this will cause the entire
+        # file to be read, but we're below the large file threshold here.
+        if not loadLfs and bool(delta.old.lfs) != bool(delta.new.lfs):
+            return SpecialDiffError.lfsMigration(self.repo, delta)
+
         # Render SVG file if user wants to.
         if (settings.prefs.renderSvg
                 and delta.new.path.lower().endswith(".svg")

@@ -179,8 +179,8 @@ def testLfsStopTrackingImageInCommit(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "image1.png"), check=True)
 
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
-    assert findTextInWidget(rw.diffArea.specialDiffView, "old image, lfs")
-    assert findTextInWidget(rw.diffArea.specialDiffView, "new image, not lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "storage changed.+lfs.+not lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "contents.+identical")
 
 
 def testLfsStopTrackingTextInCommit(tempDir, mainWindow):
@@ -191,14 +191,8 @@ def testLfsStopTrackingTextInCommit(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "textfile.c"), check=True)
 
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
-
-    diffLines = rw.diffView.lineData
-    # LFS pointer: red lines
-    assert diffLines[1].text.startswith("version https://git-lfs.github.com/spec/v1")
-    assert diffLines[1].origin == "-"
-    # Vanilla blob: green lines
-    assert diffLines[5].text.startswith(" * This is a text file")
-    assert diffLines[5].origin == "+"
+    assert findTextInWidget(rw.diffArea.specialDiffView, "storage changed.+lfs.+not lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "contents.+identical")
 
 
 def testLfsStopTrackingTextInWorkdir(tempDir, mainWindow):
@@ -215,13 +209,8 @@ def testLfsStopTrackingTextInWorkdir(tempDir, mainWindow):
 
     def checkLfsPointerRemoved():
         assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer removed")
-        diffLines = rw.diffView.lineData
-        # LFS pointer: red lines
-        assert diffLines[1].text.startswith("version https://git-lfs.github.com/spec/v1")
-        assert diffLines[1].origin == "-"
-        # Vanilla blob: green lines
-        assert diffLines[5].text.startswith(" * This is a text file")
-        assert diffLines[5].origin == "+"
+        assert findTextInWidget(rw.diffArea.specialDiffView, "storage changed.+lfs.+not lfs")
+        assert findTextInWidget(rw.diffArea.specialDiffView, "contents.+identical")
 
     # Unstaged
     rw.jump(NavLocator.inUnstaged("textfile.c"), check=True)
@@ -250,38 +239,35 @@ def testLfsConvertTextToLfsInCommit(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "textfilemigrate.c"), check=True)
 
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer added")
-
-    diffLines = rw.diffView.lineData
-    # Vanilla blob: red lines
-    assert diffLines[1].text.startswith("/* This is another text file")
-    assert diffLines[1].origin == "-"
-    # LFS pointer: red lines
-    assert diffLines[3].text.startswith("version https://git-lfs.github.com/spec/v1")
-    assert diffLines[3].origin == "+"
+    assert findTextInWidget(rw.diffArea.specialDiffView, "storage changed.+not lfs.+lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "contents.+identical")
 
 
 @requiresLfs
 def testLfsConvertTextToLfsInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
-
-    with RepoContext(wd) as repo:
-        repo.checkout_commit(Oid(hex="748c251f524c4448370bcd4f3a11c7e128aba8c5"))
+    GitDriver.runSync("reset", "--hard", "748c251", directory=wd, strict=True)
 
     rw = mainWindow.openRepo(wd)
 
+    # Convert to LFS without changing contents
     rw.jump(NavLocator.inUnstaged("textfilemigrate.c"), check=True)
     rw.diffArea.stageButton.click()
     rw.jump(NavLocator.inStaged("textfilemigrate.c"), check=True)
 
     assert findTextInWidget(rw.diffArea.diffHeader, "LFS pointer added")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "storage changed.+not lfs.+lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "contents.+identical")
 
-    diffLines = rw.diffView.lineData
-    # Vanilla blob: red lines
-    assert diffLines[1].text.startswith("/* This is another text file")
-    assert diffLines[1].origin == "-"
-    # LFS pointer: red lines
-    assert diffLines[3].text.startswith("version https://git-lfs.github.com/spec/v1")
-    assert diffLines[3].origin == "+"
+    # Change contents, convert to LFS again
+    writeFile(f"{wd}/textfilemigrate.c", "/* Changing contents during conversion */")
+    rw.refreshRepo()
+    rw.jump(NavLocator.inUnstaged("textfilemigrate.c"), check=True)
+    rw.diffArea.stageButton.click()
+    rw.jump(NavLocator.inStaged("textfilemigrate.c"), check=True)
+
+    assert findTextInWidget(rw.diffArea.specialDiffView, "storage changed.+not lfs.+lfs")
+    assert findTextInWidget(rw.diffArea.specialDiffView, "contents modified during.+conversion")
 
 
 def testLfsObjectCacheMissing(tempDir, mainWindow):
@@ -291,11 +277,6 @@ def testLfsObjectCacheMissing(tempDir, mainWindow):
     shutil.rmtree(Path(wd, ".git", "lfs"))
 
     rw = mainWindow.openRepo(wd)
-
-    # Untrack LFS image
-    rw.jump(NavLocator.inCommit(Oid(hex="8bee978d3eeecdd9e271a5ff8c7cd25ff29d37ad"), "image1.png"), check=True)
-    assert rw.specialDiffView.isVisible()
-    assert findTextInWidget(rw.specialDiffView, "objects? missing from local lfs cache.+4b8c427.+79 bytes")
 
     # Modify LFS text file
     rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)

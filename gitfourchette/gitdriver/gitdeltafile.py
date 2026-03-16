@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import hashlib
 import os
 import warnings
 from pathlib import Path
@@ -25,6 +26,12 @@ _NoDiskStat = (-1, -1)
 
 _UnknownLfsPointer = LfsPointer(LfsPointerState.Unknown)
 _NoLfsPointer = LfsPointer(LfsPointerState.NoPointer)
+
+_sha1ToSha256Equivalent: dict[str, str] = {}
+"""
+Map SHA-1 blob hashes to SHA-256 equivalents for quick comparison of regular
+git blobs (SHA-1) to LFS pointers (SHA-256).
+"""
 
 
 @dataclasses.dataclass
@@ -225,6 +232,16 @@ class GitDeltaFile:
 
         # Invalidate data so that next read() uses LFS data
         self._data = None
+
+    def blobSha256(self, repo) -> str:
+        try:
+            sha256 = _sha1ToSha256Equivalent[self.id]
+        except KeyError:
+            blobContents = self.read(repo)
+            sha256 = hashlib.sha256(blobContents)
+            sha256 = sha256.hexdigest()
+            _sha1ToSha256Equivalent[self.id] = sha256
+        return sha256
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o})"

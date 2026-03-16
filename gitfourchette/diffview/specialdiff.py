@@ -209,6 +209,33 @@ class SpecialDiffError:
         return specialDiff
 
     @staticmethod
+    def lfsMigration(repo: Repo, delta: GitDelta):
+        flagNames = [englishTitleCase(_("not LFS")), "LFS"]
+
+        hasOldLfs = bool(delta.old.lfs)
+        hasNewLfs = bool(delta.new.lfs)
+        lfsSide = delta.new if hasNewLfs else delta.old
+        blobSide = delta.old if hasNewLfs else delta.new
+        assert hasOldLfs != hasNewLfs
+
+        title = " ".join([
+            _("Storage changed:"),
+            f"<b>{flagNames[hasOldLfs]}</b> &rarr; <b>{flagNames[hasNewLfs]}</b>",
+            stockIconImgTag("git-lfs" if hasNewLfs else "git-lfs-removed"),
+        ])
+        details = ""
+
+        if not lfsSide.lfs.isTentative():
+            blobSha256 = blobSide.blobSha256(repo)
+            if blobSha256 == lfsSide.lfs.id:
+                details = _("File contents remained identical during the conversion.")
+            else:
+                icon = stockIconImgTag("achtung") + " "
+                details = icon + _("File contents modified during the conversion!")
+
+        return SpecialDiffError(title, details)
+
+    @staticmethod
     def treeDiff(repo: Repo, delta: GitDelta):
         from gitfourchette.tasks import AbsorbSubmodule
 
