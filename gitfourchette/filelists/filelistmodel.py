@@ -245,10 +245,15 @@ class FileListModel(QAbstractListModel):
                 # Cache LFS pointer on demand
                 if delta.new.lfs.state == LfsPointerState.Unknown:
                     delta.cacheLfsPointers(self.repo, self.commitId)
+
                 if delta.old.lfs and not delta.new.lfs:
-                    return stockIcon("git-lfs-removed")
-                elif delta.new.lfs.state == LfsPointerState.Valid:
+                    return stockIcon("git-lfs-remove")
+                elif delta.new.lfs.state != LfsPointerState.Valid:
+                    pass
+                elif delta.old.lfs and delta.new.lfs:
                     return stockIcon("git-lfs")
+                elif not delta.old.lfs and delta.new.lfs:
+                    return stockIcon("git-lfs-add")
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             isCounterpart = row == self.highlightedCounterpartRow

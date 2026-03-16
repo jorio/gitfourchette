@@ -221,7 +221,7 @@ class SpecialDiffError:
         title = " ".join([
             _("Storage changed:"),
             f"<b>{flagNames[hasOldLfs]}</b> &rarr; <b>{flagNames[hasNewLfs]}</b>",
-            stockIconImgTag("git-lfs" if hasNewLfs else "git-lfs-removed"),
+            stockIconImgTag("git-lfs-add" if hasNewLfs else "git-lfs-remove"),
         ])
         details = ""
 
