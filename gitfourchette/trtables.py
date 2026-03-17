@@ -381,7 +381,7 @@ class TrTables:
         return {
             "general": _p("Prefs", "General"),
             "diff": _p("Prefs", "Code"),
-            "imageDiff": _p("Prefs", "Images & LFS"),
+            "imageDiff": _p("Prefs", "Images"),
             "tabs": _p("Prefs", "Tabs"),
             "graph": _p("Prefs", "Commit History"),
             "trash": _p("Prefs", "Trash"),
@@ -427,9 +427,6 @@ class TrTables:
             "renderSvg": _("SVG files"),
             "renderSvg_false": _("Display as text"),
             "renderSvg_true": _("Display as images"),
-            "rawLfsPointers": _("LFS pointers"),
-            "rawLfsPointers_false": _("Display real contents from LFS files"),
-            "rawLfsPointers_true": _("Display raw pointer text"),
 
             "tabCloseButton": _("Show tab close button"),
             "expandingTabs": _("Expand tabs to available width"),
@@ -541,6 +538,11 @@ class TrTables:
                 _("You can also have {app} start its own instance of ssh-agent "
                   "for the duration of your session and have it remember passphrases."),
                 sshAuthSockHelp,
+            ),
+            "lfsAware": _("Parse LFS pointers"),
+            "lfsAware_help": paragraphs(
+                _("Tick this to display the real contents from LFS files."),
+                _("Untick to display the raw text in LFS pointers."),
             ),
 
             "mouseShortcuts": _("Mouse Shortcuts"),

@@ -45,17 +45,17 @@ def testLfsToggleRawPointersInImageFile(tempDir, mainWindow):
     addCommit = Oid(hex="0b0ff287d62e3ed6ea2725f078ab67b4d2a70f77")
     rw.jump(NavLocator.inCommit(addCommit, "image1.png"), check=True)
 
-    mainWindow.onAcceptPrefsDialog({"rawLfsPointers": True})
+    mainWindow.onAcceptPrefsDialog({"lfsAware": False})
     assert rw.diffView.isVisible()
     assert findTextInWidget(rw.diffView, "git-lfs.github.com.spec.v1")
 
-    mainWindow.onAcceptPrefsDialog({"rawLfsPointers": False})
+    mainWindow.onAcceptPrefsDialog({"lfsAware": True})
     assert rw.specialDiffView.isVisible()
     assert findTextInWidget(rw.specialDiffView, "new image.+6.+6 pixels.+79 bytes")
 
 
 def testLfsToggleRawPointersInTextFile(tempDir, mainWindow):
-    mainWindow.onAcceptPrefsDialog({"rawLfsPointers": True})
+    mainWindow.onAcceptPrefsDialog({"lfsAware": False})
 
     wd = unpackRepo(tempDir, "lfsrepo")
     rw = mainWindow.openRepo(wd)
@@ -64,7 +64,7 @@ def testLfsToggleRawPointersInTextFile(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(commitId, "textfile.c"), check=True)
     assert findTextInWidget(rw.diffView, "git-lfs.github.com.spec.v1")
 
-    mainWindow.onAcceptPrefsDialog({"rawLfsPointers": False})
+    mainWindow.onAcceptPrefsDialog({"lfsAware": True})
     assert findTextInWidget(rw.diffView, "foobar")
 
 

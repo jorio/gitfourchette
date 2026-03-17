@@ -114,7 +114,6 @@ class Prefs(PrefsFile):
     _category_imageDiff         : int                   = 0
     imageFileThresholdKB        : int                   = 5000
     renderSvg                   : bool                  = False
-    rawLfsPointers              : bool                  = False
 
     _category_graph             : int                   = 0
     chronologicalOrder          : bool                  = True
@@ -131,6 +130,7 @@ class Prefs(PrefsFile):
     gitPath                     : str                   = ToolPresets.defaultGit()
     ownSshAgent                 : bool                  = False
     ownAskpass                  : bool                  = True
+    lfsAware                    : bool                  = True
 
     _category_external          : int                   = 0
     externalEditor              : str                   = ""

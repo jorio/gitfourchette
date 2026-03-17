@@ -294,7 +294,7 @@ class LoadPatch(RepoTask):
 
         # See if we should load an LFS object
         loadLfs = False
-        if not settings.prefs.rawLfsPointers:
+        if settings.prefs.lfsAware:
             commitId = commit.id if commit else NULL_OID
             delta.cacheLfsPointers(self.repo, commitId)
 

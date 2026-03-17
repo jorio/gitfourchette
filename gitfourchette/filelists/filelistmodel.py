@@ -100,7 +100,7 @@ def fileTooltip(
             sizeIsAccurate = True
 
     # Cache LFS pointer info
-    if not settings.prefs.rawLfsPointers:
+    if settings.prefs.lfsAware:
         delta.cacheLfsPointers(repo, commitId)
 
     # Size (if applicable)
@@ -241,7 +241,7 @@ class FileListModel(QAbstractListModel):
             return stockIcon(f"status_{letter}")
 
         elif role == FileListModel.Role.Decoration2:
-            if not settings.prefs.rawLfsPointers:
+            if settings.prefs.lfsAware:
                 # Cache LFS pointer on demand
                 if delta.new.lfs.state == LfsPointerState.Unknown:
                     delta.cacheLfsPointers(self.repo, self.commitId)
