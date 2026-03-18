@@ -59,6 +59,7 @@ class NewCommit(RepoTask):
 
         yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Commit"))
 
+        repositoryState = self.repo.state()
         fallbackSignature = self.repo.default_signature
         initialMessage = uiPrefs.draftCommitMessage
         gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
@@ -69,7 +70,7 @@ class NewCommit(RepoTask):
             committerSignature=fallbackSignature,
             amendingCommitHash="",
             detachedHead=self.repo.head_is_detached,
-            repositoryState=self.repo.state(),
+            repositoryState=repositoryState,
             emptyCommit=emptyCommit,
             gpgFlag=gpgFlag,
             gpgKey=gpgKey,
@@ -112,6 +113,7 @@ class NewCommit(RepoTask):
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(
             message, author, committer,
+            repositoryState=repositoryState,
             explicitGpgSign=explicitGpgSign,
             explicitNoGpgSign=explicitNoGpgSign)
         driver = yield from self.flowCallGit(*args, env=env)
@@ -141,9 +143,11 @@ class NewCommit(RepoTask):
             message: str,
             author: Signature | None,
             committer: Signature | None,
+            repositoryState: RepositoryState,
             amend=False,
             explicitGpgSign=False,
-            explicitNoGpgSign=False):
+            explicitNoGpgSign=False,
+    ):
         def signatureEnvironmentVariables(sig: Signature, infix: str) -> dict[str, str]:
             return {
                 f"GIT_{infix}_NAME": sig.name,
@@ -151,13 +155,17 @@ class NewCommit(RepoTask):
                 f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
             }
 
+        # Git ignores GIT_AUTHOR_* when amending or concluding a cherrypick
+        # unless we pass --reset-author.
+        resetAuthor = author and (amend or repositoryState == RepositoryState.CHERRYPICK)
+
         args = [
             "-c", "core.abbrev=no",
             "commit",
             *argsIf(explicitGpgSign, "--gpg-sign"),
             *argsIf(explicitNoGpgSign, "--no-gpg-sign"),
             *argsIf(amend, "--amend"),
-            *argsIf(amend and author, "--reset-author"),
+            *argsIf(resetAuthor, "--reset-author"),
             "--allow-empty",
             "--no-edit",
             f"--message={message}"
@@ -193,6 +201,7 @@ class AmendCommit(RepoTask):
 
         yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Amend Commit"))
 
+        repositoryState = self.repo.state()
         headCommit = self.repo.head_commit
         fallbackSignature = self.repo.default_signature
         gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
@@ -230,8 +239,12 @@ class AmendCommit(RepoTask):
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
 
         self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
-        args, env = NewCommit.prepareGitCommand(message, author, committer, amend=True,
-                                                explicitGpgSign=explicitGpgSign, explicitNoGpgSign=explicitNoGpgSign)
+        args, env = NewCommit.prepareGitCommand(
+            message, author, committer,
+            repositoryState=repositoryState,
+            amend=True,
+            explicitGpgSign=explicitGpgSign,
+            explicitNoGpgSign=explicitNoGpgSign)
         driver = yield from self.flowCallGit(*args, env=env)
 
         branchName, newHash = driver.readPostCommitInfo()

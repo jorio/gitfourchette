@@ -20,6 +20,8 @@ from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem
 from . import reposcenario
 from .util import *
 
+QDateTime19991231 = QDateTime.fromString("1999-12-31 23:59:00", "yyyy-MM-dd HH:mm:ss")
+
 
 def testCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
@@ -38,14 +40,13 @@ def testCommit(tempDir, mainWindow):
 
     dialog.ui.revealSignature.click()
 
-    enteredDate = QDateTime.fromString("1999-12-31 23:59:00", "yyyy-MM-dd HH:mm:ss")
     sigUI = dialog.ui.signature.ui
     qcbSetIndex(sigUI.replaceComboBox, "author")
     sigUI.nameEdit.clear()
     assert not dialog.acceptButton.isEnabled()
     sigUI.nameEdit.setText("Custom Author")
     sigUI.emailEdit.setText("custom.author@example.com")
-    sigUI.timeEdit.setDateTime(enteredDate)
+    sigUI.timeEdit.setDateTime(QDateTime19991231)
 
     assert dialog.acceptButton.isEnabled()
     dialog.accept()
@@ -54,7 +55,7 @@ def testCommit(tempDir, mainWindow):
     assert headCommit.message == "Some New Commit\n"
     assert headCommit.author.name == "Custom Author"
     assert headCommit.author.email == "custom.author@example.com"
-    assert headCommit.author.time == enteredDate.toSecsSinceEpoch()
+    assert headCommit.author.time == QDateTime19991231.toSecsSinceEpoch()
     assert headCommit.committer.name == TEST_SIGNATURE.name
 
     assert len(headCommit.parents) == 1
@@ -614,12 +615,42 @@ def testCherrypick(tempDir, mainWindow, worktree):
 
     headCommit = rw.repo.head_commit
     assert headCommit.message == "First a/a1\n"
+    assert headCommit.author.name == "A U Thor"
 
     headCommitHash = str(headCommit.id)[:5]
     assert re.match(rf"commit.+{headCommitHash}.+created", mainWindow.statusBar().currentMessage(), re.I)
 
     rw.jump(NavLocator.inCommit(headCommit.id))
     assert qlvGetRowData(rw.committedFiles) == ["a/a1.txt"]
+
+
+def testCherrypickEditAuthor(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.checkout_local_branch("no-parent")
+
+    oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(oid))
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "cherry.+success.+commit")
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert dialog.ui.summaryEditor.text() == "First a/a1"
+    assert dialog.getOverriddenSignatureKind() == SignatureOverride.Author
+    dialog.ui.signature.ui.nameEdit.setText("Someone Else")
+    dialog.ui.signature.ui.emailEdit.setText("someone.else@example.com")
+    dialog.ui.signature.ui.timeEdit.setDateTime(QDateTime19991231)
+    dialog.accept()
+
+    headCommit = rw.repo.head_commit
+    assert headCommit.message == "First a/a1\n"
+    assert headCommit.author.name == "Someone Else"
+    assert headCommit.author.email == "someone.else@example.com"
+    assert headCommit.author.time == QDateTime19991231.toSecsSinceEpoch()
+    assert headCommit.committer.name == TEST_SIGNATURE.name
 
 
 def testCherrypickDud(tempDir, mainWindow):
