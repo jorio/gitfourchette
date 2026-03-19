@@ -137,8 +137,7 @@ class Jump(RepoTask):
             return
 
         # Back up current locator
-        if not self.rw.navHistory.isWriteLocked():
-            self.rw.saveFilePositions()
+        self.rw.saveFilePositions()
 
         result = yield from self.loadResult(locator)
 
@@ -469,9 +468,8 @@ class Jump(RepoTask):
 
         self.rw.navLocator = locator
 
-        if not self.rw.navHistory.isWriteLocked():
-            self.rw.navHistory.push(locator)
-            self.rw.historyChanged.emit()
+        self.rw.navHistory.push(locator)
+        self.rw.historyChanged.emit()
 
     def displayResult(self, result: Result):
         document = result.document
@@ -516,11 +514,20 @@ class JumpBackOrForward(RepoTask):
     """
 
     def flow(self, delta: int):
+        assert delta in [-1, 1], "illegal delta value"
+
         rw = self.rw
 
-        start = rw.saveFilePositions()
-        history = rw.navHistory
+        # Get starting point
+        rw.saveFilePositions()
+        start = rw.navLocator
 
+        # Work on a copy of the history while we jump back/forward.
+        history = rw.navHistory.copy()
+
+        # Keep jumping back (or forward) in the history until the current
+        # locator differs from the starting point, or until the history is
+        # exhausted.
         while history.canGoDelta(delta):
             # Move back or forward in the history
             locator = history.navigateDelta(delta)
@@ -529,10 +536,8 @@ class JumpBackOrForward(RepoTask):
             if locator.isSimilarEnoughTo(start):
                 continue
 
-            # Jump
-            # (lock history because we want full control over it)
-            with history.writeLock:
-                yield from self.flowSubtask(Jump, locator)
+            # Do the jump. This may be a no-op if the locator is stale.
+            yield from self.flowSubtask(Jump, locator)
 
             # The jump was successful if the RepoWidget's locator
             # comes out similar enough to the one from the history.
@@ -544,6 +549,7 @@ class JumpBackOrForward(RepoTask):
 
         # Finalize history
         history.push(rw.navLocator)
+        rw.navHistory = history
         rw.historyChanged.emit()
 
 

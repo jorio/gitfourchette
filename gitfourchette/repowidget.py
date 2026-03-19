@@ -343,10 +343,6 @@ class RepoWidget(QWidget):
     # Navigation
 
     def saveFilePositions(self):
-        if self.navHistory.isWriteLocked():
-            warnings.warn("Ignoring saveFilePositions because history is locked")
-            return
-
         if self.diffView.isVisibleTo(self):
             newLocator = self.diffView.preciseLocator()
             if not newLocator.isSimilarEnoughTo(self.navLocator):
@@ -356,7 +352,6 @@ class RepoWidget(QWidget):
 
         self.navHistory.push(newLocator)
         self.navLocator = newLocator
-        return self.navLocator
 
     def jump(self, locator: NavLocator, check=False):
         tasks.Jump.invoke(self, locator)
