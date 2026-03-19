@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,7 @@ import pytest
 
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.nav import NavContext, NavLocator
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.repowidget import RepoWidget
 from . import reposcenario
 from .util import *
@@ -252,6 +253,55 @@ def testNavigationAfterDiscardingChangeAtTopOfHistory(tempDir, mainWindow):
 
     rw.navigateBack()
     assertHistoryMatches(rw, NavLocator.inUnstaged("b/b1.txt"))
+
+
+def testNavigationWithMultipleSelectedCommits(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
+    oid2 = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
+    oid3 = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
+    implicitOid1 = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
+    implicitOid2 = Oid(hex="d0114ab8ac326bab30e3a657a0397578c5a1af88")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
+    row3 = rw.graphView.getFilterIndexForCommit(oid3).row()
+
+    # Step 1: click oid1
+    qlvClickNthRow(rw.graphView, row1)
+
+    # Step 2: control-click oid2
+    qlvClickNthRow(rw.graphView, row2, modifier=Qt.KeyboardModifier.ControlModifier)
+
+    # Step 3: shift-click oid3
+    qlvClickNthRow(rw.graphView, row3, modifier=Qt.KeyboardModifier.ShiftModifier)
+
+    # Check step 3
+    assert rw.navLocator.commit == oid3
+    assert set(rw.navLocator.selectedCommits) == {oid1, oid2, oid3, implicitOid1, implicitOid2}
+
+    # Return to step 2
+    rw.navigateBack()
+    assert rw.navLocator.commit == oid2
+    assert set(rw.navLocator.selectedCommits) == {oid1, oid2}
+
+    # Return to step 1
+    rw.navigateBack()
+    assert rw.navLocator.commit == oid1
+    assert not rw.navLocator.selectedCommits
+
+    # Return to Uncommitted Changes
+    rw.navigateBack()
+    assert rw.navLocator.commit == UC_FAKEID
+    assert not rw.navLocator.selectedCommits
+
+    # Return to step 3
+    rw.navigateForward()
+    rw.navigateForward()
+    rw.navigateForward()
+    assert rw.navLocator.commit == oid3
+    assert set(rw.navLocator.selectedCommits) == {oid1, oid2, oid3, implicitOid1, implicitOid2}
 
 
 def testRestoreLastSelectedFileInContext(tempDir, mainWindow):

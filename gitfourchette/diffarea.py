@@ -410,7 +410,7 @@ class DiffArea(QWidget):
             hasFile = False
             if locator.path:
                 # Fix multiple "ghost" selections in DirtyFiles/StagedFiles with JumpBackOrForward.
-                if not locator.hasFlags(NavFlags.AllowMultiSelect):
+                if not locator.hasFlags(NavFlags.BypassFileSelect):
                     fileList.clearSelection()
                 # Select the file, if possible
                 hasFile = fileList.selectFile(locator.path)

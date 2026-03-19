@@ -509,7 +509,7 @@ class FileList(QListView):
 
         if current and current.isValid():
             locator = self.getNavLocatorForIndex(current)
-            locator = locator.withExtraFlags(NavFlags.AllowMultiSelect)
+            locator = locator.withExtraFlags(NavFlags.BypassFileSelect)
             Jump.invoke(self, locator)
         else:
             self.emitNothingClicked()

@@ -32,8 +32,11 @@ class NavFlags(enum.IntFlag):
     AllowLargeFiles = enum.auto()
     "Bypass file size and line length limits to display the diff at this location."
 
-    AllowMultiSelect = enum.auto()
-    "Don't reset the selection when loading this location."
+    BypassFileSelect = enum.auto()
+    "Bypass automatic selection in FileList when loading this location."
+
+    BypassCommitSelect = enum.auto()
+    "Bypass automatic selection in GraphView when loading this location."
 
     ActivateWindow = enum.auto()
     "Bring window to the foreground after jumping to this location."
@@ -103,7 +106,18 @@ class NavLocator:
     Character position of the top-left corner in the scrollable viewport.
     """
 
-    flags: NavFlags = NavFlags.DefaultFlags  # WARNING: Those are not saved in history
+    flags: NavFlags = NavFlags.DefaultFlags
+    """
+    Transient flags, not saved in NavHistory.
+    """
+
+    selectedCommits: tuple[Oid] = ()
+    """
+    Currently selected commits in GraphView. Can be used to diff two commits.
+    If empty and `context` is COMMITTED, `commit` is assumed to be the sole
+    selected commit.
+    This is a tuple to enforce immutability.
+    """
 
     URL_AUTHORITY: ClassVar[str] = "jump"
 
@@ -114,6 +128,7 @@ class NavLocator:
             assert isinstance(self.commit, Oid)
             assert isinstance(self.path, str)
             assert isinstance(self.ref, str)
+            assert isinstance(self.selectedCommits, tuple)
             hasCommit = self.commit != NULL_OID
             hasRef = bool(self.ref)
             if self.context == NavContext.COMMITTED:
@@ -157,10 +172,14 @@ class NavLocator:
         return NavLocator(context=NavContext.WORKDIR, path=path)
 
     def isSimilarEnoughTo(self, other: NavLocator):
-        """Coarse equality - Compare context, commit & path (ignores flags & position in diff)"""
+        """
+        Coarse equality: Compare context, commit(s) & path.
+        Ignores flags & position in diff.
+        """
         return (self.context == other.context
                 and self.commit == other.commit
-                and self.path == other.path)
+                and self.path == other.path
+                and self.selectedCommits == other.selectedCommits)
 
     def hasFlags(self, flags: NavFlags):
         return flags == (self.flags & flags)
@@ -188,15 +207,28 @@ class NavLocator:
     def replace(self, **kwargs) -> NavLocator:
         return dataclasses.replace(self, **kwargs)
 
-    def coarse(self, keepFlags=False):
+    def coarse(self, keepFlags=False) -> NavLocator:
         flags = NavFlags.DefaultFlags if not keepFlags else self.flags
-        return NavLocator(context=self.context, commit=self.commit, path=self.path, ref=self.ref, flags=flags)
+        return NavLocator(
+            context=self.context,
+            commit=self.commit,
+            path=self.path,
+            ref=self.ref,
+            flags=flags,
+            selectedCommits=self.selectedCommits,
+        )
 
     def withExtraFlags(self, flags: NavFlags) -> NavLocator:
         return self.replace(flags=self.flags | flags)
 
     def withoutFlags(self, flags: NavFlags) -> NavLocator:
         return self.replace(flags=self.flags & ~flags)
+
+    def comparedCommit(self) -> Oid | None:
+        if self.context == NavContext.COMMITTED and len(self.selectedCommits) == 2:
+            return next(c for c in self.selectedCommits if c != self.commit)
+        else:
+            return None
 
     @staticmethod
     def parseUrl(url: QUrl):
@@ -233,8 +265,10 @@ class NavLocator:
             return self.context.name
         elif self.ref:
             return self.ref
-        else:
+        elif not self.selectedCommits:
             return str(self.commit)
+        else:
+            return ";".join(str(c) for c in self.selectedCommits)
 
     @property
     def fileKey(self):

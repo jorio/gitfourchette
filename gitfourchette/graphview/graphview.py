@@ -15,7 +15,7 @@ from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogfilter import CommitLogFilter
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
@@ -277,16 +277,20 @@ class GraphView(QListView):
         # do standard callback, such as scrolling the viewport if reaching the edges, etc.
         super().selectionChanged(selected, deselected)
 
-        if selected.count() == 0:
+        # Don't bother with the jump if our signals are blocked
+        if self.signalsBlocked():
             return
 
-        index = selected.indexes()[0]
-        self.onSetCurrent(index)
-
-    def onSetCurrent(self, current: QModelIndex):
-        if self.signalsBlocked():  # Don't bother with the jump if our signals are blocked
+        # Warning: selection not sorted!
+        indexes = self.selectedIndexes()
+        if not indexes:
             return
 
+        # Get the "last" selected index.
+        # Note that currentIndex() may return an index outside the selection!
+        current = self.currentIndex()
+        if not current.isValid() or current not in indexes:
+            current = indexes[-1]
         assert current.isValid()
 
         special = current.data(CommitLogModel.Role.SpecialRow)
@@ -295,23 +299,36 @@ class GraphView(QListView):
         elif special == SpecialRow.Commit:
             oid = current.data(CommitLogModel.Role.Oid)
             locator = NavLocator(NavContext.COMMITTED, commit=oid)
+
+            if len(indexes) > 1:
+                oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
+                locator = locator.replace(selectedCommits=oids)
         else:
             locator = NavLocator(NavContext.SPECIAL, path=str(special))
 
-        indexes = self.selectedIndexes()
-        self.repoModel.selectedCommits = [i.data(CommitLogModel.Role.Oid) for i in indexes]
-        # Warning: selection not sorted
+        locator = locator.withExtraFlags(NavFlags.BypassCommitSelect)
 
         Jump.invoke(self, locator)
 
-    def selectRowForLocator(self, locator: NavLocator, force=False):
-        filterIndex = self.getFilterIndexForLocator(locator)
-        if force or filterIndex.row() != self.currentIndex().row():
-            self.scrollTo(filterIndex, QAbstractItemView.ScrollHint.EnsureVisible)
-            self.setCurrentIndex(filterIndex)
-        return filterIndex
+    def selectRowForLocator(self, locator: NavLocator):
+        if locator.hasFlags(NavFlags.BypassCommitSelect):
+            return
 
-    def getFilterIndexForLocator(self, locator: NavLocator):
+        filterIndex = self.getFilterIndexForLocator(locator)
+
+        with QSignalBlockerContext(self):  # DON'T emit jump signal
+            self.scrollTo(filterIndex, QAbstractItemView.ScrollHint.EnsureVisible)
+
+            sm = self.selectionModel()
+            sm.clear()
+
+            for sc in locator.selectedCommits:
+                fi = self.getFilterIndexForCommit(sc)
+                sm.select(fi, QItemSelectionModel.SelectionFlag.Select)
+
+            sm.setCurrentIndex(filterIndex, QItemSelectionModel.SelectionFlag.Select)
+
+    def getFilterIndexForLocator(self, locator: NavLocator) -> QModelIndex:
         if locator.context == NavContext.COMMITTED:
             index = self.getFilterIndexForCommit(locator.commit)
             assert index.data(CommitLogModel.Role.SpecialRow) == SpecialRow.Commit

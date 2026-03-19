@@ -7,7 +7,7 @@
 import pygit2.enums
 import pytest
 
-from gitfourchette.graphview.commitlogmodel import SpecialRow, CommitLogModel
+from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavLocator
 from .util import *
@@ -428,18 +428,38 @@ def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
         rw.graphView.getFilterIndexForCommit(hidethisTip)
 
 
-def testCompareTwoCommits(tempDir, mainWindow):
+def testCompare2Commits(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    contextHeader = rw.diffArea.contextHeader
 
-    pinId = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
-    compareId = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+    oid1 = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
+    oid2 = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
 
     # Compare 6e1475 to ce112d
-    row1 = qlvFindRow(rw.graphView, data=pinId, role=CommitLogModel.Role.Oid)
-    row2 = qlvFindRow(rw.graphView, data=compareId, role=CommitLogModel.Role.Oid)
     qlvClickNthRow(rw.graphView, row1)
     qlvClickNthRow(rw.graphView, row2, modifier=Qt.KeyboardModifier.ControlModifier)
-    assert re.match(r"comparing.+6e1475.+ce112d", contextHeader.mainLabel.text(), re.I)
+
     assert qlvGetRowData(rw.committedFiles) == ["a/a1", "c/c2-2.txt"]
+    assert findTextInWidget(rw.diffArea.contextHeader.mainLabel, r"comparing.+6e1475.+ce112d")
+    assert findTextInWidget(rw.diffArea.diffHeader, r"6e1475.+ce112d")
+    assert rw.diffView.isVisible()
+
+
+def testSelect3PlusCommits(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid1 = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
+    oid2 = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
+
+    # Select all commits between 6e1475 and ce112d
+    qlvClickNthRow(rw.graphView, row1)
+    qlvClickNthRow(rw.graphView, row2, modifier=Qt.KeyboardModifier.ShiftModifier)
+
+    assert not rw.diffView.isVisible()
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, "5 commits selected")

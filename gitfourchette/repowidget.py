@@ -223,7 +223,7 @@ class RepoWidget(QWidget):
         # Prime GraphView
 
         with QSignalBlockerContext(self.graphView):
-            self.graphView.selectRowForLocator(NavLocator.inWorkdir(), force=True)
+            self.graphView.selectRowForLocator(NavLocator.inWorkdir())
 
         # ----------------------------------
         # Prime Sidebar

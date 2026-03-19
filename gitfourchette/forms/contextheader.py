@@ -9,7 +9,6 @@ from collections.abc import Callable
 from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
-from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
@@ -78,11 +77,12 @@ class ContextHeader(QFrame):
             locator: NavLocator,
             commitMessage: str = "",
             isStash=False,
-            fromCommitId: Oid | None = None
     ):
         self.clearButtons()
 
         self.locator = locator
+
+        fromCommitId = locator.comparedCommit()
 
         if fromCommitId is not None:
             mainText = " ".join([
@@ -92,6 +92,8 @@ class ContextHeader(QFrame):
                 shortHash(locator.commit),
             ])
             self.mainLabel.setText(mainText)
+        elif locator.selectedCommits:
+            self.mainLabel.setText(" ")
         elif locator.context == NavContext.COMMITTED:
             kind = _p("noun", "Stash") if isStash else _p("noun", "Commit")
             summary, _continued = messageSummary(commitMessage)

@@ -402,14 +402,30 @@ class Jump(RepoTask):
 
         flv = area.committedFiles
         area.diffBanner.setVisible(False)
-        area.contextHeader.setContext(locator, commit.message, isStash, self.repoModel.comparedCommitId(commit))
+        area.contextHeader.setContext(locator, commit.message, isStash)
 
         # Attempt to show the commit in GraphView
         self.showLocatorInGraphView(locator, isStash=isStash)
 
-        if locator.commit == flv.commitId and not locator.hasFlags(NavFlags.ForceDiff):
-            # No need to reload the same commit
-            # (if this flv was dormant and is sent back to the foreground).
+        if len(locator.selectedCommits) > 2:
+            with QSignalBlockerContext(flv):  # Don't emit jump signals
+                flv.clear()
+                flv.setContents([])
+                area.committedHeader.setText(" ")
+                area.committedHeader.setToolTip("")
+            header = " "
+            controlKey = QKeySequence(Qt.Key.Key_Control).toString(QKeySequence.SequenceFormat.NativeText)
+            sde = SpecialDiffError(
+                _n("{n} commit selected", "{n} commits selected", n=len(locator.selectedCommits)),
+                _("You can compare up to two commits at a time. Tip: hold {0} "
+                  "while making a selection to compare 2 discontiguous commits.", controlKey))
+            raise Jump.Result(locator, header, sde)
+
+        if (not locator.hasFlags(NavFlags.ForceDiff)
+                and locator.commit == rw.navLocator.commit
+                and locator.selectedCommits == rw.navLocator.selectedCommits):
+            # No need to reload the same commit diff
+            logger.debug("Don't reload same commit diff")
             pass
 
         else:
@@ -417,7 +433,7 @@ class Jump(RepoTask):
             area.diffBanner.lastWarningWasDismissed = False
 
             # Load commit
-            compareFrom = self.repoModel.comparedCommitId(commit)
+            compareFrom = locator.comparedCommit()
             tokens = GitDriver.buildDiffRawCommand(commit, fromCommitId=compareFrom)
             driver = yield from self.flowCallGit(*tokens)
             deltas = driver.readDiffRawZ()

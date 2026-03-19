@@ -291,7 +291,7 @@ class LoadPatch(RepoTask):
         # Load the patch
 
         commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
-        fromCommit = self.repoModel.comparedCommitId(commit)
+        fromCommit = locator.comparedCommit()
 
         # See if we should load an LFS object
         loadLfs = False
@@ -399,7 +399,12 @@ class LoadPatch(RepoTask):
 
         suffix = []
         if locator.context == NavContext.COMMITTED:
-            suffix.append(_p("at (specific commit)", "at {0}", shortHash(locator.commit)))
+            cc = locator.comparedCommit()
+            if cc:
+                suffix.append(f"{shortHash(cc)}...{shortHash(locator.commit)}")
+            else:
+                suffix.append(_p("at (specific commit)", "at {0}", shortHash(locator.commit)))
+
         elif locator.context.isWorkdir():
             suffix.append(locator.context.translateName().lower())
 

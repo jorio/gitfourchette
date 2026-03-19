@@ -140,8 +140,6 @@ class RepoModel:
     headIsDetached: bool
     homeBranch: str
 
-    selectedCommits: list[Oid]
-
     prefs: RepoPrefs
 
     def __init__(self, repo: Repo):
@@ -182,8 +180,6 @@ class RepoModel:
         self.gpgStatusCache = {}
         self.gpgVerifyQueue = set()
 
-        self.selectedCommits = []
-
         self.repo = repo
 
         self.prefs = RepoPrefs.initForRepo(repo)
@@ -201,12 +197,6 @@ class RepoModel:
 
     def __del__(self):
         logger.debug("__del__ RepoModel")
-
-    def comparedCommitId(self, commit: Commit) -> Oid | None:
-        if len(self.selectedCommits) == 2:
-            return next(c for c in self.selectedCommits if c != commit.id)
-        else:
-            return None
 
     @property
     def numUncommittedChanges(self) -> int:
