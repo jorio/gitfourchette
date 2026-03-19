@@ -245,11 +245,12 @@ class Jump(RepoTask):
         previousRowDirty = rw.dirtyFiles.earliestSelectedRow()
 
         with (
-            QSignalBlockerContext(rw.graphView, rw.sidebar),  # Don't emit jump signals
+            QSignalBlockerContext(rw.sidebar),  # Don't emit jump signals
             QScrollBackupContext(rw.sidebar),  # Stabilize scroll bar value
         ):
-            rw.graphView.selectRowForLocator(locator)
             rw.sidebar.selectAnyRef(UC_FAKEREF)
+
+        self.showLocatorInGraphView(locator)
 
         # Reset diff banner
         rw.diffArea.diffBanner.setVisible(False)
@@ -321,13 +322,14 @@ class Jump(RepoTask):
         rw = self.rw
         locale = QLocale()
 
-        with QSignalBlockerContext(rw.sidebar, rw.committedFiles, rw.graphView):
+        with QSignalBlockerContext(rw.sidebar, rw.committedFiles):
             rw.sidebar.clearSelection()
             rw.diffArea.committedFiles.clear()
             rw.diffArea.committedHeader.setText(" ")
             rw.diffArea.diffBanner.hide()
             rw.diffArea.contextHeader.setContext(locator)
-            rw.graphView.selectRowForLocator(locator)
+
+        self.showLocatorInGraphView(locator)
 
         if locator.path == str(SpecialRow.EndOfShallowHistory):
             sde = SpecialDiffError(
@@ -386,18 +388,6 @@ class Jump(RepoTask):
             isStash = False
 
         commit = rw.repo.peel_commit(locator.commit)
-        warnings = []
-
-        # Select row in commit log
-        from gitfourchette.graphview.graphview import GraphView
-        with QSignalBlockerContext(rw.graphView):  # Don't emit jump signals
-            try:
-                rw.graphView.selectRowForLocator(locator)
-            except GraphView.SelectCommitError as e:
-                # Commit is hidden or not loaded
-                rw.graphView.clearSelection()
-                if not isStash:  # Don't show a warning for stashes - never shown in graph
-                    warnings.append(str(e))
 
         # Attempt to select matching ref in sidebar
         with (
@@ -413,6 +403,9 @@ class Jump(RepoTask):
         flv = area.committedFiles
         area.diffBanner.setVisible(False)
         area.contextHeader.setContext(locator, commit.message, isStash, self.repoModel.comparedCommitId(commit))
+
+        # Attempt to show the commit in GraphView
+        self.showLocatorInGraphView(locator, isStash=isStash)
 
         if locator.commit == flv.commitId and not locator.hasFlags(NavFlags.ForceDiff):
             # No need to reload the same commit
@@ -452,11 +445,6 @@ class Jump(RepoTask):
                 _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit))))
             raise Jump.Result(locator, header, sde)
 
-        # Warning banner
-        if warnings and not area.diffBanner.lastWarningWasDismissed:
-            warningText = "<br>".join(warnings)
-            area.diffBanner.popUp("", warningText, canDismiss=True, withIcon=True)
-
         return locator
 
     def saveFinalLocator(self, locator: NavLocator):
@@ -471,6 +459,22 @@ class Jump(RepoTask):
 
         self.rw.navHistory.push(locator)
         self.rw.historyChanged.emit()
+
+    def showLocatorInGraphView(self, locator: NavLocator, isStash=False):
+        graphView = self.rw.graphView
+
+        with QSignalBlockerContext(graphView):  # Don't emit jump signals
+            try:
+                graphView.selectRowForLocator(locator)
+            except graphView.SelectCommitError as e:
+                # Commit is hidden or not loaded
+                graphView.clearSelection()
+
+                # Warning banner
+                banner = self.rw.diffArea.diffBanner
+                if not banner.lastWarningWasDismissed and not isStash:
+                    warningText = str(e)
+                    banner.popUp("", warningText, canDismiss=True, withIcon=True)
 
     def displayResult(self, result: Result):
         document = result.document
