@@ -206,7 +206,9 @@ class GraphView(QListView):
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         currentIndex = self.currentIndex()
-        if not currentIndex.isValid() or event.button() != Qt.MouseButton.LeftButton:
+        if (not currentIndex.isValid()
+                or event.button() != Qt.MouseButton.LeftButton
+                or event.modifiers() != Qt.KeyboardModifier.NoModifier):
             super().mouseDoubleClickEvent(event)
             return
         event.accept()
