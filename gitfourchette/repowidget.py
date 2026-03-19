@@ -566,12 +566,19 @@ class RepoWidget(QWidget):
     # -------------------------------------------------------------------------
 
     def toggleHideRefPattern(self, refPattern: str, allButThis: bool = False):
+        wasVisibleInGraph = self.graphView.isLocatorVisible(self.navLocator)
+
         assert refPattern.startswith("refs/")
         self.repoModel.toggleHideRefPattern(refPattern, allButThis)
         self.graphView.clFilter.updateHiddenCommits()
 
         # Hide/draw refboxes for commits that are shared by non-hidden refs
         self.graphView.viewport().update()
+
+        # Re-jump to the locator if it just became visible/hidden.
+        # This will display/hide the "hidden branch" banner.
+        if wasVisibleInGraph != self.graphView.isLocatorVisible(self.navLocator):
+            self.jump(self.navLocator)
 
     # -------------------------------------------------------------------------
 

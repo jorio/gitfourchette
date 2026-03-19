@@ -20,7 +20,7 @@ from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.donateprompt import DonatePrompt
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.graphview.commitlogmodel import SpecialRow
+from gitfourchette.graphview.commitlogmodel import SpecialRow, CommitLogModel
 from gitfourchette.mainwindow import MainWindow
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.settings import Session
@@ -677,31 +677,45 @@ def testConfigFileScrubbing(tempDir, mainWindow):
     assert b'[branch "scrubme"]' not in readFile(configPath)
 
 
-# This used to fail in multithread mode only, hence taskThread
-def testHideSelectedBranch(tempDir, mainWindow, taskThread):
+def testHideSelectedBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         masterId = repo.branches.local['master'].target
         detachedId = Oid(hex='ce112d052bcf42442aa8563f1e2b7a8aabbf4d17')
         repo.checkout_commit(detachedId)
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
 
     # Select branch 'master'...
     rw.selectRef('refs/heads/master')
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert rw.diffView.currentLocator.commit == masterId
+    assert rw.navLocator.commit == masterId
+    assert not rw.diffArea.diffBanner.isVisible()
 
-    # ...and hide it. DiffView shouldn't show master anymore.
+    # ...and hide it.
     rw.toggleHideRefPattern('refs/heads/master')
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert masterId in rw.repoModel.hiddenCommits
 
-    assert rw.navLocator.commit != masterId
+    # Still showing the commit at the tip of master
+    assert rw.navLocator.commit == masterId
+    # The banner should say that it's hidden
+    assert rw.diffArea.diffBanner.isVisible()
+    assert findTextInWidget(rw.diffArea.diffBanner.label, "part of a hidden branch")
     assert rw.navLocator.commit == rw.diffArea.contextHeader.locator.commit
-    assert str(masterId)[:7] not in rw.diffArea.diffHeader.text()
-    assert str(rw.navLocator.commit)[:7] in rw.diffArea.diffHeader.text()
+    # It's not selected in GraphView anymore
+    assert not rw.graphView.selectedIndexes()  # no selection in graph
+
+    # Unhide 'master'
+    rw.toggleHideRefPattern('refs/heads/master')
+    assert masterId not in rw.repoModel.hiddenCommits
+
+    # Still showing the commit at the tip of master
+    assert rw.navLocator.commit == masterId
+    # GraphView selection restored
+    assert len(rw.graphView.selectedIndexes()) == 1
+    graphIndex = rw.graphView.selectedIndexes()[0]
+    assert graphIndex.data(CommitLogModel.Role.Oid) == masterId
+    # Not a hidden commit anymore
+    assert not rw.diffArea.diffBanner.isVisible()
 
 
 def testOpenWorktreeSubdirectoryOfBareRepo(tempDir, mainWindow):

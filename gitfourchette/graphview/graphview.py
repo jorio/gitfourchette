@@ -338,6 +338,13 @@ class GraphView(QListView):
 
         return newFilterIndex
 
+    def isLocatorVisible(self, locator: NavLocator) -> bool:
+        try:
+            self.getFilterIndexForLocator(locator)
+            return True
+        except GraphView.SelectCommitError:
+            return False
+
     def scrollToRowForLocator(self, locator: NavLocator, scrollHint=QAbstractItemView.ScrollHint.EnsureVisible):
         with suppress(GraphView.SelectCommitError):
             filterIndex = self.getFilterIndexForLocator(locator)
