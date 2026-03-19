@@ -19,9 +19,9 @@ from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
-from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitShow
+from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, Commit, Oid
+from gitfourchette.porcelain import version_to_tuple, Commit, Oid, EMPTYTREE_OID
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
@@ -288,20 +288,18 @@ class GitDriver(QProcess):
         return numEntries, stagedDeltas, unstagedDeltas
 
     @classmethod
-    def buildShowCommand(cls, oid: Oid):
+    def buildDiffRawCommand(cls, commit: Commit, fromCommitId: Oid | None = None):
+        compareFromTreeish = cls._compareFromTreeish(commit, fromCommitId)
         return [
             "-c", "core.abbrev=no",
-            "show",
-            "--diff-merges=1",
-            "-z",
-            "--raw",
-            "--format=",  # skip info about the commit itself
-            str(oid),
+            "diff", "--raw", "-z",
+            str(compareFromTreeish),
+            str(commit.tree_id),
         ]
 
-    def readShowRawZ(self) -> list[GitDelta]:
+    def readDiffRawZ(self) -> list[GitDelta]:
         stdout = self.stdoutScrollback()
-        deltas = list(parseGitShow(stdout))
+        deltas = list(parseGitDiffRawZ(stdout))
         return deltas
 
     @classmethod
@@ -309,6 +307,7 @@ class GitDriver(QProcess):
             cls,
             delta: GitDelta | None,
             commit: Commit | None = None,
+            fromCommitId: Oid | None = None,
             binary=True
     ) -> list[str]:
         tokens = [
@@ -319,17 +318,12 @@ class GitDriver(QProcess):
             *argsIf(delta is not None and delta.context == NavContext.STAGED, "--staged"),
         ]
 
-        # Append commits
+        # Append treeishes being compared
         if commit is not None:
             assert delta is None or delta.context == NavContext.COMMITTED
-            try:
-                # Compare to first parent
-                firstParent = commit.parent_ids[0]
-            except IndexError:
-                # Root commit: compare to empty tree (sha1(b"tree \0"))
-                firstParent = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-            tokens.append(str(firstParent))
-            tokens.append(str(commit.id))
+            compareFromTreeish = cls._compareFromTreeish(commit, fromCommitId)
+            tokens.append(str(compareFromTreeish))
+            tokens.append(str(commit.tree_id))
 
         # Append paths
         if delta is not None:
@@ -365,6 +359,21 @@ class GitDriver(QProcess):
         ]
 
         return tokens
+
+    @classmethod
+    def _compareFromTreeish(
+            cls,
+            commit: Commit,
+            fromCommitId: Oid | None = None
+    ) -> Oid:
+        if fromCommitId is not None:
+            return fromCommitId
+
+        # Compare to first parent's tree (or empty tree if root commit)
+        try:
+            return commit.parents[0].tree_id
+        except IndexError:
+            return EMPTYTREE_OID
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

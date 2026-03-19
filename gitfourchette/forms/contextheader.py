@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,6 +9,7 @@ from collections.abc import Callable
 from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
@@ -72,12 +73,26 @@ class ContextHeader(QFrame):
                 del self.buttons[i]
 
     @DisableWidgetUpdatesContext.methodDecorator
-    def setContext(self, locator: NavLocator, commitMessage: str = "", isStash=False):
+    def setContext(
+            self,
+            locator: NavLocator,
+            commitMessage: str = "",
+            isStash=False,
+            fromCommitId: Oid | None = None
+    ):
         self.clearButtons()
 
         self.locator = locator
 
-        if locator.context == NavContext.COMMITTED:
+        if fromCommitId is not None:
+            mainText = " ".join([
+                _("Comparing two commits:"),
+                shortHash(fromCommitId),
+                "\u2192",
+                shortHash(locator.commit),
+            ])
+            self.mainLabel.setText(mainText)
+        elif locator.context == NavContext.COMMITTED:
             kind = _p("noun", "Stash") if isStash else _p("noun", "Commit")
             summary, _continued = messageSummary(commitMessage)
             self.mainLabel.setText(f"{kind} {shortHash(locator.commit)} – {summary}")

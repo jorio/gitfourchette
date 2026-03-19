@@ -183,7 +183,7 @@ def _parseStatusUntracked(ident: str, path: str):
     return None, yDelta
 
 
-def parseGitShow(stdout: str):
+def parseGitDiffRawZ(stdout: str):
     pos = 0
     limit = len(stdout)
 

@@ -412,7 +412,7 @@ class Jump(RepoTask):
 
         flv = area.committedFiles
         area.diffBanner.setVisible(False)
-        area.contextHeader.setContext(locator, commit.message, isStash)
+        area.contextHeader.setContext(locator, commit.message, isStash, self.repoModel.comparedCommitId(commit))
 
         if locator.commit == flv.commitId and not locator.hasFlags(NavFlags.ForceDiff):
             # No need to reload the same commit
@@ -424,9 +424,10 @@ class Jump(RepoTask):
             area.diffBanner.lastWarningWasDismissed = False
 
             # Load commit
-            tokens = GitDriver.buildShowCommand(locator.commit)
+            compareFrom = self.repoModel.comparedCommitId(commit)
+            tokens = GitDriver.buildDiffRawCommand(commit, fromCommitId=compareFrom)
             driver = yield from self.flowCallGit(*tokens)
-            deltas = driver.readShowRawZ()
+            deltas = driver.readDiffRawZ()
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 

@@ -60,6 +60,8 @@ class GraphView(QListView):
 
         self.setModel(self.clFilter)
 
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
         # Massive perf boost when displaying/updating huge commit logs
         self.setUniformItemSizes(True)
 
@@ -186,6 +188,22 @@ class GraphView(QListView):
             menu.aboutToHide.connect(menu.deleteLater)
             menu.popup(self.mapToGlobal(point))
 
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """
+        By default, ExtendedSelection lets the user select multiple items by
+        holding down LMB and dragging. This event handler enforces single-item
+        selection unless the user holds down Shift or Ctrl.
+        """
+        isLMB = bool(event.buttons() & Qt.MouseButton.LeftButton)
+        isShift = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
+        isCtrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+
+        if isLMB and not isShift and not isCtrl:
+            self.mousePressEvent(event)  # re-route event as if it were a click event
+            self.scrollTo(self.indexAt(event.pos()))  # mousePressEvent won't scroll to the item on its own
+        else:
+            super().mouseMoveEvent(event)
+
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         currentIndex = self.currentIndex()
         if not currentIndex.isValid() or event.button() != Qt.MouseButton.LeftButton:
@@ -277,6 +295,10 @@ class GraphView(QListView):
             locator = NavLocator(NavContext.COMMITTED, commit=oid)
         else:
             locator = NavLocator(NavContext.SPECIAL, path=str(special))
+
+        indexes = self.selectedIndexes()
+        self.repoModel.selectedCommits = [i.data(CommitLogModel.Role.Oid) for i in indexes]
+        # Warning: selection not sorted
 
         Jump.invoke(self, locator)
 

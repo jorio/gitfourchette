@@ -291,6 +291,7 @@ class LoadPatch(RepoTask):
         # Load the patch
 
         commit = self.repo.peel_commit(locator.commit) if locator.context == NavContext.COMMITTED else None
+        fromCommit = self.repoModel.comparedCommitId(commit)
 
         # See if we should load an LFS object
         loadLfs = False
@@ -344,7 +345,7 @@ class LoadPatch(RepoTask):
         if loadLfs:
             tokens = GitDriver.buildDiffCommandLFS(delta)
         else:
-            tokens = GitDriver.buildDiffCommand(delta, commit, binary=False)
+            tokens = GitDriver.buildDiffCommand(delta, commit, fromCommitId=fromCommit, binary=False)
 
         # Run diff command
         driver = yield from self.flowCallGit(*tokens, autoFail=False)

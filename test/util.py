@@ -383,12 +383,12 @@ def qlvFindRow(view: QListView, data: str, role=Qt.ItemDataRole.DisplayRole):
     raise IndexError(f"didn't find a row containing '{data}'")
 
 
-def qlvClickNthRow(view: QListView, n: int):
+def qlvClickNthRow(view: QListView, n: int, modifier: Qt.KeyboardModifier = Qt.KeyboardModifier.NoModifier):
     index = view.model().index(n, 0)
     assert index.isValid()
     view.scrollTo(index)
     rect = view.visualRect(index)
-    QTest.mouseClick(view.viewport(), Qt.MouseButton.LeftButton, pos=rect.center())
+    QTest.mouseClick(view.viewport(), Qt.MouseButton.LeftButton, modifier, pos=rect.center())
     return index.data(Qt.ItemDataRole.DisplayRole)
 
 
