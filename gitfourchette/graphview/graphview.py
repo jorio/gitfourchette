@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.exttools.usercommand import UserCommand
+from gitfourchette.forms.commitfilesearchbar import CommitFileSearchBar
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graph import MockCommit
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
@@ -81,18 +82,32 @@ class GraphView(QListView):
         self.searchBar.hide()
         self.clFilter.rowsAboutToBeInserted.connect(self.searchBar.invalidateBadStem)
 
-        self.clDelegate = CommitLogDelegate(self.repoModel, searchBar=self.searchBar, parent=self)
+        self.commitFileSearchBar = CommitFileSearchBar(self)
+        self.commitFileSearchBar.hide()
+
+        self.clDelegate = CommitLogDelegate(
+            self.repoModel,
+            searchBar=self.searchBar,
+            commitFileSearchBar=self.commitFileSearchBar,
+            parent=self,
+        )
         self.setItemDelegate(self.clDelegate)
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs(invalidateMetrics=False)
 
-        # Shortcut keys
-        makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
+        # Shortcut keys (commit-file bar takes precedence when visible)
+        makeWidgetShortcut(self, self._escapeSearchBars, "Escape")
         self.checkoutShortcut = makeWidgetShortcut(self, self.onReturnKey, "Return", "Enter")
         self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
         self.copyMessageShortcut = makeWidgetShortcut(self, self.copyCommitMessageToClipboard, "Ctrl+Shift+C")
         self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
+
+    def _escapeSearchBars(self):
+        if self.commitFileSearchBar.isVisible():
+            self.commitFileSearchBar.bail()
+        else:
+            self.searchBar.hideOrBeep()
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """

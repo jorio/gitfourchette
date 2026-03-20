@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.forms.commitfilesearchbar import CommitFileSearchBar
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow, CommitToolTipZone
 from gitfourchette.graphview.graphpaint import paintGraphFrame
@@ -73,11 +74,18 @@ NARROW_WIDTH = (500, 750)
 class CommitLogDelegate(QStyledItemDelegate):
     requestSignatureVerification = Signal(Oid)
 
-    def __init__(self, repoModel: RepoModel, searchBar: SearchBar | None=None, parent: QWidget | None=None):
+    def __init__(
+            self,
+            repoModel: RepoModel,
+            searchBar: SearchBar | None = None,
+            commitFileSearchBar: CommitFileSearchBar | None = None,
+            parent: QWidget | None = None,
+    ):
         super().__init__(parent)
 
         self.repoModel = repoModel
         self.searchBar = searchBar
+        self.commitFileSearchBar = commitFileSearchBar
 
         self.mustRefreshMetrics = True
         self.hashCharWidth = 0
@@ -93,6 +101,7 @@ class CommitLogDelegate(QStyledItemDelegate):
     def prepareForDeletion(self):
         del self.repoModel
         del self.searchBar
+        del self.commitFileSearchBar
         del self.mounts
 
     def invalidateMetrics(self):
@@ -129,8 +138,20 @@ class CommitLogDelegate(QStyledItemDelegate):
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground=True):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        file_dim = False
+        if self.commitFileSearchBar:
+            sr = index.data(CommitLogModel.Role.SpecialRow)
+            oid_d = index.data(CommitLogModel.Role.Oid)
+            file_dim = self.commitFileSearchBar.shouldDimRow(oid_d, sr)
         try:
-            self._paint(painter, option, index, fillBackground)
+            if file_dim:
+                painter.save()
+                painter.setOpacity(0.42)
+            try:
+                self._paint(painter, option, index, fillBackground)
+            finally:
+                if file_dim:
+                    painter.restore()
         except Exception as exc:  # pragma: no cover
             painter.restore()
             painter.save()

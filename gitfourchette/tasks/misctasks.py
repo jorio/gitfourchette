@@ -19,7 +19,7 @@ from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
 from gitfourchette.tasks import TaskEffects
-from gitfourchette.tasks.repotask import RepoTask, AbortTask
+from gitfourchette.tasks.repotask import RepoTask, AbortTask, TaskPrereqs
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -412,3 +412,43 @@ class NewIgnorePattern(RepoTask):
         # Jump to .gitignore
         if self.repo.is_in_workdir(str(excludePath)):
             self.epilog.jumpTo = NavLocator.inUnstaged(str(excludePath))
+
+
+class QueryCommitsTouchingPath(RepoTask):
+    """Resolve commits reachable from any ref that modify the given pathspec (via git log)."""
+
+    matching_oids: frozenset[Oid]
+    request_id: int
+
+    def flow(self, pathspec: str, request_id: int = 0):
+        self.matching_oids = frozenset()
+        self.request_id = request_id
+        pathspec = pathspec.strip()
+        if not pathspec:
+            return
+
+        # flowCallGit / QProcess must run on the UI thread (see flowStartProcess).
+        driver = yield from self.flowCallGit(
+            "-c", "core.abbrev=no",
+            "log", "--all", "--format=%H",
+            "--", pathspec,
+            autoFail=False,
+        )
+
+        oids: set[Oid] = set()
+        for line in driver.stdoutScrollback().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                oids.add(Oid(hex=line[:40]))
+            except (ValueError, TypeError):
+                with suppress(ValueError, TypeError):
+                    oids.add(Oid(hex=line))
+        self.matching_oids = frozenset(oids)
+
+    def broadcastProcesses(self) -> bool:
+        return False
+
+    def prereqs(self) -> TaskPrereqs:
+        return TaskPrereqs.Nothing

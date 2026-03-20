@@ -268,6 +268,7 @@ class RepoWidget(QWidget):
         layout = QVBoxLayout(container)
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(graphView.commitFileSearchBar)
         layout.addWidget(graphView.searchBar)
         layout.addWidget(graphView)
 
@@ -380,6 +381,8 @@ class RepoWidget(QWidget):
         assert onAppThread()
         assert not hasattr(self, "_dead"), "RepoWidget already dead"
         self._dead = True
+
+        self.graphView.commitFileSearchBar.prepareForDeletion()
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
         self.taskRunner.prepareForDeletion()
@@ -511,6 +514,10 @@ class RepoWidget(QWidget):
 
     # -------------------------------------------------------------------------
     # Entry point for generic "Find" command
+
+    def showCommitFileSearchBar(self):
+        self.graphView.searchBar.hide()
+        self.graphView.commitFileSearchBar.popUp(forceSelectAll=True)
 
     def dispatchSearchCommand(self, op: SearchBar.Op):
         searchBars = {

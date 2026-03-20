@@ -80,6 +80,35 @@ def testCommitSearch(tempDir, mainWindow):
     assert not searchBar.isVisibleTo(rw)
 
 
+def testCommitFileSearchByPath(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    gv = rw.graphView
+    flt = gv.clFilter
+    cbar = gv.commitFileSearchBar
+
+    full_rows = flt.rowCount()
+    assert not cbar.isVisible()
+
+    rw.showCommitFileSearchBar()
+    assert cbar.isVisible()
+
+    QTest.keyClicks(cbar.lineEdit, "master.txt")
+    QTest.qWait(0)
+    rw.taskRunner.joinWorkerThread()
+    assert cbar._match_oids is not None
+    assert len(cbar._match_oids) == 2
+
+    cbar.ui.filterOnlyCheckBox.setChecked(True)
+    assert flt.rowCount() == 2
+
+    cbar.ui.filterOnlyCheckBox.setChecked(False)
+    assert flt.rowCount() == full_rows
+
+    QTest.keySequence(gv, "Escape")
+    assert not cbar.isVisible()
+
+
 def testCommitSearchByHash(tempDir, mainWindow):
     searchCommits = [
         Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4"),

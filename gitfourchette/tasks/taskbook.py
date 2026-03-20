@@ -79,6 +79,7 @@ class TaskBook:
             tasks.NewStash: _("Stash changes"),
             tasks.NewTag: _("New tag"),
             tasks.OpenBlame: _("Blame file"),
+            tasks.QueryCommitsTouchingPath: _("Find commits touching path"),
             tasks.PullBranch: _("Pull remote branch"),
             tasks.PushBranch: _("Push branch"),
             tasks.PushRefspecs: _("Push refspecs"),
