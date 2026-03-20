@@ -443,7 +443,7 @@ class Jump(RepoTask):
             # Fill committed file list
             with QSignalBlockerContext(flv):  # Don't emit jump signals
                 flv.clear()
-                flv.setCommit(locator.commit)
+                flv.setCommitLocator(locator)
                 flv.setContents(deltas)
                 numChanges = flv.model().rowCount()
 

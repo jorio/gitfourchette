@@ -12,7 +12,7 @@ from gitfourchette import settings
 from gitfourchette.gitdriver import GitDelta
 from gitfourchette.gitdriver.lfspointer import LfsPointerState
 from gitfourchette.localization import *
-from gitfourchette.nav import NavContext
+from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
@@ -159,20 +159,26 @@ class FileListModel(QAbstractListModel):
 
     navContext: NavContext
     """
-    COMMITTED, STAGED or DIRTY.
+    COMMITTED, STAGED or UNSTAGED.
     Does not change throughout the lifespan of this FileListModel.
     """
 
-    commitId: Oid
+    navLocator: NavLocator
     """
-    The commit that is currently being shown.
-    Only valid if navContext == COMMITTED.
+    NavLocator for the commit that is currently being shown.
+    Only valid (non-empty) if navContext == COMMITTED.
+    Does not contain paths.
     """
 
     def __init__(self, parent: QWidget, navContext: NavContext):
         super().__init__(parent)
         self.navContext = navContext
+        self.navLocator = NavLocator.Empty
         self.clear()
+
+    @property
+    def commitId(self) -> Oid:
+        return self.navLocator.commit
 
     @property
     def repo(self) -> Repo:
@@ -188,7 +194,7 @@ class FileListModel(QAbstractListModel):
         self.deltas = []
         self.fileRows = {}
         self.highlightedCounterpartRow = -1
-        self.commitId = NULL_OID
+        self.navLocator = NavLocator.Empty
         self.modelReset.emit()
 
     def setContents(self, deltas: Iterable[GitDelta]):
@@ -242,7 +248,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == FileListModel.Role.Decoration2:
             if settings.prefs.lfsAware:
-                # Cache LFS pointer on demand
+                # Cache LFS pointer on demand as the file scrolls into view
                 if delta.new.lfs.state == LfsPointerState.Unknown:
                     delta.cacheLfsPointers(self.repo, self.commitId)
 

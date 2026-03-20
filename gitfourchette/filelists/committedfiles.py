@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -101,8 +101,9 @@ class CommittedFiles(FileList):
         actions += super().contextMenuActions(deltas)
         return actions
 
-    def setCommit(self, oid: Oid):
-        self.flModel.commitId = oid
+    def setCommitLocator(self, locator: NavLocator):
+        assert locator.context == NavContext.COMMITTED
+        self.flModel.navLocator = locator.coarse().replace(path="")
 
     def openNewRevision(self):
         self.openRevision(beforeCommit=False)
