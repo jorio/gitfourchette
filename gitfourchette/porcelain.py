@@ -296,6 +296,17 @@ def id7(obj: str | Oid | GitObject, n=7):
     return sid[:n]
 
 
+def commit_diff_pair(commit: Commit) -> tuple[Oid | None, Oid]:
+    try:
+        # Compare to first parent
+        a = commit.parent_ids[0]
+    except IndexError:
+        # Root commit, compare to empty tree
+        a = None
+
+    return a, commit.id
+
+
 def split_remote_branch_shorthand(remote_branch_name: str) -> tuple[str, str]:
     """
     Extract the remote name and branch name from a remote branch shorthand

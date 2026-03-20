@@ -40,7 +40,8 @@ class ExportCommitAsPatch(RepoTask):
             summary = summary[:50].strip()
             fileName = f"{self.repo.repo_name()} - {shortHash(oid)} - {summary}.patch"
 
-        tokens = GitDriver.buildDiffCommand(delta=None, commit=commit)
+        diffAB = commit_diff_pair(commit)
+        tokens = GitDriver.buildDiffCommand(diffAB)
         driver = yield from self.flowCallGit(*tokens)
         patch = driver.stdoutScrollback()
 
@@ -62,7 +63,7 @@ class ExportWorkdirAsPatch(RepoTask):
         patches = []
 
         # Diff the workdir to HEAD (except untracked files)
-        tokens = GitDriver.buildDiffCommand(delta=None, commit=None)
+        tokens = GitDriver.buildDiffCommand(None)
         driver = yield from self.flowCallGit(*tokens, "HEAD")
         patches.append(driver.stdoutScrollback())
 
@@ -74,7 +75,7 @@ class ExportWorkdirAsPatch(RepoTask):
 
         for delta in self.repoModel.workdirUnstagedDeltas:
             if delta.status == "?":  # Scan for untracked files
-                tokens = GitDriver.buildDiffCommand(delta, commit=None)
+                tokens = GitDriver.buildDiffCommand(delta)
                 driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patches.append(driver.stdoutScrollback())
 
@@ -91,7 +92,7 @@ class ExportWorkdirAsPatch(RepoTask):
 
 
 class ExportPatchCollection(RepoTask):
-    def flow(self, deltas: list[GitDelta], commit: Commit):
+    def flow(self, deltas: list[GitDelta]):
         names = []
         patches = []
 
@@ -102,7 +103,7 @@ class ExportPatchCollection(RepoTask):
             names.append(name)
 
             # Get patch (run 'git diff')
-            tokens = GitDriver.buildDiffCommand(delta, commit)
+            tokens = GitDriver.buildDiffCommand(delta)
             driver = yield from self.flowCallGit(*tokens, autoFail=False)
             patch = driver.stdoutScrollback()
             patches.append(patch)

@@ -14,7 +14,7 @@ from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern, LfsObjectCacheMissingError
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, NULL_OID, pygit2_version_at_least
+from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, pygit2_version_at_least
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
@@ -40,6 +40,7 @@ class GitDeltaFile:
     id: str = HexHash0000
     mode: FileMode = FileMode.UNREADABLE
     source: NavContext = NavContext.EMPTY
+    sourceCommit: Oid | None = None
 
     diskStat: tuple[int, int] = _NoDiskStat
     """
@@ -183,7 +184,7 @@ class GitDeltaFile:
         _, size = self.stat(repo)
         return size
 
-    def cacheLfsPointer(self, repo: Repo, commitId: Oid, checkOrKnownValue: AttrCheck | str):
+    def cacheLfsPointer(self, repo: Repo, checkOrKnownValue: AttrCheck | str):
         # No-op if LFS pointer already resolved
         if self.lfs.state != LfsPointerState.Unknown:
             return
@@ -198,7 +199,7 @@ class GitDeltaFile:
             attr = checkOrKnownValue
         else:
             check = checkOrKnownValue
-            attr = repo.get_attr(self.path, "filter", check, commitId)
+            attr = repo.get_attr(self.path, "filter", check, self.sourceCommit)
 
         # File must have 'lfs' filter attribute past this point
         if attr != "lfs":
@@ -207,7 +208,7 @@ class GitDeltaFile:
 
         # Unstaged: Force read data from wd
         if self.source.isDirty():
-            assert commitId == NULL_OID
+            assert self.sourceCommit is None
             objectPath = repo.in_workdir(self.path)
             self.lfs = LfsPointer(LfsPointerState.UnstagedTentative, objectPath=objectPath)
             return

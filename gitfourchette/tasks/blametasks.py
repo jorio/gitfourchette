@@ -138,7 +138,8 @@ class OpenBlame(RepoTask):
 
     def _refineWithDelta(self, node: Revision):
         commit = self.repo.peel_commit(node.commitId)
-        tokens = GitDriver.buildDiffRawCommand(commit)
+        diffAB = commit_diff_pair(commit)
+        tokens = GitDriver.buildDiffRawCommand(diffAB)
         driver = yield from self.flowCallGit(*tokens)
         deltas = driver.readDiffRawZ()
         try:
@@ -148,7 +149,6 @@ class OpenBlame(RepoTask):
             node.path = delta.new.path
         node.status = delta.status
         return delta
-
 
 
 class BlameRevision(RepoTask):

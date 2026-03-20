@@ -176,7 +176,8 @@ class CommittedFiles(FileList):
 
         self.confirmBatch(run, title, _("Really export <b>{n} files</b>?"))
 
-    def getFileRevisionInfo(self, delta: GitDelta, beforeCommit: bool = False) -> tuple[str, GitDeltaFile]:
+    @classmethod
+    def getFileRevisionInfo(cls, delta: GitDelta, beforeCommit: bool = False) -> tuple[str, GitDeltaFile]:
         if beforeCommit:
             diffFile = delta.old
             if delta.status == "A":
@@ -186,7 +187,8 @@ class CommittedFiles(FileList):
             if delta.status == "D":
                 raise FileNotFoundError(errno.ENOENT, _("This file was deleted by the commit."), diffFile.path)
 
-        atSuffix = shortHash(self.commitId)
+        atCommit = delta.new.sourceCommit
+        atSuffix = shortHash(atCommit)
         if beforeCommit:
             atSuffix = F"before-{atSuffix}"
 
@@ -206,7 +208,7 @@ class CommittedFiles(FileList):
 
     def wantOpenDiffInNewWindow(self):
         def run(delta: GitDelta):
-            locator = NavLocator(self.navContext, self.commitId, delta.new.path)
+            locator = self.flModel.navLocator.replace(path=delta.new.path)
             LoadPatchInNewWindow.invoke(self, delta, locator)
 
         self.confirmBatch(run, _("Open diff in new window"), _("Really open <b>{n} windows</b>?"))

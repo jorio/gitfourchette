@@ -188,16 +188,6 @@ class FileList(QListView):
         return self.flModel.navContext
 
     @property
-    def commitId(self) -> Oid:
-        return self.flModel.commitId
-
-    @property
-    def commitObject(self) -> Commit | None:
-        if self.commitId == NULL_OID:
-            return None
-        return self.repo.peel_commit(self.commitId)
-
-    @property
     def flModel(self) -> FileListModel:
         model = self.model()
         assert isinstance(model, FileListModel)
@@ -507,12 +497,13 @@ class FileList(QListView):
 
         self.selectedCountChanged.emit(numSelectedTotal)
 
-        if current and current.isValid():
-            locator = self.getNavLocatorForIndex(current)
-            locator = locator.withExtraFlags(NavFlags.BypassFileSelect)
-            Jump.invoke(self, locator)
-        else:
+        if not current or not current.isValid():
             self.emitNothingClicked()
+            return
+
+        locator: NavLocator = self.flModel.data(current, FileListModel.Role.Locator)
+        locator = locator.withExtraFlags(NavFlags.BypassFileSelect)
+        Jump.invoke(self, locator)
 
     def highlightCounterpart(self, loc: NavLocator):
         try:
@@ -538,10 +529,6 @@ class FileList(QListView):
             newIndex = model.index(newRow, 0)
             self.selectionModel().setCurrentIndex(newIndex, QItemSelectionModel.SelectionFlag.NoUpdate)
             self.update(newIndex)
-
-    def getNavLocatorForIndex(self, index: QModelIndex):
-        filePath = index.data(FileListModel.Role.FilePath)
-        return NavLocator(self.navContext, self.commitId, filePath)
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
@@ -611,14 +598,14 @@ class FileList(QListView):
 
     def savePatchAs(self):
         deltas = list(self.selectedDeltas())
-        ExportPatchCollection.invoke(self, deltas, self.commitObject)
+        ExportPatchCollection.invoke(self, deltas)
 
     def revertPaths(self):
         # TODO: Convert into a task? (So we can build the patch asynchronously)
         deltas = list(self.selectedDeltas())
         assert len(deltas) == 1
         delta = deltas[0]
-        tokens = GitDriver.buildDiffCommand(delta, self.commitObject)
+        tokens = GitDriver.buildDiffCommand(delta)
         patchData = GitDriver.runSync(*tokens, directory=self.repo.workdir, strict=True)
         ApplyPatchData.invoke(self, patchData, reverse=True,
                               title=_("Revert changes in file"),
@@ -737,9 +724,11 @@ class FileList(QListView):
         def run(delta: GitDelta):
             if delta.context.isWorkdir():
                 path = delta.old.path
+                commit = NULL_OID
             else:
                 path = delta.new.path
-            OpenBlame.invoke(self, path, self.commitId)
+                commit = delta.new.sourceCommit
+            OpenBlame.invoke(self, path, commit)
 
         self.confirmBatch(run, OpenBlame.name(), _("Really open <b>{n} windows</b>?"))
 

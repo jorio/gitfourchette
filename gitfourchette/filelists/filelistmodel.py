@@ -41,14 +41,13 @@ def deltaModeText(om: FileMode, nm: FileMode) -> str:
 def fileTooltip(
         repo: Repo,
         delta: GitDelta,
-        navContext: NavContext,
-        commitId: Oid,
         isCounterpart: bool = False
 ) -> str:
     locale = QLocale()
     of = delta.old
     nf = delta.new
     sc = delta.status
+    navContext = delta.context
 
     text = "<table style='white-space: pre'>"
 
@@ -101,7 +100,7 @@ def fileTooltip(
 
     # Cache LFS pointer info
     if settings.prefs.lfsAware:
-        delta.cacheLfsPointers(repo, commitId)
+        delta.cacheLfsPointers(repo)
 
     # Size (if applicable)
     if size != -1:
@@ -151,7 +150,8 @@ class FileListModel(QAbstractListModel):
     class Role:
         Delta = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
         FilePath = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 1)
-        Decoration2 = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 2)
+        Locator = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 2)
+        Decoration2 = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 3)  # LFS icons
 
     deltas: list[GitDelta]
     fileRows: dict[str, int]
@@ -175,10 +175,6 @@ class FileListModel(QAbstractListModel):
         self.navContext = navContext
         self.navLocator = NavLocator.Empty
         self.clear()
-
-    @property
-    def commitId(self) -> Oid:
-        return self.navLocator.commit
 
     @property
     def repo(self) -> Repo:
@@ -228,6 +224,12 @@ class FileListModel(QAbstractListModel):
             # TODO: Canonical path for submodules?
             return delta.new.path
 
+        elif role == FileListModel.Role.Locator:
+            if self.navLocator:
+                return self.navLocator.replace(path=delta.new.path)
+            else:
+                return NavLocator(delta.new.source, path=delta.new.path)
+
         elif role == Qt.ItemDataRole.DisplayRole:
             # TODO: Canonical path for submodules?
             text = abbreviatePath(delta.new.path, settings.prefs.pathDisplayStyle, allowNul=True)
@@ -250,7 +252,7 @@ class FileListModel(QAbstractListModel):
             if settings.prefs.lfsAware:
                 # Cache LFS pointer on demand as the file scrolls into view
                 if delta.new.lfs.state == LfsPointerState.Unknown:
-                    delta.cacheLfsPointers(self.repo, self.commitId)
+                    delta.cacheLfsPointers(self.repo)
 
                 if delta.old.lfs and not delta.new.lfs:
                     return stockIcon("git-lfs-remove")
@@ -263,7 +265,7 @@ class FileListModel(QAbstractListModel):
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             isCounterpart = row == self.highlightedCounterpartRow
-            return fileTooltip(self.repo, delta, self.navContext, self.commitId, isCounterpart)
+            return fileTooltip(self.repo, delta, isCounterpart)
 
         elif role == Qt.ItemDataRole.SizeHintRole:
             return QSize(-1, self.parentWidget.fontMetrics().height())

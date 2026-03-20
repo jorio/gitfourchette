@@ -23,7 +23,7 @@ from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
-from gitfourchette.porcelain import NULL_OID, Oid
+from gitfourchette.porcelain import NULL_OID, Oid, commit_diff_pair
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF
 from gitfourchette.tasks import TaskPrereqs
@@ -38,15 +38,26 @@ _submoduleIndexLinePattern = re.compile(r"^index ([\da-f]+)\.\.([\da-f]+)", re.M
 
 def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     """
-    Refresh stage/dirty diffs in the RepoModel.
+    Refresh staged/dirty GitDeltas in the RepoModel.
     """
+
+    # Get oid of the head commit (or None if unborn).
+    # It will be stored in GitDeltaFile.old in staged files.
+    if task.repo.head_is_unborn:
+        headCommitId = None
+    else:
+        headCommitId = task.repo.head_commit_id
+
+    # Run 'git status'
     gitStatus = yield from task.flowCallGit(
         *argsIf(not allowWriteIndex, "--no-optional-locks"),
         "status",
         "--porcelain=v2",
         "-z",
         "--untracked-files=all")
-    numEntries, stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z()
+
+    # Get GitDelta lists from 'git status' output
+    numEntries, stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z(headCommitId)
 
     if APP_DEBUG:
         assert not any(d.submoduleStatus.startswith("S") for d in stagedDeltas), "only expecting full submo status in unstaged deltas"
@@ -72,7 +83,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
                 fileName = tokens[i]
                 value = tokens[i + 2]
                 delta = unstagedTable[fileName]
-                delta.new.cacheLfsPointer(task.repo, NULL_OID, value)
+                delta.new.cacheLfsPointer(task.repo, value)
 
     # Fill in submodule commit hashes.
     # (This might be parallelizable if we've got tons of modified submodules)
@@ -434,9 +445,18 @@ class Jump(RepoTask):
 
             # Load commit
             compareFrom = locator.comparedCommit()
-            tokens = GitDriver.buildDiffRawCommand(commit, fromCommitId=compareFrom)
+            if compareFrom is not None:
+                diffAB = (compareFrom, commit.id)
+            else:
+                diffAB = commit_diff_pair(commit)
+            tokens = GitDriver.buildDiffRawCommand(diffAB)
             driver = yield from self.flowCallGit(*tokens)
             deltas = driver.readDiffRawZ()
+
+            # Fill out source commits
+            for d in deltas:
+                d.old.sourceCommit = diffAB[0]
+                d.new.sourceCommit = diffAB[1]
 
             summary = self.repo.peel_commit(locator.commit).message.strip()
 

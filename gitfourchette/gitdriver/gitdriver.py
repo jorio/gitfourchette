@@ -21,7 +21,7 @@ from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
 from gitfourchette.nav import NavContext
-from gitfourchette.porcelain import version_to_tuple, Commit, Oid, EMPTYTREE_OID
+from gitfourchette.porcelain import version_to_tuple, Oid, EMPTYTREE_OID
 from gitfourchette.qt import *
 
 logger = logging.getLogger(__name__)
@@ -273,7 +273,7 @@ class GitDriver(QProcess):
             for flag, oldHex, newHex, localRef in table
         }
 
-    def readStatusPorcelainV2Z(self) -> tuple[int, list[GitDelta], list[GitDelta]]:
+    def readStatusPorcelainV2Z(self, sourceCommit: Oid | None) -> tuple[int, list[GitDelta], list[GitDelta]]:
         stdout = self.stdoutScrollback()
         parser = parseGitStatus(stdout, self.workingDirectory())
         stagedDeltas = []
@@ -282,19 +282,24 @@ class GitDriver(QProcess):
         for staged, unstaged in parser:
             numEntries += 1
             if staged is not None:
+                staged.old.sourceCommit = sourceCommit
                 stagedDeltas.append(staged)
             if unstaged is not None:
                 unstagedDeltas.append(unstaged)
         return numEntries, stagedDeltas, unstagedDeltas
 
     @classmethod
-    def buildDiffRawCommand(cls, commit: Commit, fromCommitId: Oid | None = None):
-        compareFromTreeish = cls._compareFromTreeish(commit, fromCommitId)
+    def buildDiffRawCommand(cls, delta: tuple[Oid | None, Oid | None]) -> list[str]:
+        assert isinstance(delta, tuple)
+        a, b = delta
+        a = a if a is not None else EMPTYTREE_OID
+        b = b if b is not None else EMPTYTREE_OID
+
         return [
             "-c", "core.abbrev=no",
             "diff", "--raw", "-z",
-            str(compareFromTreeish),
-            str(commit.tree_id),
+            str(a),
+            str(b),
         ]
 
     def readDiffRawZ(self) -> list[GitDelta]:
@@ -305,9 +310,7 @@ class GitDriver(QProcess):
     @classmethod
     def buildDiffCommand(
             cls,
-            delta: GitDelta | None,
-            commit: Commit | None = None,
-            fromCommitId: Oid | None = None,
+            delta: GitDelta | tuple[Oid | None, Oid | None] | None,
             binary=True
     ) -> list[str]:
         tokens = [
@@ -315,18 +318,19 @@ class GitDriver(QProcess):
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
             *argsIf(binary, "--binary"),
-            *argsIf(delta is not None and delta.context == NavContext.STAGED, "--staged"),
         ]
 
-        # Append treeishes being compared
-        if commit is not None:
-            assert delta is None or delta.context == NavContext.COMMITTED
-            compareFromTreeish = cls._compareFromTreeish(commit, fromCommitId)
-            tokens.append(str(compareFromTreeish))
-            tokens.append(str(commit.tree_id))
+        if isinstance(delta, GitDelta):
+            if delta.context == NavContext.STAGED:
+                tokens.append("--staged")
+            elif delta.context == NavContext.COMMITTED:
+                # Append treeishes being compared
+                assert delta.new.sourceCommit
+                compareB = delta.new.sourceCommit
+                compareA = delta.old.sourceCommit or EMPTYTREE_OID  # emptytree if root commit
+                tokens += [str(compareA), str(compareB)]
 
-        # Append paths
-        if delta is not None:
+            # Append paths
             if delta.status == "?":  # untracked, compare to nothing
                 # --no-index is mandatory on Windows here
                 tokens += ["--no-index", "--", "/dev/null", delta.new.path]
@@ -334,6 +338,16 @@ class GitDriver(QProcess):
                 tokens += ["--", delta.old.path, delta.new.path]
             else:
                 tokens += ["--", delta.new.path]
+
+        elif isinstance(delta, tuple):
+            a, b = delta
+            a = a if a is not None else EMPTYTREE_OID
+            b = b if b is not None else EMPTYTREE_OID
+            tokens.append(str(a))
+            tokens.append(str(b))
+
+        else:
+            assert delta is None
 
         return tokens
 
@@ -359,21 +373,6 @@ class GitDriver(QProcess):
         ]
 
         return tokens
-
-    @classmethod
-    def _compareFromTreeish(
-            cls,
-            commit: Commit,
-            fromCommitId: Oid | None = None
-    ) -> Oid:
-        if fromCommitId is not None:
-            return fromCommitId
-
-        # Compare to first parent's tree (or empty tree if root commit)
-        try:
-            return commit.parents[0].tree_id
-        except IndexError:
-            return EMPTYTREE_OID
 
     def formatExitCode(self) -> str:
         code = self.exitCode()

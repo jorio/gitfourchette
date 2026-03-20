@@ -12,7 +12,7 @@ from gitfourchette.appconsts import APP_DEBUG
 from gitfourchette.gitdriver.gitconflict import GitConflict
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, NavContext
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState
-from gitfourchette.porcelain import Repo, Oid, NULL_OID
+from gitfourchette.porcelain import Repo
 
 
 @dataclasses.dataclass
@@ -40,7 +40,7 @@ class GitDelta:
     def isSubtreeCommitPatch(self) -> bool:
         return FileMode.COMMIT in (self.old.mode, self.new.mode)
 
-    def cacheLfsPointers(self, repo: Repo, newCommitId: Oid):
+    def cacheLfsPointers(self, repo: Repo):
         old = self.old
         new = self.new
 
@@ -52,21 +52,15 @@ class GitDelta:
             # Untracked/unstaged: No pointer yet
             old.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
-            try:
-                oldCommitId = repo[newCommitId].parent_ids[0]
-            except (KeyError, IndexError):
-                oldCommitId = newCommitId
-
-            if oldCommitId != NULL_OID:
+            if old.source == NavContext.COMMITTED:
                 oldCheck = AttrCheck.INCLUDE_COMMIT
             else:
                 assert not old.source.isDirty(), "old source cannot be dirty"
                 oldCheck = AttrCheck.INDEX_THEN_FILE
+                if not repo.head_is_unborn:
+                    oldCheck |= AttrCheck.INCLUDE_HEAD
 
-            if oldCommitId == NULL_OID and not repo.head_is_unborn:
-                oldCheck |= AttrCheck.INCLUDE_HEAD
-
-            old.cacheLfsPointer(repo, oldCommitId, oldCheck)
+            old.cacheLfsPointer(repo, oldCheck)
 
         # Cache "new" LFS pointer
         if new.lfs.state:
@@ -76,7 +70,7 @@ class GitDelta:
             # Deletion: No pointer
             new.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
-            if newCommitId != NULL_OID:
+            if new.source == NavContext.COMMITTED:
                 newCheck = AttrCheck.INCLUDE_COMMIT
             elif new.source.isDirty():
                 # Note: If .gitattributes itself contains unstaged changes, then
@@ -88,4 +82,4 @@ class GitDelta:
             else:
                 newCheck = AttrCheck.INDEX_ONLY
 
-            new.cacheLfsPointer(repo, newCommitId, newCheck)
+            new.cacheLfsPointer(repo, newCheck)
