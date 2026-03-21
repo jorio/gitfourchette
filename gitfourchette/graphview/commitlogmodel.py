@@ -42,6 +42,7 @@ class CommitLogModel(QAbstractListModel):
         AuthorColumnX   = Qt.ItemDataRole.UserRole + 3
         SpecialRow      = Qt.ItemDataRole.UserRole + 4
         BlameRevision   = Qt.ItemDataRole.UserRole + 5  # for BlameScrubber
+        ComparisonSide  = Qt.ItemDataRole.UserRole + 6  # A/B commit diffs
 
     repoModel: RepoModel
     _extraRow: SpecialRow
@@ -54,6 +55,7 @@ class CommitLogModel(QAbstractListModel):
         self.repoModel = repoModel
         self._authorColumnX = -1
         self._toolTipZones = {}
+        self.commitDiffAB = ()
 
         if repoModel.truncatedHistory:
             self._extraRow = SpecialRow.TruncatedHistory
@@ -97,15 +99,14 @@ class CommitLogModel(QAbstractListModel):
             try:
                 return self.repoModel.commitSequence[row]
             except IndexError:
-                pass
+                return None
 
         elif role == CommitLogModel.Role.Oid:
             try:
                 commit = self.repoModel.commitSequence[row]
-                if commit is not None:
-                    return commit.id
-            except IndexError:
-                pass
+                return commit.id
+            except (IndexError, AttributeError):
+                return None
 
         elif role == CommitLogModel.Role.SpecialRow:
             if row == 0:
@@ -114,6 +115,16 @@ class CommitLogModel(QAbstractListModel):
                 return SpecialRow.Commit
             else:
                 return self._extraRow
+
+        elif role == CommitLogModel.Role.ComparisonSide:
+            if not self.commitDiffAB:
+                return ""
+            try:
+                commit = self.repoModel.commitSequence[row]
+                i = self.commitDiffAB.index(commit.id)
+                return "AB"[i]
+            except (IndexError, AttributeError, ValueError):
+                return ""
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             tip = ""

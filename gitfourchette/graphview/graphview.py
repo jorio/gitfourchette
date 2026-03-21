@@ -311,6 +311,13 @@ class GraphView(QListView):
         Jump.invoke(self, locator)
 
     def selectRowForLocator(self, locator: NavLocator):
+        # Update A/B commits in model
+        commitDiffSource = locator.comparedCommit()
+        commitDiffAB = () if commitDiffSource is None else (commitDiffSource, locator.commit)
+        if commitDiffAB != self.clModel.commitDiffAB:
+            self.clModel.commitDiffAB = commitDiffAB
+            self.viewport().update()  # Redraw A/B icons (or lack thereof)
+
         if locator.hasFlags(NavFlags.BypassCommitSelect):
             return
 

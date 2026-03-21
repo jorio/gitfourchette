@@ -34,6 +34,7 @@ class BlameScrubberDelegate(CommitLogDelegate):
             self,
             painter: QPainter,
             option: QStyleOptionViewItem,
+            index: QModelIndex,
             rect: QRect,
             oid: Oid,
             toolTips: list[CommitToolTipZone]

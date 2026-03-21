@@ -43,6 +43,10 @@ REFBOXES = [
     # Mounted
     RefBox("FAKEREF_FUSEMOUNT", "git-mount", QColor(Qt.GlobalColor.gray)),
 
+    # Commit comparison
+    RefBox("FAKEREF_COMPAREA", "compare-a", QColor(Qt.GlobalColor.red)),
+    RefBox("FAKEREF_COMPAREB", "compare-b", QColor(Qt.GlobalColor.blue)),
+
     # Fallback
     RefBox("", "hint", QColor(Qt.GlobalColor.gray), keepPrefix=True)
 ]
@@ -258,7 +262,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.restore()
 
         # ------ Highlight searched hash
-        if searchTerm and searchTermLooksLikeHash and commit and str(commit).startswith(searchTerm):
+        if searchTerm and searchTermLooksLikeHash and oid is not None and str(oid).startswith(searchTerm):
             x1 = 0
             x2 = min(len(hashText), len(searchTerm)) * hcw
             SearchBar.highlightNeedle(painter, rect, hashText, 0, len(searchTerm), x1, x2)
@@ -271,7 +275,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             rect.setRight(rightBound)
 
         # ------ Private
-        self.paintPrivate(painter, option, rect, oid, toolTips)
+        self.paintPrivate(painter, option, index, rect, oid, toolTips)
 
         # ------ Message
         # use muted color for foreign commit messages if not selected
@@ -612,8 +616,9 @@ class CommitLogDelegate(QStyledItemDelegate):
             self,
             painter: QPainter,
             option: QStyleOptionViewItem,
+            index: QModelIndex,
             rect: QRect,
-            oid: Oid,
+            oid: Oid | None,
             toolTips: list[CommitToolTipZone]
     ):
         """
@@ -626,6 +631,14 @@ class CommitLogDelegate(QStyledItemDelegate):
             graphRect = QRect(rect)
             paintGraphFrame(painter, graphRect, oid, self.repoModel.graph, self.repoModel.hiddenCommits)
             rect.setLeft(graphRect.right())
+
+        # ------ A/B icon
+        abSide = index.data(CommitLogModel.Role.ComparisonSide)
+        if abSide:
+            painter.save()
+            self._paintRefbox(painter, rect, toolTips, f"FAKEREF_COMPARE{abSide}")
+            toolTips[-1].data = _("{0} side in the current comparison between two commits", tquo(abSide))
+            painter.restore()
 
         # ------ Mount icon
         if self.mounts.isMounted(oid):
