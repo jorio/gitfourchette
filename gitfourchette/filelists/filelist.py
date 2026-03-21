@@ -36,9 +36,9 @@ class FileListDelegate(QStyledItemDelegate):
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         widget: FileList = option.widget
-        hasFocus = option.state & QStyle.StateFlag.State_HasFocus
-        isSelected = option.state & QStyle.StateFlag.State_Selected
-        colorGroup = QPalette.ColorGroup.Normal if hasFocus else QPalette.ColorGroup.Inactive
+        isActive = bool(option.state & QStyle.StateFlag.State_Active)
+        isSelected = bool(option.state & QStyle.StateFlag.State_Selected)
+        colorGroup = QPalette.ColorGroup.Active if isActive else QPalette.ColorGroup.Inactive
 
         # Gather data from model
         icon: QIcon = index.data(Qt.ItemDataRole.DecorationRole)

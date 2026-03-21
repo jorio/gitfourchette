@@ -141,10 +141,10 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         toolTips: list[CommitToolTipZone] = []
 
-        hasFocus = option.state & QStyle.StateFlag.State_HasFocus
-        isSelected = option.state & QStyle.StateFlag.State_Selected
+        isActive = bool(option.state & QStyle.StateFlag.State_Active)
+        isSelected = bool(option.state & QStyle.StateFlag.State_Selected)
+        colorGroup = QPalette.ColorGroup.Active if isActive else QPalette.ColorGroup.Inactive
         palette: QPalette = option.palette
-        colorGroup = QPalette.ColorGroup.Normal if hasFocus else QPalette.ColorGroup.Inactive
 
         # Draw default background
         if fillBackground:
