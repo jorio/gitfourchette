@@ -6,6 +6,7 @@
 
 from collections.abc import Callable
 
+from gitfourchette import colors
 from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
@@ -27,9 +28,9 @@ class ContextHeader(QFrame):
 
         layout = QHBoxLayout(self)
 
-        self.mainLabel = QElidedLabel(self)
+        self.mainLabel = QLabel(self)
 
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(2, 0, 0, 0)
         layout.addWidget(self.mainLabel)
 
         self.maximizeButton = self.addButton(_("Maximize"), permanent=True)
@@ -84,20 +85,29 @@ class ContextHeader(QFrame):
 
         fromCommitId = locator.comparedCommit()
 
+        introStyle = "font-weight: 500;"
+        mainText = " "
+
         if fromCommitId is not None:
-            mainText = " ".join([
-                _("Comparing two commits:"),
-                shortHash(fromCommitId),
-                "\u2192",
-                shortHash(locator.commit),
-            ])
-            self.mainLabel.setText(mainText)
+            mainText = (
+                "<span style='{introStyle}'>{intro}{colon}</span> "
+                "<span style='color: {red}; font-weight: bold;'>a: </span> {a} \u2192 "
+                "<span style='color: {blue}; font-weight: bold;'>b: </span> {b}"
+            ).format(introStyle=introStyle, intro=_("Comparing commits"), colon=_(":"),
+                     red=colors.red.name(), blue=colors.blue.name(),
+                     a=shortHash(fromCommitId), b=shortHash(locator.commit))
+
+            swapButton = self.addButton(_("Swap A/B"), lambda: Jump.invoke(self, self.locator.swapComparison()))
+            swapButton.setToolTip(_("Swap the “old” and “new” sides in the commit comparison"))
+
         elif locator.selectedCommits:
-            self.mainLabel.setText(" ")
+            pass
+
         elif locator.context == NavContext.COMMITTED:
             kind = _p("noun", "Stash") if isStash else _p("noun", "Commit")
             summary, _continued = messageSummary(commitMessage)
-            self.mainLabel.setText(f"{kind} {shortHash(locator.commit)} – {summary}")
+            mainText = "<span style='{introStyle}'>{intro} {hash}{colon}</span> {summary}".format(
+                introStyle=introStyle, intro=kind, hash=shortHash(locator.commit), colon=_(":"), summary=escape(summary))
 
             infoButton = self.addButton(_("Info"), lambda: GetCommitInfo.invoke(self, self.locator.commit))
             infoButton.setToolTip(_("Show details about this commit") if not isStash
@@ -111,7 +121,6 @@ class ContextHeader(QFrame):
                 applyButton.setToolTip(_("Apply this stash"))
 
         elif locator.context.isWorkdir():
-            self.mainLabel.setText(_("Working Directory"))
-        else:
-            # Special context (e.g. history truncated)
-            self.mainLabel.setText(" ")
+            mainText = _("Working Directory")
+
+        self.mainLabel.setText(mainText)

@@ -230,6 +230,14 @@ class NavLocator:
         else:
             return None
 
+    def swapComparison(self) -> NavLocator:
+        compared = self.comparedCommit()
+        selected = self.selectedCommits
+        assert compared
+        assert selected
+        selected = tuple(reversed(selected))
+        return self.replace(commit=compared, selectedCommits=selected)
+
     @staticmethod
     def parseUrl(url: QUrl):
         assert url.authority() == NavLocator.URL_AUTHORITY

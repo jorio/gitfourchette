@@ -446,6 +446,14 @@ def testCompare2Commits(tempDir, mainWindow):
     assert findTextInWidget(rw.diffArea.diffHeader, r"6e1475.+ce112d")
     assert rw.diffView.isVisible()
 
+    # Swap comparison
+    swapButton = next(b for b in rw.diffArea.contextHeader.findChildren(QToolButton)
+                      if findTextInWidget(b, r"swap a.b"))
+    swapButton.click()
+    assert qlvGetRowData(rw.committedFiles) == ["a/a1", "c/c2.txt"]
+    assert findTextInWidget(rw.diffArea.contextHeader.mainLabel, r"comparing.+ce112d.+6e1475")
+    assert findTextInWidget(rw.diffArea.diffHeader, r"ce112d.+6e1475")
+
 
 def testSelect3PlusCommits(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
