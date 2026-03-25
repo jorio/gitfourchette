@@ -89,6 +89,7 @@ class ToolPresets:
         "Konsole"       : "konsole -e $COMMAND",
         "Ptyxis"        : "ptyxis -x $COMMAND",
         "st"            : "st -e $COMMAND",
+        "Terminator"    : "terminator -x $COMMAND",
         "urxvt"         : "urxvt -e $COMMAND",
         "WezTerm"       : "wezterm -e $COMMAND",
         "xterm"         : "xterm -e $COMMAND",
