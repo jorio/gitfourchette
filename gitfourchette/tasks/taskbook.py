@@ -159,8 +159,12 @@ class TaskBook:
             tasks.FetchRemotes: makeMultiShortcut("Ctrl+Shift+R"),
             tasks.JumpBack: makeMultiShortcut("Ctrl+Left" if MACOS else "Alt+Left"),
             tasks.JumpForward: makeMultiShortcut("Ctrl+Right" if MACOS else "Alt+Right"),
+
+            # macOS: ⌘H is reserved by the window manager, use ^H instead.
+            # macOS: For consistency with ^H, use ^G (not ⌘G) to jump to the workdir.
             tasks.JumpToHEAD: makeMultiShortcut("Meta+H" if MACOS else "Ctrl+H"),
             tasks.JumpToUncommittedChanges: makeMultiShortcut("Meta+G" if MACOS else "Ctrl+G"),
+
             tasks.NewBranchFromHead: makeMultiShortcut("Ctrl+B"),
             tasks.NewCommit: makeMultiShortcut(QKeySequence.StandardKey.Save),
             tasks.NewStash: makeMultiShortcut("Ctrl+Alt+S"),

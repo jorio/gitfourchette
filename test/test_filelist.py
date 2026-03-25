@@ -8,6 +8,7 @@ import os.path
 
 from gitfourchette.blameview.blamewindow import BlameWindow
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
+from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.settings import FileListClick
 
@@ -227,9 +228,9 @@ def testSearchFileList(tempDir, mainWindow):
     QTest.qWait(0)
     assert not searchBar.isRed()
 
-    # Send StandardKey instead of "F3" because the bindings are different on macOS
-    keyNext = QKeySequence.StandardKey.FindNext
-    keyPrev = QKeySequence.StandardKey.FindPrevious
+    # Match main window Edit → Find Next/Previous (F3 on non-macOS; StandardKey on macOS).
+    keyNext = GlobalShortcuts.findNext[0]
+    keyPrev = GlobalShortcuts.findPrevious[0]
 
     assert qlvGetSelection(fileList) == ["a/a1.txt"]
     QTest.keySequence(rw, keyNext)
@@ -249,10 +250,10 @@ def testSearchFileList(tempDir, mainWindow):
     QTest.qWait(0)
     assert searchBar.isRed()
 
-    QTest.keySequence(rw, QKeySequence.StandardKey.FindNext)
+    QTest.keySequence(rw, keyNext)
     acceptQMessageBox(rw, "not found")
 
-    QTest.keySequence(rw, QKeySequence.StandardKey.FindPrevious)
+    QTest.keySequence(rw, keyPrev)
     acceptQMessageBox(rw, "not found")
 
     if QT5:
@@ -302,10 +303,10 @@ def testSearchEmptyFileList(tempDir, mainWindow):
     QTest.qWait(0)
     assert searchBar.isRed()
 
-    QTest.keySequence(rw, QKeySequence.StandardKey.FindNext)
+    QTest.keySequence(rw, GlobalShortcuts.findNext[0])
     acceptQMessageBox(rw, "not found")
 
-    QTest.keySequence(rw, QKeySequence.StandardKey.FindPrevious)
+    QTest.keySequence(rw, GlobalShortcuts.findPrevious[0])
     acceptQMessageBox(rw, "not found")
 
 

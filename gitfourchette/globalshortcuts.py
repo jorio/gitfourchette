@@ -28,9 +28,10 @@ class GlobalShortcuts:
         assert QApplication.instance(), "QApplication must have been created before instantiating QKeySequence"
         assert not cls._initialized, "GlobalShortcuts already initialized"
 
-        # On GNOME and Windows, Ctrl+G is one of the predefined shortcuts for "Find Next",
-        # but this shortcut should be reserved for "Go to Uncommitted Changes".
-        overrideCtrlG = GNOME or WINDOWS
+        # Non-KDE environments (incl. GNOME, Cinnamon, Windows) typically bind
+        # FindNext to Ctrl+G, but this shortcut should be reserved for
+        # JumpToUncommittedChanges (except on macOS where we use Meta+G).
+        overrideCtrlG = not MACOS
 
         cls.find = makeMultiShortcut(QKeySequence.StandardKey.Find, "/")
         cls.findNext = makeMultiShortcut("F3" if overrideCtrlG else QKeySequence.StandardKey.FindNext)
