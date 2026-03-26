@@ -342,13 +342,14 @@ class Jump(RepoTask):
 
         self.showLocatorInGraphView(locator)
 
-        if locator.path == str(SpecialRow.EndOfShallowHistory):
+        special = SpecialRow(int(locator.path))
+
+        if special == SpecialRow.EndOfShallowHistory:
             sde = SpecialDiffError(
                 _("Shallow clone – End of available history."),
                 _("More commits may be available in a full clone."))
-            raise Jump.Result(locator, _("Shallow clone – End of commit history"), sde)
 
-        elif locator.path == str(SpecialRow.TruncatedHistory):
+        elif special == SpecialRow.TruncatedHistory:
             from gitfourchette import settings
             expandSome = makeInternalLink("expandlog")
             expandAll = makeInternalLink("expandlog", n=str(0))
@@ -364,10 +365,24 @@ class Jump(RepoTask):
                 _("History truncated to {0} commits.", locale.toString(self.repoModel.numRealCommits)),
                 _("More commits may be available."),
                 longform=toRoomyUL(options))
-            raise Jump.Result(locator, _("History truncated"), sde)
+
+        elif special == SpecialRow.CannotCompareRows:
+            sde = SpecialDiffError(
+                _("The selected items cannot be compared."),
+                icon="SP_MessageBoxWarning")
+
+        elif special == SpecialRow.TooManyRowsSelected:
+            controlKey = QKeySequence(Qt.Key.Key_Control).toString(QKeySequence.SequenceFormat.NativeText)
+            numRows = len(locator.selectedCommits)
+            sde = SpecialDiffError(
+                _n("{n} item selected", "{n} items selected", n=numRows),
+                _("You can compare up to two commits at a time. Tip: hold {0} "
+                  "while making a selection to compare 2 discontiguous commits.", controlKey))
 
         else:
-            raise NotImplementedError(f"Unsupported special locator: {locator}")
+            raise NotImplementedError(f"Unsupported special locator: {special}")
+
+        raise Jump.Result(locator, "", sde)
 
     def showCommit(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
         """
@@ -417,20 +432,6 @@ class Jump(RepoTask):
 
         # Attempt to show the commit in GraphView
         self.showLocatorInGraphView(locator, isStash=isStash)
-
-        if len(locator.selectedCommits) > 2:
-            with QSignalBlockerContext(flv):  # Don't emit jump signals
-                flv.clear()
-                flv.setContents([])
-                area.committedHeader.setText(" ")
-                area.committedHeader.setToolTip("")
-            header = " "
-            controlKey = QKeySequence(Qt.Key.Key_Control).toString(QKeySequence.SequenceFormat.NativeText)
-            sde = SpecialDiffError(
-                _n("{n} commit selected", "{n} commits selected", n=len(locator.selectedCommits)),
-                _("You can compare up to two commits at a time. Tip: hold {0} "
-                  "while making a selection to compare 2 discontiguous commits.", controlKey))
-            raise Jump.Result(locator, header, sde)
 
         if (not locator.hasFlags(NavFlags.ForceDiff)
                 and locator.commit == rw.navLocator.commit

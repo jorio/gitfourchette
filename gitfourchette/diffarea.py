@@ -416,7 +416,7 @@ class DiffArea(QWidget):
                 hasFile = fileList.selectFile(locator.path)
 
             # Blank selection?
-            if not hasFile:
+            if not hasFile and locator.context != NavContext.SPECIAL:
                 locator = locator.replace(path="")
                 fileList.clearSelection()
 

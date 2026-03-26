@@ -25,10 +25,18 @@ class CommitToolTipZone:
 
 class SpecialRow(enum.IntEnum):
     Invalid = 0
+
+    # Dedicated rows in the commit log
     UncommittedChanges = enum.auto()
     Commit = enum.auto()
     TruncatedHistory = enum.auto()
     EndOfShallowHistory = enum.auto()
+
+    # The items below are not dedicated rows in the commit log per se.
+    # They are special kinds of SpecialDiffError displayed when an invalid
+    # selection is made in GraphView.
+    TooManyRowsSelected = enum.auto()
+    CannotCompareRows = enum.auto()
 
 
 class CommitLogModel(QAbstractListModel):

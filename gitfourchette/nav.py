@@ -135,6 +135,9 @@ class NavLocator:
                 assert hasCommit or hasRef
                 assert hasCommit ^ hasRef
                 assert not hasRef or self.ref == "HEAD" or self.ref.startswith("refs/")
+            elif self.context == NavContext.SPECIAL:
+                assert self.path, "special locator requires 'path' field (a SpecialRow value)"
+                assert not hasRef
             else:
                 assert not hasCommit
                 assert not hasRef
@@ -384,6 +387,10 @@ class NavHistory:
         If refining isn't possible, this function returns the same locator as
         the input.
         """
+
+        # Never refine special locators
+        if locator.context == NavContext.SPECIAL:
+            return locator
 
         originalLocator = locator
 

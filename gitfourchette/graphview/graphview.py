@@ -299,12 +299,17 @@ class GraphView(QListView):
         elif special == SpecialRow.Commit:
             oid = current.data(CommitLogModel.Role.Oid)
             locator = NavLocator(NavContext.COMMITTED, commit=oid)
-
-            if len(indexes) > 1:
-                oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
-                locator = locator.replace(selectedCommits=oids)
         else:
             locator = NavLocator(NavContext.SPECIAL, path=str(special))
+
+        if len(indexes) > 1:
+            oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
+            locator = locator.replace(selectedCommits=oids)
+
+            if len(indexes) > 2:
+                locator = locator.replace(context=NavContext.SPECIAL, path=str(SpecialRow.TooManyRowsSelected))
+            elif any(o in (UC_FAKEID, None) for o in oids):
+                locator = locator.replace(context=NavContext.SPECIAL, path=str(SpecialRow.CannotCompareRows))
 
         locator = locator.withExtraFlags(NavFlags.BypassCommitSelect)
 
@@ -343,9 +348,14 @@ class GraphView(QListView):
             index = self.clFilter.index(0, 0)
             assert index.data(CommitLogModel.Role.SpecialRow) == SpecialRow.UncommittedChanges
         elif locator.context == NavContext.SPECIAL:
-            assert self.clModel._extraRow != SpecialRow.Invalid, "no special row!"
-            index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
-            assert locator.path == str(index.data(CommitLogModel.Role.SpecialRow))
+            special = SpecialRow(int(locator.path))
+            if special in [SpecialRow.CannotCompareRows, SpecialRow.TooManyRowsSelected]:
+                index = self.getFilterIndexForCommit(locator.commit)
+            else:
+                assert self.clModel._extraRow != SpecialRow.Invalid, "no special row!"
+                assert self.clModel._extraRow == special
+                index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
+                assert index.data(CommitLogModel.Role.SpecialRow) == special
         else:
             raise NotImplementedError(f"unsupported locator context {locator.context}")
         return index

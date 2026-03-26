@@ -9,7 +9,7 @@ import pytest
 
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
-from gitfourchette.nav import NavLocator
+from gitfourchette.nav import NavLocator, NavContext
 from .util import *
 
 
@@ -470,4 +470,23 @@ def testSelect3PlusCommits(tempDir, mainWindow):
 
     assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
-    assert findTextInWidget(rw.specialDiffView, "5 commits selected")
+    assert findTextInWidget(rw.specialDiffView, "5 items selected")
+
+
+def testIllegalRowComparisons(tempDir, mainWindow):
+    mainWindow.onAcceptPrefsDialog({"maxCommits": 5})
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid1 = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForLocator(NavLocator(context=NavContext.SPECIAL, path=str(SpecialRow.TruncatedHistory))).row()
+
+    for a, b in [(0, row1), (0, row2), (row1, row2)]:
+        qlvClickNthRow(rw.graphView, a)
+        qlvClickNthRow(rw.graphView, b, modifier=Qt.KeyboardModifier.ControlModifier)
+
+        assert not rw.diffView.isVisible()
+        assert rw.specialDiffView.isVisible()
+        assert findTextInWidget(rw.specialDiffView, "selected items cannot be compared")
