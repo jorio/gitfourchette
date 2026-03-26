@@ -26,12 +26,13 @@ class ContextHeader(QFrame):
         self.locator = NavLocator()
         self.buttons = []
 
-        layout = QHBoxLayout(self)
-
         self.mainLabel = QLabel(self)
+        self.spacerItem = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(2, 0, 0, 0)
         layout.addWidget(self.mainLabel)
+        layout.addSpacerItem(self.spacerItem)
 
         self.maximizeButton = self.addButton(_("Maximize"), permanent=True)
         self.maximizeButton.setIcon(stockIcon("maximize"))
@@ -46,21 +47,29 @@ class ContextHeader(QFrame):
         fg = mutedTextColorHex(self, .8)
         self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}  ContextHeader QLabel {{ color: {fg}; }}")
 
-    def addButton(self, text: str, callback: Callable | None = None, permanent=False) -> QToolButton:
+    def addButton(
+            self,
+            text: str,
+            callback: Callable | None = None,
+            permanent: bool = False,
+            stickToLabel: bool = False,
+    ) -> QToolButton:
         button = QToolButton(self)
         button.setText(text)
         button.setProperty(PERMANENT_PROPERTY, "true" if permanent else "")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setAutoRaise(True)
+        button.setMaximumHeight(20)
         self.buttons.append(button)
 
         if callback is not None:
             button.clicked.connect(callback)
 
         layout: QHBoxLayout = self.layout()
-        layout.insertWidget(1, button)
-
-        button.setMaximumHeight(20)
+        insertionIndex = layout.indexOf(self.spacerItem)
+        if not stickToLabel:
+            insertionIndex += 1
+        layout.insertWidget(insertionIndex, button)
 
         return button
 
@@ -97,7 +106,11 @@ class ContextHeader(QFrame):
                      red=colors.red.name(), blue=colors.blue.name(),
                      a=shortHash(fromCommitId), b=shortHash(locator.commit))
 
-            swapButton = self.addButton(_("Swap A/B"), lambda: Jump.invoke(self, self.locator.swapComparison()))
+            swapButton = self.addButton(
+                _("Swap A/B"),
+                lambda: Jump.invoke(self, locator.swapComparison()),
+                stickToLabel=True)
+
             swapButton.setToolTip(_("Swap the “old” and “new” sides in the commit comparison"))
 
         elif locator.selectedCommits:
