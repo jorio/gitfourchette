@@ -208,7 +208,7 @@ class PushDialog(QDialog):
                     comboBox.insertSeparator(comboBox.count())
 
                 remoteUrl = self.repo.remotes[remoteName].url
-                for shorthand in branchNames:
+                for shorthand in sorted(branchNames, key=naturalSort):
                     isTracked = shorthand == currentUpstream
                     caption = shorthand
                     if isTracked:

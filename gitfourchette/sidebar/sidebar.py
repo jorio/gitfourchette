@@ -981,7 +981,7 @@ class Sidebar(QTreeView):
             if not remoteBranches:
                 continue
             menu.append(ActionDef.SEPARATOR)
-            for rbShorthand in remoteBranches:
+            for rbShorthand in sorted(remoteBranches, key=naturalSort):
                 menu.append(ActionDef(
                     escamp(rbShorthand),
                     lambda rb=rbShorthand: EditUpstreamBranch.invoke(self, lbName, rb),
