@@ -225,10 +225,10 @@ class Prefs(PrefsFile):
 
     def addDelColorsStyleTag(self):
         green, red = self.addDelColors()
-        return (f"<style>"
-                f"del {{ color: {red.name()}; }} "
+        return ("<style>"
+                f"del {{ color: {red.name()}; text-decoration: none; }} "
                 f"add {{ color: {green.name()}; }}"
-                f"</style>")
+                "</style>")
 
     def isGitSandboxed(self):
         return self.gitPath.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
