@@ -20,17 +20,17 @@ PUSH_INTERVAL = 0.5
 
 
 class NavFlags(enum.IntFlag):
-    ForceDiff = enum.auto()
-    "Force reloading the pygit2.Diff of the commit or workdir."
-
-    ForceRecreateDocument = enum.auto()
-    "Force re-rendering the DiffDocument."
-
     AllowWriteIndex = enum.auto()
     "Allow writing to the index while loading the diff at this location."
 
     AllowLargeFiles = enum.auto()
     "Bypass file size and line length limits to display the diff at this location."
+
+    ForceDiff = enum.auto()
+    "Force reloading the pygit2.Diff of the commit or workdir."
+
+    ForceRecreateDocument = enum.auto()
+    "Force re-rendering the DiffDocument."
 
     BypassFileSelect = enum.auto()
     "Bypass automatic selection in FileList when loading this location."
@@ -42,6 +42,18 @@ class NavFlags(enum.IntFlag):
     "Bring window to the foreground after jumping to this location."
 
     DefaultFlags = 0
+
+    KeepFlagsOnRefresh = AllowWriteIndex | AllowLargeFiles
+    """
+    Flags that should be honored again by the Jump task after refreshing the
+    RepoWidget on the same NavLocator.
+
+    All other flags are "one-time" flags: they are meant to be consumed by the
+    Jump task, then they are discarded before the NavLocator is installed
+    as the RepoWidget's current locator.
+
+    Note that NavHistory always strips *all* flags when saving a NavLocator.
+    """
 
 
 @enum.unique

@@ -130,7 +130,7 @@ class Jump(RepoTask):
     """
     Single entry point to navigate to any NavLocator in a repository.
 
-    Only the Jump task may "cement" the RepoWidget's navLocator.
+    This is the only task that is allowed to change the value of RepoWidget.navLocator.
     """
 
     @dataclasses.dataclass
@@ -485,12 +485,8 @@ class Jump(RepoTask):
         return locator
 
     def saveFinalLocator(self, locator: NavLocator):
-        # Strip Force flags before saving the locator, otherwise switching
-        # back and forth into the app may reload a commit.
-        # Also strip RaiseWindow because it's meant as a one-time flag.
-        locator = locator.withoutFlags(NavFlags.ForceDiff
-                                       | NavFlags.ForceRecreateDocument
-                                       | NavFlags.ActivateWindow)
+        # Before saving the locator in the RepoWidget, strip one-time flags.
+        locator = locator.withoutFlags(~NavFlags.KeepFlagsOnRefresh)
 
         self.rw.navLocator = locator
 

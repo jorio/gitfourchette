@@ -7,6 +7,7 @@
 import pygit2.enums
 import pytest
 
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavLocator, NavContext
@@ -490,3 +491,21 @@ def testIllegalRowComparisons(tempDir, mainWindow):
         assert not rw.diffView.isVisible()
         assert rw.specialDiffView.isVisible()
         assert findTextInWidget(rw.specialDiffView, "selected items cannot be compared")
+
+
+def testRestoreCurrentIndexAfterGraphSplicing(tempDir, mainWindow):
+    # Check out 'no-parent' before opening the repo.
+    # This will create a dotted line past 'master' in the graph.
+    wd = unpackRepo(tempDir)
+    GitDriver.runSync("checkout", "no-parent", directory=wd, strict=True)
+    rw = mainWindow.openRepo(wd)
+
+    # Select tip of 'master' branch
+    qlvClickNthRow(rw.graphView, 1)
+    assert rw.graphView.currentCommitId == rw.repo.branches.local["master"].target
+
+    # Check out 'master'. The top of the graph will be rebuilt,
+    # and the selected commit must remain consistent.
+    GitDriver.runSync("checkout", "master", directory=wd, strict=True)
+    rw.refreshRepo()
+    assert rw.graphView.currentCommitId == rw.repo.branches.local["master"].target
