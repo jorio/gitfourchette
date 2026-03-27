@@ -892,6 +892,11 @@ class MainWindow(QMainWindow):
 
         self.onTabCurrentWidgetChanged()
 
+    def reloadAllTabs(self):
+        self.unloadOtherTabs()
+        rw = self.currentRepoWidget()
+        rw.replaceWithStub()
+
     def refreshTabText(self, rw):
         index = self.tabs.indexOf(rw)
         title = escamp(rw.getTitle())
@@ -1191,8 +1196,7 @@ class MainWindow(QMainWindow):
                 buttons=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
             reloadButton = qmb.button(QMessageBox.StandardButton.Ok)
             reloadButton.setText(_("&Reload"))
-            qmb.accepted.connect(lambda: self.unloadOtherTabs())
-            qmb.accepted.connect(lambda: self.currentRepoWidget().replaceWithStub())
+            qmb.accepted.connect(self.reloadAllTabs)
             cancelButton = qmb.button(QMessageBox.StandardButton.Cancel)
             cancelButton.setText(_("&Not Now"))
             qmb.show()

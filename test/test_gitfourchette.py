@@ -171,28 +171,25 @@ def testNewNestedRepo(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("method", ["specialdiff", "graphcm"])
-def testTruncatedHistory(tempDir, mainWindow, method):
+@pytest.mark.parametrize("action", ["load up to", "load full", "change threshold"])
+def testTruncatedHistory(tempDir, mainWindow, method, action):
     bottomCommit = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
     mainWindow.onAcceptPrefsDialog({"maxCommits": 5})
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    QTest.qWait(1)
     assert rw.graphView.clFilter.rowCount() == 7  # 1 Workdir, 5 Commits, 1 Truncated
 
     # Search bar shouldn't be able to reach bottom commit
     triggerMenuAction(mainWindow.menuBar(), "edit/find")
-    QTest.qWait(0)
-    assert rw.graphView.searchBar.lineEdit.hasFocus()
+    waitUntilTrue(rw.graphView.searchBar.lineEdit.hasFocus)
     QTest.keyClicks(rw.graphView.searchBar.lineEdit, "first c/c1, no parent")
-    QTest.qWait(0)
-    assert rw.graphView.searchBar.isRed()
+    waitUntilTrue(rw.graphView.searchBar.isRed)
     QTest.keyPress(rw.graphView.searchBar.lineEdit, Qt.Key.Key_Return)
-    QTest.qWait(0)
     acceptQMessageBox(rw, "not found.+truncated")
     rw.graphView.searchBar.ui.closeButton.click()
 
-    # Bottom commit contents must be able to be displayed
+    # Bottom commit contents must still be able to be shown despite not being in the graph
     rw.jump(NavLocator.inCommit(bottomCommit, "c/c1.txt"), check=True)
     assert rw.diffBanner.isVisible()
     assert re.search("commit.+n.t shown in the graph", rw.diffBanner.label.text(), re.I)
@@ -205,25 +202,26 @@ def testTruncatedHistory(tempDir, mainWindow, method):
     assert rw.graphView.selectedIndexes()
 
     assert rw.specialDiffView.isVisible()
-    assert "truncated" in rw.specialDiffView.toPlainText().lower()
+    assert findTextInWidget(rw.specialDiffView, "truncated")
 
-    # Click "change threshold"
+    # Trigger action to load more commits
     if method == "specialdiff":
-        qteClickLink(rw.specialDiffView, "change.+threshold")
+        qteClickLink(rw.specialDiffView, action)
     elif method == "graphcm":
-        triggerContextMenuAction(rw.graphView.viewport(), "change.+threshold")
-    if not OFFSCREEN:
-        QTest.qWait(100)  # Non-offscreen needs this nudge
-    prefsDialog = findQDialog(mainWindow, "settings")
-    QTest.qWait(0)
-    assert prefsDialog.findChild(QWidget, "prefctl_maxCommits").hasFocus()
-    prefsDialog.reject()
+        triggerContextMenuAction(rw.graphView.viewport(), action)
+    else:
+        raise NotImplementedError()
 
-    # Load full commit history
-    if method == "specialdiff":
-        qteClickLink(rw.specialDiffView, "load full")
-    elif method == "graphcm":
-        triggerContextMenuAction(rw.graphView.viewport(), "load full")
+    # Change the threshold
+    if action == "change threshold":
+        prefsDialog = findQDialog(mainWindow, "settings")
+        maxCommits = prefsDialog.findChild(QWidget, "prefctl_maxCommits")
+        waitUntilTrue(maxCommits.hasFocus)
+        maxCommits.setValue(0)
+        assert maxCommits.text() == "\u221E", "infinity symbol"
+        prefsDialog.accept()
+        acceptQMessageBox(mainWindow, "new setting.+take effect.+until you reload")
+
     # Heads up! RepoWidget changes after a full reload
     rw = mainWindow.currentRepoWidget()
     assert rw.graphView.clFilter.rowCount() > 7

@@ -62,8 +62,14 @@ class PrimeRepo(RepoTask):
         mainWindow.statusBar2.showBusyMessage(repoStub.ui.progressLabel.text())
 
         path = repoStub.workdir
-        locator = repoStub.locator
         maxCommits = repoStub.maxCommits
+
+        # Prepare initial locator
+        locator = repoStub.locator
+        if locator.context == NavContext.SPECIAL:  # Don't attempt to restore a special context
+            locator = NavLocator.Empty
+        if not locator:  # Fall back to workdir
+            locator = NavLocator(NavContext.WORKDIR).withExtraFlags(NavFlags.AllowWriteIndex)
 
         # Create the repo
         repo = Repo(path, RepositoryOpenFlag.NO_SEARCH)
@@ -192,11 +198,8 @@ class PrimeRepo(RepoTask):
         # Replicate final loading message in status bar
         rw.pendingStatusMessage = message
 
-        # Jump to workdir (or pending locator, if any)
+        # Jump to initial locator
         assert not rw.pendingLocator
-        if not locator:
-            locator = NavLocator(NavContext.WORKDIR).withExtraFlags(NavFlags.AllowWriteIndex)
-
         repoStub.closing.connect(rw.prepareForDeletion)
         yield from self.flowSubtask(Jump, locator)
         repoStub.closing.disconnect(rw.prepareForDeletion)

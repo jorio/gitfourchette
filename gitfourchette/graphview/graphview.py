@@ -344,21 +344,28 @@ class GraphView(QListView):
         if locator.context == NavContext.COMMITTED:
             index = self.getFilterIndexForCommit(locator.commit)
             assert index.data(CommitLogModel.Role.SpecialRow) == SpecialRow.Commit
-        elif locator.context.isWorkdir():
+            return index
+
+        if locator.context.isWorkdir():
             index = self.clFilter.index(0, 0)
             assert index.data(CommitLogModel.Role.SpecialRow) == SpecialRow.UncommittedChanges
-        elif locator.context == NavContext.SPECIAL:
+            return index
+
+        if locator.context == NavContext.SPECIAL:
             special = SpecialRow(int(locator.path))
-            if special in [SpecialRow.CannotCompareRows, SpecialRow.TooManyRowsSelected]:
-                index = self.getFilterIndexForCommit(locator.commit)
-            else:
-                assert self.clModel._extraRow != SpecialRow.Invalid, "no special row!"
-                assert self.clModel._extraRow == special
-                index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
-                assert index.data(CommitLogModel.Role.SpecialRow) == special
-        else:
-            raise NotImplementedError(f"unsupported locator context {locator.context}")
-        return index
+
+            # Multi-selection error pages: use main commit row
+            if special in (SpecialRow.CannotCompareRows, SpecialRow.TooManyRowsSelected):
+                return self.getFilterIndexForCommit(locator.commit)
+
+            # Last row
+            if self.clModel._extraRow != special:
+                raise GraphView.SelectCommitError(None, False, False)
+            index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
+            assert index.data(CommitLogModel.Role.SpecialRow) == special
+            return index
+
+        raise NotImplementedError(f"unsupported locator context {locator.context}")
 
     def getFilterIndexForCommit(self, oid: Oid) -> QModelIndex:
         try:
