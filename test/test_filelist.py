@@ -560,15 +560,19 @@ def testFileListChangePathDisplayStyle(tempDir, mainWindow):
     fileList.setFocus()
     assert "hello/there/file.txt" == qlvGetRowData(fileList)[0]
 
-    for caption, expectedDisplay in {
-        "name only": "file.txt",
-        "full": "hello/there/file.txt",
-        "abbreviate directories": "h/t/file.txt",
-        "name first": "file.txt\0 hello/there",
+    elideRight = Qt.TextElideMode.ElideRight
+    elideMiddle = Qt.TextElideMode.ElideMiddle
+
+    for caption, (expectedDisplay, expectedElideMode) in {
+        "name only": ("file.txt", elideMiddle),
+        "full": ("hello/there/file.txt", elideMiddle),
+        "abbreviate directories": ("h/t/file.txt", elideMiddle),
+        "name first": ("file.txt\0 hello/there", elideRight),
     }.items():
         triggerContextMenuAction(fileList.viewport(), f"path display style/{caption}")
         fileList.viewport().update()
         assert expectedDisplay == qlvGetRowData(fileList)[0]
+        assert expectedElideMode == fileList.textElideMode()
 
 
 def testFileListShowInFolder(tempDir, mainWindow):
