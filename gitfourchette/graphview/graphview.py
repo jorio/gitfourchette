@@ -20,6 +20,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
 from gitfourchette.tasks import *
+from gitfourchette.tasks.exporttasks import ExportABDiffAsPatch
 from gitfourchette.toolbox import *
 
 
@@ -50,6 +51,7 @@ class GraphView(QListView):
         super().__init__(parent)
 
         self.repoModel = repoModel
+        self.navLocator = NavLocator.Empty
 
         # Use tabular numbers (ISO dates look better with Inter, Cantarell, etc.)
         self.setFont(setFontFeature(self.font(), "tnum"))
@@ -90,103 +92,6 @@ class GraphView(QListView):
         self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
         self.copyMessageShortcut = makeWidgetShortcut(self, self.copyCommitMessageToClipboard, "Ctrl+Shift+C")
         self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
-
-    def makeContextMenu(self) -> QMenu:
-        kind = self.currentRowKind
-        oid = self.currentCommitId
-        repoModel = self.repoModel
-        repo = repoModel.repo
-        mainWindow = GFApplication.instance().mainWindow
-
-        if kind == SpecialRow.UncommittedChanges:
-            actions = [
-                TaskBook.action(self, NewCommit, accel="C"),
-                TaskBook.action(self, AmendCommit, accel="A"),
-                ActionDef.SEPARATOR,
-                TaskBook.action(self, NewStash, accel="S"),
-                TaskBook.action(self, ExportWorkdirAsPatch, accel="X"),
-            ]
-
-            if self.repoModel.prefs.hasDraftCommit():
-                actions.extend([
-                    ActionDef.SEPARATOR,
-                    ActionDef(_("Clear Draft Message"), self.repoModel.prefs.clearDraftCommit),
-                ])
-
-            actions.extend(mainWindow.contextualUserCommands(UserCommand.Token.Workdir))
-
-        elif kind == SpecialRow.EndOfShallowHistory:
-            actions = []
-
-        elif kind == SpecialRow.TruncatedHistory:
-            expandSome = makeInternalLink("expandlog")
-            expandAll = makeInternalLink("expandlog", n=str(0))
-            changePref = makeInternalLink("prefs", "maxCommits")
-            actions = [
-                ActionDef(_("Load up to {0} commits", QLocale().toString(repoModel.nextTruncationThreshold)),
-                          lambda: self.linkActivated.emit(expandSome)),
-                ActionDef(_("Load full commit history"),
-                          lambda: self.linkActivated.emit(expandAll)),
-                ActionDef(_("Change threshold setting"),
-                          lambda: self.linkActivated.emit(changePref)),
-            ]
-
-        elif kind == SpecialRow.Commit:
-            myRef = lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD"
-
-            # Figure out a nice ref name to initiate a merge, or fall back to commit id
-            try:
-                refsHere = repoModel.refsAt[oid]
-                mergeWhat = next(ref for ref in refsHere if ref.startswith((RefPrefix.HEADS, RefPrefix.REMOTES)))
-            except (KeyError, StopIteration):
-                mergeWhat = oid
-
-            checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
-            checkoutAction.shortcuts = self.checkoutShortcut.key()
-
-            gpgLookAtCommit = repo.peel_commit(oid)
-            gpgStatus, _gpgKeyInfo = repoModel.getCachedGpgStatus(gpgLookAtCommit)
-            gpgIcon = gpgStatus.iconName()
-
-            mounts = GFApplication.instance().mountManager
-            mountCaption = _("&Mount Commit As Folder")
-            if not mounts.supportsMounting():
-                mountActions = []
-            elif mounts.isMounted(oid):
-                mountActions = [ActionDef(mountCaption, icon="git-mount", submenu=mounts.makeMenuItemsForMount(oid, self))]
-            else:
-                mountActions = [ActionDef(mountCaption, icon="git-mount", callback=lambda: mounts.mount(repo.workdir, oid))]
-
-            actions = [
-                TaskBook.action(self, NewBranchFromCommit, _("New &Branch Here…"), taskArgs=oid),
-                TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid),
-                ActionDef.SEPARATOR,
-                checkoutAction,
-                TaskBook.action(self, MergeBranch, _("&Merge into {0}…", myRef), taskArgs=(mergeWhat,)),
-                TaskBook.action(self, ResetHead, _("&Reset {0} to Here…", myRef), taskArgs=oid),
-                ActionDef.SEPARATOR,
-                TaskBook.action(self, CherrypickCommit, _("Cherry &Pick…"), taskArgs=oid),
-                TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),
-                TaskBook.action(self, ExportCommitAsPatch, _("E&xport As Patch…"), taskArgs=oid),
-                ActionDef.SEPARATOR,
-                ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
-                ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
-                TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != GpgStatus.Unsigned, icon=gpgIcon, accel="G"),
-                *mountActions,
-                ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
-                *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
-            ]
-
-        menu = ActionDef.makeQMenu(self, actions)
-        menu.setObjectName("GraphViewCM")
-
-        return menu
-
-    def onContextMenuRequested(self, point: QPoint):
-        menu = self.makeContextMenu()
-        if menu is not None:
-            menu.aboutToHide.connect(menu.deleteLater)
-            menu.popup(self.mapToGlobal(point))
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
@@ -231,23 +136,25 @@ class GraphView(QListView):
 
     @property
     def currentRowKind(self) -> SpecialRow:
-        currentIndex = self.currentIndex()
-        if not currentIndex.isValid():
+        # TODO: The only remaining uses of this function are in unit tests. Remove?
+        if self.navLocator.context == NavContext.COMMITTED:
+            return SpecialRow.Commit
+        elif self.navLocator.context.isWorkdir():
+            return SpecialRow.UncommittedChanges
+        elif self.navLocator.context == NavContext.SPECIAL:
+            return SpecialRow.fromString(self.navLocator.path)
+        else:
             return SpecialRow.Invalid
-        return currentIndex.data(CommitLogModel.Role.SpecialRow)
 
     @property
     def currentCommitId(self) -> Oid | None:
         # TODO: If pygit2 had Oid.__bool__() which returned True if the hash isn't NULL_OID,
         #       we wouldn't have to return None for compatibility with existing code
         #       (pygit2 1.18.0+ has this now)
-        currentIndex = self.currentIndex()
-        if not currentIndex.isValid():
+        if self.navLocator.context == NavContext.COMMITTED:
+            return self.navLocator.commit
+        else:
             return None
-        if SpecialRow.Commit != currentIndex.data(CommitLogModel.Role.SpecialRow):
-            return None
-        oid = currentIndex.data(CommitLogModel.Role.Oid)
-        return oid
 
     def getInfoOnCurrentCommit(self):
         oid = self.currentCommitId
@@ -281,10 +188,18 @@ class GraphView(QListView):
         if self.signalsBlocked():
             return
 
+        locator = self.locatorFromSelection()
+        if not locator:
+            return
+
+        locator = locator.withExtraFlags(NavFlags.BypassCommitSelect)
+        Jump.invoke(self, locator)
+
+    def locatorFromSelection(self):
         # Warning: selection not sorted!
         indexes = self.selectedIndexes()
         if not indexes:
-            return
+            return NavLocator.Empty
 
         # Get the "last" selected index.
         # Note that currentIndex() may return an index outside the selection!
@@ -295,27 +210,33 @@ class GraphView(QListView):
 
         special = current.data(CommitLogModel.Role.SpecialRow)
         if special == SpecialRow.UncommittedChanges:
-            locator = NavLocator(NavContext.WORKDIR)
+            locator = NavLocator.inWorkdir()
         elif special == SpecialRow.Commit:
             oid = current.data(CommitLogModel.Role.Oid)
-            locator = NavLocator(NavContext.COMMITTED, commit=oid)
+            locator = NavLocator.inCommit(oid)
         else:
-            locator = NavLocator(NavContext.SPECIAL, path=str(special))
+            locator = NavLocator.inSpecial(special)
 
+        # Handle multiple selected rows
         if len(indexes) > 1:
+            originalCommit = locator.commit
             oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
-            locator = locator.replace(selectedCommits=oids)
 
-            if len(indexes) > 2:
-                locator = locator.replace(context=NavContext.SPECIAL, path=str(SpecialRow.TooManyRowsSelected))
+            # A/B diffing only allowed if exactly two commits are selected
+            if len(oids) > 2:
+                locator = NavLocator.inSpecial(SpecialRow.TooManyRowsSelected)
             elif any(o in (UC_FAKEID, None) for o in oids):
-                locator = locator.replace(context=NavContext.SPECIAL, path=str(SpecialRow.CannotCompareRows))
+                locator = NavLocator.inSpecial(SpecialRow.CannotCompareRows)
 
-        locator = locator.withExtraFlags(NavFlags.BypassCommitSelect)
+            # Keep track of selected/current rows
+            locator = locator.replace(selectedCommits=oids, commit=originalCommit)
 
-        Jump.invoke(self, locator)
+        return locator
 
     def selectRowForLocator(self, locator: NavLocator):
+        # Save locator as current
+        self.navLocator = locator
+
         # Update A/B commits in model
         commitDiffSource = locator.comparedCommit()
         commitDiffAB = () if commitDiffSource is None else (commitDiffSource, locator.commit)
@@ -352,7 +273,7 @@ class GraphView(QListView):
             return index
 
         if locator.context == NavContext.SPECIAL:
-            special = SpecialRow(int(locator.path))
+            special = SpecialRow.fromString(locator.path)
 
             # Multi-selection error pages: use main commit row
             if special in (SpecialRow.CannotCompareRows, SpecialRow.TooManyRowsSelected):
@@ -431,3 +352,136 @@ class GraphView(QListView):
                 return index
 
         return None
+
+    # -------------------------------------------------------------------------
+    # Context menus
+
+    def onContextMenuRequested(self, point: QPoint):
+        actions = None
+        locator = self.navLocator
+
+        if locator.context.isWorkdir():
+            actions = self._contextMenuActionsUncommittedChanges()
+
+        elif locator.context == NavContext.COMMITTED:
+            if locator.comparedCommit():
+                actions = self._contextMenuActions2Commits(locator)
+            else:
+                actions = self._contextMenuActions1Commit()
+
+        elif locator.context == NavContext.SPECIAL:
+            special = SpecialRow.fromString(locator.path)
+            if special == SpecialRow.TruncatedHistory:
+                actions = self._contextMenuActionsTruncatedHistory()
+
+        # Fall back to no-op menu
+        if actions is None:
+            actions = [
+                ActionDef(_("No actions available for this selection"), enabled=False)
+            ]
+
+        menu = ActionDef.makeQMenu(self, actions)
+        menu.setObjectName("GraphViewCM")
+        menu.aboutToHide.connect(menu.deleteLater)
+        menu.popup(self.mapToGlobal(point))
+
+    def _contextMenuActionsUncommittedChanges(self):
+        mainWindow = GFApplication.instance().mainWindow
+
+        actions = [
+            TaskBook.action(self, NewCommit, accel="C"),
+            TaskBook.action(self, AmendCommit, accel="A"),
+            ActionDef.SEPARATOR,
+            TaskBook.action(self, NewStash, accel="S"),
+            TaskBook.action(self, ExportWorkdirAsPatch, accel="X"),
+        ]
+
+        if self.repoModel.prefs.hasDraftCommit():
+            actions.extend([
+                ActionDef.SEPARATOR,
+                ActionDef(_("Clear Draft Message"), self.repoModel.prefs.clearDraftCommit),
+            ])
+
+        actions.extend(mainWindow.contextualUserCommands(UserCommand.Token.Workdir))
+        return actions
+
+    def _contextMenuActionsTruncatedHistory(self):
+        locale = self.locale()
+        expandSome = makeInternalLink("expandlog")
+        expandAll = makeInternalLink("expandlog", n=str(0))
+        changePref = makeInternalLink("prefs", "maxCommits")
+        actions = [
+            ActionDef(_("Load up to {0} commits", locale.toString(self.repoModel.nextTruncationThreshold)),
+                      lambda: self.linkActivated.emit(expandSome)),
+
+            ActionDef(_("Load full commit history"),
+                      lambda: self.linkActivated.emit(expandAll)),
+
+            ActionDef(_("Change threshold setting"),
+                      lambda: self.linkActivated.emit(changePref)),
+        ]
+        return actions
+
+    def _contextMenuActions1Commit(self):
+        mainWindow = GFApplication.instance().mainWindow
+        repoModel = self.repoModel
+        repo = repoModel.repo
+        oid = self.currentCommitId
+
+        myRef = lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD"
+
+        # Figure out a nice ref name to initiate a merge, or fall back to commit id
+        try:
+            refsHere = repoModel.refsAt[oid]
+            mergeWhat = next(ref for ref in refsHere if ref.startswith((RefPrefix.HEADS, RefPrefix.REMOTES)))
+        except (KeyError, StopIteration):
+            mergeWhat = oid
+
+        checkoutAction = TaskBook.action(self, CheckoutCommit, _("&Check Out…"), taskArgs=oid)
+        checkoutAction.shortcuts = self.checkoutShortcut.key()
+
+        gpgLookAtCommit = repo.peel_commit(oid)
+        gpgStatus, _gpgKeyInfo = repoModel.getCachedGpgStatus(gpgLookAtCommit)
+        gpgIcon = gpgStatus.iconName()
+
+        mounts = GFApplication.instance().mountManager
+        mountCaption = _("&Mount Commit As Folder")
+        if not mounts.supportsMounting():
+            mountActions = []
+        elif mounts.isMounted(oid):
+            mountActions = [ActionDef(mountCaption, icon="git-mount", submenu=mounts.makeMenuItemsForMount(oid, self))]
+        else:
+            mountActions = [ActionDef(mountCaption, icon="git-mount", callback=lambda: mounts.mount(repo.workdir, oid))]
+
+        actions = [
+            TaskBook.action(self, NewBranchFromCommit, _("New &Branch Here…"), taskArgs=oid),
+            TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid),
+            ActionDef.SEPARATOR,
+            checkoutAction,
+            TaskBook.action(self, MergeBranch, _("&Merge into {0}…", myRef), taskArgs=(mergeWhat,)),
+            TaskBook.action(self, ResetHead, _("&Reset {0} to Here…", myRef), taskArgs=oid),
+            ActionDef.SEPARATOR,
+            TaskBook.action(self, CherrypickCommit, _("Cherry &Pick…"), taskArgs=oid),
+            TaskBook.action(self, RevertCommit, _("Re&vert…"), taskArgs=oid),
+            TaskBook.action(self, ExportCommitAsPatch, _("E&xport As Patch…"), taskArgs=oid),
+            ActionDef.SEPARATOR,
+            ActionDef(_("Copy Commit &Hash"), self.copyCommitHashToClipboard, shortcuts=self.copyHashShortcut.key()),
+            ActionDef(_("Copy Commit M&essage"), self.copyCommitMessageToClipboard, shortcuts=self.copyMessageShortcut.key()),
+            TaskBook.action(self, VerifyGpgSignature, taskArgs=oid, enabled=gpgStatus != GpgStatus.Unsigned, icon=gpgIcon, accel="G"),
+            *mountActions,
+            ActionDef(_("Get &Info…"), self.getInfoOnCurrentCommit, "SP_MessageBoxInformation", shortcuts=self.getInfoShortcut.key()),
+            *mainWindow.contextualUserCommands(UserCommand.Token.Commit),
+        ]
+        return actions
+
+    def _contextMenuActions2Commits(self, locator: NavLocator):
+        diffAB = (locator.comparedCommit(), locator.commit)
+
+        actions = [
+            ActionDef(_("&Swap A/B"),
+                      lambda: Jump.invoke(self, locator.swapComparison())),
+
+            ActionDef(_("E&xport A/B Diff As Patch…"),
+                      lambda: ExportABDiffAsPatch.invoke(self, diffAB))
+        ]
+        return actions

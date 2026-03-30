@@ -10,7 +10,7 @@ import pytest
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
-from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.nav import NavLocator
 from .util import *
 
 
@@ -447,10 +447,31 @@ def testCompare2Commits(tempDir, mainWindow):
     assert findTextInWidget(rw.diffArea.diffHeader, r"6e1475.+ce112d")
     assert rw.diffView.isVisible()
 
+
+@pytest.mark.parametrize("method", ["button", "graphcm"])
+def testCompare2CommitsSwapAB(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid1 = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
+    oid2 = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
+
+    # Compare 6e1475 to ce112d
+    qlvClickNthRow(rw.graphView, row1)
+    qlvClickNthRow(rw.graphView, row2, modifier=Qt.KeyboardModifier.ControlModifier)
+
     # Swap comparison
-    swapButton = next(b for b in rw.diffArea.contextHeader.findChildren(QToolButton)
-                      if findTextInWidget(b, r"swap a.b"))
-    swapButton.click()
+    if method == "button":
+        swapButton = next(b for b in rw.diffArea.contextHeader.findChildren(QToolButton)
+                          if findTextInWidget(b, r"swap a.b"))
+        swapButton.click()
+    elif method == "graphcm":
+        triggerContextMenuAction(rw.graphView.viewport(), r"swap a.b")
+    else:
+        raise NotImplementedError(f"unsupported method {method}")
+
     assert qlvGetRowData(rw.committedFiles) == ["a/a1", "c/c2.txt"]
     assert findTextInWidget(rw.diffArea.contextHeader.mainLabel, r"comparing.+ce112d.+6e1475")
     assert findTextInWidget(rw.diffArea.diffHeader, r"ce112d.+6e1475")
@@ -473,6 +494,10 @@ def testSelect3PlusCommits(tempDir, mainWindow):
     assert rw.specialDiffView.isVisible()
     assert findTextInWidget(rw.specialDiffView, "5 items selected")
 
+    cm = summonContextMenu(rw.graphView.viewport())
+    assert cm.actions()[0].text().lower().startswith("no actions available")
+    cm.close()
+
 
 def testIllegalRowComparisons(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({"maxCommits": 5})
@@ -482,7 +507,7 @@ def testIllegalRowComparisons(tempDir, mainWindow):
 
     oid1 = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
     row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
-    row2 = rw.graphView.getFilterIndexForLocator(NavLocator(context=NavContext.SPECIAL, path=str(SpecialRow.TruncatedHistory))).row()
+    row2 = rw.graphView.getFilterIndexForLocator(NavLocator.inSpecial(SpecialRow.TruncatedHistory)).row()
 
     for a, b in [(0, row1), (0, row2), (row1, row2)]:
         qlvClickNthRow(rw.graphView, a)
@@ -491,6 +516,10 @@ def testIllegalRowComparisons(tempDir, mainWindow):
         assert not rw.diffView.isVisible()
         assert rw.specialDiffView.isVisible()
         assert findTextInWidget(rw.specialDiffView, "selected items cannot be compared")
+
+        cm = summonContextMenu(rw.graphView.viewport())
+        assert cm.actions()[0].text().lower().startswith("no actions available")
+        cm.close()
 
 
 def testRestoreCurrentIndexAfterGraphSplicing(tempDir, mainWindow):

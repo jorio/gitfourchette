@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Literal
 
@@ -37,6 +39,11 @@ class SpecialRow(enum.IntEnum):
     # selection is made in GraphView.
     TooManyRowsSelected = enum.auto()
     CannotCompareRows = enum.auto()
+
+    @classmethod
+    def fromString(cls, s: str) -> SpecialRow:
+        i = int(s)
+        return cls(i)
 
 
 class CommitLogModel(QAbstractListModel):

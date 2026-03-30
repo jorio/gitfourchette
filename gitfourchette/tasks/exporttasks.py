@@ -13,7 +13,7 @@ from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 
 
-def savePatch(task: RepoTask, patch: str, fileName=""):
+def savePatch(task: RepoTask, patch: str, fileName="") -> str:
     if not patch:
         raise AbortTask(_("Nothing to export. The patch is empty."), icon="information")
 
@@ -30,6 +30,9 @@ def savePatch(task: RepoTask, patch: str, fileName=""):
     if task.repo.is_in_workdir(savePath):
         task.effects |= TaskEffects.Workdir  # invalidate workdir if saved file to it
 
+    task.postStatus = _("Patch saved as: {0}", tquo(compactPath(savePath)))
+    return savePath
+
 
 class ExportCommitAsPatch(RepoTask):
     def flow(self, oid: Oid, fileName=""):
@@ -41,6 +44,17 @@ class ExportCommitAsPatch(RepoTask):
             fileName = f"{self.repo.repo_name()} - {shortHash(oid)} - {summary}.patch"
 
         diffAB = commit_diff_pair(commit)
+        tokens = GitDriver.buildDiffCommand(diffAB)
+        driver = yield from self.flowCallGit(*tokens)
+        patch = driver.stdoutScrollback()
+
+        yield from savePatch(self, patch, fileName)
+
+
+class ExportABDiffAsPatch(RepoTask):
+    def flow(self, diffAB: tuple[Oid, Oid]):
+        fileName = f"{self.repo.repo_name()} - {shortHash(diffAB[0])}...{shortHash(diffAB[1])}.patch"
+
         tokens = GitDriver.buildDiffCommand(diffAB)
         driver = yield from self.flowCallGit(*tokens)
         patch = driver.stdoutScrollback()

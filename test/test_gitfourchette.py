@@ -22,7 +22,7 @@ from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.graphview.commitlogmodel import SpecialRow, CommitLogModel
 from gitfourchette.mainwindow import MainWindow
-from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.nav import NavLocator
 from gitfourchette.settings import Session
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 
@@ -196,7 +196,7 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
     assert not rw.graphView.selectedIndexes()
 
     # Jump to truncated history row
-    truncatedHistoryLocator = NavLocator(NavContext.SPECIAL, path=str(SpecialRow.TruncatedHistory))
+    truncatedHistoryLocator = NavLocator.inSpecial(SpecialRow.TruncatedHistory)
     rw.jump(truncatedHistoryLocator, check=True)
     assert rw.graphView.currentRowKind == SpecialRow.TruncatedHistory
     assert rw.graphView.selectedIndexes()

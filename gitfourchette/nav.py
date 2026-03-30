@@ -9,12 +9,15 @@ from __future__ import annotations
 import dataclasses
 import enum
 import time
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 
 from gitfourchette.localization import *
 from gitfourchette.porcelain import NULL_OID, Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
+
+if TYPE_CHECKING:
+    from gitfourchette.graphview.commitlogmodel import SpecialRow
 
 PUSH_INTERVAL = 0.5
 
@@ -167,24 +170,29 @@ class NavLocator:
         return F"{self.__class__.__name__}({self.contextKey:.8} {self.path})"
 
     @staticmethod
-    def inCommit(oid: Oid, path: str = ""):
+    def inCommit(oid: Oid, path: str = "") -> NavLocator:
         return NavLocator(context=NavContext.COMMITTED, commit=oid, path=path)
 
     @staticmethod
-    def inRef(ref: str, path: str = ""):
+    def inRef(ref: str, path: str = "") -> NavLocator:
         return NavLocator(context=NavContext.COMMITTED, ref=ref, path=path)
 
     @staticmethod
-    def inUnstaged(path: str = ""):
+    def inUnstaged(path: str = "") -> NavLocator:
         return NavLocator(context=NavContext.UNSTAGED, path=path)
 
     @staticmethod
-    def inStaged(path: str = ""):
+    def inStaged(path: str = "") -> NavLocator:
         return NavLocator(context=NavContext.STAGED, path=path)
 
     @staticmethod
-    def inWorkdir(path: str = ""):
+    def inWorkdir(path: str = "") -> NavLocator:
         return NavLocator(context=NavContext.WORKDIR, path=path)
+
+    @staticmethod
+    def inSpecial(special: SpecialRow) -> NavLocator:
+        intValue = special.value  # TODO: Just use 'str(special)' once we drop Python 3.10 compat
+        return NavLocator(context=NavContext.SPECIAL, path=str(intValue))
 
     def isSimilarEnoughTo(self, other: NavLocator):
         """

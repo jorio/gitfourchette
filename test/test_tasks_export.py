@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import textwrap
 import pytest
 
 from . import reposcenario
@@ -89,6 +90,43 @@ def testExportPatchFromCommit(tempDir, mainWindow):
     acceptQFileDialog(rw, "apply patch", f"{tempDir.name}/foo.patch")
     acceptQMessageBox(rw, "apply.+patch")
     assert qlvGetRowData(rw.dirtyFiles) == []
+
+
+def testExportPatchFromABDiff(tempDir, mainWindow):
+    contents = textwrap.dedent("""\
+        diff --git a/c/c1.txt b/c/c1.txt
+        index ae9304576a6ec3419b231b2b9c8e33a06f97f9fb..1fd7d579fb6ae3fe942dc09c2c783443d04cf21e 100644
+        --- a/c/c1.txt
+        +++ b/c/c1.txt
+        @@ -1 +1,2 @@
+         c1
+        +c1
+        diff --git a/c/c2.txt b/c/c2.txt
+        index 16f9ec009e5568c435f473ba3a1df732d49ce8c3..55a1a760df4b86a02094a904dfa511deb5655905 100644
+        --- a/c/c2.txt
+        +++ b/c/c2.txt
+        @@ -1 +1,2 @@
+         c2
+        +c2
+        """)
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    oid1 = Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664")
+    oid2 = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
+
+    qlvClickNthRow(rw.graphView, row1)
+    qlvClickNthRow(rw.graphView, row2, modifier=Qt.KeyboardModifier.ControlModifier)
+
+    triggerContextMenuAction(rw.graphView.viewport(), r"export.+patch")
+    path = acceptQFileDialog(rw, "export.+patch", tempDir.name, useSuggestedName=True)
+
+    assert "83834a" in path
+    assert "1203b0" in path
+    assert readTextFile(path).strip() == contents.strip()
 
 
 def testExportPatchFromStash(tempDir, mainWindow):

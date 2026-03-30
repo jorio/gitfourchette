@@ -342,7 +342,7 @@ class Jump(RepoTask):
 
         self.showLocatorInGraphView(locator)
 
-        special = SpecialRow(int(locator.path))
+        special = SpecialRow.fromString(locator.path)
 
         if special == SpecialRow.EndOfShallowHistory:
             sde = SpecialDiffError(
