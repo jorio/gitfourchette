@@ -27,6 +27,7 @@ class RefBox:
     icon: str
     color: QColor
     keepPrefix: bool = False
+    iconWidth: int = 16
 
 
 REFBOXES = [
@@ -44,8 +45,8 @@ REFBOXES = [
     RefBox("FAKEREF_FUSEMOUNT", "git-mount", QColor(Qt.GlobalColor.gray)),
 
     # Commit comparison
-    RefBox("FAKEREF_COMPAREA", "compare-a", QColor(Qt.GlobalColor.red)),
-    RefBox("FAKEREF_COMPAREB", "compare-b", QColor(Qt.GlobalColor.blue)),
+    RefBox("FAKEREF_COMPAREA", "compare-a", QColor(Qt.GlobalColor.red), iconWidth=48),
+    RefBox("FAKEREF_COMPAREB", "compare-b", QColor(Qt.GlobalColor.blue), iconWidth=48),
 
     # Fallback
     RefBox("", "hint", QColor(Qt.GlobalColor.gray), keepPrefix=True)
@@ -471,9 +472,12 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.setPen(color)
 
         rrRadius = 4  # Rounded Rectangle radius
-        lPadding = 3  # Left padding
+        lPadding = 4  # Left padding
         rPadding = 4  # Right padding
         vMargin = max(0, math.ceil((rect.height() - 16) / 4))  # Vertical margin
+
+        if iconName:
+            lPadding -= 1
 
         maxWidth = settings.prefs.refBoxMaxWidth
         if text and maxWidth != 0:
@@ -494,15 +498,16 @@ class CommitLogDelegate(QStyledItemDelegate):
         if iconName:
             iconRect = QRect(rect)
             iconRect.adjust(lPadding, vMargin, 0, -vMargin)
-            iconSize = min(16, iconRect.height())
-            iconRect.setWidth(iconSize)
+            iconHeight = min(16, iconRect.height())
+            iconWidth = round(refboxDef.iconWidth * iconHeight / 16)
+            iconRect.setWidth(iconWidth)
             iconPadding = 2
         else:
-            iconSize = 0
+            iconWidth = 0
             iconPadding = 0
 
         boxRect = QRect(rect)
-        boxRect.setWidth(lPadding + iconSize + iconPadding + textWidth + rPadding)
+        boxRect.setWidth(lPadding + iconWidth + iconPadding + textWidth + rPadding)
 
         frameRect = QRectF(boxRect)
         frameRect.adjust(0, vMargin, 0, -vMargin)

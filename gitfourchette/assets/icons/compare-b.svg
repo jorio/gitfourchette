@@ -1,3 +1,5 @@
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
-<text x='8' y='14' font-weight='bold' font-size='16' font-family='sans-serif' text-anchor='middle' fill='gray'>b</text>
+<svg version="1.1" viewBox="0 0 48 16" stroke="gray" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+<text x="42" y="13" stroke="none" fill="gray" font-family="sans-serif" font-size="13px" font-weight="bold" text-anchor="middle">B</text>
+<path d="M2 8 h8 M14 8 h8 M26 8 h8"/>
+<path d="M6 4 v8 M18 4 v8 M30 4 v8"/>
 </svg>

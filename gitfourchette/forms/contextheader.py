@@ -100,8 +100,8 @@ class ContextHeader(QFrame):
         if fromCommitId is not None:
             mainText = (
                 "<span style='{introStyle}'>{intro}{colon}</span> "
-                "<span style='color: {red}; font-weight: bold;'>a: </span> {a} \u2192 "
-                "<span style='color: {blue}; font-weight: bold;'>b: </span> {b}"
+                "<span style='color: {red}; font-weight: bold;'>A: </span> {a} \u2192 "
+                "<span style='color: {blue}; font-weight: bold;'>B: </span> {b}"
             ).format(introStyle=introStyle, intro=_("Comparing commits"), colon=_(":"),
                      red=colors.red.name(), blue=colors.blue.name(),
                      a=shortHash(fromCommitId), b=shortHash(locator.commit))
