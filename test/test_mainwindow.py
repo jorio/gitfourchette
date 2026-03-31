@@ -128,6 +128,7 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 
         # In offscreen tests, accepting the QMB doesn't restore an active window, for some reason (as of Qt 6.7.2)
         mainWindow.activateWindow()
+        waitUntilTrue(mainWindow.isActiveWindow)
 
     triggerMenuAction(mainWindow.menuBar(), "view/next tab")
     assert mainWindow.currentRepoWidget() is rw2

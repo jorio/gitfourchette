@@ -533,6 +533,8 @@ class CodeView(QPlainTextEdit):
     @staticmethod
     def currentDetachedCodeView() -> CodeView:
         activeWindow = QApplication.activeWindow()
+        if not activeWindow:
+            raise KeyError("no active window")
         detachedCodeView: CodeView = activeWindow.findChild(CodeView)
         if detachedCodeView is None:
             raise KeyError("no detached code view")
