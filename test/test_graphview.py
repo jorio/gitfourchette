@@ -388,10 +388,11 @@ def testCommitInfo(tempDir, mainWindow, method):
     else:
         raise NotImplementedError(f"unknown method {method}")
 
-    qmb = findQMessageBox(rw, "Merge branch 'a' into c")
-    assert str(oid1) in qmb.text()
-    assert "A U Thor" in qmb.text()
-    qmb.accept()
+    dlg = findCommitInfoDialog(rw, "Merge branch 'a' into c")
+    summary = dlg.summaryLabel.text()
+    assert str(oid1) in summary
+    assert "A U Thor" in summary
+    dlg.accept()
 
 
 def testCommitInfoJumpToParent(tempDir, mainWindow):
@@ -401,10 +402,10 @@ def testCommitInfoJumpToParent(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(oid1, "a/a1.txt"), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    qmb = findQMessageBox(rw, "Merge branch 'a' into c")
+    dlg = findCommitInfoDialog(rw, "Merge branch 'a' into c")
 
-    # Click on a "parent" link; this should close the message box and jump to another commit
-    label = qmb.findChild(QLabel, "qt_msgbox_label")
+    # Click on a "parent" link; this should close the dialog and jump to another commit
+    label = dlg.summaryLabel
     parentLink = re.search(r'<a href="(.*\S+)">6462e7d.+</a>', label.text(), re.I).group(1)
     label.linkActivated.emit(parentLink)
     assert rw.navLocator.commit == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")

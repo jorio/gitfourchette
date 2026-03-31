@@ -297,7 +297,7 @@ def testBlameContextMenu(blameWindow):
     assert NavLocator.inCommit(BlameFixture.revs["initial"], "hello.txt").isSimilarEnoughTo(rw.navLocator)
 
     triggerContextMenuAction(viewport, "commit info")
-    acceptQMessageBox(blameWindow, r"first commit.+acecd5e.+j\. david")
+    acceptCommitInfoDialog(blameWindow, r"first commit.+acecd5e.+j\. david")
 
     qcbSetIndex(scrubber, "uncommitted")
     triggerContextMenuAction(viewport, "show diff in working directory")

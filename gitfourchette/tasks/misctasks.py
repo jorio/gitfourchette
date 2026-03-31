@@ -11,6 +11,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
+from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.gitdriver.parsers import iterateLines
@@ -169,29 +170,12 @@ class GetCommitInfo(RepoTask):
         <table>{table}</table>
         """
 
-        messageBox = asyncMessageBox(
-            self.parentWidget(), "information", title, markup,
-            buttons=QMessageBox.StandardButton.Ok, macShowTitle=False)
+        dialog = CommitInfoDialog(self.parentWidget(), title, markup, details)
 
-        if details:
-            messageBox.setDetailedText(details)
+        dialog.summaryLabel.linkActivated.connect(linkBundle.processLink)
+        dialog.summaryLabel.linkActivated.connect(dialog.accept)
 
-            # Pre-click "Show Details" button
-            for button in messageBox.buttons():
-                role = messageBox.buttonRole(button)
-                if role == QMessageBox.ButtonRole.ActionRole:
-                    button.click()
-                elif role == QMessageBox.ButtonRole.AcceptRole:
-                    messageBox.setDefaultButton(button)
-
-        # Bind links to callbacks
-        label: QLabel = messageBox.findChild(QLabel, "qt_msgbox_label")
-        assert label
-        label.setOpenExternalLinks(False)
-        label.linkActivated.connect(linkBundle.processLink)
-        label.linkActivated.connect(messageBox.accept)
-
-        yield from self.flowDialog(messageBox)
+        yield from self.flowDialog(dialog)
 
 
 class VerifyGpgSignature(RepoTask):

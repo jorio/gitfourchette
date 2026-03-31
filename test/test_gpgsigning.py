@@ -161,7 +161,7 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
     # Look for GPG signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    findQMessageBox(rw, f"signature:.+good signature; key trusted.+{aliceKeyId}").reject()
+    rejectCommitInfoDialog(rw, f"signature:.+good signature; key trusted.+{aliceKeyId}")
 
     runGit("verify-commit", "-v", str(commit.id), directory=wd)
 
@@ -217,7 +217,7 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
     # Look for signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    findQMessageBox(rw, "signature:.+good signature; key trusted").reject()
+    rejectCommitInfoDialog(rw, "signature:.+good signature; key trusted")
 
 
 @requiresGpg
