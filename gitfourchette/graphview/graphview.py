@@ -234,6 +234,10 @@ class GraphView(QListView):
         return locator
 
     def selectRowForLocator(self, locator: NavLocator):
+        # Keep scroll position if we're re-selecting the same row
+        same = locator.isSimilarEnoughTo(self.navLocator, considerPaths=False)
+        vpos = self.verticalScrollBar().sliderPosition()
+
         # Save locator as current
         self.navLocator = locator
 
@@ -244,22 +248,29 @@ class GraphView(QListView):
             self.clModel.commitDiffAB = commitDiffAB
             self.viewport().update()  # Redraw A/B icons (or lack thereof)
 
+        # Bail if this call originates from a user click (selection already correct)
         if locator.hasFlags(NavFlags.BypassCommitSelect):
             return
 
+        # Get index for main selected row
         filterIndex = self.getFilterIndexForLocator(locator)
 
+        # Update selection model
         with QSignalBlockerContext(self):  # DON'T emit jump signal
-            self.scrollTo(filterIndex, QAbstractItemView.ScrollHint.EnsureVisible)
-
             sm = self.selectionModel()
             sm.clear()
 
+            # Multiple selected commits
             for sc in locator.selectedCommits:
                 fi = self.getFilterIndexForCommit(sc)
                 sm.select(fi, QItemSelectionModel.SelectionFlag.Select)
 
+            # Set current index (i.e. keyboard focus) on main selected row.
+            # This automatically scrolls the row into view.
             sm.setCurrentIndex(filterIndex, QItemSelectionModel.SelectionFlag.Select)
+
+        if same:
+            self.verticalScrollBar().setSliderPosition(vpos)
 
     def getFilterIndexForLocator(self, locator: NavLocator) -> QModelIndex:
         if locator.context == NavContext.COMMITTED:

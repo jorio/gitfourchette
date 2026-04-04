@@ -538,3 +538,37 @@ def testRestoreCurrentIndexAfterGraphSplicing(tempDir, mainWindow):
     GitDriver.runSync("checkout", "master", directory=wd, strict=True)
     rw.refreshRepo()
     assert rw.graphView.currentCommitId == rw.repo.branches.local["master"].target
+
+
+def testDontScrollToSameCommitOnRefresh(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    # Create enough commits to get scroll bars
+    bogusCommits = []
+    with RepoContext(wd) as repo:
+        for i in range(200):
+            oid = repo.create_commit_on_head(f"bogus {i}", TEST_SIGNATURE, TEST_SIGNATURE)
+            bogusCommits.append(oid)
+
+    rw = mainWindow.openRepo(wd)
+    vsb = rw.graphView.verticalScrollBar()
+
+    # Ensure we've got a scroll bar and we're looking at the workdir
+    assert vsb.isVisible()
+    assert vsb.sliderPosition() == 0
+    assert rw.graphView.navLocator.context.isWorkdir()
+
+    # Scroll down, then refresh. The scroll bar's position shouldn't change.
+    vsb.setSliderPosition(1000)
+    assert vsb.sliderPosition() == 1000
+    rw.refreshRepo()
+    assert vsb.sliderPosition() == 1000
+
+    # Jump to top commit. This will scroll it into view.
+    rw.jump(NavLocator.inCommit(bogusCommits[-1]), check=True)
+    assert vsb.sliderPosition() < 1000
+
+    # Scroll down, then refresh. The scroll bar's position shouldn't change.
+    vsb.setSliderPosition(1000)
+    rw.refreshRepo()
+    assert vsb.sliderPosition() == 1000

@@ -194,15 +194,36 @@ class NavLocator:
         intValue = special.value  # TODO: Just use 'str(special)' once we drop Python 3.10 compat
         return NavLocator(context=NavContext.SPECIAL, path=str(intValue))
 
-    def isSimilarEnoughTo(self, other: NavLocator):
+    def isSimilarEnoughTo(
+            self,
+            other: NavLocator,
+            considerPaths: bool = True,
+    ) -> bool:
         """
         Coarse equality: Compare context, commit(s) & path.
         Ignores flags & position in diff.
         """
-        return (self.context == other.context
-                and self.commit == other.commit
-                and self.path == other.path
-                and self.selectedCommits == other.selectedCommits)
+
+        contextA = self.context
+        contextB = other.context
+
+        if considerPaths:
+            pass
+        elif contextA == NavContext.SPECIAL:
+            # Special locators store their kind in the path field, so it cannot be ignored
+            considerPaths = True
+        else:
+            # Round down unstaged/staged to workdir
+            contextA = NavContext.WORKDIR if contextA.isWorkdir() else contextA
+            contextB = NavContext.WORKDIR if contextB.isWorkdir() else contextB
+
+        return (
+            contextA == contextB
+            and self.commit == other.commit
+            and self.selectedCommits == other.selectedCommits
+            and self.ref == other.ref
+            and (not considerPaths or self.path == other.path)
+        )
 
     def hasFlags(self, flags: NavFlags):
         return flags == (self.flags & flags)
