@@ -429,7 +429,8 @@ def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
         rw.graphView.getFilterIndexForCommit(hidethisTip)
 
 
-def testCompare2Commits(tempDir, mainWindow):
+@pytest.mark.parametrize("swapSelectionOrder", [False, True])
+def testCompare2Commits(tempDir, mainWindow, swapSelectionOrder):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
@@ -437,6 +438,11 @@ def testCompare2Commits(tempDir, mainWindow):
     oid2 = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
     row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
     row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
+
+    if swapSelectionOrder:
+        # A/B sides must be inferred from row positions, not the order in which
+        # the selection was made.
+        row1, row2 = row2, row1
 
     # Compare 6e1475 to ce112d
     qlvClickNthRow(rw.graphView, row1)

@@ -220,12 +220,22 @@ class GraphView(QListView):
         # Handle multiple selected rows
         if len(indexes) > 1:
             originalCommit = locator.commit
-            oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
 
             # A/B diffing only allowed if exactly two commits are selected
-            if len(oids) > 2:
+            twoSelected = len(indexes) == 2
+
+            # When initiating an A/B diff, ensure the "B" side comes out on top
+            # regardless of the order in which the selection was made.
+            if twoSelected:
+                indexes.sort(key=lambda i: i.row(), reverse=True)
+
+            # Get commit oids
+            oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
+
+            if not twoSelected:
                 locator = NavLocator.inSpecial(SpecialRow.TooManyRowsSelected)
             elif any(o in (UC_FAKEID, None) for o in oids):
+                # Both oids must be valid commit oids
                 locator = NavLocator.inSpecial(SpecialRow.CannotCompareRows)
 
             # Keep track of selected/current rows
