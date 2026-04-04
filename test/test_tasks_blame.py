@@ -65,6 +65,7 @@ def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
     blameWindow = findWindow("blame", BlameWindow)
     assert isinstance(blameWindow, BlameWindow)
+    waitUntilTrue(blameWindow.isActiveWindow)
 
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
 

@@ -309,7 +309,7 @@ def testDiffInNewWindow(tempDir, mainWindow, closeKey):
     assert diffWindow is not mainWindow
     assert diffWindow is diffWidget.window()
     assert "c2.txt" in diffWindow.windowTitle()
-    assert diffWindow.isActiveWindow()
+    waitUntilTrue(diffWindow.isActiveWindow)
     assert not mainWindow.isActiveWindow()
 
     # Initiate search
