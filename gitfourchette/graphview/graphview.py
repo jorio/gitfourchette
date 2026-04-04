@@ -242,8 +242,7 @@ class GraphView(QListView):
         self.navLocator = locator
 
         # Update A/B commits in model
-        commitDiffSource = locator.comparedCommit()
-        commitDiffAB = () if commitDiffSource is None else (commitDiffSource, locator.commit)
+        commitDiffAB = locator.commitDiffAB()
         if commitDiffAB != self.clModel.commitDiffAB:
             self.clModel.commitDiffAB = commitDiffAB
             self.viewport().update()  # Redraw A/B icons (or lack thereof)
@@ -375,7 +374,7 @@ class GraphView(QListView):
             actions = self._contextMenuActionsUncommittedChanges()
 
         elif locator.context == NavContext.COMMITTED:
-            if locator.comparedCommit():
+            if locator.commitDiffAB():
                 actions = self._contextMenuActions2Commits(locator)
             else:
                 actions = self._contextMenuActions1Commit()
@@ -486,11 +485,11 @@ class GraphView(QListView):
         return actions
 
     def _contextMenuActions2Commits(self, locator: NavLocator):
-        diffAB = (locator.comparedCommit(), locator.commit)
+        diffAB = locator.commitDiffAB()
 
         actions = [
             ActionDef(_("&Swap A/B"),
-                      lambda: Jump.invoke(self, locator.swapComparison())),
+                      lambda: Jump.invoke(self, locator.swapABCommits())),
 
             ActionDef(_("E&xport A/B Diff As Patch…"),
                       lambda: ExportABDiffAsPatch.invoke(self, diffAB))

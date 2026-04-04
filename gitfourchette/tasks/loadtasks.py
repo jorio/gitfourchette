@@ -397,9 +397,9 @@ class LoadPatch(RepoTask):
 
         suffix = []
         if locator.context == NavContext.COMMITTED:
-            cc = locator.comparedCommit()
-            if cc:
-                suffix.append(f"{shortHash(cc)}...{shortHash(locator.commit)}")
+            diffAB = locator.commitDiffAB()
+            if diffAB:
+                suffix.append(f"{shortHash(diffAB[0])}...{shortHash(diffAB[1])}")
             else:
                 suffix.append(_p("at (specific commit)", "at {0}", shortHash(locator.commit)))
 

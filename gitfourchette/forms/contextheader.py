@@ -92,23 +92,22 @@ class ContextHeader(QFrame):
 
         self.locator = locator
 
-        fromCommitId = locator.comparedCommit()
-
         introStyle = "font-weight: 500;"
         mainText = " "
 
-        if fromCommitId is not None:
+        diffAB = locator.commitDiffAB()
+        if diffAB:
             mainText = (
                 "<span style='{introStyle}'>{intro}{colon}</span> "
                 "<span style='color: {red}; font-weight: bold;'>A: </span> {a} \u2192 "
                 "<span style='color: {blue}; font-weight: bold;'>B: </span> {b}"
             ).format(introStyle=introStyle, intro=_("Comparing commits"), colon=_(":"),
                      red=colors.red.name(), blue=colors.blue.name(),
-                     a=shortHash(fromCommitId), b=shortHash(locator.commit))
+                     a=shortHash(diffAB[0]), b=shortHash(diffAB[1]))
 
             swapButton = self.addButton(
                 _("Swap A/B"),
-                lambda: Jump.invoke(self, locator.swapComparison()),
+                lambda: Jump.invoke(self, locator.swapABCommits()),
                 stickToLabel=True)
 
             swapButton.setToolTip(_("Swap the “old” and “new” sides in the commit comparison"))

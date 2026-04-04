@@ -70,7 +70,7 @@ class CommitLogModel(QAbstractListModel):
         self.repoModel = repoModel
         self._authorColumnX = -1
         self._toolTipZones = {}
-        self.commitDiffAB = ()
+        self.commitDiffAB = None
 
         if repoModel.truncatedHistory:
             self._extraRow = SpecialRow.TruncatedHistory

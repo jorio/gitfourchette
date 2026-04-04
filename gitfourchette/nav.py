@@ -126,7 +126,7 @@ class NavLocator:
     Transient flags, not saved in NavHistory.
     """
 
-    selectedCommits: tuple[Oid] = ()
+    selectedCommits: tuple[Oid, ...] = ()
     """
     Currently selected commits in GraphView. Can be used to diff two commits.
     If empty and `context` is COMMITTED, `commit` is assumed to be the sole
@@ -268,19 +268,29 @@ class NavLocator:
     def withoutFlags(self, flags: NavFlags) -> NavLocator:
         return self.replace(flags=self.flags & ~flags)
 
-    def comparedCommit(self) -> Oid | None:
-        if self.context == NavContext.COMMITTED and len(self.selectedCommits) == 2:
-            return next(c for c in self.selectedCommits if c != self.commit)
-        else:
+    def commitDiffAB(self) -> tuple[Oid, Oid] | None:
+        """
+        When 2 commits are selected, return the pair of commit oids forming an
+        A/B diff. Return None otherwise.
+        """
+        if self.context != NavContext.COMMITTED or len(self.selectedCommits) != 2:
             return None
 
-    def swapComparison(self) -> NavLocator:
-        compared = self.comparedCommit()
-        selected = self.selectedCommits
-        assert compared
-        assert selected
-        selected = tuple(reversed(selected))
-        return self.replace(commit=compared, selectedCommits=selected)
+        assert isinstance(self.selectedCommits, tuple)
+        assert self.commit in self.selectedCommits
+        return self.selectedCommits
+
+    def swapABCommits(self) -> NavLocator:
+        """
+        When 2 commits are selected, return a new locator where the A and B
+        commits are swapped. The "current" commit remains unchanged.
+        Do not call if this locator doesn't represent an A/B commit diff!
+        """
+        if not self.commitDiffAB():
+            raise ValueError("locator does not represent an A/B commit diff")
+
+        selected = tuple(reversed(self.selectedCommits))
+        return self.replace(selectedCommits=selected)
 
     @staticmethod
     def parseUrl(url: QUrl):

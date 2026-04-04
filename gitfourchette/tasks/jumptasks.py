@@ -445,10 +445,8 @@ class Jump(RepoTask):
             area.diffBanner.lastWarningWasDismissed = False
 
             # Load commit
-            compareFrom = locator.comparedCommit()
-            if compareFrom is not None:
-                diffAB = (compareFrom, commit.id)
-            else:
+            diffAB = locator.commitDiffAB()
+            if not diffAB:
                 diffAB = commit_diff_pair(commit)
             tokens = GitDriver.buildDiffRawCommand(diffAB)
             driver = yield from self.flowCallGit(*tokens)
