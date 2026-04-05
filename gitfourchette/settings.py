@@ -77,6 +77,7 @@ class FileListClick(enum.StrEnum):
     Stage = "stage"
     Blame = "blame"
     Edit = "edit"
+    DiffTool = "difftool"
     Folder = "folder"
 
 

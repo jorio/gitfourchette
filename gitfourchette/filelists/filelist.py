@@ -573,6 +573,8 @@ class FileList(QListView):
             self.blameFile()
         elif action == FileListClick.Edit:
             self.openWorkdirFile()
+        elif action == FileListClick.DiffTool:
+            self.wantOpenInDiffTool()
         elif action == FileListClick.Stage:
             if self.navContext == NavContext.UNSTAGED:
                 self.stage()

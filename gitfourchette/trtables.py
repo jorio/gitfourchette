@@ -262,6 +262,7 @@ class TrTables:
                 FileListClick.Stage             : _("Stage/unstage file"),
                 FileListClick.Blame             : _("Blame file"),
                 FileListClick.Edit              : _("Open file in external editor"),
+                FileListClick.DiffTool          : _("Open file in external diff tool"),
                 FileListClick.Folder            : _("Show file in folder"),
             },
         }

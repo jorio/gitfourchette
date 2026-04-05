@@ -632,7 +632,13 @@ def testSpecialClickToStageFile(tempDir, mainWindow, clickType):
 @pytest.mark.parametrize("click", ["middle", "double"])
 @pytest.mark.parametrize("action", [v for v in FileListClick if v != FileListClick.Stage])
 def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
-    mainWindow.onAcceptPrefsDialog({f"{click}ClickFileList": action})
+    editorPath = getTestDataPath("editor-shim.py")
+    scratchPath = f"{tempDir.name}/external diff tool scratch file.txt"
+
+    mainWindow.onAcceptPrefsDialog({
+        f"{click}ClickFileList": action,
+        "externalDiff": f"'{editorPath}' '{scratchPath}' $L $R",
+    })
 
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
@@ -651,6 +657,10 @@ def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
         blameWindow.close()
     elif action == FileListClick.Edit:
         assert Path(wd, "a", "a1.txt").samefile(services.lastUrlAsLocalFile())
+    elif action == FileListClick.DiffTool:
+        paths = readTextFile(scratchPath, timeout=1000).strip().splitlines()
+        assert paths[0].endswith("[HEAD]a1.txt")
+        assert paths[1].endswith("[STAGED]a1.txt")
     elif action == FileListClick.Folder:
         assert Path(wd, "a").samefile(services.lastUrlAsLocalFile())
     else:
