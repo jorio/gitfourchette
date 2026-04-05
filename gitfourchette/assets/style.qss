@@ -24,3 +24,6 @@ DiffView[dark="false"] { selection-background-color: rgba(0, 0, 0, 20%); selecti
 DiffView[dark="true"] { selection-background-color: rgba(255, 255, 255, 26%); }
 
 QFaintSeparator { border: none; background: rgba(0, 0, 0, 15%); }
+
+/* Remove QToolButton dropdown arrow in Fusion style */
+GpgButton::menu-indicator { image: none; }
