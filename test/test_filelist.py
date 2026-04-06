@@ -767,7 +767,10 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.diffArea.dirtyFiles.selectAll()
     triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor-shim")
-    acceptQMessageBox(rw, "really open.+12 files.+in external diff tool")
+
+    # Accept by explicitly clicking "Yes To All" button
+    acceptQMessageBox(rw, "really open.+12 files.+in external diff tool",
+                      QMessageBox.StandardButton.YesToAll)
 
     # Dismiss errors
     acceptQMessageBox(rw, "can.t open external diff tool on a deleted file.+"

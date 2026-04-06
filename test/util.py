@@ -664,13 +664,22 @@ def waitForQMessageBox(parent: QWidget, pattern: str) -> QMessageBox:
     return waitUntilTrue(tryFind)
 
 
-def acceptQMessageBox(parent: QWidget, textPattern: str):
+def acceptQMessageBox(parent: QWidget, textPattern: str,
+                      click=QMessageBox.StandardButton.NoButton):
     """
     In offscreen mode, be aware that closing a QMessageBox doesn't restore the
     previously active window, thereby sending the application to the background
     via a QEvent::ApplicationStateChange.
     """
-    findQMessageBox(parent, textPattern).accept()
+    qmb = findQMessageBox(parent, textPattern)
+
+    if click:
+        # Explicitly accept by clicking a button
+        button = qmb.button(click)
+        button.click()
+    else:
+        # Generic accept
+        qmb.accept()
 
 
 def rejectQMessageBox(parent: QWidget, textPattern: str):

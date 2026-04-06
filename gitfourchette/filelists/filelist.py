@@ -386,12 +386,11 @@ class FileList(QListView):
             title,
             prompt.format(n=numFiles),
             runBatch,
-            QMessageBox.StandardButton.YesAll | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.YesToAll | QMessageBox.StandardButton.Cancel,
             show=False)
 
         addULToMessageBox(qmb, [d.new.path for d in deltas])
 
-        qmb.button(QMessageBox.StandardButton.YesAll).clicked.connect(runBatch)
         qmb.show()
 
     def openWorkdirFile(self):
