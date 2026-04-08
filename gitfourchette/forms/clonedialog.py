@@ -18,7 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import RepoContext, RepositoryOpenFlag
 from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
-from gitfourchette.tasks import RepoTask, RepoTaskRunner, TaskInvocation
+from gitfourchette.tasks import RepoTask, RepoTaskRunner
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -287,10 +287,9 @@ class CloneDialog(QDialog):
             depth = self.ui.shallowCloneDepthSpinBox.value()
 
         self.ui.statusForm.initProgress(_("Contacting remote host…"))
-        call = TaskInvocation(self.taskRunner, CloneTask,
-                              dialog=self, url=self.url, path=self.path, depth=depth,
-                              privKeyPath=privKeyPath, recursive=recursive)
-        self.taskRunner.put(call)
+        CloneTask.invoke(self,
+                         dialog=self, url=self.url, path=self.path, depth=depth,
+                         privKeyPath=privKeyPath, recursive=recursive)
 
     def onUrlProtocolChanged(self, newUrl: str):
         # This pushes the new text to the QLineEdit's undo stack (whereas setText clears the undo stack).

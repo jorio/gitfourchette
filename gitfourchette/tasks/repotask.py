@@ -224,7 +224,7 @@ class RepoTask(QObject):
     @classmethod
     def invoke(cls, invoker: QObject, *args, **kwargs):
         call = TaskInvocation(invoker, cls, *args, **kwargs)
-        TaskInvocation.invokeSignal.emit(call)
+        call.run()
 
     def __init__(self, parent: QObject):
         super().__init__(parent)
@@ -1236,14 +1236,29 @@ class TaskInvocation:
     def __repr__(self):
         return f"{self.__class__.__name__}({self.taskClass.__name__})"
 
-    @classmethod
-    def initializeGlobalSignal(cls):
-        class _InvokeSignalOwner(QObject):
-            invoke = Signal(TaskInvocation)
-        assert not hasattr(cls, "_invokeSignalOwner"), "global task invoke signal already initialized"
-        cls._invokeSignalOwner = _InvokeSignalOwner(None)
-        cls.invokeSignal = cls._invokeSignalOwner.invoke
-        return cls.invokeSignal
+    def run(self):
+        assert isinstance(self.invoker, QObject)
+        if self.invoker.signalsBlocked():
+            logger.debug(f"Ignoring {repr(self)} from invoker with blocked signals: " +
+                         (self.invoker.objectName() or self.invoker.__class__.__name__))
+            return
+
+        # Find TaskRunner in QObject hierarchy
+        obj = self.invoker
+        if isinstance(obj, RepoTaskRunner):
+            runner = obj
+        else:
+            while obj is not None:
+                try:
+                    runner = obj.taskRunner
+                    assert isinstance(runner, RepoTaskRunner)
+                    break
+                except AttributeError:
+                    obj = obj.parent()
+            else:
+                raise AssertionError("Could not find RepoTaskRunner")
+
+        runner.put(self)
 
 
 RepoTaskSubtype = TypeVar('RepoTaskSubtype', bound=RepoTask)

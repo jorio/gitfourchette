@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -138,8 +138,6 @@ class RepoStub(QWidget):
 
     def loadNow(self):
         assert not self.isPriming(), "attempting to load RepoStub twice"
-        from gitfourchette.tasks import TaskInvocation
         from gitfourchette.tasks.loadtasks import PrimeRepo
         self.resetUi()
-        call = TaskInvocation(self.taskRunner, PrimeRepo, repoStub=self)
-        self.taskRunner.put(call)
+        PrimeRepo.invoke(self, repoStub=self)

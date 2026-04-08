@@ -38,7 +38,7 @@ from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
 from gitfourchette.settings import TabBarClick
 from gitfourchette.syntax import LexJobCache
-from gitfourchette.tasks import TaskBook, RepoTaskRunner, TaskInvocation
+from gitfourchette.tasks import TaskBook, RepoTaskRunner
 from gitfourchette.tasks.newrepotasks import NewRepo
 from gitfourchette.toolbox import *
 from gitfourchette.toolbox.fittedtext import FittedText
@@ -127,6 +127,18 @@ class MainWindow(QMainWindow):
 
         self.dropZone = DropZone(self)
         self.dropZone.setVisible(False)
+
+    # -------------------------------------------------------------------------
+    # RepoTask
+
+    @property
+    def taskRunner(self) -> RepoTaskRunner:
+        """
+        Return the foreground RepoWidget's RepoTaskRunner.
+        This provides compatibility for TaskInvocation's RepoTaskRunner lookup.
+        May raise NoRepoWidgetError, aborting the lookup.
+        """
+        return self.currentRepoWidget().taskRunner
 
     # -------------------------------------------------------------------------
     # Event handlers
@@ -806,9 +818,8 @@ class MainWindow(QMainWindow):
 
     def newRepo(self):
         runner = RepoTaskRunner(self)
-        call = TaskInvocation(runner, NewRepo, self.openRepo)
-        runner.put(call)
         runner.ready.connect(runner.deleteLater)
+        NewRepo.invoke(runner, self.openRepo)
 
     def cloneDialog(self, initialUrl: str = ""):
         dlg = CloneDialog(initialUrl, self)

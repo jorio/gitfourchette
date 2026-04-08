@@ -13,7 +13,7 @@ from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavHistory, NavFlags
 from gitfourchette.qt import *
-from gitfourchette.tasks import TaskInvocation, RepoTaskRunner
+from gitfourchette.tasks import RepoTaskRunner
 from gitfourchette.toolbox import *
 
 
@@ -134,8 +134,7 @@ class BlameWindow(QWidget):
 
     def showRevision(self, revision: Revision, saveAndTransposePosition=True):
         from gitfourchette.tasks.blametasks import BlameRevision
-        invocation = TaskInvocation(self, BlameRevision, revision, saveAndTransposePosition)
-        self.taskRunner.put(invocation)
+        BlameRevision.invoke(self, revision, saveAndTransposePosition)
 
     def syncNavButtons(self):
         index = self.scrubber.currentIndex()

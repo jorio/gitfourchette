@@ -10,7 +10,6 @@ import gc
 import logging
 import os
 import sys
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,7 +21,6 @@ from gitfourchette.qt import *
 if TYPE_CHECKING:
     from gitfourchette.mainwindow import MainWindow
     from gitfourchette.settings import Session
-    from gitfourchette.tasks import RepoTask, TaskInvocation
     from gitfourchette.mount.mountmanager import MountManager
     from gitfourchette.sshagent import SshAgent
 
@@ -130,12 +128,11 @@ class GFApplication(QApplication):
         self.restyle.connect(self.onRestyle)
 
         from gitfourchette.globalshortcuts import GlobalShortcuts
-        from gitfourchette.tasks import TaskBook, TaskInvocation
+        from gitfourchette.tasks import TaskBook
 
         # Prime singletons
         GlobalShortcuts.initialize()
         TaskBook.initialize()
-        TaskInvocation.initializeGlobalSignal().connect(self.onInvokeTask)
 
         # Get initial session tabs
         commandLinePaths = parser.positionalArguments()
@@ -324,47 +321,6 @@ class GFApplication(QApplication):
         logger.debug("Main window destroyed")
         self.mainWindow = None
         self.removeEventFilter(self)  # Stop catching events
-
-    # -------------------------------------------------------------------------
-
-    def onInvokeTask(self, call: TaskInvocation) -> RepoTask | None:
-        from gitfourchette.mainwindow import MainWindow
-        from gitfourchette.repowidget import RepoWidget
-        from gitfourchette.blameview.blamewindow import BlameWindow
-        from gitfourchette.toolbox import showInformation
-
-        if self.mainWindow is None:
-            warnings.warn(f"Ignoring {repr(call)} because we don't have a window")
-            return None
-
-        assert isinstance(call.invoker, QObject)
-        if call.invoker.signalsBlocked():
-            logger.debug(f"Ignoring {repr(call)} from invoker with blocked signals: " +
-                         (call.invoker.objectName() or call.invoker.__class__.__name__))
-            return None
-
-        # Find parent in hierarchy
-        candidate = call.invoker
-        while candidate is not None:
-            if isinstance(candidate, RepoWidget | BlameWindow | MainWindow):
-                break
-            candidate = candidate.parent()
-
-        if isinstance(candidate, RepoWidget | BlameWindow):
-            repoWidget = candidate
-        elif isinstance(candidate, MainWindow):
-            repoWidget = candidate.currentRepoWidget()
-            if repoWidget is None:
-                showInformation(candidate, call.taskClass.name(),
-                                _("Please open a repository before performing this action."))
-                return None
-        else:
-            repoWidget = None
-
-        if repoWidget is None:
-            raise AssertionError("RepoTasks must be invoked from a child of RepoWidget or MainWindow")
-
-        return repoWidget.taskRunner.put(call)
 
     # -------------------------------------------------------------------------
 
