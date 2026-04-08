@@ -732,5 +732,9 @@ class FileList(QListView):
                 commit = delta.new.sourceCommit
             OpenBlame.invoke(self, path, commit)
 
-        self.confirmBatch(run, OpenBlame.name(), _("Really open <b>{n} windows</b>?"))
-
+        # TODO: For now, only one blame at a time is supported
+        try:
+            delta = next(self.selectedDeltas())
+            run(delta)
+        except StopIteration:
+            QApplication.beep()
