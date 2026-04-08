@@ -464,7 +464,9 @@ class RepoTask(QObject):
 
     def flowRequestForegroundUi(self):
         """
-        Pause the coroutine until the RepoWidget is the foreground tab.
+        Pause the coroutine until the parent widget becomes the foreground tab.
+        No-op if the parent widget is already visible or lacks the
+        `becameVisible` signal.
 
         This function is intended to be called by flow() with "yield from".
         """
@@ -476,9 +478,15 @@ class RepoTask(QObject):
             return
 
         token = FlowControlToken(FlowControlToken.Kind.WaitUserReady)
-        parentWidget.becameVisible.connect(self.uiReady)
+        try:
+            becameVisible = parentWidget.becameVisible
+        except AttributeError:
+            logger.warning("Widget does not support becameVisible")
+            return
+
+        becameVisible.connect(self.uiReady)
         yield token
-        parentWidget.becameVisible.disconnect(self.uiReady)
+        becameVisible.disconnect(self.uiReady)
 
     def flowStartProcess(self, process: QProcess, autoFail=True, stdin: str = "") -> Generator[FlowControlToken, None, None]:
         assert self._isRunningOnAppThread(), "start processes from UI thread"
@@ -792,7 +800,7 @@ class RepoTaskRunner(QObject):
     "Task that is currently running"
 
     _pendingTask: RepoTask | None
-    "Task that is interrupting _currentTask"
+    "Task that is queued to run after _currentTask"
 
     _currentTaskBenchmark: Benchmark
     "Context manager"
@@ -813,7 +821,7 @@ class RepoTaskRunner(QObject):
         self._workerThread.flow = None
         self._workerThread.tokenReady.connect(self._continueFlow)
 
-        self._queueTokens = 0
+        self._queueTokens = False
         self._tokenQueue = []
 
     @property
@@ -839,8 +847,14 @@ class RepoTaskRunner(QObject):
         The task will not die immediately. Use joinKilledTask() after killing
         the task to block the current thread until the task runner is empty.
 
+        Note that this will clear the pending task as well.
+
         No-op if no task is running.
         """
+
+        # When we want to kill a task, invalidate the pending task as well.
+        self._releasePendingTask()
+
         if self._currentTask:
             self._interruptCurrentTask = True
             ToolCommands.terminatePlus(self._currentTask.currentProcess)
@@ -858,7 +872,7 @@ class RepoTaskRunner(QObject):
             flags |= QEventLoop.ProcessEventsFlag.WaitForMoreEvents
             QApplication.processEvents(flags, 30)
         self.joinWorkerThread()
-        assert not self.isBusy()
+        assert not self.isBusy(), f"still busy - {self._currentTask} {self._pendingTask} {self._workerThread.isRunning()}"
 
     def joinWorkerThread(self):
         assert onAppThread()
@@ -878,41 +892,44 @@ class RepoTaskRunner(QObject):
         task._currentFlow = task.flow(*call.taskArgs, **call.taskKwargs)
         assert isinstance(task._currentFlow, Generator), "flow() must contain at least one yield statement"
 
+        # If there's any pending task, replace it.
+        self._releasePendingTask()
+        assert not self._pendingTask
+
         if not self._currentTask:
-            self._currentTask = task
-            self._startCurrentTask()
-
+            # We'll be able to start immediately.
+            pass
         elif self._currentTask.isFreelyInterruptible() or task.canKill(self._currentTask):
-            logger.info(f"Task {task} killed task {self._currentTask}")
-
             # Interrupt the current task.
+            logger.debug(f"Task {task} killed task {self._currentTask}")
             self.killCurrentTask()
-
-            if self._pendingTask:
-                # There's already a pending task.
-                # It hasn't started yet - it's waiting on _currentTask to die.
-                # Just replace _pendingTask, but let _currentTask die cleanly.
-                assert self._pendingTask._currentIteration == 0, "_pendingTask isn't supposed to have started yet!"
-                self._pendingTask.deleteLater()
-
-            # Queue up this task.
-            # Next time _processTokens runs, it will kill off the current task and boot the pending task.
-            self._pendingTask = task
-
         else:
-            logger.info(f"Task {task} cannot kill task {self._currentTask}")
-            message = _("Please wait for the current operation to complete ({0}).", hquo(self._currentTask.name()))
-            showInformation(task.parentWidget(), _("Operation in progress"), "<html>" + message)
+            # Enqueue after the current task.
+            logger.debug(f"Task {task} enqueued after {self._currentTask}")
 
-    def _startCurrentTask(self):
-        task = self._currentTask
+        # Queue up this task.
+        self._pendingTask = task
+
+        # If the current task slot is vacant at this point, start immediately.
+        if not self._currentTask:
+            self._startPendingTask()
+
+    def _startPendingTask(self):
+        task = self._pendingTask
+        assert not self._currentTask, f"cannot start pending task {task} while {self._currentTask} is still current"
+
+        if not task:
+            return
+
+        assert task._currentIteration == 0, "pending task isn't supposed to have started yet"
         assert task._currentFlow
         assert task.isRootTask
-        assert not self._pendingTask, "pending task should be gone before starting a new task"
         assert not self._interruptCurrentTask, "interrupt flag not reset"
 
-        logger.debug(f">>> {task}")
+        self._currentTask = task
+        self._pendingTask = None
 
+        logger.debug(f">>> {task}")
         self._currentTaskBenchmark.name = str(task)
         self._currentTaskBenchmark.__enter__()
 
@@ -958,19 +975,8 @@ class RepoTaskRunner(QObject):
         # Wrap up if we've been interrupted
         if self._interruptCurrentTask:
             self._interruptCurrentTask = False
-            self._releaseCurrentTask()
-            assert self._currentTask is None
-            task.deleteLater()
-
-            # Another task is queued up, start it now
-            if self._pendingTask:
-                self._currentTask = self._pendingTask
-                self._pendingTask = None
-                self._startCurrentTask()
-
+            self._onTaskInterrupted(StopIteration("task was killed"))
             return None
-
-        assert not self._pendingTask, "there can't be a pending task without interrupting the current task"
 
         # ---------------------------------------------------------------------
         # Process the token
@@ -1025,34 +1031,7 @@ class RepoTaskRunner(QObject):
             exception = token.exception
             assert exception is not None, "FlowControlToken(InterruptedByException) must provide an exception!"
 
-            # Wait for worker thread to wrap up cleanly,
-            # otherwise we'll still appear to be busy for postTask callbacks.
-            self.joinWorkerThread()
-
-            # Stop tracking this task
-            self._releaseCurrentTask()
-
-            if isinstance(exception, StopIteration):
-                # No more steps in the flow. Task completed successfully.
-                pass
-            elif isinstance(exception, AbortTask):
-                # Controlled exit, show message (if any)
-                self.reportAbortTask(task, exception)
-                task.onError(exception)  # Also let task clean up after itself
-            elif isinstance(exception, RepoGoneError):
-                # Repo directory vanished
-                self.repoGone.emit()
-            else:
-                # Run task's error callback
-                task.onError(exception)
-
-            # Emit postTask signal whether the task succeeded or not
-            self.postTask.emit(task)
-
-            task.deleteLater()
-
-            # Manual GC: After completing a task is an opportune time to collect garbage
-            gcHint()
+            self._onTaskInterrupted(exception)
 
         else:
             raise NotImplementedError(f"Unsupported FlowControlToken {token.flowControl}")
@@ -1063,7 +1042,9 @@ class RepoTaskRunner(QObject):
         """
         Block caller until the next FlowControlToken is ready to be processed.
         Useful to wait for a process to complete, etc.
-        Meant for ForceSerial mode (unit tests).
+
+        Used only in ForceSerial mode to ease the writing of unit tests in a
+        "sequential" style.
         """
 
         assert onAppThread()
@@ -1082,6 +1063,46 @@ class RepoTaskRunner(QObject):
         token = self._tokenQueue.pop(0)
         assert not self._tokenQueue
         return token
+
+    def _onTaskInterrupted(self, exception: Exception):
+        task = self._currentTask
+        assert task
+        assert not self._workerThread.isRunning()
+
+        # Stop tracking this task
+        self._releaseCurrentTask()
+        assert self._currentTask is None
+
+        discardPendingTask = True
+
+        if isinstance(exception, StopIteration):
+            # No more steps in the flow. Task completed successfully.
+            discardPendingTask = False
+        elif isinstance(exception, AbortTask):
+            # Controlled exit, show message (if any)
+            self.reportAbortTask(task, exception)
+            task.onError(exception)  # Also let task clean up after itself
+        elif isinstance(exception, RepoGoneError):
+            # Repo directory vanished
+            self.repoGone.emit()
+        else:
+            # Run task's error callback
+            task.onError(exception)
+
+        if discardPendingTask:
+            # Task aborted before completion, discard pending task
+            self._releasePendingTask()
+        else:
+            # Queue up pending task, if any, before postTask
+            self._startPendingTask()
+
+        # Emit postTask signal whether the task succeeded or not
+        self.postTask.emit(task)
+
+        task.deleteLater()
+
+        # Manual GC: After completing a task is an opportune time to collect garbage
+        gcHint()
 
     @staticmethod
     def _getNextToken(flow: RepoTask.FlowGeneratorType) -> FlowControlToken:
@@ -1113,6 +1134,15 @@ class RepoTaskRunner(QObject):
 
         task._currentFlow = None
         self._currentTask = None
+
+    def _releasePendingTask(self):
+        if not self._pendingTask:
+            return
+
+        logger.debug(f"Pending task {self._pendingTask} discarded")
+        assert self._pendingTask._currentIteration == 0, "pending task isn't supposed to have started yet"
+        self._pendingTask.deleteLater()
+        self._pendingTask = None
 
     def reportAbortTask(self, task: RepoTask, exception: AbortTask):
         message = str(exception)
