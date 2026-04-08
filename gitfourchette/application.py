@@ -512,11 +512,13 @@ class GFApplication(QApplication):
     # -------------------------------------------------------------------------
 
     def onRestyle(self):
+        from gitfourchette.toolbox.iconbank import clearStockIconCache
         from gitfourchette.toolbox.qtutils import isDarkTheme
         from gitfourchette.syntax.colorscheme import ColorScheme
         from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
         # Force RecolorSvgIconEngine to re-render the icons
+        clearStockIconCache()
         QPixmapCache.clear()
         RecolorSvgIconEngine.IconColors.refresh()
 
