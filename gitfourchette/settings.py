@@ -154,7 +154,7 @@ class Prefs(PrefsFile):
     doubleClickTabBar           : TabBarClick           = TabBarClick.Folder
     middleClickTabBar           : TabBarClick           = TabBarClick.Close
     _label_fileListClicks       : int                   = 0
-    doubleClickFileList         : FileListClick         = FileListClick.Blame
+    doubleClickFileList         : FileListClick         = FileListClick.Nothing
     middleClickFileList         : FileListClick         = FileListClick.Stage
     _label_diffViewClicks       : int                   = 0
     middleClickStageLines       : bool                  = True
