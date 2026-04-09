@@ -30,6 +30,33 @@ logger = logging.getLogger(__name__)
 _emptyDelta = GitDelta()
 
 
+def _qt_int_enum_value(x) -> int:
+    """Coerce Qt6/PySide6 enum Flag values to int (bitwise ops need int, not Flag)."""
+    if isinstance(x, int):
+        return x
+    val = getattr(x, "value", None)
+    if isinstance(val, int):
+        return val
+    return int(x)
+
+
+def _formatting_mark_text_option_flags() -> int:
+    try:
+        f = QTextOption.Flag
+        option = f.ShowTabsAndSpaces
+    except AttributeError:  # PyQt5
+        option = QTextOption.ShowTabsAndSpaces
+    return _qt_int_enum_value(option)
+
+
+def _qtextoption_flags_for_setter(flags_int: int):
+    """PySide6 setFlags() requires QTextOption.Flag, not int; PyQt5 uses plain int."""
+    try:
+        return QTextOption.Flag(flags_int)
+    except (AttributeError, TypeError, ValueError):
+        return flags_int
+
+
 class DiffView(CodeView):
     contextualHelp = Signal(str)
     selectionActionable = Signal(bool)
@@ -60,6 +87,24 @@ class DiffView(CodeView):
         self.gutter.lineShiftClicked.connect(self.selectWholeLinesTo)
         self.gutter.lineDoubleClicked.connect(self.selectClumpOfLinesAt)
         self.gutter.selectionMiddleClicked.connect(self.onMiddleClick)
+
+    def refreshPrefs(self, changeColorScheme=True):
+        super().refreshPrefs(changeColorScheme)
+        self._applyFormattingMarksTextOption()
+
+    def _applyFormattingMarksTextOption(self):
+        doc = self.document()
+        if not doc:
+            return
+        opt = QTextOption(doc.defaultTextOption())
+        flags = _qt_int_enum_value(opt.flags())
+        markFlags = _formatting_mark_text_option_flags()
+        if settings.prefs.showFormattingMarks:
+            flags |= markFlags
+        else:
+            flags &= ~markFlags
+        opt.setFlags(_qtextoption_flags_for_setter(flags))
+        doc.setDefaultTextOption(opt)
 
     def _initRubberBandButtons(self):
         self.stageButton = QToolButton()

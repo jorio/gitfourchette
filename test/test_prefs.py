@@ -6,6 +6,8 @@
 
 import textwrap
 
+from gitfourchette import settings
+from gitfourchette.diffview.diffview import _formatting_mark_text_option_flags, _qt_int_enum_value
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.toolbox.fontpicker import FontPicker
@@ -151,6 +153,39 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
 
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("crlf.txt"))
     assert "<CRLF>" not in rw.diffView.toPlainText()
+
+
+def testPrefsShowFormattingMarks(tempDir, mainWindow):
+    mark_flags = _formatting_mark_text_option_flags()
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/marks.txt", "x\t y\n")
+    rw = mainWindow.openRepo(wd)
+    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("marks.txt"))
+
+    def formatting_mark_bits_set() -> bool:
+        f = _qt_int_enum_value(rw.diffView.document().defaultTextOption().flags())
+        return (f & mark_flags) == mark_flags
+
+    assert not formatting_mark_bits_set()
+
+    dlg = mainWindow.openPrefsDialog("showFormattingMarks")
+    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
+    assert checkBox is not None
+    assert not checkBox.isChecked()
+    checkBox.setChecked(True)
+    dlg.accept()
+
+    assert settings.prefs.showFormattingMarks
+    assert formatting_mark_bits_set()
+
+    dlg = mainWindow.openPrefsDialog("showFormattingMarks")
+    checkBox2: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
+    checkBox2.setChecked(False)
+    dlg.accept()
+
+    assert not settings.prefs.showFormattingMarks
+    assert not formatting_mark_bits_set()
 
 
 def testPrefsUserCommandsSyntaxHighlighter(mainWindow):

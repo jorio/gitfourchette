@@ -423,6 +423,7 @@ class TrTables:
             "syntaxHighlighting": _("Syntax highlighting"),
             "wordWrap": _("Word wrap"),
             "showStrayCRs": _("Display alien line endings (CRLF)"),
+            "showFormattingMarks": _("Show formatting marks (tabs and spaces)"),
             "colorblind": _("“-/+” colors"),
             "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),
             "renderSvg": _("SVG files"),

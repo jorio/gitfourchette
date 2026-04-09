@@ -111,6 +111,7 @@ class Prefs(PrefsFile):
     largeFileThresholdKB        : int                   = 500
     wordWrap                    : bool                  = False
     showStrayCRs                : bool                  = True
+    showFormattingMarks         : bool                  = False
 
     _category_imageDiff         : int                   = 0
     imageFileThresholdKB        : int                   = 5000
