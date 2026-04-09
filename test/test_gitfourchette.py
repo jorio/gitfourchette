@@ -803,3 +803,34 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread, needSigkill):
 
     code = "SIGKILL" if needSigkill else "SIGTERM"
     waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()
+
+
+def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/file1.txt", "stage me...")
+    writeFile(f"{wd}/file2.txt", "...then jump here")
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    with DelayGitCommandContext(delay=1):
+        # Stage file1.txt
+        assert 2 == len(qlvGetRowData(rw.dirtyFiles))
+        qlvClickNthRow(rw.dirtyFiles, 0)
+        rw.diffArea.stageButton.click()
+
+        # Wait for post-refresh task to start
+        assert "stage" in rw.taskRunner.currentTask.name().lower()
+        waitUntilTrue(lambda: "stage" not in rw.taskRunner.currentTask.name().lower())
+
+        # While refreshing, the dirty box still shows 2 files.
+        # Interrupt the refresh task to jump to file2.txt.
+        assert 2 == len(qlvGetRowData(rw.dirtyFiles))
+        qlvClickNthRow(rw.dirtyFiles, 1)
+
+        # Wait for dust to settle
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy(), timeout=20_000)
+
+        assert 1 == len(qlvGetRowData(rw.dirtyFiles))
+        assert 1 == len(qlvGetRowData(rw.stagedFiles))

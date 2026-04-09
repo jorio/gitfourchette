@@ -582,22 +582,22 @@ class RepoWidget(QWidget):
 
     # -------------------------------------------------------------------------
 
-    def refreshRepo(self, effects: TaskEffects = TaskEffects.DefaultRefresh, jumpTo: NavLocator = NavLocator.Empty):
+    def refreshRepo(
+            self,
+            effects: TaskEffects = TaskEffects.DefaultRefresh,
+            jumpTo: NavLocator = NavLocator.Empty
+    ):
         """Refresh the repo as soon as possible."""
 
+        # Accumulate effect bits
+        self.pendingEffects |= effects
+
+        # Don't refresh if in background or task runner busy
         if not self.isVisible() or self.taskRunner.isBusy():
-            # Can't refresh right now. Stash the effect bits for later.
             logger.debug(f"Stashing refresh bits {repr(effects)}")
-            self.pendingEffects |= effects
             if jumpTo:
                 warnings.warn(f"Ignoring post-refresh jump {jumpTo} because can't refresh yet")
             return
-
-        # Consume pending effect bits, if any
-        if self.pendingEffects != TaskEffects.Nothing:
-            logger.debug(f"Consuming pending refresh bits {self.pendingEffects}")
-            effects |= self.pendingEffects
-            self.pendingEffects = TaskEffects.Nothing
 
         # Consume pending locator, if any
         if self.pendingLocator:
@@ -605,12 +605,14 @@ class RepoWidget(QWidget):
                 jumpTo = self.pendingLocator
             else:
                 warnings.warn(f"Ignoring pendingLocator {self.pendingLocator} - overridden by {jumpTo}")
-            self.pendingLocator = NavLocator()  # Consume it
+            self.pendingLocator = NavLocator.Empty  # Consume it
 
-        # Invoke refresh task
-        if effects != TaskEffects.Nothing:
-            tasks.RefreshRepo.invoke(self, effects, jumpTo)
+        if self.pendingEffects != TaskEffects.Nothing:
+            # Invoke refresh task
+            # This will clear out pendingEffects UNLESS interrupted!
+            tasks.RefreshRepo.invoke(self, self.pendingEffects, jumpTo)
         elif jumpTo:
+            # Just jump
             tasks.Jump.invoke(self, jumpTo)
         else:
             # End of refresh chain.

@@ -761,6 +761,11 @@ class RefreshRepo(RepoTask):
         rw.refreshWindowTitle()
         rw.refreshBanner()
 
+        # Finally, clear out the effect bits that were accumulated by
+        # RepoWidget.refreshRepo. Do this *last* because we want to keep the
+        # effect bits for the next RefreshRepo task if this one was interrupted.
+        rw.pendingEffects = TaskEffects.Nothing
+
         if anyChanges:
             logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "
                          f"Sub={int(submodulesChanged)} Rem={int(remotesChanged)} Ups={int(upstreamsChanged)}")
