@@ -104,7 +104,15 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, TabBarClick, FileListClick
+        from gitfourchette.settings import (
+            ComparisonMethod,
+            FileListClick,
+            GraphRefBoxWidth,
+            GraphRowHeight,
+            QtApiNames,
+            RefSort,
+            TabBarClick,
+        )
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -205,6 +213,17 @@ class TrTables:
                 AuthorDisplayStyle.Initials     : _("Initials"),
                 AuthorDisplayStyle.FullEmail    : _("Full email"),
                 AuthorDisplayStyle.EmailUserName: _("Abbreviated email"),
+            },
+
+            ComparisonMethod: {
+                ComparisonMethod.Strict:
+                    _("Recognize line endings and white space differences"),
+                ComparisonMethod.IgnoreCrAtEol:
+                    _("Ignore line ending differences"),
+                ComparisonMethod.IgnoreCrAtEolAndSpaceChange:
+                    _("Ignore line ending and white space length differences"),
+                ComparisonMethod.IgnoreCrAtEolAndAllSpace:
+                    _("Ignore line ending differences and all white space differences"),
             },
 
             GraphRowHeight: {
@@ -424,6 +443,12 @@ class TrTables:
             "wordWrap": _("Word wrap"),
             "showStrayCRs": _("Display alien line endings (CRLF)"),
             "showFormattingMarks": _("Show formatting marks (tabs and spaces)"),
+            "comparisonMethod": _("Comparison method"),
+            "comparisonMethod_help": paragraphs(
+                _("Controls how {app} runs <code>git diff</code> when showing a patch in the diff view. "
+                  "Exporting patches, reverting files, and similar actions still use an exact comparison."),
+                _("Line-ending handling uses Git’s <code>--ignore-cr-at-eol</code> option."),
+            ),
             "colorblind": _("“-/+” colors"),
             "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),
             "renderSvg": _("SVG files"),

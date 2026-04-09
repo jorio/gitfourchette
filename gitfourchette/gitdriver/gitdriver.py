@@ -17,6 +17,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.settings import ComparisonMethod
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
@@ -307,16 +308,38 @@ class GitDriver(QProcess):
         deltas = list(parseGitDiffRawZ(stdout))
         return deltas
 
+    @staticmethod
+    def _git_diff_comparison_argv(for_display: bool) -> list[str]:
+        """
+        Extra `git diff` arguments for line-ending / whitespace handling.
+        Only applied when generating patches for on-screen display so exports,
+        revert, and trash backups stay exact.
+        """
+        if not for_display:
+            return []
+        m = settings.prefs.comparisonMethod
+        if m == ComparisonMethod.Strict:
+            return []
+        if m == ComparisonMethod.IgnoreCrAtEol:
+            return ["--ignore-cr-at-eol"]
+        if m == ComparisonMethod.IgnoreCrAtEolAndSpaceChange:
+            return ["--ignore-cr-at-eol", "--ignore-space-change"]
+        if m == ComparisonMethod.IgnoreCrAtEolAndAllSpace:
+            return ["--ignore-cr-at-eol", "--ignore-all-space"]
+        return []
+
     @classmethod
     def buildDiffCommand(
             cls,
             delta: GitDelta | tuple[Oid | None, Oid | None] | None,
-            binary=True
+            binary=True,
+            for_display: bool = False,
     ) -> list[str]:
         tokens = [
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
+            *cls._git_diff_comparison_argv(for_display),
             *argsIf(binary, "--binary"),
         ]
 
@@ -367,7 +390,9 @@ class GitDriver(QProcess):
             "--git-dir=",
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
-            "diff", "--no-index", "--",
+            "diff",
+            *cls._git_diff_comparison_argv(True),
+            "--no-index", "--",
             delta.old.lfs.objectPath,
             delta.new.lfs.objectPath,
         ]
