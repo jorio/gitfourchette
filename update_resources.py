@@ -384,7 +384,7 @@ def formatTranslatorCredits(jsonReportPath: str):
 
 
 def formatContributors():
-    process = call("git", "shortlog", "--summary", ":!gitfourchette/assets/lang")
+    process = call("git", "shortlog", "--summary", "--numbered", ":!gitfourchette/assets/lang")
 
     contributors = [
         line.split("\t", 1)[1]

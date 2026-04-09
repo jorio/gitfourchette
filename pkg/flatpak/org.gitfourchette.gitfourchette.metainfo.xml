@@ -66,6 +66,36 @@
   </keywords>
 
   <releases>
+    <release version="1.7.0" date="2026-04-09" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.7.0</url>
+      <description>
+        <p>New features:</p>
+        <ul>
+        <li><em>Compare two commits.</em> Hold the Control key while selecting two commits in the history to diff them.</li>
+        <li><em>Improved LFS integration.</em> A special icon appears next to LFS-tracked files. Images and text files stored as LFS can now be diffed. Actions such as "Restore File Revision" are now LFS-aware.</li>
+        <li><em>Upstream status indicators in sidebar.</em> Ahead/behind by N commits, upstream branch missing.</li>
+        <li><em>Customizable mouse shortcuts in file lists and tab bar.</em> You can now bind the double-click and middle-click to different actions (stage, blame, open, reveal).</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>Unstage both addition and deletion when unstaging a rename (#87)</li>
+        <li>New "Filename First" path display style (#86)</li>
+        <li>Replace spaces with dashes in branch name input fields (#88)</li>
+        <li>Consistently crisp icon rendering on high-DPI displays</li>
+        <li>Faster large-blob detection (requires pygit2 1.19.2 or newer)</li>
+        <li>Queue up to 1 action if busy with another non-interruptible task (replacing the "please wait for current task to complete" dialog)</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix line-by-line staging if filename contains non-ASCII characters (#89)</li>
+        <li>Fix sidebar context menu on local branches whose upstream is set to a symbolic ref (#92)</li>
+        <li>Resolve gitdir path so symlinked repo roots don't trigger error (#92)</li>
+        <li>Fix author signature couldn't be overridden when concluding a cherrypick</li>
+        <li>Fix repo wouldn't reload after raising max commit count from "History Truncated" page</li>
+        <li>Fix keyboard shortcut conflicts on Cinnamon</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.6.0" date="2026-02-01" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.6.0</url>
       <description>

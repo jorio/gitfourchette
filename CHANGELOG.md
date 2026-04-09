@@ -1,5 +1,32 @@
 # GitFourchette version history
 
+## 1.7.0 (2026-04-09)
+
+New features:
+
+- **Compare two commits.** Hold the Control key while selecting two commits in the history to diff them.
+- **Improved LFS integration.** A special icon appears next to LFS-tracked files. Images and text files stored as LFS can now be diffed. Actions such as "Restore File Revision" are now LFS-aware.
+- **Upstream status indicators in sidebar.** Ahead/behind by N commits, upstream branch missing.
+- **Customizable mouse shortcuts in file lists and tab bar.** You can now bind the double-click and middle-click to different actions (stage, blame, open, reveal).
+
+Quality of life improvements:
+
+- Unstage both addition and deletion when unstaging a rename (#87)
+- New "Filename First" path display style (#86)
+- Replace spaces with dashes in branch name input fields (#88)
+- Consistently crisp icon rendering on high-DPI displays
+- Faster large-blob detection (requires pygit2 1.19.2 or newer)
+- Queue up to 1 action if busy with another non-interruptible task (replacing the "please wait for current task to complete" dialog)
+
+Bug fixes:
+
+- Fix line-by-line staging if filename contains non-ASCII characters (#89)
+- Fix sidebar context menu on local branches whose upstream is set to a symbolic ref (#92)
+- Resolve gitdir path so symlinked repo roots don't trigger error (#92)
+- Fix author signature couldn't be overridden when concluding a cherrypick
+- Fix repo wouldn't reload after raising max commit count from "History Truncated" page
+- Fix keyboard shortcut conflicts on Cinnamon
+
 ## 1.6.0 (2026-02-01)
 
 New features:
