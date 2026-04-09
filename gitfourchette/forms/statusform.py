@@ -18,18 +18,12 @@ from gitfourchette.toolbox import stockIcon, tweakWidgetFont, QProcessConnection
 
 logger = logging.getLogger(__name__)
 
-# Capture the verb in a git command, e.g. "cherry-pick" in:
-#       git cherry-pick
-#       git cherry-pick args
-#       /usr/bin/git cherry-pick
-#       git --option cherry-pick
-#       git -c config.item cherry-pick
-#       'c:\program files\git.EXE' cherry-pick
-# Additionally, capture any "lfs" prefix, e.g.:
-#       git --option lfs smudge   (--> 'lfs smudge')
-_gitVerbPattern = re.compile(r"git(?:\.exe|\.EXE)?['\"]?(?=\s).*?\s"
-                             r"((?:lfs\s+)?[a-z][a-z\-]*)"
-                             r"(?=$|\s)")
+# Extract the verb part from a git command, e.g. "cherry-pick" when the command
+# is "git cherry-pick". See testGitVerbPattern for examples of inputs.
+_gitVerbPattern = re.compile(
+    r"git(?:\.exe|\.EXE)?['\"]?(?=\s).*?\s"
+    r"((?:(lfs|submodule)\s+)?[a-z][a-z\-]*)"
+    r"(?=$|\s)")
 
 
 class StatusForm(QWidget):

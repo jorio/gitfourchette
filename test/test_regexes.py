@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -59,6 +59,19 @@ AUTHOR_ABBREVIATIONS = {
 }
 
 
+GIT_VERBS = {
+    "git cherry-pick"                           : "cherry-pick",
+    "git cherry-pick args"                      : "cherry-pick",
+    "/usr/bin/git cherry-pick"                  : "cherry-pick",
+    "'/usr/bin/git' cherry-pick"                : "cherry-pick",
+    "git -c config.item cherry-pick"            : "cherry-pick",
+    "'c:\\program files\\git.EXE' cherry-pick"  : "cherry-pick",
+    '"c:\\program files\\git.exe" cherry-pick'  : "cherry-pick",
+    "git lfs smudge"                            : "lfs smudge",
+    "git submodule update"                      : "submodule update",
+}
+
+
 @pytest.mark.parametrize("exampleUrl", EXAMPLE_REMOTE_URLS)
 def testWebHostRegexes(exampleUrl):
     remoteUrl = exampleUrl
@@ -95,3 +108,11 @@ def testAuthorNameAbbreviation(fullName):
     assert abbreviatePerson(sig, AuthorDisplayStyle.Initials) == initials
     assert abbreviatePerson(sig, AuthorDisplayStyle.FullEmail) == "hello@example.com"
     assert abbreviatePerson(sig, AuthorDisplayStyle.EmailUserName) == "hello"
+
+
+@pytest.mark.parametrize("command", GIT_VERBS.keys())
+def testGitVerbPattern(command):
+    from gitfourchette.forms.statusform import _gitVerbPattern
+    match = _gitVerbPattern.search(command)
+    assert match
+    assert match.group(1) == GIT_VERBS[command]
