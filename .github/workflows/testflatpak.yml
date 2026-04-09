@@ -20,7 +20,7 @@ jobs:
 
     - name: Restore flatpak cache
       id: cache-flatpak-restore
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: |
           /home/runner/.local/share/flatpak
@@ -41,7 +41,7 @@ jobs:
     - name: Save flatpak cache
       if: steps.cache-flatpak-restore.outputs.cache-hit != 'true'
       id: cache-flatpak-save
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       with:
         path: |
           /home/runner/.local/share/flatpak
