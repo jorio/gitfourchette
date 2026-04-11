@@ -196,7 +196,7 @@ class PrimeRepo(RepoTask):
         # del repoStub.taskRunner
 
         # Replicate final loading message in status bar
-        self.postStatus = message
+        self.epilog.status = message
 
         # Jump to initial locator
         repoStub.closing.connect(rw.prepareForDeletion)
@@ -217,7 +217,7 @@ class PrimeRepo(RepoTask):
 
         # It's not necessary to refresh everything again (including workdir patches)
         # after priming the repo.
-        self.effects = TaskEffects.Nothing
+        self.epilog.effects = TaskEffects.Nothing
 
         # RepoWidget.refreshRepo may have been called while we were setting up the widget in this task.
         # Clear the stashed effect bits to avoid an unnecessary refresh.
@@ -515,4 +515,4 @@ class DownloadLfsObjects(RepoTask):
             driver.setStandardOutputFile(QProcess.nullDevice())
 
             yield from self.flowStartProcess(driver, stdin=pointer.pointerText)
-            self.effects |= TaskEffects.DefaultRefresh
+            self.epilog.effects |= TaskEffects.DefaultRefresh

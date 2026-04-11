@@ -70,16 +70,16 @@ class NewStash(RepoTask):
         # Rationale for sticking with libgit2 here: 'git stash' always brings in
         # ALL the staged changes, even if we explicitly pass some paths.
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
         self.repo.create_stash(stashMessage, paths=paths)
-        self.postStatus = _n("File stashed.", "{n} files stashed.", len(paths))
+        self.epilog.status = _n("File stashed.", "{n} files stashed.", len(paths))
         yield from self.flowEnterUiThread()
 
         if keepIntact:
             return
 
         # Clean up with vanilla git so smudge filters apply properly
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         # Clean untracked files
         cleanPaths = [p for p in paths if status[p] == FileStatus.WT_NEW]
@@ -122,11 +122,11 @@ class ApplyStash(RepoTask):
         deleteAfterApply = deleteCheckBox.isChecked()
         qmb.deleteLater()
 
-        self.jumpTo = NavLocator.inWorkdir()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.jumpTo = NavLocator.inWorkdir()
+        self.epilog.effects |= TaskEffects.Workdir
 
         if deleteAfterApply:
-            self.effects |= TaskEffects.Refs
+            self.epilog.effects |= TaskEffects.Refs
             backupStash(self.repo, stashCommitId)
 
         # Although 'git stash apply stash@{<FULL_COMMIT_ID>}' works fine,
@@ -142,12 +142,12 @@ class ApplyStash(RepoTask):
 
         if driver.exitCode() == 0:
             if deleteAfterApply:
-                self.postStatus = _("Stash {0} applied and deleted.", tquoe(stashMessage))
+                self.epilog.status = _("Stash {0} applied and deleted.", tquoe(stashMessage))
             else:
-                self.postStatus = _("Stash {0} applied.", tquoe(stashMessage))
+                self.epilog.status = _("Stash {0} applied.", tquoe(stashMessage))
 
         elif anyConflicts:
-            self.postStatus = _("Stash {0} applied, with conflicts.", tquoe(stashMessage))
+            self.epilog.status = _("Stash {0} applied, with conflicts.", tquoe(stashMessage))
             message = [_("Applying the stash {0} has caused merge conflicts "
                          "because your files have diverged since they were stashed.", bquoe(stashMessage))]
             if deleteAfterApply:
@@ -155,8 +155,8 @@ class ApplyStash(RepoTask):
             showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(message))
 
         else:
-            self.postStatus = _("Stash {0} couldn’t be applied.", tquoe(stashMessage))
-            message = [self.postStatus]
+            self.epilog.status = _("Stash {0} couldn’t be applied.", tquoe(stashMessage))
+            message = [self.epilog.status]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
             raise AbortTask(driver.htmlErrorText(paragraphs(message)), details=driver.formatCommandLine())
@@ -173,9 +173,9 @@ class DropStash(RepoTask):
 
         backupStash(self.repo, stashCommitId)
 
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
         stashIndex = self.repo.find_stash_index(stashCommitId)
         stashName = f"stash@{{{stashIndex}}}"  # 'git stash drop' doesn't support stash numbers
         yield from self.flowCallGit("stash", "drop", stashName)
 
-        self.postStatus = _("Stash {0} deleted.", tquoe(stashMessage))
+        self.epilog.status = _("Stash {0} deleted.", tquoe(stashMessage))

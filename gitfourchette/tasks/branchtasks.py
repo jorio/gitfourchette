@@ -64,7 +64,7 @@ class SwitchBranch(RepoTask):
             noText = _("Don’t Switch")
             yield from self.flowConfirm(text=text, icon='warning', verb=yesText, cancelText=noText)
 
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Head
 
         yield from self.flowCallGit(
             "checkout",
@@ -73,7 +73,7 @@ class SwitchBranch(RepoTask):
             *argsIf(recurseSubmodules, "--recurse-submodules"),
             newBranch)
 
-        self.postStatus = _("Switched to branch {0}.", tquo(newBranch))
+        self.epilog.status = _("Switched to branch {0}.", tquo(newBranch))
 
 
 class RenameBranch(RepoTask):
@@ -107,11 +107,11 @@ class RenameBranch(RepoTask):
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
 
         self.repo.rename_local_branch(oldBranchName, newBranchName)
 
-        self.postStatus = _("Branch {0} renamed to {1}.", tquo(oldBranchName), tquo(newBranchName))
+        self.epilog.status = _("Branch {0} renamed to {1}.", tquo(oldBranchName), tquo(newBranchName))
 
 
 class RenameBranchFolder(RepoTask):
@@ -173,13 +173,13 @@ class RenameBranchFolder(RepoTask):
 
         # Perform rename
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
 
         for oldBranchName in folderBranches:
             newBranchName = transformBranchName(oldBranchName, newFolderName)
             self.repo.rename_local_branch(oldBranchName, newBranchName)
 
-        self.postStatus = (
+        self.epilog.status = (
                 _("Branch folder {0} renamed to {1}.", tquo(oldFolderName), tquo(newFolderName))
                 + " "
                 + _n("{n} branch affected.", "{n} branches affected.", len(folderBranches))
@@ -206,11 +206,11 @@ class DeleteBranch(RepoTask):
 
         yield from self.flowEnterWorkerThread()
         target = self.repo.branches[localBranchName].target
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
         self.repo.delete_local_branch(localBranchName)
 
-        self.postStatus = _("Branch {0} deleted (commit at tip was {1}).",
-                            tquo(localBranchName), tquo(shortHash(target)))
+        self.epilog.status = _("Branch {0} deleted (commit at tip was {1}).",
+                               tquo(localBranchName), tquo(shortHash(target)))
 
 
 class DeleteBranchFolder(RepoTask):
@@ -243,14 +243,14 @@ class DeleteBranchFolder(RepoTask):
             buttonIcon="SP_DialogDiscardButton")
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
 
         for b in folderBranches:
             self.repo.delete_local_branch(b)
 
-        self.postStatus = _n("{n} branch deleted in folder {name}.",
+        self.epilog.status = _n("{n} branch deleted in folder {name}.",
                              "{n} branches deleted in folder {name}.",
-                             n=len(folderBranches), name=tquo(folderName))
+                                n=len(folderBranches), name=tquo(folderName))
 
 
 class NewBranchFromCommit(RepoTask):
@@ -332,8 +332,8 @@ class NewBranchFromCommit(RepoTask):
 
         # Create local branch
         repo.create_branch_from_commit(localName, tip)
-        self.effects |= TaskEffects.Refs | TaskEffects.Upstreams
-        self.postStatus = _("Branch {0} created on commit {1}.", tquo(localName), tquo(shortHash(tip)))
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Upstreams
+        self.epilog.status = _("Branch {0} created on commit {1}.", tquo(localName), tquo(shortHash(tip)))
 
         # Optionally make it track a remote branch
         if trackUpstream:
@@ -341,7 +341,7 @@ class NewBranchFromCommit(RepoTask):
 
         # Switch to it last (if user wants to)
         if switchTo:
-            self.effects |= TaskEffects.Head
+            self.epilog.effects |= TaskEffects.Head
             yield from self.flowEnterUiThread()
             yield from self.flowSubtask(
                 SwitchBranch,
@@ -393,14 +393,14 @@ class EditUpstreamBranch(RepoTask):
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Upstreams
+        self.epilog.effects |= TaskEffects.Upstreams
         self.repo.edit_upstream_branch(localBranchName, remoteBranchName)
         self.repoModel.prefs.setShadowUpstream(localBranchName, "")  # Clear any shadow upstream
 
         if remoteBranchName:
-            self.postStatus = _("Branch {0} now tracks {1}.", tquo(localBranchName), tquo(remoteBranchName))
+            self.epilog.status = _("Branch {0} now tracks {1}.", tquo(localBranchName), tquo(remoteBranchName))
         else:
-            self.postStatus = _("Branch {0} now tracks no upstream.", tquo(localBranchName))
+            self.epilog.status = _("Branch {0} now tracks no upstream.", tquo(localBranchName))
 
 
 class ResetHead(RepoTask):
@@ -422,7 +422,7 @@ class ResetHead(RepoTask):
         resetMode = dlg.activeMode
         recurseSubmodules = dlg.recurseSubmodules()
 
-        self.effects |= TaskEffects.Refs | TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
         modeArg = "--" + resetMode.name.lower()
         assert modeArg in ["--hard", "--mixed", "--soft"]
@@ -433,8 +433,8 @@ class ResetHead(RepoTask):
             *argsIf(recurseSubmodules, "--recurse-submodules"),
             str(onto))
 
-        self.postStatus = _("Branch {0} was reset to {1} ({mode}).",
-                            tquo(branchName), tquo(shortHash(onto)), mode=modeArg)
+        self.epilog.status = _("Branch {0} was reset to {1} ({mode}).",
+                               tquo(branchName), tquo(shortHash(onto)), mode=modeArg)
 
 
 class FastForwardBranch(RepoTask):
@@ -457,7 +457,7 @@ class FastForwardBranch(RepoTask):
         if upToDate:
             ahead = upstream.target != branch.target
 
-        self.jumpTo = NavLocator.inRef(RefPrefix.HEADS + localBranchName)
+        self.epilog.jumpTo = NavLocator.inRef(RefPrefix.HEADS + localBranchName)
 
         yield from self.flowEnterUiThread()
         if upToDate:
@@ -467,7 +467,7 @@ class FastForwardBranch(RepoTask):
             else:
                 lines.append(_("Your local branch {0} is already up to date with {1}."))
             message = paragraphs(lines).format(bquo(localBranchName), bquo(remoteBranchName))
-            self.postStatus = stripHtml(message)
+            self.epilog.status = stripHtml(message)
             yield from self.flowConfirm(text=message, canCancel=False, dontShowAgainKey="NoFastForwardingNecessary")
 
     def onError(self, exc):
@@ -508,9 +508,9 @@ class FastForwardBranch(RepoTask):
             # Unborn or something...
             raise NotImplementedError(f"Cannot fast-forward with {repr(analysis)}.")
 
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
         if branch.is_checked_out():
-            self.effects |= TaskEffects.Head
+            self.epilog.effects |= TaskEffects.Head
             args = ["merge", "--ff-only", "--progress", branch.upstream_name]
         else:
             args = ["push", ".", f"{branch.upstream_name}:{branch.name}"]
@@ -596,10 +596,10 @@ class MergeBranch(RepoTask):
         yield from self._withGit(wantMergeCommit, theirShorthand)
 
         if wantMergeCommit:
-            self.jumpTo = NavLocator.inWorkdir()
-            self.postStatus = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))
+            self.epilog.jumpTo = NavLocator.inWorkdir()
+            self.epilog.status = _("Merging {0} into {1}.", tquo(theirShorthand), tquo(myShorthand))
         else:
-            self.postStatus = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
+            self.epilog.status = _("Branch {0} fast-forwarded to {1}.", tquo(myShorthand), tquo(theirShorthand))
 
     def confirmFastForward(self, myShorthand: str, theirShorthand: str, target: Oid, autoFastForwardOptionName: str):
         title = _("Fast-forwarding possible")
@@ -624,7 +624,7 @@ class MergeBranch(RepoTask):
         return wantMergeCommit
 
     def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
-        self.effects |= TaskEffects.Refs | TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
         driver = yield from self.flowCallGit(
             "merge",
@@ -667,10 +667,10 @@ class RecallCommit(RepoTask):
         needle = dlg.lineEdit.text()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
         obj = self.repo[needle]
         commit: Commit = obj.peel(Commit)
         branchName = f"recall-{shortHash(commit.id)}"
         branchName = withUniqueSuffix(branchName, self.repo.listall_branches())
         self.repo.create_branch_from_commit(branchName, commit.id)
-        self.jumpTo = NavLocator.inCommit(commit.id)
+        self.epilog.jumpTo = NavLocator.inCommit(commit.id)

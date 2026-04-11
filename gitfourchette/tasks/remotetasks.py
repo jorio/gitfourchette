@@ -40,11 +40,11 @@ class NewRemote(RepoTask):
         newSkipFetchAll = dlg.ui.skipFetchAllCheckBox.isChecked()
         dlg.deleteLater()
 
-        self.effects |= TaskEffects.Refs | TaskEffects.Remotes
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Remotes
         yield from self.flowCallGit("remote", "add", "--", newRemoteName, newRemoteUrl)
         self.repo.set_remote_skipfetchall(newRemoteName, newSkipFetchAll)
 
-        self.postStatus = _("Remote {0} added.", tquo(newRemoteName))
+        self.epilog.status = _("Remote {0} added.", tquo(newRemoteName))
 
         if fetchAfterAdd:
             from gitfourchette.tasks import FetchRemotes
@@ -82,7 +82,7 @@ class EditRemote(RepoTask):
         newSkipFetchAll = dlg.ui.skipFetchAllCheckBox.isChecked()
         dlg.deleteLater()
 
-        self.effects |= TaskEffects.Refs | TaskEffects.Remotes
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Remotes
 
         if oldRemoteName != newRemoteName:
             yield from self.flowCallGit(
@@ -102,7 +102,7 @@ class EditRemote(RepoTask):
 
         self.repo.set_remote_skipfetchall(newRemoteName, newSkipFetchAll)
 
-        self.postStatus = _("Remote {0} modified.", tquo(newRemoteName))
+        self.epilog.status = _("Remote {0} modified.", tquo(newRemoteName))
 
 
 class DeleteRemote(RepoTask):
@@ -115,7 +115,7 @@ class DeleteRemote(RepoTask):
             verb=_("Remove remote"),
             buttonIcon="SP_DialogDiscardButton")
 
-        self.effects |= TaskEffects.Refs | TaskEffects.Remotes
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Remotes
 
         yield from self.flowCallGit(
             "remote",
@@ -123,4 +123,4 @@ class DeleteRemote(RepoTask):
             *argsIf(GitDriver.supportsDashDashBeforePositionalArgs(), "--"),
             remoteName)
 
-        self.postStatus = _("Remote {0} removed.", tquo(remoteName))
+        self.epilog.status = _("Remote {0} removed.", tquo(remoteName))

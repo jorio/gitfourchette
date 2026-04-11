@@ -110,7 +110,7 @@ class NewCommit(RepoTask):
         if cd.result() == QDialog.DialogCode.Rejected:
             raise AbortTask()
 
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        self.epilog.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(
             message, author, committer,
             repositoryState=repositoryState,
@@ -127,7 +127,7 @@ class NewCommit(RepoTask):
 
         uiPrefs.clearDraftCommit()
 
-        self.postStatus = _("Commit {0} created on {1}.", tquo(shortHash(newHash)), branchName)
+        self.epilog.status = _("Commit {0} created on {1}.", tquo(shortHash(newHash)), branchName)
 
     @staticmethod
     def getGpgConfig(repo: Repo) -> tuple[bool, str]:
@@ -238,7 +238,7 @@ class AmendCommit(RepoTask):
         explicitGpgSign = cd.ui.gpg.explicitSign()
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
 
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
+        self.epilog.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(
             message, author, committer,
             repositoryState=repositoryState,
@@ -256,9 +256,9 @@ class AmendCommit(RepoTask):
 
         self.repoModel.prefs.clearDraftAmend()
 
-        self.postStatus = _("Commit {0} amended. New hash: {1}.",
-                            tquo(shortHash(headCommit.id)),
-                            tquo(shortHash(newHash)))
+        self.epilog.status = _("Commit {0} amended. New hash: {1}.",
+                               tquo(shortHash(headCommit.id)),
+                               tquo(shortHash(newHash)))
 
 
 class SetUpGitIdentity(RepoTask):
@@ -336,7 +336,7 @@ class CheckoutCommit(RepoTask):
 
         wantSubmodules = anySubmodules and dlg.ui.recurseSubmodulesCheckBox.isChecked()
 
-        self.effects |= TaskEffects.Refs | TaskEffects.Head
+        self.epilog.effects |= TaskEffects.Refs | TaskEffects.Head
 
         if dlg.ui.detachHeadRadioButton.isChecked():
             headId = self.repoModel.headCommitId
@@ -354,10 +354,10 @@ class CheckoutCommit(RepoTask):
                 *argsIf(wantSubmodules, "--recurse-submodules"),
                 str(oid))
 
-            self.postStatus = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
+            self.epilog.status = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
 
             # Force sidebar to select detached HEAD
-            self.jumpTo = NavLocator.inRef("HEAD")
+            self.epilog.jumpTo = NavLocator.inRef("HEAD")
 
         elif dlg.ui.switchRadioButton.isChecked():
             branchName = dlg.ui.switchComboBox.currentText()
@@ -405,7 +405,7 @@ class NewTag(RepoTask):
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
 
         refName = RefPrefix.TAGS + tagName
 
@@ -414,7 +414,7 @@ class NewTag(RepoTask):
         else:
             repo.create_reference(refName, oid)
 
-        self.postStatus = _("Tag {0} created on commit {1}.", tquo(tagName), tquo(shortHash(oid)))
+        self.epilog.status = _("Tag {0} created on commit {1}.", tquo(tagName), tquo(shortHash(oid)))
 
         if pushIt:
             from gitfourchette.tasks import PushRefspecs
@@ -445,11 +445,11 @@ class DeleteTag(RepoTask):
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
 
         # Stay on this commit after the operation
         if tagTarget:
-            self.jumpTo = NavLocator.inCommit(tagTarget)
+            self.epilog.jumpTo = NavLocator.inCommit(tagTarget)
 
         self.repo.delete_tag(tagName)
 
@@ -473,7 +473,7 @@ class RevertCommit(RepoTask):
         repoModel = self.repoModel
         repo = self.repo
 
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         # Don't raise AbortTask if git returns non-0
         yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
@@ -502,7 +502,7 @@ class RevertCommit(RepoTask):
         repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
         repoModel.prefs.setDirty()
 
-        self.jumpTo = NavLocator.inWorkdir()
+        self.epilog.jumpTo = NavLocator.inWorkdir()
 
         if not anyConflicts:
             yield from self.flowSubtask(RefreshRepo, TaskEffects.Workdir, NavLocator.inStaged(""))
@@ -519,7 +519,7 @@ class CherrypickCommit(RepoTask):
     def flow(self, oid: Oid):
         commit = self.repo.peel_commit(oid)
 
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
 
         # Force cherry-picking state for compatibility with libgit2 backend
@@ -554,7 +554,7 @@ class CherrypickCommit(RepoTask):
         self.repoModel.prefs.draftCommitSignatureOverride = SignatureOverride.Author
         self.repoModel.prefs.setDirty()
 
-        self.jumpTo = NavLocator.inWorkdir()
+        self.epilog.jumpTo = NavLocator.inWorkdir()
 
         if not anyConflicts:
             yield from self.flowSubtask(RefreshRepo, TaskEffects.Workdir, NavLocator.inStaged(""))

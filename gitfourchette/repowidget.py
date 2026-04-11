@@ -255,7 +255,7 @@ class RepoWidget(QWidget):
         return stub
 
     def overridePendingLocator(self, locator: NavLocator):
-        self.taskRunner.pendingLocator = locator
+        self.taskRunner.pendingEpilog.jumpTo = locator
 
     # -------------------------------------------------------------------------
     # Initial layout
@@ -578,7 +578,7 @@ class RepoWidget(QWidget):
 
     def refreshRepo(self):
         """Refresh the repo as soon as possible."""
-        self.taskRunner.pendingEffects |= TaskEffects.DefaultRefresh
+        self.taskRunner.pendingEpilog.effects |= TaskEffects.DefaultRefresh
         self.onTaskRunnerReady()
 
     def onTaskRunnerReady(self):

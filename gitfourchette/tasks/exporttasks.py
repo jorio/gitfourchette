@@ -28,9 +28,9 @@ def savePatch(task: RepoTask, patch: str, fileName="") -> str:
     Path(savePath).write_text(patch)
 
     if task.repo.is_in_workdir(savePath):
-        task.effects |= TaskEffects.Workdir  # invalidate workdir if saved file to it
+        task.epilog.effects |= TaskEffects.Workdir  # invalidate workdir if saved file to it
 
-    task.postStatus = _("Patch saved as: {0}", tquo(compactPath(savePath)))
+    task.epilog.status = _("Patch saved as: {0}", tquo(compactPath(savePath)))
     return savePath
 
 

@@ -47,7 +47,7 @@ class OpenBlame(RepoTask):
         blameWindow.show()
         blameWindow.activateWindow()  # bring to foreground after ProcessDialog
 
-        self.postStatus = _n("{n} revision found.", "{n} revisions found.", n=len(revList))
+        self.epilog.status = _n("{n} revision found.", "{n} revisions found.", n=len(revList))
 
         try:
             start = revList.revisionForCommit(seed)

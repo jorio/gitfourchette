@@ -624,7 +624,7 @@ class RefreshRepo(RepoTask):
         # Don't refresh again if this task was interrupted by an error.
         # Note that the effects will be kept until the next refresh if this
         # task was killed by another task (this doesn't count as an error).
-        self.effects = TaskEffects.Nothing
+        self.epilog.effects = TaskEffects.Nothing
 
         super().onError(exc)
 
@@ -641,7 +641,7 @@ class RefreshRepo(RepoTask):
             raise RepoGoneError(self.repo.path)
 
         # Accumulate effect bits until task is complete or interrupted by an error
-        self.effects |= effectFlags
+        self.epilog.effects |= effectFlags
 
         repoModel.workdirStale |= bool(effectFlags & TaskEffects.Workdir)
 
@@ -777,7 +777,7 @@ class RefreshRepo(RepoTask):
         # effect bits for the next RefreshRepo task if this one was interrupted
         # by another task. Note that interrupting by an error will flush the bits
         # so we don't get stuck in a refresh loop.
-        self.effects = TaskEffects.Nothing
+        self.epilog.effects = TaskEffects.Nothing
 
         if anyChanges:
             logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "

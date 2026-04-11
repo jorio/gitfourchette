@@ -79,7 +79,7 @@ class DeleteRemoteBranch(RepoTask):
         verb = _("Delete on remote")
         yield from self.flowConfirm(text=text, verb=verb, buttonIcon="SP_DialogDiscardButton")
 
-        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
         yield from self.flowCallGit(
             "push",
             "--porcelain",
@@ -88,7 +88,7 @@ class DeleteRemoteBranch(RepoTask):
             "--delete",
             branchNameOnRemote)
 
-        self.postStatus = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
+        self.epilog.status = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
 
 
 class RenameRemoteBranch(RepoTask):
@@ -129,7 +129,7 @@ class RenameRemoteBranch(RepoTask):
                 if repo.branches.local[lb].upstream_name == oldRemoteRef:
                     adjustUpstreams.append(lb)
 
-        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
         # First, make a new branch pointing to the same ref as the old one
         refspec1 = f"{RefPrefix.REMOTES}{oldShorthand}:{RefPrefix.HEADS}{newBranchName}"
@@ -157,7 +157,7 @@ class RenameRemoteBranch(RepoTask):
         for lb in adjustUpstreams:
             repo.branches.local[lb].upstream = new_remote_branch
 
-        self.postStatus = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchShorthand), tquo(newBranchName))
+        self.epilog.status = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchShorthand), tquo(newBranchName))
 
 
 class FetchRemotes(RepoTask):
@@ -169,7 +169,7 @@ class FetchRemotes(RepoTask):
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))
             raise AbortTask(text)
 
-        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
         driver = yield from self.flowCallGit(
             "fetch",
             "--prune",
@@ -183,7 +183,7 @@ class FetchRemotes(RepoTask):
             return
 
         updatedRefs = driver.readFetchPorcelainUpdatedRefs()
-        self.postStatus = formatUpdatedRefs(updatedRefs, _("Fetch complete."), skipUpToDate=True)
+        self.epilog.status = formatUpdatedRefs(updatedRefs, _("Fetch complete."), skipUpToDate=True)
 
 
 class AutoFetchRemotes(RepoTask):
@@ -199,7 +199,7 @@ class AutoFetchRemotes(RepoTask):
         if not self.repo.listall_remotes_fast():
             return
 
-        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
         driver = yield from self.flowCallGit(
             "fetch",
             "--all",
@@ -214,7 +214,7 @@ class AutoFetchRemotes(RepoTask):
                 return
 
             updatedRefs = driver.readFetchPorcelainUpdatedRefs()
-            self.postStatus = formatUpdatedRefs(updatedRefs, _("Auto-fetch complete."), skipUpToDate=True)
+            self.epilog.status = formatUpdatedRefs(updatedRefs, _("Auto-fetch complete."), skipUpToDate=True)
             return
 
         # In case of failure, don't steal the user's attention with an obnoxious
@@ -227,7 +227,7 @@ class AutoFetchRemotes(RepoTask):
         ])
 
         # Prevent chaining RefreshRepo so that the message remains visible in the status bar.
-        self.effects = TaskEffects.Nothing
+        self.epilog.effects = TaskEffects.Nothing
 
         raise AbortTask(message, asStatusMessage=True)
 
@@ -242,7 +242,7 @@ class FetchRemoteBranch(RepoTask):
         remoteName, remoteBranch = split_remote_branch_shorthand(shorthand)
         fullRemoteRef = RefPrefix.REMOTES + shorthand
 
-        self.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
         driver = yield from self.flowCallGit(
             "fetch",
@@ -259,7 +259,7 @@ class FetchRemoteBranch(RepoTask):
         updatedRefs = driver.readFetchPorcelainUpdatedRefs()
         flag, oldTarget, newTarget = updatedRefs[fullRemoteRef]
 
-        self.postStatus = formatUpdatedRefs(
+        self.epilog.status = formatUpdatedRefs(
             updatedRefs,
             _("Fetch complete."),
             noNewCommits=_("No new commits on {0}.", lquo(shorthand)),
@@ -267,7 +267,7 @@ class FetchRemoteBranch(RepoTask):
 
         # Jump to new commit if there was an update and the branch didn't vanish
         if flag not in [VanillaFetchStatusFlag.UpToDate, VanillaFetchStatusFlag.PrunedRef]:
-            self.jumpTo = NavLocator.inCommit(newTarget)
+            self.epilog.jumpTo = NavLocator.inCommit(newTarget)
 
         if flag == VanillaFetchStatusFlag.PrunedRef:
             # Raise exception to prevent PullBranch from continuing
@@ -294,7 +294,7 @@ class PullBranch(RepoTask):
         upstreamBranch = autoDetectUpstream(self.repo, noUpstreamMessage)
         newUpstreamTarget = upstreamBranch.target
         if self.repo.head_commit_id == newUpstreamTarget:
-            self.postStatus = (
+            self.epilog.status = (
                     _p("toolbar", "Pull") + _(":") + " " +
                     _("Your local branch {0} is already up to date with {1}.",
                       tquo(self.repo.head_branch_shorthand),
@@ -302,10 +302,10 @@ class PullBranch(RepoTask):
             return
 
         # Let user look at the new state of the graph beneath any dialog boxes.
-        yield from self.flowSubtask(RefreshRepo, effectFlags=TaskEffects.Refs, jumpTo=self.jumpTo)
+        yield from self.flowSubtask(RefreshRepo, effectFlags=TaskEffects.Refs, jumpTo=self.epilog.jumpTo)
 
         # Consume jumpTo (which bubbled up from fetchSubtask) so the next subtask can override it
-        self.jumpTo = NavLocator.Empty
+        self.epilog.jumpTo = NavLocator.Empty
 
         # Fast-forward, or merge.
         try:
@@ -319,16 +319,16 @@ class PullBranch(RepoTask):
 class UpdateSubmodule(RepoTask):
     def flow(self, submoduleName: str):
         submodule = self.repo.submodules[submoduleName]
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("submodule", "update", "--init", "--", submodule.path)
-        self.postStatus = _("Submodule updated.")
+        self.epilog.status = _("Submodule updated.")
 
 
 class UpdateSubmodulesRecursive(RepoTask):
     def flow(self):
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("submodule", "update", "--init", "--recursive")
-        self.postStatus = _("Submodules updated recursively.")
+        self.epilog.status = _("Submodules updated recursively.")
 
 
 class PushRefspecs(RepoTask):
@@ -342,7 +342,7 @@ class PushRefspecs(RepoTask):
         else:
             remotes = [self.repo.remotes[remoteName]]
 
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
 
         for remote in remotes:
             yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", remote.name, *refspecs)
@@ -389,9 +389,9 @@ class PushBranch(RepoTask):
 
         dialog.setBusy(True)  # Call setBusy *after* buildCommand
 
-        self.effects |= TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Refs
         if "--set-upstream" in command:
-            self.effects |= TaskEffects.Upstreams
+            self.epilog.effects |= TaskEffects.Upstreams
 
         driver = self.createGitProcess(*command)
         dialog.ui.statusForm.connectProcess(driver)
@@ -417,8 +417,8 @@ class PushBranch(RepoTask):
         dialog.saveShadowUpstream()
 
         if not gitFailed:
-            # self.postStatus = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
-            self.postStatus = _("Push complete.") + " " + summary
+            # self.epilog.status = RemoteLink.formatUpdatedTipsMessageFromGitOutput(_("Push complete."))
+            self.epilog.status = _("Push complete.") + " " + summary
             return gitFailed
 
         QApplication.beep()

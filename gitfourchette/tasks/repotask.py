@@ -6,10 +6,10 @@
 
 from __future__ import annotations
 
+import dataclasses
 import enum
 import logging
 import shlex
-import warnings
 from collections.abc import Generator
 from typing import Any, TYPE_CHECKING, Literal, TypeVar
 
@@ -176,6 +176,24 @@ class RepoGoneError(FileNotFoundError):
     pass
 
 
+@dataclasses.dataclass
+class TaskEpilog:
+    effects: TaskEffects = TaskEffects.Nothing
+    """ Which parts of the UI should be refreshed when this task completes. """
+
+    jumpTo: NavLocator = NavLocator.Empty
+    """ Jump to this location when this task completes. """
+
+    status: str = ""
+    """ Display this message in the status bar when this task completes. """
+
+    def __or__(self, other: TaskEpilog):
+        return TaskEpilog(
+            self.effects | other.effects,
+            self.jumpTo or other.jumpTo,
+            self.status or other.status)
+
+
 class RepoTask(QObject):
     """
     Task that manipulates a repository.
@@ -189,23 +207,13 @@ class RepoTask(QObject):
 
     repoModel: RepoModel
 
-    jumpTo: NavLocator
-    """ Jump to this location when this task completes. """
-
-    effects: TaskEffects
-    """ Which parts of the UI should be refreshed when this task completes. """
+    epilog: TaskEpilog
+    """ What to do after this task completes. """
 
     _currentProcess: QProcess | None
     """ External process that this task is currently waiting on (via flowStartProcess).
     This is only valid in the root task in the stack (non-root tasks are allowed
     to set the root task's current process). """
-
-    _postStatus: str
-    """ Display this message in the status bar after completion (user code should use the getter/setter). """
-
-    _postStatusLocked: bool
-    """ Subtasks can override postStatus as long as this flag is unset.
-    This flag is set when user code sets postStatus manually (via the setter). """
 
     _currentFlow: FlowGeneratorType | None
     _currentIteration: int
@@ -215,6 +223,8 @@ class RepoTask(QObject):
     subtasks in the same chain. (This is implemented as a FIFO stack of active
     tasks in the chain of nested 'flowSubtask' calls, including the root task at
     index 0.) """
+
+    _transientSubtaskStatus: str
 
     @classmethod
     def name(cls) -> str:
@@ -228,17 +238,15 @@ class RepoTask(QObject):
 
     def __init__(self, parent: QObject):
         super().__init__(parent)
+        self.setObjectName(self.__class__.__name__)
         self.repo = None
         self.repoModel = None
+        self.epilog = TaskEpilog()
         self._currentFlow = None
         self._currentIteration = 0
-        self.setObjectName(self.__class__.__name__)
-        self.jumpTo = NavLocator()
-        self.effects = TaskEffects.Nothing
         self._currentProcess = None
-        self._postStatus = ""
-        self._postStatusLocked = False
         self._taskStack = [self]  # will be replaced by shared reference
+        self._transientSubtaskStatus = ""
         self._runningOnUiThread = True  # for debugging
 
     @property
@@ -303,16 +311,6 @@ class RepoTask(QObject):
 
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
-
-    @property
-    def postStatus(self):
-        """ Display this message in the status bar after completion. """
-        return self._postStatus
-
-    @postStatus.setter
-    def postStatus(self, value):
-        self._postStatus = value
-        self._postStatusLocked = True
 
     def flow(self, *args, **kwargs) -> FlowGeneratorType:
         """
@@ -444,18 +442,15 @@ class RepoTask(QObject):
         assert subtask._taskStack is self._taskStack, "subtask not in same chain as root task?"
         subtask._taskStack = None
 
-        # Percolate effect bits to caller task
-        self.effects |= subtask.effects
+        # Consume transient status
+        self._transientSubtaskStatus = (subtask.epilog.status
+                                        or subtask._transientSubtaskStatus
+                                        or self._transientSubtaskStatus)
+        subtask.epilog.status = ""
 
-        # Percolate postStatus to caller task if it's not manually overridden
-        if not self._postStatusLocked and subtask.postStatus:
-            self._postStatus = subtask.postStatus
-
-        # Percolate jumpTo to caller task
-        if not self.jumpTo:
-            self.jumpTo = subtask.jumpTo
-        elif subtask.jumpTo and subtask.jumpTo != self.jumpTo:
-            warnings.warn(f"Subtask {subtask}: Ignoring subtask jumpTo")
+        # Percolate epilog to caller task
+        # Give way to *this* task's epilog (LHS) if anything was set in it
+        self.epilog |= subtask.epilog
 
         # Clean up subtask (on UI thread)
         subtask.cleanup()
@@ -796,6 +791,8 @@ class RepoTaskRunner(QObject):
 
     repoModel: RepoModel | None
 
+    pendingEpilog: TaskEpilog
+
     _workerThread: FlowWorkerThread
     "Thread that can execute non-UI sections of the current task's coroutine."
 
@@ -814,10 +811,6 @@ class RepoTaskRunner(QObject):
     _queueTokens: bool
     _tokenQueue: list[FlowControlToken]
 
-    pendingEffects: TaskEffects
-    pendingLocator: NavLocator
-    pendingStatus: str
-
     def __init__(self, parent: QObject):
         super().__init__(parent)
         self.setObjectName("RepoTaskRunner")
@@ -826,6 +819,7 @@ class RepoTaskRunner(QObject):
         self._currentTaskBenchmark = Benchmark("???")
         self._interruptCurrentTask = False
         self.repoModel = None
+        self.pendingEpilog = TaskEpilog()
 
         self._workerThread = FlowWorkerThread(self)
         self._workerThread.flow = None
@@ -833,10 +827,6 @@ class RepoTaskRunner(QObject):
 
         self._queueTokens = False
         self._tokenQueue = []
-
-        self.pendingEffects = TaskEffects.Nothing
-        self.pendingLocator = NavLocator.Empty
-        self.pendingStatus = ""
 
     @property
     def currentTask(self):
@@ -1103,9 +1093,9 @@ class RepoTaskRunner(QObject):
             # Task aborted before completion, discard pending task
             self._releasePendingTask()
         else:
-            self.pendingEffects |= task.effects
-            self.pendingLocator = task.jumpTo or self.pendingLocator
-            self.pendingStatus = task.postStatus or self.pendingStatus
+            # Accumulate epilog (give way to task epilog over current epilog)
+            task.epilog.status = task.epilog.status or task._transientSubtaskStatus
+            self.pendingEpilog = task.epilog | self.pendingEpilog
 
             # Queue up pending task, if any, before postTask
             self._startPendingTask()
@@ -1124,16 +1114,16 @@ class RepoTaskRunner(QObject):
             gcHint()
 
             # Consume & report pending status
-            status = self.pendingStatus
+            status = self.pendingEpilog.status
             if status:
-                self.pendingStatus = ""
+                self.pendingEpilog.status = ""
                 self.progress.emit(status, False)
 
     def consumePendingEffectsAndLocator(self) -> tuple[TaskEffects, NavLocator]:
-        effects, locator = self.pendingEffects, self.pendingLocator
-        self.pendingEffects = TaskEffects.Nothing
-        self.pendingLocator = NavLocator.Empty
-        return effects, locator
+        effects, jumpTo = self.pendingEpilog.effects, self.pendingEpilog.jumpTo
+        self.pendingEpilog.effects = TaskEffects.Nothing
+        self.pendingEpilog.jumpTo = NavLocator.Empty
+        return effects, jumpTo
 
     @staticmethod
     def _getNextToken(flow: RepoTask.FlowGeneratorType) -> FlowControlToken:

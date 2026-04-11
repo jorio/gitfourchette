@@ -71,12 +71,12 @@ class StageFiles(_BaseStagingTask):
 
         paths = [d.new.path for d in deltas]
 
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         yield from self.flowCallGit("add", "--", *paths)
 
         yield from self.debriefPostStage(deltas)
 
-        self.postStatus = _n("File staged.", "{n} files staged.", len(deltas))
+        self.epilog.status = _n("File staged.", "{n} files staged.", len(deltas))
 
     def debriefPostStage(self, deltas: list[GitDelta]):
         debrief = {}
@@ -169,9 +169,9 @@ class DiscardFiles(_BaseStagingTask):
 
         yield from self.flowConfirm(text=paragraphs(textPara), verb=verb, buttonIcon="git-discard")
 
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         if numSubmos:
-            self.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
+            self.epilog.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
 
         # Back up discarded patches
         yield from self.backUpPatches(deltas)
@@ -198,7 +198,7 @@ class DiscardFiles(_BaseStagingTask):
                 yield from self.flowCallGit("clean", "-d", "--force", workdir=subWd)
             yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", "--", *submoPaths)
 
-        self.postStatus = _n("File discarded.", "{n} files discarded.", len(deltas))
+        self.epilog.status = _n("File discarded.", "{n} files discarded.", len(deltas))
 
     def backUpPatches(self, deltas: list[GitDelta]):
         trash = Trash.instance()
@@ -240,11 +240,11 @@ class UnstageFiles(_BaseStagingTask):
             if delta.status == "R":
                 paths.append(delta.old.path)
 
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         # Not using 'restore --staged' because it doesn't work in an empty repo
         yield from self.flowCallGit("reset", "--", *paths)
 
-        self.postStatus = _n("File unstaged.", "{n} files unstaged.", len(deltas))
+        self.epilog.status = _n("File unstaged.", "{n} files unstaged.", len(deltas))
 
 
 class DiscardModeChanges(_BaseStagingTask):
@@ -264,7 +264,7 @@ class DiscardModeChanges(_BaseStagingTask):
         yield from self.flowConfirm(text=paragraphs(textPara), verb=_("Discard mode changes"), buttonIcon="git-discard")
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         self.repo.discard_mode_changes(paths)
 
 
@@ -275,7 +275,7 @@ class UnstageModeChanges(_BaseStagingTask):
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         self.repo.refresh_index()
         index = self.repo.index
@@ -314,7 +314,7 @@ class ApplyPatch(RepoTask):
             applyLocation = ApplyLocation.INDEX
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         # libgit2's index must be fresh in order to apply a partial patch to the index.
         if applyLocation == ApplyLocation.INDEX:
@@ -322,13 +322,13 @@ class ApplyPatch(RepoTask):
 
         self.repo.apply(subPatch, applyLocation)
 
-        self.postStatus = TrTables.patchPurposePastTense(purpose)
+        self.epilog.status = TrTables.patchPurposePastTense(purpose)
 
 
 class HardSolveConflicts(RepoTask):
     def flow(self, conflictedFiles: dict[str, Oid]):
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         repo = self.repo
         repo.refresh_index()
@@ -364,18 +364,18 @@ class HardSolveConflicts(RepoTask):
                 index.add(path)
 
                 # Jump to staged file after the task
-                self.jumpTo = NavLocator.inStaged(path)
+                self.epilog.jumpTo = NavLocator.inStaged(path)
 
         # Write index modifications to disk
         index.write()
 
-        self.postStatus = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflictedFiles))
+        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflictedFiles))
 
 
 class MarkConflictSolved(RepoTask):
     def flow(self, path: str):
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         repo = self.repo
 
@@ -393,15 +393,15 @@ class AcceptMergeConflictResolution(RepoTask):
         return isinstance(task, RefreshRepo | Jump)
 
     def flow(self, mergeDriver: MergeDriver):
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
         path = mergeDriver.relativeTargetPath
         mergeDriver.copyScratchToTarget()
         mergeDriver.deleteNow()
         yield from self.flowCallGit("add", "--force", "--", path)
 
         # Jump to staged file after confirming conflict resolution
-        self.jumpTo = NavLocator.inStaged(path)
-        self.postStatus = _("Merge conflict resolved in {0}.", tquo(path))
+        self.epilog.jumpTo = NavLocator.inStaged(path)
+        self.epilog.status = _("Merge conflict resolved in {0}.", tquo(path))
 
 
 class ApplyPatchFile(RepoTask):
@@ -456,14 +456,13 @@ class ApplyPatchFile(RepoTask):
         yield from task.flowConfirm(title, confirmText, verb=_("Apply"), detailList=details)
 
         # Dry run confirmed, go ahead
-        task.effects |= TaskEffects.Workdir
+        task.epilog.effects |= TaskEffects.Workdir
 
         yield from task.flowCallGit(*stem)
 
-        task.jumpTo = NavLocator.inUnstaged(firstFile)
-        task.postStatus = _n("{n} file modified in the working directory.",
-                             "{n} files modified in the working directory.",
-                             n=numFiles)
+        task.epilog.jumpTo = NavLocator.inUnstaged(firstFile)
+        task.epilog.status = _n("{n} file modified in the working directory.",
+                                "{n} files modified in the working directory.", n=numFiles)
 
 
 class ApplyPatchFileReverse(ApplyPatchFile):
@@ -521,7 +520,7 @@ class RestoreRevisionToWorkdir(RepoTask):
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
 
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         if delete:
             pathObj.unlink()
@@ -531,8 +530,8 @@ class RestoreRevisionToWorkdir(RepoTask):
             pathObj.write_bytes(data)
             pathObj.chmod(diffFile.mode)
 
-        self.postStatus = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
-        self.jumpTo = NavLocator.inUnstaged(diffFile.path)
+        self.epilog.status = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
+        self.epilog.jumpTo = NavLocator.inUnstaged(diffFile.path)
 
 
 class AbortMerge(RepoTask):
@@ -592,13 +591,13 @@ class AbortMerge(RepoTask):
         yield from self.flowConfirm(title=title, text=paragraphs(lines), verb=englishTitleCase(title),
                                     detailList=[escape(f) for f in abortList])
 
-        self.effects |= TaskEffects.DefaultRefresh
+        self.epilog.effects |= TaskEffects.DefaultRefresh
 
         yield from self.flowCallGit(*gitCommand)
         # self.repo.reset_merge()
         # self.repo.state_cleanup()
 
-        self.postStatus = postStatus
+        self.epilog.status = postStatus
 
         # Clear draft commit message that was set in CherrypickCommit/RevertCommit/MergeBranch
         if isCherryPicking or isReverting or isMerging:

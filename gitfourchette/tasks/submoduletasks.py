@@ -71,7 +71,7 @@ class RegisterSubmodule(RepoTask):
         customName = dlg.customName
         dlg.deleteLater()
 
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs  # we don't have TaskEffects.Submodules so .Refs is the next best thing
+        self.epilog.effects |= TaskEffects.Workdir | TaskEffects.Refs  # we don't have TaskEffects.Submodules so .Refs is the next best thing
 
         innerWD = str(subWD.relative_to(thisWD))
         yield from self.flowCallGit("submodule", "add", "--force", "--name", customName, "--", remoteUrl, innerWD)
@@ -102,8 +102,11 @@ class RemoveSubmodule(RepoTask):
             buttonIcon="SP_DialogDiscardButton",
             verb="Remove")
 
-        self.effects |= TaskEffects.Workdir | TaskEffects.Refs  # we don't have TaskEffects.Submodules so .Refs is the next best thing
-        self.effects |= TaskEffects.Head  # also force refresh libgit2 index TODO: better naming
+        self.epilog.effects |= (
+                TaskEffects.Workdir
+                | TaskEffects.Refs  # no TaskEffects.Submodules, so .Refs is the next best thing
+                | TaskEffects.Head  # also force refresh libgit2 index TODO: better naming
+        )
 
         # 1. Unregister from .git/config & remove worktree
         yield from self.flowCallGit("submodule", "deinit", "--", path)
@@ -111,4 +114,4 @@ class RemoveSubmodule(RepoTask):
         # 2. Unregister from .gitmodules (& remove worktree again)
         yield from self.flowCallGit("rm", "--", path)
 
-        self._postStatus = _("Submodule {0} removed.", tquo(submoduleName))
+        self.epilog.status = _("Submodule {0} removed.", tquo(submoduleName))

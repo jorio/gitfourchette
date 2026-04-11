@@ -68,7 +68,7 @@ class GetCommitInfo(RepoTask):
         return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
 
     def defaultJumpCallback(self, locator: NavLocator):
-        self.jumpTo = locator
+        self.epilog.jumpTo = locator
 
     def flow(
             self,
@@ -331,7 +331,7 @@ class VerifyGpgQueue(RepoTask):
         return True
 
     def flow(self):
-        self.effects = TaskEffects.Nothing
+        self.epilog.effects = TaskEffects.Nothing
         graphView = self.rw.graphView
         repoModel = self.repoModel
 
@@ -392,7 +392,7 @@ class NewIgnorePattern(RepoTask):
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
-        self.effects |= TaskEffects.Workdir
+        self.epilog.effects |= TaskEffects.Workdir
 
         relativeExcludePath = dlg.excludePath
         excludePath = Path(self.repo.in_workdir(relativeExcludePath))
@@ -407,8 +407,8 @@ class NewIgnorePattern(RepoTask):
         excludeText += pattern + "\n"
         excludePath.write_text(excludeText, "utf-8")
 
-        self.postStatus = _("Added to {file}: {pattern}", pattern=pattern, file=relativeExcludePath)
+        self.epilog.status = _("Added to {file}: {pattern}", pattern=pattern, file=relativeExcludePath)
 
         # Jump to .gitignore
         if self.repo.is_in_workdir(str(excludePath)):
-            self.jumpTo = NavLocator.inUnstaged(str(excludePath))
+            self.epilog.jumpTo = NavLocator.inUnstaged(str(excludePath))
