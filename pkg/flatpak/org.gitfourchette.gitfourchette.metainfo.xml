@@ -66,6 +66,12 @@
   </keywords>
 
   <releases>
+    <release version="1.7.1" date="2026-04-11" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.7.1</url>
+      <description>
+        <p>Fix regression in 1.7.0 where RefreshRepo couldn't be canceled effectively.</p>
+      </description>
+    </release>
     <release version="1.7.0" date="2026-04-09" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.7.0</url>
       <description>

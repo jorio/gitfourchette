@@ -1,5 +1,9 @@
 # GitFourchette version history
 
+## 1.7.1 (2026-04-11)
+
+Fix regression in 1.7.0 where RefreshRepo couldn't be canceled effectively.
+
 ## 1.7.0 (2026-04-09)
 
 New features:
