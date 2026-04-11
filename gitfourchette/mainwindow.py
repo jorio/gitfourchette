@@ -1221,9 +1221,10 @@ class MainWindow(QMainWindow):
             for rw in self.tabs.widgets():
                 if not isinstance(rw, RepoWidget):
                     continue
-                locator = rw.pendingLocator or rw.navLocator
+                locator = rw.taskRunner.pendingLocator or rw.navLocator
                 locator = locator.withExtraFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
-                rw.refreshRepo(jumpTo=locator)
+                rw.taskRunner.pendingLocator = locator
+                rw.refreshRepo()
 
     def openPrefsDialog(self, focusOn: str = ""):
         dlg = PrefsDialog(self, focusOn)

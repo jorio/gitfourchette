@@ -196,10 +196,9 @@ class PrimeRepo(RepoTask):
         # del repoStub.taskRunner
 
         # Replicate final loading message in status bar
-        rw.pendingStatusMessage = message
+        self.postStatus = message
 
         # Jump to initial locator
-        assert not rw.pendingLocator
         repoStub.closing.connect(rw.prepareForDeletion)
         yield from self.flowSubtask(Jump, locator)
         repoStub.closing.disconnect(rw.prepareForDeletion)
@@ -222,7 +221,7 @@ class PrimeRepo(RepoTask):
 
         # RepoWidget.refreshRepo may have been called while we were setting up the widget in this task.
         # Clear the stashed effect bits to avoid an unnecessary refresh.
-        rw.pendingEffects = TaskEffects.Nothing
+        rw.taskRunner.consumePendingEffectsAndLocator()
 
         # Focus on some interesting widget within the RepoWidget after loading the repo.
         rw.graphView.setFocus()

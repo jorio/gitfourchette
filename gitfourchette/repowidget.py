@@ -53,9 +53,6 @@ class RepoWidget(QWidget):
     repoModel: RepoModel
     taskRunner: RepoTaskRunner
 
-    pendingLocator: NavLocator
-    pendingEffects: TaskEffects
-
     navLocator: NavLocator
     navHistory: NavHistory
 
@@ -85,7 +82,7 @@ class RepoWidget(QWidget):
         # Use RepoTaskRunner to schedule git operations to run on a separate thread.
         self.taskRunner = taskRunner
         self.taskRunner.setParent(self)
-        self.taskRunner.postTask.connect(self.refreshPostTask)
+        self.taskRunner.ready.connect(self.onTaskRunnerReady)
         self.taskRunner.progress.connect(self.onRepoTaskProgress)
         self.taskRunner.repoGone.connect(self.onRepoGone)
         self.taskRunner.requestAttention.connect(self.requestAttention)
@@ -95,9 +92,6 @@ class RepoWidget(QWidget):
         self.taskRunner.processStarted.connect(self.processDialog.connectProcess)
 
         self.repoModel = repoModel
-        self.pendingLocator = NavLocator()
-        self.pendingEffects = TaskEffects.Nothing
-        self.pendingStatusMessage = ""
         self.lastAutoFetchTime = time.time()
 
         self.busyCursorDelayer = QTimer(self)
@@ -252,7 +246,7 @@ class RepoWidget(QWidget):
             maxCommits: int = -1,
             message: str = ""
     ) -> RepoStub:
-        locator = locator or self.pendingLocator or self.navLocator
+        locator = locator or self.navLocator
         stub = RepoStub(parent=self.window(), workdir=self.workdir,
                         locator=locator, maxCommits=maxCommits)
         if message:
@@ -261,7 +255,7 @@ class RepoWidget(QWidget):
         return stub
 
     def overridePendingLocator(self, locator: NavLocator):
-        self.pendingLocator = locator
+        self.taskRunner.pendingLocator = locator
 
     # -------------------------------------------------------------------------
     # Initial layout
@@ -582,46 +576,21 @@ class RepoWidget(QWidget):
 
     # -------------------------------------------------------------------------
 
-    def refreshRepo(
-            self,
-            effects: TaskEffects = TaskEffects.DefaultRefresh,
-            jumpTo: NavLocator = NavLocator.Empty
-    ):
+    def refreshRepo(self):
         """Refresh the repo as soon as possible."""
+        self.taskRunner.pendingEffects |= TaskEffects.DefaultRefresh
+        self.onTaskRunnerReady()
 
-        # Accumulate effect bits
-        effects |= self.pendingEffects
-
+    def onTaskRunnerReady(self):
         # Don't refresh if in background or task runner busy
         if not self.isVisible() or self.taskRunner.isBusy():
-            logger.debug(f"Stashing refresh bits {repr(effects)}")
-            self.pendingEffects = effects
-            if jumpTo:
-                warnings.warn(f"Ignoring post-refresh jump {jumpTo} because can't refresh yet")
             return
 
-        # Consume pending effect bits
-        self.pendingEffects = TaskEffects.Nothing
-
-        # Consume pending locator, if any
-        if self.pendingLocator:
-            if not jumpTo:
-                jumpTo = self.pendingLocator
-            else:
-                warnings.warn(f"Ignoring pendingLocator {self.pendingLocator} - overridden by {jumpTo}")
-            self.pendingLocator = NavLocator.Empty  # Consume it
-
-        if effects != TaskEffects.Nothing:
-            # Invoke refresh task
+        effects, jumpTo = self.taskRunner.consumePendingEffectsAndLocator()
+        if effects:
             tasks.RefreshRepo.invoke(self, effects, jumpTo)
         elif jumpTo:
-            # Just jump
             tasks.Jump.invoke(self, jumpTo)
-        else:
-            # End of refresh chain.
-            if self.pendingStatusMessage:
-                self.statusMessage.emit(self.pendingStatusMessage)
-                self.pendingStatusMessage = ""
 
     def refreshWindowTitle(self):
         title = self.getTitle()
@@ -729,11 +698,6 @@ class RepoWidget(QWidget):
 
     # -------------------------------------------------------------------------
 
-    def refreshPostTask(self, task: tasks.RepoTask):
-        if task.postStatus:
-            self.pendingStatusMessage = task.postStatus
-        self.refreshRepo(task.effects, task.jumpTo)
-
     def onRepoTaskProgress(self, progressText: str, withSpinner: bool = False):
         if withSpinner:
             self.busyMessage.emit(progressText)
@@ -810,10 +774,10 @@ class RepoWidget(QWidget):
             self.jump(locator)
         elif url.authority() == "expandlog":
             # After loading, jump back to what is currently the last commit
-            self.pendingLocator = NavLocator.inCommit(self.repoModel.commitSequence[-1].id)
+            jumpTo = NavLocator.inCommit(self.repoModel.commitSequence[-1].id)
             # Reload the repo
             maxCommits = int(kwargs.get("n", self.repoModel.nextTruncationThreshold))
-            self.replaceWithStub(self.pendingLocator, maxCommits)
+            self.replaceWithStub(jumpTo, maxCommits)
         elif url.authority() == "prefs":
             self.openPrefs.emit(simplePath)
         else:  # pragma: no cover

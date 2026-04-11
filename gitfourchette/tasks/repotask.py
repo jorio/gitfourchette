@@ -783,12 +783,18 @@ class RepoTaskRunner(QObject):
     Can be forced with command-line switch "--no-threads".
     """
 
-    postTask = Signal(RepoTask)
+    ready = Signal()
+    """
+    Emitted after finishing a task (or a series of tasks) and no other tasks
+    are queued.
+    """
+
     progress = Signal(str, bool)
     repoGone = Signal()
-    ready = Signal()
     requestAttention = Signal()
     processStarted = Signal(QProcess, str)
+
+    repoModel: RepoModel | None
 
     _workerThread: FlowWorkerThread
     "Thread that can execute non-UI sections of the current task's coroutine."
@@ -808,6 +814,10 @@ class RepoTaskRunner(QObject):
     _queueTokens: bool
     _tokenQueue: list[FlowControlToken]
 
+    pendingEffects: TaskEffects
+    pendingLocator: NavLocator
+    pendingStatus: str
+
     def __init__(self, parent: QObject):
         super().__init__(parent)
         self.setObjectName("RepoTaskRunner")
@@ -824,6 +834,10 @@ class RepoTaskRunner(QObject):
         self._queueTokens = False
         self._tokenQueue = []
 
+        self.pendingEffects = TaskEffects.Nothing
+        self.pendingLocator = NavLocator.Empty
+        self.pendingStatus = ""
+
     @property
     def currentTask(self):
         return self._currentTask
@@ -837,7 +851,6 @@ class RepoTaskRunner(QObject):
         self.killCurrentTask()
         self.joinKilledTask()
         self.repoModel = None
-        self.repo = None
 
     def killCurrentTask(self):
         """
@@ -955,9 +968,6 @@ class RepoTaskRunner(QObject):
         while token is not None:
             token = self._processToken(token)
 
-        if not self.isBusy():  # might've queued up another task...
-            self.ready.emit()
-
     def _processToken(self, token: FlowControlToken) -> FlowControlToken | None:
         assert not isinstance(token, Generator), \
             "You're trying to yield a nested generator. Did you mean 'yield from'?"
@@ -1073,11 +1083,11 @@ class RepoTaskRunner(QObject):
         self._releaseCurrentTask()
         assert self._currentTask is None
 
-        discardPendingTask = True
+        ranToCompletion = False
 
         if isinstance(exception, StopIteration):
             # No more steps in the flow. Task completed successfully.
-            discardPendingTask = False
+            ranToCompletion = True
         elif isinstance(exception, AbortTask):
             # Controlled exit, show message (if any)
             self.reportAbortTask(task, exception)
@@ -1089,20 +1099,41 @@ class RepoTaskRunner(QObject):
             # Run task's error callback
             task.onError(exception)
 
-        if discardPendingTask:
+        if not ranToCompletion:
             # Task aborted before completion, discard pending task
             self._releasePendingTask()
         else:
+            self.pendingEffects |= task.effects
+            self.pendingLocator = task.jumpTo or self.pendingLocator
+            self.pendingStatus = task.postStatus or self.pendingStatus
+
             # Queue up pending task, if any, before postTask
             self._startPendingTask()
 
-        # Emit postTask signal whether the task succeeded or not
-        self.postTask.emit(task)
-
         task.deleteLater()
 
-        # Manual GC: After completing a task is an opportune time to collect garbage
-        gcHint()
+        if self.isBusy():  # There's a pending task
+            return
+
+        # Tell owner we're ready for another task
+        self.ready.emit()
+
+        if not self.isBusy():  # Owner hasn't chained some other task
+            # End of task chain
+            # Manual GC: Now's an opportune time to collect garbage
+            gcHint()
+
+            # Consume & report pending status
+            status = self.pendingStatus
+            if status:
+                self.pendingStatus = ""
+                self.progress.emit(status, False)
+
+    def consumePendingEffectsAndLocator(self) -> tuple[TaskEffects, NavLocator]:
+        effects, locator = self.pendingEffects, self.pendingLocator
+        self.pendingEffects = TaskEffects.Nothing
+        self.pendingLocator = NavLocator.Empty
+        return effects, locator
 
     @staticmethod
     def _getNextToken(flow: RepoTask.FlowGeneratorType) -> FlowControlToken:
