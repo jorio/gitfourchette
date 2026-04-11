@@ -821,8 +821,8 @@ def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow, taskTh
         rw.diffArea.stageButton.click()
 
         # Wait for post-refresh task to start
-        assert "stage" in rw.taskRunner.currentTask.name().lower()
-        waitUntilTrue(lambda: "stage" not in rw.taskRunner.currentTask.name().lower())
+        assert "StageFiles" in repr(rw.taskRunner.currentTask)
+        waitUntilTrue(lambda: "StageFiles" not in repr(rw.taskRunner.currentTask))
 
         # While refreshing, the dirty box still shows 2 files.
         # Interrupt the refresh task to jump to file2.txt.
@@ -834,3 +834,31 @@ def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow, taskTh
 
         assert 1 == len(qlvGetRowData(rw.dirtyFiles))
         assert 1 == len(qlvGetRowData(rw.stagedFiles))
+
+
+def testAccumulateTaskEffectBitsUntilRefreshAbortedManually(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/file1.txt", "stage me...")
+
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+    with DelayGitCommandContext(delay=1):
+        # Stage file1.txt
+        assert 1 == len(qlvGetRowData(rw.dirtyFiles))
+        qlvClickNthRow(rw.dirtyFiles, 0)
+        rw.diffArea.stageButton.click()
+
+        # Wait for post-refresh task to start
+        assert "StageFiles" in repr(rw.taskRunner.currentTask)
+        waitUntilTrue(lambda: "StageFiles" not in repr(rw.taskRunner.currentTask))
+        assert "RefreshRepo" in repr(rw.taskRunner.currentTask)
+
+        # Abort the refresh task manually
+        findQDialog(rw, "", t=ProcessDialog).abortButton.click()
+        waitForQMessageBox(rw, "git command exited with code").accept()
+
+        # file1.txt still appears dirty because we've aborted the refresh task
+        assert 1 == len(qlvGetRowData(rw.dirtyFiles))
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())

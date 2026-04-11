@@ -590,14 +590,18 @@ class RepoWidget(QWidget):
         """Refresh the repo as soon as possible."""
 
         # Accumulate effect bits
-        self.pendingEffects |= effects
+        effects |= self.pendingEffects
 
         # Don't refresh if in background or task runner busy
         if not self.isVisible() or self.taskRunner.isBusy():
             logger.debug(f"Stashing refresh bits {repr(effects)}")
+            self.pendingEffects = effects
             if jumpTo:
                 warnings.warn(f"Ignoring post-refresh jump {jumpTo} because can't refresh yet")
             return
+
+        # Consume pending effect bits
+        self.pendingEffects = TaskEffects.Nothing
 
         # Consume pending locator, if any
         if self.pendingLocator:
@@ -607,10 +611,9 @@ class RepoWidget(QWidget):
                 warnings.warn(f"Ignoring pendingLocator {self.pendingLocator} - overridden by {jumpTo}")
             self.pendingLocator = NavLocator.Empty  # Consume it
 
-        if self.pendingEffects != TaskEffects.Nothing:
+        if effects != TaskEffects.Nothing:
             # Invoke refresh task
-            # This will clear out pendingEffects UNLESS interrupted!
-            tasks.RefreshRepo.invoke(self, self.pendingEffects, jumpTo)
+            tasks.RefreshRepo.invoke(self, effects, jumpTo)
         elif jumpTo:
             # Just jump
             tasks.Jump.invoke(self, jumpTo)

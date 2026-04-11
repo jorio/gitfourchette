@@ -620,6 +620,14 @@ class RefreshRepo(RepoTask):
     def canKill(self, task: RepoTask):
         return RefreshRepo.canKill_static(task)
 
+    def onError(self, exc: Exception):
+        # Don't refresh again if this task was interrupted by an error.
+        # Note that the effects will be kept until the next refresh if this
+        # task was killed by another task (this doesn't count as an error).
+        self.effects = TaskEffects.Nothing
+
+        super().onError(exc)
+
     def flow(self, effectFlags: TaskEffects = TaskEffects.DefaultRefresh, jumpTo: NavLocator = NavLocator.Empty):
         rw = self.rw
         repoModel = self.repoModel
@@ -631,6 +639,9 @@ class RefreshRepo(RepoTask):
         # Early out if repo has gone missing
         if not os.path.isdir(self.repo.path):
             raise RepoGoneError(self.repo.path)
+
+        # Accumulate effect bits until task is complete or interrupted by an error
+        self.effects |= effectFlags
 
         repoModel.workdirStale |= bool(effectFlags & TaskEffects.Workdir)
 
@@ -763,8 +774,10 @@ class RefreshRepo(RepoTask):
 
         # Finally, clear out the effect bits that were accumulated by
         # RepoWidget.refreshRepo. Do this *last* because we want to keep the
-        # effect bits for the next RefreshRepo task if this one was interrupted.
-        rw.pendingEffects = TaskEffects.Nothing
+        # effect bits for the next RefreshRepo task if this one was interrupted
+        # by another task. Note that interrupting by an error will flush the bits
+        # so we don't get stuck in a refresh loop.
+        self.effects = TaskEffects.Nothing
 
         if anyChanges:
             logger.debug(f"Changes detected on refresh: Ref={int(refsChanged)} Sta={int(stashesChanged)} "
