@@ -38,8 +38,8 @@ class TreeMount(fuse.Operations):
 
     def __init__(self, commit: Commit, mountPoint: str) -> None:
         super().__init__()
-        self.authorTime = commit.author.time * 1e9
-        self.committerTime = commit.committer.time * 1e9
+        self.authorTime = commit.author.time * 1_000_000_000
+        self.committerTime = commit.committer.time * 1_000_000_000
         self.tree = commit.tree
         self.mountPointPathObj = Path(mountPoint)  # to produce absolute paths in readlink
 
