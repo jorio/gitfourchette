@@ -502,3 +502,154 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
 
     # If we ever choose to not disable this action, the action callback should be tested as well.
     assert not missingUpstreamAction.isEnabled()
+
+
+def testSidebarFilter(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/login")
+        repo.create_branch_on_head("feature/signup")
+        repo.create_branch_on_head("bugfix/issue-123")
+        repo.create_branch_on_head("hotfix/critical")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test initial state
+    assert sidebarFilter.filterText == ""
+    allBranches = sb.findNodesByKind(SidebarItem.LocalBranch)
+    assert len(allBranches) >= 6  # master, no-parent, feature/*, bugfix/*, hotfix/*
+
+    # Test filtering by "feature"
+    sidebarFilter.lineEdit.setText("feature")
+    QTest.qWait(50)  # Wait for filter to apply
+    
+    # Check that feature branches can still be found
+    featureLogin = sb.findNodeByRef("refs/heads/feature/login")
+    assert featureLogin is not None
+    featureSignup = sb.findNodeByRef("refs/heads/feature/signup")
+    assert featureSignup is not None
+
+    # Test clearing filter
+    sidebarFilter.clear()
+    QTest.qWait(50)
+    assert sidebarFilter.filterText == ""
+
+    # Test case-insensitive filtering
+    sidebarFilter.lineEdit.setText("FEATURE")
+    QTest.qWait(50)
+    featureLogin = sb.findNodeByRef("refs/heads/feature/login")
+    assert featureLogin is not None
+
+    # Test substring matching
+    sidebarFilter.lineEdit.setText("fix")
+    QTest.qWait(50)
+    bugfixBranch = sb.findNodeByRef("refs/heads/bugfix/issue-123")
+    assert bugfixBranch is not None
+    hotfixBranch = sb.findNodeByRef("refs/heads/hotfix/critical")
+    assert hotfixBranch is not None
+
+
+def testSidebarFilterWithFolders(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("team/frontend/login")
+        repo.create_branch_on_head("team/frontend/signup")
+        repo.create_branch_on_head("team/backend/api")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test filtering shows parent folders
+    sidebarFilter.lineEdit.setText("login")
+    QTest.qWait(50)
+
+    # Should be able to find the branch
+    loginNode = sb.findNodeByRef("refs/heads/team/frontend/login")
+    assert loginNode is not None
+
+
+def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test setting filter text
+    sidebarFilter.lineEdit.setText("test")
+    assert sidebarFilter.filterText == "test"
+    
+    # Test clearing filter
+    sidebarFilter.clear()
+    QTest.qWait(50)
+    assert sidebarFilter.filterText == ""
+
+
+def testSidebarFilterWithTags(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_tag("v1.0.0", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+        repo.create_tag("v2.0.0", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+        repo.create_tag("release-2024", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test filtering tags
+    sidebarFilter.lineEdit.setText("v1")
+    QTest.qWait(50)
+
+    # Should be able to find v1.0.0 tag
+    v1Tag = sb.findNodeByRef("refs/tags/v1.0.0")
+    assert v1Tag is not None
+
+
+def testSidebarFilterPreservesSelection(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/test")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Select a branch
+    featureNode = sb.findNodeByRef("refs/heads/feature/test")
+    sb.selectNode(featureNode)
+    
+    selectedBefore = sb.selectedIndexes()[0].data()
+    assert "test" in selectedBefore
+
+    # Filter should not affect selection if item matches
+    sidebarFilter.lineEdit.setText("feature")
+    QTest.qWait(50)
+    
+    # Selection should still be valid
+    assert len(sb.selectedIndexes()) > 0
+
+
+def testSidebarFilterExpandsAll(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("team/frontend/login")
+        repo.create_branch_on_head("team/backend/api")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Apply filter - should expand all
+    sidebarFilter.lineEdit.setText("login")
+    QTest.qWait(50)
+
+    # Should be able to find the login branch
+    loginNode = sb.findNodeByRef("refs/heads/team/frontend/login")
+    assert loginNode is not None

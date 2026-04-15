@@ -36,7 +36,10 @@ class SidebarDelegate(QStyledItemDelegate):
     def __init__(self, parent: QTreeView):
         super().__init__(parent)
         self.treeView = parent
-        self.sidebarModel: SidebarModel = parent.model()
+        proxyModel = parent.model()
+        from gitfourchette.sidebar.sidebarproxymodel import SidebarProxyModel
+        assert isinstance(proxyModel, SidebarProxyModel)
+        self.sidebarModel: SidebarModel = proxyModel.sourceModel()
         assert isinstance(self.sidebarModel, SidebarModel)
 
     @staticmethod
@@ -59,7 +62,11 @@ class SidebarDelegate(QStyledItemDelegate):
             return SidebarClickZone.Select
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
-        node = SidebarNode.fromIndex(index)
+        from gitfourchette.sidebar.sidebarproxymodel import SidebarProxyModel
+        proxyModel = self.treeView.model()
+        assert isinstance(proxyModel, SidebarProxyModel)
+        sourceIndex = proxyModel.mapToSource(index)
+        node = SidebarNode.fromIndex(sourceIndex)
         assert node.parent is not None, "can't paint root node"
 
         sidebarModel = self.sidebarModel
