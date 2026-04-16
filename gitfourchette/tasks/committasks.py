@@ -402,6 +402,7 @@ class NewTag(RepoTask):
         tagName = dlg.ui.nameEdit.text()
         pushIt = dlg.ui.pushCheckBox.isChecked()
         pushTo = dlg.ui.remoteComboBox.currentData()
+        forceCreate = dlg.ui.forceCheckBox.isChecked()
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()
@@ -412,7 +413,7 @@ class NewTag(RepoTask):
         if signIt:
             repo.create_tag(tagName, oid, ObjectType.COMMIT, self.repo.default_signature, "")
         else:
-            repo.create_reference(refName, oid)
+            repo.create_reference(refName, oid, force=forceCreate)
 
         self.postStatus = _("Tag {0} created on commit {1}.", tquo(tagName), tquo(shortHash(oid)))
 
