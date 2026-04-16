@@ -8,6 +8,7 @@ import os.path
 
 import pytest
 
+from gitfourchette import qt
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
@@ -754,6 +755,45 @@ def testNewTag(tempDir, mainWindow):
     dlg.accept()
 
     assert newTag in rw.repo.listall_tags()
+
+
+@pytest.mark.parametrize("forceEnabled,tagOidChanged", [[False, False], [True, True]])
+def testForceNewTag(tempDir, mainWindow, forceEnabled, tagOidChanged):
+    firstCommit = "2c349335b7f797072cf729c4f3bb0914ecb6dec9"  # "First a/a2"
+    secondCommit = "ac7e7e44c1885efb472ad54a78327d66bfc4ecef"  # "First a/a1"
+    newTag = "cool-tag"
+
+    wd = unpackRepo(tempDir)
+
+    # Nuke remotes for coverage of the no-remote code path.
+    # (See also testPushTagOnCreate)
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+        repo.create_reference(RefPrefix.TAGS + newTag, firstCommit)
+
+    rw = mainWindow.openRepo(wd)
+    assert newTag in rw.repo.listall_tags()
+    assert rw.repo.commit_id_from_tag_name(newTag) == Oid(hex=firstCommit)
+
+    secondOid = Oid(hex=secondCommit)
+
+    rw.jump(NavLocator.inCommit(secondOid))
+    triggerContextMenuAction(rw.graphView.viewport(), "tag this commit")
+
+    dlg: NewTagDialog = findQDialog(rw, "new tag")
+    okButton = dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+
+    QTest.keyClicks(dlg.ui.nameEdit, newTag)
+    assert not okButton.isEnabled()  # disabled b/c tag name is duplicated
+
+    if forceEnabled:
+        QTest.mouseClick(dlg.ui.forceCheckBox, Qt.MouseButton.LeftButton)
+        assert okButton.isEnabled()
+        dlg.accept()
+    else:
+        dlg.reject()
+
+    assert (rw.repo.commit_id_from_tag_name(newTag) == secondOid) is tagOidChanged
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
