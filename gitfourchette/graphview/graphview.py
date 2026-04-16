@@ -92,6 +92,7 @@ class GraphView(QListView):
         self.copyHashShortcut = makeWidgetShortcut(self, self.copyCommitHashToClipboard, QKeySequence.StandardKey.Copy)
         self.copyMessageShortcut = makeWidgetShortcut(self, self.copyCommitMessageToClipboard, "Ctrl+Shift+C")
         self.getInfoShortcut = makeWidgetShortcut(self, self.getInfoOnCurrentCommit, "Space")
+        self.tagCommitShortcut = makeWidgetShortcut(self, self.tagCurrentCommit, "Alt+T")
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
@@ -162,6 +163,12 @@ class GraphView(QListView):
             return
         withDebugInfo = QGuiApplication.keyboardModifiers() & (Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier)
         GetCommitInfo.invoke(self, oid, withDebugInfo)
+
+    def tagCurrentCommit(self):
+        oid = self.currentCommitId
+        if not oid:
+            return
+        NewTag.invoke(self, oid)
 
     def copyCommitHashToClipboard(self):
         oid = self.currentCommitId
@@ -475,7 +482,7 @@ class GraphView(QListView):
 
         actions = [
             TaskBook.action(self, NewBranchFromCommit, _("New &Branch Here…"), taskArgs=oid),
-            TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid),
+            TaskBook.action(self, NewTag, _("&Tag This Commit…"), taskArgs=oid, shortcuts=self.tagCommitShortcut.key()),
             ActionDef.SEPARATOR,
             checkoutAction,
             TaskBook.action(self, MergeBranch, _("&Merge into {0}…", myRef), taskArgs=(mergeWhat,)),
