@@ -37,7 +37,9 @@ def testNewBranch(tempDir, mainWindow, method, switch):
         sb.selectNode(node)
         QTest.keyPress(sb, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = sb.visualRect(node.createIndex(sb.sidebarModel))
+        sourceIndex = node.createIndex(sb.sidebarModel)
+        index = sb.model().mapFromSource(sourceIndex)
+        rect = sb.visualRect(index)
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     elif method == "shortcut":
         QTest.qWait(0)
@@ -929,7 +931,9 @@ def testMergeFastForward(tempDir, mainWindow, method):
     assert rw.repo.head.target != rw.repo.branches.local['master'].target
 
     node = rw.sidebar.findNodeByRef("refs/heads/master")
-    rw.sidebar.setCurrentIndex(node.createIndex(rw.sidebar.sidebarModel))
+    sourceIndex = node.createIndex(rw.sidebar.sidebarModel)
+    proxyIndex = rw.sidebar.model().mapFromSource(sourceIndex)
+    rw.sidebar.setCurrentIndex(proxyIndex)
 
     if method == "sidebar":
         menu = rw.sidebar.makeNodeMenu(node)

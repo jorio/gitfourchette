@@ -192,7 +192,8 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
         menu = summonContextMenu(rw.committedFiles.viewport())
         action = findMenuAction(menu, r"\(command\) " + params.menuName)
     elif params.actionSource == "sidebar":
-        node = SidebarNode.fromIndex(rw.sidebar.selectedIndexes()[0])
+        sourceIndex = rw.sidebar.model().mapToSource(rw.sidebar.selectedIndexes()[0])
+        node = SidebarNode.fromIndex(sourceIndex)
         menu = rw.sidebar.makeNodeMenu(node)
         action = findMenuAction(menu, r"\(command\) " + params.menuName)
     else:

@@ -74,7 +74,8 @@ def testSidebarCollapsePersistent(tempDir, mainWindow):
     sb = rw.sidebar
     sm = sb.sidebarModel
     assert sm.isAncestryChainExpanded(sb.findNodeByRef("refs/remotes/origin/master"))
-    indexToCollapse = sb.findNode(lambda n: n.data == "origin").createIndex(sm)
+    sourceIndexToCollapse = sb.findNode(lambda n: n.data == "origin").createIndex(sm)
+    indexToCollapse = sb.model().mapFromSource(sourceIndexToCollapse)
     sb.collapse(indexToCollapse)
     sb.expand(indexToCollapse)  # go through both expand/collapse code paths
     sb.collapse(indexToCollapse)
@@ -141,7 +142,8 @@ def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
     triggerContextMenuAction(sb.viewport(), "collapse all folders")
     assert reachable() == {delish}
 
-    sb.expand(delish.createIndex(sm))
+    proxyIndex = sb.model().mapFromSource(delish.createIndex(sm))
+    sb.expand(proxyIndex)
     assert reachable() == {delish, quiche, drink}
 
     triggerContextMenuAction(sb.viewport(), "expand all folders")
@@ -159,7 +161,8 @@ def testRefreshKeepsSidebarNonRefSelection(tempDir, mainWindow):
     sb.selectNode(node)
 
     rw.refreshRepo()
-    node = SidebarNode.fromIndex(sb.selectedIndexes()[0])
+    sourceIndex = sb.model().mapToSource(sb.selectedIndexes()[0])
+    node = SidebarNode.fromIndex(sourceIndex)
     assert node.kind == SidebarItem.Remote
     assert node.data == "origin"
 
@@ -278,7 +281,8 @@ def testHideNestedRefFolders(tempDir, mainWindow, explicit, implicit, method):
     if method == "sidebarmenu":
         triggerMenuAction(sb.makeNodeMenu(node), "hide in graph")
     elif method == "sidebarclick":
-        index = node.createIndex(sm)
+        sourceIndex = node.createIndex(sm)
+        index = sb.model().mapFromSource(sourceIndex)
         rect = sb.visualRect(index)
         QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topRight())
     else:
@@ -336,7 +340,8 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
     if method == "sidebarmenu":
         triggerMenuAction(sb.makeNodeMenu(node), "hide all but this")
     elif method == "sidebarclick":
-        index = node.createIndex(sm)
+        sourceIndex = node.createIndex(sm)
+        index = sb.model().mapFromSource(sourceIndex)
         rect = sb.visualRect(index)
         QTest.mouseClick(sb.viewport(), Qt.MouseButton.MiddleButton, pos=rect.topRight())
     else:
@@ -525,7 +530,7 @@ def testSidebarFilter(tempDir, mainWindow):
     # Test filtering by "feature"
     sidebarFilter.lineEdit.setText("feature")
     QTest.qWait(50)  # Wait for filter to apply
-    
+
     # Check that feature branches can still be found
     featureLogin = sb.findNodeByRef("refs/heads/feature/login")
     assert featureLogin is not None
@@ -576,13 +581,12 @@ def testSidebarFilterWithFolders(tempDir, mainWindow):
 def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    sb = rw.sidebar
     sidebarFilter = rw.sidebarFilter
 
     # Test setting filter text
     sidebarFilter.lineEdit.setText("test")
     assert sidebarFilter.filterText == "test"
-    
+
     # Test clearing filter
     sidebarFilter.clear()
     QTest.qWait(50)
@@ -623,14 +627,14 @@ def testSidebarFilterPreservesSelection(tempDir, mainWindow):
     # Select a branch
     featureNode = sb.findNodeByRef("refs/heads/feature/test")
     sb.selectNode(featureNode)
-    
+
     selectedBefore = sb.selectedIndexes()[0].data()
     assert "test" in selectedBefore
 
     # Filter should not affect selection if item matches
     sidebarFilter.lineEdit.setText("feature")
     QTest.qWait(50)
-    
+
     # Selection should still be valid
     assert len(sb.selectedIndexes()) > 0
 

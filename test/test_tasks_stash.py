@@ -42,7 +42,9 @@ def testNewStash(tempDir, mainWindow, method):
         sb.selectNode(node)
         QTest.keyPress(sb, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = sb.visualRect(node.createIndex(rw.sidebar.sidebarModel))
+        sourceIndex = node.createIndex(rw.sidebar.sidebarModel)
+        index = sb.model().mapFromSource(sourceIndex)
+        rect = sb.visualRect(index)
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     elif method == "menubar":
         triggerMenuAction(mainWindow.menuBar(), "repo/stash")
@@ -231,7 +233,9 @@ def testApplyStash(tempDir, mainWindow, method):
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = rw.sidebar.visualRect(node.createIndex(rw.sidebar.sidebarModel))
+        sourceIndex = node.createIndex(rw.sidebar.sidebarModel)
+        index = rw.sidebar.model().mapFromSource(sourceIndex)
+        rect = rw.sidebar.visualRect(index)
         QTest.mouseDClick(rw.sidebar.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     else:
         raise NotImplementedError(f"unknown method {method}")

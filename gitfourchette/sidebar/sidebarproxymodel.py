@@ -60,7 +60,9 @@ class SidebarProxyModel(QSortFilterProxyModel):
             if not displayText:
                 return True
 
-            if item == SidebarItem.Stash:
+            # For branches and tags, check both display text and full ref path
+            # This ensures that branches like "wip/leaf" match when searching for "wip"
+            if item in [SidebarItem.LocalBranch, SidebarItem.RemoteBranch, SidebarItem.Tag, SidebarItem.Stash]:
                 refName = index.data(sourceModel.Role.Ref)
                 if refName and self._filterText.lower() in refName.lower():
                     return True

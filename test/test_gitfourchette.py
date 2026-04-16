@@ -529,9 +529,10 @@ def testRestoreSession(tempDir, mainWindow):
 
     # Collapse something in sidebar
     originNode = rw.sidebar.findNodeByKind(SidebarItem.Remote)
-    originIndex = originNode.createIndex(rw.sidebar.sidebarModel)
+    originSourceIndex = originNode.createIndex(rw.sidebar.sidebarModel)
+    originIndex = rw.sidebar.model().mapFromSource(originSourceIndex)
     assert rw.sidebar.isExpanded(originIndex)
-    rw.sidebar.collapse(originNode.createIndex(rw.sidebar.sidebarModel))
+    rw.sidebar.collapse(originIndex)
     assert not rw.sidebar.isExpanded(originIndex)
 
     # Hide something in sidebar
@@ -944,7 +945,7 @@ def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
     sidebarFilter.lineEdit.setText("master")
     QTest.qWait(50)
     assert sidebarFilter.filterText == "master"
-    
+
     # Should be able to find master branch when filtered
     masterNode = sb.findNodeByRef("refs/heads/master")
     assert masterNode is not None

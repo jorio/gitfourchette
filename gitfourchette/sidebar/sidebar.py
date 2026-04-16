@@ -110,8 +110,9 @@ class Sidebar(QTreeView):
 
         if index.isValid():
             sourceIndex = self.model().mapToSource(index)
-            node = SidebarNode.fromIndex(sourceIndex)
-            SidebarDelegate.unindentRect(node.kind, vr, self.indentation())
+            if sourceIndex.isValid():
+                node = SidebarNode.fromIndex(sourceIndex)
+                SidebarDelegate.unindentRect(node.kind, vr, self.indentation())
 
         return vr
 
@@ -911,10 +912,12 @@ class Sidebar(QTreeView):
         # Find a visible index that matches any of the candidates
         for ref in refCandidates:
             index = self.indexForRef(ref)
-            if not index:
+            if not index or not index.isValid():
                 continue
             # Don't force-expand any collapsed indexes
             sourceIndex = self.model().mapToSource(index)
+            if not sourceIndex.isValid():
+                continue
             node = SidebarNode.fromIndex(sourceIndex)
             if model.isAncestryChainExpanded(node):
                 self.setCurrentIndex(index)
