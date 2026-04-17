@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-04-15 11:09+0000\n"
+"PO-Revision-Date: 2026-04-17 13:09+0000\n"
 "Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
@@ -3849,7 +3849,7 @@ msgstr ""
 
 #: tasks/committasks.py:409 tasks/committasks.py:455
 msgid "Review changes"
-msgstr ""
+msgstr "Revisar cambios"
 
 #: tasks/committasks.py:438
 #, python-brace-format
@@ -4099,12 +4099,12 @@ msgstr ""
 #: tasks/indextasks.py:505
 msgctxt "preposition slotted into '...BEFORE this commit'"
 msgid "before"
-msgstr ""
+msgstr "antes"
 
 #: tasks/indextasks.py:509
 msgctxt "preposition slotted into '...AT this commit'"
 msgid "at"
-msgstr ""
+msgstr "en"
 
 #: tasks/indextasks.py:517
 #, python-brace-format
@@ -4135,7 +4135,7 @@ msgstr "Este archivo será {processed} en tu directorio de trabajo."
 
 #: tasks/indextasks.py:532
 msgid "Restore"
-msgstr ""
+msgstr "Restaurar"
 
 #: tasks/indextasks.py:545
 #, python-brace-format
@@ -4329,7 +4329,7 @@ msgstr ""
 #: tasks/loadtasks.py:137
 #, python-brace-format
 msgid "{0} commits total."
-msgstr ""
+msgstr "{0} commits en total."
 
 #: tasks/loadtasks.py:285
 msgid "Try to reload the file."
@@ -4469,12 +4469,12 @@ msgstr ""
 #: tasks/nettasks.py:221
 #, python-brace-format
 msgid "No new commits on {0}."
-msgstr ""
+msgstr "No hay nuevos commits en {0}."
 
 #: tasks/nettasks.py:232
 #, python-brace-format
 msgid "{0} has disappeared from the remote server."
-msgstr ""
+msgstr "{0} ha desaparecido del servidor remoto."
 
 #: tasks/nettasks.py:240
 #, python-brace-format
@@ -4494,7 +4494,7 @@ msgstr ""
 
 #: tasks/nettasks.py:316 tasks/repotask.py:557
 msgid "Please switch to a local branch before performing this action."
-msgstr ""
+msgstr "Por favor, cambie a una rama local antes de realizar esta acción."
 
 #: tasks/nettasks.py:377
 msgid "Push complete."
@@ -4560,7 +4560,7 @@ msgstr ""
 #: tasks/repotask.py:294 tasks/repotask.py:304 toolbox/messageboxes.py:301
 #, python-brace-format
 msgid "Operation failed: {0}."
-msgstr ""
+msgstr "La operación falló: {0}."
 
 #: tasks/repotask.py:505
 msgid "Don’t ask me to confirm this again"
