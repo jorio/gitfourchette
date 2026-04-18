@@ -417,15 +417,18 @@ class NewIgnorePattern(RepoTask):
 class QueryCommitsTouchingPath(RepoTask):
     """Resolve commits reachable from any ref that modify the given pathspec (via git log)."""
 
-    matching_oids: frozenset[Oid]
-    request_id: int
+    def flow(self, pathspec: str, requestId: int = 0):
+        oids = yield from self._findMatchingCommits(pathspec)
 
-    def flow(self, pathspec: str, request_id: int = 0):
-        self.matching_oids = frozenset()
-        self.request_id = request_id
+        searchBar = self.rw.graphView.commitFileSearchBar
+        searchBar.onQueryCommitsTouchingPathFinished(requestId, oids)
+
+    def _findMatchingCommits(self, pathspec: str):
+        oids: set[Oid] = set()
+
         pathspec = pathspec.strip()
         if not pathspec:
-            return
+            return oids
 
         # flowCallGit / QProcess must run on the UI thread (see flowStartProcess).
         driver = yield from self.flowCallGit(
@@ -435,7 +438,6 @@ class QueryCommitsTouchingPath(RepoTask):
             autoFail=False,
         )
 
-        oids: set[Oid] = set()
         for line in driver.stdoutScrollback().splitlines():
             line = line.strip()
             if not line:
@@ -445,7 +447,7 @@ class QueryCommitsTouchingPath(RepoTask):
             except (ValueError, TypeError):
                 with suppress(ValueError, TypeError):
                     oids.add(Oid(hex=line))
-        self.matching_oids = frozenset(oids)
+        return oids
 
     def broadcastProcesses(self) -> bool:
         return False

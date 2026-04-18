@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import enum
-from contextlib import suppress
 
 from gitfourchette.forms.ui_commitfilesearchbar import Ui_CommitFileSearchBar
 from gitfourchette.graphview.commitlogfilter import workdir_matches_path_needle
@@ -72,8 +71,6 @@ class CommitFileSearchBar(QWidget):
 
         self.ui.lineEdit.textChanged.connect(self._onTextChanged)
 
-        graphView.repoWidget.taskRunner.postTask.connect(self.onQueryCommitsTouchingPathFinished)
-
         tweakWidgetFont(self.ui.lineEdit, 85)
 
         withChildren = Qt.ShortcutContext.WidgetWithChildrenShortcut
@@ -91,8 +88,6 @@ class CommitFileSearchBar(QWidget):
 
     def prepareForDeletion(self):
         self._debounce.stop()
-        with suppress(TypeError, RuntimeError):
-            self.graphView.repoWidget.taskRunner.postTask.disconnect(self.onQueryCommitsTouchingPathFinished)
         self.graphView = None
 
     def popUp(self, forceSelectAll: bool = False):
@@ -202,15 +197,13 @@ class CommitFileSearchBar(QWidget):
         super().hideEvent(event)
         self._fullReset()
 
-    def onQueryCommitsTouchingPathFinished(self, task):
+    def onQueryCommitsTouchingPathFinished(self, requestId: int, matchingOids: set[Oid]):
         if self.graphView is None:
             return
-        if not isinstance(task, QueryCommitsTouchingPath):
-            return
-        if task.request_id != self._request_seq:
+        if requestId != self._request_seq:
             return
         self._query_pending = False
-        self._match_oids = task.matching_oids
+        self._match_oids = frozenset(matchingOids)
         self._pushStateToFilter()
         self.graphView.viewport().update()
 
