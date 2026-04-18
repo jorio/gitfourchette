@@ -5,6 +5,8 @@
 # -----------------------------------------------------------------------------
 
 import enum
+import fnmatch
+import itertools
 import logging
 from collections.abc import Generator, Iterable
 
@@ -603,3 +605,31 @@ class RepoModel:
 
         # File has no uncommitted changes
         return None
+
+    def workdirMatchesPathNeedle(self, needleLower: str):
+        """
+        Match a repo-relative path against the same pattern style as
+        `git log -- <pathspec>` for common cases: substring, or fnmatch when the
+        pattern contains glob syntax.
+        """
+
+        assert needleLower == needleLower.lower()
+
+        if not needleLower or not self.workdirStatusReady:
+            return False
+
+        useFnmatch = any(c in needleLower for c in "*?[")
+
+        for delta in itertools.chain(self.workdirUnstagedDeltas, self.workdirStagedDeltas):
+            for path in delta.new.path, delta.old.path:
+                path = path.lower()
+                if useFnmatch:
+                    if fnmatch.fnmatch(path, needleLower):
+                        return True
+                    base = path.rsplit("/", 1)[-1]
+                    if fnmatch.fnmatch(base, needleLower):
+                        return True
+                elif needleLower in path:
+                    return True
+
+        return False

@@ -7,15 +7,19 @@
 from __future__ import annotations
 
 import enum
+import itertools
+import typing
 
 from gitfourchette.forms.ui_commitfilesearchbar import Ui_CommitFileSearchBar
-from gitfourchette.graphview.commitlogfilter import workdir_matches_path_needle
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.tasks.misctasks import QueryCommitsTouchingPath
 from gitfourchette.toolbox import *
+
+if typing.TYPE_CHECKING:
+    from gitfourchette.graphview.graphview import GraphView
 
 FILE_SEARCH_DEBOUNCE_MS = 280
 
@@ -25,23 +29,22 @@ class CommitFileSearchBar(QWidget):
         Next = enum.auto()
         Previous = enum.auto()
 
-    graphView: QWidget
-    """ GraphView; kept as QWidget to avoid circular imports in type checkers. """
+    graphView: GraphView
 
-    _request_seq: int
-    _match_oids: frozenset[Oid] | None
-    _query_pending: bool
+    _requestSeq: int
+    _matchOids: frozenset[Oid] | None
+    _queryPending: bool
     _needle: str
 
-    def __init__(self, graphView: QWidget):
+    def __init__(self, graphView: GraphView):
         super().__init__(graphView)
 
         self.setObjectName(f"CommitFileSearchBar({graphView.objectName()})")
         self.graphView = graphView
 
-        self._request_seq = 0
-        self._match_oids = None
-        self._query_pending = False
+        self._requestSeq = 0
+        self._matchOids = None
+        self._queryPending = False
         self._needle = ""
 
         self.ui = Ui_CommitFileSearchBar()
@@ -79,6 +82,10 @@ class CommitFileSearchBar(QWidget):
         makeWidgetShortcut(self, self.bail, "Escape", context=withChildren)
 
     @property
+    def repoModel(self):
+        return self.graphView.repoModel
+
+    @property
     def lineEdit(self) -> QLineEdit:
         return self.ui.lineEdit
 
@@ -106,86 +113,68 @@ class CommitFileSearchBar(QWidget):
         if self.graphView is not None:
             self.graphView.setFocus(Qt.FocusReason.PopupFocusReason)
 
-    def shouldDimRow(self, oid: Oid | None, special_row: SpecialRow) -> bool:
-        if not self.isVisible() or not self._needle:
+    def shouldDimIndex(self, index: QModelIndex) -> bool:
+        if (not self.isVisible()
+                or self.filterOnly
+                or not self._needle
+                or self._queryPending
+                or self._matchOids is None):
             return False
-        if self.filterOnly:
-            return False
-        if self._query_pending:
-            return False
-        if self._match_oids is None:
-            return False
-        if special_row in (SpecialRow.TruncatedHistory, SpecialRow.EndOfShallowHistory):
-            return False
-        if special_row == SpecialRow.UncommittedChanges:
-            return not self._workdirMatchesNeedle()
-        if special_row == SpecialRow.Commit and oid is not None:
-            return oid not in self._match_oids
-        return False
 
-    def rowMatchesFileSearch(self, oid: Oid | None, special_row: SpecialRow) -> bool:
-        """Whether this row counts as touching the path for next/prev navigation."""
-        if not self._needle or self._query_pending or self._match_oids is None:
+        return not self.indexMatchesFileSearch(index)
+
+    def indexMatchesFileSearch(self, index: QModelIndex) -> bool:
+        """
+        Whether this row counts as touching the path for next/prev navigation.
+        """
+
+        if (not index.isValid()
+                or not self._needle
+                or self._queryPending
+                or self._matchOids is None):
             return False
-        if special_row in (SpecialRow.TruncatedHistory, SpecialRow.EndOfShallowHistory):
-            return False
-        if special_row == SpecialRow.UncommittedChanges:
-            return self._workdirMatchesNeedle()
-        if special_row == SpecialRow.Commit and oid is not None:
-            return oid in self._match_oids
+
+        specialRow: SpecialRow = index.data(CommitLogModel.Role.SpecialRow)
+
+        if specialRow == SpecialRow.UncommittedChanges:
+            return self.repoModel.workdirMatchesPathNeedle(self._needle)
+
+        if specialRow == SpecialRow.Commit:
+            oid: Oid = index.data(CommitLogModel.Role.Oid)
+            assert oid is not None
+            return oid in self._matchOids
+
         return False
 
     def jumpToMatch(self, op: Op):
         gv = self.graphView
         model = gv.model()
-        term = self._needle
-        if not term:
+        numRows = model.rowCount()
+        if not self._needle or self._queryPending or self._matchOids is None:
             QApplication.beep()
             return
-
-        if self._query_pending or self._match_oids is None:
-            QApplication.beep()
-            return
-
-        def rowIsMatch(row: int) -> bool:
-            idx = model.index(row, 0)
-            if not idx.isValid():
-                return False
-            sr: SpecialRow = idx.data(CommitLogModel.Role.SpecialRow)
-            oid = idx.data(CommitLogModel.Role.Oid)
-            return self.rowMatchesFileSearch(oid, sr)
 
         if not gv.selectedIndexes():
-            start = -1 if op == self.Op.Next else model.rowCount()
+            start = -1 if op == self.Op.Next else numRows
         else:
             start = gv.currentIndex().row()
 
         if op == self.Op.Next:
-            for row in range(start + 1, model.rowCount()):
-                if rowIsMatch(row):
-                    idx = model.index(row, 0)
-                    gv.setCurrentIndex(idx)
-                    return
-            for row in range(0, start + 1):
-                if rowIsMatch(row):
-                    idx = model.index(row, 0)
-                    gv.setCurrentIndex(idx)
-                    return
+            range1 = range(start + 1, numRows)
+            range2 = range(0, start + 1)
         else:
-            for row in range(start - 1, -1, -1):
-                if rowIsMatch(row):
-                    idx = model.index(row, 0)
-                    gv.setCurrentIndex(idx)
-                    return
-            for row in range(model.rowCount() - 1, start - 1, -1):
-                if rowIsMatch(row):
-                    idx = model.index(row, 0)
-                    gv.setCurrentIndex(idx)
-                    return
+            range1 = range(start - 1, -1, -1)
+            range2 = range(numRows - 1, start - 1, -1)
 
-        raw = self.ui.lineEdit.text().strip()
+        for row in itertools.chain(range1, range2):
+            index = model.index(row, 0)
+            if self.indexMatchesFileSearch(index):
+                gv.setCurrentIndex(index)
+                return
+
+        raw = self.lineEdit.text().strip()
         title = _("Find commits by changed file")
-        message = _("{0} not found.", text=bquo(raw))
+        message = _("{text} not found.", text=bquo(raw))
         qmb = asyncMessageBox(self, "information", title, message)
         qmb.show()
 
@@ -195,37 +184,24 @@ class CommitFileSearchBar(QWidget):
 
     def hideEvent(self, event: QHideEvent):
         super().hideEvent(event)
-        self._fullReset()
+        self._fullReset(clearLineEdit=True)
 
     def onQueryCommitsTouchingPathFinished(self, requestId: int, matchingOids: set[Oid]):
         if self.graphView is None:
             return
-        if requestId != self._request_seq:
+        if requestId != self._requestSeq:
             return
-        self._query_pending = False
-        self._match_oids = frozenset(matchingOids)
+        self._queryPending = False
+        self._matchOids = frozenset(matchingOids)
         self._pushStateToFilter()
-        self.graphView.viewport().update()
 
-    def _repoModel(self):
-        return self.graphView.repoModel
+    def _onTextChanged(self, text: str):
+        self._needle = text.strip().lower()
 
-    def _workdirMatchesNeedle(self) -> bool:
-        return workdir_matches_path_needle(self._repoModel(), self._needle)
-
-    def _onTextChanged(self, _text: str):
-        self._debounce.stop()
-        raw = self.ui.lineEdit.text()
-        self._needle = raw.strip().lower()
-        if not raw.strip():
-            self._request_seq += 1
-            self._query_pending = False
-            self._match_oids = None
-            self._pushStateToFilter()
-            if self.graphView is not None:
-                self.graphView.viewport().update()
-            return
-        self._debounce.start()
+        if self._needle:
+            self._debounce.start()
+        else:
+            self._fullReset(clearLineEdit=False)
 
     def _onFilterOnlyToggled(self, _checked: bool):
         self._pushStateToFilter()
@@ -235,36 +211,30 @@ class CommitFileSearchBar(QWidget):
         if not raw:
             return
 
-        self._request_seq += 1
-        rid = self._request_seq
-        self._query_pending = True
-        self._match_oids = None
+        self._requestSeq += 1
+        self._queryPending = True
+        self._matchOids = None
         self._pushStateToFilter()
-        QueryCommitsTouchingPath.invoke(self.graphView, raw, rid)
+        QueryCommitsTouchingPath.invoke(self.graphView, raw, self._requestSeq)
 
     def _pushStateToFilter(self):
         if self.graphView is None:
             return
-        flt = self.graphView.clFilter
-        flt.setFilePathSearchState(
+        self.graphView.clFilter.setFilePathSearchState(
             needle=self._needle,
-            match_oids=self._match_oids,
-            query_pending=self._query_pending,
-            filter_only=self.filterOnly and bool(self._needle),
+            matchOids=self._matchOids,
+            queryPending=self._queryPending,
+            filterOnly=self.filterOnly and bool(self._needle),
         )
+        self.graphView.viewport().update()
 
-    def _fullReset(self):
+    def _fullReset(self, clearLineEdit=False):
         self._debounce.stop()
-        with QSignalBlockerContext(self.ui.lineEdit):
-            self.ui.lineEdit.clear()
+        if clearLineEdit:
+            with QSignalBlockerContext(self.ui.lineEdit):
+                self.ui.lineEdit.clear()
         self._needle = ""
-        self._query_pending = False
-        self._match_oids = None
-        self._request_seq += 1
-        if self.graphView is not None:
-            self.graphView.clFilter.setFilePathSearchState(
-                needle="",
-                match_oids=None,
-                query_pending=False,
-                filter_only=False,
-            )
+        self._queryPending = False
+        self._matchOids = None
+        self._requestSeq += 1
+        self._pushStateToFilter()

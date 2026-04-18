@@ -43,7 +43,6 @@ class Ui_CommitFileSearchBar(object):
         self.horizontalLayout.addWidget(self.closeButton)
 
         self.retranslateUi(CommitFileSearchBar)
-        QMetaObject.connectSlotsByName(CommitFileSearchBar)
 
     def retranslateUi(self, CommitFileSearchBar):
         CommitFileSearchBar.setWindowTitle(_p("CommitFileSearchBar", "Commit file search"))

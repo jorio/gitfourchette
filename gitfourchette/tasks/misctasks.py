@@ -6,20 +6,21 @@
 
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
+from gitfourchette.gitdriver.parsers import iterateLines
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
 from gitfourchette.tasks import TaskEffects
-from gitfourchette.tasks.repotask import RepoTask, AbortTask, TaskPrereqs
+from gitfourchette.tasks.repotask import RepoTask, AbortTask, FlowControlToken
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -415,22 +416,33 @@ class NewIgnorePattern(RepoTask):
 
 
 class QueryCommitsTouchingPath(RepoTask):
-    """Resolve commits reachable from any ref that modify the given pathspec (via git log)."""
+    """
+    Resolve commits reachable from any refs that modify the given pathspec
+    (via git log).
+    """
+
+    def broadcastProcesses(self) -> bool:
+        return False
 
     def flow(self, pathspec: str, requestId: int = 0):
         oids = yield from self._findMatchingCommits(pathspec)
 
+        self.epilog.status = _n(
+            "Found {n} commit touching {path}.",
+            "Found {n} commits touching {path}.",
+            n=len(oids), path=tquo(pathspec))
+
         searchBar = self.rw.graphView.commitFileSearchBar
         searchBar.onQueryCommitsTouchingPathFinished(requestId, oids)
 
-    def _findMatchingCommits(self, pathspec: str):
+    def _findMatchingCommits(self, pathspec: str
+                             ) -> Generator[FlowControlToken, None, set[Oid]]:
         oids: set[Oid] = set()
 
         pathspec = pathspec.strip()
         if not pathspec:
             return oids
 
-        # flowCallGit / QProcess must run on the UI thread (see flowStartProcess).
         driver = yield from self.flowCallGit(
             "-c", "core.abbrev=no",
             "log", "--all", "--format=%H",
@@ -438,19 +450,12 @@ class QueryCommitsTouchingPath(RepoTask):
             autoFail=False,
         )
 
-        for line in driver.stdoutScrollback().splitlines():
-            line = line.strip()
+        stdout = driver.stdoutScrollback().rstrip()
+        for pos, endPos in iterateLines(stdout):
+            line = stdout[pos: endPos].rstrip()
             if not line:
                 continue
-            try:
-                oids.add(Oid(hex=line[:40]))
-            except (ValueError, TypeError):
-                with suppress(ValueError, TypeError):
-                    oids.add(Oid(hex=line))
+            assert len(line) == 40
+            oid = Oid(hex=line)
+            oids.add(oid)
         return oids
-
-    def broadcastProcesses(self) -> bool:
-        return False
-
-    def prereqs(self) -> TaskPrereqs:
-        return TaskPrereqs.Nothing

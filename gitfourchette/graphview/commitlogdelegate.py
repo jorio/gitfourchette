@@ -138,20 +138,8 @@ class CommitLogDelegate(QStyledItemDelegate):
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground=True):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        file_dim = False
-        if self.commitFileSearchBar:
-            sr = index.data(CommitLogModel.Role.SpecialRow)
-            oid_d = index.data(CommitLogModel.Role.Oid)
-            file_dim = self.commitFileSearchBar.shouldDimRow(oid_d, sr)
         try:
-            if file_dim:
-                painter.save()
-                painter.setOpacity(0.42)
-            try:
-                self._paint(painter, option, index, fillBackground)
-            finally:
-                if file_dim:
-                    painter.restore()
+            self._paint(painter, option, index, fillBackground)
         except Exception as exc:  # pragma: no cover
             painter.restore()
             painter.save()
@@ -160,6 +148,9 @@ class CommitLogDelegate(QStyledItemDelegate):
 
     def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
         assert index.isValid()
+
+        if self.commitFileSearchBar and self.commitFileSearchBar.shouldDimIndex(index):
+            painter.setOpacity(0.42)
 
         toolTips: list[CommitToolTipZone] = []
 

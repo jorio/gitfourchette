@@ -87,7 +87,7 @@ def testCommitFileSearchByPath(tempDir, mainWindow):
     flt = gv.clFilter
     cbar = gv.commitFileSearchBar
 
-    full_rows = flt.rowCount()
+    fullRows = flt.rowCount()
     assert not cbar.isVisible()
 
     rw.showCommitFileSearchBar()
@@ -96,14 +96,14 @@ def testCommitFileSearchByPath(tempDir, mainWindow):
     QTest.keyClicks(cbar.lineEdit, "master.txt")
     QTest.qWait(0)
     rw.taskRunner.joinWorkerThread()
-    assert cbar._match_oids is not None
-    assert len(cbar._match_oids) == 2
+    assert cbar._matchOids is not None
+    assert len(cbar._matchOids) == 2
 
     cbar.ui.filterOnlyCheckBox.setChecked(True)
     assert flt.rowCount() == 2
 
     cbar.ui.filterOnlyCheckBox.setChecked(False)
-    assert flt.rowCount() == full_rows
+    assert flt.rowCount() == fullRows
 
     QTest.keySequence(gv, "Escape")
     assert not cbar.isVisible()
