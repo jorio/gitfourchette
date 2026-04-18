@@ -109,6 +109,25 @@ def testCommitFileSearchByPath(tempDir, mainWindow):
     assert not cbar.isVisible()
 
 
+def testJumpToHiddenRows(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/unstaged.txt", "hello")
+    rw = mainWindow.openRepo(wd)
+    cbar = rw.graphView.commitFileSearchBar
+
+    rw.showCommitFileSearchBar()
+    assert cbar.isVisible()
+    cbar.ui.filterOnlyCheckBox.setChecked(True)
+
+    QTest.keyClicks(cbar.lineEdit, "wontmatch")
+    QTest.qWait(0)
+    assert rw.graphView.clFilter.rowCount() == 0
+
+    # These should not error out although all rows are hidden
+    rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
+    rw.jump(NavLocator.inUnstaged("unstaged.txt"), check=True)
+
+
 def testCommitSearchByHash(tempDir, mainWindow):
     searchCommits = [
         Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4"),

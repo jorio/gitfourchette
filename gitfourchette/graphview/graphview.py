@@ -305,7 +305,9 @@ class GraphView(QListView):
 
         if locator.context.isWorkdir():
             index = self.clFilter.index(0, 0)
-            assert index.data(CommitLogModel.Role.SpecialRow) == SpecialRow.UncommittedChanges
+            if index.data(CommitLogModel.Role.SpecialRow) != SpecialRow.UncommittedChanges:
+                # Workdir row is being filtered out
+                raise self.SelectCommitError(None, True, False)
             return index
 
         if locator.context == NavContext.SPECIAL:
