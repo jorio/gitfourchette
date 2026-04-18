@@ -91,7 +91,6 @@ class SearchBar(QWidget):
         self.ui = Ui_SearchBar()
         self.ui.setupUi(self)
 
-        self.lineEdit.setStyleSheet("border: 1px solid gray; border-radius: 5px;")
         self.lineEdit.setPlaceholderText(placeholderText)
         self.lineEdit.addAction(stockIcon("magnifying-glass"), QLineEdit.ActionPosition.LeadingPosition)
         self.lineEdit.textChanged.connect(self.onSearchTextChanged)

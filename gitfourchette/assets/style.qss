@@ -15,7 +15,8 @@ Banner.merge QLabel { color: black; }
 Banner[heeded="true"] { background-color: #3d9970; }
 Banner[heeded="true"] QLabel { color: white; }
 
-SearchBar[red="true"] QLineEdit { color: red; }
+SearchBar QLineEdit { border: 1px solid gray; border-radius: 5px; }
+SearchBar[red="true"] QLineEdit { color: red; border: 1px solid red; }
 
 Banner.diff QToolButton, ContextHeader QToolButton { text-decoration: underline; }
 
