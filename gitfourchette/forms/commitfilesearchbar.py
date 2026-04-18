@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import enum
 import itertools
+import logging
 import typing
 
 from gitfourchette.forms.ui_commitfilesearchbar import Ui_CommitFileSearchBar
-from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
+from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
@@ -23,6 +24,8 @@ if typing.TYPE_CHECKING:
 
 FILE_SEARCH_DEBOUNCE_MS = 280
 
+logger = logging.getLogger(__name__)
+
 
 class CommitFileSearchBar(QWidget):
     class Op(enum.IntEnum):
@@ -31,21 +34,11 @@ class CommitFileSearchBar(QWidget):
 
     graphView: GraphView
 
-    _requestSeq: int
-    _matchOids: frozenset[Oid] | None
-    _queryPending: bool
-    _needle: str
-
     def __init__(self, graphView: GraphView):
         super().__init__(graphView)
 
         self.setObjectName(f"CommitFileSearchBar({graphView.objectName()})")
         self.graphView = graphView
-
-        self._requestSeq = 0
-        self._matchOids = None
-        self._queryPending = False
-        self._needle = ""
 
         self.ui = Ui_CommitFileSearchBar()
         self.ui.setupUi(self)
@@ -93,6 +86,10 @@ class CommitFileSearchBar(QWidget):
     def filterOnly(self) -> bool:
         return self.ui.filterOnlyCheckBox.isChecked()
 
+    @property
+    def filterState(self):
+        return self.repoModel.commitPathspecFilter
+
     def prepareForDeletion(self):
         self._debounce.stop()
         self.graphView = None
@@ -113,44 +110,11 @@ class CommitFileSearchBar(QWidget):
         if self.graphView is not None:
             self.graphView.setFocus(Qt.FocusReason.PopupFocusReason)
 
-    def shouldDimIndex(self, index: QModelIndex) -> bool:
-        if (not self.isVisible()
-                or self.filterOnly
-                or not self._needle
-                or self._queryPending
-                or self._matchOids is None):
-            return False
-
-        return not self.indexMatchesFileSearch(index)
-
-    def indexMatchesFileSearch(self, index: QModelIndex) -> bool:
-        """
-        Whether this row counts as touching the path for next/prev navigation.
-        """
-
-        if (not index.isValid()
-                or not self._needle
-                or self._queryPending
-                or self._matchOids is None):
-            return False
-
-        specialRow: SpecialRow = index.data(CommitLogModel.Role.SpecialRow)
-
-        if specialRow == SpecialRow.UncommittedChanges:
-            return self.repoModel.workdirMatchesPathNeedle(self._needle)
-
-        if specialRow == SpecialRow.Commit:
-            oid: Oid = index.data(CommitLogModel.Role.Oid)
-            assert oid is not None
-            return oid in self._matchOids
-
-        return False
-
     def jumpToMatch(self, op: Op):
         gv = self.graphView
         model = gv.model()
         numRows = model.rowCount()
-        if not self._needle or self._queryPending or self._matchOids is None:
+        if not self.filterState.isReady():
             QApplication.beep()
             return
 
@@ -168,7 +132,7 @@ class CommitFileSearchBar(QWidget):
 
         for row in itertools.chain(range1, range2):
             index = model.index(row, 0)
-            if self.indexMatchesFileSearch(index):
+            if index.data(CommitLogModel.Role.PathspecMatch):
                 gv.setCurrentIndex(index)
                 return
 
@@ -186,20 +150,23 @@ class CommitFileSearchBar(QWidget):
         super().hideEvent(event)
         self._fullReset(clearLineEdit=True)
 
-    def onQueryCommitsTouchingPathFinished(self, requestId: int, matchingOids: set[Oid]):
+    def onQueryCommitsTouchingPathFinished(self, pathspec: str, matchingIds: set[Oid]):
         if self.graphView is None:
             return
-        if requestId != self._requestSeq:
+        if pathspec != self._needle:
+            logger.debug(f"Discarding stale query: {pathspec} != {self._needle}")
             return
-        self._queryPending = False
-        self._matchOids = frozenset(matchingOids)
+        self.filterState.matchingIds = matchingIds
         self._pushStateToFilter()
 
     def _onTextChanged(self, text: str):
         self._needle = text.strip().lower()
 
-        if self._needle:
+        needle = text.strip().lower()
+        if needle:
             self._debounce.start()
+            self.filterState.clear()
+            self.filterState.needle = needle
         else:
             self._fullReset(clearLineEdit=False)
 
@@ -207,25 +174,14 @@ class CommitFileSearchBar(QWidget):
         self._pushStateToFilter()
 
     def _startQuery(self):
-        raw = self.ui.lineEdit.text().strip()
-        if not raw:
-            return
-
-        self._requestSeq += 1
-        self._queryPending = True
-        self._matchOids = None
+        assert self._needle, "don't start a query with an empty needle!"
+        self.filterState.matchingIds = None
         self._pushStateToFilter()
-        QueryCommitsTouchingPath.invoke(self.graphView, raw, self._requestSeq)
+        QueryCommitsTouchingPath.invoke(self.graphView, self.filterState.needle)
 
     def _pushStateToFilter(self):
-        if self.graphView is None:
-            return
-        self.graphView.clFilter.setFilePathSearchState(
-            needle=self._needle,
-            matchOids=self._matchOids,
-            queryPending=self._queryPending,
-            filterOnly=self.filterOnly and bool(self._needle),
-        )
+        self.filterState.filterOnly = self.filterOnly
+        self.graphView.clFilter.invalidateFilter()
         self.graphView.viewport().update()
 
     def _fullReset(self, clearLineEdit=False):
@@ -233,8 +189,5 @@ class CommitFileSearchBar(QWidget):
         if clearLineEdit:
             with QSignalBlockerContext(self.ui.lineEdit):
                 self.ui.lineEdit.clear()
-        self._needle = ""
-        self._queryPending = False
-        self._matchOids = None
-        self._requestSeq += 1
+        self.filterState.clear()
         self._pushStateToFilter()

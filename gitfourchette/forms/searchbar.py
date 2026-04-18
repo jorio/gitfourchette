@@ -6,6 +6,7 @@
 
 import enum
 import itertools
+import logging
 import re
 from collections.abc import Callable, Iterable
 
@@ -16,8 +17,14 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 
+logger = logging.getLogger(__name__)
+
 SEARCH_PULSE_DELAY = 250
 LIKELY_HASH_PATTERN = re.compile(r"[0-9A-Fa-f]{1,40}")
+
+
+class SearchResultsNotReady(Exception):
+    pass
 
 
 class SearchBar(QWidget):
@@ -71,10 +78,6 @@ class SearchBar(QWidget):
     @property
     def lineEdit(self) -> QLineEdit:
         return self.ui.lineEdit
-
-    @property
-    def textChanged(self) -> SignalInstance:
-        return self.lineEdit.textChanged
 
     @property
     def buttons(self):
@@ -176,6 +179,10 @@ class SearchBar(QWidget):
 
     def onSearchTextChanged(self, text: str):
         newTerm = text.strip().lower()
+        self.searchTerm = newTerm
+
+        # Emit searchTermChanged now to let anyone invalidate the badStem
+        self.searchTermChanged.emit(newTerm)
 
         # Don't re-trigger a search if the new search term contains a known-bad stem.
         badStem = self.searchTermBadStem
@@ -183,9 +190,6 @@ class SearchBar(QWidget):
 
         if not stillBad:
             self.setRed(False)
-
-        self.searchTerm = newTerm
-        self.searchTermChanged.emit(newTerm)
 
         if self.detectHashes and 0 < len(newTerm) <= 40:
             self.searchTermLooksLikeHash = bool(re.match(LIKELY_HASH_PATTERN, text))
@@ -238,7 +242,7 @@ class SearchBar(QWidget):
         assert isinstance(view, QAbstractItemView)
         assert hasattr(view, "searchRows"), "buddy missing searchRows callback"
 
-        self.textChanged.connect(lambda: view.model().layoutChanged.emit())  # Redraw graph view (is this efficient?)
+        self.searchTermChanged.connect(lambda: view.viewport().update())  # Repaint buddy
         self.searchNext.connect(lambda: self.searchItemView(SearchBar.Op.Next))
         self.searchPrevious.connect(lambda: self.searchItemView(SearchBar.Op.Previous))
         self.searchPulse.connect(self.pulseItemView)
@@ -294,6 +298,9 @@ class SearchBar(QWidget):
         return NOT_FOUND
 
     def pulseItemView(self):
+        # Kill timer, in case we were called manually
+        self.searchPulseTimer.stop()
+
         view = self.buddy
         assert isinstance(view, QAbstractItemView)
         rowCount = view.model().rowCount()
@@ -310,7 +317,11 @@ class SearchBar(QWidget):
             above = range(0, visible.start)
 
             rowsGen = itertools.chain(visible, below, above)
-            index = self.searchRows(rowsGen)
+            try:
+                index = self.searchRows(rowsGen)
+            except SearchResultsNotReady:
+                logger.debug("Search results not ready.")
+                return
 
         if index is None or not index.isValid():
             self.setRed()

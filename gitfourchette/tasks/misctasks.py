@@ -424,16 +424,35 @@ class QueryCommitsTouchingPath(RepoTask):
     def broadcastProcesses(self) -> bool:
         return False
 
-    def flow(self, pathspec: str, requestId: int = 0):
+    def canKill(self, task: RepoTask) -> bool:
+        # Can kill same class to replace stale query
+        return isinstance(task, QueryCommitsTouchingPath)
+
+    def flow(self, pathspec: str, callback: Callable | None = None):
+        cpf = self.repoModel.commitPathspecFilter
+        cpf.clear()
+        cpf.needle = pathspec
+
         oids = yield from self._findMatchingCommits(pathspec)
+
+        # When we return from git log, check if the user changed their mind about the search
+        if cpf.needle != pathspec:
+            logger.debug("Discarding stale pathspec filter result")
+            return
 
         self.epilog.status = _n(
             "Found {n} commit touching {path}.",
             "Found {n} commits touching {path}.",
             n=len(oids), path=tquo(pathspec))
 
-        searchBar = self.rw.graphView.commitFileSearchBar
-        searchBar.onQueryCommitsTouchingPathFinished(requestId, oids)
+        # TODO: This will go when we've unified the search bars
+        if self.rw.graphView.commitFileSearchBar.isVisible():
+            self.rw.graphView.commitFileSearchBar.onQueryCommitsTouchingPathFinished(pathspec, oids)
+        else:
+            cpf.matchingIds = oids
+
+        if callback:  # TODO: signal instead?
+            callback()
 
     def _findMatchingCommits(self, pathspec: str
                              ) -> Generator[FlowControlToken, None, set[Oid]]:

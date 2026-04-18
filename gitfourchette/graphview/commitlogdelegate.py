@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
-from gitfourchette.forms.commitfilesearchbar import CommitFileSearchBar
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow, CommitToolTipZone
 from gitfourchette.graphview.graphpaint import paintGraphFrame
@@ -78,14 +77,12 @@ class CommitLogDelegate(QStyledItemDelegate):
             self,
             repoModel: RepoModel,
             searchBar: SearchBar | None = None,
-            commitFileSearchBar: CommitFileSearchBar | None = None,
             parent: QWidget | None = None,
     ):
         super().__init__(parent)
 
         self.repoModel = repoModel
         self.searchBar = searchBar
-        self.commitFileSearchBar = commitFileSearchBar
 
         self.mustRefreshMetrics = True
         self.hashCharWidth = 0
@@ -101,7 +98,6 @@ class CommitLogDelegate(QStyledItemDelegate):
     def prepareForDeletion(self):
         del self.repoModel
         del self.searchBar
-        del self.commitFileSearchBar
         del self.mounts
 
     def invalidateMetrics(self):
@@ -149,7 +145,7 @@ class CommitLogDelegate(QStyledItemDelegate):
     def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
         assert index.isValid()
 
-        if self.commitFileSearchBar and self.commitFileSearchBar.shouldDimIndex(index):
+        if self.repoModel.commitPathspecFilter.isReady() and not index.data(CommitLogModel.Role.PathspecMatch):
             painter.setOpacity(0.42)
 
         toolTips: list[CommitToolTipZone] = []

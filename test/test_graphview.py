@@ -98,11 +98,10 @@ def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     rw.showCommitFileSearchBar()
     assert cbar.isVisible()
 
+    assert not cbar.filterState.isReady()
     QTest.keyClicks(cbar.lineEdit, rawNeedle)
-    QTest.qWait(0)
-    rw.taskRunner.joinWorkerThread()
-    assert cbar._matchOids is not None
-    assert len(cbar._matchOids) == 4
+    waitUntilTrue(cbar.filterState.isReady)
+    assert len(cbar.filterState.matchingIds) == 4
 
     cbar.ui.filterOnlyCheckBox.setChecked(True)
     assert flt.rowCount() == 4

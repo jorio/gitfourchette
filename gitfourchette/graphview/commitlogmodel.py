@@ -58,6 +58,7 @@ class CommitLogModel(QAbstractListModel):
         SpecialRow      = Qt.ItemDataRole.UserRole + 4
         BlameRevision   = Qt.ItemDataRole.UserRole + 5  # for BlameScrubber
         ComparisonSide  = Qt.ItemDataRole.UserRole + 6  # A/B commit diffs
+        PathspecMatch   = Qt.ItemDataRole.UserRole + 7  # commit/workdir matches file search
 
     repoModel: RepoModel
     _extraRow: SpecialRow
@@ -104,6 +105,14 @@ class CommitLogModel(QAbstractListModel):
             n += 1
         return n
 
+    def _getSpecialRowKind(self, row: int):
+        if row == 0:
+            return SpecialRow.UncommittedChanges
+        elif row < len(self.repoModel.commitSequence):
+            return SpecialRow.Commit
+        else:
+            return self._extraRow
+
     def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
         row = index.row()
 
@@ -124,12 +133,7 @@ class CommitLogModel(QAbstractListModel):
                 return None
 
         elif role == CommitLogModel.Role.SpecialRow:
-            if row == 0:
-                return SpecialRow.UncommittedChanges
-            elif row < len(self.repoModel.commitSequence):
-                return SpecialRow.Commit
-            else:
-                return self._extraRow
+            return self._getSpecialRowKind(row)
 
         elif role == CommitLogModel.Role.ComparisonSide:
             if not self.commitDiffAB:
@@ -140,6 +144,23 @@ class CommitLogModel(QAbstractListModel):
                 return "AB"[i]
             except (IndexError, AttributeError, ValueError):
                 return ""
+
+        elif role == CommitLogModel.Role.PathspecMatch:
+            pathspecFilter = self.repoModel.commitPathspecFilter
+            if not pathspecFilter.isReady():
+                warnings.warn("Don't query PathspecMatch if filter not ready!")
+                return False
+
+            kind = self._getSpecialRowKind(row)
+
+            if kind == SpecialRow.UncommittedChanges:
+                return self.repoModel.workdirMatchesPathNeedle(pathspecFilter.needle)
+
+            if kind == SpecialRow.Commit:
+                commit = self.repoModel.commitSequence[row]
+                return commit.id in pathspecFilter.matchingIds
+
+            return False
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             tip = ""

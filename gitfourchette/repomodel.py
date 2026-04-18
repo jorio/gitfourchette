@@ -73,6 +73,29 @@ _GpgStatusIconTable = {
 }
 
 
+class CommitPathspecFilter:
+    needle: str
+    matchingIds: set[Oid] | None
+    filterOnly: bool
+
+    def __init__(self):
+        self.clear()
+
+    def clear(self):
+        self.needle = ""
+        self.matchingIds = None
+        self.filterOnly = False
+
+    def wantFilter(self) -> bool:
+        return self.needle and self.matchingIds is not None and self.filterOnly
+
+    def isReady(self) -> bool:
+        return self.needle and self.matchingIds is not None
+
+    def isQueryPending(self) -> bool:
+        return self.needle and self.matchingIds is None
+
+
 class RepoModel:
     repo: Repo
 
@@ -124,6 +147,8 @@ class RepoModel:
 
     hiddenCommits: set[Oid]
     "All cached commit oids that are hidden."
+
+    commitPathspecFilter: CommitPathspecFilter
 
     gpgStatusCache: dict[Oid, tuple[GpgStatus, str]]
 
@@ -178,6 +203,8 @@ class RepoModel:
         self.hiddenCommits = set()
         self.hideSeeds = set()
         self.localSeeds = set()
+
+        self.commitPathspecFilter = CommitPathspecFilter()
 
         self.gpgStatusCache = {}
         self.gpgVerifyQueue = set()
