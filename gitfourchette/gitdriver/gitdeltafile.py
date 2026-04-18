@@ -37,10 +37,34 @@ git blobs (SHA-1) to LFS pointers (SHA-256).
 @dataclasses.dataclass
 class GitDeltaFile:
     path: str = ""
+    """
+    Workdir-relative path to the file.
+    Directory separators are forward slashes, even on Windows.
+    """
+
     id: str = HexHash0000
+    """
+    SHA-1 hash of the blob, in hexadecimal format (40 characters).
+    All 0s means there's no blob (i.e. file deleted).
+    All Fs means the hash hasn't been computed.
+    """
+
     mode: FileMode = FileMode.UNREADABLE
+    """
+    Mode of the file as far as Git is concerned. Be careful: Git records
+    simplified modes that may not accurately reflect a file's actual mode
+    in the filesystem.
+    """
+
     source: NavContext = NavContext.EMPTY
+    """
+    Where this GitDeltaFile was sampled from, i.e. a commit or the workdir.
+    """
+
     sourceCommit: Oid | None = None
+    """
+    Only valid if source == NavContext.COMMITTED.
+    """
 
     diskStat: tuple[int, int] = _NoDiskStat
     """
