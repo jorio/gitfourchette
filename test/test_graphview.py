@@ -80,7 +80,12 @@ def testCommitSearch(tempDir, mainWindow):
     assert not searchBar.isVisibleTo(rw)
 
 
-def testCommitFileSearchByPath(tempDir, mainWindow):
+@pytest.mark.parametrize("rawNeedle", [
+    "master.txt",
+    "MaSTeR.tXt",
+    "master.*",
+])
+def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     gv = rw.graphView
@@ -93,14 +98,14 @@ def testCommitFileSearchByPath(tempDir, mainWindow):
     rw.showCommitFileSearchBar()
     assert cbar.isVisible()
 
-    QTest.keyClicks(cbar.lineEdit, "master.txt")
+    QTest.keyClicks(cbar.lineEdit, rawNeedle)
     QTest.qWait(0)
     rw.taskRunner.joinWorkerThread()
     assert cbar._matchOids is not None
-    assert len(cbar._matchOids) == 2
+    assert len(cbar._matchOids) == 4
 
     cbar.ui.filterOnlyCheckBox.setChecked(True)
-    assert flt.rowCount() == 2
+    assert flt.rowCount() == 4
 
     cbar.ui.filterOnlyCheckBox.setChecked(False)
     assert flt.rowCount() == fullRows

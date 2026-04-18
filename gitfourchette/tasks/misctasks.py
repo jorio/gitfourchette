@@ -445,7 +445,9 @@ class QueryCommitsTouchingPath(RepoTask):
 
         driver = yield from self.flowCallGit(
             "-c", "core.abbrev=no",
+            "--icase-pathspecs",  # same as ':(icase)' prefix in pathspec
             "log", "--all", "--format=%H",
+            "--show-pulls",  # keep relevant merge commits
             "--", pathspec,
             autoFail=False,
         )
