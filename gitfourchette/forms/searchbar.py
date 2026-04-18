@@ -1,12 +1,13 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import enum
+import itertools
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from gitfourchette import colors
 from gitfourchette.forms.ui_searchbar import Ui_SearchBar
@@ -33,7 +34,7 @@ class SearchBar(QWidget):
 
     buddy: QWidget
     """ Widget in which the search is carried out.
-    Must implement the `searchRange` callback. """
+    Must implement the `searchRows` callback. """
 
     detectHashes: bool
     """ Try to optimize for 40-character SHA-1 hashes.
@@ -215,10 +216,13 @@ class SearchBar(QWidget):
             else:
                 self.searchTermBadStem = ""
 
-    def searchRange(self, r: range) -> QModelIndex | None:
-        """ Proxy for buddy.searchRange """
-        assert hasattr(self.buddy, "searchRange"), "missing searchRange callback"
-        return self.buddy.searchRange(r)
+    def searchRows(self, rows: Iterable[int]) -> QModelIndex | None:
+        """ Proxy for buddy.searchRows """
+        try:
+            callback = self.buddy.searchRows
+        except AttributeError as ae:
+            raise AttributeError("buddy missing searchRows callback") from ae
+        return callback(rows)
 
     @staticmethod
     def defaultNotFoundMessage(searchTerm: str) -> str:
@@ -233,20 +237,21 @@ class SearchBar(QWidget):
     def setUpItemViewBuddy(self):
         view = self.buddy
         assert isinstance(view, QAbstractItemView)
-        assert hasattr(view, "searchRange"), "missing searchRange callback"
+        assert hasattr(view, "searchRows"), "buddy missing searchRows callback"
 
         self.textChanged.connect(lambda: view.model().layoutChanged.emit())  # Redraw graph view (is this efficient?)
         self.searchNext.connect(lambda: self.searchItemView(SearchBar.Op.Next))
         self.searchPrevious.connect(lambda: self.searchItemView(SearchBar.Op.Previous))
         self.searchPulse.connect(self.pulseItemView)
 
-    def searchItemView(self, op: Op, wrappedFrom=-1, wrapCount=0) -> QModelIndex:
+    def searchItemView(self, op: Op) -> QModelIndex:
         NOT_FOUND = QModelIndex_default
 
         view = self.buddy
         assert isinstance(view, QAbstractItemView)
 
         model = view.model()  # use the view's top-level model to only search filtered rows
+        numRows = model.rowCount()
 
         self.popUp(forceSelectAll=op == SearchBar.Op.Start)
 
@@ -256,85 +261,62 @@ class SearchBar(QWidget):
         if not self.searchTerm:  # user probably hit F3 without having searched before
             return NOT_FOUND
 
-        didWrap = wrapCount > 0
-
         # Find start bound of search range
-        if not didWrap and len(view.selectedIndexes()) != 0:
+        if len(view.selectedIndexes()) != 0:
             start = view.currentIndex().row()
         elif op == SearchBar.Op.Next:
-            start = -1  # offset +1 to get 0 in searchRange initialization
+            start = -1  # range initialization adds +1 below, so we'll start at row 0
         else:
-            start = model.rowCount()
-
-        # Find stop bound of search range
-        if didWrap:
-            last = wrappedFrom
-        elif op == SearchBar.Op.Next:
-            last = model.rowCount() - 1
-        else:
-            last = 0
+            start = numRows
 
         # Set up range
         if op == SearchBar.Op.Next:
-            searchRange = range(start + 1, last + 1)
+            range1 = range(start + 1, numRows)
+            range2 = range(0, start + 1)
         else:
-            searchRange = range(start - 1, last - 1, -1)
+            range1 = range(start - 1, -1, -1)
+            range2 = range(numRows - 1, start - 1, -1)
 
         # Perform search within valid range
-        if searchRange:
-            index = self.searchRange(searchRange)
+        rowsGen = itertools.chain(range1, range2)
+        index = self.searchRows(rowsGen)
 
-            # A valid index was found in the range, select it
-            if index is not None and index.isValid():
-                view.setCurrentIndex(index)
-                return index
+        # A valid index was found in the range, select it
+        if index is not None and index.isValid():
+            view.setCurrentIndex(index)
+            return index
 
         # No valid index from this point on
-        if not didWrap:
-            # Wrap around once
-            wrapCount += 1
-            self.searchItemView(op, wrappedFrom=start, wrapCount=wrapCount)
-        else:
-            title = self.lineEdit.placeholderText().split("\x9C")[0]
-            message = self.notFoundMessage(self.rawSearchTerm)
-            qmb = asyncMessageBox(self, 'information', title, message)
-            qmb.show()
+        title = self.lineEdit.placeholderText().split("\x9C")[0]
+        message = self.notFoundMessage(self.rawSearchTerm)
+        qmb = asyncMessageBox(self, 'information', title, message)
+        qmb.show()
 
         return NOT_FOUND
 
     def pulseItemView(self):
         view = self.buddy
         assert isinstance(view, QAbstractItemView)
+        rowCount = view.model().rowCount()
 
-        def generateSearchRanges():
-            rowCount = view.model().rowCount()
-
-            # If the view is empty, don't yield bogus ranges
-            if rowCount == 0:
-                return
-
-            # First see if in visible range
-            visibleRange = itemViewVisibleRowRange(view)
-            yield visibleRange
-
-            # It's not visible, so search below visible range first
-            yield range(visibleRange.stop, rowCount)
-
-            # Finally, search above the visible range
-            yield range(0, visibleRange.start)
-
-        for searchRange in generateSearchRanges():
-            # Don't bother with search callback if range is empty
-            if not searchRange:
-                continue
-
-            index = self.searchRange(searchRange)
-            if index is not None and index.isValid():
-                if self.selectNextOccurrenceOnPulse:
-                    view.setCurrentIndex(index)
-                break
+        # If the view is empty, don't yield bogus ranges
+        if rowCount == 0:
+            index = None
         else:
+            # 1. First, search within visible range
+            # 2. Then, search below visible range
+            # 3. Finally, search above visible range
+            visible = itemViewVisibleRowRange(view)
+            below = range(visible.stop, rowCount)
+            above = range(0, visible.start)
+
+            rowsGen = itertools.chain(visible, below, above)
+            index = self.searchRows(rowsGen)
+
+        if index is None or not index.isValid():
             self.setRed()
+        elif self.selectNextOccurrenceOnPulse:
+            view.setCurrentIndex(index)
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,

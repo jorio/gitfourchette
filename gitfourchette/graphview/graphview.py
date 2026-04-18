@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 from contextlib import suppress
+from collections.abc import Iterable
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -351,7 +352,7 @@ class GraphView(QListView):
     # -------------------------------------------------------------------------
     # Find text in commit message or hash
 
-    def searchRange(self, searchRange: range) -> QModelIndex | None:
+    def searchRows(self, rows: Iterable[int]) -> QModelIndex | None:
         model = self.model()  # to filter out hidden rows, don't use self.clModel directly
 
         term = self.searchBar.searchTerm
@@ -359,7 +360,7 @@ class GraphView(QListView):
         assert term
         assert term == term.lower(), "search term should have been sanitized"
 
-        for i in searchRange:
+        for i in rows:
             index = model.index(i, 0)
             commit = model.data(index, CommitLogModel.Role.Commit)
             if commit is None or type(commit) is MockCommit:

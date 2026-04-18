@@ -662,14 +662,14 @@ class FileList(QListView):
             if delta.isSubtreeCommitPatch():
                 self.openSubRepo.emit(delta.new.path)
 
-    def searchRange(self, searchRange: range) -> QModelIndex | None:
+    def searchRows(self, rows: Iterable[int]) -> QModelIndex | None:
         model = self.model()  # to filter out hidden rows, don't use self.clModel directly
 
         term = self.searchBar.searchTerm
         assert term
         assert term == term.lower(), "search term should have been sanitized"
 
-        for i in searchRange:
+        for i in rows:
             index = model.index(i, 0)
             path = model.data(index, FileListModel.Role.FilePath)
             if path and term in path.lower():
