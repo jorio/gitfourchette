@@ -1272,7 +1272,7 @@ class MainWindow(QMainWindow):
         # This is for macOS. Systems without a global main menu (i.e. anything but macOS)
         # take a different path to intercept keyboard shortcuts.
         try:
-            CodeView.currentDetachedCodeView().search(op)
+            CodeView.currentDetachedCodeView().searchBar.popUp(op)
         except KeyError:
             QApplication.beep()
 

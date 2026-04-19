@@ -18,6 +18,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel, GpgStatus
+from gitfourchette.search.searchprovider import SearchProvider
 from gitfourchette.toolbox import *
 
 
@@ -76,13 +77,13 @@ class CommitLogDelegate(QStyledItemDelegate):
     def __init__(
             self,
             repoModel: RepoModel,
-            searchBar: SearchBar | None = None,
+            searchProvider: SearchProvider | None = None,
             parent: QWidget | None = None,
     ):
         super().__init__(parent)
 
         self.repoModel = repoModel
-        self.searchBar = searchBar
+        self.searchProvider = searchProvider
 
         self.mustRefreshMetrics = True
         self.hashCharWidth = 0
@@ -97,7 +98,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
     def prepareForDeletion(self):
         del self.repoModel
-        del self.searchBar
+        del self.searchProvider
         del self.mounts
 
     def invalidateMetrics(self):
@@ -210,11 +211,9 @@ class CommitLogDelegate(QStyledItemDelegate):
                 if author.time != committer.time:
                     dateText += "*"
 
-            if self.searchBar:
-                searchTerm: str = self.searchBar.searchTerm
-                searchTermLooksLikeHash: bool = self.searchBar.searchTermLooksLikeHash
-                if not self.searchBar.isVisible():
-                    searchTerm = ""
+            if self.searchProvider:
+                searchTerm = self.searchProvider.term()
+                searchTermLooksLikeHash = self.searchProvider._likelyHash
             else:
                 searchTerm = ""
                 searchTermLooksLikeHash = False

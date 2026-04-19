@@ -80,6 +80,7 @@ def testCommitSearch(tempDir, mainWindow):
     assert not searchBar.isVisibleTo(rw)
 
 
+# TODO: Unified search bar
 @pytest.mark.parametrize("rawNeedle", [
     "master.txt",
     "MaSTeR.tXt",
@@ -146,12 +147,13 @@ def testCommitSearchByHash(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     searchBar = rw.graphView.searchBar
-    # In this unit test, we're also going to exercise the search bar's "pulse"
+    # In this unit test, we're going to exercise the search bar's "debounce"
     # feature, i.e. start searching automatically when the user stops typing,
-    # without hitting the Return key.
-    # Normally, the search bar waits for a fraction of a second before emitting
-    # the pulse. Make it "instantaneous" for the unit test.
-    searchBar.searchPulseTimer.setInterval(0)
+    # without hitting the Return key. In the real world, debouncing occurs a
+    # fraction of a second after the last key press; make this instantaneous
+    # for testing.
+    assert searchBar.debounceTimer.interval() == 0, "debounce interval should be instantaneous for unit tests"
+    searchBar.debounceTimer.setInterval(0)
     searchEdit = searchBar.lineEdit
 
     assert not searchBar.isVisibleTo(rw)
@@ -174,17 +176,19 @@ def testCommitSearchByHash(tempDir, mainWindow):
     QTest.keyClicks(searchEdit, "aaabbcc")
     QTest.qWait(0)
     assert searchBar.isRed()
-    assert searchBar.searchTermBadStem == "aaabbcc"
+    assert searchBar.provider._badStem == "aaabbcc"
 
     # Don't expand on a bad stem
     QTest.keyClicks(searchEdit, "def")
+    assert searchBar.isRed()  # must not have changed
     QTest.qWait(0)
-    assert searchBar.searchTermBadStem == "aaabbcc"
+    assert searchBar.isRed()
+    assert searchBar.provider._badStem == "aaabbcc"
 
     # The pulse won't show an error message on its own.
     # Hit enter to bring up an error.
     QTest.keySequence(searchEdit, "Return")
-    rejectQMessageBox(searchBar, "not found")
+    rejectQMessageBox(rw.graphView, "not found")
 
 
 def testCommitSearchByAuthor(tempDir, mainWindow):

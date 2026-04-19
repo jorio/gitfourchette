@@ -262,7 +262,6 @@ class RepoWidget(QWidget):
 
     def _makeGraphContainer(self):
         graphView = GraphView(self.repoModel, self)
-        graphView.searchBar.notFoundMessage = self.commitNotFoundMessage
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -406,7 +405,6 @@ class RepoWidget(QWidget):
         self.graphView.repoWidget = None
         for searchBar in self.findChildren(SearchBar):  # Help collect FileLists, GraphView, DiffView
             searchBar.buddy = None
-            searchBar.notFoundMessage = None
         # Release any LexJobs that we own (it's not a big deal if we lose cached jobs for other tabs)
         LexJobCache.clear()
 
@@ -535,34 +533,10 @@ class RepoWidget(QWidget):
                 break
         else:
             # Fall back to searching GraphView if nothing has focus
-            sink = self.graphView
             searchBar = self.graphView.searchBar
 
-        # Forward search
-        if isinstance(sink, QAbstractItemView):
-            searchBar.searchItemView(op)
-        else:
-            sink.search(op)
-
-    def commitNotFoundMessage(self, searchTerm: str) -> str:
-        if self.repoModel.hiddenCommits:
-            message = _("{0} not found among the branches that aren’t hidden.")
-        else:
-            message = _("{0} not found.")
-        message = message.format(bquo(searchTerm))
-
-        if self.repoModel.truncatedHistory:
-            note = _n("Note: The search was limited to the top commit because the commit history is truncated.",
-                      "Note: The search was limited to the top {n} commits because the commit history is truncated.",
-                      self.repoModel.numRealCommits)
-            message += f"<p>{note}</p>"
-        elif self.repoModel.repo.is_shallow:
-            note = _n("Note: The search was limited to the single commit available in this shallow clone.",
-                      "Note: The search was limited to the {n} commits available in this shallow clone.",
-                      self.repoModel.numRealCommits)
-            message += f"<p>{note}</p>"
-
-        return message
+        # Kick off search
+        searchBar.popUp(op)
 
     # -------------------------------------------------------------------------
 

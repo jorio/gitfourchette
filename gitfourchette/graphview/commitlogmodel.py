@@ -145,6 +145,7 @@ class CommitLogModel(QAbstractListModel):
             except (IndexError, AttributeError, ValueError):
                 return ""
 
+        # TODO: Yeet
         elif role == CommitLogModel.Role.PathspecMatch:
             pathspecFilter = self.repoModel.commitPathspecFilter
             if not pathspecFilter.isReady():

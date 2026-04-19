@@ -13,6 +13,7 @@ from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.codeview.coderubberband import CodeRubberBand
+from gitfourchette.codeview.codesearch import CodeSearch
 from gitfourchette.diffview.diffdocument import DiffTextFormats
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -65,12 +66,11 @@ class CodeView(QPlainTextEdit):
         self.cursorPositionChanged.connect(self.updateRubberBand)
         self.selectionChanged.connect(self.updateRubberBand)
 
-        self.searchBar = SearchBar(self, toLengthVariants(_("Find text in code|Find text")))
-        self.searchBar.searchNext.connect(lambda: self.search(SearchBar.Op.Next))
-        self.searchBar.searchPrevious.connect(lambda: self.search(SearchBar.Op.Previous))
-        self.searchBar.searchTermChanged.connect(self.onSearchTermChanged)
-        self.searchBar.visibilityChanged.connect(self.onToggleSearch)
+        searchProvider = CodeSearch(self)
+
+        self.searchBar = SearchBar(self, searchProvider)
         self.searchBar.hide()
+        self.searchBar.ui.lineEdit.setPlaceholderText(searchProvider.title)
 
         self.rubberBand = CodeRubberBand(self.viewport())
         self.rubberBand.hide()
@@ -97,9 +97,10 @@ class CodeView(QPlainTextEdit):
 
         self.isDetachedWindow = True
 
-        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Start), *GlobalShortcuts.find)
-        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Next), *GlobalShortcuts.findNext)
-        makeWidgetShortcut(self, lambda: self.search(SearchBar.Op.Previous), *GlobalShortcuts.findPrevious)
+        bar = self.searchBar
+        makeWidgetShortcut(self, lambda: bar.popUp(SearchBar.Op.Start), *GlobalShortcuts.find)
+        makeWidgetShortcut(self, lambda: bar.popUp(SearchBar.Op.Next), *GlobalShortcuts.findNext)
+        makeWidgetShortcut(self, lambda: bar.popUp(SearchBar.Op.Previous), *GlobalShortcuts.findPrevious)
 
         makeWidgetShortcut(self, lambda: self.window().close(), QKeySequence.StandardKey.Close,
                            context=Qt.ShortcutContext.WindowShortcut)
@@ -471,64 +472,6 @@ class CodeView(QPlainTextEdit):
             cursor.movePosition(QTextCursor.MoveOperation.StartOfBlock, QTextCursor.MoveMode.KeepAnchor)
 
         self.replaceCursor(cursor)
-
-    # ---------------------------------------------
-    # Search
-
-    def onSearchTermChanged(self, term: str):
-        numOccurrences = self.highlighter.setSearchTerm(term)
-        self.searchBar.setRed(bool(term) and numOccurrences == 0)
-
-    def onToggleSearch(self, searching: bool):
-        if not searching:
-            self.highlighter.setSearchTerm("")
-        else:
-            self.onSearchTermChanged(self.searchBar.searchTerm)
-
-    def search(self, op: SearchBar.Op):
-        assert isinstance(op, SearchBar.Op)
-        self.searchBar.popUp(forceSelectAll=op == SearchBar.Op.Start)
-
-        if op == SearchBar.Op.Start:
-            return
-
-        message = self.searchBar.searchTerm
-        if not message:
-            QApplication.beep()
-            return
-
-        doc: QTextDocument = self.document()
-
-        if op == SearchBar.Op.Next:
-            newCursor = doc.find(message, self.textCursor())
-        else:
-            newCursor = doc.find(message, self.textCursor(), QTextDocument.FindFlag.FindBackward)
-
-        if newCursor and not newCursor.isNull():  # extra isNull check needed for PyQt5 & PyQt6
-            self.setTextCursor(newCursor)
-            return
-
-        def wrapAround():
-            tc = self.textCursor()
-            if op == SearchBar.Op.Next:
-                tc.movePosition(QTextCursor.MoveOperation.Start)
-            else:
-                tc.movePosition(QTextCursor.MoveOperation.End)
-            self.setTextCursor(tc)
-            self.search(op)
-
-        prompt = [
-            _("End of document reached.") if op == SearchBar.Op.Next
-            else _("Top of document reached."),
-            _("No more occurrences of {0} found.", bquo(message))
-        ]
-        askConfirmation(
-            self,
-            self.searchBar.lineEdit.placeholderText().split('\x9C', 1)[0],
-            paragraphs(prompt),
-            okButtonText=_("Wrap Around"),
-            messageBoxIcon="information",
-            callback=wrapAround)
 
     @staticmethod
     def currentDetachedCodeView() -> CodeView:

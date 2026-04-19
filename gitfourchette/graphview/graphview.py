@@ -5,14 +5,12 @@
 # -----------------------------------------------------------------------------
 
 from contextlib import suppress
-from collections.abc import Iterable
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.commitfilesearchbar import CommitFileSearchBar
-from gitfourchette.forms.searchbar import SearchBar, SearchResultsNotReady
-from gitfourchette.graph import MockCommit
+from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogfilter import CommitLogFilter
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
@@ -21,14 +19,13 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
+from gitfourchette.graphview.commitsearch import CommitSearch
 from gitfourchette.tasks import *
 from gitfourchette.tasks.exporttasks import ExportABDiffAsPatch
 from gitfourchette.toolbox import *
 
 
 class GraphView(QListView):
-    SearchPathspecPrefix = "/f"
-
     linkActivated = Signal(str)
     statusMessage = Signal(str)
 
@@ -81,34 +78,25 @@ class GraphView(QListView):
         # --------------
         # SearchBar
 
+        searchProvider = CommitSearch(repoModel.commitPathspecFilter, self)
+        self.searchBar = SearchBar(self, searchProvider)
+        self.searchBar.hide()
+        self.clFilter.rowsAboutToBeInserted.connect(searchProvider.invalidate)
+
         searchPlaceholder = "|".join([
             _("Find commit hash, message or author. Type {f} to find commits touching files."),
             _("Find commit ({f} to find files in commits)"),
             _("Find commit")])
-        searchPlaceholder = searchPlaceholder.format(f=tquo(self.SearchPathspecPrefix))
+        searchPlaceholder = searchPlaceholder.format(f=tquo(searchProvider.PathspecPrefix))
         searchPlaceholder = toLengthVariants(searchPlaceholder)
-
-        self.searchBar = SearchBar(self, searchPlaceholder)
-        self.searchBar.detectHashes = True
-
-        self.searchBar.searchTermChanged.connect(self.onSearchBarTermChanged)
-        self.searchBar.searchPulse.connect(self.onSearchBarPulse)
-
-        self.searchBar.setUpItemViewBuddy()
-
-        self.searchBar.hide()
-        self.clFilter.rowsAboutToBeInserted.connect(self.searchBar.invalidateBadStem)
+        self.searchBar.ui.lineEdit.setPlaceholderText(searchPlaceholder)
 
         self.commitFileSearchBar = CommitFileSearchBar(self)
         self.commitFileSearchBar.hide()
 
         # --------------
 
-        self.clDelegate = CommitLogDelegate(
-            self.repoModel,
-            searchBar=self.searchBar,
-            parent=self,
-        )
+        self.clDelegate = CommitLogDelegate(self.repoModel, searchProvider, parent=self)
         self.setItemDelegate(self.clDelegate)
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
@@ -383,82 +371,6 @@ class GraphView(QListView):
         if invalidateMetrics:
             self.itemDelegate().invalidateMetrics()
             self.model().layoutChanged.emit()
-
-    # -------------------------------------------------------------------------
-    # Find text in commit message or hash
-
-    def onSearchBarTermChanged(self, term: str):
-        if term.startswith(self.SearchPathspecPrefix):
-            self.searchBar.invalidateBadStem()  # HACK: Always invalidate badStem when changing file searches
-            self.repoModel.commitPathspecFilter.clear()
-
-    def onSearchBarPulse(self):
-        term = self.searchBar.searchTerm
-
-        if term.startswith(self.SearchPathspecPrefix):
-            pathspec = term.removeprefix(self.SearchPathspecPrefix).strip()
-
-            # Don't issue empty query if user isn't done typing
-            if not pathspec:
-                return
-
-            QueryCommitsTouchingPath.invoke(self, pathspec, self.onFileSearchComplete)
-
-    def onFileSearchComplete(self):
-        self.viewport().update()
-        if self.searchBar.isVisible():
-            self.searchBar.pulseItemView()
-
-    # Called from SearchBar
-    def searchRows(self, rows: Iterable[int]) -> QModelIndex | None:
-        term = self.searchBar.searchTerm
-        assert term
-        assert term == term.lower(), "search term should have been sanitized"
-
-        if term.startswith(self.SearchPathspecPrefix):
-            return self.searchRowsPathspec(rows)
-        else:
-            return self.searchRowsMessageHashAuthor(rows)
-
-    def searchRowsMessageHashAuthor(self, rows: Iterable[int]):
-        model = self.model()  # to filter out hidden rows, don't use self.clModel directly
-        term = self.searchBar.searchTerm
-        likelyHash = self.searchBar.searchTermLooksLikeHash
-
-        for i in rows:
-            index = model.index(i, 0)
-            commit = model.data(index, CommitLogModel.Role.Commit)
-            if commit is None or isinstance(commit, MockCommit):
-                continue
-            if likelyHash and str(commit.id).startswith(term):
-                return index
-            if term in commit.message.lower():
-                return index
-            if term in abbreviatePerson(commit.author, settings.prefs.authorDisplayStyle).lower():
-                return index
-
-        return None
-
-    def searchRowsPathspec(self, rows: Iterable[int]):
-        model = self.model()  # to filter out hidden rows, don't use self.clModel directly
-        term = self.searchBar.searchTerm
-        cpf = self.repoModel.commitPathspecFilter
-
-        # User hasn't entered their term yet
-        if not term.removeprefix(self.SearchPathspecPrefix).strip():
-            return None
-
-        # Query ongoing
-        if not cpf.isReady():
-            raise SearchResultsNotReady()
-
-        for i in rows:
-            index = model.index(i, 0)
-            match = model.data(index, CommitLogModel.Role.PathspecMatch)
-            if match:
-                return index
-
-        return None
 
     # -------------------------------------------------------------------------
     # Context menus

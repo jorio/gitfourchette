@@ -314,7 +314,7 @@ def testDiffInNewWindow(tempDir, mainWindow, closeKey):
 
     # Initiate search
     QTest.keySequence(diffWidget, QKeySequence.StandardKey.Find)
-    assert diffWidget.searchBar.isVisible()
+    waitUntilTrue(diffWidget.searchBar.isVisible)
 
     # Make sure the diff is closed when the repowidget is gone
     if not closeKey:
@@ -358,13 +358,11 @@ def testSearchDiff(tempDir, mainWindow):
     assert forward2.position() > forward1.position()
 
     searchNext.click()
-    acceptQMessageBox(rw, "no more occurrences")
     forward1Copy = diffView.textCursor()
     assert forward1Copy == forward1  # should have wrapped around
 
     # Now search in reverse
     searchPrev.click()
-    acceptQMessageBox(rw, "no more occurrences")
     reverse1 = diffView.textCursor()
     assert reverse1.selectedText() == "master"
     assert reverse1 == forward2
@@ -374,7 +372,6 @@ def testSearchDiff(tempDir, mainWindow):
     assert reverse2 == forward1
 
     searchPrev.click()
-    acceptQMessageBox(rw, "no more occurrences")
     reverse3: QTextCursor = diffView.textCursor()
     assert reverse3 == reverse1
 
@@ -392,8 +389,7 @@ def testSearchDiff(tempDir, mainWindow):
         assert searchBar.lineEdit.text() == "MadeUpGarbage"
         assert searchBar.isRed()
         QTest.keyPress(searchLine, Qt.Key.Key_Return)
-    # Reject last message box to prevent wrapping again
-    rejectQMessageBox(rw, "no.+occurrence.+of.+MadeUpGarbage.+found")
+    rejectQMessageBox(rw, "MadeUpGarbage.+not found")
 
 
 def testCopyFromDiffWithoutU2029(tempDir, mainWindow):

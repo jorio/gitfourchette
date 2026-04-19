@@ -22,6 +22,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
+from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
 from gitfourchette.settings import FileListClick
 from gitfourchette.tasks import *
 from gitfourchette.tasks.repotask import showMultiFileErrorMessage
@@ -45,7 +46,7 @@ class FileListDelegate(QStyledItemDelegate):
         emblem: QIcon | None = index.data(FileListModel.Role.Decoration2)
         font: QFont = index.data(Qt.ItemDataRole.FontRole)
         fullText: str = index.data(Qt.ItemDataRole.DisplayRole)
-        searchTerm: str = widget.searchBar.searchTerm if widget.searchBar.isVisible() else ""
+        searchTerm: str = widget.searchBar.provider.term()
 
         # Prepare icon and text rects
         rect = QRect(option.rect)
@@ -157,13 +158,16 @@ class FileList(QListView):
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # prevent editing text after double-clicking
         self.setUniformItemSizes(True)  # potential perf boost with many files
 
-        searchBarPlaceholder = toLengthVariants(_("Find a file by path|Find file"))
-        self.searchBar = SearchBar(self, searchBarPlaceholder)
-        self.searchBar.setUpItemViewBuddy()
+        searchProvider = ItemViewSearchProvider(self)
+        searchProvider.title = _("Find file")
+        searchProvider.dataRole = FileListModel.Role.FilePath
+
+        self.searchBar = SearchBar(self, searchProvider)
+        self.searchBar.ui.lineEdit.setPlaceholderText(toLengthVariants(_("Find file by path|Find file")))
         self.searchBar.ui.forwardButton.hide()
         self.searchBar.ui.backwardButton.hide()
         self.searchBar.hide()
-        flModel.modelAboutToBeReset.connect(self.searchBar.invalidateBadStem)
+        flModel.modelAboutToBeReset.connect(searchProvider.invalidate)
 
         # Search result highlighter
         self.setItemDelegate(FileListDelegate(self))
@@ -661,21 +665,6 @@ class FileList(QListView):
         for delta in self.selectedDeltas():
             if delta.isSubtreeCommitPatch():
                 self.openSubRepo.emit(delta.new.path)
-
-    def searchRows(self, rows: Iterable[int]) -> QModelIndex | None:
-        model = self.model()  # to filter out hidden rows, don't use self.clModel directly
-
-        term = self.searchBar.searchTerm
-        assert term
-        assert term == term.lower(), "search term should have been sanitized"
-
-        for i in rows:
-            index = model.index(i, 0)
-            path = model.data(index, FileListModel.Role.FilePath)
-            if path and term in path.lower():
-                return index
-
-        return None
 
     def backUpSelection(self):
         oldSelected = list(self.selectedPaths())

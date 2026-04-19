@@ -52,8 +52,6 @@ class DiffView(CodeView):
         self.cursorPositionChanged.connect(self.emitSelectionHelp)
         self.selectionChanged.connect(self.emitSelectionHelp)
 
-        self.searchBar.lineEdit.setPlaceholderText(toLengthVariants(_("Find text in diff|Find in diff")))
-
         self._initRubberBandButtons()
 
         self.gutter.lineClicked.connect(self.selectWholeLineAt)
