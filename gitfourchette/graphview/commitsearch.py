@@ -81,14 +81,8 @@ class CommitSearch(ItemViewSearchProvider):
 
         for i in rows:
             index = model.index(i, 0)
-            commit = model.data(index, CommitLogModel.Role.Commit)
-
-            if commit is None:
-                pass
-            elif commit.id == UC_FAKEID:
-                if self._buddy.repoModel.workdirMatchesPathNeedle(self._pathspec):
-                    return index
-            elif commit.id in cpf.matchingIds:
+            oid = model.data(index, CommitLogModel.Role.Oid)
+            if oid is not None and oid in cpf.matchingIds:
                 return index
 
         raise KeyError()

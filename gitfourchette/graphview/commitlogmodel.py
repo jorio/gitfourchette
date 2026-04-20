@@ -152,16 +152,11 @@ class CommitLogModel(QAbstractListModel):
                 warnings.warn("Don't query PathspecMatch if filter not ready!")
                 return False
 
-            kind = self._getSpecialRowKind(row)
-
-            if kind == SpecialRow.UncommittedChanges:
-                return self.repoModel.workdirMatchesPathNeedle(pathspecFilter.needle)
-
-            if kind == SpecialRow.Commit:
-                commit = self.repoModel.commitSequence[row]
-                return commit.id in pathspecFilter.matchingIds
-
-            return False
+            try:
+                oid = self.repoModel.commitSequence[row].id
+            except (IndexError, AttributeError):
+                return False
+            return oid in pathspecFilter.matchingIds
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             tip = ""

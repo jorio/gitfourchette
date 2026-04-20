@@ -52,7 +52,7 @@ class CommitLogFilter(QSortFilterProxyModel):
             # behavior). UC_FAKEID can appear in hiddenCommits graph bookkeeping; it must
             # not hide the synthetic uncommitted row.
             if pathspecFilter.wantFilter():
-                return self.repoModel.workdirMatchesPathNeedle(pathspecFilter.needle)
+                return commit.id in pathspecFilter.matchingIds
             return True
 
         if commit.id in self.shadowHiddenIds:

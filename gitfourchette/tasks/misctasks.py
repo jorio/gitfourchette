@@ -451,6 +451,10 @@ class QueryCommitsTouchingPath(RepoTask):
         else:
             cpf.matchingIds = oids
 
+        # Cache workdir status
+        if self.repoModel.workdirMatchesPathNeedle(pathspec):
+            cpf.matchingIds.add(UC_FAKEID)
+
         if callback:  # TODO: signal instead?
             callback()
 
