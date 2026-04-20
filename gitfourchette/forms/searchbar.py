@@ -57,7 +57,7 @@ class SearchBar(QWidget):
 
     @property
     def buttons(self):
-        return self.ui.forwardButton, self.ui.backwardButton, self.ui.closeButton
+        return self.ui.forwardButton, self.ui.backwardButton, self.ui.closeButton, self.ui.filterCheckBox
 
     def __init__(self, buddy: QWidget, provider: SearchProvider):
         super().__init__(buddy)
@@ -73,6 +73,7 @@ class SearchBar(QWidget):
         self.loupe = self.lineEdit.actions()[0]
 
         self.lineEdit.textChanged.connect(self.onSearchTextChanged)
+        self.ui.filterCheckBox.toggled.connect(self.onFilterCheckBoxToggled)
 
         self.ui.closeButton.clicked.connect(self.bail)
         self.ui.forwardButton.clicked.connect(self.runSearchForward)
@@ -98,7 +99,8 @@ class SearchBar(QWidget):
 
         self.nextDebounceAllowJump = True
 
-        tweakWidgetFont(self.lineEdit, 85)
+        tweakWidgetFont(self.ui.lineEdit, 85)
+        tweakWidgetFont(self.ui.filterCheckBox, 85)
 
         withChildren = Qt.ShortcutContext.WidgetWithChildrenShortcut
         makeWidgetShortcut(self, self.onEnterShortcut, "Return", "Enter", context=withChildren)
@@ -180,6 +182,11 @@ class SearchBar(QWidget):
         self.nextDebounceAllowJump = True
         self.debounceTimer.start()
 
+    def onFilterCheckBoxToggled(self):
+        assert self.isVisible()
+        self.provider.setFilterState(self.ui.filterCheckBox.isChecked())
+        self.syncStylingWithProviderState()
+
     def reevaluateSearchTerm(self):
         # Clear bad stem, if any
         self.provider.invalidate()
@@ -206,6 +213,9 @@ class SearchBar(QWidget):
             self.loupe.setIcon(stockIcon("magnifying-glass-wait"))
         else:
             self.loupe.setIcon(stockIcon("magnifying-glass"))
+
+        with QSignalBlockerContext(self.ui.filterCheckBox):
+            self.ui.filterCheckBox.setVisible(self.provider.canFilter())
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,

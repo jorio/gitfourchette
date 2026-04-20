@@ -46,6 +46,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="filterCheckBox">
+     <property name="focusPolicy">
+      <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
+     <property name="text">
+      <string>Filter</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QToolButton" name="forwardButton">
      <property name="toolTip">
       <string>Next Occurrence</string>

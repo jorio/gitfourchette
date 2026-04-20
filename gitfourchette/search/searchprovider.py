@@ -36,6 +36,7 @@ class SearchProvider(QObject):
         self._term = ""
         self._badStem = ""
         self._status = SearchProvider.TermStatus.Unknown
+        self._wantFilter = False
         self._frozen = False
         self.title = _("Find")
 
@@ -43,6 +44,9 @@ class SearchProvider(QObject):
         self._frozen = frozen
         if frozen:
             self._cancel()
+
+    def setFilterState(self, checked: bool):
+        self._wantFilter = checked
 
     def term(self) -> str:
         return "" if self._frozen else self._term
@@ -98,6 +102,9 @@ class SearchProvider(QObject):
 
     # -------------------------------------------------------------------------
     # Override these
+
+    def canFilter(self) -> bool:
+        return False
 
     def _cancel(self):
         pass

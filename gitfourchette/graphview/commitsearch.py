@@ -96,6 +96,9 @@ class CommitSearch(ItemViewSearchProvider):
     # -------------------------------------------------------------------------
     # SearchProvider implementation
 
+    def canFilter(self) -> bool:
+        return self._term.startswith(self.PathspecPrefix)
+
     def _notFoundMessage(self, term: str) -> str:
         repoModel = self._buddy.repoModel
 
@@ -147,10 +150,13 @@ class CommitSearch(ItemViewSearchProvider):
         # This will squelch _onFileSearchComplete
         # TODO: Keep track of the task and interrupt it
         self._pathspecFilter.clear()
+        if self._wantFilter:
+            self._buddy.clFilter.invalidateFilter()
 
     def _onFileSearchComplete(self, allowJump):
         assert not self._frozen
         cpf = self._pathspecFilter
+        cpf.filterOnly = self._wantFilter
         # TODO: I guess we should look at the workdir, too...or drop the workdir stuff altogether
         self._status = self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad
         self.repaintBuddy()  # for dimming
@@ -160,3 +166,8 @@ class CommitSearch(ItemViewSearchProvider):
         if cpf.wantFilter():
             self._buddy.clFilter.invalidateFilter()
         super()._debounceImpl(allowJump)
+
+    def setFilterState(self, checked: bool):
+        super().setFilterState(checked)
+        self._pathspecFilter.filterOnly = self._wantFilter
+        self._buddy.clFilter.invalidateFilter()
