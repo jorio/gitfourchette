@@ -428,7 +428,7 @@ class QueryCommitsTouchingPath(RepoTask):
         # Can kill same class to replace stale query
         return isinstance(task, QueryCommitsTouchingPath)
 
-    def flow(self, pathspec: str, callback: Callable | None = None):
+    def flow(self, pathspec: str, callback: Callable):
         cpf = self.repoModel.commitPathspecFilter
         cpf.clear()
         cpf.needle = pathspec
@@ -445,18 +445,13 @@ class QueryCommitsTouchingPath(RepoTask):
             "Found {n} commits touching {path}.",
             n=len(oids), path=tquo(pathspec))
 
-        # TODO: This will go when we've unified the search bars
-        if self.rw.graphView.commitFileSearchBar.isVisible():
-            self.rw.graphView.commitFileSearchBar.onQueryCommitsTouchingPathFinished(pathspec, oids)
-        else:
-            cpf.matchingIds = oids
+        cpf.matchingIds = oids
 
         # Cache workdir status
         if self.repoModel.workdirMatchesPathNeedle(pathspec):
             cpf.matchingIds.add(UC_FAKEID)
 
-        if callback:  # TODO: signal instead?
-            callback()
+        callback()
 
     def _findMatchingCommits(self, pathspec: str
                              ) -> Generator[FlowControlToken, None, set[Oid]]:

@@ -80,53 +80,54 @@ def testCommitSearch(tempDir, mainWindow):
     assert not searchBar.isVisibleTo(rw)
 
 
-# TODO: Unified search bar
 @pytest.mark.parametrize("rawNeedle", [
-    "master.txt",
-    "MaSTeR.tXt",
-    "master.*",
+    "/f master.txt",
+    "/F MaSTeR.tXt",
+    "/f master.*",
 ])
 def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     gv = rw.graphView
-    flt = gv.clFilter
-    cbar = gv.commitFileSearchBar
+    searchBar = gv.searchBar
+    filterState = rw.repoModel.commitPathspecFilter
 
-    fullRows = flt.rowCount()
-    assert not cbar.isVisible()
+    fullRows = gv.clFilter.rowCount()
+    assert not searchBar.isVisible()
 
-    rw.showCommitFileSearchBar()
-    assert cbar.isVisible()
+    QTest.keySequence(mainWindow, "Ctrl+F")
+    assert searchBar.isVisible()
 
-    assert not cbar.filterState.isReady()
-    QTest.keyClicks(cbar.lineEdit, rawNeedle)
-    waitUntilTrue(cbar.filterState.isReady)
-    assert len(cbar.filterState.matchingIds) == 4
+    assert not filterState.isReady()
+    QTest.keyClicks(searchBar.lineEdit, rawNeedle)
+    waitUntilTrue(filterState.isReady)
+    assert len(filterState.matchingIds) == 4
 
-    cbar.ui.filterOnlyCheckBox.setChecked(True)
-    assert flt.rowCount() == 4
+    searchBar.ui.filterCheckBox.setChecked(True)
+    assert gv.clFilter.rowCount() == 4
 
-    cbar.ui.filterOnlyCheckBox.setChecked(False)
-    assert flt.rowCount() == fullRows
+    searchBar.ui.filterCheckBox.setChecked(False)
+    assert gv.clFilter.rowCount() == fullRows
 
-    QTest.keySequence(gv, "Escape")
-    assert not cbar.isVisible()
+    QTest.keySequence(rw.graphView, "Escape")
+    assert not searchBar.isVisible()
 
 
 def testJumpToHiddenRows(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/unstaged.txt", "hello")
     rw = mainWindow.openRepo(wd)
-    cbar = rw.graphView.commitFileSearchBar
+    gv = rw.graphView
+    searchBar = gv.searchBar
+    filterState = rw.repoModel.commitPathspecFilter
 
-    rw.showCommitFileSearchBar()
-    assert cbar.isVisible()
-    cbar.ui.filterOnlyCheckBox.setChecked(True)
+    QTest.keySequence(mainWindow, "Ctrl+F")
+    assert searchBar.isVisible()
+    searchBar.ui.filterCheckBox.setChecked(True)
 
-    QTest.keyClicks(cbar.lineEdit, "wontmatch")
-    QTest.qWait(0)
-    assert rw.graphView.clFilter.rowCount() == 0
+    QTest.keyClicks(searchBar.lineEdit, "/f wontmatch")
+    waitUntilTrue(filterState.isReady)
+    assert gv.clFilter.rowCount() == 0
 
     # These should not error out although all rows are hidden
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)

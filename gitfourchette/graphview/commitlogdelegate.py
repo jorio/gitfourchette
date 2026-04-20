@@ -146,9 +146,6 @@ class CommitLogDelegate(QStyledItemDelegate):
     def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
         assert index.isValid()
 
-        if self.repoModel.commitPathspecFilter.isReady() and not index.data(CommitLogModel.Role.PathspecMatch):
-            painter.setOpacity(0.42)
-
         toolTips: list[CommitToolTipZone] = []
 
         isActive = bool(option.state & QStyle.StateFlag.State_Active)
@@ -245,6 +242,11 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             else:  # pragma: no cover
                 summaryText = f"*** Unsupported special row {specialRowKind}"
+
+        if (oid is not None
+                and self.repoModel.commitPathspecFilter.isReady()
+                and oid not in self.repoModel.commitPathspecFilter.matchingIds):
+            painter.setOpacity(0.42)
 
         if self.isBold(oid):
             painter.setFont(self.activeCommitFont)

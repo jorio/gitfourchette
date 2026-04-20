@@ -292,15 +292,6 @@ class MainWindow(QMainWindow):
             ActionDef(_("Find Previous"), lambda: self.dispatchSearchCommand(SearchBar.Op.Previous),
                       shortcuts=GlobalShortcuts.findPrevious,
                       tip=_("Find previous occurrence")),
-
-            ActionDef.SEPARATOR,
-
-            ActionDef(
-                _("Find &Commits by Changed File…"),
-                self.showCommitFileSearchBar,
-                icon="edit-find",
-                tip=_("Highlight or filter the commit log by commits that modify a given file path"),
-            ),
         )
 
         # -------------------------------------------------------------
@@ -1256,12 +1247,6 @@ class MainWindow(QMainWindow):
         try:
             CodeView.currentDetachedCodeView().window().close()
         except KeyError:
-            QApplication.beep()
-
-    def showCommitFileSearchBar(self):
-        try:
-            self.currentRepoWidget().showCommitFileSearchBar()
-        except NoRepoWidgetError:
             QApplication.beep()
 
     def dispatchSearchCommand(self, op: SearchBar.Op = SearchBar.Op.Start):
