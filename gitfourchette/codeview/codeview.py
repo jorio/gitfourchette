@@ -70,7 +70,7 @@ class CodeView(QPlainTextEdit):
 
         self.searchBar = SearchBar(self, searchProvider)
         self.searchBar.hide()
-        self.searchBar.ui.lineEdit.setPlaceholderText(searchProvider.title)
+        self.searchBar.ui.lineEdit.setPlaceholderText(_("Find code"))
 
         self.rubberBand = CodeRubberBand(self.viewport())
         self.rubberBand.hide()

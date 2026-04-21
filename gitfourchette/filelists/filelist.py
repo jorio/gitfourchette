@@ -159,7 +159,6 @@ class FileList(QListView):
         self.setUniformItemSizes(True)  # potential perf boost with many files
 
         searchProvider = ItemViewSearchProvider(self)
-        searchProvider.title = _("Find file")
         searchProvider.dataRole = FileListModel.Role.FilePath
 
         self.searchBar = SearchBar(self, searchProvider)

@@ -8,7 +8,6 @@ from __future__ import annotations  # TODO: Remove once we can drop support for 
 
 import typing
 
-from gitfourchette.localization import _
 from gitfourchette.qt import *
 from gitfourchette.search.searchprovider import SearchProvider
 
@@ -22,7 +21,6 @@ class CodeSearch(SearchProvider):
     def __init__(self, parent: CodeView):
         super().__init__(parent)
         self._buddy = parent
-        self.title = _("Find code")
 
     def _cancel(self):
         self._buddy.highlighter.setSearchTerm("")

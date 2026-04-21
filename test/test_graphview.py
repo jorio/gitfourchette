@@ -188,8 +188,9 @@ def testCommitSearchByHash(tempDir, mainWindow):
 
     # The pulse won't show an error message on its own.
     # Hit enter to bring up an error.
-    QTest.keySequence(searchEdit, "Return")
-    rejectQMessageBox(rw.graphView, "not found")
+    assert not QToolTip.isVisible()
+    QTest.keyClick(searchEdit, Qt.Key.Key_Return)
+    dismissToolTip("no results")
 
 
 def testCommitSearchByAuthor(tempDir, mainWindow):

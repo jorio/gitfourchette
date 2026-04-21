@@ -251,10 +251,10 @@ def testSearchFileList(tempDir, mainWindow):
     assert searchBar.isRed()
 
     QTest.keySequence(rw, keyNext)
-    acceptQMessageBox(rw, "not found")
+    dismissToolTip("no results")
 
     QTest.keySequence(rw, keyPrev)
-    acceptQMessageBox(rw, "not found")
+    dismissToolTip("no results")
 
     if QT5:
         # TODO: Can't get Qt 5 unit tests to hide the searchbar this way, but it does work manually.
@@ -304,10 +304,10 @@ def testSearchEmptyFileList(tempDir, mainWindow):
     assert searchBar.isRed()
 
     QTest.keySequence(rw, GlobalShortcuts.findNext[0])
-    acceptQMessageBox(rw, "not found")
+    dismissToolTip("no results")
 
     QTest.keySequence(rw, GlobalShortcuts.findPrevious[0])
-    acceptQMessageBox(rw, "not found")
+    dismissToolTip("no results")
 
 
 def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):

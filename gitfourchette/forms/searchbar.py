@@ -23,6 +23,7 @@ class SearchBar(QWidget):
         Previous = enum.auto()
 
     DebounceDelayMs = 250
+    _ToolTipTag = "<!--SearchBarToolTip-->"
 
     buddy: QWidget
     """
@@ -123,12 +124,24 @@ class SearchBar(QWidget):
 
     def runSearch(self, forward: bool):
         self.debounceTimer.stop()
-        self.provider.jump(forward)
+        self.hideToolTip()
+
+        if not self.provider.isEmpty() and not self.provider.isBad():
+            self.provider.jump(forward)
+
         self.syncStylingWithProviderState()
+
+        if self.provider.isEmpty():
+            QApplication.beep()
+        elif self.provider.isBad():
+            self.showToolTip(self.provider.notFoundMessage())
 
     def onDebounce(self):
         assert self.isVisible(), "don't debounce while invisible"
-        self.provider.debounce(self.nextDebounceAllowJump)
+
+        if not self.provider.isEmpty() and not self.provider.isBad():
+            self.provider.debounce(self.nextDebounceAllowJump)
+
         self.syncStylingWithProviderState()
 
     def showEvent(self, event: QShowEvent):
@@ -173,6 +186,8 @@ class SearchBar(QWidget):
     def onSearchTextChanged(self, text: str):
         assert self.isVisible()
 
+        self.hideToolTip()
+
         self.provider.setTerm(text)
 
         # Sync UI styling with provider state
@@ -216,6 +231,22 @@ class SearchBar(QWidget):
 
         with QSignalBlockerContext(self.ui.filterCheckBox):
             self.ui.filterCheckBox.setVisible(self.provider.canFilter())
+
+    def showToolTip(self, text: str):
+        pos = QPoint(0, 0)
+
+        # Hack: when the cursor is "above" the tooltip, then Qt makes the
+        # tooltip vanish quickly. So try to avoid spawning the tooltip on top
+        # of the cursor.
+        if self.geometry().adjusted(0, 0, 0, 32).contains(self.mapFromGlobal(QCursor.pos())):
+            pos.setY(-int(self.height() * 2.2))
+
+        pos = self.mapToGlobal(pos)
+        QToolTip.showText(pos, f"<p style='white-space: pre;'>{text}{self._ToolTipTag}", self)
+
+    def hideToolTip(self):
+        if QToolTip.isVisible() and QToolTip.text().endswith(self._ToolTipTag):
+            QToolTip.hideText()
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,

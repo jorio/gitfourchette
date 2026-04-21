@@ -35,7 +35,6 @@ class CommitSearch(ItemViewSearchProvider):
         self._likelyHash = False
         self._pathspec = ""
         self._pathspecFilter = pathspecFilter
-        self.title = _("Find commits")
 
     # -------------------------------------------------------------------------
     # ItemViewSearchProvider implementation
@@ -93,25 +92,23 @@ class CommitSearch(ItemViewSearchProvider):
     def canFilter(self) -> bool:
         return self._term.startswith(self.PathspecPrefix)
 
-    def _notFoundMessage(self, term: str) -> str:
+    def notFoundMessage(self) -> str:
+        message = super().notFoundMessage()
+
         repoModel = self._buddy.repoModel
+        limitations = []
 
         if repoModel.hiddenCommits:
-            message = _("{0} not found among the branches that aren’t hidden.")
-        else:
-            message = _("{0} not found.")
-        message = message.format(bquo(term))
+            limitations.append(_("hidden branches"))
 
         if repoModel.truncatedHistory:
-            note = _n("Note: The search was limited to the top commit because the commit history is truncated.",
-                      "Note: The search was limited to the top {n} commits because the commit history is truncated.",
-                      repoModel.numRealCommits)
-            message += f"<p>{note}</p>"
+            limitations.append(_("truncated history"))
         elif repoModel.repo.is_shallow:
-            note = _n("Note: The search was limited to the single commit available in this shallow clone.",
-                      "Note: The search was limited to the {n} commits available in this shallow clone.",
-                      repoModel.numRealCommits)
-            message += f"<p>{note}</p>"
+            limitations.append(_("shallow clone"))
+
+        if limitations:
+            message += (f" <span style='color: {mutedToolTipColorHex()}'>" +
+                        _("(search limited by {0})", ", ".join(limitations)))
 
         return message
 

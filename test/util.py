@@ -815,3 +815,10 @@ def summonToolTip(target: QWidget, localPoint=QPoint_zero):
     QToolTip.hideText()
     waitUntilTrue(lambda: not QToolTip.isVisible())  # may need some time to fade out
     return text
+
+
+def dismissToolTip(pattern: str):
+    assert QToolTip.isVisible()
+    assert re.search(pattern, QToolTip.text(), re.I)
+    QToolTip.hideText()
+    waitUntilTrue(lambda: not QToolTip.isVisible())

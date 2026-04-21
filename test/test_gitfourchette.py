@@ -185,8 +185,8 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
     waitUntilTrue(rw.graphView.searchBar.lineEdit.hasFocus)
     QTest.keyClicks(rw.graphView.searchBar.lineEdit, "first c/c1, no parent")
     waitUntilTrue(rw.graphView.searchBar.isRed)
-    QTest.keyPress(rw.graphView.searchBar.lineEdit, Qt.Key.Key_Return)
-    acceptQMessageBox(rw, "not found.+truncated")
+    QTest.keyClick(rw.graphView.searchBar.lineEdit, Qt.Key.Key_Return)
+    dismissToolTip("no results.+truncated")
     rw.graphView.searchBar.ui.closeButton.click()
 
     # Bottom commit contents must still be able to be shown despite not being in the graph

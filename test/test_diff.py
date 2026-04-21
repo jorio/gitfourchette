@@ -388,8 +388,8 @@ def testSearchDiff(tempDir, mainWindow):
         QTest.keyClicks(searchLine, "MadeUpGarbage")
         assert searchBar.lineEdit.text() == "MadeUpGarbage"
         assert searchBar.isRed()
-        QTest.keyPress(searchLine, Qt.Key.Key_Return)
-    rejectQMessageBox(rw, "MadeUpGarbage.+not found")
+        QTest.keyClick(searchLine, Qt.Key.Key_Return)
+    dismissToolTip("no results")
 
 
 def testCopyFromDiffWithoutU2029(tempDir, mainWindow):

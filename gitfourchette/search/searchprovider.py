@@ -38,7 +38,6 @@ class SearchProvider(QObject):
         self._status = SearchProvider.TermStatus.Unknown
         self._wantFilter = False
         self._frozen = False
-        self.title = _("Find")
 
     def freeze(self, frozen: bool):
         self._frozen = frozen
@@ -83,21 +82,15 @@ class SearchProvider(QObject):
         return self._status == SearchProvider.TermStatus.Bad
 
     def jump(self, forward: bool):
-        if self.isEmpty():
-            QApplication.beep()
-            return
-
-        if not self.isBad() and self._status != SearchProvider.TermStatus.Loading:
-            self._jumpImpl(forward)
-
-        if self.isBad():  # jumpImpl may have found that the term is bad
-            # TODO: Tooltip instead?
-            showInformation(self.parent(), self.title, self._notFoundMessage(self._term))
+        assert self._status != SearchProvider.TermStatus.Loading
+        assert self._status != SearchProvider.TermStatus.Bad
+        assert not self.isEmpty()
+        self._jumpImpl(forward)
+        # Warning: jumpImpl may change the status
 
     def debounce(self, allowJump: bool):
-        if self.isEmpty() or self.isBad():
-            return
-
+        assert self.status != SearchProvider.TermStatus.Bad
+        assert not self.isEmpty()
         self._debounceImpl(allowJump)
 
     # -------------------------------------------------------------------------
@@ -109,8 +102,8 @@ class SearchProvider(QObject):
     def _cancel(self):
         pass
 
-    def _notFoundMessage(self, term: str) -> str:
-        return _("{text} not found.", text=bquo(term))
+    def notFoundMessage(self) -> str:
+        return _("No results")
 
     def _termChanged(self):
         pass
