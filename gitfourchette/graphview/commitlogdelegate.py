@@ -243,11 +243,6 @@ class CommitLogDelegate(QStyledItemDelegate):
             else:  # pragma: no cover
                 summaryText = f"*** Unsupported special row {specialRowKind}"
 
-        if (oid is not None
-                and self.repoModel.commitPathspecFilter.isReady()
-                and oid not in self.repoModel.commitPathspecFilter.matchingIds):
-            painter.setOpacity(0.42)
-
         if self.isBold(oid):
             painter.setFont(self.activeCommitFont)
 
@@ -257,9 +252,6 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         def elide(text):
             return metrics.elidedText(text, Qt.TextElideMode.ElideRight, rect.width())
-
-        def highlight(fullText: str, needlePos: int, needleLen: int):
-            SearchBar.highlightNeedle(painter, rect, fullText, needlePos, needleLen)
 
         # ------ Hash
         charRect = QRect(leftBoundHash, rect.top(), hcw, rect.height())
@@ -306,7 +298,7 @@ class CommitLogDelegate(QStyledItemDelegate):
                 needleLen = ELISION_LENGTH
             else:
                 needleLen = len(searchTerm)
-            highlight(summaryText, needlePos, needleLen)
+            SearchBar.highlightNeedle(painter, rect, summaryText, needlePos, needleLen)
 
         # ------ Author
         if authorWidth != 0:
@@ -326,7 +318,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         if searchTerm and commit:
             needlePos = authorText.lower().find(searchTerm)
             if needlePos >= 0:
-                highlight(authorText, needlePos, len(searchTerm))
+                SearchBar.highlightNeedle(painter, rect, authorText, needlePos, len(searchTerm))
 
         # ------ Date
         if dateWidth != 0:
@@ -336,6 +328,27 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         if authorWidth != 0 or dateWidth != 0:
             toolTips.append(CommitToolTipZone(leftBoundName, rightBound, "author"))
+
+        # ------ Pathspec match
+        if (oid is not None
+                and self.repoModel.commitPathspecFilter.isReady()
+                and oid in self.repoModel.commitPathspecFilter.matchingIds):
+            bleed, iconWidth = 8, 16
+
+            needle = self.repoModel.commitPathspecFilter.needle
+            needle = metrics.elidedText(needle, Qt.TextElideMode.ElideRight, option.rect.width()//8)
+
+            needleRect = QRect(rect)
+            needleRect.setRight(leftBoundName - bleed - XMARGIN)
+            needleRect.setLeft(needleRect.right() - metrics.horizontalAdvance(needle))
+
+            toolTips.append(CommitToolTipZone(needleRect.left(), needleRect.right(), "pathspec"))
+
+            SearchBar.highlightNeedle(painter, needleRect, needle, lBleed=bleed+iconWidth, rBleed=bleed)
+
+            needleRect.adjust(-iconWidth, 0, 0, 0)
+            needleRect.setWidth(iconWidth)
+            stockIcon("magnifying-glass", "gray=black").paint(painter, needleRect)
 
         # ----------------
 

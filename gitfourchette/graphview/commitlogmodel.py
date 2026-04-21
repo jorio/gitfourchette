@@ -21,7 +21,7 @@ from gitfourchette.trtables import TrTables
 class CommitToolTipZone:
     left: int
     right: int
-    kind: Literal['ref', 'author', 'message']
+    kind: Literal['ref', 'author', 'message', 'pathspec']
     data: str = ""
 
 
@@ -153,7 +153,7 @@ class CommitLogModel(QAbstractListModel):
                 return tip
 
             x = self.parent().mapFromGlobal(QCursor.pos()).x()
-            for zone in zones:
+            for zone in reversed(zones):
                 if not (zone.left <= x <= zone.right):
                     continue
                 if zone.kind == "ref":
@@ -162,6 +162,8 @@ class CommitLogModel(QAbstractListModel):
                     tip = commitMessageTooltip(commit)
                 elif zone.kind == "author":
                     tip = commitAuthorTooltip(commit, *self.repoModel.getCachedGpgStatus(commit))
+                elif zone.kind == "pathspec":
+                    tip = _("This commit touches a path that matches your search")
                 break
 
             if self._authorColumnX <= 0:  # author hidden in narrow window

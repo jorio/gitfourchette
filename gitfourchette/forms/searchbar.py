@@ -250,12 +250,16 @@ class SearchBar(QWidget):
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,
-                        needlePos: int, needleLen: int,
-                        widthUpToNeedle: int = -1, widthPastNeedle: int = -1):
+                        needlePos: int = 0, needleLen: int = -1,
+                        widthUpToNeedle: int = -1, widthPastNeedle: int = -1,
+                        lBleed: int = 2, rBleed: int = 2):
         """
         Helper function to render "found needle" text in the buddy widget's item
         delegate.
         """
+
+        if needleLen < 0:
+            needleLen = len(text)
 
         if widthUpToNeedle < 0 or widthPastNeedle < 0:
             fontMetrics = painter.fontMetrics()
@@ -264,7 +268,7 @@ class SearchBar(QWidget):
         needleWidth = widthPastNeedle - widthUpToNeedle
 
         needleRect = QRect(rect.left() + widthUpToNeedle, rect.top(), needleWidth, rect.height())
-        hiliteRect = QRectF(needleRect).marginsAdded(QMarginsF(2, -1, 2, -1))
+        hiliteRect = QRectF(needleRect).marginsAdded(QMarginsF(lBleed, -1, rBleed, -1))
 
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
