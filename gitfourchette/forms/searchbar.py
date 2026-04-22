@@ -11,6 +11,7 @@ import enum
 from gitfourchette import colors
 from gitfourchette.forms.ui_searchbar import Ui_SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
+from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.search.searchprovider import SearchProvider
 from gitfourchette.toolbox import *
@@ -125,8 +126,20 @@ class SearchBar(QWidget):
         self.runSearch(False)
 
     def runSearch(self, forward: bool):
+        wasAwaitingDebounce = self.debounceTimer.isActive()
+
         self.debounceTimer.stop()
         self.hideToolTip()
+
+        if self.provider.status() == SearchProvider.TermStatus.Loading:
+            # User is spamming return key while query is still ongoing
+            self.showToolTip(_("Please wait…"))
+            return
+
+        if wasAwaitingDebounce:
+            # Expedite debounce callback
+            self.debounceTimer.timeout.emit()
+            return
 
         if not self.provider.isEmpty() and not self.provider.isBad():
             self.provider.jump(forward)

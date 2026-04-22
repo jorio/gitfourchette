@@ -121,7 +121,6 @@ class CommitSearch(ItemViewSearchProvider):
         if term.startswith(self.PathspecPrefix):
             self.invalidate()  # HACK: Always invalidate badStem when changing file searches
             self._pathspec = term.removeprefix(self.PathspecPrefix).strip()
-            self.setStatus(self.TermStatus.Loading if self._pathspec else self.TermStatus.Unknown)
         else:
             self._pathspec = ""
 
