@@ -67,6 +67,8 @@ class SearchBar(QWidget):
         self.provider = provider
         self.buddy = buddy
 
+        self.provider.statusChanged.connect(self.onProviderStatusChanged)
+
         self.ui = Ui_SearchBar()
         self.ui.setupUi(self)
 
@@ -129,8 +131,6 @@ class SearchBar(QWidget):
         if not self.provider.isEmpty() and not self.provider.isBad():
             self.provider.jump(forward)
 
-        self.syncStylingWithProviderState()
-
         if self.provider.isEmpty():
             QApplication.beep()
         elif self.provider.isBad():
@@ -139,10 +139,10 @@ class SearchBar(QWidget):
     def onDebounce(self):
         assert self.isVisible(), "don't debounce while invisible"
 
+        self.hideToolTip()
+
         if not self.provider.isEmpty() and not self.provider.isBad():
             self.provider.debounce(self.nextDebounceAllowJump)
-
-        self.syncStylingWithProviderState()
 
     def showEvent(self, event: QShowEvent):
         self.provider.freeze(False)
@@ -156,7 +156,7 @@ class SearchBar(QWidget):
 
     def hideOrBeep(self):
         if self.isVisible():  # close search bar if it doesn't have focus
-            self.hide()
+            self.bail()
         else:
             QApplication.beep()
 
@@ -185,13 +185,9 @@ class SearchBar(QWidget):
 
     def onSearchTextChanged(self, text: str):
         assert self.isVisible()
-
         self.hideToolTip()
 
         self.provider.setTerm(text)
-
-        # Sync UI styling with provider state
-        self.syncStylingWithProviderState()
 
         # Schedule a debounce
         self.nextDebounceAllowJump = True
@@ -200,7 +196,6 @@ class SearchBar(QWidget):
     def onFilterCheckBoxToggled(self):
         assert self.isVisible()
         self.provider.setFilterState(self.ui.filterCheckBox.isChecked())
-        self.syncStylingWithProviderState()
 
     def reevaluateSearchTerm(self):
         # Clear bad stem, if any
@@ -217,17 +212,17 @@ class SearchBar(QWidget):
     def isRed(self) -> bool:
         return "true" == self.property("red")
 
-    def syncStylingWithProviderState(self):
-        red = self.provider.isBad()
+    def onProviderStatusChanged(self, status: SearchProvider.TermStatus):
+        self.hideToolTip()
+
+        red = status == SearchProvider.TermStatus.Bad
         wasRed = self.isRed()
         self.setProperty("red", "true" if red else "false")
         if wasRed ^ red:  # trigger stylesheet refresh
             self.setStyleSheet("* {}")
 
-        if self.provider.status() == self.provider.TermStatus.Loading:
-            self.loupe.setIcon(stockIcon("magnifying-glass-wait"))
-        else:
-            self.loupe.setIcon(stockIcon("magnifying-glass"))
+        loupeIcon = "magnifying-glass-wait" if status == SearchProvider.TermStatus.Loading else "magnifying-glass"
+        self.loupe.setIcon(stockIcon(loupeIcon))
 
         with QSignalBlockerContext(self.ui.filterCheckBox):
             self.ui.filterCheckBox.setVisible(self.provider.canFilter())

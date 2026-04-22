@@ -25,9 +25,6 @@ class ItemViewSearchProvider(SearchProvider):
         # To filter out hidden rows, don't use _buddy.clModel directly
         return self._buddy.model()
 
-    def repaintBuddy(self):
-        self._buddy.viewport().update()
-
     def _walk(self, forward: bool, jump: bool, skipCurrent: bool):
         """
         Do not override!
@@ -71,7 +68,7 @@ class ItemViewSearchProvider(SearchProvider):
         # We've got a matching index
 
         assert index.isValid()
-        self._status = SearchProvider.TermStatus.Good
+        self.setStatus(SearchProvider.TermStatus.Good)
 
         if jump:
             self._buddy.setCurrentIndex(index)
@@ -101,7 +98,8 @@ class ItemViewSearchProvider(SearchProvider):
     # SearchProvider implementation
 
     def _termChanged(self):
-        self.repaintBuddy()
+        # Repaint buddy to refresh any highlighting
+        self._buddy.viewport().update()
 
     def _jumpImpl(self, forward: bool):
         self._walk(forward=forward, jump=True, skipCurrent=True)

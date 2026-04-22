@@ -19,6 +19,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
 from gitfourchette.graphview.commitsearch import CommitSearch
+from gitfourchette.search.searchprovider import SearchProvider
 from gitfourchette.tasks import *
 from gitfourchette.tasks.exporttasks import ExportABDiffAsPatch
 from gitfourchette.toolbox import *
@@ -81,6 +82,12 @@ class GraphView(QListView):
         self.searchBar = SearchBar(self, searchProvider)
         self.searchBar.hide()
         self.clFilter.rowsAboutToBeInserted.connect(searchProvider.invalidate)
+
+        def onStatusChanged(s: SearchProvider.TermStatus):
+            self.viewport().update()
+            if searchProvider._wantFilter:
+                self.clFilter.invalidateFilter()
+        searchProvider.statusChanged.connect(onStatusChanged)
 
         searchPlaceholder = "|".join([
             _("Find commit hash, message or author. Type {f} to find commits touching files."),

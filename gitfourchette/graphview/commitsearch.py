@@ -121,7 +121,7 @@ class CommitSearch(ItemViewSearchProvider):
         if term.startswith(self.PathspecPrefix):
             self.invalidate()  # HACK: Always invalidate badStem when changing file searches
             self._pathspec = term.removeprefix(self.PathspecPrefix).strip()
-            self._status = self.TermStatus.Loading if self._pathspec else self.TermStatus.Unknown
+            self.setStatus(self.TermStatus.Loading if self._pathspec else self.TermStatus.Unknown)
         else:
             self._pathspec = ""
 
@@ -131,7 +131,7 @@ class CommitSearch(ItemViewSearchProvider):
     def _debounceImpl(self, allowJump: bool):
         if self._term.startswith(self.PathspecPrefix):
             if self._pathspec:  # Don't start empty query if user isn't done typing
-                self._status = self.TermStatus.Loading
+                self.setStatus(self.TermStatus.Loading)
                 QueryCommitsTouchingPath.invoke(self._buddy, self._pathspec,
                                                 lambda: self._onFileSearchComplete(allowJump))
         else:
@@ -149,13 +149,7 @@ class CommitSearch(ItemViewSearchProvider):
         cpf = self._pathspecFilter
         cpf.filterOnly = self._wantFilter
         # TODO: I guess we should look at the workdir, too...or drop the workdir stuff altogether
-        self._status = self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad
-        self.repaintBuddy()  # for dimming
-        # TODO: would be nice to emit a signal instead of doing this ourselves
-        self._buddy.searchBar.syncStylingWithProviderState()
-        # TODO: what about when the filter is toggled?
-        if cpf.wantFilter():
-            self._buddy.clFilter.invalidateFilter()
+        self.setStatus(self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad)
         super()._debounceImpl(allowJump)
 
     def setFilterState(self, checked: bool):

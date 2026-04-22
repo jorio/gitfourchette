@@ -27,6 +27,8 @@ class SearchProvider(QObject):
         Bad = enum.auto()
         "Term is known to have no matches"
 
+    statusChanged = Signal(TermStatus)
+
     _term: str
     _badStem: str
     _status: TermStatus
@@ -51,29 +53,40 @@ class SearchProvider(QObject):
         return "" if self._frozen else self._term
 
     def setTerm(self, term: str):
-        term = term.strip().lower()
-        self._term = term
+        status1 = self._status
 
-        if term and self._badStem and self._badStem in term:
-            # badStem is still in the search term: still bad
-            assert self.isBad()
-        else:
-            self._badStem = ""
-            self._status = SearchProvider.TermStatus.Unknown
+        with QSignalBlockerContext(self):  # Don't spam status updates
+            term = term.strip().lower()
+            self._term = term
 
-        self._termChanged()
+            if term and self._badStem and self._badStem in term:
+                # badStem is still in the search term: still bad
+                assert self.isBad()
+            else:
+                self._badStem = ""
+                self.setStatus(SearchProvider.TermStatus.Unknown)
+
+            self._termChanged()
+
+        if self._status != status1:
+            self.statusChanged.emit(self._status)
 
     def _enshrineBadTerm(self):
-        self._status = SearchProvider.TermStatus.Bad
         if not self._badStem:
             self._badStem = self._term
+        self.setStatus(SearchProvider.TermStatus.Bad)
 
     def invalidate(self):
         self._badStem = ""
-        self._status = SearchProvider.TermStatus.Unknown
+        self.setStatus(SearchProvider.TermStatus.Unknown)
 
     def status(self) -> SearchProvider.TermStatus:
         return self._status
+
+    def setStatus(self, status: SearchProvider.TermStatus):
+        if status != self._status:
+            self._status = status
+            self.statusChanged.emit(status)
 
     def isEmpty(self) -> bool:
         return not bool(self._term)

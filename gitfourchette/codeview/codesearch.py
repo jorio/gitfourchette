@@ -31,7 +31,7 @@ class CodeSearch(SearchProvider):
         if self._term and numOccurrences == 0:
             self._enshrineBadTerm()
         else:
-            self._status = SearchProvider.TermStatus.Good
+            self.setStatus(SearchProvider.TermStatus.Good)
 
     def _jumpImpl(self, forward: bool):
         assert not self.isEmpty()
