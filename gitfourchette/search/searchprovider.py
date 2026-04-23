@@ -94,17 +94,8 @@ class SearchProvider(QObject):
     def isBad(self) -> bool:
         return self._status == SearchProvider.TermStatus.Bad
 
-    def jump(self, forward: bool):
-        assert self._status != SearchProvider.TermStatus.Loading
-        assert self._status != SearchProvider.TermStatus.Bad
-        assert not self.isEmpty()
-        self._jumpImpl(forward)
-        # Warning: jumpImpl may change the status
-
-    def debounce(self, allowJump: bool):
-        assert self.status != SearchProvider.TermStatus.Bad
-        assert not self.isEmpty()
-        self._debounceImpl(allowJump)
+    def isGoodAndNonEmpty(self) -> bool:
+        return self._status == SearchProvider.TermStatus.Good and not self.isEmpty()
 
     # -------------------------------------------------------------------------
     # Override these
@@ -121,8 +112,25 @@ class SearchProvider(QObject):
     def _termChanged(self):
         pass
 
-    def _jumpImpl(self, forward: bool):
+    def prime(self, forwardHint: bool):
+        """
+        Called by SearchBar to kick off a (possibly asynchronous) query on the
+        search term, which is guaranteed to be non-empty with non-Bad status.
+        This function can be a no-op; otherwise, it should typically change the
+        current status to Good, Bad, or Loading.
+        """
+        pass
+
+    def jump(self, forward: bool):
+        """
+        Jump to the next or previous occurrence.
+        The search term status is guaranteed to be Good here.
+        """
         raise NotImplementedError()
 
-    def _debounceImpl(self, allowJump: bool):
-        pass
+    def isCurrentMatch(self) -> bool:
+        """
+        Does the current selection match the current search term?
+        The search term status is guaranteed to be Good here.
+        """
+        raise NotImplementedError()

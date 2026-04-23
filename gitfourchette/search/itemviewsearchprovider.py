@@ -19,13 +19,17 @@ class ItemViewSearchProvider(SearchProvider):
         assert isinstance(parent, QAbstractItemView)
         self._buddy = parent
         self.dataRole = Qt.ItemDataRole.DisplayRole
+        self._startHint = (-1, True)
 
     @property
     def buddyModel(self):
         # To filter out hidden rows, don't use _buddy.clModel directly
         return self._buddy.model()
 
-    def _walk(self, forward: bool, jump: bool, skipCurrent: bool):
+    def _currentRow(self):
+        return self._buddy.currentIndex().row() if self._buddy.selectedIndexes() else -1
+
+    def _walk(self, forward: bool, jump: bool, skipCurrent: bool, startHint: int = -1):
         """
         Do not override!
         """
@@ -36,15 +40,21 @@ class ItemViewSearchProvider(SearchProvider):
         # Get row generator
 
         numRows = self.buddyModel.rowCount()
+        currentRow = self._currentRow()
 
         # Find start bound of search range
-        if self._buddy.selectedIndexes():
-            start = self._buddy.currentIndex().row()
-            start += 0 if not skipCurrent else 1 if forward else -1
+        if startHint >= 0:
+            start = startHint
+        elif currentRow >= 0:
+            start = currentRow
         elif forward:
             start = 0
         else:
             start = numRows - 1
+
+        if skipCurrent and start == currentRow:
+            start += 1 if forward else -1
+            start %= numRows
 
         if forward:
             range1 = range(start, numRows)
@@ -62,7 +72,7 @@ class ItemViewSearchProvider(SearchProvider):
             index = self._walkModelImpl(rows)
         except KeyError:
             self._enshrineBadTerm()
-            return
+            return -1
 
         # -------------------
         # We've got a matching index
@@ -72,6 +82,8 @@ class ItemViewSearchProvider(SearchProvider):
 
         if jump:
             self._buddy.setCurrentIndex(index)
+
+        return index.row()
 
     def _walkModelImpl(self, rows: Iterable[int]) -> QModelIndex:
         """
@@ -101,16 +113,28 @@ class ItemViewSearchProvider(SearchProvider):
         # Repaint buddy to refresh any highlighting
         self._buddy.viewport().update()
 
-    def _jumpImpl(self, forward: bool):
-        self._walk(forward=forward, jump=True, skipCurrent=True)
+    def prime(self, forwardHint: bool):
+        i = self._walk(forwardHint, False, False, -1)
+        self._startHint = (i, forwardHint)
 
-    def _debounceImpl(self, allowJump: bool):
-        if not allowJump:
-            # TODO: Hack to pass testReevaluateFileListSearchTermAcrossCommits.
-            #       How about new callback to prime the search instead of debounce(false)?
-            if self._status == self.TermStatus.Unknown:
-                self._walk(forward=True, jump=False, skipCurrent=False)
-            return
+    def jump(self, forward: bool):
+        assert self.isGoodAndNonEmpty()
+        rowHint, rowHintForward = self._startHint
+        if not (rowHint >= 0 and rowHintForward == forward):
+            rowHint = -1
+        rowHint = self._walk(forward, True, True, rowHint)
+        self._startHint = (rowHint, forward)
 
-        # Stay on current item if it already matches, otherwise jump to next item
-        self._walk(forward=True, jump=True, skipCurrent=False)
+    def invalidate(self):
+        super().invalidate()
+        self._startHint = (-1, True)
+
+    def isCurrentMatch(self) -> bool:
+        row = self._currentRow()
+        if row < 0:
+            return False
+        try:
+            self._walkModelImpl([row])
+            return True
+        except KeyError:
+            return False

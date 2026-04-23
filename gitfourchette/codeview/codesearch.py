@@ -28,14 +28,20 @@ class CodeSearch(SearchProvider):
     def _termChanged(self):
         numOccurrences = self._buddy.highlighter.setSearchTerm(self._term)
 
-        if self._term and numOccurrences == 0:
+        if not self._term:  # Empty
+            self.setStatus(SearchProvider.TermStatus.Unknown)
+        elif numOccurrences == 0:
             self._enshrineBadTerm()
         else:
             self.setStatus(SearchProvider.TermStatus.Good)
 
-    def _jumpImpl(self, forward: bool):
-        assert not self.isEmpty()
-        assert not self.isBad()
+    def isCurrentMatch(self) -> bool:
+        assert self.isGoodAndNonEmpty()
+        cursor: QTextCursor = self._buddy.textCursor()
+        return cursor.selectedText().lower().startswith(self._term)
+
+    def jump(self, forward: bool):
+        assert self.isGoodAndNonEmpty()
 
         startCursor = self._buddy.textCursor()
         document = self._buddy.document()
@@ -46,19 +52,8 @@ class CodeSearch(SearchProvider):
 
             if newCursor and not newCursor.isNull():  # extra isNull check needed for PyQt5 & PyQt6
                 self._buddy.setTextCursor(newCursor)
+                assert self.isCurrentMatch()
                 return
 
             # Wrap
             startCursor.movePosition(QTextCursor.MoveOperation.Start if forward else QTextCursor.MoveOperation.End)
-
-    def _debounceImpl(self, allowJump: bool):
-        assert not self.isEmpty()
-        assert not self.isBad()
-
-        if not allowJump:
-            return
-
-        if self._buddy.textCursor().selectedText().lower().startswith(self._term):
-            return
-
-        self._jumpImpl(True)

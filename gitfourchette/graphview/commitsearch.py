@@ -127,14 +127,12 @@ class CommitSearch(ItemViewSearchProvider):
         # Always invalidate pathspec filter when changing search term
         self._pathspecFilter.clear()
 
-    def _debounceImpl(self, allowJump: bool):
-        if self._term.startswith(self.PathspecPrefix):
-            if self._pathspec:  # Don't start empty query if user isn't done typing
-                self.setStatus(self.TermStatus.Loading)
-                QueryCommitsTouchingPath.invoke(self._buddy, self._pathspec,
-                                                lambda: self._onFileSearchComplete(allowJump))
+    def prime(self, forwardHint: bool):
+        if self._pathspec:  # Don't start empty query if user isn't done typing
+            self.setStatus(self.TermStatus.Loading)
+            QueryCommitsTouchingPath.invoke(self._buddy, self._pathspec, self._onFileSearchComplete)
         else:
-            super()._debounceImpl(allowJump)
+            super().prime(forwardHint)
 
     def _cancel(self):
         # This will squelch _onFileSearchComplete
@@ -143,13 +141,12 @@ class CommitSearch(ItemViewSearchProvider):
         if self._wantFilter:
             self._buddy.clFilter.invalidateFilter()
 
-    def _onFileSearchComplete(self, allowJump):
+    def _onFileSearchComplete(self):
         assert not self._frozen
         cpf = self._pathspecFilter
         cpf.filterOnly = self._wantFilter
         # TODO: I guess we should look at the workdir, too...or drop the workdir stuff altogether
         self.setStatus(self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad)
-        super()._debounceImpl(allowJump)
 
     def setFilterState(self, checked: bool):
         super().setFilterState(checked)

@@ -347,6 +347,7 @@ def testSearchDiff(tempDir, mainWindow):
     assert searchBar.isVisible()
 
     QTest.keyClicks(searchLine, "master")
+    QTest.qWait(0)
     searchNext.click()
     forward1 = diffView.textCursor()
     assert forward1.selectedText() == "master"
@@ -381,11 +382,13 @@ def testSearchDiff(tempDir, mainWindow):
     searchBar.lineEdit.setFocus()
     if QT5:  # Qt5 is somehow finicky here (else-branch works perfectly in Qt6) - not important enough to troubleshoot - Qt5 is on the way out
         searchBar.lineEdit.setText("MadeUpGarbage")
+        QTest.qWait(0)
         assert searchBar.isRed()
         searchBar.ui.forwardButton.click()
     else:
         assert searchBar.lineEdit.hasSelectedText()  # hitting ctrl+f should reselect text
         QTest.keyClicks(searchLine, "MadeUpGarbage")
+        QTest.qWait(0)
         assert searchBar.lineEdit.text() == "MadeUpGarbage"
         assert searchBar.isRed()
         QTest.keyClick(searchLine, Qt.Key.Key_Return)

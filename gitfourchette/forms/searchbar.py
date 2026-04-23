@@ -42,10 +42,10 @@ class SearchBar(QWidget):
     stops typing.
     """
 
-    nextDebounceAllowJump: bool
+    autoJumpWhenResultsComeIn: bool
     """
-    If True, debouncing will select the next occurrence of the search term, if
-    found. Otherwise, the search term will be reevaluated without changing the
+    If True, debouncing will jump to an occurrence of the search term, if found.
+    Otherwise, the search term will be reevaluated without changing the
     selection. This flag is reset to True whenever a debounce is rescheduled.
     """
 
@@ -101,7 +101,7 @@ class SearchBar(QWidget):
         self.debounceTimer.setInterval(self.DebounceDelayMs if not APP_TESTMODE else 0)
         self.debounceTimer.timeout.connect(self.onDebounce)
 
-        self.nextDebounceAllowJump = True
+        self.autoJumpWhenResultsComeIn = True
 
         tweakWidgetFont(self.ui.lineEdit, 85)
         tweakWidgetFont(self.ui.filterCheckBox, 85)
@@ -131,31 +131,38 @@ class SearchBar(QWidget):
         self.debounceTimer.stop()
         self.hideToolTip()
 
+        # We're here because the user has hit the return key, and...
+        # ...the query is still running, so tell user to chill
         if self.provider.status() == SearchProvider.TermStatus.Loading:
-            # User is spamming return key while query is still ongoing
             self.showToolTip(_("Please wait…"))
-            return
 
-        if wasAwaitingDebounce:
-            # Expedite debounce callback
-            self.debounceTimer.timeout.emit()
-            return
+        # ...user is in a hurry, expedite debounce
+        elif wasAwaitingDebounce:
+            self.onDebounce(forward)
 
-        if not self.provider.isEmpty() and not self.provider.isBad():
+        # ...we know there are matches, so jump to next match
+        elif self.provider.isGoodAndNonEmpty():
             self.provider.jump(forward)
 
-        if self.provider.isEmpty():
+        # ...the search term is empty, so quack at user
+        elif self.provider.isEmpty():
             QApplication.beep()
+
+        # ...there are no results, so tell user about it explicitly
         elif self.provider.isBad():
             self.showToolTip(self.provider.notFoundMessage())
 
-    def onDebounce(self):
+    def onDebounce(self, forwardHint: bool = True):
         assert self.isVisible(), "don't debounce while invisible"
+        assert self.provider.status() != SearchProvider.TermStatus.Loading
+        if self.provider.isEmpty() or self.provider.isBad():
+            return
 
         self.hideToolTip()
 
-        if not self.provider.isEmpty() and not self.provider.isBad():
-            self.provider.debounce(self.nextDebounceAllowJump)
+        # Prime the search. This may emit provider.statusChanged, which is bound
+        # to onProviderStatusChanged.
+        self.provider.prime(forwardHint)
 
     def showEvent(self, event: QShowEvent):
         self.provider.freeze(False)
@@ -203,7 +210,7 @@ class SearchBar(QWidget):
         self.provider.setTerm(text)
 
         # Schedule a debounce
-        self.nextDebounceAllowJump = True
+        self.autoJumpWhenResultsComeIn = True
         self.debounceTimer.start()
 
     def onFilterCheckBoxToggled(self):
@@ -220,7 +227,7 @@ class SearchBar(QWidget):
         # Re-evaluate search term. This will schedule a debounce,
         # but prevent the subsequent jump.
         self.onSearchTextChanged(self.rawSearchTerm)
-        self.nextDebounceAllowJump = False
+        self.autoJumpWhenResultsComeIn = False
 
     def isRed(self) -> bool:
         return "true" == self.property("red")
@@ -239,6 +246,14 @@ class SearchBar(QWidget):
 
         with QSignalBlockerContext(self.ui.filterCheckBox):
             self.ui.filterCheckBox.setVisible(self.provider.canFilter())
+
+        # If good search results just came in, jump to the next match
+        # ...unless current selection already matches
+        # ...unless an old search term is being reevaluated "passively"
+        if (status == SearchProvider.TermStatus.Good
+                and not self.provider.isCurrentMatch()
+                and self.autoJumpWhenResultsComeIn):
+            self.provider.jump(True)
 
     def showToolTip(self, text: str):
         pos = QPoint(0, 0)
