@@ -8,6 +8,7 @@ import os.path
 
 from gitfourchette.blameview.blamewindow import BlameWindow
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
+from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.settings import FileListClick
@@ -215,15 +216,15 @@ def testSearchFileList(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-
-    rw.jump(NavLocator.inCommit(oid))
-    assert rw.committedFiles.isVisibleTo(rw)
-    rw.committedFiles.setFocus()
-    QTest.keySequence(rw.committedFiles, QKeySequence.StandardKey.Find)
-
     fileList = rw.committedFiles
     searchBar = fileList.searchBar
-    assert searchBar.isVisibleTo(rw)
+
+    rw.jump(NavLocator.inCommit(oid))
+    assert fileList.isVisible()
+    fileList.setFocus()
+    QTest.keySequence(fileList, QKeySequence.StandardKey.Find)
+
+    assert searchBar.isVisible()
     searchBar.lineEdit.setText(".txt")
     QTest.qWait(0)
     assert not searchBar.isRed()
@@ -233,13 +234,13 @@ def testSearchFileList(tempDir, mainWindow):
     keyPrev = GlobalShortcuts.findPrevious[0]
 
     assert qlvGetSelection(fileList) == ["a/a1.txt"]
-    QTest.keySequence(rw, keyNext)
+    QTest.keySequence(searchBar, keyNext)
     assert qlvGetSelection(fileList) == ["a/a2.txt"]
-    QTest.keySequence(rw, keyNext)
+    QTest.keySequence(searchBar, keyNext)
     assert qlvGetSelection(fileList) == ["master.txt"]
-    QTest.keySequence(rw, keyNext)
+    QTest.keySequence(searchBar, keyNext)
     assert qlvGetSelection(fileList) == ["a/a1.txt"]  # wrap around
-    QTest.keySequence(rw, keyPrev)
+    QTest.keySequence(searchBar, keyPrev)
     assert qlvGetSelection(fileList) == ["master.txt"]
 
     searchBar.lineEdit.setText("a2")
@@ -250,16 +251,14 @@ def testSearchFileList(tempDir, mainWindow):
     QTest.qWait(0)
     assert searchBar.isRed()
 
-    QTest.keySequence(rw, keyNext)
-    dismissToolTip("no results")
+    for nextOrPrev in [keyNext, keyPrev]:
+        QTest.keySequence(searchBar, nextOrPrev)
+        if SearchBar.MacToolTipQuirks:  # macOS tooltip quirks
+            QTest.qWait(0)
 
-    QTest.keySequence(rw, keyPrev)
-    dismissToolTip("no results")
+        dismissToolTip("no results")
+        assert searchBar.isRed()
 
-    if QT5:
-        # TODO: Can't get Qt 5 unit tests to hide the searchbar this way, but it does work manually.
-        # Qt 5 is on the way out so it's not worth troubleshooting this.
-        return
     fileList.setFocus()
     QTest.keyClick(fileList, Qt.Key.Key_Escape)
     assert not searchBar.isVisible()
@@ -288,26 +287,30 @@ def testSearchEmptyFileList(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     with RepoContext(wd) as repo:
         oid = repo.create_commit_on_head("EMPTY COMMIT")
+
     rw = mainWindow.openRepo(wd)
-
-    rw.jump(NavLocator.inCommit(oid))
-    assert rw.committedFiles.isVisibleTo(rw)
-    assert not qlvGetRowData(rw.committedFiles)
-    rw.committedFiles.setFocus()
-    QTest.keySequence(rw, QKeySequence.StandardKey.Find)
-
     fileList = rw.committedFiles
     searchBar = fileList.searchBar
-    assert searchBar.isVisibleTo(rw)
+
+    rw.jump(NavLocator.inCommit(oid))
+    assert fileList.isVisible()
+    assert not qlvGetRowData(fileList)
+    fileList.setFocus()
+    QTest.keySequence(rw, QKeySequence.StandardKey.Find)
+
+    assert searchBar.isVisible()
     searchBar.lineEdit.setText("blah.txt")
     QTest.qWait(0)
     assert searchBar.isRed()
 
-    QTest.keySequence(rw, GlobalShortcuts.findNext[0])
-    dismissToolTip("no results")
-
-    QTest.keySequence(rw, GlobalShortcuts.findPrevious[0])
-    dismissToolTip("no results")
+    keyNext = GlobalShortcuts.findNext[0]
+    keyPrev = GlobalShortcuts.findPrevious[0]
+    for nextOrPrev in [keyNext, keyPrev]:
+        QTest.keySequence(searchBar, nextOrPrev)
+        if SearchBar.MacToolTipQuirks:  # macOS tooltip quirks
+            QTest.qWait(0)
+        dismissToolTip("no results")
+        assert searchBar.isRed()
 
 
 def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):

@@ -190,6 +190,7 @@ def testCommitSearchByHash(tempDir, mainWindow):
     # Hit enter to bring up an error.
     assert not QToolTip.isVisible()
     QTest.keyClick(searchEdit, Qt.Key.Key_Return)
+    QTest.qWait(0)  # Mac compat
     dismissToolTip("no results")
 
 

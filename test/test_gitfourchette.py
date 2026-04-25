@@ -186,6 +186,7 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
     QTest.keyClicks(rw.graphView.searchBar.lineEdit, "first c/c1, no parent")
     waitUntilTrue(rw.graphView.searchBar.isRed)
     QTest.keyClick(rw.graphView.searchBar.lineEdit, Qt.Key.Key_Return)
+    QTest.qWait(0)  # Mac compat
     dismissToolTip("no results.+truncated")
     rw.graphView.searchBar.ui.closeButton.click()
 

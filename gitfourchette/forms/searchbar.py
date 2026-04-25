@@ -24,6 +24,7 @@ class SearchBar(QWidget):
         Previous = enum.auto()
 
     DebounceDelayMs = 250
+    MacToolTipQuirks = MACOS
     _ToolTipTag = "<!--SearchBarToolTip-->"
 
     buddy: QWidget
@@ -111,11 +112,21 @@ class SearchBar(QWidget):
         makeWidgetShortcut(self, self.onShiftEnterShortcut, "Shift+Return", "Shift+Enter", context=withChildren)
         makeWidgetShortcut(self, self.bail, "Escape", context=withChildren)
 
+        if SearchBar.MacToolTipQuirks:
+            self.trapNextToolTip = False
+            self.trappedToolTip = ""
+
     def onEnterShortcut(self):
+        if SearchBar.MacToolTipQuirks:
+            self.trapNextToolTip = True
+
         self.lineEdit.selectAll()
         self.runSearchForward()
 
     def onShiftEnterShortcut(self):
+        if SearchBar.MacToolTipQuirks:
+            self.trapNextToolTip = True
+
         self.lineEdit.selectAll()
         self.runSearchBackward()
 
@@ -256,6 +267,14 @@ class SearchBar(QWidget):
             self.provider.jump(True)
 
     def showToolTip(self, text: str):
+        # On macOS, Qt kills tooltips on keyup.
+        # So, if enter key is down, stash tooltip until keyup.
+        if SearchBar.MacToolTipQuirks:
+            if self.trapNextToolTip:
+                self.trappedToolTip = text
+                return
+            self.trappedToolTip = ""
+
         pos = QPoint(0, 0)
 
         # Hack: when the cursor is "above" the tooltip, then Qt makes the
@@ -268,8 +287,19 @@ class SearchBar(QWidget):
         QToolTip.showText(pos, f"<p style='white-space: pre;'>{text}{self._ToolTipTag}", self)
 
     def hideToolTip(self):
+        if SearchBar.MacToolTipQuirks:
+            self.trappedToolTip = ""
+
         if QToolTip.isVisible() and QToolTip.text().endswith(self._ToolTipTag):
             QToolTip.hideText()
+
+    if MacToolTipQuirks:
+        # Schedule a tooltip that was trapped while the enter key was down.
+        def keyReleaseEvent(self, event: QKeyEvent):
+            super().keyReleaseEvent(event)
+            self.trapNextToolTip = False
+            if self.trappedToolTip:
+                QTimer.singleShot(0, lambda t=self.trappedToolTip: self.showToolTip(t))
 
     @staticmethod
     def highlightNeedle(painter: QPainter, rect: QRect, text: str,
