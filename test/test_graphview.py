@@ -113,6 +113,30 @@ def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     assert not searchBar.isVisible()
 
 
+def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    gv = rw.graphView
+    searchBar = gv.searchBar
+    filterState = rw.repoModel.commitPathspecFilter
+
+    oldHeadId = rw.repo.head_commit_id
+
+    QTest.keySequence(mainWindow, "Ctrl+F")
+    assert searchBar.isVisible()
+
+    assert not filterState.isReady()
+    QTest.keyClicks(searchBar.lineEdit, "/f c/c2-2.txt")
+    waitUntilTrue(filterState.isReady)
+    assert oldHeadId in filterState.matchingIds
+
+    with RepoContext(wd) as repo:
+        newHeadId = repo.amend_commit_on_head("amending and still deleting the file we're looking for", TEST_SIGNATURE, TEST_SIGNATURE)
+    rw.refreshRepo()
+    assert oldHeadId not in filterState.matchingIds
+    assert newHeadId in filterState.matchingIds
+
+
 def testJumpToHiddenRows(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/unstaged.txt", "hello")

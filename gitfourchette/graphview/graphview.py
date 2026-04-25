@@ -81,7 +81,14 @@ class GraphView(QListView):
         searchProvider = CommitSearch(repoModel.commitPathspecFilter, self)
         self.searchBar = SearchBar(self, searchProvider)
         self.searchBar.hide()
-        self.clFilter.rowsAboutToBeInserted.connect(searchProvider.invalidate)
+
+        # Invalidate the search when new commits trickle in at the top of the
+        # graph. Connect the callback to clModel, not clFilter, so that:
+        # a) CommitFileSearch gets to report that more results may be available
+        #    in hidden branches;
+        # b) Invalidating clFilter doesn't trash the search results, e.g. when
+        #    toggling the 'Filter' checkbox.
+        self.clModel.rowsInserted.connect(self.searchBar.reevaluateSearchTerm)
 
         def onStatusChanged(s: SearchProvider.TermStatus):
             self.viewport().update()

@@ -89,6 +89,10 @@ class CommitSearch(ItemViewSearchProvider):
     # -------------------------------------------------------------------------
     # SearchProvider implementation
 
+    def invalidate(self):
+        self._pathspecFilter.clear()
+        super().invalidate()
+
     def canFilter(self) -> bool:
         return self._term.startswith(self.PathspecPrefix)
 
