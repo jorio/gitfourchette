@@ -147,9 +147,11 @@ def testJumpToHiddenRows(tempDir, mainWindow):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
-    searchBar.ui.filterCheckBox.setChecked(True)
 
     QTest.keyClicks(searchBar.lineEdit, "/f wontmatch")
+    assert searchBar.ui.filterCheckBox.isVisible()
+    searchBar.ui.filterCheckBox.setChecked(True)
+
     waitUntilTrue(filterState.isReady)
     assert gv.clFilter.rowCount() == 0
 

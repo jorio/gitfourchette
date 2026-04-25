@@ -13,19 +13,21 @@ from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogfilter import CommitLogFilter
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
+from gitfourchette.graphview.commitfilesearch import CommitFileSearch
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, GpgStatus, RepoModel
-from gitfourchette.graphview.commitsearch import CommitSearch
-from gitfourchette.search.searchprovider import SearchProvider
+from gitfourchette.graphview.commitinfosearch import CommitInfoSearch
 from gitfourchette.tasks import *
 from gitfourchette.tasks.exporttasks import ExportABDiffAsPatch
 from gitfourchette.toolbox import *
 
 
 class GraphView(QListView):
+    FileSearchPrefix = "/f"
+
     linkActivated = Signal(str)
     statusMessage = Signal(str)
 
@@ -78,8 +80,12 @@ class GraphView(QListView):
         # --------------
         # SearchBar
 
-        searchProvider = CommitSearch(repoModel.commitPathspecFilter, self)
-        self.searchBar = SearchBar(self, searchProvider)
+        infoSearch = CommitInfoSearch(self)
+        fileSearch = CommitFileSearch(self)
+
+        self.searchBar = SearchBar(self)
+        self.searchBar.installProvider(infoSearch)
+        self.searchBar.installProvider(fileSearch, GraphView.FileSearchPrefix)
         self.searchBar.hide()
 
         # Invalidate the search when new commits trickle in at the top of the
@@ -90,23 +96,23 @@ class GraphView(QListView):
         #    toggling the 'Filter' checkbox.
         self.clModel.rowsInserted.connect(self.searchBar.reevaluateSearchTerm)
 
-        def onStatusChanged(s: SearchProvider.TermStatus):
+        def onFileSearchStatusChanged(s: CommitInfoSearch.TermStatus):
             self.viewport().update()
-            if searchProvider._wantFilter:
+            if fileSearch._wantFilter:
                 self.clFilter.invalidateFilter()
-        searchProvider.statusChanged.connect(onStatusChanged)
+        fileSearch.statusChanged.connect(onFileSearchStatusChanged)
 
         searchPlaceholder = "|".join([
             _("Find commit hash, message or author. Type {f} to find commits touching files."),
             _("Find commit ({f} to find files in commits)"),
             _("Find commit")])
-        searchPlaceholder = searchPlaceholder.format(f=tquo(searchProvider.PathspecPrefix))
+        searchPlaceholder = searchPlaceholder.format(f=tquo(GraphView.FileSearchPrefix))
         searchPlaceholder = toLengthVariants(searchPlaceholder)
         self.searchBar.ui.lineEdit.setPlaceholderText(searchPlaceholder)
 
         # --------------
 
-        self.clDelegate = CommitLogDelegate(self.repoModel, searchProvider, parent=self)
+        self.clDelegate = CommitLogDelegate(self.repoModel, infoSearch, parent=self)
         self.setItemDelegate(self.clDelegate)
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)

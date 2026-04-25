@@ -7,6 +7,7 @@
 from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
 
 import enum
+import logging
 
 from gitfourchette import colors
 from gitfourchette.forms.ui_searchbar import Ui_SearchBar
@@ -15,6 +16,8 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.search.searchprovider import SearchProvider
 from gitfourchette.toolbox import *
+
+logger = logging.getLogger(__name__)
 
 
 class SearchBar(QWidget):
@@ -32,9 +35,17 @@ class SearchBar(QWidget):
     Widget in which the search is carried out.
     """
 
-    provider: SearchProvider
+    provider: SearchProvider | None
     """
+    Current search provider.
     Receives the search term as input, performs the actual search.
+    """
+
+    providers: dict[str, SearchProvider]
+    """
+    All search providers supported by this search bar.
+    Indexed by prefixes (e.g. "/f" selects CommitFileSearch in GraphView).
+    The empty prefix is the default.
     """
 
     debounceTimer: QTimer
@@ -62,14 +73,14 @@ class SearchBar(QWidget):
     def buttons(self):
         return self.ui.forwardButton, self.ui.backwardButton, self.ui.closeButton, self.ui.filterCheckBox
 
-    def __init__(self, buddy: QWidget, provider: SearchProvider):
+    def __init__(self, buddy: QWidget):
         super().__init__(buddy)
 
         self.setObjectName(f"SearchBar({buddy.objectName()})")
-        self.provider = provider
         self.buddy = buddy
 
-        self.provider.statusChanged.connect(self.onProviderStatusChanged)
+        self.provider = None
+        self.providers = {}
 
         self.ui = Ui_SearchBar()
         self.ui.setupUi(self)
@@ -115,6 +126,14 @@ class SearchBar(QWidget):
         if SearchBar.MacToolTipQuirks:
             self.trapNextToolTip = False
             self.trappedToolTip = ""
+
+    def installProvider(self, provider: SearchProvider, selectorPrefix: str = ""):
+        provider.statusChanged.connect(self.onProviderStatusChanged)
+        provider.freeze(True)  # Freeze until in active use
+        self.providers[selectorPrefix] = provider
+
+        if self.provider is None:  # Set first provider
+            self._setProvider(provider)
 
     def onEnterShortcut(self):
         if SearchBar.MacToolTipQuirks:
@@ -218,11 +237,37 @@ class SearchBar(QWidget):
         assert self.isVisible()
         self.hideToolTip()
 
-        self.provider.setTerm(text)
+        # Find search provider by prefix
+        lcText = text.lower()
+        prefix = next((p for p in self.providers if p and lcText.startswith(p)), "")
+        text = text[len(prefix):]
+        provider = self.providers[prefix]
+
+        # Switch to provider and set text in it
+        self._setProvider(provider)
+        provider.setTerm(text)
 
         # Schedule a debounce
         self.autoJumpWhenResultsComeIn = True
         self.debounceTimer.start()
+
+    def _setProvider(self, provider: SearchProvider):
+        assert provider in self.providers.values(), "you must register the provider first"
+        oldProvider = self.provider
+
+        if provider is oldProvider:
+            return
+
+        if oldProvider is not None:
+            # Freeze it when not in use
+            with QSignalBlockerContext(oldProvider):
+                oldProvider.freeze(True)
+
+        logger.debug(f"Swapping provider to {provider}")
+
+        self.provider = provider
+        self.ui.filterCheckBox.setVisible(provider.canFilter())
+        provider.freeze(False)
 
     def onFilterCheckBoxToggled(self):
         assert self.isVisible()
@@ -254,9 +299,6 @@ class SearchBar(QWidget):
 
         loupeIcon = "magnifying-glass-wait" if status == SearchProvider.TermStatus.Loading else "magnifying-glass"
         self.loupe.setIcon(stockIcon(loupeIcon))
-
-        with QSignalBlockerContext(self.ui.filterCheckBox):
-            self.ui.filterCheckBox.setVisible(self.provider.canFilter())
 
         # If good search results just came in, jump to the next match
         # ...unless current selection already matches

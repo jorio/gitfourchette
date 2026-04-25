@@ -68,7 +68,8 @@ class CodeView(QPlainTextEdit):
 
         searchProvider = CodeSearch(self)
 
-        self.searchBar = SearchBar(self, searchProvider)
+        self.searchBar = SearchBar(self)
+        self.searchBar.installProvider(searchProvider)
         self.searchBar.hide()
         self.searchBar.ui.lineEdit.setPlaceholderText(_("Find code"))
 

@@ -13,12 +13,12 @@ from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow, CommitToolTipZone
+from gitfourchette.graphview.commitinfosearch import CommitInfoSearch
 from gitfourchette.graphview.graphpaint import paintGraphFrame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, UC_FAKEREF, RepoModel, GpgStatus
-from gitfourchette.search.searchprovider import SearchProvider
 from gitfourchette.toolbox import *
 
 
@@ -77,13 +77,13 @@ class CommitLogDelegate(QStyledItemDelegate):
     def __init__(
             self,
             repoModel: RepoModel,
-            searchProvider: SearchProvider | None = None,
+            infoSearch: CommitInfoSearch | None = None,
             parent: QWidget | None = None,
     ):
         super().__init__(parent)
 
         self.repoModel = repoModel
-        self.searchProvider = searchProvider
+        self.infoSearch = infoSearch
 
         self.mustRefreshMetrics = True
         self.hashCharWidth = 0
@@ -98,7 +98,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
     def prepareForDeletion(self):
         del self.repoModel
-        del self.searchProvider
+        del self.infoSearch
         del self.mounts
 
     def invalidateMetrics(self):
@@ -208,9 +208,9 @@ class CommitLogDelegate(QStyledItemDelegate):
                 if author.time != committer.time:
                     dateText += "*"
 
-            if self.searchProvider:
-                searchTerm = self.searchProvider.term()
-                searchTermLooksLikeHash = self.searchProvider._likelyHash
+            if self.infoSearch is not None:
+                searchTerm = self.infoSearch.term()
+                searchTermLooksLikeHash = self.infoSearch.likelyHash
             else:
                 searchTerm = ""
                 searchTermLooksLikeHash = False

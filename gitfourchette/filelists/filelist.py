@@ -161,12 +161,13 @@ class FileList(QListView):
         searchProvider = ItemViewSearchProvider(self)
         searchProvider.dataRole = FileListModel.Role.FilePath
 
-        self.searchBar = SearchBar(self, searchProvider)
+        self.searchBar = SearchBar(self)
+        self.searchBar.installProvider(searchProvider)
         self.searchBar.ui.lineEdit.setPlaceholderText(toLengthVariants(_("Find file by path|Find file")))
         self.searchBar.ui.forwardButton.hide()
         self.searchBar.ui.backwardButton.hide()
         self.searchBar.hide()
-        flModel.modelAboutToBeReset.connect(searchProvider.invalidate)
+        flModel.modelAboutToBeReset.connect(self.searchBar.reevaluateSearchTerm)
 
         # Search result highlighter
         self.setItemDelegate(FileListDelegate(self))
