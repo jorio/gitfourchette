@@ -50,7 +50,12 @@ class CommitFileSearch(ItemViewSearchProvider):
     # SearchProvider implementation
 
     def invalidate(self):
+        wasFiltering = self._pathspecFilter.wantFilter() and self._pathspecFilter.isReady()
+        self._buddy.repoWidget.taskRunner.killTaskClass(QueryCommitsTouchingPath)
         self._pathspecFilter.clear()
+        if wasFiltering:
+            self._buddy.clFilter.invalidateFilter()
+
         super().invalidate()
 
     def canFilter(self) -> bool:
@@ -71,13 +76,6 @@ class CommitFileSearch(ItemViewSearchProvider):
         assert self._term
         self.setStatus(self.TermStatus.Loading)
         QueryCommitsTouchingPath.invoke(self._buddy, self._term, self._onFileSearchComplete)
-
-    def _cancel(self):
-        # This will squelch _onFileSearchComplete
-        # TODO: Keep track of the task and interrupt it
-        self._pathspecFilter.clear()
-        if self._wantFilter:
-            self._buddy.clFilter.invalidateFilter()
 
     def _onFileSearchComplete(self):
         assert not self._frozen

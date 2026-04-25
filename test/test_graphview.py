@@ -11,6 +11,7 @@ from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavLocator
+from gitfourchette.tasks import QueryCommitsTouchingPath
 from .util import *
 
 
@@ -135,6 +136,59 @@ def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
     rw.refreshRepo()
     assert oldHeadId not in filterState.matchingIds
     assert newHeadId in filterState.matchingIds
+
+
+def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
+    wd = unpackRepo(tempDir)
+    mainWindow.openRepo(wd)
+    rw = waitForRepoWidget(mainWindow)
+    gv = rw.graphView
+    searchBar = gv.searchBar
+
+    a1Locator = NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1")
+
+    QTest.keySequence(mainWindow, "Ctrl+F")
+    assert searchBar.isVisible()
+
+    def isShowingBusySearchIcon():
+        return "magnifying-glass-wait" in searchBar.loupe.icon().name()
+
+    def kickOffLongSearch():
+        with DelayGitCommandContext(delay=30):
+            assert not rw.taskRunner.isBusy()
+            QTest.keyClicks(searchBar.lineEdit, "/f c/c2-2.txt")
+            waitUntilTrue(rw.taskRunner.isBusy)
+        assert isShowingBusySearchIcon()
+        assert isinstance(rw.taskRunner.currentTask, QueryCommitsTouchingPath)
+
+    # Kick off a long search for c/c2-2.txt
+    kickOffLongSearch()
+    assert rw.navLocator.context.isWorkdir()  # did not jump yet
+
+    # Interrupt current query by initiating a new search and let it finish
+    searchBar.lineEdit.selectAll()
+    QTest.keyClicks(searchBar.lineEdit, "/f a/a1")
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert not isShowingBusySearchIcon()
+    assert a1Locator.isSimilarEnoughTo(rw.navLocator)
+
+    # Search for c/c2-2.txt again
+    kickOffLongSearch()
+
+    # Interrupt current query by clearing the text
+    searchBar.lineEdit.clear()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert not isShowingBusySearchIcon()
+    assert a1Locator.isSimilarEnoughTo(rw.navLocator)
+
+    # Search for c/c2-2.txt again
+    kickOffLongSearch()
+
+    # Interrupt current query by clearing the text
+    searchBar.hideOrBeep()
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert not isShowingBusySearchIcon()
+    assert a1Locator.isSimilarEnoughTo(rw.navLocator)
 
 
 def testJumpToHiddenRows(tempDir, mainWindow):

@@ -44,7 +44,7 @@ class SearchProvider(QObject):
     def freeze(self, frozen: bool):
         self._frozen = frozen
         if frozen:
-            self._cancel()
+            self.invalidate()
 
     def setFilterState(self, checked: bool):
         self._wantFilter = checked
@@ -102,9 +102,6 @@ class SearchProvider(QObject):
 
     def canFilter(self) -> bool:
         return False
-
-    def _cancel(self):
-        pass
 
     def notFoundMessage(self) -> str:
         return _("No results")

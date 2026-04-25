@@ -248,8 +248,9 @@ class SearchBar(QWidget):
         provider.setTerm(text)
 
         # Schedule a debounce
-        self.autoJumpWhenResultsComeIn = True
-        self.debounceTimer.start()
+        if provider.term():
+            self.autoJumpWhenResultsComeIn = True
+            self.debounceTimer.start()
 
     def _setProvider(self, provider: SearchProvider):
         assert provider in self.providers.values(), "you must register the provider first"
@@ -268,6 +269,10 @@ class SearchBar(QWidget):
         self.provider = provider
         self.ui.filterCheckBox.setVisible(provider.canFilter())
         provider.freeze(False)
+
+        # Update styling
+        self.autoJumpWhenResultsComeIn = False
+        self.onProviderStatusChanged(provider.status())
 
     def onFilterCheckBoxToggled(self):
         assert self.isVisible()

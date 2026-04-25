@@ -22,7 +22,8 @@ class CodeSearch(SearchProvider):
         super().__init__(parent)
         self._buddy = parent
 
-    def _cancel(self):
+    def invalidate(self):
+        super().invalidate()
         self._buddy.highlighter.setSearchTerm("")
 
     def _termChanged(self):

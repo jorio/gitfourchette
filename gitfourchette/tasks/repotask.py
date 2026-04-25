@@ -862,6 +862,17 @@ class RepoTaskRunner(QObject):
             self._interruptCurrentTask = True
             ToolCommands.terminatePlus(self._currentTask.currentProcess)
 
+    def killTaskClass(self, taskClass: type[RepoTask]):
+        """
+        Interrupt any current or pending task of the given class.
+        """
+        # Purge pending task first
+        if isinstance(self._pendingTask, taskClass):
+            self._releasePendingTask()
+        # Then kill current task
+        if isinstance(self._currentTask, taskClass):
+            self.killCurrentTask()
+
     def joinKilledTask(self):
         """
         Block UI thread until the current task that is being interrupted is dead.
