@@ -638,7 +638,7 @@ class RepoModel:
         # File has no uncommitted changes
         return None
 
-    def workdirMatchesPathNeedle(self, needleLower: str):
+    def workdirMatchesPathNeedle(self, needleLower: str) -> GitDelta | None:
         """
         Match a repo-relative path against the same pattern style as
         `git log -- <pathspec>` for common cases: substring, or fnmatch when the
@@ -648,7 +648,7 @@ class RepoModel:
         assert needleLower == needleLower.lower()
 
         if not needleLower or not self.workdirStatusReady:
-            return False
+            return None
 
         useFnmatch = any(c in needleLower for c in "*?[")
 
@@ -657,11 +657,11 @@ class RepoModel:
                 path = path.lower()
                 if useFnmatch:
                     if fnmatch.fnmatch(path, needleLower):
-                        return True
+                        return delta
                     base = path.rsplit("/", 1)[-1]
                     if fnmatch.fnmatch(base, needleLower):
-                        return True
+                        return delta
                 elif needleLower in path:
-                    return True
+                    return delta
 
-        return False
+        return None

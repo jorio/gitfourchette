@@ -4,8 +4,10 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import fnmatch
 import logging
 from collections.abc import Iterable
+from contextlib import suppress
 from typing import Any
 
 from gitfourchette import settings
@@ -299,3 +301,14 @@ class FileListModel(QAbstractListModel):
         Return True if the given path is present in this model.
         """
         return path in self.fileRows
+
+    def fnmatch(self, pattern: str) -> str:
+        with suppress(StopIteration):
+            return next(d.new.path for d in self.deltas
+                        if fnmatch.fnmatch(d.new.path, pattern))
+
+        with suppress(StopIteration):
+            return next(d.new.path for d in self.deltas
+                        if fnmatch.fnmatch(d.old.path, pattern))
+
+        return ""

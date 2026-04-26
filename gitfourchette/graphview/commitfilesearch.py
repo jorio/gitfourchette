@@ -9,12 +9,13 @@ from __future__ import annotations  # TODO: Remove once we can drop support for 
 import typing
 from collections.abc import Iterable
 
-from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.graphview.commitinfosearch import CommitInfoSearch
+from gitfourchette.graphview.commitlogmodel import CommitLogModel
+from gitfourchette.nav import NavLocator, NavFlags
 from gitfourchette.qt import *
-from gitfourchette.repomodel import CommitPathspecFilter
+from gitfourchette.repomodel import CommitPathspecFilter, UC_FAKEID
 from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
-from gitfourchette.tasks import QueryCommitsTouchingPath
+from gitfourchette.tasks import QueryCommitsTouchingPath, Jump
 
 if typing.TYPE_CHECKING:
     from gitfourchette.graphview.graphview import GraphView
@@ -60,6 +61,15 @@ class CommitFileSearch(ItemViewSearchProvider):
                 return index
 
         raise KeyError()
+
+    def _jumpToIndex(self, index: QModelIndex):
+        oid = self.buddyModel.data(index, CommitLogModel.Role.Oid)
+        if oid == UC_FAKEID:
+            delta = self._buddy.repoModel.workdirMatchesPathNeedle(self._term)
+            locator = NavLocator(delta.context, oid, delta.new.path)
+        else:
+            locator = NavLocator.inCommit(oid, self._term).withExtraFlags(NavFlags.FuzzyPath)
+        Jump.invoke(self._buddy, locator)
 
     # -------------------------------------------------------------------------
     # SearchProvider implementation

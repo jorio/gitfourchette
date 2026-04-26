@@ -326,6 +326,8 @@ class Jump(RepoTask):
                 _("There aren’t any changes to commit."))
             raise Jump.Result(locator, header, sde)
 
+        assert not locator.hasFlags(NavFlags.FuzzyPath), "FuzzyPath should not occur in the workdir"
+
         # (Un)Staging a file makes it vanish from its file list.
         # But we don't want the selection to go blank in this case.
         # Restore selected row (by row number) in the file list so the user
@@ -492,6 +494,12 @@ class Jump(RepoTask):
                 _("This commit is empty."),
                 _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit))))
             raise Jump.Result(locator, header, sde)
+
+        # Try to resolve a fuzzy path (fnmatch)
+        if locator.path and locator.hasFlags(NavFlags.FuzzyPath):
+            resolvedPath = flv.flModel.fnmatch(locator.path)
+            locator = locator.replace(path=resolvedPath)
+            locator = locator.withoutFlags(NavFlags.FuzzyPath)
 
         return locator
 

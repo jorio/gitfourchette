@@ -81,9 +81,12 @@ class ItemViewSearchProvider(SearchProvider):
         self.setStatus(SearchProvider.TermStatus.Good)
 
         if jump:
-            self._buddy.setCurrentIndex(index)
+            self._jumpToIndex(index)
 
         return index.row()
+
+    def _jumpToIndex(self, index: QModelIndex):
+        self._buddy.setCurrentIndex(index)
 
     def _walkModelImpl(self, rows: Iterable[int]) -> QModelIndex:
         """

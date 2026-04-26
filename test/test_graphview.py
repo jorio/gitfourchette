@@ -214,6 +214,40 @@ def testCommitFileSearchReevaluatedOnWorkdirChange(tempDir, mainWindow):
     assert searchBar.isRed()
 
 
+def testCommitFileSearchJumpToFuzzyPath(tempDir, mainWindow):
+    loc0 = NavLocator.inUnstaged("b/b2.txt")
+    loc1 = NavLocator.inCommit(Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322"), "b/b2.txt")
+    loc2 = NavLocator.inCommit(Oid(hex="c070ad8c08840c8116da865b2d65593a6bb9cd2a"), "a/a2.txt")
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/aaaafirst", "hello")
+    writeFile(f"{wd}/b/b2.txt", "hello")
+
+    rw = mainWindow.openRepo(wd)
+    rm = rw.repoModel
+    gv = rw.graphView
+    searchBar = gv.searchBar
+
+    QTest.keySequence(mainWindow, "Ctrl+F")
+    assert searchBar.isVisible()
+
+    QTest.keyClicks(searchBar.lineEdit, "/f *[ab]2.txt")
+    waitUntilTrue(rm.commitPathspecFilter.isReady)
+
+    # TODO: When initiating a search, and the current commit matches, stay on the commit but jump to the file
+    assert rw.navLocator.context.isWorkdir()
+    searchBar.ui.forwardButton.click()
+    searchBar.ui.backwardButton.click()
+    assert loc0.isSimilarEnoughTo(rw.navLocator)
+
+    searchBar.ui.forwardButton.click()
+    assert loc1.isSimilarEnoughTo(rw.navLocator)
+
+    searchBar.ui.forwardButton.click()
+    searchBar.ui.forwardButton.click()
+    assert loc2.isSimilarEnoughTo(rw.navLocator)
+
+
 def testJumpToHiddenRows(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/unstaged.txt", "hello")

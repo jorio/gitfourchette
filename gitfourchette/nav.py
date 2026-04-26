@@ -44,6 +44,9 @@ class NavFlags(enum.IntFlag):
     ActivateWindow = enum.auto()
     "Bring window to the foreground after jumping to this location."
 
+    FuzzyPath = enum.auto()
+    "The path may contain wildcards and should be expanded with fnmatch."
+
     DefaultFlags = 0
 
     KeepFlagsOnRefresh = AllowWriteIndex | AllowLargeFiles
