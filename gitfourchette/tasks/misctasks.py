@@ -440,10 +440,18 @@ class QueryCommitsTouchingPath(RepoTask):
             logger.debug("Discarding stale pathspec filter result")
             return
 
+        # Evict commits we don't have in memory
+        oids.intersection_update(self.repoModel.graph.commitRows)
+
         self.epilog.status = _n(
-            "Found {n} commit touching {path}.",
-            "Found {n} commits touching {path}.",
-            n=len(oids), path=tquo(pathspec))
+            "Found {n} commit touching {path}{where}.",
+            "Found {n} commits touching {path}{where}.",
+            n=len(oids), path=tquo(pathspec),
+            where=_(" in the truncated history") if self.repoModel.truncatedHistory else "")
+
+        if (self.repoModel.hiddenCommits
+                and any(o in self.repoModel.hiddenCommits for o in oids)):
+            self.epilog.status += _(" More results in hidden branches.")
 
         cpf.matchingIds = oids
 
