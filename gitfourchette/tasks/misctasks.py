@@ -428,17 +428,15 @@ class QueryCommitsTouchingPath(RepoTask):
         # Can kill same class to replace stale query
         return isinstance(task, QueryCommitsTouchingPath)
 
-    def flow(self, pathspec: str, callback: Callable):
+    def flow(self, pathspec: str):
         cpf = self.repoModel.commitPathspecFilter
         cpf.clear()
         cpf.needle = pathspec
 
         oids = yield from self._findMatchingCommits(pathspec)
 
-        # When we return from git log, check if the user changed their mind about the search
-        if cpf.needle != pathspec:
-            logger.debug("Discarding stale pathspec filter result")
-            return
+        # Needle shouldn't have been tampered with while we were waiting on git
+        assert cpf.needle == pathspec
 
         # Evict commits we don't have in memory
         oids.intersection_update(self.repoModel.graph.commitRows)
@@ -459,7 +457,7 @@ class QueryCommitsTouchingPath(RepoTask):
         if self.repoModel.workdirMatchesPathNeedle(pathspec):
             cpf.matchingIds.add(UC_FAKEID)
 
-        callback()
+        cpf.resultsUpdated.emit()
 
     def _findMatchingCommits(self, pathspec: str
                              ) -> Generator[FlowControlToken, None, set[Oid]]:

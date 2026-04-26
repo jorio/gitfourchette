@@ -96,12 +96,6 @@ class GraphView(QListView):
         #    toggling the 'Filter' checkbox.
         self.clModel.rowsInserted.connect(self.searchBar.reevaluateSearchTerm)
 
-        def onFileSearchStatusChanged(s: CommitInfoSearch.TermStatus):
-            self.viewport().update()
-            if fileSearch._wantFilter:
-                self.clFilter.invalidateFilter()
-        fileSearch.statusChanged.connect(onFileSearchStatusChanged)
-
         searchPlaceholder = "|".join([
             _("Find commit hash, message or author. Type {f} to find commits touching files."),
             _("Find commit ({f} to find files in commits)"),

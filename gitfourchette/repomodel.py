@@ -15,6 +15,7 @@ from gitfourchette.appconsts import *
 from gitfourchette.gitdriver import GitDelta
 from gitfourchette.graph import Graph, GraphSpliceLoop, MockCommit
 from gitfourchette.porcelain import *
+from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
 from gitfourchette.toolbox import *
 
@@ -73,12 +74,15 @@ _GpgStatusIconTable = {
 }
 
 
-class CommitPathspecFilter:
+class CommitPathspecFilter(QObject):
+    resultsUpdated = Signal()
+
     needle: str
     matchingIds: set[Oid] | None
     filterOnly: bool
 
-    def __init__(self):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.clear()
 
     def clear(self):
@@ -225,6 +229,7 @@ class RepoModel:
         self.syncUpstreams()
 
     def __del__(self):
+        self.commitPathspecFilter.deleteLater()
         logger.debug("__del__ RepoModel")
 
     @property

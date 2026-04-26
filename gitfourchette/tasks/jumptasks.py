@@ -25,7 +25,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import NULL_OID, Oid, commit_diff_pair
 from gitfourchette.qt import *
-from gitfourchette.repomodel import UC_FAKEREF
+from gitfourchette.repomodel import UC_FAKEREF, UC_FAKEID
 from gitfourchette.tasks import TaskPrereqs
 from gitfourchette.tasks.loadtasks import LoadPatch, TMultiDiffDocument
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken
@@ -121,6 +121,19 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     repoModel.workdirStagedDeltas = stagedDeltas
     repoModel.workdirNumChanges = numEntries
     repoModel.workdirStatusReady = True
+
+    # Update pathspec filter
+    cpf = repoModel.commitPathspecFilter
+    if not cpf.needle:
+        pass
+    elif repoModel.workdirMatchesPathNeedle(cpf.needle):
+        if UC_FAKEID not in cpf.matchingIds:
+            cpf.matchingIds.add(UC_FAKEID)
+            cpf.resultsUpdated.emit()
+    else:
+        if UC_FAKEID in cpf.matchingIds:
+            cpf.matchingIds.remove(UC_FAKEID)
+            cpf.resultsUpdated.emit()
 
     # Refresh libgit2 index after git status is complete
     repoModel.repo.refresh_index()

@@ -191,6 +191,29 @@ def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
     assert a1Locator.isSimilarEnoughTo(rw.navLocator)
 
 
+def testCommitFileSearchReevaluatedOnWorkdirChange(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    rm = rw.repoModel
+    gv = rw.graphView
+    searchBar = gv.searchBar
+
+    QTest.keySequence(mainWindow, "Ctrl+F")
+    assert searchBar.isVisible()
+
+    QTest.keyClicks(searchBar.lineEdit, "/f SomeNewFile.txt")
+    waitUntilTrue(rm.commitPathspecFilter.isReady)
+    assert searchBar.isRed()
+
+    writeFile(f"{wd}/SomeNewFile.txt", "hello")
+    rw.refreshRepo()
+    assert not searchBar.isRed()
+
+    Path(f"{wd}/SomeNewFile.txt").unlink()
+    rw.refreshRepo()
+    assert searchBar.isRed()
+
+
 def testJumpToHiddenRows(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/unstaged.txt", "hello")

@@ -27,6 +27,21 @@ class CommitFileSearch(ItemViewSearchProvider):
     def __init__(self, parent: GraphView):
         super().__init__(parent)
         self._pathspecFilter = parent.repoModel.commitPathspecFilter
+        self._pathspecFilter.resultsUpdated.connect(self._gotResults)
+
+    def _gotResults(self):
+        if self._frozen:
+            return
+
+        cpf = self._pathspecFilter
+        assert cpf.isReady()
+        cpf.filterOnly = self._wantFilter
+
+        if self._wantFilter:
+            self._buddy.clFilter.invalidateFilter()
+        self._buddy.viewport().update()
+
+        self.setStatus(self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad)
 
     # -------------------------------------------------------------------------
     # ItemViewSearchProvider implementation
@@ -75,13 +90,7 @@ class CommitFileSearch(ItemViewSearchProvider):
     def prime(self, forwardHint: bool):
         assert self._term
         self.setStatus(self.TermStatus.Loading)
-        QueryCommitsTouchingPath.invoke(self._buddy, self._term, self._onFileSearchComplete)
-
-    def _onFileSearchComplete(self):
-        assert not self._frozen
-        cpf = self._pathspecFilter
-        self._pathspecFilter.filterOnly = self._wantFilter
-        self.setStatus(self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad)
+        QueryCommitsTouchingPath.invoke(self._buddy, self._term)
 
     def setFilterState(self, checked: bool):
         super().setFilterState(checked)
