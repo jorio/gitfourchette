@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import fnmatch
 import hashlib
 import os
 import warnings
@@ -267,6 +268,14 @@ class GitDeltaFile:
             sha256 = sha256.hexdigest()
             _sha1ToSha256Equivalent[self.id] = sha256
         return sha256
+
+    def matchPathspec(self, pathspec: str) -> bool:
+        # I've looked into adding git_pathspec_matches_path to pygit2, but it
+        # doesn't support magic signatures like :(icase), so it wouldn't be much
+        # of an improvement over plain fnmatch. (4/2026)
+
+        assert pathspec == pathspec.lower()
+        return fnmatch.fnmatch(self.path.lower(), pathspec)
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o})"

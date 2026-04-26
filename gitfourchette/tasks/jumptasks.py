@@ -495,9 +495,9 @@ class Jump(RepoTask):
                 _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit))))
             raise Jump.Result(locator, header, sde)
 
-        # Try to resolve a fuzzy path (fnmatch)
+        # Try to resolve a fuzzy path
         if locator.path and locator.hasFlags(NavFlags.FuzzyPath):
-            resolvedPath = flv.flModel.fnmatch(locator.path)
+            resolvedPath = flv.flModel.matchPathspec(locator.path)
             locator = locator.replace(path=resolvedPath)
             locator = locator.withoutFlags(NavFlags.FuzzyPath)
 

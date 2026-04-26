@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import enum
-import fnmatch
 import itertools
 import logging
 from collections.abc import Generator, Iterable
@@ -641,8 +640,7 @@ class RepoModel:
     def workdirMatchesPathNeedle(self, needleLower: str) -> GitDelta | None:
         """
         Match a repo-relative path against the same pattern style as
-        `git log -- <pathspec>` for common cases: substring, or fnmatch when the
-        pattern contains glob syntax.
+        `git log -- <pathspec>`
         """
 
         assert needleLower == needleLower.lower()
@@ -650,18 +648,9 @@ class RepoModel:
         if not needleLower or not self.workdirStatusReady:
             return None
 
-        useFnmatch = any(c in needleLower for c in "*?[")
-
         for delta in itertools.chain(self.workdirUnstagedDeltas, self.workdirStagedDeltas):
-            for path in delta.new.path, delta.old.path:
-                path = path.lower()
-                if useFnmatch:
-                    if fnmatch.fnmatch(path, needleLower):
-                        return delta
-                    base = path.rsplit("/", 1)[-1]
-                    if fnmatch.fnmatch(base, needleLower):
-                        return delta
-                elif needleLower in path:
+            for df in delta.new, delta.old:
+                if df.matchPathspec(needleLower):
                     return delta
 
         return None

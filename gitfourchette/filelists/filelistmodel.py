@@ -4,7 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import fnmatch
 import logging
 from collections.abc import Iterable
 from contextlib import suppress
@@ -302,13 +301,13 @@ class FileListModel(QAbstractListModel):
         """
         return path in self.fileRows
 
-    def fnmatch(self, pattern: str) -> str:
+    def matchPathspec(self, pattern: str) -> str:
+        # Try new side first
         with suppress(StopIteration):
-            return next(d.new.path for d in self.deltas
-                        if fnmatch.fnmatch(d.new.path, pattern))
+            return next(d.new.path for d in self.deltas if d.new.matchPathspec(pattern))
 
+        # Try old side (but return path from *new* side)
         with suppress(StopIteration):
-            return next(d.new.path for d in self.deltas
-                        if fnmatch.fnmatch(d.old.path, pattern))
+            return next(d.new.path for d in self.deltas if d.old.matchPathspec(pattern))
 
         return ""
