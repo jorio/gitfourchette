@@ -654,7 +654,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         """
 
         # ------ Graph
-        if oid is not None:
+        if oid is not None and not self.repoModel.commitPathspecFilter.wantFilter():
             graphRect = QRect(rect)
             paintGraphFrame(painter, graphRect, oid, self.repoModel.graph, self.repoModel.hiddenCommits)
             rect.setLeft(graphRect.right())
