@@ -100,6 +100,15 @@ class SearchProvider(QObject):
     # -------------------------------------------------------------------------
     # Override these
 
+    def longTitle(self) -> str:
+        return ""
+
+    def shortTitle(self) -> str:
+        return self.__class__.__name__
+
+    def keyboardShortcut(self) -> str:
+        return ""
+
     def canFilter(self) -> bool:
         return False
 

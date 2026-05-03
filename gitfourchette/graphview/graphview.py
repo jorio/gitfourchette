@@ -26,8 +26,6 @@ from gitfourchette.toolbox import *
 
 
 class GraphView(QListView):
-    FileSearchPrefix = "/f"
-
     linkActivated = Signal(str)
     statusMessage = Signal(str)
 
@@ -83,9 +81,7 @@ class GraphView(QListView):
         infoSearch = CommitInfoSearch(self)
         fileSearch = CommitFileSearch(self)
 
-        self.searchBar = SearchBar(self)
-        self.searchBar.installProvider(infoSearch)
-        self.searchBar.installProvider(fileSearch, GraphView.FileSearchPrefix)
+        self.searchBar = SearchBar(self, infoSearch, fileSearch)
         self.searchBar.hide()
 
         # Invalidate the search when new commits trickle in at the top of the
@@ -95,14 +91,6 @@ class GraphView(QListView):
         # b) Invalidating clFilter doesn't trash the search results, e.g. when
         #    toggling the 'Filter' checkbox.
         self.clModel.rowsInserted.connect(self.searchBar.reevaluateSearchTerm)
-
-        searchPlaceholder = "|".join([
-            _("Find commit hash, message or author. Type {f} to find commits touching files."),
-            _("Find commit ({f} to find files in commits)"),
-            _("Find commit")])
-        searchPlaceholder = searchPlaceholder.format(f=tquo(GraphView.FileSearchPrefix))
-        searchPlaceholder = toLengthVariants(searchPlaceholder)
-        self.searchBar.ui.lineEdit.setPlaceholderText(searchPlaceholder)
 
         # --------------
 

@@ -23,6 +23,10 @@ class Ui_SearchBar(object):
         self.horizontalLayout = QHBoxLayout(SearchBar)
         self.horizontalLayout.setContentsMargins(2, 2, 2, 2)
         self.horizontalLayout.setObjectName("horizontalLayout")
+        self.providerChooser = QToolButton(parent=SearchBar)
+        self.providerChooser.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.providerChooser.setObjectName("providerChooser")
+        self.horizontalLayout.addWidget(self.providerChooser)
         self.lineEdit = QLineEdit(parent=SearchBar)
         self.lineEdit.setClearButtonEnabled(True)
         self.lineEdit.setObjectName("lineEdit")
@@ -46,8 +50,8 @@ class Ui_SearchBar(object):
         self.retranslateUi(SearchBar)
 
     def retranslateUi(self, SearchBar):
-        SearchBar.setWindowTitle(_p("SearchBar", "Search"))
-        self.lineEdit.setPlaceholderText(_p("SearchBar", "Search…"))
+        self.providerChooser.setToolTip(_p("SearchBar", "Search scope"))
+        self.filterCheckBox.setToolTip(_p("SearchBar", "Show only matching rows"))
         self.filterCheckBox.setText(_p("SearchBar", "Filter"))
         self.forwardButton.setToolTip(_p("SearchBar", "Next Occurrence"))
         self.backwardButton.setToolTip(_p("SearchBar", "Previous Occurrence"))

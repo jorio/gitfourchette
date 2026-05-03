@@ -82,9 +82,9 @@ def testCommitSearch(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("rawNeedle", [
-    "/f master.txt",
-    "/F MaSTeR.tXt",
-    "/f master.*",
+    "master.txt",
+    "MaSTeR.tXt",
+    "master.*",
 ])
 def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     wd = unpackRepo(tempDir)
@@ -98,6 +98,7 @@ def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
+    triggerMenuAction(searchBar.ui.providerChooser.menu(), "path")
 
     assert not filterState.isReady()
     QTest.keyClicks(searchBar.lineEdit, rawNeedle)
@@ -125,9 +126,10 @@ def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
+    triggerMenuAction(searchBar.ui.providerChooser.menu(), "path")
 
     assert not filterState.isReady()
-    QTest.keyClicks(searchBar.lineEdit, "/f c/c2-2.txt")
+    QTest.keyClicks(searchBar.lineEdit, "c/c2-2.txt")
     waitUntilTrue(filterState.isReady)
     assert oldHeadId in filterState.matchingIds
 
@@ -149,6 +151,7 @@ def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
+    triggerMenuAction(searchBar.ui.providerChooser.menu(), "path")
 
     def isShowingBusySearchIcon():
         return "magnifying-glass-wait" in searchBar.loupe.icon().name()
@@ -156,7 +159,7 @@ def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
     def kickOffLongSearch():
         with DelayGitCommandContext(delay=30):
             assert not rw.taskRunner.isBusy()
-            QTest.keyClicks(searchBar.lineEdit, "/f c/c2-2.txt")
+            QTest.keyClicks(searchBar.lineEdit, "c/c2-2.txt")
             waitUntilTrue(rw.taskRunner.isBusy)
         assert isShowingBusySearchIcon()
         assert isinstance(rw.taskRunner.currentTask, QueryCommitsTouchingPath)
@@ -167,7 +170,7 @@ def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
 
     # Interrupt current query by initiating a new search and let it finish
     searchBar.lineEdit.selectAll()
-    QTest.keyClicks(searchBar.lineEdit, "/f a/a1")
+    QTest.keyClicks(searchBar.lineEdit, "a/a1")
     waitUntilTrue(lambda: not rw.taskRunner.isBusy())
     assert not isShowingBusySearchIcon()
     assert a1Locator.isSimilarEnoughTo(rw.navLocator)
@@ -200,8 +203,9 @@ def testCommitFileSearchReevaluatedOnWorkdirChange(tempDir, mainWindow):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
+    triggerMenuAction(searchBar.ui.providerChooser.menu(), "path")
 
-    QTest.keyClicks(searchBar.lineEdit, "/f SomeNewFile.txt")
+    QTest.keyClicks(searchBar.lineEdit, "SomeNewFile.txt")
     waitUntilTrue(rm.commitPathspecFilter.isReady)
     assert searchBar.isRed()
 
@@ -230,8 +234,9 @@ def testCommitFileSearchJumpToFuzzyPath(tempDir, mainWindow):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
+    triggerMenuAction(searchBar.ui.providerChooser.menu(), "path")
 
-    QTest.keyClicks(searchBar.lineEdit, "/f *[ab]2.txt")
+    QTest.keyClicks(searchBar.lineEdit, "*[ab]2.txt")
     waitUntilTrue(rm.commitPathspecFilter.isReady)
 
     # TODO: When initiating a search, and the current commit matches, stay on the commit but jump to the file
@@ -258,8 +263,9 @@ def testJumpToHiddenRows(tempDir, mainWindow):
 
     QTest.keySequence(mainWindow, "Ctrl+F")
     assert searchBar.isVisible()
+    triggerMenuAction(searchBar.ui.providerChooser.menu(), "path")
 
-    QTest.keyClicks(searchBar.lineEdit, "/f wontmatch")
+    QTest.keyClicks(searchBar.lineEdit, "wontmatch")
     assert searchBar.ui.filterCheckBox.isVisible()
     searchBar.ui.filterCheckBox.setChecked(True)
 

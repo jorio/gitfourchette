@@ -41,11 +41,9 @@ class SearchBar(QWidget):
     Receives the search term as input, performs the actual search.
     """
 
-    providers: dict[str, SearchProvider]
+    providers: tuple[SearchProvider]
     """
     All search providers supported by this search bar.
-    Indexed by prefixes (e.g. "/f" selects CommitFileSearch in GraphView).
-    The empty prefix is the default.
     """
 
     debounceTimer: QTimer
@@ -71,22 +69,23 @@ class SearchBar(QWidget):
 
     @property
     def buttons(self):
-        return self.ui.forwardButton, self.ui.backwardButton, self.ui.closeButton, self.ui.filterCheckBox
+        return (self.ui.providerChooser,
+                self.ui.forwardButton,
+                self.ui.backwardButton,
+                self.ui.closeButton,
+                self.ui.filterCheckBox)
 
-    def __init__(self, buddy: QWidget):
+    def __init__(self, buddy: QWidget, *providers: SearchProvider):
         super().__init__(buddy)
 
         self.setObjectName(f"SearchBar({buddy.objectName()})")
         self.buddy = buddy
 
-        self.provider = None
-        self.providers = {}
-
         self.ui = Ui_SearchBar()
         self.ui.setupUi(self)
 
         self.lineEdit.addAction(stockIcon("magnifying-glass"), QLineEdit.ActionPosition.LeadingPosition)
-        self.loupe = self.lineEdit.actions()[0]
+        self.loupe: QAction = self.lineEdit.actions()[0]
 
         self.lineEdit.textChanged.connect(self.onSearchTextChanged)
         self.ui.filterCheckBox.toggled.connect(self.onFilterCheckBoxToggled)
@@ -98,6 +97,13 @@ class SearchBar(QWidget):
         self.ui.forwardButton.setIcon(stockIcon("go-down-search"))
         self.ui.backwardButton.setIcon(stockIcon("go-up-search"))
         self.ui.closeButton.setIcon(stockIcon("dialog-close"))
+
+        self._providerChooserMenu = QMenu(self)
+        self._providerChooserMenu.addSection(_p("SearchBar", "Search scope"))
+        self._providerChooserActionGroup = QActionGroup(self)
+        self.ui.providerChooser.setMenu(self._providerChooserMenu)
+        self.ui.providerChooser.setVisible(False)
+        self.ui.providerChooser.setFixedWidth(80)
 
         # The size of the buttons is readjusted after show(),
         # so prevent visible popping when booting up for the first time.
@@ -117,6 +123,7 @@ class SearchBar(QWidget):
 
         tweakWidgetFont(self.ui.lineEdit, 85)
         tweakWidgetFont(self.ui.filterCheckBox, 85)
+        tweakWidgetFont(self.ui.providerChooser, 85)
 
         withChildren = Qt.ShortcutContext.WidgetWithChildrenShortcut
         makeWidgetShortcut(self, self.onEnterShortcut, "Return", "Enter", context=withChildren)
@@ -127,13 +134,37 @@ class SearchBar(QWidget):
             self.trapNextToolTip = False
             self.trappedToolTip = ""
 
-    def installProvider(self, provider: SearchProvider, selectorPrefix: str = ""):
+        assert providers, "SearchBar needs at least one SearchProvider"
+        self.provider = None
+        self.providers = providers
+        for provider in providers:
+            self._installProvider(provider)
+        self.ui.providerChooser.setVisible(len(providers) >= 2)
+        self._setProvider(self.providers[0])
+
+    def _installProvider(self, provider: SearchProvider):
         provider.statusChanged.connect(self.onProviderStatusChanged)
         provider.freeze(True)  # Freeze until in active use
-        self.providers[selectorPrefix] = provider
 
-        if self.provider is None:  # Set first provider
+        def makeCurrent():
             self._setProvider(provider)
+
+        action = QAction(f"{provider.shortTitle()} \u2013 {provider.longTitle()}", parent=self)
+        action.setActionGroup(self._providerChooserActionGroup)
+        action.setCheckable(True)
+        action.setData(provider)
+        action.triggered.connect(makeCurrent)
+
+        keys = provider.keyboardShortcut()
+        if keys:
+            action.setShortcut(keys)
+
+            # Prevent action from being invoked by shortcut application-wide,
+            # and duplicate the shortcut so it works throughout the SearchBar
+            action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+            makeWidgetShortcut(self, makeCurrent, keys, context=Qt.ShortcutContext.WidgetWithChildrenShortcut)
+
+        self._providerChooserMenu.addAction(action)
 
     def onEnterShortcut(self):
         if SearchBar.MacToolTipQuirks:
@@ -237,37 +268,41 @@ class SearchBar(QWidget):
         assert self.isVisible()
         self.hideToolTip()
 
-        # Find search provider by prefix
-        lcText = text.lower()
-        prefix = next((p for p in self.providers if p and lcText.startswith(p)), "")
-        text = text[len(prefix):]
-        provider = self.providers[prefix]
-
-        # Switch to provider and set text in it
-        self._setProvider(provider)
-        provider.setTerm(text)
+        # Set text in provider
+        self.provider.setTerm(text)
 
         # Schedule a debounce
-        if provider.term():
+        if self.provider.term():
             self.autoJumpWhenResultsComeIn = True
             self.debounceTimer.start()
 
     def _setProvider(self, provider: SearchProvider):
-        assert provider in self.providers.values(), "you must register the provider first"
+        self.lineEdit.clear()
+
+        providerIndex = self.providers.index(provider)
+        assert providerIndex >= 0, "unregistered provider"
         oldProvider = self.provider
 
         if provider is oldProvider:
             return
+
+        action = next(a for a in self._providerChooserMenu.actions()
+                      if a.data() is provider)
+        action.setChecked(True)
 
         if oldProvider is not None:
             # Freeze it when not in use
             with QSignalBlockerContext(oldProvider):
                 oldProvider.freeze(True)
 
-        logger.debug(f"Swapping provider to {provider}")
+        logger.debug(f"Swapping provider to {provider.shortTitle()}")
 
         self.provider = provider
         self.ui.filterCheckBox.setVisible(provider.canFilter())
+
+        self.ui.providerChooser.setText(provider.shortTitle())
+        self.ui.lineEdit.setPlaceholderText(provider.longTitle())
+
         provider.freeze(False)
 
         # Update styling

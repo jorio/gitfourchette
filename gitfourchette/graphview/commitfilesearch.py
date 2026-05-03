@@ -11,6 +11,7 @@ from collections.abc import Iterable
 
 from gitfourchette.graphview.commitinfosearch import CommitInfoSearch
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
+from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags
 from gitfourchette.qt import *
 from gitfourchette.repomodel import CommitPathspecFilter, UC_FAKEID
@@ -73,6 +74,15 @@ class CommitFileSearch(ItemViewSearchProvider):
 
     # -------------------------------------------------------------------------
     # SearchProvider implementation
+
+    def longTitle(self) -> str:
+        return _("Find path touched by commits")
+
+    def shortTitle(self) -> str:
+        return _("Path")
+
+    def keyboardShortcut(self) -> str:
+        return "Alt+P"
 
     def invalidate(self):
         wasFiltering = self._pathspecFilter.wantFilter() and self._pathspecFilter.isReady()

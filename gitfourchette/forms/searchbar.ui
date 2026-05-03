@@ -16,9 +16,6 @@
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
-  <property name="windowTitle">
-   <string>Search</string>
-  </property>
   <property name="autoFillBackground">
    <bool>true</bool>
   </property>
@@ -36,10 +33,17 @@
     <number>2</number>
    </property>
    <item>
-    <widget class="QLineEdit" name="lineEdit">
-     <property name="placeholderText">
-      <string>Search…</string>
+    <widget class="QToolButton" name="providerChooser">
+     <property name="toolTip">
+      <string>Search scope</string>
      </property>
+     <property name="popupMode">
+      <enum>QToolButton::ToolButtonPopupMode::InstantPopup</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="lineEdit">
      <property name="clearButtonEnabled">
       <bool>true</bool>
      </property>
@@ -49,6 +53,9 @@
     <widget class="QCheckBox" name="filterCheckBox">
      <property name="focusPolicy">
       <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
+     <property name="toolTip">
+      <string>Show only matching rows</string>
      </property>
      <property name="text">
       <string>Filter</string>

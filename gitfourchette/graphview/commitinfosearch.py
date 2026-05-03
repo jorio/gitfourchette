@@ -55,6 +55,15 @@ class CommitInfoSearch(ItemViewSearchProvider):
     # -------------------------------------------------------------------------
     # SearchProvider implementation
 
+    def shortTitle(self) -> str:
+        return _("Info")
+
+    def longTitle(self) -> str:
+        return _("Find commit hash, message or author")
+
+    def keyboardShortcut(self) -> str:
+        return "Alt+I"
+
     def _termChanged(self):
         super()._termChanged()
 
