@@ -876,14 +876,14 @@ class Sidebar(QTreeView):
         """ Unit test helper """
         return len(self.findNodesByKind(kind))
 
-    def indexForRef(self, ref: str) -> QModelIndex | None:
+    def indexForRef(self, ref: str) -> QModelIndex:
         model = self.sidebarModel
         try:
             node = model.nodesByRef[ref]
             sourceIndex = node.createIndex(model)
             return self.model().mapFromSource(sourceIndex)
         except KeyError:
-            return None
+            return QModelIndex()
 
     def selectNode(self, node: SidebarNode) -> QModelIndex:
         sourceIndex = node.createIndex(self.sidebarModel)

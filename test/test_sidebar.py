@@ -529,32 +529,33 @@ def testSidebarFilter(tempDir, mainWindow):
 
     # Test filtering by "feature"
     sidebarFilter.lineEdit.setText("feature")
-    QTest.qWait(50)  # Wait for filter to apply
 
-    # Check that feature branches can still be found
-    featureLogin = sb.findNodeByRef("refs/heads/feature/login")
-    assert featureLogin is not None
-    featureSignup = sb.findNodeByRef("refs/heads/feature/signup")
-    assert featureSignup is not None
+    # Visible: feature branches
+    assert sb.indexForRef("refs/heads/feature/login").isValid()
+    assert sb.indexForRef("refs/heads/feature/signup").isValid()
+    # Hidden: unrelated branches
+    assert not sb.indexForRef("refs/heads/no-parent").isValid()
+    assert not sb.indexForRef("refs/heads/master").isValid()
 
     # Test clearing filter
     sidebarFilter.clear()
-    QTest.qWait(50)
     assert sidebarFilter.filterText == ""
+    # All branches visible again after clearing
+    assert sb.indexForRef("refs/heads/master").isValid()
+    assert sb.indexForRef("refs/heads/no-parent").isValid()
 
     # Test case-insensitive filtering
     sidebarFilter.lineEdit.setText("FEATURE")
-    QTest.qWait(50)
-    featureLogin = sb.findNodeByRef("refs/heads/feature/login")
-    assert featureLogin is not None
+    assert sb.indexForRef("refs/heads/feature/login").isValid()
+    assert sb.indexForRef("refs/heads/feature/signup").isValid()
+    assert not sb.indexForRef("refs/heads/no-parent").isValid()
 
     # Test substring matching
     sidebarFilter.lineEdit.setText("fix")
-    QTest.qWait(50)
-    bugfixBranch = sb.findNodeByRef("refs/heads/bugfix/issue-123")
-    assert bugfixBranch is not None
-    hotfixBranch = sb.findNodeByRef("refs/heads/hotfix/critical")
-    assert hotfixBranch is not None
+    assert sb.indexForRef("refs/heads/bugfix/issue-123").isValid()
+    assert sb.indexForRef("refs/heads/hotfix/critical").isValid()
+    # "no-parent" doesn't contain "fix", so it must be hidden
+    assert not sb.indexForRef("refs/heads/no-parent").isValid()
 
 
 def testSidebarFilterWithFolders(tempDir, mainWindow):
@@ -569,13 +570,11 @@ def testSidebarFilterWithFolders(tempDir, mainWindow):
     sb = rw.sidebar
     sidebarFilter = rw.sidebarFilter
 
-    # Test filtering shows parent folders
+    # Filtering by "login" should show the matching branch and hide others
     sidebarFilter.lineEdit.setText("login")
-    QTest.qWait(50)
-
-    # Should be able to find the branch
-    loginNode = sb.findNodeByRef("refs/heads/team/frontend/login")
-    assert loginNode is not None
+    assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
+    assert not sb.indexForRef("refs/heads/team/backend/api").isValid()
+    assert not sb.indexForRef("refs/heads/team/frontend/signup").isValid()
 
 
 def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
@@ -589,7 +588,6 @@ def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
 
     # Test clearing filter
     sidebarFilter.clear()
-    QTest.qWait(50)
     assert sidebarFilter.filterText == ""
 
 
@@ -605,13 +603,11 @@ def testSidebarFilterWithTags(tempDir, mainWindow):
     sb = rw.sidebar
     sidebarFilter = rw.sidebarFilter
 
-    # Test filtering tags
+    # Filtering by "v1" should show v1.0.0 and hide the others
     sidebarFilter.lineEdit.setText("v1")
-    QTest.qWait(50)
-
-    # Should be able to find v1.0.0 tag
-    v1Tag = sb.findNodeByRef("refs/tags/v1.0.0")
-    assert v1Tag is not None
+    assert sb.indexForRef("refs/tags/v1.0.0").isValid()
+    assert not sb.indexForRef("refs/tags/v2.0.0").isValid()
+    assert not sb.indexForRef("refs/tags/release-2024").isValid()
 
 
 def testSidebarFilterPreservesSelection(tempDir, mainWindow):
@@ -631,11 +627,11 @@ def testSidebarFilterPreservesSelection(tempDir, mainWindow):
     selectedBefore = sb.selectedIndexes()[0].data()
     assert "test" in selectedBefore
 
-    # Filter should not affect selection if item matches
+    # Filter that keeps the selected item visible
     sidebarFilter.lineEdit.setText("feature")
-    QTest.qWait(50)
 
-    # Selection should still be valid
+    # The selected item should still be visible in the proxy model
+    assert sb.indexForRef("refs/heads/feature/test").isValid()
     assert len(sb.selectedIndexes()) > 0
 
 
@@ -648,12 +644,22 @@ def testSidebarFilterExpandsAll(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
+    sm = sb.sidebarModel
     sidebarFilter = rw.sidebarFilter
 
-    # Apply filter - should expand all
-    sidebarFilter.lineEdit.setText("login")
-    QTest.qWait(50)
+    # Collapse all folders first so we have something to expand
+    localBranchesNode = sb.findNodeByKind(SidebarItem.LocalBranchesHeader)
+    sb.selectNode(localBranchesNode)
+    triggerContextMenuAction(sb.viewport(), "collapse all folders")
 
-    # Should be able to find the login branch
+    # Confirm the nested branch is now unreachable (ancestry chain collapsed)
     loginNode = sb.findNodeByRef("refs/heads/team/frontend/login")
-    assert loginNode is not None
+    assert not sm.isAncestryChainExpanded(loginNode)
+
+    # Applying a filter should expand all matching items
+    sidebarFilter.lineEdit.setText("login")
+
+    # The branch must now be visible in the proxy model
+    assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
+    # And its entire parent chain must be expanded in the source model
+    assert sm.isAncestryChainExpanded(loginNode)
