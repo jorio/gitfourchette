@@ -463,7 +463,8 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
     assert rw.repo.head_commit_id == headId
 
     # Sidebar must now reflect detached HEAD
-    currentSidebarNode = SidebarNode.fromIndex(rw.sidebar.currentIndex())
+    sourceIndex = rw.sidebar.model().mapToSource(rw.sidebar.currentIndex())
+    currentSidebarNode = SidebarNode.fromIndex(sourceIndex)
     assert currentSidebarNode.kind == SidebarItem.DetachedHead
 
 
@@ -764,7 +765,9 @@ def testCheckoutTag(tempDir, mainWindow, method):
         sb.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = sb.visualRect(node.createIndex(sb.sidebarModel))
+        sourceIndex = node.createIndex(sb.sidebarModel)
+        index = sb.model().mapFromSource(sourceIndex)
+        rect = sb.visualRect(index)
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     else:
         raise NotImplementedError(f"unknown method {method}")

@@ -43,7 +43,9 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
 
     elif method == "sidebarDClick":
-        rect = rw.sidebar.visualRect(submoNode.createIndex(rw.sidebar.sidebarModel))
+        sourceIndex = submoNode.createIndex(rw.sidebar.sidebarModel)
+        index = rw.sidebar.model().mapFromSource(sourceIndex)
+        rect = rw.sidebar.visualRect(index)
         QTest.mouseDClick(rw.sidebar.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
 
     elif method == "commitSpecialDiff":

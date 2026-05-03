@@ -74,7 +74,8 @@ def testSidebarCollapsePersistent(tempDir, mainWindow):
     sb = rw.sidebar
     sm = sb.sidebarModel
     assert sm.isAncestryChainExpanded(sb.findNodeByRef("refs/remotes/origin/master"))
-    indexToCollapse = sb.findNode(lambda n: n.data == "origin").createIndex(sm)
+    sourceIndexToCollapse = sb.findNode(lambda n: n.data == "origin").createIndex(sm)
+    indexToCollapse = sb.model().mapFromSource(sourceIndexToCollapse)
     sb.collapse(indexToCollapse)
     sb.expand(indexToCollapse)  # go through both expand/collapse code paths
     sb.collapse(indexToCollapse)
@@ -141,7 +142,8 @@ def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
     triggerContextMenuAction(sb.viewport(), "collapse all folders")
     assert reachable() == {delish}
 
-    sb.expand(delish.createIndex(sm))
+    proxyIndex = sb.model().mapFromSource(delish.createIndex(sm))
+    sb.expand(proxyIndex)
     assert reachable() == {delish, quiche, drink}
 
     triggerContextMenuAction(sb.viewport(), "expand all folders")
@@ -159,7 +161,8 @@ def testRefreshKeepsSidebarNonRefSelection(tempDir, mainWindow):
     sb.selectNode(node)
 
     rw.refreshRepo()
-    node = SidebarNode.fromIndex(sb.selectedIndexes()[0])
+    sourceIndex = sb.model().mapToSource(sb.selectedIndexes()[0])
+    node = SidebarNode.fromIndex(sourceIndex)
     assert node.kind == SidebarItem.Remote
     assert node.data == "origin"
 
@@ -278,7 +281,8 @@ def testHideNestedRefFolders(tempDir, mainWindow, explicit, implicit, method):
     if method == "sidebarmenu":
         triggerMenuAction(sb.makeNodeMenu(node), "hide in graph")
     elif method == "sidebarclick":
-        index = node.createIndex(sm)
+        sourceIndex = node.createIndex(sm)
+        index = sb.model().mapFromSource(sourceIndex)
         rect = sb.visualRect(index)
         QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topRight())
     else:
@@ -336,7 +340,8 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
     if method == "sidebarmenu":
         triggerMenuAction(sb.makeNodeMenu(node), "hide all but this")
     elif method == "sidebarclick":
-        index = node.createIndex(sm)
+        sourceIndex = node.createIndex(sm)
+        index = sb.model().mapFromSource(sourceIndex)
         rect = sb.visualRect(index)
         QTest.mouseClick(sb.viewport(), Qt.MouseButton.MiddleButton, pos=rect.topRight())
     else:
@@ -502,3 +507,159 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
 
     # If we ever choose to not disable this action, the action callback should be tested as well.
     assert not missingUpstreamAction.isEnabled()
+
+
+def testSidebarFilter(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/login")
+        repo.create_branch_on_head("feature/signup")
+        repo.create_branch_on_head("bugfix/issue-123")
+        repo.create_branch_on_head("hotfix/critical")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test initial state
+    assert sidebarFilter.filterText == ""
+    allBranches = sb.findNodesByKind(SidebarItem.LocalBranch)
+    assert len(allBranches) >= 6  # master, no-parent, feature/*, bugfix/*, hotfix/*
+
+    # Test filtering by "feature"
+    sidebarFilter.lineEdit.setText("feature")
+
+    # Visible: feature branches
+    assert sb.indexForRef("refs/heads/feature/login").isValid()
+    assert sb.indexForRef("refs/heads/feature/signup").isValid()
+    # Hidden: unrelated branches
+    assert not sb.indexForRef("refs/heads/no-parent").isValid()
+    assert not sb.indexForRef("refs/heads/master").isValid()
+
+    # Test clearing filter
+    sidebarFilter.clear()
+    assert sidebarFilter.filterText == ""
+    # All branches visible again after clearing
+    assert sb.indexForRef("refs/heads/master").isValid()
+    assert sb.indexForRef("refs/heads/no-parent").isValid()
+
+    # Test case-insensitive filtering
+    sidebarFilter.lineEdit.setText("FEATURE")
+    assert sb.indexForRef("refs/heads/feature/login").isValid()
+    assert sb.indexForRef("refs/heads/feature/signup").isValid()
+    assert not sb.indexForRef("refs/heads/no-parent").isValid()
+
+    # Test substring matching
+    sidebarFilter.lineEdit.setText("fix")
+    assert sb.indexForRef("refs/heads/bugfix/issue-123").isValid()
+    assert sb.indexForRef("refs/heads/hotfix/critical").isValid()
+    # "no-parent" doesn't contain "fix", so it must be hidden
+    assert not sb.indexForRef("refs/heads/no-parent").isValid()
+
+
+def testSidebarFilterWithFolders(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("team/frontend/login")
+        repo.create_branch_on_head("team/frontend/signup")
+        repo.create_branch_on_head("team/backend/api")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Filtering by "login" should show the matching branch and hide others
+    sidebarFilter.lineEdit.setText("login")
+    assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
+    assert not sb.indexForRef("refs/heads/team/backend/api").isValid()
+    assert not sb.indexForRef("refs/heads/team/frontend/signup").isValid()
+
+
+def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sidebarFilter = rw.sidebarFilter
+
+    # Test setting filter text
+    sidebarFilter.lineEdit.setText("test")
+    assert sidebarFilter.filterText == "test"
+
+    # Test clearing filter
+    sidebarFilter.clear()
+    assert sidebarFilter.filterText == ""
+
+
+def testSidebarFilterWithTags(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_tag("v1.0.0", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+        repo.create_tag("v2.0.0", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+        repo.create_tag("release-2024", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Filtering by "v1" should show v1.0.0 and hide the others
+    sidebarFilter.lineEdit.setText("v1")
+    assert sb.indexForRef("refs/tags/v1.0.0").isValid()
+    assert not sb.indexForRef("refs/tags/v2.0.0").isValid()
+    assert not sb.indexForRef("refs/tags/release-2024").isValid()
+
+
+def testSidebarFilterPreservesSelection(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/test")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Select a branch
+    featureNode = sb.findNodeByRef("refs/heads/feature/test")
+    sb.selectNode(featureNode)
+
+    selectedBefore = sb.selectedIndexes()[0].data()
+    assert "test" in selectedBefore
+
+    # Filter that keeps the selected item visible
+    sidebarFilter.lineEdit.setText("feature")
+
+    # The selected item should still be visible in the proxy model
+    assert sb.indexForRef("refs/heads/feature/test").isValid()
+    assert len(sb.selectedIndexes()) > 0
+
+
+def testSidebarFilterExpandsAll(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("team/frontend/login")
+        repo.create_branch_on_head("team/backend/api")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sm = sb.sidebarModel
+    sidebarFilter = rw.sidebarFilter
+
+    # Collapse all folders first so we have something to expand
+    localBranchesNode = sb.findNodeByKind(SidebarItem.LocalBranchesHeader)
+    sb.selectNode(localBranchesNode)
+    triggerContextMenuAction(sb.viewport(), "collapse all folders")
+
+    # Confirm the nested branch is now unreachable (ancestry chain collapsed)
+    loginNode = sb.findNodeByRef("refs/heads/team/frontend/login")
+    assert not sm.isAncestryChainExpanded(loginNode)
+
+    # Applying a filter should expand all matching items
+    sidebarFilter.lineEdit.setText("login")
+
+    # The branch must now be visible in the proxy model
+    assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
+    # And its entire parent chain must be expanded in the source model
+    assert sm.isAncestryChainExpanded(loginNode)
