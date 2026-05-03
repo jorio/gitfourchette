@@ -103,6 +103,10 @@ class CommitFileSearch(ItemViewSearchProvider):
     def _termChanged(self):
         super()._termChanged()
 
+        # Surround with wildcards
+        if self._term:
+            self._term = f"*{self._term}*"
+
         # HACK: Always invalidate badStem when changing file searches
         # This also invalidates the pathspec filter
         self.invalidate()

@@ -85,6 +85,7 @@ def testCommitSearch(tempDir, mainWindow):
     "master.txt",
     "MaSTeR.tXt",
     "master.*",
+    "aste",  # test automatic wildcards
 ])
 def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     wd = unpackRepo(tempDir)
