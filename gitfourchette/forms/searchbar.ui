@@ -34,6 +34,9 @@
    </property>
    <item>
     <widget class="QToolButton" name="providerChooser">
+     <property name="focusPolicy">
+      <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
      <property name="toolTip">
       <string>Search scope</string>
      </property>
@@ -64,6 +67,9 @@
    </item>
    <item>
     <widget class="QToolButton" name="forwardButton">
+     <property name="focusPolicy">
+      <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
      <property name="toolTip">
       <string>Next Occurrence</string>
      </property>
@@ -74,6 +80,9 @@
    </item>
    <item>
     <widget class="QToolButton" name="backwardButton">
+     <property name="focusPolicy">
+      <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
      <property name="toolTip">
       <string>Previous Occurrence</string>
      </property>
@@ -84,6 +93,9 @@
    </item>
    <item>
     <widget class="QToolButton" name="closeButton">
+     <property name="focusPolicy">
+      <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
      <property name="toolTip">
       <string>Close Search Bar</string>
      </property>

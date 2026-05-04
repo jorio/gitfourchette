@@ -204,10 +204,15 @@ class RepoWidget(QWidget):
 
         setTabOrder(
             self.sidebar,
+            self.graphView.searchBar.lineEdit,
             self.graphView,
+            self.diffArea.committedFiles.searchBar.lineEdit,
             self.diffArea.committedFiles,
+            self.diffArea.dirtyFiles.searchBar.lineEdit,
             self.diffArea.dirtyFiles,
+            self.diffArea.stagedFiles.searchBar.lineEdit,
             self.diffArea.stagedFiles,
+            self.diffArea.diffView.searchBar.lineEdit,
             self.diffArea.diffView,
             self.diffArea.specialDiffView,
             self.diffArea.conflictView,
