@@ -203,6 +203,7 @@ class RepoWidget(QWidget):
         self.diffArea.applyCustomStyling()
 
         setTabOrder(
+            self.sidebar.searchBar.lineEdit,
             self.sidebar,
             self.graphView.searchBar.lineEdit,
             self.graphView,
@@ -281,31 +282,6 @@ class RepoWidget(QWidget):
     def _makeSidebarContainer(self):
         sidebar = Sidebar(self)
 
-        from gitfourchette.sidebar.sidebarfilter import SidebarFilter
-        sidebarFilter = SidebarFilter(self)
-        sidebarFilter.textChanged.connect(sidebar.model().setFilterText)
-
-        def onFilterTextChanged(text: str):
-            if text.strip():
-                sidebar.expandAll()
-            else:
-                sidebar.restoreExpandedItems()
-
-        sidebarFilter.textChanged.connect(onFilterTextChanged)
-
-        def focusFilter():
-            sidebarFilter.setFocus()
-
-        makeWidgetShortcut(sidebar, focusFilter, "/")
-
-        def clearFilter():
-            if sidebarFilter.filterText:
-                sidebarFilter.clear()
-            else:
-                sidebar.setFocus()
-
-        makeWidgetShortcut(sidebarFilter, clearFilter, "Escape")
-
         banner = Banner(self, orientation=Qt.Orientation.Vertical)
         banner.setProperty("class", "merge")
         banner.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
@@ -314,12 +290,11 @@ class RepoWidget(QWidget):
         layout = QVBoxLayout(container)
         layout.setContentsMargins(QMargins())
         layout.setSpacing(0)
-        layout.addWidget(sidebarFilter)
+        layout.addWidget(sidebar.searchBar)
         layout.addWidget(sidebar)
         layout.addWidget(banner)
 
         self.sidebar = sidebar
-        self.sidebarFilter = sidebarFilter
         self.mergeBanner = banner
 
         return container
@@ -544,6 +519,7 @@ class RepoWidget(QWidget):
 
     def dispatchSearchCommand(self, op: SearchBar.Op):
         searchBars = {
+            self.sidebar: self.sidebar.searchBar,
             self.diffArea.dirtyFiles: self.diffArea.dirtyFiles.searchBar,
             self.diffArea.stagedFiles: self.diffArea.stagedFiles.searchBar,
             self.diffArea.committedFiles: self.diffArea.committedFiles.searchBar,

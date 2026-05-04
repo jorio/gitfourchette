@@ -13,6 +13,7 @@ from gitfourchette import porcelain
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.exttools.usercommand import UserCommand
+from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, RefPrefix, Repo
@@ -22,6 +23,7 @@ from gitfourchette.repoprefs import RefSort
 from gitfourchette.sidebar.sidebardelegate import SidebarDelegate, SidebarClickZone
 from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem
 from gitfourchette.sidebar.sidebarproxymodel import SidebarProxyModel
+from gitfourchette.sidebar.sidebarsearch import SidebarSearch
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -73,6 +75,11 @@ class Sidebar(QTreeView):
         # When clicking on a row, information about the clicked row and "zone"
         # is kept until mouseReleaseEvent.
         self.mousePressCache = INVALID_MOUSEPRESS
+
+        self.searchBar = SearchBar(self, SidebarSearch(self))
+        self.searchBar.ui.backwardButton.hide()
+        self.searchBar.ui.forwardButton.hide()
+        self.searchBar.hide()
 
         GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()

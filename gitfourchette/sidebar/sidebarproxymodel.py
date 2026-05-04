@@ -5,7 +5,26 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.qt import *
-from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem
+from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem, SidebarModel
+
+_filterableItems = {
+    SidebarItem.LocalBranch,
+    SidebarItem.RemoteBranch,
+    SidebarItem.Tag,
+    SidebarItem.Stash,
+    SidebarItem.Remote,
+    SidebarItem.RefFolder,
+    SidebarItem.Submodule,
+    SidebarItem.DetachedHead,
+    SidebarItem.UnbornHead,
+}
+
+_refItems = {
+    SidebarItem.LocalBranch,
+    SidebarItem.RemoteBranch,
+    SidebarItem.Tag,
+    SidebarItem.Stash,
+}
 
 
 class SidebarProxyModel(QSortFilterProxyModel):
@@ -23,7 +42,7 @@ class SidebarProxyModel(QSortFilterProxyModel):
         if not self._filterText:
             return True
 
-        sourceModel = self.sourceModel()
+        sourceModel: SidebarModel = self.sourceModel()
         index = sourceModel.index(sourceRow, 0, sourceParent)
 
         if not index.isValid():
@@ -32,41 +51,18 @@ class SidebarProxyModel(QSortFilterProxyModel):
         node = SidebarNode.fromIndex(index)
         item = node.kind
 
-        if item in [
-            SidebarItem.Root,
-            SidebarItem.Spacer,
-            SidebarItem.WorkdirHeader,
-            SidebarItem.UncommittedChanges,
-            SidebarItem.LocalBranchesHeader,
-            SidebarItem.RemotesHeader,
-            SidebarItem.TagsHeader,
-            SidebarItem.StashesHeader,
-            SidebarItem.SubmodulesHeader,
-        ]:
+        if item not in _filterableItems:
             return True
 
-        if item in [
-            SidebarItem.LocalBranch,
-            SidebarItem.RemoteBranch,
-            SidebarItem.Tag,
-            SidebarItem.Stash,
-            SidebarItem.Remote,
-            SidebarItem.RefFolder,
-            SidebarItem.Submodule,
-            SidebarItem.DetachedHead,
-            SidebarItem.UnbornHead,
-        ]:
-            displayText = index.data(Qt.ItemDataRole.DisplayRole)
-            if not displayText:
+        displayText = index.data(Qt.ItemDataRole.DisplayRole)
+        if not displayText:
+            return True
+
+        # For branches and tags, check both display text and full ref path
+        # This ensures that branches like "wip/leaf" match when searching for "wip"
+        if item in _refItems:
+            refName = index.data(SidebarModel.Role.Ref)
+            if refName and self._filterText.lower() in refName.lower():
                 return True
 
-            # For branches and tags, check both display text and full ref path
-            # This ensures that branches like "wip/leaf" match when searching for "wip"
-            if item in [SidebarItem.LocalBranch, SidebarItem.RemoteBranch, SidebarItem.Tag, SidebarItem.Stash]:
-                refName = index.data(sourceModel.Role.Ref)
-                if refName and self._filterText.lower() in refName.lower():
-                    return True
-
-            return self._filterText.lower() in displayText.lower()
-
-        return True
+        return self._filterText.lower() in displayText.lower()

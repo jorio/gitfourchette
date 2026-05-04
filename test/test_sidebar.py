@@ -14,6 +14,15 @@ from gitfourchette.toolbox import naturalSort
 from .util import *
 
 
+def _summonSearchBar(rw):
+    searchBar = rw.sidebar.searchBar
+    assert not searchBar.isVisible()
+    rw.sidebar.setFocus()
+    QTest.keySequence(rw.window(), "Ctrl+F")
+    assert searchBar.isVisible()
+    return searchBar
+
+
 def testCurrentBranchCannotSwitchOrMerge(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -498,6 +507,34 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
     assert not missingUpstreamAction.isEnabled()
 
 
+def testSidebarFilterPersistsAcrossRefresh(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/login")
+        repo.create_branch_on_head("bugfix/issue-123")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    searchBar = _summonSearchBar(rw)
+
+    # Apply filter
+    sb.searchBar.lineEdit.setText("feature")
+    assert sb.indexForRef("refs/heads/feature/login").isValid()
+    assert not sb.indexForRef("refs/heads/bugfix/issue-123").isValid()
+
+    # Modify the repo such that the sidebar model becomes stale, then refresh
+    rw.repo.create_branch_on_head("feature/logout")
+    rw.refreshRepo()
+
+    # Filter should still be applied
+    assert searchBar.rawSearchTerm == "feature"
+    assert rw.sidebar.indexForRef("refs/heads/feature/login").isValid()
+    assert rw.sidebar.indexForRef("refs/heads/feature/logout").isValid()
+    assert not rw.sidebar.indexForRef("refs/heads/bugfix/issue-123").isValid()
+
+
 def testSidebarFilter(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -509,15 +546,15 @@ def testSidebarFilter(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
-    sidebarFilter = rw.sidebarFilter
+    searchBar = _summonSearchBar(rw)
 
     # Test initial state
-    assert sidebarFilter.filterText == ""
+    assert searchBar.rawSearchTerm == ""
     allBranches = sb.findNodesByKind(SidebarItem.LocalBranch)
     assert len(allBranches) >= 6  # master, no-parent, feature/*, bugfix/*, hotfix/*
 
     # Test filtering by "feature"
-    sidebarFilter.lineEdit.setText("feature")
+    searchBar.lineEdit.setText("feature")
 
     # Visible: feature branches
     assert sb.indexForRef("refs/heads/feature/login").isValid()
@@ -527,20 +564,20 @@ def testSidebarFilter(tempDir, mainWindow):
     assert not sb.indexForRef("refs/heads/master").isValid()
 
     # Test clearing filter
-    sidebarFilter.clear()
-    assert sidebarFilter.filterText == ""
+    searchBar.lineEdit.clear()
+    assert searchBar.rawSearchTerm == ""
     # All branches visible again after clearing
     assert sb.indexForRef("refs/heads/master").isValid()
     assert sb.indexForRef("refs/heads/no-parent").isValid()
 
     # Test case-insensitive filtering
-    sidebarFilter.lineEdit.setText("FEATURE")
+    searchBar.lineEdit.setText("FEATURE")
     assert sb.indexForRef("refs/heads/feature/login").isValid()
     assert sb.indexForRef("refs/heads/feature/signup").isValid()
     assert not sb.indexForRef("refs/heads/no-parent").isValid()
 
     # Test substring matching
-    sidebarFilter.lineEdit.setText("fix")
+    searchBar.lineEdit.setText("fix")
     assert sb.indexForRef("refs/heads/bugfix/issue-123").isValid()
     assert sb.indexForRef("refs/heads/hotfix/critical").isValid()
     # "no-parent" doesn't contain "fix", so it must be hidden
@@ -557,27 +594,18 @@ def testSidebarFilterWithFolders(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
-    sidebarFilter = rw.sidebarFilter
+    searchBar = _summonSearchBar(rw)
 
     # Filtering by "login" should show the matching branch and hide others
-    sidebarFilter.lineEdit.setText("login")
+    searchBar.lineEdit.setText("login")
     assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
     assert not sb.indexForRef("refs/heads/team/backend/api").isValid()
     assert not sb.indexForRef("refs/heads/team/frontend/signup").isValid()
 
-
-def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-    rw = mainWindow.openRepo(wd)
-    sidebarFilter = rw.sidebarFilter
-
-    # Test setting filter text
-    sidebarFilter.lineEdit.setText("test")
-    assert sidebarFilter.filterText == "test"
-
-    # Test clearing filter
-    sidebarFilter.clear()
-    assert sidebarFilter.filterText == ""
+    # Test filtering remote branches
+    searchBar.lineEdit.setText("origin")
+    # Remote node should be visible
+    assert sb.nodeToFilterIndex(sb.findNode(lambda n: n.data == "origin")).isValid()
 
 
 def testSidebarFilterWithTags(tempDir, mainWindow):
@@ -590,10 +618,10 @@ def testSidebarFilterWithTags(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
-    sidebarFilter = rw.sidebarFilter
+    searchBar = _summonSearchBar(rw)
 
     # Filtering by "v1" should show v1.0.0 and hide the others
-    sidebarFilter.lineEdit.setText("v1")
+    searchBar.lineEdit.setText("v1")
     assert sb.indexForRef("refs/tags/v1.0.0").isValid()
     assert not sb.indexForRef("refs/tags/v2.0.0").isValid()
     assert not sb.indexForRef("refs/tags/release-2024").isValid()
@@ -607,7 +635,7 @@ def testSidebarFilterPreservesSelection(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
-    sidebarFilter = rw.sidebarFilter
+    searchBar = _summonSearchBar(rw)
 
     # Select a branch
     featureNode = sb.findNodeByRef("refs/heads/feature/test")
@@ -617,7 +645,7 @@ def testSidebarFilterPreservesSelection(tempDir, mainWindow):
     assert "test" in selectedBefore
 
     # Filter that keeps the selected item visible
-    sidebarFilter.lineEdit.setText("feature")
+    searchBar.lineEdit.setText("feature")
 
     # The selected item should still be visible in the proxy model
     assert sb.indexForRef("refs/heads/feature/test").isValid()
@@ -634,7 +662,7 @@ def testSidebarFilterExpandsAll(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
     sm = sb.sidebarModel
-    sidebarFilter = rw.sidebarFilter
+    searchBar = _summonSearchBar(rw)
 
     # Collapse all folders first so we have something to expand
     localBranchesNode = sb.findNodeByKind(SidebarItem.LocalBranchesHeader)
@@ -646,7 +674,7 @@ def testSidebarFilterExpandsAll(tempDir, mainWindow):
     assert not sm.isAncestryChainExpanded(loginNode)
 
     # Applying a filter should expand all matching items
-    sidebarFilter.lineEdit.setText("login")
+    searchBar.lineEdit.setText("login")
 
     # The branch must now be visible in the proxy model
     assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
