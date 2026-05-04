@@ -39,8 +39,7 @@ class CommitFileSearch(ItemViewSearchProvider):
         assert cpf.isReady()
         cpf.filterOnly = self._wantFilter
 
-        if self._wantFilter:
-            self._buddy.clFilter.invalidateFilter()
+        self._buddy.clFilter.updatePathspecFilter()
         self._buddy.viewport().update()
 
         self.setStatus(self.TermStatus.Good if cpf.matchingIds else self.TermStatus.Bad)
@@ -85,12 +84,9 @@ class CommitFileSearch(ItemViewSearchProvider):
         return "Alt+P"
 
     def invalidate(self):
-        wasFiltering = self._pathspecFilter.wantFilter() and self._pathspecFilter.isReady()
         self._buddy.repoWidget.taskRunner.killTaskClass(QueryCommitsTouchingPath)
         self._pathspecFilter.clear()
-        if wasFiltering:
-            self._buddy.clFilter.invalidateFilter()
-
+        self._buddy.clFilter.updatePathspecFilter()
         super().invalidate()
 
     def canFilter(self) -> bool:
@@ -119,4 +115,4 @@ class CommitFileSearch(ItemViewSearchProvider):
     def setFilterState(self, checked: bool):
         super().setFilterState(checked)
         self._pathspecFilter.filterOnly = self._wantFilter
-        self._buddy.clFilter.invalidateFilter()
+        self._buddy.clFilter.updatePathspecFilter()

@@ -112,8 +112,15 @@ def testCommitFileSearchByPath(tempDir, mainWindow, rawNeedle):
     searchBar.ui.filterCheckBox.setChecked(False)
     assert gv.clFilter.rowCount() == fullRows
 
+    # Enable filter again before closing the searchbar
+    searchBar.ui.filterCheckBox.setChecked(True)
+    assert gv.clFilter.rowCount() == 4
+
+    # Close the searchbar; this should clear the filter too
     QTest.keySequence(rw.graphView, "Escape")
     assert not searchBar.isVisible()
+    assert not filterState.isReady()  # filter invalidated
+    assert gv.clFilter.rowCount() == fullRows
 
 
 def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
