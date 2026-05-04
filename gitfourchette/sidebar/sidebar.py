@@ -22,7 +22,7 @@ from gitfourchette.repomodel import RepoModel, UC_FAKEREF
 from gitfourchette.repoprefs import RefSort
 from gitfourchette.sidebar.sidebardelegate import SidebarDelegate, SidebarClickZone
 from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem
-from gitfourchette.sidebar.sidebarproxymodel import SidebarProxyModel
+from gitfourchette.sidebar.sidebarfilter import SidebarFilter
 from gitfourchette.sidebar.sidebarsearch import SidebarSearch
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
@@ -39,7 +39,7 @@ class Sidebar(QTreeView):
     statusMessage = Signal(str)
 
     sidebarModel: SidebarModel
-    proxyModel: SidebarProxyModel
+    filterModel: SidebarFilter
     selectionBackup: SidebarNode | None
     mousePressCache: tuple[int, SidebarClickZone]
 
@@ -60,9 +60,9 @@ class Sidebar(QTreeView):
         self.customContextMenuRequested.connect(self.onCustomContextMenuRequested)
 
         self.sidebarModel = SidebarModel(self)
-        self.proxyModel = SidebarProxyModel(self)
-        self.proxyModel.setSourceModel(self.sidebarModel)
-        self.setModel(self.proxyModel)
+        self.filterModel = SidebarFilter(self)
+        self.filterModel.setSourceModel(self.sidebarModel)
+        self.setModel(self.filterModel)
 
         self.toggleHideRefPattern.connect(self.sidebarModel.clearCachedTooltip)
 
@@ -90,15 +90,15 @@ class Sidebar(QTreeView):
 
     def filterIndexToNode(self, index: QModelIndex) -> SidebarNode:
         assert index.isValid()
-        assert index.model() is self.proxyModel
-        index = self.proxyModel.mapToSource(index)
+        assert index.model() is self.filterModel
+        index = self.filterModel.mapToSource(index)
         return SidebarNode.fromIndex(index)
 
     def nodeToFilterIndex(self, node: SidebarNode) -> QModelIndex:
         index = self.sidebarModel.createIndexFromNode(node)
         assert index.isValid()
         assert index.model() is self.sidebarModel
-        return self.proxyModel.mapFromSource(index)
+        return self.filterModel.mapFromSource(index)
 
     def onIndexExpanded(self, index: QModelIndex):
         node = self.filterIndexToNode(index)
