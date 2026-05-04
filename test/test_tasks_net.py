@@ -947,7 +947,7 @@ def testRemoteSkipFetchAll(tempDir, mainWindow):
     dlg.accept()
 
     # Look for message in sidebar tooltip
-    tip = node.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+    tip = rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
     assert re.search("skipped when fetching all remotes", tip, re.I)
 
     # Fetch

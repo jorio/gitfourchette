@@ -43,8 +43,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
 
     elif method == "sidebarDClick":
-        sourceIndex = submoNode.createIndex(rw.sidebar.sidebarModel)
-        index = rw.sidebar.model().mapFromSource(sourceIndex)
+        index = rw.sidebar.nodeToFilterIndex(submoNode)
         rect = rw.sidebar.visualRect(index)
         QTest.mouseDClick(rw.sidebar.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
 
@@ -375,7 +374,7 @@ def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow):
     # Get sidebar node for submodule (must say "not initialized")
     node = rw.sidebar.findNodeByKind(SidebarItem.Submodule)
     assert node.data == sm
-    assert "not initialized" in node.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+    assert "not initialized" in rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
 
     # Update the submodule
     menu = rw.sidebar.makeNodeMenu(node)
@@ -389,7 +388,7 @@ def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow):
     # Sidebar node for the submodule shouldn't say "not initialized" anymore
     node = rw.sidebar.findNodeByKind(SidebarItem.Submodule)
     assert node.data == sm
-    assert "not initialized" not in node.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+    assert "not initialized" not in rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
 
 
 @pytest.mark.skipif(pygit2OlderThan("1.15.1"), reason="old pygit2")

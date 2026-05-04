@@ -32,17 +32,14 @@ INVALID_MOUSEPRESS = (-1, SidebarClickZone.Invalid)
 
 class Sidebar(QTreeView):
     toggleHideRefPattern = Signal(str, bool)
-
     openSubmoduleRepo = Signal(str)
     openSubmoduleFolder = Signal(str)
-
     statusMessage = Signal(str)
 
-    @property
-    def sidebarModel(self) -> SidebarModel:
-        model = self.model()
-        assert isinstance(model, SidebarProxyModel)
-        return model.sourceModel()
+    sidebarModel: SidebarModel
+    proxyModel: SidebarProxyModel
+    selectionBackup: SidebarNode | None
+    mousePressCache: tuple[int, SidebarClickZone]
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -60,11 +57,12 @@ class Sidebar(QTreeView):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.onCustomContextMenuRequested)
 
-        sidebarModel = SidebarModel(self)
-        model = SidebarProxyModel(self)
-        model.setSourceModel(sidebarModel)
-        self.setModel(model)
-        self.toggleHideRefPattern.connect(sidebarModel.clearCachedTooltip)
+        self.sidebarModel = SidebarModel(self)
+        self.proxyModel = SidebarProxyModel(self)
+        self.proxyModel.setSourceModel(self.sidebarModel)
+        self.setModel(self.proxyModel)
+
+        self.toggleHideRefPattern.connect(self.sidebarModel.clearCachedTooltip)
 
         self.setItemDelegate(SidebarDelegate(self))
 
@@ -83,13 +81,25 @@ class Sidebar(QTreeView):
         makeWidgetShortcut(self, self.onDeleteShortcut, "Delete")
         makeWidgetShortcut(self, self.onRenameShortcut, "F2")
 
+    def filterIndexToNode(self, index: QModelIndex) -> SidebarNode:
+        assert index.isValid()
+        assert index.model() is self.proxyModel
+        index = self.proxyModel.mapToSource(index)
+        return SidebarNode.fromIndex(index)
+
+    def nodeToFilterIndex(self, node: SidebarNode) -> QModelIndex:
+        index = self.sidebarModel.createIndexFromNode(node)
+        assert index.isValid()
+        assert index.model() is self.sidebarModel
+        return self.proxyModel.mapFromSource(index)
+
     def onIndexExpanded(self, index: QModelIndex):
-        sourceIndex = self.model().mapToSource(index)
-        self.sidebarModel.onIndexExpanded(sourceIndex)
+        node = self.filterIndexToNode(index)
+        self.sidebarModel.cacheNodeCollapsedState(node, collapsed=False)
 
     def onIndexCollapsed(self, index: QModelIndex):
-        sourceIndex = self.model().mapToSource(index)
-        self.sidebarModel.onIndexCollapsed(sourceIndex)
+        node = self.filterIndexToNode(index)
+        self.sidebarModel.cacheNodeCollapsedState(node, collapsed=True)
 
     def drawBranches(self, painter, rect, index):
         """
@@ -109,10 +119,8 @@ class Sidebar(QTreeView):
         vr = super().visualRect(index)
 
         if index.isValid():
-            sourceIndex = self.model().mapToSource(index)
-            if sourceIndex.isValid():
-                node = SidebarNode.fromIndex(sourceIndex)
-                SidebarDelegate.unindentRect(node.kind, vr, self.indentation())
+            node = self.filterIndexToNode(index)
+            SidebarDelegate.unindentRect(node.kind, vr, self.indentation())
 
         return vr
 
@@ -532,8 +540,7 @@ class Sidebar(QTreeView):
             if not index.isValid():
                 return
 
-        sourceIndex = self.model().mapToSource(index)
-        node = SidebarNode.fromIndex(sourceIndex)
+        node = self.filterIndexToNode(index)
         menu = self.makeNodeMenu(node)
 
         if menu:
@@ -545,12 +552,7 @@ class Sidebar(QTreeView):
         self.restoreExpandedItems()
 
     def backUpSelection(self):
-        try:
-            index = self.selectedIndexes()[0]
-            sourceIndex = self.model().mapToSource(index)
-            self.selectionBackup = SidebarNode.fromIndex(sourceIndex)
-        except IndexError:
-            self.clearSelectionBackup()
+        self.selectionBackup = self.selectedNode()
 
     def clearSelectionBackup(self):
         self.selectionBackup = None
@@ -558,11 +560,15 @@ class Sidebar(QTreeView):
     def restoreSelectionBackup(self):
         if self.selectionBackup is None:
             return
-        with suppress(StopIteration), QSignalBlockerContext(self):
-            newNode = self.findNode(self.selectionBackup.isSimilarEnoughTo)
-            sourceIndex = newNode.createIndex(self.sidebarModel)
-            index = self.model().mapFromSource(sourceIndex)
-            self.setCurrentIndex(index)
+
+        try:
+            node = self.findNode(self.selectionBackup.isSimilarEnoughTo)
+        except StopIteration:
+            pass
+        else:
+            with QSignalBlockerContext(self):
+                self.selectNode(node)
+
         self.clearSelectionBackup()
 
     def refreshPrefs(self):
@@ -570,9 +576,7 @@ class Sidebar(QTreeView):
         self.setAnimated(settings.prefs.animations)
 
     def repaintUncommittedChanges(self):
-        model = self.sidebarModel
-        sourceIndex = model.nodesByRef[UC_FAKEREF].createIndex(model)
-        index = self.model().mapFromSource(sourceIndex)
+        index = self.indexForRef(UC_FAKEREF)
         self.update(index)
 
     def wantSelectNode(self, node: SidebarNode):
@@ -602,7 +606,7 @@ class Sidebar(QTreeView):
 
         Jump.invoke(self, locator)
 
-    def wantEnterNode(self, node: SidebarNode):
+    def wantEnterNode(self, node: SidebarNode | None):
         if node is None:
             QApplication.beep()
             return
@@ -654,7 +658,7 @@ class Sidebar(QTreeView):
         else:
             QApplication.beep()
 
-    def wantDeleteNode(self, node: SidebarNode):
+    def wantDeleteNode(self, node: SidebarNode | None):
         if node is None:
             QApplication.beep()
             return
@@ -694,7 +698,7 @@ class Sidebar(QTreeView):
         else:
             QApplication.beep()
 
-    def wantRenameNode(self, node: SidebarNode):
+    def wantRenameNode(self, node: SidebarNode | None):
         if node is None:
             QApplication.beep()
             return
@@ -733,22 +737,22 @@ class Sidebar(QTreeView):
         self.toggleHideRefPattern.emit(pattern, allButThis)
         self.repaint()
 
-    def getValidNode(self):
+    def selectedNode(self) -> SidebarNode | None:
         try:
             index = self.selectedIndexes()[0]
-            sourceIndex = self.model().mapToSource(index)
-            return SidebarNode.fromIndex(sourceIndex)
         except IndexError:
             return None
+        else:
+            return self.filterIndexToNode(index)
 
     def onReturnShortcut(self):
-        self.wantEnterNode(self.getValidNode())
+        self.wantEnterNode(self.selectedNode())
 
     def onDeleteShortcut(self):
-        self.wantDeleteNode(self.getValidNode())
+        self.wantDeleteNode(self.selectedNode())
 
     def onRenameShortcut(self):
-        self.wantRenameNode(self.getValidNode())
+        self.wantRenameNode(self.selectedNode())
 
     def selectionChanged(self, selected: QItemSelection, deselected: QItemSelection):
         super().selectionChanged(selected, deselected)
@@ -760,15 +764,14 @@ class Sidebar(QTreeView):
         if not current.isValid():
             return
 
-        sourceIndex = self.model().mapToSource(current)
-        self.wantSelectNode(SidebarNode.fromIndex(sourceIndex))
+        node = self.filterIndexToNode(current)
+        self.wantSelectNode(node)
 
     def resolveClick(self, pos: QPoint) -> tuple[QModelIndex, SidebarNode | None, SidebarClickZone]:
         index = self.indexAt(pos)
         if index.isValid():
             rect = self.visualRect(index)
-            sourceIndex = self.model().mapToSource(index)
-            node = SidebarNode.fromIndex(sourceIndex)
+            node = self.filterIndexToNode(index)
             zone = SidebarDelegate.getClickZone(node, rect, pos.x())
         else:
             node = None
@@ -877,17 +880,19 @@ class Sidebar(QTreeView):
         return len(self.findNodesByKind(kind))
 
     def indexForRef(self, ref: str) -> QModelIndex:
-        model = self.sidebarModel
+        """
+        Return an index in the filtered model for the given ref.
+        The returned index may be invalid if the ref is filtered out.
+        """
         try:
-            node = model.nodesByRef[ref]
-            sourceIndex = node.createIndex(model)
-            return self.model().mapFromSource(sourceIndex)
+            node = self.sidebarModel.nodesByRef[ref]
         except KeyError:
-            return QModelIndex()
+            return QModelIndex()  # Invalid index
+        else:
+            return self.nodeToFilterIndex(node)
 
     def selectNode(self, node: SidebarNode) -> QModelIndex:
-        sourceIndex = node.createIndex(self.sidebarModel)
-        index = self.model().mapFromSource(sourceIndex)
+        index = self.nodeToFilterIndex(node)
         self.setCurrentIndex(index)
         return index
 
@@ -895,7 +900,7 @@ class Sidebar(QTreeView):
         # Early out if any candidate ref is already selected
         with suppress(IndexError):
             index = self.selectedIndexes()[0]
-            if index and index.data(SidebarModel.Role.Ref) in refs:
+            if index.data(SidebarModel.Role.Ref) in refs:
                 return index
 
         # If several refs point to the same commit, attempt to select
@@ -912,13 +917,10 @@ class Sidebar(QTreeView):
         # Find a visible index that matches any of the candidates
         for ref in refCandidates:
             index = self.indexForRef(ref)
-            if not index or not index.isValid():
+            if not index.isValid():
                 continue
+            node = self.filterIndexToNode(index)
             # Don't force-expand any collapsed indexes
-            sourceIndex = self.model().mapToSource(index)
-            if not sourceIndex.isValid():
-                continue
-            node = SidebarNode.fromIndex(sourceIndex)
             if model.isAncestryChainExpanded(node):
                 self.setCurrentIndex(index)
                 return index
@@ -947,8 +949,7 @@ class Sidebar(QTreeView):
                 continue
 
             if node.wantForceExpand() or node.getCollapseHash() not in model.collapseCache:
-                sourceIndex = node.createIndex(model)
-                index = self.model().mapFromSource(sourceIndex)
+                index = self.nodeToFilterIndex(node)
                 self.expand(index)
 
             frontier.extend(node.children)
@@ -959,8 +960,7 @@ class Sidebar(QTreeView):
             node = frontier.pop()
             if node.kind == SidebarItem.RefFolder:
                 frontier.extend(node.children)
-                sourceIndex = node.createIndex(self.sidebarModel)
-                index = self.model().mapFromSource(sourceIndex)
+                index = self.nodeToFilterIndex(node)
                 self.collapse(index)
 
     def expandChildFolders(self, node: SidebarNode):
@@ -969,8 +969,7 @@ class Sidebar(QTreeView):
             node = frontier.pop()
             if node.kind == SidebarItem.RefFolder:
                 frontier.extend(node.children)
-                sourceIndex = node.createIndex(self.sidebarModel)
-                index = self.model().mapFromSource(sourceIndex)
+                index = self.nodeToFilterIndex(node)
                 self.expand(index)
 
     def copyToClipboard(self, text: str):

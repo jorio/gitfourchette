@@ -123,8 +123,8 @@ def testNewRepo(tempDir, mainWindow):
 
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.LocalBranch)
     unbornNode = rw.sidebar.findNodeByKind(SidebarItem.UnbornHead)
-    unbornNodeIndex = unbornNode.createIndex(rw.sidebar.sidebarModel)
-    assert re.search(r"branch.+will be created", unbornNodeIndex.data(Qt.ItemDataRole.ToolTipRole), re.I)
+    unbornIndex = rw.sidebar.nodeToFilterIndex(unbornNode)
+    assert re.search(r"branch.+will be created", unbornIndex.data(Qt.ItemDataRole.ToolTipRole), re.I)
 
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "empty commit")
@@ -529,8 +529,7 @@ def testRestoreSession(tempDir, mainWindow):
 
     # Collapse something in sidebar
     originNode = rw.sidebar.findNodeByKind(SidebarItem.Remote)
-    originSourceIndex = originNode.createIndex(rw.sidebar.sidebarModel)
-    originIndex = rw.sidebar.model().mapFromSource(originSourceIndex)
+    originIndex = rw.sidebar.nodeToFilterIndex(originNode)
     assert rw.sidebar.isExpanded(originIndex)
     rw.sidebar.collapse(originIndex)
     assert not rw.sidebar.isExpanded(originIndex)
@@ -565,7 +564,7 @@ def testRestoreSession(tempDir, mainWindow):
 
     # Make sure origin node is still collapsed
     originNode = rw.sidebar.findNodeByKind(SidebarItem.Remote)
-    originIndex = originNode.createIndex(rw.sidebar.sidebarModel)
+    originIndex = rw.sidebar.nodeToFilterIndex(originNode)
     assert not rw.sidebar.isExpanded(originIndex)
 
     # Make sure hidden branch is still hidden

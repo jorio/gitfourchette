@@ -9,7 +9,7 @@ import re
 
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import UC_FAKEID
-from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarModel, SidebarNode
+from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarModel
 from gitfourchette.toolbox import naturalSort
 from .util import *
 
@@ -38,7 +38,7 @@ def testSidebarWithDetachedHead(tempDir, mainWindow):
     assert headNode.kind == SidebarItem.DetachedHead
     assert headNode == rw.sidebar.findNodeByKind(SidebarItem.DetachedHead)
 
-    toolTip = headNode.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+    toolTip = rw.sidebar.nodeToFilterIndex(headNode).data(Qt.ItemDataRole.ToolTipRole)
     assert re.search(r"detached head.+7f82283", toolTip, re.I)
 
     assert {'refs/heads/master', 'refs/heads/no-parent'
@@ -74,8 +74,8 @@ def testSidebarCollapsePersistent(tempDir, mainWindow):
     sb = rw.sidebar
     sm = sb.sidebarModel
     assert sm.isAncestryChainExpanded(sb.findNodeByRef("refs/remotes/origin/master"))
-    sourceIndexToCollapse = sb.findNode(lambda n: n.data == "origin").createIndex(sm)
-    indexToCollapse = sb.model().mapFromSource(sourceIndexToCollapse)
+    nodeToCollapse = sb.findNode(lambda n: n.data == "origin")
+    indexToCollapse = sb.nodeToFilterIndex(nodeToCollapse)
     sb.collapse(indexToCollapse)
     sb.expand(indexToCollapse)  # go through both expand/collapse code paths
     sb.collapse(indexToCollapse)
@@ -97,24 +97,20 @@ def testSidebarCollapsedHeaderShowsChildCount(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     sb = rw.sidebar
-    sm = sb.sidebarModel
 
-    remotesHeader = sb.findNodeByKind(SidebarItem.RemotesHeader).createIndex(sm)
-    tagsHeader = sb.findNodeByKind(SidebarItem.TagsHeader).createIndex(sm)
-    stashesHeader = sb.findNodeByKind(SidebarItem.StashesHeader).createIndex(sm)
-    submodulesHeader = sb.findNodeByKind(SidebarItem.SubmodulesHeader).createIndex(sm)
+    indexes = [sb.nodeToFilterIndex(sb.findNodeByKind(kind))
+               for kind in (SidebarItem.RemotesHeader,
+                            SidebarItem.TagsHeader,
+                            SidebarItem.StashesHeader,
+                            SidebarItem.SubmodulesHeader)]
 
-    assert sm.data(remotesHeader) == "Remotes"
-    assert sm.data(tagsHeader) == "Tags"
-    assert sm.data(stashesHeader) == "Stashes"
-    assert sm.data(submodulesHeader) == "Submodules"
+    assert [i.data() for i in indexes] == [
+        "Remotes", "Tags", "Stashes", "Submodules"]
 
     sb.collapseAll()
 
-    assert sm.data(remotesHeader) == "Remotes (1)"
-    assert sm.data(tagsHeader) == "Tags (1)"
-    assert sm.data(stashesHeader) == "Stashes (0)"
-    assert sm.data(submodulesHeader) == "Submodules (0)"
+    assert [i.data() for i in indexes] == [
+        "Remotes (1)", "Tags (1)", "Stashes (0)", "Submodules (0)"]
 
 
 def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
@@ -142,8 +138,8 @@ def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
     triggerContextMenuAction(sb.viewport(), "collapse all folders")
     assert reachable() == {delish}
 
-    proxyIndex = sb.model().mapFromSource(delish.createIndex(sm))
-    sb.expand(proxyIndex)
+    index = sb.nodeToFilterIndex(delish)
+    sb.expand(index)
     assert reachable() == {delish, quiche, drink}
 
     triggerContextMenuAction(sb.viewport(), "expand all folders")
@@ -161,8 +157,7 @@ def testRefreshKeepsSidebarNonRefSelection(tempDir, mainWindow):
     sb.selectNode(node)
 
     rw.refreshRepo()
-    sourceIndex = sb.model().mapToSource(sb.selectedIndexes()[0])
-    node = SidebarNode.fromIndex(sourceIndex)
+    node = sb.filterIndexToNode(sb.selectedIndexes()[0])
     assert node.kind == SidebarItem.Remote
     assert node.data == "origin"
 
@@ -281,16 +276,15 @@ def testHideNestedRefFolders(tempDir, mainWindow, explicit, implicit, method):
     if method == "sidebarmenu":
         triggerMenuAction(sb.makeNodeMenu(node), "hide in graph")
     elif method == "sidebarclick":
-        sourceIndex = node.createIndex(sm)
-        index = sb.model().mapFromSource(sourceIndex)
+        index = sb.nodeToFilterIndex(node)
         rect = sb.visualRect(index)
         QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topRight())
     else:
         raise NotImplementedError(f"unknown method {method}")
 
     for node in rw.sidebar.walk():
-        index = node.createIndex(sm)
-        tip = sm.data(index, Qt.ItemDataRole.ToolTipRole)
+        index = sb.nodeToFilterIndex(node)
+        tip = index.data(Qt.ItemDataRole.ToolTipRole)
 
         if not node.isLeafBranchKind():
             pass
@@ -340,8 +334,7 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
     if method == "sidebarmenu":
         triggerMenuAction(sb.makeNodeMenu(node), "hide all but this")
     elif method == "sidebarclick":
-        sourceIndex = node.createIndex(sm)
-        index = sb.model().mapFromSource(sourceIndex)
+        index = sb.nodeToFilterIndex(node)
         rect = sb.visualRect(index)
         QTest.mouseClick(sb.viewport(), Qt.MouseButton.MiddleButton, pos=rect.topRight())
     else:
@@ -353,8 +346,8 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
     hiddenRefs.discard(explicit)
 
     for node in rw.sidebar.walk():
-        index = node.createIndex(sm)
-        tip = sm.data(index, Qt.ItemDataRole.ToolTipRole)
+        index = sb.nodeToFilterIndex(node)
+        tip = index.data(Qt.ItemDataRole.ToolTipRole)
 
         if not node.isLeafBranchKind():
             pass
@@ -384,7 +377,8 @@ def testSidebarToolTips(tempDir, mainWindow):
 
     def test(kind, data, *patterns):
         node = rw.sidebar.findNode(lambda n: n.kind == kind and n.data == data)
-        tip = node.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+        index = rw.sidebar.nodeToFilterIndex(node)
+        tip = index.data(Qt.ItemDataRole.ToolTipRole)
         for pattern in patterns:
             assert re.search(pattern, tip, re.I), f"pattern missing in tooltip: {tip}"
 
@@ -411,22 +405,17 @@ def testSidebarHeadIconAfterSwitchingBranchesPointingToSameCommit(tempDir, mainW
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
-    sm = rw.sidebar.sidebarModel
 
-    masterNode = sb.findNodeByRef("refs/heads/master")
-    otherNode = sb.findNodeByRef("refs/heads/other-master")
-    masterIcon = sm.data(masterNode.createIndex(sm), SidebarModel.Role.IconKey)
-    otherIcon = sm.data(otherNode.createIndex(sm), SidebarModel.Role.IconKey)
+    masterIcon = sb.indexForRef("refs/heads/master").data(SidebarModel.Role.IconKey)
+    otherIcon = sb.indexForRef("refs/heads/other-master").data(SidebarModel.Role.IconKey)
     assert masterIcon == "git-head"
     assert otherIcon == "git-branch"
 
-    triggerMenuAction(sb.makeNodeMenu(otherNode), "switch")
+    triggerMenuAction(sb.makeNodeMenu(sb.findNodeByRef("refs/heads/other-master")), "switch")
     acceptQMessageBox(rw, "switch")
 
-    masterNode = sb.findNodeByRef("refs/heads/master")
-    otherNode = sb.findNodeByRef("refs/heads/other-master")
-    masterIcon = sm.data(masterNode.createIndex(sm), SidebarModel.Role.IconKey)
-    otherIcon = sm.data(otherNode.createIndex(sm), SidebarModel.Role.IconKey)
+    masterIcon = sb.indexForRef("refs/heads/master").data(SidebarModel.Role.IconKey)
+    otherIcon = sb.indexForRef("refs/heads/other-master").data(SidebarModel.Role.IconKey)
     assert masterIcon == "git-branch"
     assert otherIcon == "git-head"
 

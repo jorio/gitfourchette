@@ -16,7 +16,7 @@ from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
-from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem
+from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from . import reposcenario
 from .util import *
 
@@ -463,8 +463,7 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
     assert rw.repo.head_commit_id == headId
 
     # Sidebar must now reflect detached HEAD
-    sourceIndex = rw.sidebar.model().mapToSource(rw.sidebar.currentIndex())
-    currentSidebarNode = SidebarNode.fromIndex(sourceIndex)
+    currentSidebarNode = rw.sidebar.filterIndexToNode(rw.sidebar.currentIndex())
     assert currentSidebarNode.kind == SidebarItem.DetachedHead
 
 
@@ -765,8 +764,7 @@ def testCheckoutTag(tempDir, mainWindow, method):
         sb.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        sourceIndex = node.createIndex(sb.sidebarModel)
-        index = sb.model().mapFromSource(sourceIndex)
+        index = sb.nodeToFilterIndex(node)
         rect = sb.visualRect(index)
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     else:

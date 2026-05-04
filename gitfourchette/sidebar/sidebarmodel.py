@@ -142,9 +142,6 @@ class SidebarNode:
             return next(c for c in self.children if c.kind == kind and c.data == data)
         raise KeyError("child node not found")
 
-    def createIndex(self, model: QAbstractItemModel) -> QModelIndex:
-        return model.createIndex(self.row, 0, self)
-
     def getCollapseHash(self) -> str:
         assert self.mayHaveChildren(), "it's futile to hash a leaf"
         return f"{self.kind.name}.{self.data}"
@@ -297,15 +294,12 @@ class SidebarModel(QAbstractItemModel):
 
         return True
 
-    def onIndexExpanded(self, index: QModelIndex):
-        node = SidebarNode.fromIndex(index)
+    def cacheNodeCollapsedState(self, node: SidebarNode, collapsed: bool):
         h = node.getCollapseHash()
-        self.collapseCache.discard(h)
-
-    def onIndexCollapsed(self, index: QModelIndex):
-        node = SidebarNode.fromIndex(index)
-        h = node.getCollapseHash()
-        self.collapseCache.add(h)
+        if collapsed:
+            self.collapseCache.add(h)
+        else:
+            self.collapseCache.discard(h)
 
     def refreshRepoName(self):
         if self.rootNode and self.repoModel:
@@ -520,6 +514,10 @@ class SidebarModel(QAbstractItemModel):
                 folderNode.displayName = folderNode.data.removeprefix(refNamePrefix)
                 containerNode.appendChild(folderNode)
 
+    def createIndexFromNode(self, node: SidebarNode) -> QModelIndex:
+        index = self.createIndex(node.row, 0, node)
+        return index
+
     def index(self, row: int, column: int, parent: QModelIndex = QModelIndex_default) -> QModelIndex:
         # Return an index given a parent and a row (i.e. child number within parent)
 
@@ -534,7 +532,7 @@ class SidebarModel(QAbstractItemModel):
         node = parentNode.children[row]
         assert node.row == row
 
-        return node.createIndex(self)
+        return self.createIndexFromNode(node)
 
     def parent(self, index: QModelIndex) -> QModelIndex:
         # Return the parent of the given index
@@ -552,7 +550,7 @@ class SidebarModel(QAbstractItemModel):
         if node is self.rootNode:
             return QModelIndex()
 
-        return node.createIndex(self)
+        return self.createIndexFromNode(node)
 
     def rowCount(self, parent: QModelIndex = QModelIndex_default) -> int:
         if not parent.isValid():  # root

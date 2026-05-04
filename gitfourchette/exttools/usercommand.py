@@ -137,7 +137,7 @@ class UserCommand:
 
     @classmethod
     def evalRef(cls, context: RepoWidget) -> str:
-        sidebarNode = context.sidebar.getValidNode()
+        sidebarNode = context.sidebar.selectedNode()
 
         refKinds = {
             SidebarItem.LocalBranch,
@@ -191,7 +191,7 @@ class UserCommand:
 
     @classmethod
     def evalRemote(cls, context: RepoWidget) -> str:
-        node = context.sidebar.getValidNode()
+        node = context.sidebar.selectedNode()
         if node.kind == SidebarItem.Remote:
             return node.data
         elif node.kind == SidebarItem.RemoteBranch:
