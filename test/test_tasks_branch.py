@@ -37,7 +37,8 @@ def testNewBranch(tempDir, mainWindow, method, switch):
         sb.selectNode(node)
         QTest.keyPress(sb, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = sb.visualRect(node.createIndex(sb.sidebarModel))
+        index = sb.nodeToFilterIndex(node)
+        rect = sb.visualRect(index)
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     elif method == "shortcut":
         QTest.qWait(0)
@@ -111,8 +112,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     repo = rw.repo
 
     def isUpstreamBold():
-        upstreamNode = rw.sidebar.findNodeByRef(f"refs/remotes/{upstreamName}")
-        upstreamIndex = upstreamNode.createIndex(rw.sidebar.sidebarModel)
+        upstreamIndex = rw.sidebar.indexForRef(f"refs/remotes/{upstreamName}")
         upstreamFont: QFont = upstreamIndex.data(Qt.ItemDataRole.FontRole)
         return upstreamFont is not None and upstreamFont.bold()
 
@@ -124,7 +124,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
 
     node = rw.sidebar.findNodeByRef(f"refs/heads/{branchName}")
 
-    toolTip = node.createIndex(rw.sidebar.sidebarModel).data(Qt.ItemDataRole.ToolTipRole)
+    toolTip = rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
     assert re.search(rf"{branchName}.+local branch", toolTip, re.I)
     assert (branchName == "master") == bool(re.search(r"checked.out", toolTip, re.I))
     assert re.search(rf"upstream.+{upstreamName}", toolTip, re.I)
@@ -656,7 +656,7 @@ def testSwitchBranch(tempDir, mainWindow, method):
 
     def getActiveBranchTooltipText():
         node = rw.sidebar.findNodeByRef(rw.repo.head_branch_fullname)
-        index = node.createIndex(rw.sidebar.sidebarModel)
+        index = rw.sidebar.nodeToFilterIndex(node)
         tip = index.data(Qt.ItemDataRole.ToolTipRole)
         assert re.search(r"(current|checked.out) branch", tip, re.I)
         return tip
@@ -929,7 +929,7 @@ def testMergeFastForward(tempDir, mainWindow, method):
     assert rw.repo.head.target != rw.repo.branches.local['master'].target
 
     node = rw.sidebar.findNodeByRef("refs/heads/master")
-    rw.sidebar.setCurrentIndex(node.createIndex(rw.sidebar.sidebarModel))
+    rw.sidebar.setCurrentIndex(rw.sidebar.nodeToFilterIndex(node))
 
     if method == "sidebar":
         menu = rw.sidebar.makeNodeMenu(node)

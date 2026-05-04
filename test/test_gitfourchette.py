@@ -123,8 +123,8 @@ def testNewRepo(tempDir, mainWindow):
 
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.LocalBranch)
     unbornNode = rw.sidebar.findNodeByKind(SidebarItem.UnbornHead)
-    unbornNodeIndex = unbornNode.createIndex(rw.sidebar.sidebarModel)
-    assert re.search(r"branch.+will be created", unbornNodeIndex.data(Qt.ItemDataRole.ToolTipRole), re.I)
+    unbornIndex = rw.sidebar.nodeToFilterIndex(unbornNode)
+    assert re.search(r"branch.+will be created", unbornIndex.data(Qt.ItemDataRole.ToolTipRole), re.I)
 
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "empty commit")
@@ -530,9 +530,9 @@ def testRestoreSession(tempDir, mainWindow):
 
     # Collapse something in sidebar
     originNode = rw.sidebar.findNodeByKind(SidebarItem.Remote)
-    originIndex = originNode.createIndex(rw.sidebar.sidebarModel)
+    originIndex = rw.sidebar.nodeToFilterIndex(originNode)
     assert rw.sidebar.isExpanded(originIndex)
-    rw.sidebar.collapse(originNode.createIndex(rw.sidebar.sidebarModel))
+    rw.sidebar.collapse(originIndex)
     assert not rw.sidebar.isExpanded(originIndex)
 
     # Hide something in sidebar
@@ -565,7 +565,7 @@ def testRestoreSession(tempDir, mainWindow):
 
     # Make sure origin node is still collapsed
     originNode = rw.sidebar.findNodeByKind(SidebarItem.Remote)
-    originIndex = originNode.createIndex(rw.sidebar.sidebarModel)
+    originIndex = rw.sidebar.nodeToFilterIndex(originNode)
     assert not rw.sidebar.isExpanded(originIndex)
 
     # Make sure hidden branch is still hidden
@@ -863,3 +863,94 @@ def testAccumulateTaskEffectBitsUntilRefreshAbortedManually(tempDir, mainWindow,
         # file1.txt still appears dirty because we've aborted the refresh task
         assert 1 == len(qlvGetRowData(rw.dirtyFiles))
         waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+
+def testSidebarFilterIntegration(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/login")
+        repo.create_branch_on_head("feature/signup")
+        repo.create_branch_on_head("bugfix/issue-123")
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Verify filter widget is visible
+    assert sidebarFilter.isVisible()
+
+    # Test filtering branches
+    sidebarFilter.lineEdit.setText("feature")
+    QTest.qWait(50)
+
+    # Should be able to navigate to filtered branch
+    featureNode = sb.findNodeByRef("refs/heads/feature/login")
+    assert featureNode is not None
+
+    # Clear filter
+    sidebarFilter.clear()
+    QTest.qWait(50)
+    assert sidebarFilter.filterText == ""
+
+
+def testSidebarFilterPersistsAcrossRefresh(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.create_branch_on_head("feature/test")
+        repo.create_branch_on_head("bugfix/test")
+
+    rw = mainWindow.openRepo(wd)
+    sidebarFilter = rw.sidebarFilter
+
+    # Apply filter
+    sidebarFilter.lineEdit.setText("feature")
+    QTest.qWait(50)
+    assert sidebarFilter.filterText == "feature"
+
+    # Refresh repo
+    rw.refreshRepo()
+
+    # Filter should still be applied
+    assert sidebarFilter.filterText == "feature"
+
+
+def testSidebarFilterWithRemoteBranches(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test filtering remote branches
+    sidebarFilter.lineEdit.setText("origin")
+    QTest.qWait(50)
+
+    # Remote node should be visible
+    originNode = sb.findNode(lambda n: n.data == "origin")
+    assert originNode is not None
+
+    # Clear filter
+    sidebarFilter.clear()
+    QTest.qWait(50)
+
+
+def testSidebarFilterKeyboardShortcuts(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sidebarFilter = rw.sidebarFilter
+
+    # Test typing in filter
+    sidebarFilter.lineEdit.setText("master")
+    QTest.qWait(50)
+    assert sidebarFilter.filterText == "master"
+
+    # Should be able to find master branch when filtered
+    masterNode = sb.findNodeByRef("refs/heads/master")
+    assert masterNode is not None
+
+    # Test clearing filter programmatically
+    sidebarFilter.clear()
+    QTest.qWait(50)
+    assert sidebarFilter.filterText == ""

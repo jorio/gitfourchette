@@ -4,12 +4,18 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
+
 import enum
+import typing
 
 from gitfourchette.qt import *
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarModel, SidebarItem, SidebarLayout, SYMBOL_AHEAD, SYMBOL_BEHIND
 from gitfourchette.toolbox import stockIcon, FittedText
 from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
+
+if typing.TYPE_CHECKING:
+    from gitfourchette.sidebar.sidebar import Sidebar
 
 PE_EXPANDED = QStyle.PrimitiveElement.PE_IndicatorArrowDown
 PE_COLLAPSED = QStyle.PrimitiveElement.PE_IndicatorArrowRight
@@ -33,11 +39,11 @@ class SidebarDelegate(QStyledItemDelegate):
     and hide/show icons.
     """
 
+    sidebar: Sidebar
+
     def __init__(self, parent: QTreeView):
         super().__init__(parent)
-        self.treeView = parent
-        self.sidebarModel: SidebarModel = parent.model()
-        assert isinstance(self.sidebarModel, SidebarModel)
+        self.sidebar = parent
 
     @staticmethod
     def unindentRect(item: SidebarItem, rect: QRect, indentation: int):
@@ -59,11 +65,11 @@ class SidebarDelegate(QStyledItemDelegate):
             return SidebarClickZone.Select
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
-        node = SidebarNode.fromIndex(index)
+        node = self.sidebar.filterIndexToNode(index)
         assert node.parent is not None, "can't paint root node"
 
-        sidebarModel = self.sidebarModel
-        view = self.treeView
+        sidebarModel = self.sidebar.sidebarModel
+        view = self.sidebar
         assert view is option.widget
 
         style: QStyle = view.style()

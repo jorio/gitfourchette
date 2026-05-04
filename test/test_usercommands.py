@@ -8,7 +8,7 @@ import dataclasses
 
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.nav import NavLocator
-from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarNode
+from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from .util import *
 
 # Give macOS a very generous timeout because it can take a long time to spawn a
@@ -192,7 +192,7 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
         menu = summonContextMenu(rw.committedFiles.viewport())
         action = findMenuAction(menu, r"\(command\) " + params.menuName)
     elif params.actionSource == "sidebar":
-        node = SidebarNode.fromIndex(rw.sidebar.selectedIndexes()[0])
+        node = rw.sidebar.filterIndexToNode(rw.sidebar.selectedIndexes()[0])
         menu = rw.sidebar.makeNodeMenu(node)
         action = findMenuAction(menu, r"\(command\) " + params.menuName)
     else:

@@ -42,7 +42,8 @@ def testNewStash(tempDir, mainWindow, method):
         sb.selectNode(node)
         QTest.keyPress(sb, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = sb.visualRect(node.createIndex(rw.sidebar.sidebarModel))
+        index = sb.nodeToFilterIndex(node)
+        rect = sb.visualRect(index)
         QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     elif method == "menubar":
         triggerMenuAction(mainWindow.menuBar(), "repo/stash")
@@ -60,10 +61,9 @@ def testNewStash(tempDir, mainWindow, method):
     assert qlvGetRowData(rw.stagedFiles) == [], "workdir must be clean after stashing"
     assert len(repo.listall_stashes()) == 1, "there must be one stash in the repo"
 
-    stashNode = sb.findNodeByRef("stash@{0}")
-    stashNodeIndex = stashNode.createIndex(sb.sidebarModel)
-    assert "helloworld" == stashNodeIndex.data(Qt.ItemDataRole.DisplayRole)
-    assert "helloworld" in stashNodeIndex.data(Qt.ItemDataRole.ToolTipRole)
+    stashIndex = sb.indexForRef("stash@{0}")
+    assert "helloworld" == stashIndex.data(Qt.ItemDataRole.DisplayRole)
+    assert "helloworld" in stashIndex.data(Qt.ItemDataRole.ToolTipRole)
 
     rw.selectRef("refs/stash")
     assert rw.committedFiles.isVisibleTo(rw)
@@ -160,7 +160,7 @@ def testNewStashWithoutIdentity(tempDir, mainWindow):
     assert "unknown" == stashCommit.author.name.lower()
     assert "unknown" == stashCommit.committer.name.lower()
 
-    assert "helloworld" == sb.findNodeByRef("stash@{0}").createIndex(sb.sidebarModel).data(Qt.ItemDataRole.DisplayRole)
+    assert "helloworld" == sb.indexForRef("stash@{0}").data(Qt.ItemDataRole.DisplayRole)
     assert qlvGetRowData(rw.dirtyFiles) == []
 
 
@@ -231,7 +231,8 @@ def testApplyStash(tempDir, mainWindow, method):
         rw.sidebar.selectNode(node)
         QTest.keyPress(rw.sidebar, Qt.Key.Key_Return)
     elif method == "sidebardclick":
-        rect = rw.sidebar.visualRect(node.createIndex(rw.sidebar.sidebarModel))
+        index = rw.sidebar.nodeToFilterIndex(node)
+        rect = rw.sidebar.visualRect(index)
         QTest.mouseDClick(rw.sidebar.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
     else:
         raise NotImplementedError(f"unknown method {method}")
