@@ -4,17 +4,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2026-05-07 03:11+0000\n"
+"Last-Translator: Geovane Pereira <geeo.sp@gmail.com>\n"
+"Language-Team: Portuguese (Brazil) <https://hosted.weblate.org/projects/"
+"gitfourchette/gitfourchette/pt_BR/>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.17.1\n"
 
 #: application.py:118 forms/aboutdialog.py:56
 msgid "The comfortable Git UI for Linux."
-msgstr ""
+msgstr "A Git interface confortável para Linux."
 
 #: application.py:121
 msgid "Repository paths to open on launch."
@@ -24,6 +27,8 @@ msgstr ""
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
 msgstr ""
+"Seu Qt binding preferido {0} não está disponível nesta máquina. Utilizado "
+"{1} em seu lugar"
 
 #: application.py:310
 #, python-brace-format
@@ -32,59 +37,60 @@ msgstr ""
 
 #: application.py:314
 msgid "Qt binding unavailable"
-msgstr ""
+msgstr "Qt binding indisponível"
 
 #: application.py:447
 #, python-brace-format
 msgid "Couldn’t start {0} ({1})."
-msgstr ""
+msgstr "Problema ao iniciar {0} {1}."
 
 #: application.py:448
 msgid "Please make sure OpenSSH is installed on your system."
-msgstr ""
+msgstr "Se assegure de que OpenSSH está instalado no seu sistema"
 
 #: application.py:449
 msgid "SSH agent"
-msgstr ""
+msgstr "agente SSH"
 
 #: blameview/blamegutter.py:176
 msgid "(Uncommitted)"
-msgstr ""
+msgstr "(Não comitado)"
 
 #: blameview/blamegutter.py:206 diffview/specialdiffview.py:114
 #: filelists/filelistmodel.py:55 forms/contextheader.py:104
 #: forms/contextheader.py:122 forms/prefsdialog.py:249 tasks/misctasks.py:94
 #: tasks/nettasks.py:298 tasks/repotask.py:72
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: blameview/blamegutter.py:212
 msgid "Not Committed Yet"
-msgstr ""
+msgstr "Ainda Não Comitado"
 
 #: blameview/blamegutter.py:212 blameview/blamegutter.py:215
 msgid "commit"
-msgstr ""
+msgstr "salvar"
 
 #: blameview/blamegutter.py:216
 msgid "author"
-msgstr ""
+msgstr "autor"
 
 #: blameview/blamegutter.py:217
 msgid "date"
-msgstr ""
+msgstr "data"
 
 #: blameview/blamegutter.py:218
 msgid "file name"
-msgstr ""
+msgstr "nome do arquivo"
 
 #: blameview/blamegutter.py:219
 msgid "revision"
-msgstr ""
+msgstr "revisão"
 
 #: blameview/blamescrubberdelegate.py:59 blameview/blamescrubbermodel.py:42
+#, fuzzy
 msgid "Uncommitted Changes in Working Directory"
-msgstr ""
+msgstr "Mudanćas não salvas no Diretório de Trabalho"
 
 #: blameview/blametextedit.py:39
 msgid "Blame File at Uncommitted Revision"
@@ -92,21 +98,21 @@ msgstr ""
 
 #: blameview/blametextedit.py:40
 msgid "Show Diff in Working Directory"
-msgstr ""
+msgstr "Mostrrar diferencas no Diretório de Trabalho"
 
 #: blameview/blametextedit.py:42
 #, python-brace-format
 msgid "Blame File at {0}"
-msgstr ""
+msgstr "Blame arquivo em {0}"
 
 #: blameview/blametextedit.py:43
 #, python-brace-format
 msgid "Show {0} in Repo"
-msgstr ""
+msgstr "Mostrar {0} no Repositório"
 
 #: blameview/blamewindow.py:46
 msgid "Jump"
-msgstr ""
+msgstr "Pular"
 
 #: blameview/blamewindow.py:47
 msgid "View this commit in the repo"
