@@ -94,6 +94,20 @@ def testOpenBlameCorrectTrace(blameWindow):
         blameModel.revList.revisionForCommit(BlameFixture.unrelatedOid)
 
 
+def testBlameKeyboardShortcut(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    rw = mainWindow.openRepo(wd)
+
+    assert NavLocator.inUnstaged("").isSimilarEnoughTo(rw.navLocator)
+    QTest.keySequence(mainWindow, "Ctrl+L")
+    acceptQMessageBox(mainWindow, "please select a file")
+    mainWindow.activateWindow()
+
+    rw.jump(NavLocator.inCommit(BlameFixture.revs["french"], "hello.txt"), check=True)
+    QTest.keySequence(mainWindow, "Ctrl+L")
+    findWindow("blame", BlameWindow).close()
+
+
 @pytest.mark.parametrize("closeKey", [
     "",
     QKeySequence.StandardKey.Close,

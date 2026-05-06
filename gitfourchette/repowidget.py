@@ -423,7 +423,9 @@ class RepoWidget(QWidget):
             # from its old name.
             if loc.context.isWorkdir():
                 assert atCommit == NULL_OID
-                path = self.repoModel.findWorkdirDelta(loc.path).old.path
+                delta = self.repoModel.findWorkdirDelta(loc.path)
+                if delta is not None:
+                    path = delta.old.path
 
         if not path:
             showInformation(self, tasks.OpenBlame.name(), _("Please select a file before performing this action."))
