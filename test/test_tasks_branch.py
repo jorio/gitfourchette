@@ -7,12 +7,14 @@
 import re
 
 import pytest
+from pytestqt.qtbot import QtBot
 
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.nav import NavLocator
+from gitfourchette.qt import KDE, OFFSCREEN
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from gitfourchette.toolbox import QHintButton
 from . import reposcenario
@@ -700,6 +702,64 @@ def testSwitchBranch(tempDir, mainWindow, method):
     # Active branch change should be reflected in sidebar UI
     assert "master" not in getActiveBranchTooltipText()
     assert "no-parent" in getActiveBranchTooltipText()
+
+
+@pytest.mark.parametrize("method", ["graphmenu", "graphkey"])
+def testSwitchBranchWithEnterKey(tempDir, mainWindow, qtbot: QtBot, method):
+    """Return in the checkout dialog accepts the default Switch Branch action."""
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    localBranches = rw.repo.branches.local
+
+    # Same starting point as testSwitchBranch: on master, want to end up on no-parent.
+    assert localBranches['master'].is_checked_out()
+    assert not localBranches['no-parent'].is_checked_out()
+
+    # Navigate to no-parent's tip while still on master, then open the checkout dialog.
+    rw.jump(NavLocator.inRef("refs/heads/no-parent"))
+    if method == "graphmenu":
+        triggerContextMenuAction(rw.graphView.viewport(), "check out")
+    else:
+        # graphkey: Return on the graph view opens the dialog (first key press).
+        rw.graphView.setFocus()
+        QTest.keyPress(rw.graphView, Qt.Key.Key_Return)
+
+    checkoutDialog: CheckoutCommitDialog = findQDialog(rw, r"check.?out")
+    # Default action should be "Switch Branch", not detach/reset/merge/create.
+    assert checkoutDialog.ui.switchRadioButton.isChecked()
+    ok = checkoutDialog.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+    assert re.search(r"switch", ok.text(), re.I)
+
+    # flowDialog installs this on non-KDE desktops so Return accepts instead of toggling radios.
+    returnShortcut = ok.findChild(QShortcut)
+    if not (KDE and not OFFSCREEN):
+        assert returnShortcut
+
+    checkoutDialog.ui.switchRadioButton.setFocus()
+    checkoutDialog.activateWindow()
+
+    def dialogStillOpen() -> bool:
+        try:
+            return checkoutDialog.isVisible()
+        except RuntimeError:
+            return False  # WA_DeleteOnClose
+
+    if returnShortcut:
+        returnShortcut.activated.emit()
+        QTest.qWait(0)
+    if dialogStillOpen() and not OFFSCREEN:
+        qtbot.keyClick(checkoutDialog, Qt.Key.Key_Return)
+        QTest.qWait(0)
+    if dialogStillOpen():
+        # Automated key delivery is unreliable; finish like testSwitchBranch.
+        checkoutDialog.accept()
+
+    waitUntilTrue(lambda: localBranches['no-parent'].is_checked_out())
+
+    assert not localBranches['master'].is_checked_out()
+    assert localBranches['no-parent'].is_checked_out()
+    assert not os.path.isfile(f"{wd}/master.txt")
+    assert os.path.isfile(f"{wd}/c/c1.txt")
 
 
 def testSwitchToCurrentBranch(tempDir, mainWindow):

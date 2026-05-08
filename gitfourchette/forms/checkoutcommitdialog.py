@@ -34,6 +34,21 @@ class CheckoutCommitDialog(QDialog):
 
         self.setWindowTitle(_("Check out commit {0}", shortHash(oid)))
 
+        okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        if okButton:
+            okButton.setDefault(True)
+            okButton.setAutoDefault(True)
+
+        # Make Enter consistently confirm this dialog, even when a radio button
+        # has focus (QRadioButton would otherwise consume Enter to toggle itself).
+        self._returnShortcut = QShortcut(QKeySequence(Qt.Key.Key_Return), self)
+        self._returnShortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self._returnShortcut.activated.connect(self._acceptOnEnter)
+
+        self._enterShortcut = QShortcut(QKeySequence(Qt.Key.Key_Enter), self)
+        self._enterShortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self._enterShortcut.activated.connect(self._acceptOnEnter)
+
         if isDetachedHead:
             ui.detachHeadRadioButton.setText(_("Move &detached HEAD here"))
         else:
@@ -87,3 +102,8 @@ class CheckoutCommitDialog(QDialog):
             ok.setText(okCaption)
             ok.setIcon(stockIcon(okIcon) if okIcon else QIcon())
         radio.clicked.connect(callback)
+
+    def _acceptOnEnter(self):
+        ok = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        if ok and ok.isEnabled():
+            ok.click()
