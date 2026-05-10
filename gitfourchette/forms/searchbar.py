@@ -241,7 +241,7 @@ class SearchBar(QWidget):
         else:
             QApplication.beep()
 
-    def popUp(self, op: SearchBar.Op):
+    def popUp(self, op: SearchBar.Op = Op.Start):
         wasHidden = self.isHidden()
         self.show()
 

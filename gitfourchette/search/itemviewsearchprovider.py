@@ -86,7 +86,11 @@ class ItemViewSearchProvider(SearchProvider):
         return index.row()
 
     def _jumpToIndex(self, index: QModelIndex):
-        self._buddy.setCurrentIndex(index)
+        # Select the index via QItemSelectionModel, not _buddy.setCurrentIndex,
+        # to avoid extending the selection if Ctrl is held down (e.g. pasting a
+        # search term with Ctrl+V).
+        sm = self._buddy.selectionModel()
+        sm.setCurrentIndex(index, QItemSelectionModel.SelectionFlag.SelectCurrent)
 
     def _walkModelImpl(self, rows: Iterable[int]) -> QModelIndex:
         """

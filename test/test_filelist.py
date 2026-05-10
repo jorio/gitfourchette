@@ -264,6 +264,38 @@ def testSearchFileList(tempDir, mainWindow):
     assert not searchBar.isVisible()
 
 
+def testHoldingCtrlInFileListSearchWontExtendSelection(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/001.txt", "hello1")
+    writeFile(f"{wd}/002.txt", "hello2")
+    writeFile(f"{wd}/003.txt", "hello3")
+
+    rw = mainWindow.openRepo(wd)
+    fileList = rw.dirtyFiles
+    searchBar = fileList.searchBar
+    assert list(fileList.selectedPaths()) == ["001.txt"]
+
+    searchBar.popUp()
+    searchBar.lineEdit.setFocus()
+
+    # Press Ctrl+V to paste in "003" and hold Ctrl for a little while
+    QApplication.clipboard().setText("003")
+    QTest.keyPress(searchBar.lineEdit, Qt.Key.Key_Control)
+    QTest.keyClick(searchBar.lineEdit, Qt.Key.Key_V, Qt.KeyboardModifier.ControlModifier)
+
+    # Wait for search results to come in (still holding down Ctrl)
+    QTest.qWait(0)
+    assert searchBar.rawSearchTerm == "003"
+    assert searchBar.provider.isGoodAndNonEmpty()
+
+    # Let go of Ctrl
+    assert QGuiApplication.keyboardModifiers() == Qt.KeyboardModifier.ControlModifier, "ctrl should still be held"
+    QTest.keyRelease(searchBar.lineEdit, Qt.Key.Key_Control)
+
+    # Only a single item must be selected
+    assert list(fileList.selectedPaths()) == ["003.txt"]
+
+
 def testSearchFileListElidedTerm(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/aaaafirst", "first")
