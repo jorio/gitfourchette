@@ -601,13 +601,14 @@ def testCherrypick(tempDir, mainWindow, worktree):
 
     rw.jump(NavLocator.inCommit(oid))
     triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+ac7e7e4")
 
     assert rw.diffArea.fileStackPage() == "workdir"
     assert rw.repo.status() == {"a/a1.txt": FileStatus.INDEX_NEW}
 
-    acceptQMessageBox(rw, "cherry.+success.+commit")
-
-    dialog: CommitDialog = findQDialog(rw, "commit")
+    rw.diffArea.commitButton.click()
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert findTextInWidget(dialog.ui.infoText, "will conclude the cherry")
     assert dialog.ui.summaryEditor.text() == "First a/a1"
     assert dialog.getOverriddenSignatureKind() == SignatureOverride.Author
 
@@ -624,6 +625,36 @@ def testCherrypick(tempDir, mainWindow, worktree):
     assert qlvGetRowData(rw.committedFiles) == ["a/a1.txt"]
 
 
+def testCherrypickWithConflicts(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    oid = Oid(hex='1b2bae55ac95a4be3f8983b86cd579226d0eb247')  # provoke a conflict on '.gitignore'
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(oid, ".gitignore"), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+1b2bae5")
+
+    assert rw.repo.state() == RepositoryState.CHERRYPICK
+    assert rw.mergeBanner.isVisible()
+    assert findTextInWidget(rw.mergeBanner.label, "cherry-picking.+conflicts need fixing")
+
+    assert NavLocator.inUnstaged(".gitignore").isSimilarEnoughTo(rw.navLocator)
+    assert rw.diffArea.conflictView.isVisible()
+    rw.diffArea.conflictView.ui.theirsButton.click()
+
+    assert findTextInWidget(rw.mergeBanner.label, "cherry-picking.+commit to conclude")
+
+    rw.diffArea.commitButton.click()
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert findTextInWidget(dialog.ui.infoText, "will conclude the cherry")
+    dialog.accept()
+
+    assert rw.repo.head_commit.message.strip() == "commit to provoke a conflict"
+    assert rw.repo.head_commit.author.name.startswith("Victor")
+    assert rw.repo.head_commit.committer.name == TEST_SIGNATURE.name
+
+
 def testCherrypickEditAuthor(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -636,8 +667,11 @@ def testCherrypickEditAuthor(tempDir, mainWindow):
 
     rw.jump(NavLocator.inCommit(oid))
     triggerContextMenuAction(rw.graphView.viewport(), "cherry")
-    acceptQMessageBox(rw, "cherry.+success.+commit")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+ac7e7e4")
+
+    rw.diffArea.commitButton.click()
     dialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert findTextInWidget(dialog.ui.infoText, "will conclude the cherry")
     assert dialog.ui.summaryEditor.text() == "First a/a1"
     assert dialog.getOverriddenSignatureKind() == SignatureOverride.Author
     dialog.ui.signature.ui.nameEdit.setText("Someone Else")
@@ -659,8 +693,11 @@ def testCherrypickDud(tempDir, mainWindow):
 
     oid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
     rw.jump(NavLocator.inCommit(oid))
+
     triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+f73b956")
     acceptQMessageBox(rw, "nothing to cherry.?pick.+already")
+    assert rw.repo.state() == RepositoryState.NONE
 
 
 def testAbortCherrypick(tempDir, mainWindow):
@@ -675,14 +712,14 @@ def testAbortCherrypick(tempDir, mainWindow):
 
     rw.jump(NavLocator.inCommit(oid))
     triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+ac7e7e4")
+
     assert rw.diffArea.fileStackPage() == "workdir"
     assert rw.repo.status() == {"a/a1.txt": FileStatus.INDEX_NEW}
-    rejectQMessageBox(rw, "cherry.+success.+commit")
-
     assert rw.repo.state() == RepositoryState.CHERRYPICK
     assert "First a/a1" in rw.repoModel.prefs.draftCommitMessage
-    assert rw.mergeBanner.isVisibleTo(rw)
-    assert re.search(r"cherry.+commit to conclude", rw.mergeBanner.label.text(), re.I | re.S)
+    assert rw.mergeBanner.isVisible()
+    assert findTextInWidget(rw.mergeBanner.label, r"cherry.+commit to conclude")
     assert "abort" in rw.mergeBanner.buttons[-1].text().lower()
 
     # Abort cherrypick

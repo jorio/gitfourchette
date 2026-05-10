@@ -517,21 +517,32 @@ class CherrypickCommit(RepoTask):
         return TaskPrereqs.NoConflicts | TaskPrereqs.NoStagedChanges
 
     def flow(self, oid: Oid):
+        question = _("Do you want to apply the changes from commit {0} "
+                     "to your working directory?", bquo(shortHash(oid)))
+        yield from self.flowConfirm(_("Cherry-pick"), question)
+
         commit = self.repo.peel_commit(oid)
 
         self.epilog.effects |= TaskEffects.Workdir
-        yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid))
+        driver = yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid), autoFail=False)
 
-        # Force cherry-picking state for compatibility with libgit2 backend
+        exitCode = driver.exitCode()
+        logger.debug(f"cherry-pick rc={exitCode}")
+        if exitCode not in [0, 1]:
+            raise NotImplementedError(f"'git cherry-pick' exit code {exitCode}")
+
+        yield from self.flowEnterWorkerThread()
+
+        # We're not going to create a commit right away so the user has a chance
+        # to review the changes in the UI. So, force the cherry-picking state.
         # (Note: CHERRY_PICK_HEAD is private to the worktree, hence common=False)
         cherryPickHead = Path(self.repo.in_gitdir("CHERRY_PICK_HEAD", common=False))
         cherryPickHead.write_text(str(oid) + "\n")
 
         # Refresh libgit2 index for conflict analysis
-        yield from self.flowEnterWorkerThread()
         self.repo.refresh_index()
 
-        anyConflicts = self.repo.any_conflicts
+        anyConflicts = exitCode != 0
         dud = not anyConflicts and not self.repo.any_staged_changes
 
         assert self.repo.state() == RepositoryState.CHERRYPICK
@@ -555,12 +566,3 @@ class CherrypickCommit(RepoTask):
         self.repoModel.prefs.setDirty()
 
         self.epilog.jumpTo = NavLocator.inWorkdir()
-
-        if not anyConflicts:
-            yield from self.flowSubtask(RefreshRepo, TaskEffects.Workdir, NavLocator.inStaged(""))
-            yield from self.flowConfirm(
-                text=_("Cherry-picking {0} was successful. "
-                       "Do you want to commit the result now?", bquo(shortHash(oid))),
-                verb=_p("verb", "Commit"),
-                cancelText=_("Review changes"))
-            yield from self.flowSubtask(NewCommit)

@@ -1201,4 +1201,4 @@ def testRefreshLibgit2IndexAfterTaskAffectsHead(tempDir, mainWindow):
     cherrypickOid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
     rw.jump(NavLocator.inCommit(cherrypickOid, "a/a1"), check=True)
     triggerContextMenuAction(rw.graphView.viewport(), "cherry.?pick")
-    rejectQMessageBox(rw, "cherry.?pick.+successful")
+    acceptQMessageBox(rw, "do you want to apply.+changes.+f73b956")
