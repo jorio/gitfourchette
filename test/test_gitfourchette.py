@@ -863,3 +863,23 @@ def testAccumulateTaskEffectBitsUntilRefreshAbortedManually(tempDir, mainWindow,
         # file1.txt still appears dirty because we've aborted the refresh task
         assert 1 == len(qlvGetRowData(rw.dirtyFiles))
         waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+
+
+def testDiffHeader(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/empty.txt", "")
+    writeFile(f"{wd}/hello.txt", "hello")
+
+    rw = mainWindow.openRepo(wd)
+
+    # Switch back and forth between a text diff (hello.txt) and a special diff
+    # (empty.txt) to ensure that the header text is updated even when reloading
+    # the diff is not necessary.
+    for _i in range(2):
+        rw.jump(NavLocator.inUnstaged("empty.txt"), check=True)
+        assert rw.diffArea.specialDiffView.isVisible()
+        assert findTextInWidget(rw.diffArea.diffHeader, "empty.txt")
+
+        rw.jump(NavLocator.inUnstaged("hello.txt"), check=True)
+        assert rw.diffArea.diffView.isVisible()
+        assert findTextInWidget(rw.diffArea.diffHeader, "hello.txt")

@@ -16,8 +16,9 @@ import os
 import re
 from collections.abc import Generator
 
+from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
-from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta, SameTextDiff
+from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta
 from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver, argsIf
 from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.graphview.commitlogmodel import SpecialRow
@@ -27,7 +28,7 @@ from gitfourchette.porcelain import NULL_OID, Oid, commit_diff_pair
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF, UC_FAKEID
 from gitfourchette.tasks import TaskPrereqs
-from gitfourchette.tasks.loadtasks import LoadPatch, TMultiDiffDocument
+from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken
 from gitfourchette.toolbox import *
 
@@ -149,8 +150,7 @@ class Jump(RepoTask):
     @dataclasses.dataclass
     class Result(Exception):
         locator: NavLocator
-        header: str
-        document: SameTextDiff | TMultiDiffDocument | None
+        document: TAbstractDiffDocument | None
         delta: GitDelta | None = None
 
     def canKill(self, task: RepoTask):
@@ -207,7 +207,7 @@ class Jump(RepoTask):
 
         # Blank path?
         if not locator.path:
-            return Jump.Result(locator, "", None)
+            return Jump.Result(locator, None)
 
         delta = fileList.deltaForFile(locator.path)
         assert delta.context == locator.context
@@ -216,11 +216,11 @@ class Jump(RepoTask):
         # we don't need to bother shelling out to 'git diff'.
         # TODO: Would also be nice for image diffs!
         if self.isDiffViewAlreadySetUpFor(locator, delta):
-            return Jump.Result(rw.diffView.currentLocator, "", SameTextDiff())
+            return Jump.Result(rw.diffView.currentLocator, rw.diffView.currentDiffDocument, delta)
 
         # Load the patch
         patchTask = yield from self.flowSubtask(LoadPatch, delta, locator)
-        return Jump.Result(locator, patchTask.header, patchTask.result, delta)
+        return Jump.Result(locator, patchTask.diffDocument, delta)
 
     def isDiffViewAlreadySetUpFor(self, locator: NavLocator, delta: GitDelta) -> bool:
         currentLocator = self.rw.diffView.currentLocator
@@ -320,11 +320,10 @@ class Jump(RepoTask):
         # Early out if workdir is clean
         if rw.dirtyFiles.isEmpty() and rw.stagedFiles.isEmpty():
             locator = locator.replace(path="")
-            header = ""
             sde = SpecialDiffError(
                 _("The working directory is clean."),
                 _("There aren’t any changes to commit."))
-            raise Jump.Result(locator, header, sde)
+            raise Jump.Result(locator, sde)
 
         assert not locator.hasFlags(NavFlags.FuzzyPath), "FuzzyPath should not occur in the workdir"
 
@@ -397,7 +396,7 @@ class Jump(RepoTask):
         else:
             raise NotImplementedError(f"Unsupported special locator: {special}")
 
-        raise Jump.Result(locator, "", sde)
+        raise Jump.Result(locator, sde)
 
     def showCommit(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
         """
@@ -489,11 +488,10 @@ class Jump(RepoTask):
         # Early out if the commit is empty
         if flv.isEmpty():
             locator = locator.replace(path="")
-            header = _("Empty commit")
             sde = SpecialDiffError(
                 _("This commit is empty."),
                 _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit))))
-            raise Jump.Result(locator, header, sde)
+            raise Jump.Result(locator, sde)
 
         # Try to resolve a fuzzy path
         if locator.path and locator.hasFlags(NavFlags.FuzzyPath):
@@ -533,15 +531,12 @@ class Jump(RepoTask):
         area = self.rw.diffArea
 
         # Set header
-        if not isinstance(document, SameTextDiff):
-            area.diffHeader.setText(result.header)
+        header = self.makeHeaderText(result.document, result.delta, result.locator)
+        area.diffHeader.setText(header)
 
         # Set document
         if document is None:
             area.clearDocument(result.locator)
-
-        elif isinstance(document, SameTextDiff):
-            area.setDiffStackPage("text")
 
         elif isinstance(document, DiffDocument):
             assert result.delta is not None
@@ -563,6 +558,50 @@ class Jump(RepoTask):
 
         else:
             raise NotImplementedError(f"Can't display {type(document)}")
+
+    @staticmethod
+    def makeHeaderText(
+            document: TAbstractDiffDocument | None,
+            delta: GitDelta | None,
+            locator: NavLocator
+    ) -> str:
+        if (document is None
+                or delta is None
+                or locator.context == NavContext.SPECIAL):
+            return ""
+
+        details = []
+
+        if locator.context.isWorkdir():
+            details.append(locator.context.translateName().lower())
+        elif locator.context == NavContext.COMMITTED:
+            diffAB = locator.commitDiffAB()
+            if diffAB:
+                details.append(f"{shortHash(diffAB[0])}...{shortHash(diffAB[1])}")
+            else:
+                details.append(_p("at (specific commit)", "at {0}", shortHash(locator.commit)))
+
+        if not delta.new.lfs.isTentative():
+            if delta.new.lfs and not delta.old.lfs:
+                details.append(tagify(_("LFS pointer [added]"), "<add>"))
+            elif not delta.new.lfs and delta.old.lfs:
+                details.append(tagify(_("LFS pointer [removed]"), "<del>"))
+            elif delta.new.lfs and delta.old.lfs:
+                details.append(_("LFS pointer changed"))
+        elif delta.old.lfs:
+            details[0] = _("unstaged changes to LFS object")
+
+        # Compose final message
+        parts = ["<html>", settings.prefs.addDelColorsStyleTag(), escape(locator.path)]
+        if isinstance(document, DiffDocument):
+            if document.pluses:
+                parts.append(f" <b><add>+{document.pluses}</add></b>")
+            if document.minuses:
+                parts.append(f" <b><del>-{document.minuses}</del></b>")
+        if details:
+            suffix = ", ".join(details)
+            parts.append(f" <span style='color: gray;'>({suffix})</span>")
+        return "".join(parts)
 
 
 class JumpBackOrForward(RepoTask):

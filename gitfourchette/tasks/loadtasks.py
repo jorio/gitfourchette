@@ -32,7 +32,7 @@ RENAME_COUNT_THRESHOLD = 100
 
 LONG_LINE_THRESHOLD = 10_000
 
-TMultiDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
+TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
 
 
 class PrimeRepo(RepoTask):
@@ -239,6 +239,8 @@ class PrimeRepo(RepoTask):
 
 
 class LoadPatch(RepoTask):
+    diffDocument: TAbstractDiffDocument
+
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
@@ -266,16 +268,13 @@ class LoadPatch(RepoTask):
             # Prime lexer
             diff.oldLexJob, diff.newLexJob = self._primeLexJobs(delta)
 
-        header = self._makeHeader(diff, delta, locator)
-
-        self.result = diff
-        self.header = header
+        self.diffDocument = diff
 
     def _getPatch(
             self,
             delta: GitDelta,
             locator: NavLocator,
-    ) -> Generator[FlowControlToken, None, TMultiDiffDocument]:
+    ) -> Generator[FlowControlToken, None, TAbstractDiffDocument]:
         if delta.conflict is not None:
             return delta.conflict
 
@@ -385,41 +384,6 @@ class LoadPatch(RepoTask):
             # Exit background thread
             yield from self.flowEnterUiThread()
 
-    def _makeHeader(self, result: TMultiDiffDocument, delta: GitDelta, locator: NavLocator):
-        header = "<html>" + settings.prefs.addDelColorsStyleTag() + escape(locator.path)
-
-        if isinstance(result, DiffDocument):
-            if result.pluses:
-                header += f" <b><add>+{result.pluses}</add></b>"
-            if result.minuses:
-                header += f" <b><del>-{result.minuses}</del></b>"
-
-        suffix = []
-        if locator.context == NavContext.COMMITTED:
-            diffAB = locator.commitDiffAB()
-            if diffAB:
-                suffix.append(f"{shortHash(diffAB[0])}...{shortHash(diffAB[1])}")
-            else:
-                suffix.append(_p("at (specific commit)", "at {0}", shortHash(locator.commit)))
-
-        elif locator.context.isWorkdir():
-            suffix.append(locator.context.translateName().lower())
-
-        if not delta.new.lfs.isTentative():
-            if delta.new.lfs and not delta.old.lfs:
-                suffix.append(tagify(_("LFS pointer [added]"), "<add>"))
-            elif not delta.new.lfs and delta.old.lfs:
-                suffix.append(tagify(_("LFS pointer [removed]"), "<del>"))
-            elif delta.new.lfs and delta.old.lfs:
-                suffix.append(_("LFS pointer changed"))
-        elif delta.old.lfs:
-            suffix[0] = _("unstaged changes to LFS object")
-
-        if suffix:
-            header += f" <span style='color: gray;'>({', '.join(suffix)})</span>"
-
-        return header
-
     def _primeLexJobs(self, delta: GitDelta) -> tuple[LexJob | None, LexJob | None]:
         assert onAppThread()
 
@@ -475,7 +439,7 @@ class LoadPatchInNewWindow(LoadPatch):
     def flow(self, delta: GitDelta, locator: NavLocator):
         yield from super().flow(delta, locator)
 
-        diffDocument = self.result
+        diffDocument = self.diffDocument
         if not isinstance(diffDocument, DiffDocument):
             raise AbortTask(_("Only text diffs may be opened in a separate window."), icon="information")
 
@@ -490,7 +454,7 @@ class LoadPatchInNewWindow(LoadPatch):
         diff = DiffView(diffWindow)
         diff.isDetachedWindow = True
         diff.setFrameStyle(QFrame.Shape.NoFrame)
-        diff.replaceDocument(self.repo, delta, locator, self.result)
+        diff.replaceDocument(self.repo, delta, locator, diffDocument)
 
         layout = QVBoxLayout(diffWindow)
         layout.setContentsMargins(QMargins())

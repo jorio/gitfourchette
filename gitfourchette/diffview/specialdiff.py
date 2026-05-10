@@ -32,10 +32,6 @@ _workdirCrlfWarning = re.compile(r"warning: in the working copy of .+, (.+) will
 _workdirCrlfWarningLegacy = re.compile(r"warning: (.+) will be replaced by (.+) in .+\.")
 
 
-class SameTextDiff:
-    pass
-
-
 class ImageDelta:
     @dataclasses.dataclass
     class ImageDeltaFile:

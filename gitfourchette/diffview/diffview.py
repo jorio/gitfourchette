@@ -38,6 +38,7 @@ class DiffView(CodeView):
     lineData: list[LineData]
     currentLocator: NavLocator
     currentDelta: GitDelta
+    currentDiffDocument: DiffDocument | None
     repo: Repo | None
 
     def __init__(self, parent=None):
@@ -46,6 +47,7 @@ class DiffView(CodeView):
         self.lineData = []
         self.currentLocator = NavLocator.Empty
         self.currentDelta = _emptyDelta
+        self.currentDiffDocument = None
         self.repo = None
 
         # Emit contextual help with non-empty selection
@@ -126,6 +128,10 @@ class DiffView(CodeView):
     def replaceDocument(self, repo: Repo, delta: GitDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
 
+        # No-op if reloading same document
+        if newDoc is self.currentDiffDocument:
+            return
+
         oldDocument = self.document()
         if oldDocument:
             oldDocument.deleteLater()  # avoid leaking memory/objects, even though we do set QTextDocument's parent to this QTextEdit
@@ -133,12 +139,12 @@ class DiffView(CodeView):
         self.repo = repo
         self.currentDelta = delta
         self.currentLocator = locator
+        self.currentDiffDocument = newDoc
+        self.lineData = newDoc.lineData
 
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
         self.highlighter.setDiffDocument(newDoc)
-
-        self.lineData = newDoc.lineData
 
         # now reset defaults that are lost when changing documents
         self.refreshPrefs(changeColorScheme=False)
