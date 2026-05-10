@@ -27,7 +27,7 @@ class SidebarSearch(SearchProvider):
 
     def _termChanged(self):
         term = self.term()
-        self.sidebar.model().setFilterText(term)
+        self.sidebar.filterModel.setFilterText(term)
         if term:
             self.sidebar.expandAll()
         else:

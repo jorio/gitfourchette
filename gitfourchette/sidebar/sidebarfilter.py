@@ -6,6 +6,7 @@
 
 from gitfourchette.qt import *
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarItem, SidebarModel
+from gitfourchette.toolbox.filterchangecontext import FilterChangeContext
 
 _filterableItems = {
     SidebarItem.LocalBranch,
@@ -35,8 +36,8 @@ class SidebarFilter(QSortFilterProxyModel):
         self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
     def setFilterText(self, text: str):
-        self._filterText = text.strip()
-        self.invalidateFilter()
+        with FilterChangeContext(self):
+            self._filterText = text
 
     def filterAcceptsRow(self, sourceRow: int, sourceParent: QModelIndex) -> bool:
         if not self._filterText:
