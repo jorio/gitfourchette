@@ -208,7 +208,7 @@ class VerifyGpgSignature(RepoTask):
         "BADSIG"    : GpgStatus.Bad,
     }
 
-    _SshGoodTrustedPattern = re.compile(r'^Good "git" signature for (\S+) with \S+ key (.+)')
+    _SshGoodTrustedPattern = re.compile(r'^Good "git" signature for (.+) with \S+ key (.+)')
     _SshGoodUntrustedPattern = re.compile(r'^Good "git" signature with \S+ key (.+)')
 
     def flow(self, oid: Oid, dialogParent: QWidget | None = None):

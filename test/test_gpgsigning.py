@@ -92,10 +92,17 @@ def copySshKey(tempPath: str, testKeyName: str) -> str:
     return Path(pubPath).as_posix()
 
 
-def setUpForSshSigning(tempPath: str, repoWorkdir: str, testKeyName: str = "simple"):
+def setUpForSshSigning(
+        tempPath: str,
+        repoWorkdir: str,
+        testKeyName: str = "simple",
+        principal: str = "CriquetteRockwell",
+):
     pubKeyCopy = copySshKey(tempPath, testKeyName)
-    allowedSigners = f"{tempPath}/allowedSigners"
-    writeFile(allowedSigners, "CriquetteRockwell " + readTextFile(pubKeyCopy))
+    pubKeyText = readTextFile(pubKeyCopy)
+
+    allowedSigners = f"{tempPath}/allowed_signers"
+    writeFile(allowedSigners, f"{principal} {pubKeyText}")
 
     with RepoContext(repoWorkdir) as repo:
         repo.config["gpg.format"] = "ssh"
@@ -269,9 +276,15 @@ def testVerifyGoodPgpSignatureWithMissingKey(tempDir, mainWindow, tempGpgHome):
 
 
 @requiresGpg
-def testVerifyGoodSshSignature(tempDir, mainWindow, tempGpgHome):
+@pytest.mark.parametrize("principal", [
+    # Principal names usually don't contain spaces, but the allowed_signers file
+    # allows quoting the principal field (see ssh-keygen(1)).
+    "criquette@example.com",
+    '"Criquette Rockwell <criquette@example.com>"',
+])
+def testVerifyGoodSshSignature(tempDir, mainWindow, tempGpgHome, principal):
     wd = unpackRepo(tempDir)
-    _pubKey, allowedSigners = setUpForSshSigning(tempDir.name, wd)
+    _pubKey, allowedSigners = setUpForSshSigning(tempDir.name, wd, principal=principal)
 
     signedOid = makeSignedCommit(wd)
 
@@ -279,7 +292,7 @@ def testVerifyGoodSshSignature(tempDir, mainWindow, tempGpgHome):
     rw.jump(NavLocator.inCommit(signedOid, ""), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "verify signature")
-    acceptQMessageBox(rw, "good signature; key trusted.+CriquetteRockwell")
+    acceptQMessageBox(rw, "good signature; key trusted.+criquette")
 
     # Clear allowed signers, then verify the signature again
     writeFile(allowedSigners, "")
