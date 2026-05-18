@@ -583,6 +583,11 @@ def testSidebarFilter(tempDir, mainWindow):
     # "no-parent" doesn't contain "fix", so it must be hidden
     assert not sb.indexForRef("refs/heads/no-parent").isValid()
 
+    # Hide with keyboard shortcut
+    sb.setFocus()
+    QTest.keyClick(sb, Qt.Key.Key_Escape)
+    assert not searchBar.isVisible()
+
 
 def testSidebarFilterWithFolders(tempDir, mainWindow):
     wd = unpackRepo(tempDir)

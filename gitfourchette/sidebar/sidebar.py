@@ -87,6 +87,7 @@ class Sidebar(QTreeView):
         makeWidgetShortcut(self, self.onReturnShortcut, "Return", "Enter")
         makeWidgetShortcut(self, self.onDeleteShortcut, "Delete")
         makeWidgetShortcut(self, self.onRenameShortcut, "F2")
+        makeWidgetShortcut(self, self.searchBar.hideOrBeep, "Escape")
 
     def filterIndexToNode(self, index: QModelIndex) -> SidebarNode:
         assert index.isValid()
