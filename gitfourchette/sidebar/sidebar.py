@@ -940,14 +940,6 @@ class Sidebar(QTreeView):
     def restoreExpandedItems(self):
         model = self.sidebarModel
 
-        # Upon opening a repo with no collapse information, all indices must be expanded.
-        # expandAll() can be expensive, so only do it once.
-        if model.mustExpandAll:
-            assert not model.collapseCache, "collapseCache must be empty if mustExpandAll"
-            self.expandAll()
-            model.mustExpandAll = False
-            return
-
         frontier = model.rootNode.children[:]
         while frontier:
             node = frontier.pop()

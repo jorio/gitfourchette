@@ -232,7 +232,6 @@ class RepoWidget(QWidget):
             collapseCache = repoModel.prefs.collapseCache
             if collapseCache:
                 self.sidebar.sidebarModel.collapseCache = set(collapseCache)
-                self.sidebar.sidebarModel.mustExpandAll = False
             self.sidebar.refresh(repoModel)
 
         # ----------------------------------

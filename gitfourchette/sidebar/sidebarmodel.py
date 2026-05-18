@@ -205,7 +205,6 @@ class SidebarModel(QAbstractItemModel):
     _cachedToolTipText: str
 
     collapseCache: set[str]
-    mustExpandAll: bool
 
     class Role:
         Ref = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
@@ -225,7 +224,6 @@ class SidebarModel(QAbstractItemModel):
         super().__init__(parent)
 
         self.collapseCache = set()
-        self.mustExpandAll = True
 
         self.clear()
 
