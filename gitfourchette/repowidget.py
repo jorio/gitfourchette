@@ -231,7 +231,7 @@ class RepoWidget(QWidget):
         with QSignalBlockerContext(self.sidebar):
             collapseCache = repoModel.prefs.collapseCache
             if collapseCache:
-                self.sidebar.sidebarModel.collapseCache = set(collapseCache)
+                self.sidebar.sidebarModel.collapseCache.update(collapseCache)
             self.sidebar.refresh(repoModel)
 
         # ----------------------------------
@@ -392,7 +392,7 @@ class RepoWidget(QWidget):
         # Save sidebar collapse cache
         with NonCriticalOperation("Write repo prefs"):  # May raise OSError
             uiPrefs = self.repoModel.prefs
-            collapseCache = self.sidebar.sidebarModel.collapseCache
+            collapseCache = self.sidebar.sidebarModel.collapseCacheLayers[0]
             if uiPrefs.collapseCache != collapseCache:
                 uiPrefs.collapseCache = collapseCache.copy()
                 uiPrefs.setDirty()

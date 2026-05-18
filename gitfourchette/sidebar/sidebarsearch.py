@@ -23,12 +23,23 @@ class SidebarSearch(SearchProvider):
 
     def invalidate(self):
         super().invalidate()
+
+        # Wipe term from filter, return to permanent collapse state
         self.setTerm("")
+
+        # After returning to the permanent collapse state, force expand the node
+        # that the user selected while the filter was active
+        node = self.sidebar.selectedNode()
+        if node is not None and not self.sidebar.sidebarModel.isAncestryChainExpanded(node):
+            self.sidebar.selectionModel().clear()
+            self.sidebar.selectNode(node)
 
     def _termChanged(self):
         term = self.term()
         self.sidebar.filterModel.setFilterText(term)
+
         if term:
+            self.sidebar.setCollapseStateLayer(transient=True)
             self.sidebar.expandAll()
         else:
-            self.sidebar.restoreExpandedItems()
+            self.sidebar.setCollapseStateLayer(transient=False)

@@ -15,11 +15,18 @@ from .util import *
 
 
 def _summonSearchBar(rw):
+    rw.activateWindow()  # macOS offscreen compat (e.g. after a context menu)
+    waitUntilTrue(rw.isActiveWindow)
+
     searchBar = rw.sidebar.searchBar
     assert not searchBar.isVisible()
+
     rw.sidebar.setFocus()
+    assert rw.sidebar.hasFocus()
+
     QTest.keySequence(rw.window(), "Ctrl+F")
     assert searchBar.isVisible()
+
     return searchBar
 
 
@@ -657,31 +664,61 @@ def testSidebarFilterPreservesSelection(tempDir, mainWindow):
     assert len(sb.selectedIndexes()) > 0
 
 
-def testSidebarFilterExpandsAll(tempDir, mainWindow):
+def testSidebarFilterCollapseState(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
-        repo.create_branch_on_head("team/frontend/login")
-        repo.create_branch_on_head("team/backend/api")
+        repo.create_branch_on_head("folder1/leaf")
+        repo.create_branch_on_head("folder2/leaf")
+        repo.create_branch_on_head("folder3/leaf")
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
-    sm = sb.sidebarModel
-    searchBar = _summonSearchBar(rw)
 
-    # Collapse all folders first so we have something to expand
+    # Bypass isAncestryChainExpanded
+    def isExpanded(ref: str) -> bool:
+        i = sb.indexForRef(ref)
+        assert i.isValid()
+
+        i = i.parent()
+        while i.isValid():
+            if not sb.isExpanded(i):
+                return False
+            i = i.parent()
+        return True
+
+    # Collapse all local branch folders first
     localBranchesNode = sb.findNodeByKind(SidebarItem.LocalBranchesHeader)
     sb.selectNode(localBranchesNode)
     triggerContextMenuAction(sb.viewport(), "collapse all folders")
+    assert not isExpanded("refs/heads/folder1/leaf")
+    assert not isExpanded("refs/heads/folder2/leaf")
+    assert not isExpanded("refs/heads/folder3/leaf")
 
-    # Confirm the nested branch is now unreachable (ancestry chain collapsed)
-    loginNode = sb.findNodeByRef("refs/heads/team/frontend/login")
-    assert not sm.isAncestryChainExpanded(loginNode)
+    # Summon search bar, search for "leaf"
+    searchBar = _summonSearchBar(rw)
+    searchBar.lineEdit.setText("leaf")
+    assert isExpanded("refs/heads/folder1/leaf")
+    assert isExpanded("refs/heads/folder2/leaf")
+    assert isExpanded("refs/heads/folder3/leaf")
 
-    # Applying a filter should expand all matching items
-    searchBar.lineEdit.setText("login")
+    # Search for a term with no matches, then revert to searching for "leaf"
+    searchBar.lineEdit.setText("bogusbogus")
+    assert not sb.indexForRef("refs/heads/folder1/leaf").isValid()
+    searchBar.lineEdit.setText("leaf")
+    assert isExpanded("refs/heads/folder1/leaf")
+    assert isExpanded("refs/heads/folder2/leaf")
+    assert isExpanded("refs/heads/folder3/leaf")
 
-    # The branch must now be visible in the proxy model
-    assert sb.indexForRef("refs/heads/team/frontend/login").isValid()
-    # And its entire parent chain must be expanded in the source model
-    assert sm.isAncestryChainExpanded(loginNode)
+    # Select folder2/leaf before closing search bar
+    sb.selectAnyRef("refs/heads/folder2/leaf")
+
+    # Close search bar
+    searchBar.bail()
+
+    # folder1 & folder3 must be collapsed, as they were before filtering.
+    assert not isExpanded("refs/heads/folder1/leaf")
+    assert not isExpanded("refs/heads/folder3/leaf")
+    # folder2 was originally collapsed, but it should now be expanded because
+    # we selected it before closing the search bar.
+    assert isExpanded("refs/heads/folder2/leaf")

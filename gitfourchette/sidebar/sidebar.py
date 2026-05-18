@@ -101,14 +101,6 @@ class Sidebar(QTreeView):
         assert index.model() is self.sidebarModel
         return self.filterModel.mapFromSource(index)
 
-    def onIndexExpanded(self, index: QModelIndex):
-        node = self.filterIndexToNode(index)
-        self.sidebarModel.cacheNodeCollapsedState(node, collapsed=False)
-
-    def onIndexCollapsed(self, index: QModelIndex):
-        node = self.filterIndexToNode(index)
-        self.sidebarModel.cacheNodeCollapsedState(node, collapsed=True)
-
     def drawBranches(self, painter, rect, index):
         """
         (overridden function)
@@ -861,6 +853,9 @@ class Sidebar(QTreeView):
         parent = commit.parent_ids[0]
         Jump.invoke(self, NavLocator.inCommit(parent))
 
+    # -------------------------------------------------------------------------
+    # Sidebar nodes
+
     def walk(self):
         return self.sidebarModel.rootNode.walk()
 
@@ -937,8 +932,16 @@ class Sidebar(QTreeView):
         self.clearSelection()
         return None
 
+    # -------------------------------------------------------------------------
+    # Collapse/expand
+
     @benchmark
     def restoreExpandedItems(self):
+        """
+        Assumes all collapsible rows are collapsed before this is called.
+        (After rebuilding the model, all rows are collapsed by default.)
+        """
+
         model = self.sidebarModel
 
         frontier = model.rootNode.children[:]
@@ -954,23 +957,52 @@ class Sidebar(QTreeView):
 
             frontier.extend(node.children)
 
-    def collapseChildFolders(self, node: SidebarNode):
+    def expandChildFolders(self, node: SidebarNode, collapse: bool = False):
+        operation = self.collapse if collapse else self.expand
         frontier = node.children[:]
         while frontier:
             node = frontier.pop()
             if node.kind == SidebarItem.RefFolder:
                 frontier.extend(node.children)
                 index = self.nodeToFilterIndex(node)
-                self.collapse(index)
+                operation(index)
 
-    def expandChildFolders(self, node: SidebarNode):
-        frontier = node.children[:]
-        while frontier:
-            node = frontier.pop()
-            if node.kind == SidebarItem.RefFolder:
-                frontier.extend(node.children)
-                index = self.nodeToFilterIndex(node)
-                self.expand(index)
+    def collapseChildFolders(self, node: SidebarNode):
+        self.expandChildFolders(node, collapse=True)
+
+    def onIndexExpanded(self, index: QModelIndex):
+        node = self.filterIndexToNode(index)
+        self.sidebarModel.cacheNodeCollapsedState(node, collapsed=False)
+
+    def onIndexCollapsed(self, index: QModelIndex):
+        node = self.filterIndexToNode(index)
+        self.sidebarModel.cacheNodeCollapsedState(node, collapsed=True)
+
+    def setCollapseStateLayer(self, transient: bool):
+        model = self.sidebarModel
+        currentLayer = len(model.collapseCacheLayers) - 1
+        targetLayer = 1 if transient else 0
+
+        # No-op if switching to same layer
+        if targetLayer == currentLayer:
+            return
+
+        if currentLayer == 0:
+            # Create layer 1 (transient)
+            model.collapseCacheLayers.append(set())
+        elif currentLayer == 1:
+            # Collapse everything first so restoreExpandedItems will work,
+            # then drop down to layer 0 (permanent)
+            self.collapseAll()
+            model.collapseCacheLayers.pop()
+        else:
+            raise NotImplementedError(f"unsupported layer {currentLayer}")
+
+        assert targetLayer == len(model.collapseCacheLayers) - 1
+
+        self.restoreExpandedItems()
+
+    # -------------------------------------------------------------------------
 
     def copyToClipboard(self, text: str):
         QApplication.clipboard().setText(text)

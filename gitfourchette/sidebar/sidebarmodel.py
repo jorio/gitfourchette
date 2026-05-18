@@ -204,7 +204,16 @@ class SidebarModel(QAbstractItemModel):
     _cachedToolTipIndex: QModelIndex
     _cachedToolTipText: str
 
-    collapseCache: set[str]
+    collapseCacheLayers: list[set[str]]
+    """
+    Keeps a cache of collapsed nodes.
+
+    Layer #0 is the permanent state. It is saved to disk as part of RepoPrefs.
+    It is applied when SidebarFilter is inactive.
+
+    Layer #1 is the transient state. It only exists as long as SidebarFilter is
+    active.
+    """
 
     class Role:
         Ref = Qt.ItemDataRole(Qt.ItemDataRole.UserRole + 0)
@@ -220,10 +229,16 @@ class SidebarModel(QAbstractItemModel):
     def repo(self) -> Repo:
         return self.repoModel.repo
 
+    @property
+    def collapseCache(self) -> set[str]:
+        return self.collapseCacheLayers[-1]
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.collapseCache = set()
+        # Initialize collapse cache with an empty permanent layer
+        # (i.e. all items start expanded)
+        self.collapseCacheLayers = [set()]
 
         self.clear()
 

@@ -37,7 +37,7 @@ class SidebarFilter(QSortFilterProxyModel):
 
     def setFilterText(self, text: str):
         with FilterChangeContext(self):
-            self._filterText = text
+            self._filterText = text.lower()
 
     def filterAcceptsRow(self, sourceRow: int, sourceParent: QModelIndex) -> bool:
         if not self._filterText:
@@ -63,7 +63,7 @@ class SidebarFilter(QSortFilterProxyModel):
         # This ensures that branches like "wip/leaf" match when searching for "wip"
         if item in _refItems:
             refName = index.data(SidebarModel.Role.Ref)
-            if refName and self._filterText.lower() in refName.lower():
+            if refName and self._filterText in refName.lower():
                 return True
 
-        return self._filterText.lower() in displayText.lower()
+        return self._filterText in displayText.lower()
