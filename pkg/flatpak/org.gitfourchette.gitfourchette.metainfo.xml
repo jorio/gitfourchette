@@ -66,6 +66,23 @@
   </keywords>
 
   <releases>
+    <release version="1.8.0" date="2026-05-21" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.8.0</url>
+      <description>
+        <p>New features:</p>
+        <ul>
+        <li><em>Search for commits touching a file.</em> In the Commit History, press Ctrl+F (or /), then change the search scope from "Info" to "Paths".</li>
+        <li><em>Search for refs in the sidebar.</em> In the Sidebar, press Ctrl+F (or /) to filter branches, tags, or stashes.</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix icon for good SSH signature validation when principal name contains spaces (#105)</li>
+        <li>Refresh workdir when 'git cherrypick' reports conflicts</li>
+        <li>Friendly error message if Blame keyboard shortcut is pressed when no file is selected</li>
+        <li>Fix diff title text when returning to a pre-cached text diff</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.7.1" date="2026-04-11" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.7.1</url>
       <description>

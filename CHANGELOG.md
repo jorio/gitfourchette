@@ -1,5 +1,19 @@
 # GitFourchette version history
 
+## 1.8.0 (2026-05-21)
+
+New features:
+
+- **Search for commits touching a file.** In the Commit History, press Ctrl+F (or /), then change the search scope from "Info" to "Paths".
+- **Search for refs in the sidebar.** In the Sidebar, press Ctrl+F (or /) to filter branches, tags, or stashes.
+
+Bug fixes:
+
+- Fix icon for good SSH signature validation when principal name contains spaces (#105)
+- Refresh workdir when 'git cherrypick' reports conflicts
+- Friendly error message if Blame keyboard shortcut is pressed when no file is selected
+- Fix diff title text when returning to a pre-cached text diff
+
 ## 1.7.1 (2026-04-11)
 
 Fix regression in 1.7.0 where RefreshRepo couldn't be canceled effectively.
