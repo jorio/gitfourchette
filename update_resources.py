@@ -12,6 +12,7 @@ import html
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import textwrap
@@ -84,21 +85,13 @@ def makeParser():
 
 
 def call(*args, **kwargs) -> subprocess.CompletedProcess:
-    cmdstr = ""
-    for token in args:
-        cmdstr += " "
-        if " " in token:
-            cmdstr += F"\"{token}\""
-        else:
-            cmdstr += token
-    print(F">{cmdstr}")
-
+    print(f"> {shlex.join(args)}")
     capture_output = kwargs.pop("capture_output", True)
     check = kwargs.pop("check", True)
     try:
         return subprocess.run(args, encoding='utf-8', capture_output=capture_output, check=check, **kwargs)
     except subprocess.CalledProcessError as e:
-        print(F"Aborting setup because: {e}")
+        print(f"Aborting: {e}")
         sys.exit(1)
 
 
@@ -294,6 +287,7 @@ def updatePoFiles():
             "--update",
             "--sort-by-file",
             "--no-wrap",
+            "--backup=off",
             str(poPath),
             LANG_TEMPLATE,
             capture_output=False)
@@ -316,29 +310,30 @@ def compileMoFiles():
     """ Generate .mo files from .po files """
     wipLanguages = []
 
-    for poPath in Path(LANG_DIR).glob("*.po"):
+    def extractStderrNumber(pattern, stderr):
+        match = re.search(pattern, stderr)
+        return int(match.group(1)) if match else 0
+
+    for poPath in sorted(Path(LANG_DIR).glob("*.po")):
         moPath: Path = poPath.with_suffix(".mo")
 
-        call("msgfmt", "-o", str(moPath), str(poPath), capture_output=False)
+        msgfmt = call("msgfmt", "--no-hash", "--statistics", "-o", str(moPath), str(poPath),
+                      env={"LANGUAGE": "C"}, capture_output=True)
 
-        moSizeKB = moPath.stat().st_size // 1024
+        complete = extractStderrNumber(r"(\d+) translated messages", msgfmt.stderr)
+        missing1 = extractStderrNumber(r"(\d+) fuzzy translations", msgfmt.stderr)
+        missing2 = extractStderrNumber(r"(\d+) untranslated messages", msgfmt.stderr)
+        ratio = round(100.0 * complete / (complete + missing1 + missing2))
+        print(f"  {poPath.stem}: {ratio}% complete | {msgfmt.stderr.strip()}")
 
         # Remove empty po/mo files
-        if moSizeKB == 0:
+        if ratio <= 0:
             print(f"*** Removing empty translation '{poPath.name}'")
             poPath.unlink()
             moPath.unlink()
             continue
 
-        # Small .mo files are considered stubs and won't be included in builds
-        if moSizeKB < 5:
-            print(f"*** Removing '{moPath.name}' -- looks like a stub ({moSizeKB} KB)")
-            moPath.unlink()
-            continue
-
-        # .mo files below 100 KB are considered incomplete
-        if moSizeKB < 100:
-            wipLanguages += [moPath.stem]
+        wipLanguages += [f"{moPath.stem} {ratio}"]
 
     Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages) + "\n")
 

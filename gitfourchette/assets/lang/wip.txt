@@ -1,4 +1,6 @@
-cs
-it
-es
-ru
+cs 4
+es 37
+fr 100
+it 43
+ru 3
+zh_Hans 78

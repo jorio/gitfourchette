@@ -400,33 +400,24 @@ class PrefsDialog(QDialog):
         control.addItem(defaultCaption, userData="")
         control.insertSeparator(1)
 
-        wipLocales = Path(QFile("assets:lang/wip.txt").fileName()).read_text().strip().splitlines()
+        localeRatios = {}
+        for wipLine in Path(QFile("assets:lang/wip.txt").fileName()).read_text().strip().splitlines():
+            code, ratio = wipLine.split(" ")
+            localeRatios[code] = ratio
+        localeRatios["en"] = "100"
 
         langDir = QDir("assets:lang", "*.mo")
         localeCodes = [f.removesuffix(".mo") for f in langDir.entryList()]
-
-        if not localeCodes:  # pragma: no cover
-            control.addItem("Translation files missing!")
-            missingItem: QStandardItem = control.model().item(control.count() - 1)
-            missingItem.setFlags(missingItem.flags() & ~Qt.ItemFlag.ItemIsEnabled)
-
         assert "en" not in localeCodes, "English shouldn't have an .mo file"
         localeCodes.append("en")
 
         localeNames = {code: QLocale(code).nativeLanguageName() for code in localeCodes}
-        localeCodes.sort(key=lambda code: "AZ"[code in wipLocales] + localeNames[code].casefold())
+        localeCodes.sort(key=lambda code: "0" if code == "en" else localeNames[code].casefold())
 
-        wipSeparatorInserted = False
         for code in localeCodes:
             name = localeNames[code]
             name = name[0].upper() + name[1:]  # Many languages don't capitalize their name
-
-            if code in wipLocales:
-                name = f"[WIP] {name}"
-                if not wipSeparatorInserted:
-                    control.insertSeparator(control.count())
-                    wipSeparatorInserted = True
-
+            name = f"{name} ({localeRatios.get(code, '--')}%)"
             control.addItem(name, code)
 
         control.setCurrentIndex(control.findData(prefValue))
