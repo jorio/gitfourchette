@@ -53,8 +53,8 @@ msgid "(Uncommitted)"
 msgstr "(Non-committé)"
 
 #: blameview/blamegutter.py:206 diffview/specialdiffview.py:114
-#: filelists/filelistmodel.py:55 forms/contextheader.py:104
-#: forms/contextheader.py:122 forms/prefsdialog.py:249 tasks/misctasks.py:94
+#: filelists/filelistmodel.py:56 forms/contextheader.py:104
+#: forms/contextheader.py:122 forms/prefsdialog.py:249 tasks/misctasks.py:95
 #: tasks/nettasks.py:298 tasks/repotask.py:72
 msgid ":"
 msgstr " :"
@@ -157,10 +157,6 @@ msgstr "Avancer"
 msgid "Navigate forward"
 msgstr "Naviguer en avant"
 
-#: codeview/codeview.py:68
-msgid "Find text in code|Find text"
-msgstr "Rechercher du texte dans le code|Rech. texte"
-
 #: codeview/codeview.py:355
 msgid "&Word Wrap"
 msgstr "Retour à la li&gne automatique"
@@ -168,23 +164,6 @@ msgstr "Retour à la li&gne automatique"
 #: codeview/codeview.py:356
 msgid "Configure Appearance…"
 msgstr "Configurer l’apparence…"
-
-#: codeview/codeview.py:521
-msgid "End of document reached."
-msgstr "Fin du document atteinte."
-
-#: codeview/codeview.py:522
-msgid "Top of document reached."
-msgstr "Début du document atteint."
-
-#: codeview/codeview.py:523
-#, python-brace-format
-msgid "No more occurrences of {0} found."
-msgstr "Aucune autre occurrence de {0} trouvée."
-
-#: codeview/codeview.py:529
-msgid "Wrap Around"
-msgstr "Boucler"
 
 #: diffarea.py:109
 msgid "Unstaged files: will not be included in the commit unless you stage them."
@@ -219,7 +198,6 @@ msgid "Unstage selected files"
 msgstr "Désindexer les fichiers sélectionnés"
 
 #: diffarea.py:176 forms/commitdialog.py:59 tasks/committasks.py:510
-#: tasks/committasks.py:564
 msgctxt "verb"
 msgid "Commit"
 msgstr "Committer"
@@ -227,10 +205,6 @@ msgstr "Committer"
 #: diffview/diffdocument.py:350
 msgid "<no newline at end of file>"
 msgstr "<sans saut de ligne en fin de fichier>"
-
-#: diffview/diffview.py:55
-msgid "Find text in diff|Find in diff"
-msgstr "Rechercher du texte dans la diff|Rech. dans la diff|Rech. dans diff"
 
 #: diffview/diffview.py:66
 msgid "Stage Selection"
@@ -252,339 +226,339 @@ msgstr "Désindexer les lignes sélectionnées"
 msgid "Discard selected lines"
 msgstr "Jeter les lignes sélectionnées"
 
-#: diffview/diffview.py:194 diffview/diffview.py:206 diffview/diffview.py:229
-#: diffview/diffview.py:258
+#: diffview/diffview.py:198 diffview/diffview.py:210 diffview/diffview.py:233
+#: diffview/diffview.py:262
 msgid "Export Lines as Patch…"
 msgstr "Exporter un correctif de ces lignes…"
 
-#: diffview/diffview.py:195
+#: diffview/diffview.py:199
 msgid "Revert Lines…"
 msgstr "Inverser ces lignes…"
 
-#: diffview/diffview.py:199
+#: diffview/diffview.py:203
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
 msgstr "Exporter un correctif de la section {0}…"
 
-#: diffview/diffview.py:200
+#: diffview/diffview.py:204
 msgid "Revert Hunk…"
 msgstr "Inverser cette section…"
 
-#: diffview/diffview.py:210 diffview/diffview.py:245 diffview/diffview.py:270
+#: diffview/diffview.py:214 diffview/diffview.py:249 diffview/diffview.py:274
 msgid "Export Hunk as Patch…"
 msgstr "Exporter un correctif de cette section…"
 
-#: diffview/diffview.py:217
+#: diffview/diffview.py:221
 msgid "Stage Lines"
 msgstr "Indexer ces lignes"
 
-#: diffview/diffview.py:223
+#: diffview/diffview.py:227
 msgid "Discard Lines…"
 msgstr "Jeter ces lignes…"
 
-#: diffview/diffview.py:236
+#: diffview/diffview.py:240
 #, python-brace-format
 msgid "Stage Hunk {0}"
 msgstr "Indexer la section {0}"
 
-#: diffview/diffview.py:241
+#: diffview/diffview.py:245
 msgid "Discard Hunk…"
 msgstr "Jeter cette section…"
 
-#: diffview/diffview.py:252
+#: diffview/diffview.py:256
 msgid "Unstage Lines"
 msgstr "Désindexer ces lignes"
 
-#: diffview/diffview.py:265
+#: diffview/diffview.py:269
 #, python-brace-format
 msgid "Unstage Hunk {0}"
 msgstr "Désindexer la section {0}"
 
-#: diffview/diffview.py:321
+#: diffview/diffview.py:325
 msgid "Export selected lines"
 msgstr "Exporter les lignes sélectionnées"
 
-#: diffview/diffview.py:373
+#: diffview/diffview.py:377
 msgid "Revert selected lines"
 msgstr "Inverser les lignes sélectionnées"
 
-#: diffview/diffview.py:374
+#: diffview/diffview.py:378
 msgid "Do you want to revert the selected lines?"
 msgstr "Voulez-vous inverser les lignes sélectionnées ?"
 
-#: diffview/diffview.py:398
+#: diffview/diffview.py:402
 msgid "Revert hunk"
 msgstr "Inverser cette section"
 
-#: diffview/diffview.py:399
+#: diffview/diffview.py:403
 msgid "Do you want to revert this hunk?"
 msgstr "Voulez-vous inverser cette section ?"
 
-#: diffview/diffview.py:513 diffview/diffview.py:514
+#: diffview/diffview.py:517 diffview/diffview.py:518
 msgid "or Middle-Click"
 msgstr "ou Clic Central"
 
-#: diffview/diffview.py:521
+#: diffview/diffview.py:525
 #, python-brace-format
 msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
 msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
 msgstr[0] "Tapez {sk} pour indexer {nl} ligne. Tapez {dk} pour la jeter."
 msgstr[1] "Tapez {sk} pour indexer {nl} lignes. Tapez {dk} pour les jeter."
 
-#: diffview/diffview.py:525
+#: diffview/diffview.py:529
 #, python-brace-format
 msgid "Hit {uk} to unstage {nl} line."
 msgid_plural "Hit {uk} to unstage {nl} lines."
 msgstr[0] "Tapez {uk} pour désindexer {nl} ligne."
 msgstr[1] "Tapez {uk} pour désindexer {nl} lignes."
 
-#: diffview/specialdiff.py:86
+#: diffview/specialdiff.py:82
 msgid "File contents didn’t change."
 msgstr "Le contenu du fichier n’a pas changé."
 
-#: diffview/specialdiff.py:96
+#: diffview/specialdiff.py:92
 msgid "Empty file was deleted."
 msgstr "Fichier vide supprimé."
 
-#: diffview/specialdiff.py:103
+#: diffview/specialdiff.py:99
 msgid "New empty file."
 msgstr "Nouveau fichier vide."
 
-#: diffview/specialdiff.py:106
+#: diffview/specialdiff.py:102
 msgid "Renamed:"
 msgstr "Renommé :"
 
-#: diffview/specialdiff.py:110
+#: diffview/specialdiff.py:106
 msgid "Mode change:"
 msgstr "Changement de mode :"
 
-#: diffview/specialdiff.py:122
+#: diffview/specialdiff.py:118
 #, python-brace-format
 msgid "In your working copy, {0} will be replaced by {1} the next time Git touches this file."
 msgstr "Dans votre copie de travail, {0} sera remplacé par {1} la prochaine fois que Git touchera ce fichier."
 
-#: diffview/specialdiff.py:123
+#: diffview/specialdiff.py:119
 msgid "You can stage the file to dismiss this message; no changes will be recorded."
 msgstr "Vous pouvez indexer le fichier pour faire disparaître ce message ; aucune modification ne sera enregistrée."
 
-#: diffview/specialdiff.py:132
+#: diffview/specialdiff.py:128
 msgid "This image is very large."
 msgstr "Cette image est très volumineuse."
 
-#: diffview/specialdiff.py:133
+#: diffview/specialdiff.py:129
 msgid "[Load image anyway] (this may take a moment)"
 msgstr "[Charger l’image malgré tout] (cela peut prendre un certain temps)"
 
-#: diffview/specialdiff.py:134
+#: diffview/specialdiff.py:130
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
 msgstr "[Paramétrer la limite de prévisualisation des images] (actuellement : {0})"
 
-#: diffview/specialdiff.py:137
+#: diffview/specialdiff.py:133
 msgid "This diff is very large."
 msgstr "Cette diff est très volumineuse."
 
-#: diffview/specialdiff.py:137
+#: diffview/specialdiff.py:133
 msgid "This file is very large."
 msgstr "Ce fichier est très volumineux."
 
-#: diffview/specialdiff.py:138 tasks/loadtasks.py:383
+#: diffview/specialdiff.py:134 tasks/loadtasks.py:381
 msgid "[Load diff anyway] (this may take a moment)"
 msgstr "[Charger la diff malgré tout] (cela peut prendre un certain temps)"
 
-#: diffview/specialdiff.py:139
+#: diffview/specialdiff.py:135
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
 msgstr "[Paramétrer la limite de prévisualisation des diffs] (actuellement : {0})"
 
-#: diffview/specialdiff.py:156
+#: diffview/specialdiff.py:152
 msgid "Old type:"
 msgstr "Ancien type :"
 
-#: diffview/specialdiff.py:157
+#: diffview/specialdiff.py:153
 msgid "New type:"
 msgstr "Nouveau type :"
 
-#: diffview/specialdiff.py:164
+#: diffview/specialdiff.py:160
 msgid "This file’s type has changed."
 msgstr "Le type de ce fichier a changé."
 
-#: diffview/specialdiff.py:185
+#: diffview/specialdiff.py:181
 msgid "File appears to be binary."
 msgstr "Ce fichier semble contenir des données binaires."
 
-#: diffview/specialdiff.py:193 gitdriver/lfspointer.py:61
+#: diffview/specialdiff.py:189 gitdriver/lfspointer.py:61
 msgid "Object missing from local LFS cache."
 msgid_plural "Objects missing from local LFS cache."
 msgstr[0] "Objet manquant du cache LFS local."
 msgstr[1] "Objets manquants du cache LFS local."
 
-#: diffview/specialdiff.py:201
+#: diffview/specialdiff.py:197
 msgid "Download object to display the diff"
 msgid_plural "Download objects to display the diff"
 msgstr[0] "Télécharger l’objet pour afficher la diff"
 msgstr[1] "Télécharger les objets pour afficher la diff"
 
-#: diffview/specialdiff.py:213 diffview/specialdiffview.py:112
+#: diffview/specialdiff.py:209 diffview/specialdiffview.py:112
 msgid "not LFS"
 msgstr "non-LFS"
 
-#: diffview/specialdiff.py:222
+#: diffview/specialdiff.py:218
 msgid "Storage changed:"
 msgstr "Changement de stockage :"
 
-#: diffview/specialdiff.py:231
+#: diffview/specialdiff.py:227
 msgid "File contents remained identical during the conversion."
 msgstr "Le contenu du fichier est resté identique pendant la conversion."
 
-#: diffview/specialdiff.py:234
+#: diffview/specialdiff.py:230
 msgid "File contents modified during the conversion!"
 msgstr "Le contenu du fichier a été modifié pendant la conversion !"
 
-#: diffview/specialdiff.py:242
+#: diffview/specialdiff.py:238
 msgid "This untracked subtree is the root of another Git repository."
 msgstr "Ce sous-arbre non-suivi constitue la racine d’un autre dépôt Git."
 
-#: diffview/specialdiff.py:248 repowidget.py:479
+#: diffview/specialdiff.py:244 repowidget.py:479
 #, python-brace-format
 msgid "Open {0}"
 msgstr "Ouvrir {0}"
 
-#: diffview/specialdiff.py:251
+#: diffview/specialdiff.py:247
 #, python-brace-format
 msgid "Absorb {0} as submodule"
 msgstr "Absorber {0} comme sous-module"
 
-#: diffview/specialdiff.py:252
+#: diffview/specialdiff.py:248
 msgid "Recommended action:"
 msgstr "Action recommandée :"
 
-#: diffview/specialdiff.py:298
+#: diffview/specialdiff.py:294
 #, python-brace-format
 msgid "Submodule {0} was [removed.]"
 msgstr "Le sous-module {0} a été [retiré.]"
 
-#: diffview/specialdiff.py:298
+#: diffview/specialdiff.py:294
 #, python-brace-format
 msgid "Subtree {0} was [removed.]"
 msgstr "Le sous-arbre {0} a été [retiré.]"
 
-#: diffview/specialdiff.py:301
+#: diffview/specialdiff.py:297
 #, python-brace-format
 msgid "Submodule {0} was [added.]"
 msgstr "Le sous-module {0} a été [ajouté.]"
 
-#: diffview/specialdiff.py:301
+#: diffview/specialdiff.py:297
 #, python-brace-format
 msgid "Subtree {0} was [added.]"
 msgstr "Le sous-arbre {0} a été [ajouté.]"
 
-#: diffview/specialdiff.py:304
+#: diffview/specialdiff.py:300
 #, python-brace-format
 msgid "Submodule {0} was updated."
 msgstr "Le sous-module {0} a été mis à jour."
 
-#: diffview/specialdiff.py:304
+#: diffview/specialdiff.py:300
 #, python-brace-format
 msgid "Subtree {0} was updated."
 msgstr "Le sous-arbre {0} a été mis à jour."
 
-#: diffview/specialdiff.py:306
+#: diffview/specialdiff.py:302
 #, python-brace-format
 msgid "Submodule {0} contains changes."
 msgstr "Le sous-module {0} contient des modifications."
 
-#: diffview/specialdiff.py:306
+#: diffview/specialdiff.py:302
 #, python-brace-format
 msgid "Subtree {0} contains changes."
 msgstr "Le sous-arbre {0} contient des modifications."
 
-#: diffview/specialdiff.py:314
+#: diffview/specialdiff.py:310
 msgid "Open submodule"
 msgstr "Ouvrir le sous-module"
 
-#: diffview/specialdiff.py:314
+#: diffview/specialdiff.py:310
 msgid "Open subtree"
 msgstr "Ouvrir le sous-arbre"
 
-#: diffview/specialdiff.py:316
+#: diffview/specialdiff.py:312
 #, python-brace-format
 msgid "(path: {0})"
 msgstr "(chemin : {0})"
 
-#: diffview/specialdiff.py:351
+#: diffview/specialdiff.py:347
 msgid "The subtree’s <b>HEAD</b> has moved to another commit."
 msgstr "La <b>HEAD</b> du sous-arbre a été déplacée sur un autre commit."
 
-#: diffview/specialdiff.py:352
+#: diffview/specialdiff.py:348
 msgid "The submodule’s <b>HEAD</b> has moved to another commit."
 msgstr "La <b>HEAD</b> du sous-module a été déplacée sur un autre commit."
 
-#: diffview/specialdiff.py:354
+#: diffview/specialdiff.py:350
 msgid "You can stage this update:"
 msgstr "Vous pouvez indexer cette mise à jour :"
 
-#: diffview/specialdiff.py:358
+#: diffview/specialdiff.py:354
 msgid "Old:"
 msgstr "Ancien :"
 
-#: diffview/specialdiff.py:359
+#: diffview/specialdiff.py:355
 msgid "New:"
 msgstr "Nouveau :"
 
-#: diffview/specialdiff.py:367
+#: diffview/specialdiff.py:363
 #, python-brace-format
 msgid "To complete the removal of this submodule, <b>remove it from {gitmodules}</b>."
 msgstr "Afin d’achever la suppression de ce sous-module, <b>retirez-le de {gitmodules}</b>."
 
-#: diffview/specialdiff.py:369
+#: diffview/specialdiff.py:365
 #, python-brace-format
 msgid "To complete the removal of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr "Afin d’achever la suppression de ce sous-module, assurez-vous de committer <b>{gitmodules}</b> en même temps que le dossier du sous-module lui-même."
 
-#: diffview/specialdiff.py:373
+#: diffview/specialdiff.py:369
 #, python-brace-format
 msgid "To complete the addition of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr "Afin d’achever l’ajout de ce sous-module, assurez-vous de committer <b>{gitmodules}</b> en même temps que le dossier du sous-module lui-même."
 
-#: diffview/specialdiff.py:378
+#: diffview/specialdiff.py:374
 msgid "<b>This subtree isn’t a submodule yet!</b> You should [absorb this subtree] into the parent repository so it becomes a submodule."
 msgstr "<b>Ce sous-arbre ne constitue pas encore un sous-module !</b> Vous devriez [absorber ce sous-arbre] dans le dépôt parent afin que le sous-arbre devienne un sous-module."
 
-#: diffview/specialdiff.py:381
+#: diffview/specialdiff.py:377
 msgid "To complete the addition of this submodule, you should [absorb the submodule] into the parent repository."
 msgstr "Afin d’achever l’ajout de ce sous-module, vous devriez [absorber le sous-module] dans le dépôt parent."
 
-#: diffview/specialdiff.py:386
+#: diffview/specialdiff.py:382
 #, python-brace-format
 msgid "To complete the addition of this submodule, [register it in {gitmodules}]."
 msgstr "Afin d’achever l’ajout de ce sous-module, [inscrivez-le dans {gitmodules}]."
 
-#: diffview/specialdiff.py:391
+#: diffview/specialdiff.py:387
 msgid "IMPORTANT"
 msgstr "IMPORTANT"
 
-#: diffview/specialdiff.py:399
+#: diffview/specialdiff.py:395
 msgid "The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr "Le sous-arbre contient des <b>modifications non-committées</b>. Elles ne peuvent pas être committées directement depuis le dépôt parent. Vous pouvez :"
 
-#: diffview/specialdiff.py:400
+#: diffview/specialdiff.py:396
 msgid "[Open] the subtree and commit the changes."
 msgstr "[Ouvrir] le sous-arbre et committer les modifications."
 
-#: diffview/specialdiff.py:401
+#: diffview/specialdiff.py:397
 msgid "Or, [Reset] the subtree to a clean state."
 msgstr "Ou bien [réinitialiser] le sous-arbre à un état propre."
 
-#: diffview/specialdiff.py:403
+#: diffview/specialdiff.py:399
 msgid "The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr "Le sous-module contient des <b>modifications non-committées</b>. Elles ne peuvent pas être committées directement depuis le dépôt parent. Vous pouvez :"
 
-#: diffview/specialdiff.py:404
+#: diffview/specialdiff.py:400
 msgid "[Open] the submodule and commit the changes."
 msgstr "[Ouvrir] le sous-module et committer les modifications."
 
-#: diffview/specialdiff.py:405
+#: diffview/specialdiff.py:401
 msgid "Or, [Reset] the submodule to a clean state."
 msgstr "Ou bien [réinitialiser] le sous-module à un état propre."
 
@@ -861,8 +835,8 @@ msgstr "Ouvrir la révision avant le commit"
 msgid "Open revision at commit"
 msgstr "Ouvrir la révision au commit"
 
-#: filelists/committedfiles.py:154 filelists/filelist.py:402
-#: filelists/filelist.py:649
+#: filelists/committedfiles.py:154 filelists/filelist.py:404
+#: filelists/filelist.py:651
 #, python-brace-format
 msgid "Really open <b>{n} files</b> in external editor?"
 msgstr "Êtes-vous sûr d’ouvrir <b>{n} fichiers</b> dans un éditeur externe ?"
@@ -974,174 +948,170 @@ msgstr[1] "Jeter modifs dans {n} sous-modules"
 msgid "Can’t stage this selection in bulk."
 msgstr "La sélection ne peut pas être indexée en masse."
 
-#: filelists/filelist.py:160
-msgid "Find a file by path|Find file"
-msgstr "Rechercher un fichier par son nom|Rechercher un fichier|Rechercher fichier|Rech. fichier"
-
-#: filelists/filelist.py:250
+#: filelists/filelist.py:252
 #, python-brace-format
 msgid "Open &Folder"
 msgid_plural "Open {n} &Folders"
 msgstr[0] "Ouvrir le &dossier"
 msgstr[1] "Ouvrir {n} &dossiers"
 
-#: filelists/filelist.py:256
+#: filelists/filelist.py:258
 #, python-brace-format
 msgid "&Copy Path"
 msgid_plural "&Copy {n} Paths"
 msgstr[0] "&Copier le chemin"
 msgstr[1] "&Copier {n} chemins"
 
-#: filelists/filelist.py:262 trtables.py:399
+#: filelists/filelist.py:264 trtables.py:399
 msgid "Path display style"
 msgstr "Affichage des chemins"
 
-#: filelists/filelist.py:278
+#: filelists/filelist.py:280
 msgid "Stas&h Changes…"
 msgstr "&Remiser les modifs…"
 
-#: filelists/filelist.py:285
+#: filelists/filelist.py:287
 msgid "Revert Mode Change"
 msgid_plural "Revert Mode Changes"
 msgstr[0] "Inverser le changement de mode"
 msgstr[1] "Inverser les changements de modes"
 
-#: filelists/filelist.py:307
+#: filelists/filelist.py:309
 msgid "Revert Mode to Non-Executable"
 msgstr "Rétablir le mode Non-Exécutable"
 
-#: filelists/filelist.py:309
+#: filelists/filelist.py:311
 msgid "Revert Mode to Executable"
 msgstr "Rétablir le mode Exécutable"
 
-#: filelists/filelist.py:321
+#: filelists/filelist.py:323
 #, python-brace-format
 msgid "Open Diff in {0}"
 msgstr "Ouvrir la diff dans {0}"
 
-#: filelists/filelist.py:326
+#: filelists/filelist.py:328
 msgid "E&xport Diff As Patch…"
 msgid_plural "E&xport Diffs As Patch…"
 msgstr[0] "E&xporter un correctif de cette diff…"
 msgstr[1] "E&xporter un correctif de ces diffs…"
 
-#: filelists/filelist.py:335
+#: filelists/filelist.py:337
 #, python-brace-format
 msgid "&Edit in {tool}"
 msgstr "Édit&er dans {tool}"
 
-#: filelists/filelist.py:340
+#: filelists/filelist.py:342
 #, python-brace-format
 msgid "Edit &HEAD Version in {tool}"
 msgid_plural "Edit &HEAD Versions in {tool}"
 msgstr[0] "Éditer la version en &HEAD dans {tool}"
 msgstr[1] "Éditer les versions en &HEAD dans {tool}"
 
-#: filelists/filelist.py:401
+#: filelists/filelist.py:403
 msgid "Open in external editor"
 msgstr "Ouvrir dans l’éditeur externe"
 
-#: filelists/filelist.py:405
+#: filelists/filelist.py:407
 msgid "Open in external diff tool"
 msgstr "Ouvrir dans l’outil de diff externe"
 
-#: filelists/filelist.py:406
+#: filelists/filelist.py:408
 #, python-brace-format
 msgid "Really open <b>{n} files</b> in external diff tool?"
 msgstr "Êtes-vous sûr d’ouvrir <b>{n} fichiers</b> dans l’outil de diff externe ?"
 
-#: filelists/filelist.py:410
+#: filelists/filelist.py:412
 msgid "Can’t open external diff tool on a deleted file."
 msgstr "Impossible d’ouvrir l’outil de diff externe sur un fichier supprimé."
 
-#: filelists/filelist.py:413
+#: filelists/filelist.py:415
 msgid "Can’t open external diff tool on a new file."
 msgstr "Impossible d’ouvrir l’outil de diff externe sur un nouveau fichier."
 
-#: filelists/filelist.py:440
+#: filelists/filelist.py:442
 msgid "File doesn’t exist at this path anymore."
 msgstr "Ce fichier n’existe plus à ce chemin."
 
-#: filelists/filelist.py:443
+#: filelists/filelist.py:445
 msgid "Open paths"
 msgstr "Ouvrir les chemins"
 
-#: filelists/filelist.py:444
+#: filelists/filelist.py:446
 #, python-brace-format
 msgid "Really open <b>{n} folders</b>?"
 msgstr "Êtes-vous sûr d’ouvrir <b>{n} dossiers</b> ?"
 
-#: filelists/filelist.py:613
+#: filelists/filelist.py:615
 msgid "Revert changes in file"
 msgstr "Inverser les modifs dans le fichier"
 
-#: filelists/filelist.py:614
+#: filelists/filelist.py:616
 msgid "Do you want to revert this patch?"
 msgstr "Voulez-vous inverser ce correctif ?"
 
-#: filelists/filelist.py:648
+#: filelists/filelist.py:650
 msgid "Open HEAD version of file"
 msgstr "Ouvrir la version en HEAD du fichier"
 
-#: filelists/filelistmodel.py:60
+#: filelists/filelistmodel.py:61
 msgid "old name"
 msgstr "ancien nom"
 
-#: filelists/filelistmodel.py:61
+#: filelists/filelistmodel.py:62
 msgid "new name"
 msgstr "nouveau nom"
 
-#: filelists/filelistmodel.py:63
+#: filelists/filelistmodel.py:64
 msgid "name"
 msgstr "nom"
 
-#: filelists/filelistmodel.py:73
+#: filelists/filelistmodel.py:74
 msgid "status"
 msgstr "état"
 
-#: filelists/filelistmodel.py:77
+#: filelists/filelistmodel.py:78
 msgid "similarity"
 msgstr "similarité"
 
-#: filelists/filelistmodel.py:83 filelists/filelistmodel.py:85
+#: filelists/filelistmodel.py:84 filelists/filelistmodel.py:86
 msgid "file mode"
 msgstr "mode du fichier"
 
-#: filelists/filelistmodel.py:109
+#: filelists/filelistmodel.py:110
 #, python-brace-format
 msgid "{size} on disk"
 msgstr "{size} sur disque"
 
-#: filelists/filelistmodel.py:112
+#: filelists/filelistmodel.py:113
 msgid "size"
 msgstr "taille"
 
-#: filelists/filelistmodel.py:119
+#: filelists/filelistmodel.py:120
 msgid "modified"
 msgstr "modifié"
 
-#: filelists/filelistmodel.py:128 filelists/filelistmodel.py:129
-#: filelists/filelistmodel.py:132 filelists/filelistmodel.py:133
+#: filelists/filelistmodel.py:129 filelists/filelistmodel.py:130
+#: filelists/filelistmodel.py:133 filelists/filelistmodel.py:134
 msgid "(not computed)"
 msgstr "(non calculé)"
 
-#: filelists/filelistmodel.py:130
+#: filelists/filelistmodel.py:131
 msgid "LFS object hash"
 msgstr "hachage de l’objet LFS"
 
-#: filelists/filelistmodel.py:134
+#: filelists/filelistmodel.py:135
 msgid "blob hash"
 msgstr "hachage du blob"
 
-#: filelists/filelistmodel.py:134
+#: filelists/filelistmodel.py:135
 msgid "commit hash"
 msgstr "hachage du commit"
 
-#: filelists/filelistmodel.py:139
+#: filelists/filelistmodel.py:140
 msgid "Currently viewing diff of staged changes in this file; it also has <u>unstaged</u> changes."
 msgstr "La diff affiche actuellement les modifs indexées de ce fichier ; celui-ci contient également des modifs <u>non-indexées</u>."
 
-#: filelists/filelistmodel.py:142
+#: filelists/filelistmodel.py:143
 msgid "Currently viewing diff of unstaged changes in this file; it also has <u>staged</u> changes."
 msgstr "La diff affiche actuellement les modifs non-indexées de ce fichier ; celui-ci contient également des modifs <u>indexées</u>."
 
@@ -1266,8 +1236,8 @@ msgstr "Passer en HEAD &détachée ici"
 msgid "&Reset the tip of branch {0} here…"
 msgstr "Déplace&r l’extrémité de la branche {0} ici…"
 
-#: forms/checkoutcommitdialog.py:41 graphview/graphview.py:481
-#: sidebar/sidebar.py:219 sidebar/sidebar.py:317
+#: forms/checkoutcommitdialog.py:41 graphview/graphview.py:472
+#: sidebar/sidebar.py:240 sidebar/sidebar.py:338
 #, python-brace-format
 msgid "&Merge into {0}…"
 msgstr "&Fusionner dans {0}…"
@@ -1568,7 +1538,7 @@ msgctxt "noun"
 msgid "Stash"
 msgstr "Remise"
 
-#: forms/contextheader.py:124
+#: forms/contextheader.py:124 graphview/commitinfosearch.py:59
 msgid "Info"
 msgstr "Info"
 
@@ -1596,7 +1566,7 @@ msgstr "Appliquer"
 msgid "Apply this stash"
 msgstr "Appliquer cette remise"
 
-#: forms/contextheader.py:136 graphview/commitlogdelegate.py:605
+#: forms/contextheader.py:136 graphview/commitlogdelegate.py:627
 msgid "Working Directory"
 msgstr "Répertoire de travail"
 
@@ -1834,7 +1804,7 @@ msgstr "Nouvelle branche"
 msgid "Commit at tip:"
 msgstr "Commit à la pointe de la branche :"
 
-#: forms/newtagdialog.py:17 sidebar/sidebar.py:1012
+#: forms/newtagdialog.py:17 sidebar/sidebar.py:1072
 msgid "No Remotes"
 msgstr "Aucun serveur"
 
@@ -1878,16 +1848,16 @@ msgctxt "system default language setting"
 msgid "System default"
 msgstr "Automatique"
 
-#: forms/prefsdialog.py:457
+#: forms/prefsdialog.py:448
 msgctxt "hint user to leave the field blank"
 msgid "leave blank"
 msgstr "laisser vide"
 
-#: forms/prefsdialog.py:463
+#: forms/prefsdialog.py:454
 msgid "Leave blank for system default."
 msgstr "Laisser vide pour que le système choisisse automatiquement."
 
-#: forms/prefsdialog.py:491
+#: forms/prefsdialog.py:482
 #, python-brace-format
 msgid ""
 "# Enter custom terminal commands here.\n"
@@ -1898,40 +1868,40 @@ msgstr ""
 "# Lancez-les ensuite depuis le menu {menu}.\n"
 "# Cliquez sur {button} ci-dessous pour plus d’infos."
 
-#: forms/prefsdialog.py:494 mainwindow.py:212 trtables.py:590
+#: forms/prefsdialog.py:485 mainwindow.py:212 trtables.py:590
 msgid "&Commands"
 msgstr "&Commandes"
 
-#: forms/prefsdialog.py:495
+#: forms/prefsdialog.py:486
 msgid "Handy Reference"
 msgstr "Référence pratique"
 
-#: forms/prefsdialog.py:568
+#: forms/prefsdialog.py:559
 msgctxt "system default theme setting"
 msgid "System default"
 msgstr "Automatique"
 
-#: forms/prefsdialog.py:618
+#: forms/prefsdialog.py:609
 #, python-brace-format
 msgid "This feature requires {0}."
 msgstr "Cette fonctionnalité nécessite {0}."
 
-#: forms/prefsdialog.py:622
+#: forms/prefsdialog.py:613
 #, python-brace-format
 msgctxt "syntax highlighting"
 msgid "Automatic ({name})"
 msgstr "Automatique ({name})"
 
-#: forms/prefsdialog.py:623
+#: forms/prefsdialog.py:614
 msgctxt "syntax highlighting"
 msgid "Off"
 msgstr "Désactivée"
 
-#: forms/prefsdialog.py:658
+#: forms/prefsdialog.py:649
 msgid "Red and green"
 msgstr "Rouge et vert"
 
-#: forms/prefsdialog.py:659
+#: forms/prefsdialog.py:650
 msgid "Colorblind-friendly"
 msgstr "Adapté aux daltoniens"
 
@@ -2016,7 +1986,7 @@ msgid "Absorb submodule"
 msgstr "Absorber le sous-module"
 
 #: forms/registersubmoduledialog.py:46 forms/registersubmoduledialog.py:47
-#: tasks/taskbook.py:87
+#: tasks/taskbook.py:88
 msgid "Register submodule"
 msgstr "Inscrire le sous-module"
 
@@ -2090,10 +2060,14 @@ msgstr "Réinitialiser {0} sur {1}"
 msgid "Commit {0}:"
 msgstr "Commit {0} :"
 
-#: forms/searchbar.py:225
-#, python-brace-format
-msgid "{text} not found."
-msgstr "{text} introuvable."
+#: forms/searchbar.py:102 forms/ui_searchbar.py:57
+msgctxt "SearchBar"
+msgid "Search scope"
+msgstr "Portée de la recherche"
+
+#: forms/searchbar.py:198 forms/statusform.py:88
+msgid "Please wait…"
+msgstr "Veuillez patienter…"
 
 #: forms/stashdialog.py:58
 msgid "Stash && Keep Changes"
@@ -2110,10 +2084,6 @@ msgstr "&Inclure ces fichiers dans la remise, puis les rétablir à leur état n
 #: forms/stashdialog.py:61
 msgid "&Include these files in the stash:"
 msgstr "&Inclure ces fichiers dans la remise :"
-
-#: forms/statusform.py:88
-msgid "Please wait…"
-msgstr "Veuillez patienter…"
 
 #: forms/statusform.py:92
 msgid "Abort"
@@ -2708,32 +2678,32 @@ msgctxt "ResetHeadDialog"
 msgid "&Reset submodules recursively"
 msgstr "&Réinitialiser les sous-modules récursivement"
 
-#: forms/ui_searchbar.py:45
+#: forms/ui_searchbar.py:58
 msgctxt "SearchBar"
-msgid "Search"
-msgstr "Recherche"
+msgid "Show only matching rows"
+msgstr "Afficher uniquement les lignes correspondantes"
 
-#: forms/ui_searchbar.py:46
+#: forms/ui_searchbar.py:59
 msgctxt "SearchBar"
-msgid "Search…"
-msgstr "Rechercher…"
+msgid "Filter"
+msgstr "Filtrer"
 
-#: forms/ui_searchbar.py:47
+#: forms/ui_searchbar.py:60
 msgctxt "SearchBar"
 msgid "Next Occurrence"
 msgstr "Occurrence suivante"
 
-#: forms/ui_searchbar.py:48
+#: forms/ui_searchbar.py:61
 msgctxt "SearchBar"
 msgid "Previous Occurrence"
 msgstr "Occurrence précédente"
 
-#: forms/ui_searchbar.py:49
+#: forms/ui_searchbar.py:62
 msgctxt "SearchBar"
 msgid "Close Search Bar"
 msgstr "Fermer la barre de recherche"
 
-#: forms/ui_searchbar.py:50
+#: forms/ui_searchbar.py:63
 msgctxt "SearchBar"
 msgid "Done"
 msgstr "Terminé"
@@ -2868,152 +2838,181 @@ msgstr "Bienvenue dans<br>{app}"
 msgid "Git command exited with code {0}."
 msgstr "La commande Git s’est terminée avec le code {0}."
 
-#: graphview/commitlogdelegate.py:231
+#: graphview/commitfilesearch.py:78
+msgid "Find path touched by commits"
+msgstr "Rechercher un chemin modifié par des commits"
+
+#: graphview/commitfilesearch.py:81
+msgid "Path"
+msgstr "Chemin"
+
+#: graphview/commitinfosearch.py:62
+msgid "Find commit hash, message or author"
+msgstr "Rechercher un commit par hachage, message ou auteur"
+
+#: graphview/commitinfosearch.py:82
+msgid "hidden branches"
+msgstr "branches masquées"
+
+#: graphview/commitinfosearch.py:85
+msgid "truncated history"
+msgstr "historique tronqué"
+
+#: graphview/commitinfosearch.py:87
+msgid "shallow clone"
+msgstr "clone superficiel"
+
+#: graphview/commitinfosearch.py:91
+#, python-brace-format
+msgid "(search limited by {0})"
+msgstr "(recherche limitée par {0})"
+
+#: graphview/commitlogdelegate.py:235
 #, python-brace-format
 msgid "History truncated to {0} commits (including hidden branches)"
 msgstr "Historique tronqué à {0} commits (y compris les branches cachées)"
 
-#: graphview/commitlogdelegate.py:233
+#: graphview/commitlogdelegate.py:237
 #, python-brace-format
 msgid "History truncated to {0} commits"
 msgstr "Historique tronqué à {0} commits"
 
-#: graphview/commitlogdelegate.py:237
+#: graphview/commitlogdelegate.py:241
 msgid "Shallow clone – End of commit history"
 msgstr "Clone superficiel – Fin de l’historique des commits"
 
-#: graphview/commitlogdelegate.py:466 repowidget.py:632
-#: sidebar/sidebarmodel.py:647 sidebar/sidebarmodel.py:650
+#: graphview/commitlogdelegate.py:488 repowidget.py:587
+#: sidebar/sidebarmodel.py:658 sidebar/sidebarmodel.py:661
 msgid "Detached HEAD"
 msgstr "HEAD détachée"
 
-#: graphview/commitlogdelegate.py:609
+#: graphview/commitlogdelegate.py:631
 msgid "(Clean)"
 msgstr "(Propre)"
 
-#: graphview/commitlogdelegate.py:611
+#: graphview/commitlogdelegate.py:633
 #, python-brace-format
 msgid "({n} change)"
 msgid_plural "({n} changes)"
 msgstr[0] "({n} modification)"
 msgstr[1] "({n} modifications)"
 
-#: graphview/commitlogdelegate.py:616
+#: graphview/commitlogdelegate.py:638
 msgid "Commit draft:"
 msgstr "Brouillon de commit :"
 
-#: graphview/commitlogdelegate.py:645
+#: graphview/commitlogdelegate.py:667
 #, python-brace-format
 msgid "{0} side in the current comparison between two commits"
 msgstr "Côté {0} dans le comparatif actuel entre deux commits"
 
-#: graphview/commitlogdelegate.py:652
+#: graphview/commitlogdelegate.py:674
 msgid "This commit is currently mounted as a folder."
 msgstr "Ce commit est actuellement monté en tant que dossier."
 
-#: graphview/commitlogmodel.py:211
+#: graphview/commitlogmodel.py:166
+msgid "This commit touches a path that matches your search"
+msgstr "Ce commit modifie un chemin qui correspond à votre recherche"
+
+#: graphview/commitlogmodel.py:213
 msgctxt "CommitTooltip"
 msgid "(authored)"
 msgstr "(créé)"
 
-#: graphview/commitlogmodel.py:212
+#: graphview/commitlogmodel.py:214
 msgctxt "CommitTooltip"
 msgid "(committed)"
 msgstr "(committé)"
 
-#: graphview/commitlogmodel.py:216
+#: graphview/commitlogmodel.py:218
 #, python-brace-format
 msgctxt "CommitTooltip"
 msgid "Committed by {0}"
 msgstr "Committé par {0}"
 
-#: graphview/graphview.py:43
+#: graphview/graphview.py:44
 msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
 msgstr "Ce commit ne figure pas dans le graphe car il fait partie d’une branche masquée."
 
-#: graphview/graphview.py:45
+#: graphview/graphview.py:46
 msgid "This commit isn’t shown in the graph because it isn’t part of the truncated commit history."
 msgstr "Ce commit ne figure pas dans le graphe car il est en-dehors de l’historique tronqué."
 
-#: graphview/graphview.py:47
+#: graphview/graphview.py:48
 msgid "This commit isn’t shown in the graph."
 msgstr "Ce commit ne figure pas dans le graphe."
 
-#: graphview/graphview.py:77
-msgid "Find a commit by hash, message or author|Find commit"
-msgstr "Rechercher un commit par son hachage, message ou auteur|Rechercher un commit|Rech. un commit|Rech. commit"
-
-#: graphview/graphview.py:400
+#: graphview/graphview.py:391
 msgid "No actions available for this selection"
 msgstr "Aucune action disponible pour cette sélection"
 
-#: graphview/graphview.py:422
+#: graphview/graphview.py:413
 msgid "Clear Draft Message"
 msgstr "Effacer le message brouillon"
 
-#: graphview/graphview.py:434 tasks/jumptasks.py:360
+#: graphview/graphview.py:425 tasks/jumptasks.py:374
 #, python-brace-format
 msgid "Load up to {0} commits"
 msgstr "Charger jusqu’à {0} commits"
 
-#: graphview/graphview.py:437
+#: graphview/graphview.py:428
 msgid "Load full commit history"
 msgstr "Charger l’historique de commits en entier"
 
-#: graphview/graphview.py:440
+#: graphview/graphview.py:431
 msgid "Change threshold setting"
 msgstr "Paramétrer le seuil"
 
-#: graphview/graphview.py:460
+#: graphview/graphview.py:451
 msgid "&Check Out…"
 msgstr "Basculer dans ce &commit…"
 
-#: graphview/graphview.py:468
+#: graphview/graphview.py:459
 msgid "&Mount Commit As Folder"
 msgstr "&Monter le commit en tant que dossier"
 
-#: graphview/graphview.py:477 sidebar/sidebar.py:266 sidebar/sidebar.py:285
+#: graphview/graphview.py:468 sidebar/sidebar.py:287 sidebar/sidebar.py:306
 msgid "New &Branch Here…"
 msgstr "Nouvelle &branche ici…"
 
-#: graphview/graphview.py:478
+#: graphview/graphview.py:469
 msgid "&Tag This Commit…"
 msgstr "É&tiqueter ce commit…"
 
-#: graphview/graphview.py:482
+#: graphview/graphview.py:473
 #, python-brace-format
 msgid "&Reset {0} to Here…"
 msgstr "&Réinitialiser {0} ici…"
 
-#: graphview/graphview.py:484
+#: graphview/graphview.py:475
 msgid "Cherry &Pick…"
 msgstr "&Picorer…"
 
-#: graphview/graphview.py:485
+#: graphview/graphview.py:476
 msgid "Re&vert…"
 msgstr "Inverser…"
 
-#: graphview/graphview.py:486
+#: graphview/graphview.py:477
 msgid "E&xport As Patch…"
 msgstr "E&xporter correctif…"
 
-#: graphview/graphview.py:488
+#: graphview/graphview.py:479
 msgid "Copy Commit &Hash"
 msgstr "Copier le &hachage du commit"
 
-#: graphview/graphview.py:489
+#: graphview/graphview.py:480
 msgid "Copy Commit M&essage"
 msgstr "Copier le m&essage du commit"
 
-#: graphview/graphview.py:492
+#: graphview/graphview.py:483
 msgid "Get &Info…"
 msgstr "&Infos sur le commit…"
 
-#: graphview/graphview.py:501
+#: graphview/graphview.py:492
 msgid "&Swap A/B"
 msgstr "&Permuter A/B"
 
-#: graphview/graphview.py:504
+#: graphview/graphview.py:495
 msgid "E&xport A/B Diff As Patch…"
 msgstr "E&xporter un correctif de cette diff A/B…"
 
@@ -3337,45 +3336,45 @@ msgstr "&Recharger"
 msgid "&Not Now"
 msgstr "&Plus tard"
 
-#: mainwindow.py:1278
+#: mainwindow.py:1279
 #, python-brace-format
 msgid "(Command) {0}"
 msgstr "(Commande) {0}"
 
-#: mainwindow.py:1291 mainwindow.py:1346 repowidget.py:451
+#: mainwindow.py:1292 mainwindow.py:1347 repowidget.py:451
 msgid "Open Superproject"
 msgstr "Ouvrir le super-projet"
 
-#: mainwindow.py:1302
+#: mainwindow.py:1303
 #, python-brace-format
 msgid "Open Superproject {0}"
 msgstr "Ouvrir le super-projet {0}"
 
-#: mainwindow.py:1309
+#: mainwindow.py:1310
 msgid "&Open Repo Folder"
 msgstr "&Ouvrir le dossier du dépôt"
 
-#: mainwindow.py:1313
+#: mainwindow.py:1314
 msgid "Open this repo’s working directory in the system’s file manager"
 msgstr "Ouvrir le répertoire de travail de ce dépôt dans le gestionnaire de fichiers de votre système"
 
-#: mainwindow.py:1317
+#: mainwindow.py:1318
 msgid "Open &Terminal"
 msgstr "Ouvrir un &terminal"
 
-#: mainwindow.py:1321
+#: mainwindow.py:1322
 msgid "Open a terminal in the repo’s working directory"
 msgstr "Ouvrir un terminal dans le répertoire de travail du dépôt"
 
-#: mainwindow.py:1325
+#: mainwindow.py:1326
 msgid "Cop&y Repo Path"
 msgstr "Cop&ier le chemin du dépôt"
 
-#: mainwindow.py:1327
+#: mainwindow.py:1328
 msgid "Copy the absolute path to this repo’s working directory to the clipboard"
 msgstr "Copier le chemin absolu du répertoire de travail de ce dépôt dans le presse-papiers"
 
-#: mainwindow.py:1346 repowidget.py:451
+#: mainwindow.py:1347 repowidget.py:451
 msgid "This repository does not have a superproject."
 msgstr "Ce dépôt n’a pas de super-projet."
 
@@ -3424,32 +3423,32 @@ msgstr[1] "Voulez-vous démonter {n} points de montage de commits avant de quitt
 msgid "&Unmount && Quit"
 msgstr "&Démonter && quitter"
 
-#: nav.py:84
+#: nav.py:87
 msgctxt "NavContext"
 msgid "Empty"
 msgstr "Vide"
 
-#: nav.py:85
+#: nav.py:88
 msgctxt "NavContext"
 msgid "Untracked"
 msgstr "Non-suivi"
 
-#: nav.py:86
+#: nav.py:89
 msgctxt "NavContext"
 msgid "Unstaged"
 msgstr "Non-indexé"
 
-#: nav.py:87
+#: nav.py:90
 msgctxt "NavContext"
 msgid "Staged"
 msgstr "Indexé"
 
-#: nav.py:88
+#: nav.py:91
 msgctxt "NavContext"
 msgid "Committed"
 msgstr "Committé"
 
-#: nav.py:90
+#: nav.py:93
 msgctxt "NavContext"
 msgid "Unknown"
 msgstr "Inconnu"
@@ -3489,95 +3488,75 @@ msgstr "Voulez-vous exécuter cette commande dans un terminal ?"
 msgid "Do you want to run {0} in a terminal?"
 msgstr "Voulez-vous exécuter {0} dans un terminal ?"
 
-#: repowidget.py:548
-#, python-brace-format
-msgid "{0} not found among the branches that aren’t hidden."
-msgstr "{0} introuvable parmi les branches qui ne sont pas cachées."
-
-#: repowidget.py:550
-#, python-brace-format
-msgid "{0} not found."
-msgstr "{0} introuvable."
-
-#: repowidget.py:554
-#, python-brace-format
-msgid "Note: The search was limited to the top commit because the commit history is truncated."
-msgid_plural "Note: The search was limited to the top {n} commits because the commit history is truncated."
-msgstr[0] "Note : La recherche est bornée au commit le plus récent car l’historique des commits est tronqué."
-msgstr[1] "Note : La recherche est bornée aux {n} commits les plus récents car l’historique des commits est tronqué."
-
-#: repowidget.py:559
-#, python-brace-format
-msgid "Note: The search was limited to the single commit available in this shallow clone."
-msgid_plural "Note: The search was limited to the {n} commits available in this shallow clone."
-msgstr[0] "Note : La recherche est bornée à l’unique commit disponible dans ce clone superficiel (“shallow clone”)."
-msgstr[1] "Note : La recherche est bornée aux {n} commits disponibles dans ce clone superficiel (“shallow clone”)."
-
-#: repowidget.py:629
+#: repowidget.py:584
 msgid "Unborn HEAD"
 msgstr "HEAD non-née"
 
-#: repowidget.py:664
+#: repowidget.py:619
 #, python-brace-format
 msgid "Merging {0}"
 msgstr "Fusion de {0} en cours"
 
-#: repowidget.py:667
+#: repowidget.py:622
 msgid "All conflicts fixed. Commit to conclude."
 msgstr "Conflits résolus. Committez pour conclure."
 
-#: repowidget.py:670 repowidget.py:680 repowidget.py:690
+#: repowidget.py:625 repowidget.py:635 repowidget.py:645
 msgid "Conflicts need fixing."
 msgstr "Des conflits doivent être résolus."
 
-#: repowidget.py:672 tasks/indextasks.py:557 tasks/taskbook.py:32
+#: repowidget.py:627 tasks/indextasks.py:556 tasks/taskbook.py:32
 msgid "Abort merge"
 msgstr "Abandonner la fusion"
 
-#: repowidget.py:677
+#: repowidget.py:632
 msgid "Commit to conclude the cherry-pick."
 msgstr "Validez le commit pour conclure le picorage."
 
-#: repowidget.py:682 tasks/indextasks.py:552
+#: repowidget.py:637 tasks/indextasks.py:551
 msgid "Abort cherry-pick"
 msgstr "Abandonner le picorage"
 
-#: repowidget.py:687
+#: repowidget.py:642
 msgid "Commit to conclude the revert."
 msgstr "Validez le commit pour conclure l’inversion."
 
-#: repowidget.py:692 tasks/indextasks.py:562
+#: repowidget.py:647 tasks/indextasks.py:561
 msgid "Abort revert"
 msgstr "Abandonner l’inversion"
 
-#: repowidget.py:697
+#: repowidget.py:652
 msgid "Conflicts"
 msgstr "Conflits"
 
-#: repowidget.py:698
+#: repowidget.py:653
 msgid "Fix the conflicts among the uncommitted changes."
 msgstr "Résolvez les conflits parmi les modifications non-committées."
 
-#: repowidget.py:699 tasks/indextasks.py:567
+#: repowidget.py:654 tasks/indextasks.py:566
 msgid "Reset index"
 msgstr "Réinitialiser l’index"
 
-#: repowidget.py:703
+#: repowidget.py:658
 msgid "Warning"
 msgstr "Avertissement"
 
-#: repowidget.py:705
+#: repowidget.py:660
 #, python-brace-format
 msgid "The repo is currently in state {state}, which {app} doesn’t support yet. Use <code>git</code> on the command line to continue."
 msgstr "Le dépôt est actuellement dans l’état {state}, que {app} ne sait pas encore gérer. Utilisez <code>git</code> à la ligne de commande pour continuer."
 
-#: repowidget.py:752
+#: repowidget.py:702
 msgid "Repository folder went missing:"
 msgstr "Le dossier du dépôt a disparu :"
 
-#: repowidget.py:855
+#: repowidget.py:805
 msgid "&Local Config Files"
 msgstr "Fichiers de config &locaux"
+
+#: search/searchprovider.py:116
+msgid "No results"
+msgstr "Aucun résultat"
 
 #: settings.py:387
 msgid "External editor"
@@ -3591,314 +3570,314 @@ msgstr "Outil de diff"
 msgid "Merge tool"
 msgstr "Outil de fusion"
 
-#: sidebar/sidebar.py:165
+#: sidebar/sidebar.py:186
 msgid "&New Branch…"
 msgstr "&Nouvelle branche…"
 
-#: sidebar/sidebar.py:167 sidebar/sidebar.py:456
+#: sidebar/sidebar.py:188 sidebar/sidebar.py:477
 msgid "Sort By"
 msgstr "Trier par"
 
-#: sidebar/sidebar.py:172 sidebar/sidebar.py:350
+#: sidebar/sidebar.py:193 sidebar/sidebar.py:371
 msgid "Collapse All Folders"
 msgstr "Réduire tous les dossiers"
 
-#: sidebar/sidebar.py:173 sidebar/sidebar.py:351
+#: sidebar/sidebar.py:194 sidebar/sidebar.py:372
 msgid "Expand All Folders"
 msgstr "Développer tous les dossiers"
 
-#: sidebar/sidebar.py:186
+#: sidebar/sidebar.py:207
 msgid "&Upstream Branch"
 msgstr "Branche &amont"
 
-#: sidebar/sidebar.py:194 sidebar/sidebar.py:966
+#: sidebar/sidebar.py:215 sidebar/sidebar.py:1026
 msgid "(Missing)"
 msgstr "(Manquante)"
 
-#: sidebar/sidebar.py:212
+#: sidebar/sidebar.py:233
 #, python-brace-format
 msgid "&Switch to {0}…"
 msgstr "Ba&sculer dans {0}…"
 
-#: sidebar/sidebar.py:228
+#: sidebar/sidebar.py:249
 #, python-brace-format
 msgid "&Fetch {0}"
 msgstr "Réc&upérer (fetch) {0}"
 
-#: sidebar/sidebar.py:228
+#: sidebar/sidebar.py:249
 msgid "Fetch"
 msgstr "Récupérer"
 
-#: sidebar/sidebar.py:235
+#: sidebar/sidebar.py:256
 #, python-brace-format
 msgid "Pu&ll from {0}…"
 msgstr "&Tirer (pull) depuis {0}…"
 
-#: sidebar/sidebar.py:235
+#: sidebar/sidebar.py:256
 msgid "Pull…"
 msgstr "Tirer…"
 
-#: sidebar/sidebar.py:241
+#: sidebar/sidebar.py:262
 #, python-brace-format
 msgid "Fast-Forward to {0}…"
 msgstr "Avance-rapide vers {0}…"
 
-#: sidebar/sidebar.py:241
+#: sidebar/sidebar.py:262
 msgid "Fast-Forward…"
 msgstr "Avance-rapide…"
 
-#: sidebar/sidebar.py:248
+#: sidebar/sidebar.py:269
 #, python-brace-format
 msgid "&Push to {0}…"
 msgstr "&Publier vers {0}…"
 
-#: sidebar/sidebar.py:248
+#: sidebar/sidebar.py:269
 msgid "Push…"
 msgstr "Publier…"
 
-#: sidebar/sidebar.py:260
+#: sidebar/sidebar.py:281
 msgid "Re&name…"
 msgstr "Renommer…"
 
-#: sidebar/sidebar.py:262
+#: sidebar/sidebar.py:283
 msgid "&Delete…"
 msgstr "Supprimer…"
 
-#: sidebar/sidebar.py:270 sidebar/sidebar.py:330 sidebar/sidebar.py:385
-#: sidebar/sidebar.py:415
+#: sidebar/sidebar.py:291 sidebar/sidebar.py:351 sidebar/sidebar.py:406
+#: sidebar/sidebar.py:436
 msgid "&Hide in Graph"
 msgstr "Mas&quer dans le graphe"
 
-#: sidebar/sidebar.py:273
+#: sidebar/sidebar.py:294
 msgid "Hide this branch from the graph (effective if no other branches/tags point here)"
 msgstr "Cacher cette branche du graphe (n’est effectif que si aucune autre branche/étiquette ne pointe ici)"
 
-#: sidebar/sidebar.py:276 sidebar/sidebar.py:335 sidebar/sidebar.py:390
-#: sidebar/sidebar.py:420
+#: sidebar/sidebar.py:297 sidebar/sidebar.py:356 sidebar/sidebar.py:411
+#: sidebar/sidebar.py:441
 msgid "Hide &All But This"
 msgstr "Masquer tout sauf &ceci"
 
-#: sidebar/sidebar.py:289
+#: sidebar/sidebar.py:310
 msgid "(no current branch)"
 msgstr "(pas de branche courante)"
 
-#: sidebar/sidebar.py:302 sidebar/sidebar.py:358
+#: sidebar/sidebar.py:323 sidebar/sidebar.py:379
 #, python-brace-format
 msgid "Visit Web Page on {0}"
 msgstr "Visiter la page web sur {0}"
 
-#: sidebar/sidebar.py:311
+#: sidebar/sidebar.py:332
 msgid "New Local &Branch Here…"
 msgstr "Nouvelle &branche locale ici…"
 
-#: sidebar/sidebar.py:313
+#: sidebar/sidebar.py:334
 msgid "&Fetch New Commits"
 msgstr "Réc&upérer (fetch) les nouveaux commits"
 
-#: sidebar/sidebar.py:378
+#: sidebar/sidebar.py:399
 msgid "Copy Remote &URL"
 msgstr "Copier l’&URL du dépôt distant"
 
-#: sidebar/sidebar.py:403
+#: sidebar/sidebar.py:424
 msgid "Sort Remote Branches By"
 msgstr "Trier les branches distantes par"
 
-#: sidebar/sidebar.py:409
+#: sidebar/sidebar.py:430
 msgid "Re&name Folder…"
 msgstr "Re&nommer le dossier…"
 
-#: sidebar/sidebar.py:410
+#: sidebar/sidebar.py:431
 msgid "&Delete Folder…"
 msgstr "&Supprimer le dossier…"
 
-#: sidebar/sidebar.py:445
+#: sidebar/sidebar.py:466
 msgid "Reveal &Parent Commit"
 msgstr "Révéler le commit &parent"
 
-#: sidebar/sidebar.py:453
+#: sidebar/sidebar.py:474
 msgid "&New Tag on HEAD Commit…"
 msgstr "&Nouvelle étiquette sur le commit en HEAD…"
 
-#: sidebar/sidebar.py:454
+#: sidebar/sidebar.py:475
 msgid "&Push All Tags To"
 msgstr "&Publier toutes les étiquettes vers"
 
-#: sidebar/sidebar.py:467
+#: sidebar/sidebar.py:488
 msgid "&Check Out Tagged Commit…"
 msgstr "&Basculer dans le commit étiqueté…"
 
-#: sidebar/sidebar.py:468
+#: sidebar/sidebar.py:489
 msgid "&Delete Tag…"
 msgstr "&Supprimer l’étiquette…"
 
-#: sidebar/sidebar.py:470
+#: sidebar/sidebar.py:491
 msgid "Push To"
 msgstr "Publier vers"
 
-#: sidebar/sidebar.py:485
+#: sidebar/sidebar.py:506
 msgid "&Open Submodule in New Tab"
 msgstr "&Ouvrir le sous-module dans un nouvel onglet"
 
-#: sidebar/sidebar.py:488
+#: sidebar/sidebar.py:509
 msgid "Open Submodule &Folder"
 msgstr "Ouvrir le &dossier du sous-module"
 
-#: sidebar/sidebar.py:491
+#: sidebar/sidebar.py:512
 msgid "Copy &Path"
 msgstr "Co&pier le chemin"
 
-#: sidebar/sidebar.py:974
+#: sidebar/sidebar.py:1034
 msgid "Not tracking any upstream branch"
 msgstr "Aucune branche amont suivie"
 
-#: sidebar/sidebar.py:974
+#: sidebar/sidebar.py:1034
 msgid "Stop tracking upstream branch"
 msgstr "Ne plus suivre de branche amont"
 
-#: sidebar/sidebar.py:994
+#: sidebar/sidebar.py:1054
 msgid "No remotes."
 msgstr "Aucun serveur."
 
-#: sidebar/sidebar.py:996
+#: sidebar/sidebar.py:1056
 msgid "No remote branches found. Try fetching the remotes."
 msgstr "Aucune branche distante. Essayez de récupérer (fetch) les serveurs."
 
-#: sidebar/sidebar.py:1007
+#: sidebar/sidebar.py:1067
 msgid "&All Remotes"
 msgstr "&Tous les serveurs"
 
-#: sidebar/sidebarmodel.py:457
+#: sidebar/sidebarmodel.py:464
 msgid "Submodule not initialized."
 msgstr "Sous-module non-initialisé."
 
-#: sidebar/sidebarmodel.py:616
+#: sidebar/sidebarmodel.py:627
 #, python-brace-format
 msgid "{0} (local branch)"
 msgstr "{0} (branche locale)"
 
-#: sidebar/sidebarmodel.py:619
+#: sidebar/sidebarmodel.py:630
 msgid "(this is the checked-out branch)"
 msgstr "(ceci est la branche courante)"
 
-#: sidebar/sidebarmodel.py:637
+#: sidebar/sidebarmodel.py:648
 msgid "[unborn]"
 msgstr "[non-née]"
 
-#: sidebar/sidebarmodel.py:640
+#: sidebar/sidebarmodel.py:651
 msgid "Unborn HEAD: does not point to a commit yet."
 msgstr "HEAD non-née : ne pointe sur aucun commit pour l’instant."
 
-#: sidebar/sidebarmodel.py:641
+#: sidebar/sidebarmodel.py:652
 #, python-brace-format
 msgid "Local branch {0} will be created when you create the initial commit."
 msgstr "La branche locale {0} sera créée lorsque vous aurez validé le commit initial."
 
-#: sidebar/sidebarmodel.py:671
+#: sidebar/sidebarmodel.py:682
 msgid "(Skipped when fetching all remotes.)"
 msgstr "(Ignoré lors du fetch de tous les serveurs.)"
 
-#: sidebar/sidebarmodel.py:689
+#: sidebar/sidebarmodel.py:700
 #, python-brace-format
 msgid "{0} (remote-tracking branch)"
 msgstr "{0} (branche de suivi)"
 
-#: sidebar/sidebarmodel.py:691
+#: sidebar/sidebarmodel.py:702
 #, python-brace-format
 msgid "Upstream for the checked-out branch ({0})"
 msgstr "Branche amont de la branche locale courante ({0})"
 
-#: sidebar/sidebarmodel.py:713
+#: sidebar/sidebarmodel.py:724
 #, python-brace-format
 msgid "{0} (remote branch folder)"
 msgstr "{0} (dossier de branches distantes)"
 
-#: sidebar/sidebarmodel.py:715
+#: sidebar/sidebarmodel.py:726
 #, python-brace-format
 msgid "{0} (tag folder)"
 msgstr "{0} (dossier d’étiquettes)"
 
-#: sidebar/sidebarmodel.py:717
+#: sidebar/sidebarmodel.py:728
 #, python-brace-format
 msgid "{0} (local branch folder)"
 msgstr "{0} (dossier de branches locales)"
 
-#: sidebar/sidebarmodel.py:735
+#: sidebar/sidebarmodel.py:746
 #, python-brace-format
 msgid "Tag {0}"
 msgstr "Étiquette {0}"
 
-#: sidebar/sidebarmodel.py:751
+#: sidebar/sidebarmodel.py:762
 msgid "date:"
 msgstr "date :"
 
-#: sidebar/sidebarmodel.py:762
+#: sidebar/sidebarmodel.py:773
 #, python-brace-format
 msgid "{0} (submodule)"
 msgstr "{0} (sous-module)"
 
-#: sidebar/sidebarmodel.py:763
+#: sidebar/sidebarmodel.py:774
 #, python-brace-format
 msgid "Workdir: {0}"
 msgstr "Rép. de travail : {0}"
 
-#: sidebar/sidebarmodel.py:764
+#: sidebar/sidebarmodel.py:775
 msgid "[not set]"
 msgstr "[non spécifié]"
 
-#: sidebar/sidebarmodel.py:765
+#: sidebar/sidebarmodel.py:776
 #, python-brace-format
 msgid "URL: {0}"
 msgstr "URL : {0}"
 
-#: sidebar/sidebarmodel.py:787 tasks/taskbook.py:69
+#: sidebar/sidebarmodel.py:798 tasks/taskbook.py:69
 msgid "Go to Working Directory"
 msgstr "Aller au Répertoire de travail"
 
-#: sidebar/sidebarmodel.py:790
+#: sidebar/sidebarmodel.py:801
 #, python-brace-format
 msgid "({n} uncommitted change)"
 msgid_plural "({n} uncommitted changes)"
 msgstr[0] "({n} modification non-committée)"
 msgstr[1] "({n} modifications non-committées)"
 
-#: sidebar/sidebarmodel.py:842
+#: sidebar/sidebarmodel.py:853
 msgid "Hiding everything but this (middle-click the eye to toggle)"
 msgstr "Tout est masqué sauf ceci (clic central sur l’œil pour basculer)"
 
-#: sidebar/sidebarmodel.py:845
+#: sidebar/sidebarmodel.py:856
 msgid "Hidden (click the eye to toggle)"
 msgstr "Masqué (clic sur l’œil pour basculer)"
 
-#: sidebar/sidebarmodel.py:848
+#: sidebar/sidebarmodel.py:859
 msgid "Indirectly hidden"
 msgstr "Masqué indirectement"
 
-#: sidebar/sidebarmodel.py:858
+#: sidebar/sidebarmodel.py:869
 #, python-brace-format
 msgid "Upstream: {0}"
 msgstr "Amont : {0}"
 
-#: sidebar/sidebarmodel.py:860
+#: sidebar/sidebarmodel.py:871
 msgid "No upstream branch"
 msgstr "Aucune branche amont"
 
-#: sidebar/sidebarmodel.py:866
+#: sidebar/sidebarmodel.py:877
 #, python-brace-format
 msgid "Upstream missing ({0})"
 msgstr "Branche amont manquante ({0})"
 
-#: sidebar/sidebarmodel.py:870
+#: sidebar/sidebarmodel.py:881
 msgid "Up-to-date with upstream"
 msgstr "À jour avec la branche amont"
 
-#: sidebar/sidebarmodel.py:876
+#: sidebar/sidebarmodel.py:887
 #, python-brace-format
 msgid "{n} commit ahead"
 msgid_plural "{n} commits ahead"
 msgstr[0] "En avance de {n} commit"
 msgstr[1] "En avance de {n} commits"
 
-#: sidebar/sidebarmodel.py:879
+#: sidebar/sidebarmodel.py:890
 #, python-brace-format
 msgid "{n} commit behind"
 msgid_plural "{n} commits behind"
@@ -3953,7 +3932,7 @@ msgstr "Voulez-vous basculer dans la branche {0} ?"
 msgid "Switch"
 msgstr "Basculer"
 
-#: tasks/branchtasks.py:48 tasks/taskbook.py:100
+#: tasks/branchtasks.py:48 tasks/taskbook.py:101
 msgid "Update submodules recursively"
 msgstr "Mettre à jour les sous-modules récursivement"
 
@@ -3981,7 +3960,7 @@ msgstr "Ne pas basculer"
 msgid "Switched to branch {0}."
 msgstr "Basculé dans la branche {0}."
 
-#: tasks/branchtasks.py:90 tasks/taskbook.py:89
+#: tasks/branchtasks.py:90 tasks/taskbook.py:90
 msgid "Rename local branch"
 msgstr "Renommer la branche locale"
 
@@ -4230,7 +4209,7 @@ msgstr "Créer un commit de fusion"
 msgid "Fast-Forward"
 msgstr "Avance-rapide"
 
-#: tasks/branchtasks.py:660 tasks/taskbook.py:85
+#: tasks/branchtasks.py:660 tasks/taskbook.py:86
 msgid "Recall lost commit"
 msgstr "Récupérer commit perdu"
 
@@ -4262,7 +4241,7 @@ msgstr[1] "Note : votre répertoire de travail contient {n} fichiers non-index�
 msgid "Create empty commit"
 msgstr "Créer un commit vide"
 
-#: tasks/committasks.py:57 tasks/jumptasks.py:477
+#: tasks/committasks.py:57
 msgid "Empty commit"
 msgstr "Commit vide"
 
@@ -4322,19 +4301,23 @@ msgstr "Il n’y a rien à inverser depuis {0} que la branche actuelle n’ait p
 msgid "Reverting {0} was successful. Do you want to commit the result now?"
 msgstr "L’inversion de {0} a réussi. Voulez-vous committer le résultat maintenant ?"
 
-#: tasks/committasks.py:510 tasks/committasks.py:565
+#: tasks/committasks.py:510
 msgid "Review changes"
 msgstr "Examiner les modifs"
 
-#: tasks/committasks.py:548
+#: tasks/committasks.py:520
+#, python-brace-format
+msgid "Do you want to apply the changes from commit {0} to your working directory?"
+msgstr "Voulez-vous appliquer les modifications du commit {0} à votre répertoire de travail ?"
+
+#: tasks/committasks.py:522 tasks/taskbook.py:43
+msgid "Cherry-pick"
+msgstr "Picorer"
+
+#: tasks/committasks.py:559
 #, python-brace-format
 msgid "There’s nothing to cherry-pick from {0} that the current branch doesn’t already have."
 msgstr "Il n’y a rien à picorer depuis {0} qui ne fasse pas déjà partie de la branche actuelle."
-
-#: tasks/committasks.py:562
-#, python-brace-format
-msgid "Cherry-picking {0} was successful. Do you want to commit the result now?"
-msgstr "Le picorage de {0} a réussi. Voulez-vous committer le résultat maintenant ?"
 
 #: tasks/exporttasks.py:18
 msgid "Nothing to export. The patch is empty."
@@ -4557,218 +4540,240 @@ msgid_plural "{n} files modified in the working directory."
 msgstr[0] "{n} fichier modifié dans le répertoire de travail."
 msgstr[1] "{n} fichiers modifiés dans le répertoire de travail."
 
-#: tasks/indextasks.py:479
+#: tasks/indextasks.py:478
 msgid "There’s nothing to apply in the selection."
 msgstr "Il n’y a rien à appliquer dans la sélection."
 
-#: tasks/indextasks.py:494
+#: tasks/indextasks.py:493
 msgctxt "preposition slotted into '...BEFORE this commit'"
 msgid "before"
 msgstr "avant"
 
-#: tasks/indextasks.py:498
+#: tasks/indextasks.py:497
 msgctxt "preposition slotted into '...AT this commit'"
 msgid "at"
 msgstr "à"
 
-#: tasks/indextasks.py:507
+#: tasks/indextasks.py:506
 #, python-brace-format
 msgid "Your working copy of {path} already matches the revision {preposition} this commit."
 msgstr "Votre copie de travail de {path} se trouve déjà dans le même état qu’{preposition} ce commit."
 
-#: tasks/indextasks.py:512
+#: tasks/indextasks.py:511
 msgid "recreated"
 msgstr "recréé"
 
-#: tasks/indextasks.py:514
+#: tasks/indextasks.py:513
 msgid "deleted"
 msgstr "supprimé"
 
-#: tasks/indextasks.py:516
+#: tasks/indextasks.py:515
 msgid "overwritten"
 msgstr "écrasé"
 
-#: tasks/indextasks.py:518
+#: tasks/indextasks.py:517
 #, python-brace-format
 msgid "Do you want to restore {path} as it was {preposition} this commit?"
 msgstr "Voulez-vous rétablir {path} à l’état dans lequel il se trouvait {preposition} ce commit ?"
 
-#: tasks/indextasks.py:520
+#: tasks/indextasks.py:519
 #, python-brace-format
 msgid "This file will be {processed} in your working directory."
 msgstr "Ce fichier sera {processed} dans votre copie de travail."
 
-#: tasks/indextasks.py:522
+#: tasks/indextasks.py:521
 msgid "Restore"
 msgstr "Rétablir"
 
-#: tasks/indextasks.py:534
+#: tasks/indextasks.py:533
 #, python-brace-format
 msgid "File {path} {processed}."
 msgstr "Fichier {path} {processed}."
 
-#: tasks/indextasks.py:548
+#: tasks/indextasks.py:547
 msgid "No abortable state is in progress."
 msgstr "L’état actuel du dépôt ne peut pas être interrompu."
 
-#: tasks/indextasks.py:551
+#: tasks/indextasks.py:550
 msgid "abort the ongoing cherry-pick"
 msgstr "abandonner le picorage en cours"
 
-#: tasks/indextasks.py:553
+#: tasks/indextasks.py:552
 msgid "Cherry-pick aborted."
 msgstr "Picorage abandonné."
 
-#: tasks/indextasks.py:556
+#: tasks/indextasks.py:555
 msgid "abort the ongoing merge"
 msgstr "abandonner la fusion en cours"
 
-#: tasks/indextasks.py:558
+#: tasks/indextasks.py:557
 msgid "Merge aborted."
 msgstr "Fusion abandonnée."
 
-#: tasks/indextasks.py:561
+#: tasks/indextasks.py:560
 msgid "abort the ongoing revert"
 msgstr "abandonner l’inversion en cours"
 
-#: tasks/indextasks.py:563
+#: tasks/indextasks.py:562
 msgid "Revert aborted."
 msgstr "Inversion abandonnée."
 
-#: tasks/indextasks.py:566
+#: tasks/indextasks.py:565
 msgid "reset the index"
 msgstr "réinitialiser l’index"
 
-#: tasks/indextasks.py:568
+#: tasks/indextasks.py:567
 msgid "Index reset."
 msgstr "Index réinitialisé."
 
-#: tasks/indextasks.py:575
+#: tasks/indextasks.py:574
 #, python-brace-format
 msgid "Cannot {verb} right now, because a file contains both staged and unstaged changes."
 msgid_plural "Cannot {verb} right now, because {n} files contain both staged and unstaged changes."
 msgstr[0] "Impossible de {verb} pour l’instant car un fichier comprend des modifications indexés et non-indexées."
 msgstr[1] "Impossible de {verb} pour l’instant car {n} fichiers comprennent des modifications indexés et non-indexées."
 
-#: tasks/indextasks.py:578
+#: tasks/indextasks.py:577
 msgid "Please unstage the changes and try again."
 msgstr "Veuillez désindexer les modifications, puis essayez à nouveau."
 
-#: tasks/indextasks.py:581
+#: tasks/indextasks.py:580
 #, python-brace-format
 msgid "Do you want to {0}?"
 msgstr "Voulez-vous {0} ?"
 
-#: tasks/indextasks.py:584
+#: tasks/indextasks.py:583
 msgid "No files are affected."
 msgstr "Aucun fichier n’est affecté."
 
-#: tasks/indextasks.py:587
+#: tasks/indextasks.py:586
 msgid "All conflicts will be cleared and all <b>staged</b> changes will be lost."
 msgstr "Tous les conflits seront effacés et toutes vos modifications <b>indexées</b> seront perdues."
 
-#: tasks/indextasks.py:589
+#: tasks/indextasks.py:588
 msgid "All <b>staged</b> changes will be lost."
 msgstr "Toutes les modifications <b>indexées</b> seront perdues."
 
-#: tasks/indextasks.py:590
+#: tasks/indextasks.py:589
 #, python-brace-format
 msgid "This file will be reset:"
 msgid_plural "{n} files will be reset:"
 msgstr[0] "Ce fichier sera réinitialisé :"
 msgstr[1] "{n} fichiers seront réinitialisés :"
 
-#: tasks/jumptasks.py:285
+#: tasks/jumptasks.py:298
 #, python-brace-format
 msgid "Unstaged ({n})"
 msgid_plural "Unstaged ({n})"
 msgstr[0] "Non-indexé ({n})"
 msgstr[1] "Non-indexés ({n})"
 
-#: tasks/jumptasks.py:286
+#: tasks/jumptasks.py:299
 #, python-brace-format
 msgid "Staged ({n})"
 msgid_plural "Staged ({n})"
 msgstr[0] "Indexé ({n})"
 msgstr[1] "Indexés ({n})"
 
-#: tasks/jumptasks.py:287
+#: tasks/jumptasks.py:300
 #, python-brace-format
 msgid "Commit {n} file"
 msgid_plural "Commit {n} files"
 msgstr[0] "Committer {n} fichier"
 msgstr[1] "Committer {n} fichiers"
 
-#: tasks/jumptasks.py:312
+#: tasks/jumptasks.py:324
 msgid "The working directory is clean."
 msgstr "Le répertoire de travail est propre."
 
-#: tasks/jumptasks.py:313
+#: tasks/jumptasks.py:325
 msgid "There aren’t any changes to commit."
 msgstr "Il n’y a aucune modification à committer."
 
-#: tasks/jumptasks.py:349
+#: tasks/jumptasks.py:363
 msgid "Shallow clone – End of available history."
 msgstr "Clone superficiel (shallow) – Fin de l’historique disponible."
 
-#: tasks/jumptasks.py:350
+#: tasks/jumptasks.py:364
 msgid "More commits may be available in a full clone."
 msgstr "Davantage de commits pourraient être disponibles dans un clone complet."
 
-#: tasks/jumptasks.py:361
+#: tasks/jumptasks.py:375
 msgid "[Load full commit history] (this may take a moment)"
 msgstr "[Charger l’historique de commits en entier] (cela peut prendre un certain temps)"
 
-#: tasks/jumptasks.py:362
+#: tasks/jumptasks.py:376
 #, python-brace-format
 msgid "[Change threshold setting] (currently: {0} commits)"
 msgstr "[Paramétrer le seuil] (actuellement : {0} commits)"
 
-#: tasks/jumptasks.py:365
+#: tasks/jumptasks.py:379
 #, python-brace-format
 msgid "History truncated to {0} commits."
 msgstr "Historique tronqué à {0} commits."
 
-#: tasks/jumptasks.py:366
+#: tasks/jumptasks.py:380
 msgid "More commits may be available."
 msgstr "Davantage de commits pourraient être disponibles."
 
-#: tasks/jumptasks.py:371
+#: tasks/jumptasks.py:385
 msgid "The selected items cannot be compared."
 msgstr "Les éléments sélectionnés ne peuvent pas être comparés."
 
-#: tasks/jumptasks.py:378
+#: tasks/jumptasks.py:392
 #, python-brace-format
 msgid "{n} item selected"
 msgid_plural "{n} items selected"
 msgstr[0] "{n} élément sélectionné"
 msgstr[1] "{n} éléments sélectionnés"
 
-#: tasks/jumptasks.py:379
+#: tasks/jumptasks.py:393
 #, python-brace-format
 msgid "You can compare up to two commits at a time. Tip: hold {0} while making a selection to compare 2 discontiguous commits."
 msgstr "Vous pouvez comparer jusqu’à deux commits à la fois. Astuce : maintenez {0} pendant que vous faites une sélection pour comparer 2 commits disjoints."
 
-#: tasks/jumptasks.py:404
+#: tasks/jumptasks.py:418
 #, python-brace-format
 msgid "Unknown reference {0}."
 msgstr "Référence {0} inconnue."
 
-#: tasks/jumptasks.py:470
+#: tasks/jumptasks.py:484
 #, python-brace-format
 msgid "{n} change:|{n} ch.:"
 msgid_plural "{n} changes:|{n} ch.:"
 msgstr[0] "{n} modification :|{n} modif :"
 msgstr[1] "{n} modifications :|{n} modifs :"
 
-#: tasks/jumptasks.py:479
+#: tasks/jumptasks.py:492
 msgid "This commit is empty."
 msgstr "Ce commit est vide."
 
-#: tasks/jumptasks.py:480
+#: tasks/jumptasks.py:493
 #, python-brace-format
 msgid "Commit {0} doesn’t affect any files."
 msgstr "Le commit {0} n’affecte aucun fichier."
+
+#: tasks/jumptasks.py:582
+#, python-brace-format
+msgctxt "at (specific commit)"
+msgid "at {0}"
+msgstr "à {0}"
+
+#: tasks/jumptasks.py:586
+msgid "LFS pointer [added]"
+msgstr "pointeur LFS [ajouté]"
+
+#: tasks/jumptasks.py:588
+msgid "LFS pointer [removed]"
+msgstr "pointeur LFS [supprimé]"
+
+#: tasks/jumptasks.py:590
+msgid "LFS pointer changed"
+msgstr "pointeur LFS modifié"
+
+#: tasks/jumptasks.py:592
+msgid "unstaged changes to LFS object"
+msgstr "modif non-indexée à l’objet LFS"
 
 #: tasks/loadtasks.py:46
 msgid "Loading repo"
@@ -4789,108 +4794,101 @@ msgstr "{0} commits chargés (historique tronqué)."
 msgid "{0} commits total."
 msgstr "{0} commits en tout."
 
-#: tasks/loadtasks.py:382
+#: tasks/loadtasks.py:380
 msgid "This file contains very long lines."
 msgstr "Ce fichier contient de très longues lignes."
 
-#: tasks/loadtasks.py:404
-#, python-brace-format
-msgctxt "at (specific commit)"
-msgid "at {0}"
-msgstr "à {0}"
-
-#: tasks/loadtasks.py:411
-msgid "LFS pointer [added]"
-msgstr "pointeur LFS [ajouté]"
-
-#: tasks/loadtasks.py:413
-msgid "LFS pointer [removed]"
-msgstr "pointeur LFS [supprimé]"
-
-#: tasks/loadtasks.py:415
-msgid "LFS pointer changed"
-msgstr "pointeur LFS modifié"
-
-#: tasks/loadtasks.py:417
-msgid "unstaged changes to LFS object"
-msgstr "modif non-indexée à l’objet LFS"
-
-#: tasks/loadtasks.py:481
+#: tasks/loadtasks.py:444
 msgid "Only text diffs may be opened in a separate window."
 msgstr "Seules les diffs textuelles peuvent être ouvertes dans une fenêtre détachée."
 
-#: tasks/misctasks.py:108
+#: tasks/misctasks.py:109
 #, python-brace-format
 msgid "Parent"
 msgid_plural "{n} Parents"
 msgstr[0] "Parent"
 msgstr[1] "{n} parents"
 
-#: tasks/misctasks.py:114
+#: tasks/misctasks.py:115
 msgid "You’re working in a shallow clone. This commit may actually have parents in the full history."
 msgstr "Vous travaillez dans un clone superficiel. Il se peut que ce commit ait des parents dans l’historique complet."
 
-#: tasks/misctasks.py:119
+#: tasks/misctasks.py:120
 msgid "(same as author)"
 msgstr "(identique à l’auteur)"
 
-#: tasks/misctasks.py:126
+#: tasks/misctasks.py:127
 msgid "(not signed)"
 msgstr "(non-signé)"
 
-#: tasks/misctasks.py:133
+#: tasks/misctasks.py:134
 msgid "Hash"
 msgstr "Hachage"
 
-#: tasks/misctasks.py:135
+#: tasks/misctasks.py:136
 msgid "Author"
 msgstr "Auteur"
 
-#: tasks/misctasks.py:136
+#: tasks/misctasks.py:137
 msgid "Committer"
 msgstr "Committeur"
 
-#: tasks/misctasks.py:137
+#: tasks/misctasks.py:138
 msgid "Signature"
 msgstr "Signature"
 
-#: tasks/misctasks.py:153
+#: tasks/misctasks.py:154
 #, python-brace-format
 msgid "Commit info: {0}"
 msgstr "Infos sur le commit : {0}"
 
-#: tasks/misctasks.py:218
+#: tasks/misctasks.py:219
 #, python-brace-format
 msgid "Commit {0} is not signed, so it cannot be verified."
 msgstr "Le commit {0} n’est pas signé. Il ne peut donc pas être vérifié."
 
-#: tasks/misctasks.py:234
+#: tasks/misctasks.py:235
 #, python-brace-format
 msgid "Hint: Public key {0} isn’t in your GPG keyring. You can try to import it from a trusted source, then verify this commit again."
 msgstr "Astuce : La clé publique {0} n’est pas dans votre trousseau GPG. Essayez de l’importer depuis une source de confiance, puis vérifiez à nouveau ce commit."
 
-#: tasks/misctasks.py:241
+#: tasks/misctasks.py:242
 #, python-brace-format
 msgid "Verify signature in commit {0}"
 msgstr "Vérifier la signature du commit {0}"
 
-#: tasks/misctasks.py:252
+#: tasks/misctasks.py:253
 msgid "Copy &Key ID"
 msgstr "Copier l’ID de la &clé"
 
-#: tasks/misctasks.py:257 toolbox/textutils.py:125
+#: tasks/misctasks.py:258 toolbox/textutils.py:125
 #, python-brace-format
 msgid "{0} copied to clipboard."
 msgstr "{0} copié dans le presse-papiers."
 
-#: tasks/misctasks.py:320
+#: tasks/misctasks.py:321
 msgid "(Not found in SSH allowed signers file)"
 msgstr "(Introuvable dans le fichier des signataires SSH autorisés)"
 
-#: tasks/misctasks.py:410
+#: tasks/misctasks.py:411
 #, python-brace-format
 msgid "Added to {file}: {pattern}"
 msgstr "Ajouté à {file} : {pattern}"
+
+#: tasks/misctasks.py:445
+#, python-brace-format
+msgid "Found {n} commit touching {path}{where}."
+msgid_plural "Found {n} commits touching {path}{where}."
+msgstr[0] "{n} commit touchant à {path} trouvé{where}."
+msgstr[1] "{n} commits touchant à {path} trouvés{where}."
+
+#: tasks/misctasks.py:448
+msgid " in the truncated history"
+msgstr " dans l’historique tronqué"
+
+#: tasks/misctasks.py:452
+msgid " More results in hidden branches."
+msgstr " Davantage de résultats parmi les branches masquées."
 
 #: tasks/nettasks.py:34
 #, python-brace-format
@@ -4993,7 +4991,7 @@ msgstr "{0} a disparu du serveur distant."
 msgid "Can’t pull new commits into {0} because this branch isn’t tracking an upstream branch."
 msgstr "Impossible de tirer de nouveaux commits dans {0} car cette branche ne suit pas de branche amont."
 
-#: tasks/nettasks.py:298 tasks/taskbook.py:116
+#: tasks/nettasks.py:298 tasks/taskbook.py:117
 msgctxt "toolbar"
 msgid "Pull"
 msgstr "Tirer"
@@ -5010,7 +5008,7 @@ msgstr "Sous-modules mis à jour récursivement."
 msgid "To push a local branch to a remote, you must first add a remote to your repo."
 msgstr "Pour publier (push) une branche locale sur un serveur, vous devez d’abord ajouter un serveur à votre dépôt."
 
-#: tasks/nettasks.py:367 tasks/repotask.py:765
+#: tasks/nettasks.py:367 tasks/repotask.py:760
 msgid "Please switch to a local branch before performing this action."
 msgstr "Veuillez basculer dans une branche locale avant d’appeler cette commande."
 
@@ -5162,67 +5160,67 @@ msgid_plural "({n} other files were successful.)"
 msgstr[0] "({n} autre fichier traité avec succès.)"
 msgstr[1] "({n} autres fichiers traités avec succès.)"
 
-#: tasks/repotask.py:362 toolbox/messageboxes.py:299
+#: tasks/repotask.py:360 toolbox/messageboxes.py:299
 #, python-brace-format
 msgid "Operation failed: {0}."
 msgstr "Échec de l’opération : {0}."
 
-#: tasks/repotask.py:705
+#: tasks/repotask.py:700
 msgid "Don’t ask me to confirm this again"
 msgstr "Ne plus me demander de confirmer ceci"
 
-#: tasks/repotask.py:705
+#: tasks/repotask.py:700
 msgid "Don’t show this again"
 msgstr "Ne plus afficher ceci"
 
-#: tasks/repotask.py:755
+#: tasks/repotask.py:750
 msgid "Fix merge conflicts before performing this action."
 msgstr "Résolvez les conflits de fusion avant d’effectuer cette action."
 
-#: tasks/repotask.py:759
+#: tasks/repotask.py:754
 msgid "There are no commits in this repository yet."
 msgstr "Il n’y a encore aucun commit dans ce dépôt."
 
-#: tasks/repotask.py:760
+#: tasks/repotask.py:755
 msgid "Create the initial commit in this repository before performing this action."
 msgstr "Créez le commit initial dans ce dépôt avant d’effectuer cette action."
 
-#: tasks/repotask.py:764
+#: tasks/repotask.py:759
 msgid "You are in “detached HEAD” state."
 msgstr "Vous êtes en l’état “HEAD détachée”."
 
-#: tasks/repotask.py:769
+#: tasks/repotask.py:764
 msgid "You are in the middle of a cherry-pick."
 msgstr "Vous êtes en plein picorage."
 
-#: tasks/repotask.py:770
+#: tasks/repotask.py:765
 msgid "Before performing this action, conclude the cherry-pick."
 msgstr "Avant d’effectuer cette action, concluez le picorage."
 
-#: tasks/repotask.py:774
+#: tasks/repotask.py:769
 msgid "You have staged changes."
 msgstr "Vous avez des modifications indexées."
 
-#: tasks/repotask.py:775
+#: tasks/repotask.py:770
 msgid "Before performing this action, commit your changes or stash them."
 msgstr "Avant d’effectuer cette action, committez vos modifications, ou remisez-les."
 
-#: tasks/repotask.py:1002 tasks/repotask.py:1018
+#: tasks/repotask.py:1013 tasks/repotask.py:1029
 #, python-brace-format
 msgid "Busy: {0}…"
 msgstr "En cours : {0}…"
 
-#: tasks/repotask.py:1203
+#: tasks/repotask.py:1235
 #, python-brace-format
 msgid "Couldn’t start Git ({0})."
 msgstr "Git n’a pas pu être lancé ({0})."
 
-#: tasks/repotask.py:1205
+#: tasks/repotask.py:1237
 #, python-brace-format
 msgid "Couldn’t start process ({0})."
 msgstr "Le processus n’a pas pu être lancé ({0})."
 
-#: tasks/repotask.py:1234
+#: tasks/repotask.py:1266
 #, python-brace-format
 msgid "Process {0} exited with code {1}."
 msgstr "Le processus {0} s’est terminé avec le code {1}."
@@ -5335,7 +5333,7 @@ msgstr "Le sous-module sera retiré de {0} et sa copie de travail sera supprimé
 msgid "Any changes in the submodule that haven’t been pushed will be lost."
 msgstr "Toute modification au sous-module qui n’a pas été publiée sera perdue."
 
-#: tasks/submoduletasks.py:114
+#: tasks/submoduletasks.py:117
 #, python-brace-format
 msgid "Submodule {0} removed."
 msgstr "Sous-module {0} supprimé."
@@ -5367,10 +5365,6 @@ msgstr "Appliquer la remise"
 #: tasks/taskbook.py:42
 msgid "Check out commit"
 msgstr "Basculer dans le commit"
-
-#: tasks/taskbook.py:43
-msgid "Cherry-pick"
-msgstr "Picorer"
 
 #: tasks/taskbook.py:44
 msgid "Delete local branch"
@@ -5473,227 +5467,231 @@ msgid "Blame file"
 msgstr "Blâmer le fichier"
 
 #: tasks/taskbook.py:82
+msgid "Find commits touching path"
+msgstr "Rechercher les commits modifiant un chemin"
+
+#: tasks/taskbook.py:83
 msgid "Pull remote branch"
 msgstr "Tirer depuis la branche distante"
 
-#: tasks/taskbook.py:83
+#: tasks/taskbook.py:84
 msgid "Push branch"
 msgstr "Publier la branche (push)"
 
-#: tasks/taskbook.py:84
+#: tasks/taskbook.py:85
 msgid "Push refspecs"
 msgstr "Publier les refspecs"
 
-#: tasks/taskbook.py:86
+#: tasks/taskbook.py:87
 msgid "Refresh repo"
 msgstr "Rafraîchir le dépôt"
 
-#: tasks/taskbook.py:88
+#: tasks/taskbook.py:89
 msgid "Remove submodule"
 msgstr "Supprimer le sous-module"
 
-#: tasks/taskbook.py:90
+#: tasks/taskbook.py:91
 msgid "Rename local branch folder"
 msgstr "Renommer le dossier de branches locales"
 
-#: tasks/taskbook.py:91
+#: tasks/taskbook.py:92
 msgid "Rename branch on remote"
 msgstr "Renommer la branche sur le serveur"
 
-#: tasks/taskbook.py:92
+#: tasks/taskbook.py:93
 msgid "Reset HEAD"
 msgstr "Déplacer HEAD"
 
-#: tasks/taskbook.py:93
+#: tasks/taskbook.py:94
 msgid "Restore file revision"
 msgstr "Rétablir une révision du fichier"
 
-#: tasks/taskbook.py:94
+#: tasks/taskbook.py:95
 msgid "Revert commit"
 msgstr "Inverser le commit"
 
-#: tasks/taskbook.py:95
+#: tasks/taskbook.py:96
 msgid "Git identity"
 msgstr "Identité Git"
 
-#: tasks/taskbook.py:96
+#: tasks/taskbook.py:97
 msgid "Repository settings"
 msgstr "Réglages du dépôt"
 
-#: tasks/taskbook.py:97
+#: tasks/taskbook.py:98
 msgid "Stage files"
 msgstr "Indexer fichiers"
 
-#: tasks/taskbook.py:98
+#: tasks/taskbook.py:99
 msgid "Switch to branch"
 msgstr "Basculer dans la branche"
 
-#: tasks/taskbook.py:99
+#: tasks/taskbook.py:100
 msgid "Update submodule"
 msgstr "Mettre à jour le sous-module"
 
-#: tasks/taskbook.py:101
+#: tasks/taskbook.py:102
 msgid "Unstage files"
 msgstr "Désindexer fichiers"
 
-#: tasks/taskbook.py:102
+#: tasks/taskbook.py:103
 msgid "Unstage mode changes"
 msgstr "Désindexer changement de mode"
 
-#: tasks/taskbook.py:103
+#: tasks/taskbook.py:104
 msgid "Verify signature"
 msgstr "Vérifier la signature"
 
-#: tasks/taskbook.py:104
+#: tasks/taskbook.py:105
 msgid "Verifying signatures"
 msgstr "Vérification des signatures"
 
-#: tasks/taskbook.py:108
+#: tasks/taskbook.py:109
 msgctxt "toolbar"
 msgid "Amend"
 msgstr "Rectifier"
 
-#: tasks/taskbook.py:109
+#: tasks/taskbook.py:110
 msgctxt "toolbar"
 msgid "Fetch"
 msgstr "Récupérer"
 
-#: tasks/taskbook.py:110
+#: tasks/taskbook.py:111
 msgctxt "toolbar"
 msgid "Back"
 msgstr "Reculer"
 
-#: tasks/taskbook.py:111
+#: tasks/taskbook.py:112
 msgctxt "toolbar"
 msgid "Forward"
 msgstr "Avancer"
 
-#: tasks/taskbook.py:112
+#: tasks/taskbook.py:113
 msgctxt "toolbar"
 msgid "HEAD"
 msgstr "HEAD"
 
-#: tasks/taskbook.py:113
+#: tasks/taskbook.py:114
 msgctxt "toolbar"
 msgid "Workdir"
 msgstr "Rép. travail"
 
-#: tasks/taskbook.py:114
+#: tasks/taskbook.py:115
 msgctxt "toolbar"
 msgid "Branch"
 msgstr "Branche"
 
-#: tasks/taskbook.py:115
+#: tasks/taskbook.py:116
 msgctxt "toolbar"
 msgid "Stash"
 msgstr "Remiser"
 
-#: tasks/taskbook.py:117
+#: tasks/taskbook.py:118
 msgctxt "toolbar"
 msgid "Push"
 msgstr "Publier"
 
-#: tasks/taskbook.py:121
+#: tasks/taskbook.py:122
 msgid "Amend the last commit on the current branch with the staged changes in the working directory"
 msgstr "Rectifier le dernier commit de la branche courante avec les modifications indexées dans le répertoire de travail"
 
-#: tasks/taskbook.py:122
+#: tasks/taskbook.py:123
 msgid "Apply a patch file to the working directory"
 msgstr "Appliquer un fichier correctif au répertoire de travail"
 
-#: tasks/taskbook.py:123
+#: tasks/taskbook.py:124
 msgid "Apply a patch file (in reverse) to the working directory"
 msgstr "Appliquer un fichier correctif (inversé) au répertoire de travail"
 
-#: tasks/taskbook.py:124
+#: tasks/taskbook.py:125
 msgid "Restore backed up changes to the working directory"
 msgstr "Restaurer des modifications remisées et les appliquer au répertoire de travail"
 
-#: tasks/taskbook.py:125
+#: tasks/taskbook.py:126
 msgid "Bring the changes introduced by this commit to the current branch"
 msgstr "Rapatrier les modifications de ce commit dans la branche courante"
 
-#: tasks/taskbook.py:126
+#: tasks/taskbook.py:127
 msgid "Delete this branch locally"
 msgstr "Supprimer cette branche localement"
 
-#: tasks/taskbook.py:127
+#: tasks/taskbook.py:128
 msgid "Choose the remote branch to be tracked by this local branch"
 msgstr "Sélectionner la branche distante que cette branche locale doit suivre"
 
-#: tasks/taskbook.py:128
+#: tasks/taskbook.py:129
 msgid "Create a patch file from this stash"
 msgstr "Créer un fichier correctif à partir de cette remise"
 
-#: tasks/taskbook.py:129
+#: tasks/taskbook.py:130
 msgid "Advance this local branch to the tip of the remote-tracking branch"
 msgstr "Avancer cette branche locale jusqu’à l’extrémité de la branche distante"
 
-#: tasks/taskbook.py:130
+#: tasks/taskbook.py:131
 msgid "Get the latest commits on all remote branches"
 msgstr "Obtenir les derniers commits sur toutes les branches distantes"
 
-#: tasks/taskbook.py:131
+#: tasks/taskbook.py:132
 msgid "Get the latest commits from the remote server"
 msgstr "Obtenir les derniers commits du serveur"
 
-#: tasks/taskbook.py:132
+#: tasks/taskbook.py:133
 msgid "Start a new branch from this commit"
 msgstr "Créer une nouvelle branche partant de ce commit"
 
-#: tasks/taskbook.py:133
+#: tasks/taskbook.py:134
 msgid "Start a new branch from the current HEAD"
 msgstr "Créer une nouvelle branche partant de la HEAD actuelle"
 
-#: tasks/taskbook.py:134
+#: tasks/taskbook.py:135
 msgid "Start a new branch from the tip of this branch"
 msgstr "Créer une nouvelle branche partant de l’extrémité de cette branche"
 
-#: tasks/taskbook.py:135
+#: tasks/taskbook.py:136
 msgid "Create a commit of the staged changes in the working directory"
 msgstr "Créer un commit à partir des modifications indexées dans le répertoire de travail"
 
-#: tasks/taskbook.py:136
+#: tasks/taskbook.py:137
 msgid "Add a remote server to this repo"
 msgstr "Ajouter un serveur à ce dépôt"
 
-#: tasks/taskbook.py:137
+#: tasks/taskbook.py:138
 msgid "Back up uncommitted changes and clean up the working directory"
 msgstr "Sauvegarder les modifications non-committées puis nettoyer le répertoire de travail"
 
-#: tasks/taskbook.py:138
+#: tasks/taskbook.py:139
 msgid "Tag this commit with a name"
 msgstr "Étiqueter ce commit avec un nom"
 
-#: tasks/taskbook.py:139
+#: tasks/taskbook.py:140
 msgid "Fetch the latest commits from the remote, then integrate them into your local branch"
 msgstr "Récupérer les derniers commits sur le serveur, puis les intégrer à votre branche locale"
 
-#: tasks/taskbook.py:140
+#: tasks/taskbook.py:141
 msgid "Upload your commits on the current branch to the remote server"
 msgstr "Envoyer vos commits de la branche courante vers le serveur distant"
 
-#: tasks/taskbook.py:141
+#: tasks/taskbook.py:142
 msgid "Remove this submodule from .gitmodules and delete its working copy from this repo"
 msgstr "Retirer ce sous-module de .gitmodules et supprimer sa copie de travail de ce dépôt"
 
-#: tasks/taskbook.py:142
+#: tasks/taskbook.py:143
 msgid "Rename this branch locally"
 msgstr "Renommer cette branche localement"
 
-#: tasks/taskbook.py:143
+#: tasks/taskbook.py:144
 msgid "Make HEAD point to another commit"
 msgstr "Faire pointer HEAD sur un autre commit"
 
-#: tasks/taskbook.py:144
+#: tasks/taskbook.py:145
 msgid "Revert the changes introduced by this commit"
 msgstr "Inverser les modifications introduites par ce commit"
 
-#: tasks/taskbook.py:145 tasks/taskbook.py:146
+#: tasks/taskbook.py:146 tasks/taskbook.py:147
 msgid "Set up the identity under which you create commits"
 msgstr "Établir l’identité sous laquelle vous créez des commits"
 
-#: tasks/taskbook.py:147
+#: tasks/taskbook.py:148
 msgid "Switch to this branch and update the working directory to match it"
 msgstr "Basculer dans cette branche et mettre à jour le répertoire de travail pour qu’il corresponde à cette branche"
 
