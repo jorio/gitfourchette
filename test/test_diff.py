@@ -799,9 +799,11 @@ def testToggleWordWrap(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
+    wordWrapButton = rw.diffArea.findChild(QToolButton, "diffHeaderWordWrapButton")
 
     rw.jump(NavLocator.inUnstaged("longfile.txt"), check=True)
     assert dv.horizontalScrollBar().isVisible()
+    assert not wordWrapButton.isChecked()
 
     # Scroll down a bit and look at the first visible word
     dv.verticalScrollBar().setValue(5)
@@ -811,6 +813,8 @@ def testToggleWordWrap(tempDir, mainWindow):
         # Toggle word wrap
         triggerContextMenuAction(dv.viewport(), "word wrap")
         QTest.qWait(0)
+
+        assert wordWrapButton.isChecked() == enableWrap
 
         # Horizontal scroll bar should only be visible without wrap
         assert dv.horizontalScrollBar().isVisible() == (not enableWrap)

@@ -327,7 +327,7 @@ class CodeView(QPlainTextEdit):
     def toggleWordWrap(self):
         settings.prefs.wordWrap = not settings.prefs.wordWrap
         settings.prefs.write()
-        self.refreshWordWrap()
+        GFApplication.instance().prefsChanged.emit(["wordWrap"])
 
     # ---------------------------------------------
     # Context menu

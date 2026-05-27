@@ -13,7 +13,9 @@ import pytest
 
 from gitfourchette import settings
 from gitfourchette.nav import NavLocator
+from gitfourchette.qt import QAction
 from gitfourchette.settings import ComparisonMethod
+from gitfourchette.syntax import LexJobCache
 from .util import *
 
 
@@ -59,6 +61,27 @@ def _apply_comparison_method_and_refresh(mainWindow, method: ComparisonMethod):
     mainWindow.onAcceptPrefsDialog({"comparisonMethod": method})
 
 
+def _apply_comparison_method_via_reload_current_patch(rw, method: ComparisonMethod):
+    """Same as prefs dialog for comparisonMethod, but exercises Jump-only reload path."""
+    settings.prefs.comparisonMethod = method
+    settings.prefs.write()
+    LexJobCache.clear()
+    rw.reloadCurrentPatchForPrefs(full_repo_refresh=False)
+    rw.taskRunner.joinWorkerThread()
+
+
+def _comparison_method_action(rw, method: ComparisonMethod) -> QAction:
+    name = f"diffHeaderComparisonMethod_{method.name}"
+    action = rw.diffArea.findChild(QAction, name)
+    assert action is not None, f"missing comparison menu action {name}"
+    return action
+
+
+def _select_comparison_method(rw, method: ComparisonMethod):
+    # Trigger menu action directly; offscreen tests may not hit-test the tool button.
+    _comparison_method_action(rw, method).trigger()
+
+
 @pytest.mark.parametrize(
     ("method", "expect_unified_diff"),
     [
@@ -85,6 +108,48 @@ def test_comparison_method_tabs_vs_spaces_in_diffview(
         _wait_unified_diff_visible(rw)
     else:
         _wait_no_change_special_visible(rw)
+
+
+def test_reload_current_patch_when_switching_whitespace_mode(tempDir, mainWindow):
+    """
+    Changing comparison via reloadCurrentPatchForPrefs (Jump.invoke) must refresh
+    the visible patch without selecting another file.
+    """
+    wd = unpackRepo(tempDir)
+    relpath = "comp_reload_patch.txt"
+    _commit_text_file(wd, relpath, "a\tb\n")
+    _set_worktree_text(wd, relpath, "a    b\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(relpath), check=True)
+    _wait_unified_diff_visible(rw)
+
+    _apply_comparison_method_via_reload_current_patch(rw, ComparisonMethod.IgnoreCrAtEolAndAllSpace)
+    _wait_no_change_special_visible(rw)
+
+    _apply_comparison_method_via_reload_current_patch(rw, ComparisonMethod.Strict)
+    _wait_unified_diff_visible(rw)
+
+
+def test_diff_header_whitespace_menu_reload_patch(tempDir, mainWindow):
+    """Diff header comparison menu must trigger the same reload as prefs."""
+    wd = unpackRepo(tempDir)
+    relpath = "comp_header_buttons.txt"
+    _commit_text_file(wd, relpath, "a\tb\n")
+    _set_worktree_text(wd, relpath, "a    b\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(relpath), check=True)
+    _wait_unified_diff_visible(rw)
+    assert _comparison_method_action(rw, ComparisonMethod.Strict).isChecked()
+
+    _select_comparison_method(rw, ComparisonMethod.IgnoreCrAtEolAndAllSpace)
+    _wait_no_change_special_visible(rw)
+    assert _comparison_method_action(rw, ComparisonMethod.IgnoreCrAtEolAndAllSpace).isChecked()
+
+    _select_comparison_method(rw, ComparisonMethod.Strict)
+    _wait_unified_diff_visible(rw)
+    assert _comparison_method_action(rw, ComparisonMethod.Strict).isChecked()
 
 
 @pytest.mark.parametrize(

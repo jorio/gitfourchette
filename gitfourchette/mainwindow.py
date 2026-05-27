@@ -32,7 +32,7 @@ from gitfourchette.forms.welcomewidget import WelcomeWidget
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator, NavContext, NavFlags
+from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
@@ -1219,13 +1219,14 @@ class MainWindow(QMainWindow):
             # Nuke cached syntax highlighting
             LexJobCache.clear()
 
+            # maxCommits needs RefreshRepo to extend the graph; other autoReload keys
+            # only need a Jump so LoadPatch runs (DefaultRefresh ends with Jump but
+            # can skip reloading the visible patch in some cases).
+            full_repo_refresh = "maxCommits" in prefDiff
             for rw in self.tabs.widgets():
                 if not isinstance(rw, RepoWidget):
                     continue
-                locator = rw.taskRunner.pendingEpilog.jumpTo or rw.navLocator
-                locator = locator.withExtraFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
-                rw.taskRunner.pendingEpilog.jumpTo = locator
-                rw.refreshRepo()
+                rw.reloadCurrentPatchForPrefs(full_repo_refresh=full_repo_refresh)
 
     def openPrefsDialog(self, focusOn: str = ""):
         dlg = PrefsDialog(self, focusOn)
