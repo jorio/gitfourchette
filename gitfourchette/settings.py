@@ -8,7 +8,9 @@ import dataclasses
 import enum
 import logging
 import os
+from collections.abc import Iterator
 from contextlib import suppress
+from typing import TypedDict
 
 from gitfourchette import colors
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
@@ -239,9 +241,15 @@ class Prefs(PrefsFile):
 class History(PrefsFile):
     _filename = "history.json"
 
-    repos: dict = dataclasses.field(default_factory=dict)
-    cloneHistory: list = dataclasses.field(default_factory=list)
-    fileDialogPaths: dict = dataclasses.field(default_factory=dict)
+    class JsonRepo(TypedDict, total=False):
+        seq: int
+        length: int
+        nickname: str
+        superproject: str
+
+    repos: dict[str, JsonRepo] = dataclasses.field(default_factory=dict)
+    cloneHistory: list[str] = dataclasses.field(default_factory=list)
+    fileDialogPaths: dict[str, str] = dataclasses.field(default_factory=dict)
     startups: int = 0
 
     _maxSeq = -1
@@ -252,12 +260,12 @@ class History(PrefsFile):
         repo['seq'] = self.drawSequenceNumber()
         return repo
 
-    def getRepo(self, path: str) -> dict:
+    def getRepo(self, path: str) -> JsonRepo:
         path = os.path.normpath(path)
         try:
             repo = self.repos[path]
         except KeyError:
-            repo = {}
+            repo: History.JsonRepo = {}
             self.repos[path] = repo
         return repo
 
@@ -274,7 +282,7 @@ class History(PrefsFile):
         else:
             repo.pop('nickname', None)
 
-    def getRepoNumCommits(self, path: str):
+    def getRepoNumCommits(self, path: str) -> int:
         repo = self.getRepo(path)
         return repo.get('length', 0)
 
@@ -285,7 +293,7 @@ class History(PrefsFile):
         else:
             repo.pop('length', None)
 
-    def getRepoSuperproject(self, path: str):
+    def getRepoSuperproject(self, path: str) -> str:
         repo = self.getRepo(path)
         return repo.get('superproject', "")
 
@@ -296,7 +304,7 @@ class History(PrefsFile):
         else:
             repo.pop('superproject', None)
 
-    def getRepoTabName(self, path: str):
+    def getRepoTabName(self, path: str) -> str:
         name = self.getRepoNickname(path)
 
         seen = {path}
@@ -321,7 +329,7 @@ class History(PrefsFile):
         self.repos.clear()
         self.invalidateSequenceNumber()
 
-    def getRecentRepoPaths(self, n: int, newestFirst=True):
+    def getRecentRepoPaths(self, n: int, newestFirst=True) -> Iterator[str]:
         sortedPaths = (path for path, _ in
                        sorted(self.repos.items(), key=lambda i: i[1].get('seq', -1), reverse=newestFirst))
 
@@ -365,10 +373,10 @@ class History(PrefsFile):
 class Session(PrefsFile):
     _filename = "session.json"
 
-    tabs                        : list          = dataclasses.field(default_factory=list)
-    activeTabIndex              : int           = -1
-    windowGeometry              : bytes         = b""
-    splitterSizes               : dict          = dataclasses.field(default_factory=dict)
+    tabs                        : list[str]             = dataclasses.field(default_factory=list)
+    activeTabIndex              : int                   = -1
+    windowGeometry              : bytes                 = b""
+    splitterSizes               : dict[str, list[int]]  = dataclasses.field(default_factory=dict)
 
 
 # Initialize default prefs and history.

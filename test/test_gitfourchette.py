@@ -883,3 +883,26 @@ def testDiffHeader(tempDir, mainWindow):
         rw.jump(NavLocator.inUnstaged("hello.txt"), check=True)
         assert rw.diffArea.diffView.isVisible()
         assert findTextInWidget(rw.diffArea.diffHeader, "hello.txt")
+
+
+def testPrefsFileGenericAliases(tempDir, mainWindow):
+    from gitfourchette import settings
+
+    assert settings.prefs.dontShowAgain == []
+    settings.prefs.dontShowAgain.append("NoFastForwardNecessary")
+    settings.prefs.setDirty()
+    settings.prefs.write()
+    settings.prefs.reset()
+    settings.prefs.load()
+    assert settings.prefs.dontShowAgain == ["NoFastForwardNecessary"]
+
+    assert settings.history.cloneHistory == []
+    assert not settings.history.getRepoNickname("/tmp/hello", strict=True)
+    settings.history.cloneHistory.append("https://github.com/jorio/gitfourchette")
+    settings.history.setRepoNickname("/tmp/hello", "HelloWorld")
+    settings.history.setDirty()
+    settings.history.write()
+    settings.history.reset()
+    settings.history.load()
+    assert settings.history.cloneHistory == ["https://github.com/jorio/gitfourchette"]
+    assert settings.history.getRepoNickname("/tmp/hello", strict=True) == "HelloWorld"

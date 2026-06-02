@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,7 +10,7 @@ import json
 import logging
 import os
 import typing
-from types import NoneType, UnionType
+from types import NoneType, UnionType, GenericAlias
 from typing import Any
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
@@ -182,7 +182,7 @@ class PrefsFile:
         return o
 
     @staticmethod
-    def decode(o: Any, dstType: type | UnionType) -> Any:
+    def decode(o: Any, dstType: type | UnionType | GenericAlias) -> Any:
         """ Convert a value coming from a JSON blob to a target type """
         construct: typing.Callable[[Any], Any] | None = None
 
@@ -191,6 +191,10 @@ class PrefsFile:
             union = typing.get_args(dstType)
             assert len(union) == 2
             dstType = next(t for t in union if t is not NoneType)
+
+        # Extract generic class from GenericAlias, e.g. list[str] --> list
+        if type(dstType) is GenericAlias:
+            dstType = typing.get_origin(dstType)
 
         srcType: type
         if dstType is bytes:
