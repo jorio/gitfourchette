@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-09-20 11:58+0000\n"
+"PO-Revision-Date: 2026-06-03 21:03+0000\n"
 "Last-Translator: Fabiano Caputo <fabiano.caputo@outlook.it>\n"
 "Language-Team: Italian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/it/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.14-dev\n"
+"X-Generator: Weblate 2026.6\n"
 
 #: application.py:103 forms/aboutdialog.py:56
 msgid "The comfortable Git UI for Linux."
@@ -60,7 +60,7 @@ msgstr "Agente SSH"
 
 #: blameview/blamegutter.py:157 blameview/blamewindow.py:184
 msgid "(Uncommitted)"
-msgstr "(Non sottomessi)"
+msgstr "(Non committati)"
 
 #: blameview/blamegutter.py:187 filelists/filelistmodel.py:67
 #: forms/prefsdialog.py:205 tasks/misctasks.py:80 tasks/nettasks.py:268
@@ -70,7 +70,7 @@ msgstr ":"
 
 #: blameview/blamegutter.py:193
 msgid "Not Committed Yet"
-msgstr "Non ancora sottomessi"
+msgstr "Non ancora committati"
 
 #: blameview/blamegutter.py:193 blameview/blamegutter.py:196
 msgid "commit"
@@ -94,11 +94,11 @@ msgstr "revisione"
 
 #: blameview/blamescrubberdelegate.py:55 blameview/blamescrubbermodel.py:43
 msgid "Uncommitted Changes in Working Directory"
-msgstr "Cambiamenti non sottomessi nella cartella di lavoro"
+msgstr "Cambiamenti non committati nella cartella di lavoro"
 
 #: blameview/blametextedit.py:44
 msgid "Blame File at Uncommitted Revision"
-msgstr "Indaga (blame) file alla revisione non sottomessa"
+msgstr "Indaga (blame) file alla revisione non committata"
 
 #: blameview/blametextedit.py:45
 msgid "Show Diff in Working Directory"
@@ -559,16 +559,16 @@ msgstr ""
 #, python-brace-format
 msgid "To complete the removal of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
-"Per completare la rimozione di questo sottomodulo, assicurati di "
-"sottomettere un <b> commit di {gitmodules}</b> insieme con la cartella del "
-"sottomodulo stesso."
+"Per completare la rimozione di questo sottomodulo, assicurati di <b> "
+"committare di {gitmodules}</b> insieme con la cartella del sottomodulo "
+"stesso."
 
 #: diffview/specialdiff.py:291
 #, python-brace-format
 msgid "To complete the addition of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
-"Per completare l'aggiunta di questo sottomodulo, assicurati di sottomettere "
-"un <b> commit di {gitmodules}</b> insieme con la cartella del sottomodulo "
+"Per completare l'aggiunta di questo sottomodulo, assicurati di <b> "
+"committare di {gitmodules}</b> insieme con la cartella del sottomodulo "
 "stesso."
 
 #: diffview/specialdiff.py:296
@@ -598,12 +598,12 @@ msgstr "IMPORTANTE"
 #: diffview/specialdiff.py:318
 msgid "The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
-"Questo sottoalbero contiene <b>modifiche non sottomesse</b>. Non possono "
+"Questo sottoalbero contiene <b>modifiche non committate</b>. Non possono "
 "essere sottomesse dal repo genitore. Puoi:"
 
 #: diffview/specialdiff.py:319
 msgid "[Open] the subtree and commit the changes."
-msgstr "[Aprire] il sottoalbero e sottomettere le modifiche."
+msgstr "[Aprire] il sottoalbero e committare le modifiche."
 
 #: diffview/specialdiff.py:320
 msgid "Or, [Reset] the subtree to a clean state."
@@ -612,12 +612,12 @@ msgstr "O [riportare] il sottoalbero ad uno stadio pulito."
 #: diffview/specialdiff.py:322
 msgid "The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
-"Il sottomodulo ha <b>modifiche non sottomesse</b>. Non possono essere "
-"sottomesse dal repo genitore. Puoi:"
+"Il sottomodulo ha <b>modifiche non committate</b>. Non possono essere "
+"committate dal repo genitore. Puoi:"
 
 #: diffview/specialdiff.py:323
 msgid "[Open] the submodule and commit the changes."
-msgstr "[Aprire] il sottomodulo e sottomettere le modifiche."
+msgstr "[Aprire] il sottomodulo e committare le modifiche."
 
 #: diffview/specialdiff.py:324
 msgid "Or, [Reset] the submodule to a clean state."
@@ -1408,8 +1408,8 @@ msgstr "Clone &breve"
 #, python-brace-format
 msgid "&Shallow clone: Fetch up to {n} commit per branch"
 msgid_plural "&Shallow clone: Fetch up to {n} commits per branch"
-msgstr[0] "Clone &breve: fetch fino a {n} commit per ramo"
-msgstr[1] "Clone &breve: fetch fino a {n} commit per ramo"
+msgstr[0] "Clone &breve: fetcha fino a {n} commit per ramo"
+msgstr[1] "Clone &breve: fetcha fino a {n} commit per ramo"
 
 #: forms/clonedialog.py:250
 msgid "Clone repository into"
@@ -1486,7 +1486,7 @@ msgstr "(sovrascritto manualmente)"
 
 #: forms/commitdialog.py:200
 msgid "Committed by:"
-msgstr "Sottomesso da:"
+msgstr "Committato da:"
 
 #: forms/conflictview.py:229
 #, python-brace-format
@@ -1609,7 +1609,7 @@ msgstr "Massimizza l'area delle differenze e nascondi il grafico dei commit"
 #: forms/contextheader.py:81
 msgctxt "noun"
 msgid "Commit"
-msgstr "Sottometti (commit)"
+msgstr "Commit"
 
 #: forms/contextheader.py:81
 msgctxt "noun"
@@ -1903,7 +1903,7 @@ msgstr "Tutti i remote"
 
 #: forms/newtagdialog.py:41
 msgid "&Create && Push"
-msgstr "&Crea e invia (push)"
+msgstr "&Crea e pusha"
 
 #: forms/newtagdialog.py:46
 msgid "This name is already taken by another tag."
@@ -2051,7 +2051,7 @@ msgstr "Nuovo ramo remoto su {0}"
 
 #: forms/pushdialog.py:217 forms/pushdialog.py:274 forms/pushdialog.py:329
 msgid "&Push"
-msgstr "Invia (&push)"
+msgstr "&Pusha"
 
 #: forms/pushdialog.py:242
 msgid "(with lease)"
@@ -2059,15 +2059,15 @@ msgstr "(con lease)"
 
 #: forms/pushdialog.py:268
 msgid "Force &push"
-msgstr "Invia forzatamente (force &push)"
+msgstr "Forza &push"
 
 #: forms/pushdialog.py:270
 msgid "Force push: Destructive action!"
-msgstr "Invio forzato: Azione distruttiva!"
+msgstr "Push forzato: Azione distruttiva!"
 
 #: forms/pushdialog.py:272
 msgid "&Push new branch"
-msgstr "&Invia (push) nuovo ramo"
+msgstr "&Pusha nuovo ramo"
 
 #: forms/pushdialog.py:288 tasks/nettasks.py:103
 msgid "This name is already taken by another branch on this remote."
@@ -2321,7 +2321,7 @@ msgstr "Accedi ai remote SSH con un file di &chiave personalizzato"
 #: forms/ui_commitdialog.py:106
 msgctxt "CommitDialog"
 msgid "Commit"
-msgstr "Sottometti (commit)"
+msgstr "Committa"
 
 #: forms/ui_commitdialog.py:107
 msgctxt "CommitDialog"
@@ -2469,7 +2469,7 @@ msgstr "Vuoi davvero eliminare l'etichetta {0}?"
 #: forms/ui_deletetagdialog.py:52
 msgctxt "DeleteTagDialog"
 msgid "&Push deletion to:"
-msgstr "Invia (&push) eliminazione a:"
+msgstr "&pusha eliminazione su:"
 
 #: forms/ui_donateprompt.py:90
 #, python-brace-format
@@ -2576,7 +2576,7 @@ msgstr "&Passa al ramo dopo averlo creato"
 #: forms/ui_newbranchdialog.py:85
 msgctxt "NewBranchDialog"
 msgid "&Track upstream branch:"
-msgstr "&Traccia ramo d'origine (upstream):"
+msgstr "&Traccia ramo upstream:"
 
 #: forms/ui_newbranchdialog.py:86
 msgctxt "NewBranchDialog"
@@ -2601,12 +2601,12 @@ msgstr "Introduci il nome dell'etichetta"
 #: forms/ui_newtagdialog.py:63
 msgctxt "NewTagDialog"
 msgid "&Push to:"
-msgstr "Invia (&push) a:"
+msgstr "&Pusha su:"
 
 #: forms/ui_pushdialog.py:126
 msgctxt "PushDialog"
 msgid "Push branch"
-msgstr "Invia ramo"
+msgstr "Pusha ramo"
 
 #: forms/ui_pushdialog.py:127
 msgctxt "PushDialog"
@@ -2616,22 +2616,22 @@ msgstr "Ramo &locale:"
 #: forms/ui_pushdialog.py:128
 msgctxt "PushDialog"
 msgid "Push &to:"
-msgstr "Invia (push) &a:"
+msgstr "Pusha &su:"
 
 #: forms/ui_pushdialog.py:129
 msgctxt "PushDialog"
 msgid "Branch name on remote"
-msgstr "Nome del ramo sul remote"
+msgstr "Nome del ramo sul remoto"
 
 #: forms/ui_pushdialog.py:130
 msgctxt "PushDialog"
 msgid "&Force push"
-msgstr "Invia forzatamente (&force push)"
+msgstr "&Forza push"
 
 #: forms/ui_pushdialog.py:131
 msgctxt "PushDialog"
 msgid "&Track this remote branch after pushing"
-msgstr "&Traccia questo ramo remoto dopo averlo inviato"
+msgstr "&Traccia questo ramo remoto dopo averlo pushato"
 
 #: forms/ui_registersubmoduledialog.py:96
 msgctxt "RegisterSubmoduleDialog"
@@ -2695,7 +2695,7 @@ msgstr "&Nome:"
 #: forms/ui_remotedialog.py:68
 msgctxt "RemoteDialog"
 msgid "&Fetch remote branches after adding"
-msgstr "&Richiama (fetch) rami remoti dopo l'aggiunta"
+msgstr "&Fetcha rami remoti dopo l'aggiunta"
 
 #: forms/ui_reposettingsdialog.py:70
 #, python-brace-format
@@ -2878,8 +2878,8 @@ msgid ""
 "<p>Every commit records information about an author and a committer. They can be the same person.</p>\n"
 "       <p>Select which person you want to override.</p>"
 msgstr ""
-"<p>Ogni commit memorizza informazioni riguardo all'autore e al "
-"sottomettente. Possono anche essere la stessa persona.</p>\n"
+"<p>Ogni commit memorizza informazioni riguardo a un autore ed a un "
+"committatore. Possono anche essere la stessa persona.</p>\n"
 "       <p>Scegli quale persona vuoi sovrascrivere.</p>"
 
 #: forms/ui_signatureform.py:86
@@ -2890,7 +2890,7 @@ msgstr "Autore"
 #: forms/ui_signatureform.py:87
 msgctxt "SignatureForm"
 msgid "Committer"
-msgstr "Sottomettente"
+msgstr "Committatore"
 
 #: forms/ui_signatureform.py:88
 msgctxt "SignatureForm"
@@ -3004,13 +3004,13 @@ msgstr "(autore)"
 #: graphview/commitlogmodel.py:186
 msgctxt "CommitTooltip"
 msgid "(committed)"
-msgstr "(sottomettente)"
+msgstr "(committato)"
 
 #: graphview/commitlogmodel.py:190
 #, python-brace-format
 msgctxt "CommitTooltip"
 msgid "Committed by {0}"
-msgstr "Sottomesso da {0}"
+msgstr "Committato da {0}"
 
 #: graphview/graphview.py:42
 msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
@@ -3242,7 +3242,7 @@ msgstr "&Ricontrolla"
 msgid "Check for changes in the repo (on the local filesystem only – will not fetch remotes)"
 msgstr ""
 "Controlla se ci sono cambiamenti nel repo (solo sul file system locale - non "
-"equivale a richiamare i remote con fetch)"
+"equivale a fetchare)"
 
 #: mainwindow.py:318
 msgid "Reloa&d"
@@ -3259,272 +3259,285 @@ msgstr "Modifica comandi.…"
 #: mainwindow.py:368
 #, python-brace-format
 msgid "&About {0}"
-msgstr ""
+msgstr "&Riguardo a {0}"
 
 #: mainwindow.py:372
 #, python-brace-format
 msgid "{0} User’s Guide"
-msgstr ""
+msgstr "Guida utente di {0}"
 
 #: mainwindow.py:378
 msgid "Open Trash…"
-msgstr ""
+msgstr "Apri cestino…"
 
 #: mainwindow.py:380
 msgid "Explore changes that you may have discarded by mistake"
-msgstr ""
+msgstr "Esplora modifiche che potresti aver scartato per errore"
 
 #: mainwindow.py:382
 msgid "Empty Trash…"
-msgstr ""
+msgstr "Svuota cestino…"
 
 #: mainwindow.py:383
 msgid "Delete all discarded changes from the trash folder"
-msgstr ""
+msgstr "Elimina tutte le modifiche scartate dal cestino"
 
 #: mainwindow.py:414
 msgid "Clear List"
-msgstr ""
+msgstr "Ripulisci lista"
 
 #: mainwindow.py:415
 msgid "Clear the list of recently opened repositories"
-msgstr ""
+msgstr "Svuota la lista dei repo aperti di recente"
 
 #: mainwindow.py:424
 msgid "Menu bar hidden"
-msgstr ""
+msgstr "Barra dei menu nascosta"
 
 #: mainwindow.py:425
 msgid "The menu bar is now hidden. Press the Alt key to toggle it."
-msgstr ""
+msgstr "La barra di menu ora è nascosta. Premi Alt per commutarla."
 
 #: mainwindow.py:502
 msgid "Close Tab"
-msgstr ""
+msgstr "Chiudi scheda"
 
 #: mainwindow.py:503
 msgid "Close Other Tabs"
-msgstr ""
+msgstr "Chiudi le altre schede"
 
 #: mainwindow.py:504
 msgid "Unload Other Tabs"
-msgstr ""
+msgstr "Svuota le altre schede"
 
 #: mainwindow.py:508
 msgid "Configure Tabs…"
-msgstr ""
+msgstr "Configura schede.…"
 
 #: mainwindow.py:536 mainwindow.py:782
 msgid "Open repository"
-msgstr ""
+msgstr "Apri repository"
 
 #: mainwindow.py:537
 #, python-brace-format
 msgid "Couldn’t open the repository at {0}."
-msgstr ""
+msgstr "Impossibile aprire il repository in {0}."
 
 #: mainwindow.py:558
 msgid "There’s nothing at this path."
-msgstr ""
+msgstr "Non c'è niente in questo percorso."
 
 #: mainwindow.py:564 tasks/loadtasks.py:72
 #, python-brace-format
 msgid "Sorry, {app} doesn’t support bare repositories."
-msgstr ""
+msgstr "Spiacente, {app} non supporta repository vuoti."
 
 #: mainwindow.py:733
 msgid "Open trash folder"
-msgstr ""
+msgstr "Apri cestino"
 
 #: mainwindow.py:734
 #, python-brace-format
 msgid "There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet."
 msgstr ""
+"Non esiste un cestino. Forse non hai ancora scartato nessuna modifica con {0}"
+"."
 
 #: mainwindow.py:743 mainwindow.py:758
 msgid "Clear trash folder"
-msgstr ""
+msgstr "Svuota cestino"
 
 #: mainwindow.py:744
 msgid "There are no discarded changes to delete."
-msgstr ""
+msgstr "Non ci sono modifiche scartate da eliminare."
 
 #: mainwindow.py:750
 #, python-brace-format
 msgid "Do you want to permanently delete <b>{n}</b> discarded patch?"
 msgid_plural "Do you want to permanently delete <b>{n}</b> discarded patches?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vuoi eliminare definitivamente {n} patch scartata?"
+msgstr[1] "Vuoi eliminare definitivamente {n} patch scartate?"
 
 #: mainwindow.py:752
 #, python-brace-format
 msgid "This will free up {0} on disk."
-msgstr ""
+msgstr "Questo libererà {0} sul disco."
 
 #: mainwindow.py:753 tasks/branchtasks.py:196 tasks/branchtasks.py:232
 #: tasks/indextasks.py:165 tasks/indextasks.py:239 tasks/indextasks.py:277
 #: tasks/nettasks.py:78 tasks/submoduletasks.py:96
 msgid "This cannot be undone!"
-msgstr ""
+msgstr "Quest'azione non può essere annullata!"
 
 #: mainwindow.py:761
 msgid "Delete permanently"
-msgstr ""
+msgstr "Elimina definitivamente"
 
 #: mainwindow.py:844
 #, python-brace-format
 msgid "{n} background tab unloaded."
 msgid_plural "{n} background tabs unloaded."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{n} scheda di sottofondo svuotata."
+msgstr[1] "{n} schede di sottofondo svuotate."
 
 #: mainwindow.py:951
 #, python-brace-format
 msgid "The session couldn’t be restored fully because a repository failed to load:"
 msgid_plural "The session couldn’t be restored fully because {n} repositories failed to load:"
 msgstr[0] ""
+"Impossibile ripristinare interamente la sessione perché un repository non "
+"può essere caricato:"
 msgstr[1] ""
+"Impossibile ripristinare interamente la sessione perché {n} repository non "
+"possono essere caricati:"
 
 #: mainwindow.py:953
 msgid "Restore session"
-msgstr ""
+msgstr "Ripristina sessione"
 
 #: mainwindow.py:988
 #, python-brace-format
 msgid "{0} isn’t in a Git repo"
-msgstr ""
+msgstr "{0} non è un repo Git"
 
 #: mainwindow.py:1138 mainwindow.py:1142
 msgid "Apply Settings"
-msgstr ""
+msgstr "Applica impostazioni"
 
 #: mainwindow.py:1139
 #, python-brace-format
 msgid "You may need to restart {app} for the new settings to take effect fully."
 msgstr ""
+"Potresti dover riavviare {app} affinché le nuove impostazioni abbiano "
+"effetto."
 
 #: mainwindow.py:1143
 msgid "The new settings won’t take effect fully until you reload the current repositories."
 msgstr ""
+"Le nuove impostazioni non saranno del tutto effettive finché i repository "
+"attuali non verranno ricaricati."
 
 #: mainwindow.py:1146
 msgid "&Reload"
-msgstr ""
+msgstr "&Ricarica"
 
 #: mainwindow.py:1150
 msgid "&Not Now"
-msgstr ""
+msgstr "&Non ora"
 
 #: mainwindow.py:1212
 #, python-brace-format
 msgid "(Command) {0}"
-msgstr ""
+msgstr "(Comando) {0}"
 
 #: mainwindow.py:1225 mainwindow.py:1280 repowidget.py:474
 msgid "Open Superproject"
-msgstr ""
+msgstr "Apri superprogetto"
 
 #: mainwindow.py:1236
 #, python-brace-format
 msgid "Open Superproject {0}"
-msgstr ""
+msgstr "Apri superprogetto {0}"
 
 #: mainwindow.py:1243
 msgid "&Open Repo Folder"
-msgstr ""
+msgstr "&Apri cartella repo"
 
 #: mainwindow.py:1247
 msgid "Open this repo’s working directory in the system’s file manager"
-msgstr ""
+msgstr "Apri la cartella di lavoro di questo repo nel file manager di sistema"
 
 #: mainwindow.py:1251
 msgid "Open &Terminal"
-msgstr ""
+msgstr "Apri &terminale"
 
 #: mainwindow.py:1255
 msgid "Open a terminal in the repo’s working directory"
-msgstr ""
+msgstr "Apri un terminale nella cartella di lavoro del repo"
 
 #: mainwindow.py:1259
 msgid "Cop&y Repo Path"
-msgstr ""
+msgstr "&Copia percorso del repo"
 
 #: mainwindow.py:1261
 msgid "Copy the absolute path to this repo’s working directory to the clipboard"
 msgstr ""
+"Copia negli appunti il percorso assoluto della cartella di lavoro di questo "
+"repo"
 
 #: mainwindow.py:1280 repowidget.py:474
 msgid "This repository does not have a superproject."
-msgstr ""
+msgstr "Questo repo non contiene un superprogetto."
 
 #: nav.py:69
 msgctxt "NavContext"
 msgid "Empty"
-msgstr ""
+msgstr "Vuoto"
 
 #: nav.py:70
 msgctxt "NavContext"
 msgid "Untracked"
-msgstr ""
+msgstr "Non tracciato"
 
 #: nav.py:71
 msgctxt "NavContext"
 msgid "Unstaged"
-msgstr ""
+msgstr "Non incluso"
 
 #: nav.py:72
 msgctxt "NavContext"
 msgid "Staged"
-msgstr ""
+msgstr "Incluso"
 
 #: nav.py:73
 msgctxt "NavContext"
 msgid "Committed"
-msgstr ""
+msgstr "Committato"
 
 #: nav.py:75
 msgctxt "NavContext"
 msgid "Unknown"
-msgstr ""
+msgstr "Sconosciuto"
 
 #: repowidget.py:424
 msgid "Only text diffs may be opened in a separate window."
 msgstr ""
+"Solo le differenze di testo possono essere aperte in una finestra separata."
 
 #: repowidget.py:453
 msgid "Please select a file before performing this action."
-msgstr ""
+msgstr "Seleziona un file prima di effettuare quest'azione."
 
 #: repowidget.py:501
 #, python-brace-format
 msgid "File {0} does not exist."
-msgstr ""
+msgstr "Il file {0} non esiste."
 
 #: repowidget.py:502
 msgid "Do you want to create it?"
-msgstr ""
+msgstr "Vuoi crearlo?"
 
 #: repowidget.py:503
 #, python-brace-format
 msgid "Create {0}"
-msgstr ""
+msgstr "Crea {0}"
 
 #: repowidget.py:512
 msgid "Run Command"
-msgstr ""
+msgstr "Esegui comando"
 
 #: repowidget.py:518
 msgid "The prerequisites for your command are not met:"
-msgstr ""
+msgstr "I prerequisiti per questo comando non sono soddisfatti:"
 
 #: repowidget.py:530
 msgid "Do you want to run this command in a terminal?"
-msgstr ""
+msgstr "Vuoi eseguire questo comando in un terminale?"
 
 #: repowidget.py:532
 #, python-brace-format
 msgid "Do you want to run {0} in a terminal?"
-msgstr ""
+msgstr "Vuoi eseguire {0} in un terminale?"
 
 #: repowidget.py:568
 #, python-brace-format
@@ -3552,360 +3565,364 @@ msgstr[1] ""
 
 #: repowidget.py:640
 msgid "Unborn HEAD"
-msgstr ""
+msgstr "HEAD non ancora creata"
 
 #: repowidget.py:673
 #, python-brace-format
 msgid "Merging {0}"
-msgstr ""
+msgstr "Unione di {0}"
 
 #: repowidget.py:678
 msgid "All conflicts fixed. Commit to conclude."
-msgstr ""
+msgstr "Tutti i conflitti sono risolti. Committa per concludere."
 
 #: repowidget.py:681 repowidget.py:691 repowidget.py:701
 msgid "Conflicts need fixing."
-msgstr ""
+msgstr "Dei conflitti richiedono una soluzione."
 
 #: repowidget.py:683 tasks/indextasks.py:527 tasks/taskbook.py:32
 msgid "Abort merge"
-msgstr ""
+msgstr "Interrompi unione"
 
 #: repowidget.py:688
 msgid "Commit to conclude the cherry-pick."
-msgstr ""
+msgstr "Committa per concludere la cernita."
 
 #: repowidget.py:693 tasks/indextasks.py:522
 msgid "Abort cherry-pick"
-msgstr ""
+msgstr "Interrompi cernita."
 
 #: repowidget.py:698
 msgid "Commit to conclude the revert."
-msgstr ""
+msgstr "Committa per concludere il ripristino."
 
 #: repowidget.py:703 tasks/indextasks.py:532
 msgid "Abort revert"
-msgstr ""
+msgstr "Interrompi ripristino"
 
 #: repowidget.py:708
 msgid "Conflicts"
-msgstr ""
+msgstr "Conflitti"
 
 #: repowidget.py:709
 msgid "Fix the conflicts among the uncommitted changes."
-msgstr ""
+msgstr "Sistema i conflitti tra le modifiche non committate."
 
 #: repowidget.py:710 tasks/indextasks.py:537
 msgid "Reset index"
-msgstr ""
+msgstr "Resetta indice"
 
 #: repowidget.py:714
 msgid "Warning"
-msgstr ""
+msgstr "Attenzione"
 
 #: repowidget.py:716
 #, python-brace-format
 msgid "The repo is currently in state {state}, which {app} doesn’t support yet. Use <code>git</code> on the command line to continue."
 msgstr ""
+"Il repo al momento è in stato di {state}, che {app} ancora non supporta. Usa "
+"<code>git</code> nella linea di comando per proseguire."
 
 #: repowidget.py:763
 msgid "Repository folder went missing:"
-msgstr ""
+msgstr "La cartella del repository è sparita:"
 
 #: repowidget.py:863
 msgid "&Local Config Files"
-msgstr ""
+msgstr "File di configurazione &locali"
 
 #: settings.py:369
 msgid "External editor"
-msgstr ""
+msgstr "Editor esterno"
 
 #: settings.py:374 trtables.py:494
 msgid "Diff tool"
-msgstr ""
+msgstr "Strumento per differenze"
 
 #: settings.py:379 trtables.py:500
 msgid "Merge tool"
-msgstr ""
+msgstr "Strumento di unione"
 
 #: sidebar/sidebar.py:165
 msgid "&New Branch…"
-msgstr ""
+msgstr "&Nuovo ramo…"
 
 #: sidebar/sidebar.py:167 sidebar/sidebar.py:447
 msgid "Sort By"
-msgstr ""
+msgstr "Ordina per"
 
 #: sidebar/sidebar.py:172 sidebar/sidebar.py:341
 msgid "Collapse All Folders"
-msgstr ""
+msgstr "Riduci tutte le cartelle"
 
 #: sidebar/sidebar.py:173 sidebar/sidebar.py:342
 msgid "Expand All Folders"
-msgstr ""
+msgstr "Espandi tutte le cartelle"
 
 #: sidebar/sidebar.py:203
 #, python-brace-format
 msgid "&Switch to {0}…"
-msgstr ""
+msgstr "&Passa a {0}…"
 
 #: sidebar/sidebar.py:221
 #, python-brace-format
 msgid "&Fetch {0}"
-msgstr ""
+msgstr "&Fetcha {0}"
 
 #: sidebar/sidebar.py:221
 msgid "Fetch"
-msgstr ""
+msgstr "Fetcha"
 
 #: sidebar/sidebar.py:228
 #, python-brace-format
 msgid "Pu&ll from {0}…"
-msgstr ""
+msgstr "Pu&lla da {0}…"
 
 #: sidebar/sidebar.py:228
 msgid "Pull…"
-msgstr ""
+msgstr "Pulla…"
 
 #: sidebar/sidebar.py:234
 #, python-brace-format
 msgid "Fast-Forward to {0}…"
-msgstr ""
+msgstr "Avanti-veloce a {0}…"
 
 #: sidebar/sidebar.py:234
 msgid "Fast-Forward…"
-msgstr ""
+msgstr "Avanti-veloce…"
 
 #: sidebar/sidebar.py:241
 #, python-brace-format
 msgid "&Push to {0}…"
-msgstr ""
+msgstr "&Pusha a {0}…"
 
 #: sidebar/sidebar.py:241
 msgid "Push…"
-msgstr ""
+msgstr "Pusha…"
 
 #: sidebar/sidebar.py:246
 msgid "&Upstream Branch"
-msgstr ""
+msgstr "Ramo &upstream"
 
 #: sidebar/sidebar.py:251
 msgid "Re&name…"
-msgstr ""
+msgstr "Ri&nomina…"
 
 #: sidebar/sidebar.py:253
 msgid "&Delete…"
-msgstr ""
+msgstr "&Elimina…"
 
 #: sidebar/sidebar.py:261 sidebar/sidebar.py:321 sidebar/sidebar.py:376
 #: sidebar/sidebar.py:406
 msgid "&Hide in Graph"
-msgstr ""
+msgstr "&Nascondi nel grafo"
 
 #: sidebar/sidebar.py:264
 msgid "Hide this branch from the graph (effective if no other branches/tags point here)"
 msgstr ""
+"Nascondi questo ramo dal grafo (ha effetto se non ci sono altri rami/"
+"etichette che puntano qui)"
 
 #: sidebar/sidebar.py:267 sidebar/sidebar.py:326 sidebar/sidebar.py:381
 #: sidebar/sidebar.py:411
 msgid "Hide &All But This"
-msgstr ""
+msgstr "Nascondi &tutto tranne questo"
 
 #: sidebar/sidebar.py:280
 msgid "(no current branch)"
-msgstr ""
+msgstr "(non c'è un ramo corrente)"
 
 #: sidebar/sidebar.py:293 sidebar/sidebar.py:349
 #, python-brace-format
 msgid "Visit Web Page on {0}"
-msgstr ""
+msgstr "Visita pagina web su {0}"
 
 #: sidebar/sidebar.py:302
 msgid "New Local &Branch Here…"
-msgstr ""
+msgstr "Nuovo &ramo locale qui…"
 
 #: sidebar/sidebar.py:304
 msgid "&Fetch New Commits"
-msgstr ""
+msgstr "&Fetcha nuovi commit"
 
 #: sidebar/sidebar.py:369
 msgid "Copy Remote &URL"
-msgstr ""
+msgstr "Copia &URL remoto"
 
 #: sidebar/sidebar.py:394
 msgid "Sort Remote Branches By"
-msgstr ""
+msgstr "Ordina rami remoti per"
 
 #: sidebar/sidebar.py:400
 msgid "Re&name Folder…"
-msgstr ""
+msgstr "Ri&nomina cartella…"
 
 #: sidebar/sidebar.py:401
 msgid "&Delete Folder…"
-msgstr ""
+msgstr "&Elimina cartella…"
 
 #: sidebar/sidebar.py:436
 msgid "Reveal &Parent Commit"
-msgstr ""
+msgstr "Rivela commit &genitore"
 
 #: sidebar/sidebar.py:444
 msgid "&New Tag on HEAD Commit…"
-msgstr ""
+msgstr "&Nuova etichetta sul commit HEAD…"
 
 #: sidebar/sidebar.py:445
 msgid "&Push All Tags To"
-msgstr ""
+msgstr "&Pusha tutte le etichette su"
 
 #: sidebar/sidebar.py:458
 msgid "&Check Out Tagged Commit…"
-msgstr ""
+msgstr "&Passa al commit con etichetta…"
 
 #: sidebar/sidebar.py:459
 msgid "&Delete Tag…"
-msgstr ""
+msgstr "&Elimina etichetta…"
 
 #: sidebar/sidebar.py:461
 msgid "Push To"
-msgstr ""
+msgstr "Pusha su"
 
 #: sidebar/sidebar.py:476
 msgid "&Open Submodule in New Tab"
-msgstr ""
+msgstr "&Apri sottomodulo in nuova scheda"
 
 #: sidebar/sidebar.py:479
 msgid "Open Submodule &Folder"
-msgstr ""
+msgstr "Apri &cartella sottomodulo"
 
 #: sidebar/sidebar.py:482
 msgid "Copy &Path"
-msgstr ""
+msgstr "Copia &percorso"
 
 #: sidebar/sidebar.py:947
 msgid "Not tracking any upstream branch"
-msgstr ""
+msgstr "Non si sta tracciando nessun ramo upstream"
 
 #: sidebar/sidebar.py:947
 msgid "Stop tracking upstream branch"
-msgstr ""
+msgstr "Smetti di tracciare rami upstream"
 
 #: sidebar/sidebar.py:966
 msgid "No remotes."
-msgstr ""
+msgstr "Nessun remoto."
 
 #: sidebar/sidebar.py:968
 msgid "No remote branches found. Try fetching the remotes."
-msgstr ""
+msgstr "Nessun ramo remoto trovato. Prova a fetchare i remoti."
 
 #: sidebar/sidebar.py:979
 msgid "&All Remotes"
-msgstr ""
+msgstr "&Tutti i remoti"
 
 #: sidebar/sidebarmodel.py:452
 msgid "Submodule not initialized."
-msgstr ""
+msgstr "Sottomoduli non inizializzati."
 
 #: sidebar/sidebarmodel.py:598
 #, python-brace-format
 msgid "{0} (local branch)"
-msgstr ""
+msgstr "{0} (ramo locale)"
 
 #: sidebar/sidebarmodel.py:602
 #, python-brace-format
 msgid "Upstream: {0}"
-msgstr ""
+msgstr "Upstream: {0}"
 
 #: sidebar/sidebarmodel.py:604
 msgid "(this is the checked-out branch)"
-msgstr ""
+msgstr "(questo è il ramo a cui si è passati)"
 
 #: sidebar/sidebarmodel.py:621
 msgid "[unborn]"
-msgstr ""
+msgstr "[nascitura]"
 
 #: sidebar/sidebarmodel.py:624
 msgid "Unborn HEAD: does not point to a commit yet."
-msgstr ""
+msgstr "HEAD non ancora nata: non sta puntando ancora a nessun commit."
 
 #: sidebar/sidebarmodel.py:625
 #, python-brace-format
 msgid "Local branch {0} will be created when you create the initial commit."
-msgstr ""
+msgstr "Il ramo locale {0} verrà creato quando creerai il commit iniziale."
 
 #: sidebar/sidebarmodel.py:670
 #, python-brace-format
 msgid "{0} (remote-tracking branch)"
-msgstr ""
+msgstr "{0} (ramo di tracciamento remoto)"
 
 #: sidebar/sidebarmodel.py:672
 #, python-brace-format
 msgid "Upstream for the checked-out branch ({0})"
-msgstr ""
+msgstr "Upstream del ramo attuale ({0})"
 
 #: sidebar/sidebarmodel.py:694
 #, python-brace-format
 msgid "{0} (remote branch folder)"
-msgstr ""
+msgstr "{0} (cartella del ramo remoto)"
 
 #: sidebar/sidebarmodel.py:696
 #, python-brace-format
 msgid "{0} (tag folder)"
-msgstr ""
+msgstr "{0} (cartella dell'etichetta)"
 
 #: sidebar/sidebarmodel.py:698
 #, python-brace-format
 msgid "{0} (local branch folder)"
-msgstr ""
+msgstr "{0} (cartella del ramo locale)"
 
 #: sidebar/sidebarmodel.py:716
 #, python-brace-format
 msgid "Tag {0}"
-msgstr ""
+msgstr "Etichetta {0}"
 
 #: sidebar/sidebarmodel.py:732
 msgid "date:"
-msgstr ""
+msgstr "data:"
 
 #: sidebar/sidebarmodel.py:743
 #, python-brace-format
 msgid "{0} (submodule)"
-msgstr ""
+msgstr "{0} (sottomodulo)"
 
 #: sidebar/sidebarmodel.py:744
 #, python-brace-format
 msgid "Workdir: {0}"
-msgstr ""
+msgstr "Cartella di lavoro: {0}"
 
 #: sidebar/sidebarmodel.py:745
 msgid "[not set]"
-msgstr ""
+msgstr "[non impostata]"
 
 #: sidebar/sidebarmodel.py:746
 #, python-brace-format
 msgid "URL: {0}"
-msgstr ""
+msgstr "URL: {0}"
 
 #: sidebar/sidebarmodel.py:768 tasks/taskbook.py:67
 msgid "Go to Working Directory"
-msgstr ""
+msgstr "Vai alla cartella di lavoro"
 
 #: sidebar/sidebarmodel.py:771
 #, python-brace-format
 msgid "({n} uncommitted change)"
 msgid_plural "({n} uncommitted changes)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "({n} modifica non committata)"
+msgstr[1] "({n} modifiche non committate)"
 
 #: sidebar/sidebarmodel.py:823
 msgid "Hiding everything but this (middle-click the eye to toggle)"
-msgstr ""
+msgstr "Nascondo tutto a parte questo (clic centrale sull'occhio per commutare)"
 
 #: sidebar/sidebarmodel.py:826
 msgid "Hidden (click the eye to toggle)"
-msgstr ""
+msgstr "Nascosto (clic sull'occhio per commutare)"
 
 #: sidebar/sidebarmodel.py:829
 msgid "Indirectly hidden"
-msgstr ""
+msgstr "Nascosto indirettamente"
 
 #: tasks/blametasks.py:26
 #, python-brace-format
@@ -3915,7 +3932,7 @@ msgstr ""
 #: tasks/blametasks.py:38
 #, python-brace-format
 msgid "File {0} has no history in the repository."
-msgstr ""
+msgstr "Il file {0} non ha uno storico nel repository."
 
 #: tasks/blametasks.py:96
 #, python-brace-format
@@ -3939,276 +3956,284 @@ msgstr ""
 #: tasks/branchtasks.py:38
 #, python-brace-format
 msgid "Branch {0} is already checked out."
-msgstr ""
+msgstr "Il ramo {0} è già quello attuale."
 
 #: tasks/branchtasks.py:42
 #, python-brace-format
 msgid "Do you want to switch to branch {0}?"
-msgstr ""
+msgstr "Vuoi passare al ramo {0}?"
 
 #: tasks/branchtasks.py:43
 msgid "Switch"
-msgstr ""
+msgstr "Passa"
 
 #: tasks/branchtasks.py:49 tasks/taskbook.py:97
 msgid "Update submodules recursively"
-msgstr ""
+msgstr "Aggiorna ricorsivamente sottomoduli"
 
 #: tasks/branchtasks.py:62 tasks/committasks.py:333
 #, python-brace-format
 msgid "You are in <b>Detached HEAD</b> mode at commit {0}."
-msgstr ""
+msgstr "Sei in modalità <b>HEAD distaccata</b> al commit {0}."
 
 #: tasks/branchtasks.py:63
 #, python-brace-format
 msgid "You might lose track of this commit if you switch to {0}."
-msgstr ""
+msgstr "Potresti perdere traccia di questo commit se passi a {0}."
 
 #: tasks/branchtasks.py:64
 #, python-brace-format
 msgid "Switch to {0}"
-msgstr ""
+msgstr "Passa a {0}"
 
 #: tasks/branchtasks.py:65
 msgid "Don’t Switch"
-msgstr ""
+msgstr "Non passare"
 
 #: tasks/branchtasks.py:77
 #, python-brace-format
 msgid "Switched to branch {0}."
-msgstr ""
+msgstr "Si è passati al ramo {0}."
 
 #: tasks/branchtasks.py:91 tasks/taskbook.py:86
 msgid "Rename local branch"
-msgstr ""
+msgstr "Rinomina ramo locale"
 
 #: tasks/branchtasks.py:92 tasks/branchtasks.py:154 tasks/nettasks.py:108
 msgid "Enter new name:"
-msgstr ""
+msgstr "Inserisci nuovo nome:"
 
 #: tasks/branchtasks.py:93
 #, python-brace-format
 msgid "Current name: {0}"
-msgstr ""
+msgstr "Nome corrente: {0}"
 
 #: tasks/branchtasks.py:96 tasks/branchtasks.py:158
 msgid "Rename"
-msgstr ""
+msgstr "Rinomina"
 
 #: tasks/branchtasks.py:111
 #, python-brace-format
 msgid "Branch {0} renamed to {1}."
-msgstr ""
+msgstr "Ramo {0} rinominato in {1}."
 
 #: tasks/branchtasks.py:139
 #, python-brace-format
 msgid "This name clashes with existing branch {0}."
-msgstr ""
+msgstr "Questo nome entra in conflitto con il ramo {0}."
 
 #: tasks/branchtasks.py:147
 #, python-brace-format
 msgid "Folder {name} contains {n} branch."
 msgid_plural "Folder {name} contains {n} branches."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "La cartella {name} contiene {n} ramo."
+msgstr[1] "La cartella {name} contiene {n} rami."
 
 #: tasks/branchtasks.py:153
 msgid "Rename branch folder"
-msgstr ""
+msgstr "Rinomina cartella del ramo"
 
 #: tasks/branchtasks.py:159
 msgid "Leave blank to move the branches to the root folder."
-msgstr ""
+msgstr "Lascia vuoto per spostare i rami nella cartella di progetto."
 
 #: tasks/branchtasks.py:179
 #, python-brace-format
 msgid "Branch folder {0} renamed to {1}."
-msgstr ""
+msgstr "Cartella {0} rinominata in {1}."
 
 #: tasks/branchtasks.py:181
 #, python-brace-format
 msgid "{n} branch affected."
 msgid_plural "{n} branches affected."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{n} ramo interessato."
+msgstr[1] "{n} rami interessati."
 
 #: tasks/branchtasks.py:191
 #, python-brace-format
 msgid "Cannot delete {0} because it is the current branch."
-msgstr ""
+msgstr "Impossibile eliminare {0} perché si trova nel ramo corrente."
 
 #: tasks/branchtasks.py:192 tasks/branchtasks.py:223
 msgid "Before you try again, switch to another branch."
-msgstr ""
+msgstr "Prima di riprovare, passa ad un altro ramo."
 
 #: tasks/branchtasks.py:195
 #, python-brace-format
 msgid "Really delete local branch {0}?"
-msgstr ""
+msgstr "Vuoi davvero eliminare il ramo locale {0}?"
 
 #: tasks/branchtasks.py:200
 msgid "Delete branch"
-msgstr ""
+msgstr "Elimina ramo"
 
 #: tasks/branchtasks.py:208
 #, python-brace-format
 msgid "Branch {0} deleted (commit at tip was {1})."
-msgstr ""
+msgstr "Ramo {0} eliminato (il commit di punta era {1})."
 
 #: tasks/branchtasks.py:222
 #, python-brace-format
 msgid "Cannot delete folder {0} because it contains the current branch {1}."
 msgstr ""
+"Impossibile eliminare la cartella {0} perché contiene il ramo locale {1}."
 
 #: tasks/branchtasks.py:230
 #, python-brace-format
 msgid "Really delete local branch folder {0}?"
-msgstr ""
+msgstr "Vuoi davvero eliminare la cartella del ramo locale {0}?"
 
 #: tasks/branchtasks.py:231
 #, python-brace-format
 msgid "<b>{n}</b> branch will be deleted."
 msgid_plural "<b>{n}</b> branches will be deleted."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "<b>{n}</b> ramo verrà eliminato."
+msgstr[1] "<b>{n}</b> rami verranno eliminati."
 
 #: tasks/branchtasks.py:235
 msgid "Delete branch folder"
-msgstr ""
+msgstr "Elimina cartella del ramo"
 
 #: tasks/branchtasks.py:238
 msgid "Delete folder"
-msgstr ""
+msgstr "Elimina cartella"
 
 #: tasks/branchtasks.py:247
 #, python-brace-format
 msgid "{n} branch deleted in folder {name}."
 msgid_plural "{n} branches deleted in folder {name}."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{n} ramo eliminato nella cartella {name}."
+msgstr[1] "{n} rami eliminati nella cartella {name}."
 
 #: tasks/branchtasks.py:332
 #, python-brace-format
 msgid "Branch {0} created on commit {1}."
-msgstr ""
+msgstr "Ramo {0} creato attraverso il commit {1}."
 
 #: tasks/branchtasks.py:397
 #, python-brace-format
 msgid "Branch {0} now tracks {1}."
-msgstr ""
+msgstr "Il ramo {0} ora traccia {1}."
 
 #: tasks/branchtasks.py:399
 #, python-brace-format
 msgid "Branch {0} now tracks no upstream."
-msgstr ""
+msgstr "Il ramo {0} ora non traccia nessun upstream."
 
 #: tasks/branchtasks.py:432
 #, python-brace-format
 msgid "Branch {0} was reset to {1} ({mode})."
-msgstr ""
+msgstr "Il ramo {0} è stato resettato a {1} ({mode})."
 
 #: tasks/branchtasks.py:445
 #, python-brace-format
 msgid "Can’t fast-forward {0} because it isn’t tracking an upstream branch."
 msgstr ""
+"Non si può mandare {0} avanti veloce perché non sta tracciando nessun ramo "
+"upstream."
 
 #: tasks/branchtasks.py:460
 msgid "No fast-forwarding necessary."
-msgstr ""
+msgstr "Nessun avanti veloce necessario."
 
 #: tasks/branchtasks.py:462
 #, python-brace-format
 msgid "Your local branch {0} is ahead of {1}."
-msgstr ""
+msgstr "Il tuo ramo locale {0} è avanti rispetto a {1}."
 
 #: tasks/branchtasks.py:464 tasks/nettasks.py:269
 #, python-brace-format
 msgid "Your local branch {0} is already up to date with {1}."
-msgstr ""
+msgstr "Il tuo ramo locale {0} è già aggiornato con {1}."
 
 #: tasks/branchtasks.py:476
 #, python-brace-format
 msgid "Can’t fast-forward {0} to {1}."
-msgstr ""
+msgstr "Impossibile mandare {0} avanti veloce verso {1}."
 
 #: tasks/branchtasks.py:477
 msgid "The branches are divergent."
-msgstr ""
+msgstr "I rami sono divergenti."
 
 #: tasks/branchtasks.py:482
 #, python-brace-format
 msgid "Merge into {0}"
-msgstr ""
+msgstr "Unisci in {0}"
 
 #: tasks/branchtasks.py:548
 msgid "Merging is not possible right now because you have unresolved conflicts."
-msgstr ""
+msgstr "L'unione non è possibile perché ci sono dei conflitti irrisolti."
 
 #: tasks/branchtasks.py:549
 msgid "Fix the conflicts to proceed."
-msgstr ""
+msgstr "Sistema i conflitti per procedere."
 
 #: tasks/branchtasks.py:554
 msgid "Merging is not possible right now because you have staged changes."
 msgstr ""
+"L'unione non è possibile perché ci sono delle modifiche incluse nello stage."
 
 #: tasks/branchtasks.py:555
 msgid "Commit your changes or stash them to proceed."
-msgstr ""
+msgstr "Committa le tue modifiche o accantonale in stash per procedere."
 
 #: tasks/branchtasks.py:560
 msgid "No merge is necessary."
-msgstr ""
+msgstr "Nessuna unione necessaria."
 
 #: tasks/branchtasks.py:561
 #, python-brace-format
 msgid "Your branch {0} is already up to date with {1}."
-msgstr ""
+msgstr "Il tuo ramo {0} è già aggiornato con {1}."
 
 #: tasks/branchtasks.py:565
 msgid "Cannot merge into an unborn head."
-msgstr ""
+msgstr "Impossibile unire in una HEAD nascitura."
 
 #: tasks/branchtasks.py:575
 msgid "Merging may cause conflicts"
-msgstr ""
+msgstr "L'unione potrebbe generare conflitti"
 
 #: tasks/branchtasks.py:577
 #, python-brace-format
 msgid "Merging {0} into {1} may cause conflicts."
-msgstr ""
+msgstr "Unire {0} in {1} potrebbe causare conflitti."
 
 #: tasks/branchtasks.py:578
 msgid "You will need to fix the conflicts, if any. Then, commit the result to conclude the merge."
 msgstr ""
+"È necessario risolvere i conflitti, se presenti. Dopodiché, committa il "
+"risultato per concludere l'unione."
 
 #: tasks/branchtasks.py:579
 msgid "Merge"
-msgstr ""
+msgstr "Unisci"
 
 #: tasks/branchtasks.py:592
 #, python-brace-format
 msgid "Merging {0} into {1}."
-msgstr ""
+msgstr "Unione di {0} in {1}."
 
 #: tasks/branchtasks.py:594
 #, python-brace-format
 msgid "Branch {0} fast-forwarded to {1}."
-msgstr ""
+msgstr "Ramo {0} mandato avanti veloce verso {1}."
 
 #: tasks/branchtasks.py:597
 msgid "Fast-forwarding possible"
-msgstr ""
+msgstr "Avanti-veloce possibile"
 
 #: tasks/branchtasks.py:598
 #, python-brace-format
 msgid "Your branch {0} can simply be fast-forwarded to {1}."
-msgstr ""
+msgstr "Il tuo ramo {0} può semplicemente essere mandato avanti veloce a {1}."
 
 #: tasks/branchtasks.py:601
 #, python-brace-format
 msgid "Automatic fast-forwarding is blocked by the {0} option in your Git config."
 msgstr ""
+"L'avanti-veloce automatico è bloccato dall'opzione {0} nella tuo "
+"configurazione Git."
 
 #: tasks/branchtasks.py:605
 msgid "<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more recent commit in a linear path, without the need to create a merge commit."
