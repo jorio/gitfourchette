@@ -23,7 +23,6 @@ from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavLocator, NavFlags
 from gitfourchette.qt import *
-from gitfourchette.settings import ComparisonMethod
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import TaskBook, AmendCommit, NewCommit, NewStash
 from gitfourchette.toolbox import *
@@ -291,8 +290,8 @@ class DiffArea(QWidget):
         self._diffComparisonMethodMenu.setObjectName("diffHeaderComparisonMethodMenu")
         comparisonActionGroup = QActionGroup(self)
         comparisonActionGroup.setExclusive(True)
-        self._diffComparisonMethodActions: dict[ComparisonMethod, QAction] = {}
-        for i, method in enumerate(ComparisonMethod):
+        self._diffComparisonMethodActions: dict[settings.ComparisonMethod, QAction] = {}
+        for i, method in enumerate(settings.ComparisonMethod):
             action = QAction(
                 stockIcon(self._diffComparisonIconNames[i]),
                 TrTables.enum(method),
@@ -394,7 +393,7 @@ class DiffArea(QWidget):
         settings.prefs.write()
         GFApplication.instance().prefsChanged.emit(["showFormattingMarks"])
 
-    def _onDiffHeaderComparisonMethodChosen(self, method: ComparisonMethod):
+    def _onDiffHeaderComparisonMethodChosen(self, method: settings.ComparisonMethod):
         if settings.prefs.comparisonMethod == method:
             return
         settings.prefs.comparisonMethod = method
@@ -404,7 +403,7 @@ class DiffArea(QWidget):
         if rw is not None:
             # Reload before prefsChanged: synchronous emit runs many slots; if it runs
             # first, Jump.invoke can be ignored or the runner can still look busy.
-            rw.reloadCurrentPatchForPrefs(full_repo_refresh=False)
+            rw.reloadCurrentPatchForPrefs(fullRepoRefresh=False)
         GFApplication.instance().prefsChanged.emit(["comparisonMethod"])
 
     def _repoWidget(self):

@@ -559,7 +559,7 @@ class RepoWidget(QWidget):
 
     # -------------------------------------------------------------------------
 
-    def reloadCurrentPatchForPrefs(self, *, full_repo_refresh: bool):
+    def reloadCurrentPatchForPrefs(self, *, fullRepoRefresh: bool):
         """
         Re-run LoadPatch for the current navigation position (e.g. after prefs that
         change `git diff` output).
@@ -568,13 +568,13 @@ class RepoWidget(QWidget):
         jumpTo=...) ORs in stashed pendingEffects and then runs RefreshRepo instead
         of Jump, which can leave the visible diff stale.
 
-        Use full_repo_refresh when the graph/refs need RefreshRepo (e.g. maxCommits).
+        Use fullRepoRefresh when the graph/refs need RefreshRepo (e.g. maxCommits).
         """
         locator = self.taskRunner.pendingEpilog.jumpTo or self.navLocator
         if not locator:
             return
         locator = locator.withExtraFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
-        if full_repo_refresh:
+        if fullRepoRefresh:
             self.refreshRepo(TaskEffects.DefaultRefresh, jumpTo=locator)
         else:
             tasks.Jump.invoke(self, locator)

@@ -309,13 +309,13 @@ class GitDriver(QProcess):
         return deltas
 
     @staticmethod
-    def _git_diff_comparison_argv(for_display: bool) -> list[str]:
+    def _gitDiffComparisonArgv(forDisplay: bool) -> list[str]:
         """
         Extra `git diff` arguments for line-ending / whitespace handling.
         Only applied when generating patches for on-screen display so exports,
         revert, and trash backups stay exact.
         """
-        if not for_display:
+        if not forDisplay:
             return []
         m = settings.prefs.comparisonMethod
         if m == ComparisonMethod.Strict:
@@ -333,13 +333,13 @@ class GitDriver(QProcess):
             cls,
             delta: GitDelta | tuple[Oid | None, Oid | None] | None,
             binary=True,
-            for_display: bool = False,
+            forDisplay: bool = False,
     ) -> list[str]:
         tokens = [
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
-            *cls._git_diff_comparison_argv(for_display),
+            *cls._gitDiffComparisonArgv(forDisplay),
             *argsIf(binary, "--binary"),
         ]
 
@@ -391,7 +391,7 @@ class GitDriver(QProcess):
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
-            *cls._git_diff_comparison_argv(True),
+            *cls._gitDiffComparisonArgv(True),
             "--no-index", "--",
             delta.old.lfs.objectPath,
             delta.new.lfs.objectPath,

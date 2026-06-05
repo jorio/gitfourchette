@@ -1222,11 +1222,11 @@ class MainWindow(QMainWindow):
             # maxCommits needs RefreshRepo to extend the graph; other autoReload keys
             # only need a Jump so LoadPatch runs (DefaultRefresh ends with Jump but
             # can skip reloading the visible patch in some cases).
-            full_repo_refresh = "maxCommits" in prefDiff
+            fullRepoRefresh = "maxCommits" in prefDiff
             for rw in self.tabs.widgets():
                 if not isinstance(rw, RepoWidget):
                     continue
-                rw.reloadCurrentPatchForPrefs(full_repo_refresh=full_repo_refresh)
+                rw.reloadCurrentPatchForPrefs(fullRepoRefresh=fullRepoRefresh)
 
     def openPrefsDialog(self, focusOn: str = ""):
         dlg = PrefsDialog(self, focusOn)

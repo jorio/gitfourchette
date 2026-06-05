@@ -8,7 +8,8 @@ import pytest
 import re
 import textwrap
 
-from gitfourchette.diffview.diffview import DiffView
+from gitfourchette import settings
+from gitfourchette.diffview.diffview import DiffView, _formattingMarkTextOptionFlags, _qtIntEnumValue
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -821,6 +822,37 @@ def testToggleWordWrap(tempDir, mainWindow):
 
         # Scroll position should be stable after toggling word wrap
         assert dv.firstVisibleBlock().text().startswith("y4x0")
+
+
+def testToggleFormattingMarksHeaderButton(tempDir, mainWindow):
+    markFlags = _formattingMarkTextOptionFlags()
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/marks.txt", "x\t y\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("marks.txt"), check=True)
+
+    dv = rw.diffView
+    formattingMarksButton = rw.diffArea.findChild(QToolButton, "diffHeaderFormattingMarksButton")
+    assert formattingMarksButton is not None
+
+    def formattingMarkBitsSet() -> bool:
+        f = _qtIntEnumValue(dv.document().defaultTextOption().flags())
+        return (f & markFlags) == markFlags
+
+    assert not settings.prefs.showFormattingMarks
+    assert not formattingMarksButton.isChecked()
+    assert not formattingMarkBitsSet()
+
+    for enableMarks in [True, False]:
+        if formattingMarksButton.isChecked() != enableMarks:
+            formattingMarksButton.click()
+            QTest.qWait(0)
+
+        assert formattingMarksButton.isChecked() == enableMarks
+        assert settings.prefs.showFormattingMarks == enableMarks
+        assert formattingMarkBitsSet() == enableMarks
 
 
 def testRestoreScrollPositionWithWordWrap(tempDir, mainWindow):
