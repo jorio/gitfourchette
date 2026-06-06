@@ -6,6 +6,7 @@
 
 import enum
 import os
+from os import PathLike
 
 HOME = os.path.abspath(os.path.expanduser('~'))
 
@@ -17,7 +18,7 @@ class PathDisplayStyle(enum.IntEnum):
     FileNameFirst = 4
 
 
-def compactPath(path: str) -> str:
+def compactPath(path: str | PathLike) -> str:
     # Normalize path first, which also turns forward slashes to backslashes on Windows.
     path = os.path.abspath(path)
     if path.startswith(HOME):

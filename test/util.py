@@ -12,6 +12,7 @@ import tempfile
 import warnings
 import zipfile
 from collections.abc import Callable
+from os import PathLike
 from pathlib import Path
 from typing import TypeVar, Literal
 
@@ -691,7 +692,7 @@ def rejectQMessageBox(parent: QWidget, textPattern: str):
     findQMessageBox(parent, textPattern).reject()
 
 
-def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggestedName=False):
+def acceptQFileDialog(parent: QWidget, textPattern: str, path: str | PathLike, useSuggestedName=False):
     qfd = findQDialog(parent, textPattern, QFileDialog)
 
     # qfd.selectFile() is finicky when QLineEdit has focus - https://stackoverflow.com/a/53886678
@@ -701,17 +702,17 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str, useSuggested
     QTest.qWait(0)
 
     if useSuggestedName:
-        suggestedName = os.path.basename(qfd.selectedFiles()[0])
-        path = os.path.join(path, suggestedName)
-    path = os.path.normpath(path)
+        suggestedName = Path(qfd.selectedFiles()[0]).name
+        path = Path(path, suggestedName)
+    path = Path(path).resolve()
 
-    qfd.selectFile(path)
+    qfd.selectFile(str(path))
 
-    if MACOS and not OFFSCREEN and os.path.isdir(path):
-        qfd.selectFile(path + "/")
+    if MACOS and not OFFSCREEN and path.is_dir():
+        qfd.selectFile(str(path) + "/")
 
     qfd.accept()
-    return path
+    return str(path)
 
 
 def findChildWithText(

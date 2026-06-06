@@ -164,12 +164,31 @@ def testNewRepoAtExistingRepo(tempDir, mainWindow):
 
 def testNewNestedRepo(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    path = wd + "/valoche3000"
-    os.makedirs(path)
 
+    nestedPath = Path(wd, "valoche3000")
+    nestedPath.mkdir(parents=True)
+
+    # 1. Open parent repo
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
-    acceptQFileDialog(mainWindow, "new repo", path)
-    acceptQMessageBox(mainWindow, "TestGitRepository.+parent folder.+within.+existing repo")
+    acceptQFileDialog(mainWindow, "new repo", nestedPath)
+    qmb = findQMessageBox(mainWindow, "TestGitRepository.+parent folder.+within.+existing repo")
+    button = next(b for b in qmb.buttons() if findTextInWidget(b, "open"))
+    button.click()
+
+    rw = mainWindow.currentRepoWidget()
+    assert Path(rw.repo.workdir).resolve() == Path(wd).resolve()
+
+    mainWindow.closeAllTabs()
+
+    # 2. Create nested repo
+    triggerMenuAction(mainWindow.menuBar(), "file/new repo")
+    acceptQFileDialog(mainWindow, "new repo", nestedPath)
+    qmb = findQMessageBox(mainWindow, "TestGitRepository.+parent folder.+within.+existing repo")
+    button = next(b for b in qmb.buttons() if findTextInWidget(b, "create"))
+    button.click()
+
+    rw = mainWindow.currentRepoWidget()
+    assert Path(rw.repo.workdir).resolve() == nestedPath.resolve()
 
 
 @pytest.mark.parametrize("method", ["specialdiff", "graphcm"])
