@@ -502,6 +502,31 @@ def testAbortLongBlame(blameWindow, taskThread):
     waitUntilTrue(lambda: not blameWindow.taskRunner.isBusy())
 
 
+def testReevaluateBlameSearchTermAcrossRevisions(blameWindow, taskThread):
+    searchBar = blameWindow.textEdit.searchBar
+
+    QTest.keySequence(blameWindow, "Ctrl+F")
+    assert searchBar.isVisible()
+
+    # Search for "bonjour", not part of the examined commit (Say hello in Spanish)
+    searchBar.lineEdit.setText("bonjour")
+    waitUntilTrue(searchBar.isRed)
+
+    # Go to "Say hello in French" via old/new buttons
+    blameWindow.newerButton.click()
+    assert searchBar.lineEdit.text() == "bonjour"  # keep search term across revs
+    waitUntilTrue(lambda: not searchBar.isRed())
+
+    # Return to "Say hello in Spanish" (before French)
+    blameWindow.olderButton.click()
+    waitUntilTrue(searchBar.isRed)
+
+    # Go to "Say hello in French" via combobox
+    qcbSetIndex(blameWindow.scrubber, "say hello in french")
+    waitUntilTrue(lambda: not searchBar.isRed())
+
+
+
 # -----------------------------------------------------------------------------
 # Cursory line-by-line correctness checks
 

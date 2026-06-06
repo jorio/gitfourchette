@@ -259,6 +259,9 @@ class BlameRevision(RepoTask):
         blameWindow.busySpinner.stop()
         blameWindow.syncNavButtons()
 
+        # Refresh search term now that the document has changed
+        blameWindow.textEdit.searchBar.reevaluateSearchTerm()
+
     def _annotate(self, revision: Revision, blameModel: BlameModel):
         assert not revision.isAnnotated(), "node annotation already built"
 
