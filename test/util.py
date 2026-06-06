@@ -640,41 +640,6 @@ def waitForRepoWidget(mainWindow):
     return rw
 
 
-def findCommitInfoDialog(parent: QWidget, contentPattern: str):
-    """Find a visible :class:`~gitfourchette.forms.commitinfodialog.CommitInfoDialog` by text in summary or body."""
-    from gitfourchette.forms.commitinfodialog import CommitInfoDialog
-
-    numFound = 0
-    haystack = ""
-    for dlg in parent.findChildren(CommitInfoDialog):
-        if not dlg.isVisibleTo(parent):
-            continue
-        numFound += 1
-        parts = [dlg.windowTitle()]
-        for w in dlg.findChildren(QLabel):
-            parts.append(w.text())
-        for w in dlg.findChildren(QPlainTextEdit):
-            parts.append(w.toPlainText())
-        haystack = stripHtml("\n".join(parts))
-        if re.search(contentPattern, haystack, re.IGNORECASE | re.DOTALL):
-            return dlg
-
-    raise KeyError(
-        f'did not find "{contentPattern}" among {numFound} CommitInfoDialogs. Last haystack: {haystack!r}')
-
-
-def acceptCommitInfoDialog(parent: QWidget, contentPattern: str):
-    findCommitInfoDialog(parent, contentPattern).accept()
-    parent.activateWindow()
-    QTest.qWait(0)
-
-
-def rejectCommitInfoDialog(parent: QWidget, contentPattern: str):
-    findCommitInfoDialog(parent, contentPattern).reject()
-    parent.activateWindow()
-    QTest.qWait(0)
-
-
 def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
     numBoxesFound = 0
     haystack = ""

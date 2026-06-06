@@ -7,6 +7,7 @@
 import pygit2.enums
 import pytest
 
+from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
@@ -388,10 +389,10 @@ def testCommitInfo(tempDir, mainWindow, method):
     else:
         raise NotImplementedError(f"unknown method {method}")
 
-    dlg = findCommitInfoDialog(rw, "Merge branch 'a' into c")
-    summary = dlg.summaryLabel.text()
-    assert str(oid1) in summary
-    assert "A U Thor" in summary
+    dlg = findQDialog(rw, "commit info.+83834a", t=CommitInfoDialog)
+    assert findTextInWidget(dlg.summaryLabel, "Merge branch 'a' into c")
+    assert findTextInWidget(dlg.summaryLabel, "A U Thor")
+    assert findTextInWidget(dlg.summaryLabel, str(oid1))
     dlg.accept()
 
 
@@ -402,10 +403,11 @@ def testCommitInfoJumpToParent(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(oid1, "a/a1.txt"), check=True)
 
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    dlg = findCommitInfoDialog(rw, "Merge branch 'a' into c")
+    dlg = findQDialog(rw, "commit info.+83834a", t=CommitInfoDialog)
+    label = dlg.summaryLabel
+    assert findTextInWidget(dlg.summaryLabel, "Merge branch 'a' into c")
 
     # Click on a "parent" link; this should close the dialog and jump to another commit
-    label = dlg.summaryLabel
     parentLink = re.search(r'<a href="(.*\S+)">6462e7d.+</a>', label.text(), re.I).group(1)
     label.linkActivated.emit(parentLink)
     assert rw.navLocator.commit == Oid(hex="6462e7d8024396b14d7651e2ec11e2bbf07a05c4")

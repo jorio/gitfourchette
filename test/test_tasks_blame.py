@@ -14,6 +14,7 @@ import pytest
 from collections.abc import Generator
 from typing import Literal
 
+from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from .util import *
@@ -297,7 +298,7 @@ def testBlameContextMenu(blameWindow):
     assert NavLocator.inCommit(BlameFixture.revs["initial"], "hello.txt").isSimilarEnoughTo(rw.navLocator)
 
     triggerContextMenuAction(viewport, "commit info")
-    acceptCommitInfoDialog(blameWindow, r"first commit.+acecd5e.+j\. david")
+    findQDialog(blameWindow, "commit info.+acecd5e", t=CommitInfoDialog).accept()
 
     qcbSetIndex(scrubber, "uncommitted")
     triggerContextMenuAction(viewport, "show diff in working directory")

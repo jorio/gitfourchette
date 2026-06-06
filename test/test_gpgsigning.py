@@ -12,6 +12,7 @@ import pytest
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.commitdialog import CommitDialog
+from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import GpgStatus
@@ -161,7 +162,10 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
     # Look for GPG signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    rejectCommitInfoDialog(rw, f"signature:.+good signature; key trusted.+{aliceKeyId}")
+
+    commitInfoDialog = findQDialog(rw, "commit info", t=CommitInfoDialog)
+    assert findTextInWidget(commitInfoDialog.summaryLabel, f"signature:.+good signature; key trusted.+{aliceKeyId}")
+    commitInfoDialog.accept()
 
     runGit("verify-commit", "-v", str(commit.id), directory=wd)
 
@@ -217,7 +221,10 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
     # Look for signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
-    rejectCommitInfoDialog(rw, "signature:.+good signature; key trusted")
+
+    commitInfoDialog = findQDialog(rw, "commit info", t=CommitInfoDialog)
+    assert findTextInWidget(commitInfoDialog.summaryLabel, "signature:.+good signature; key trusted")
+    commitInfoDialog.accept()
 
 
 @requiresGpg
