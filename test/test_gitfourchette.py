@@ -144,7 +144,9 @@ def testNewRepoFromExistingSources(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
 
     acceptQFileDialog(mainWindow, "new repo", path)
-    acceptQMessageBox(mainWindow, r"are you sure.+valoche3000.+isn.t empty")
+    qmb = findQMessageBox(mainWindow, r"are you sure.+valoche3000.+isn.t empty")
+    acceptButton = next(b for b in qmb.buttons() if findTextInWidget(b, "create repo here"))
+    acceptButton.click()
 
     rw = mainWindow.currentRepoWidget()
     rw.jump(NavLocator.inUnstaged("existing.txt"))

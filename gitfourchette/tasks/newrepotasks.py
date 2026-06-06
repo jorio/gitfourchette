@@ -42,7 +42,11 @@ class NewRepo(RepoTask):
         if os.path.exists(path) and os.listdir(path):
             message = _("Are you sure you want to initialize a Git repository in {0}? "
                         "This directory isn’t empty.", bquo(path))
-            yield from self.flowConfirm(title=_("Directory isn’t empty"), text=message, icon="warning")
+            yield from self.flowConfirm(
+                title=_("Directory isn’t empty"),
+                text=message,
+                verb=_("&Create repo here"),
+                icon="warning")
 
         yield from self.flowCallGit("init", "--", path)
         openRepo(path)
