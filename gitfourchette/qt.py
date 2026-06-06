@@ -200,6 +200,12 @@ if PYSIDE6:
 
     QCommandLineParser.addOptions = _QCommandLineParser_addOptions
 
+    # Unlike PyQt5/6, PySide6's QtWidgets module doesn't export QWIDGETSIZE_MAX
+    try:
+        _dummy = QWIDGETSIZE_MAX
+    except NameError:
+        QWIDGETSIZE_MAX = 16777215
+
 if QT5:
     # Disable "What's this?" in Qt 5 dialog box title bars (Qt 6 sets this off by default.)
     QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_DisableWindowContextHelpButton)

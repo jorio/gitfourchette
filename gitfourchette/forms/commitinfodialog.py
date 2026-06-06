@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette.forms.ui_commitinfodialog import Ui_CommitInfoDialog
 from gitfourchette.localization import _
 from gitfourchette.qt import *
 from gitfourchette.toolbox.iconbank import stockIcon
@@ -16,6 +17,12 @@ class CommitInfoDialog(QDialog):
     fixed size whenever its layout updates.
     """
 
+    _PreferredWidth = 512
+
+    @property
+    def summaryLabel(self):
+        return self.ui.summaryLabel
+
     def __init__(
             self,
             parent: QWidget | None,
@@ -25,97 +32,55 @@ class CommitInfoDialog(QDialog):
     ):
         super().__init__(parent)
 
+        self.ui = Ui_CommitInfoDialog()
+        self.ui.setupUi(self)
+
         self.setWindowTitle(title)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
-        pm = stockIcon("SP_MessageBoxInformation").pixmap(48, 48)
-        iconLabel = QLabel(self)
-        iconLabel.setPixmap(pm)
-        iconLabel.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        # Start without details box (we need to capture the packed size first)
+        self.ui.detailsEdit.setVisible(False)
 
-        self.summaryLabel = QLabel(self)
-        self.summaryLabel.setObjectName("commit_info_summary")
-        self.summaryLabel.setTextFormat(Qt.TextFormat.RichText)
-        self.summaryLabel.setText(summaryHtml)
-        self.summaryLabel.setWordWrap(True)
-        self.summaryLabel.setOpenExternalLinks(False)
-        self.summaryLabel.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextBrowserInteraction)
-        self.summaryLabel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        pm = stockIcon("SP_MessageBoxInformation").pixmap(56, 56)
+        self.ui.iconLabel.setPixmap(pm)
+        self.ui.summaryLabel.setText(summaryHtml)
+        self.ui.detailsEdit.setPlainText(body)
 
-        self._detailsEdit: QPlainTextEdit | None = None
-        self._detailsToggleButton: QAbstractButton | None = None
+        self._detailsToggleButton = self.ui.buttonBox.addButton("...", QDialogButtonBox.ButtonRole.ActionRole)
+        self._detailsToggleButton.clicked.connect(self._toggleDetailsPane)
+        self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setFocus()
 
-        textColumn = QVBoxLayout()
-        textColumn.setSpacing(12)
-        textColumn.addWidget(self.summaryLabel)
+        # Pack the layout, then save the packed size
+        self.setMinimumWidth(self._PreferredWidth)
+        self.layout().activate()  # force layout
+        self.adjustSize()
+        self.packedSize = self.size()
+
+        # Show details if any
         if body:
-            self._detailsEdit = QPlainTextEdit(self)
-            self._detailsEdit.setPlainText(body)
-            self._detailsEdit.setReadOnly(True)
-            self._detailsEdit.setMinimumHeight(200)
-            self._detailsEdit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            textColumn.addWidget(self._detailsEdit, stretch=1)
-
-        row = QHBoxLayout()
-        row.addWidget(iconLabel, alignment=Qt.AlignmentFlag.AlignTop)
-        row.addLayout(textColumn, stretch=1)
-
-        buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, parent=self)
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
-        ok = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
-        if ok:
-            ok.setDefault(True)
-
-        if body:
-            self._detailsToggleButton = buttonBox.addButton(
-                _("Hide Details..."), QDialogButtonBox.ButtonRole.ActionRole)
-            self._detailsToggleButton.clicked.connect(self._toggleDetailsPane)
-
-        self._outerLayout = QVBoxLayout(self)
-        self._outerLayout.addLayout(row, stretch=1 if body else 0)
-        self._outerLayout.addWidget(buttonBox)
-
-        self.setMinimumWidth(480)
-        self._resizableMinimumSize = self.minimumSize()
-        self._resizableMaximumSize = self.maximumSize()
-        self._detailsVisible = bool(body)
-        QTimer.singleShot(0, self._applyResizePolicy)
-
-    def _toggleDetailsPane(self):
-        if not self._detailsEdit or not self._detailsToggleButton:
-            return
-        show = not self._detailsEdit.isVisible()
-        self._detailsEdit.setVisible(show)
-        self._detailsVisible = show
-        self._detailsToggleButton.setText(
-            _("Hide Details...") if show else _("Show Details..."))
-
-        # No extra vertical slack above the button row when details are hidden.
-        self._outerLayout.setStretch(0, 1 if show else 0)
-        self._outerLayout.activate()
-        self.updateGeometry()
+            self._toggleDetailsPane()  # pane currently hidden - show it
+        else:
+            self._detailsToggleButton.setVisible(False)
 
         self._applyResizePolicy()
 
-    def _applyResizePolicy(self):
-        minHint = self.minimumSizeHint()
-        if self._detailsVisible:
-            minSize = QSize(self._resizableMinimumSize)
-            minSize.setWidth(max(480, minSize.width()))
-            minSize.setHeight(max(minHint.height(), minSize.height()))
-            self.setSizeGripEnabled(True)
-            self.setMinimumSize(minSize)
-            self.setMaximumSize(self._resizableMaximumSize)
-            if self.height() < minSize.height():
-                self.resize(max(self.width(), minSize.width()), minSize.height())
-            return
+    def isShowingDetails(self) -> bool:
+        # isVisibleTo, not isVisible, so this is valid even before we're shown
+        return self.ui.detailsEdit.isVisibleTo(self)
 
-        compactSize = QSize(minHint)
-        compactSize.setWidth(max(480, compactSize.width()))
-        self.setSizeGripEnabled(False)
-        self.resize(compactSize)
-        self.setMinimumSize(compactSize)
-        self.setMaximumSize(compactSize)
+    def _toggleDetailsPane(self):
+        show = not self.isShowingDetails()
+        self.ui.detailsEdit.setVisible(show)
+        self._detailsToggleButton.setText(_("Hide Full &Message") if show else _("Show Full &Message"))
+        self._applyResizePolicy()
+
+    def _applyResizePolicy(self):
+        if self.isShowingDetails():
+            self.setSizeGripEnabled(True)
+            self.setMinimumSize(self._PreferredWidth, 0)
+            self.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
+            self.adjustSize()
+        else:
+            self.setSizeGripEnabled(False)
+            self.setFixedSize(self.packedSize)
