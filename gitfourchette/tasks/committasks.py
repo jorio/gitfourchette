@@ -380,8 +380,8 @@ class NewTag(RepoTask):
     def prereqs(self):
         return TaskPrereqs.NoUnborn
 
-    def flow(self, oid: Oid = NULL_OID, signIt: bool = False):
-        if signIt:
+    def flow(self, oid: Oid = NULL_OID, annotation: str | None = None):
+        if annotation is not None:
             yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to New Tag"))
 
         repo = self.repo
@@ -405,15 +405,21 @@ class NewTag(RepoTask):
         forceCreate = dlg.ui.forceCheckBox.isEnabled() and dlg.ui.forceCheckBox.isChecked()
         dlg.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
         self.epilog.effects |= TaskEffects.Refs
 
         refName = RefPrefix.TAGS + tagName
 
-        if signIt:
-            repo.create_tag(tagName, oid, ObjectType.COMMIT, self.repo.default_signature, "")
+        if annotation is not None:
+            # Annotated tag
+            raise NotImplementedError("annotated tags not supported yet")  # git tag -mMSG NAME OID
         else:
-            repo.create_reference(refName, oid, force=forceCreate)
+            # Lightweight tag
+            yield from self.flowCallGit(
+                "tag",
+                *argsIf(forceCreate, "--force"),
+                "--",
+                tagName,
+                str(oid))
 
         self.epilog.status = _("Tag {0} created on commit {1}.", tquo(tagName), tquo(shortHash(oid)))
 
@@ -445,19 +451,17 @@ class DeleteTag(RepoTask):
         pushTo = dlg.ui.remoteComboBox.currentData()
         dlg.deleteLater()
 
-        yield from self.flowEnterWorkerThread()
         self.epilog.effects |= TaskEffects.Refs
 
         # Stay on this commit after the operation
         if tagTarget:
             self.epilog.jumpTo = NavLocator.inCommit(tagTarget)
 
-        self.repo.delete_tag(tagName)
+        yield from self.flowCallGit("tag", "--delete", "--", tagName)
 
         if pushIt:
             refspec = f":{RefPrefix.TAGS}{tagName}"
             from gitfourchette.tasks import PushRefspecs
-            yield from self.flowEnterUiThread()
             yield from self.flowSubtask(PushRefspecs, pushTo, [refspec])
 
 
