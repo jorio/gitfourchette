@@ -8,7 +8,6 @@ import logging
 from contextlib import suppress
 from pathlib import Path
 
-from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
@@ -97,7 +96,7 @@ class NewCommit(RepoTask):
         signatureIsOverridden = overriddenSignatureKind != SignatureOverride.Nothing
         explicitGpgSign = cd.ui.gpg.explicitSign()
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
-        signoff = settings.prefs.signOffEnabled and cd.ui.signOffCheckBox.isChecked()
+        signoff = cd.ui.signoffButton.explicitSign()
 
         # Save commit message/signature as draft now,
         # so we don't lose it if the commit operation fails or is rejected.
@@ -243,7 +242,7 @@ class AmendCommit(RepoTask):
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
         explicitGpgSign = cd.ui.gpg.explicitSign()
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
-        signoff = settings.prefs.signOffEnabled and cd.ui.signOffCheckBox.isChecked()
+        signoff = cd.ui.signoffButton.explicitSign()
 
         self.epilog.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
         args, env = NewCommit.prepareGitCommand(

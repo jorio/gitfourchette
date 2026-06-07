@@ -28,4 +28,5 @@ QFaintSeparator { border: none; background: rgba(0, 0, 0, 15%); }
 
 /* Remove QToolButton dropdown arrow in Fusion style */
 DiffButtons QToolButton::menu-indicator,
+SignoffButton::menu-indicator,
 GpgButton::menu-indicator { image: none; }

@@ -834,39 +834,6 @@ def testDeleteTag(tempDir, mainWindow, method):
     assert tagToDelete not in rw.repo.listall_tags()
 
 
-def testSignOffFeatureHiddenWhenDisabled(tempDir, mainWindow):
-    """With the feature disabled by default, the Sign off checkbox is hidden in the commit dialog."""
-    # Stage an empty file and open the commit dialog
-    wd = unpackRepo(tempDir)
-    rw = mainWindow.openRepo(wd)
-    rw.diffArea.commitButton.click()
-    acceptQMessageBox(rw, "empty commit")
-    dialog = findQDialog(rw, "commit")
-
-    # Feature should be disabled by default
-    assert not dialog.ui.signOffCheckBox.isVisible()
-    dialog.reject()
-
-
-def testSignOffFeatureVisibleWhenEnabledInSettings(tempDir, mainWindow):
-    """Enabling the feature in the settings window makes the Sign off checkbox appear in the commit dialog."""
-    # Enable the feature via the settings window
-    prefsDialog = mainWindow.openPrefsDialog("signOffEnabled")
-    checkBox: QCheckBox = prefsDialog.findChild(QCheckBox, "prefctl_signOffEnabled")
-    assert checkBox is not None
-    checkBox.setChecked(True)
-    prefsDialog.accept()
-
-    # Commit dialog should now show the Sign off checkbox
-    wd = unpackRepo(tempDir)
-    rw = mainWindow.openRepo(wd)
-    rw.diffArea.commitButton.click()
-    acceptQMessageBox(rw, "empty commit")
-    dialog = findQDialog(rw, "commit")
-    assert dialog.ui.signOffCheckBox.isVisible()
-    dialog.reject()
-
-
 def testSignOffAddsSignedOffByLine(tempDir, mainWindow):
     """When the feature is enabled and the user checks Sign off, the commit gets a Signed-off-by line."""
     # Enable the feature
@@ -881,10 +848,15 @@ def testSignOffAddsSignedOffByLine(tempDir, mainWindow):
     rw.diffArea.commitButton.click()
 
     # Create a commit with sign-off
-    dialog = findQDialog(rw, "commit")
-    assert dialog.ui.signOffCheckBox.isVisible()
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
     dialog.ui.summaryEditor.setText("Commit with sign-off")
-    dialog.ui.signOffCheckBox.setChecked(True)
+
+    signoffAction: QAction = dialog.ui.signoffButton.actions()[0]
+    assert findTextInWidget(signoffAction, "Signed-off-by")
+    assert not signoffAction.isChecked()
+    signoffAction.trigger()
+    assert signoffAction.isChecked()
+
     dialog.accept()
 
     # Commit should have a Signed-off-by line

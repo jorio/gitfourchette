@@ -467,8 +467,6 @@ class TrTables:
             ),
             "graphRowHeight": _("Row spacing"),
             "flattenLanes": _("Avoid gaps between branches in the graph"),
-            "signOffEnabled": _("Show “Sign off” checkbox in commit dialog"),
-            "signOffEnabled_help": _("When enabled, the commit dialog offers a “Sign off” option to add a Signed-off-by line (Developer Certificate of Origin)."),
             "authorDiffAsterisk": _("Mark author/committer signature differences"),
             "authorDiffAsterisk_help": paragraphs(
                 _("The commit history displays information about a commit’s <b>author</b>—"
