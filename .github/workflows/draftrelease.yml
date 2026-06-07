@@ -1,0 +1,39 @@
+name: Draft New Release
+on:
+  workflow_dispatch:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  call-build:
+    uses: ./.github/workflows/builds.yml
+
+  create-release:
+    needs: call-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: parsechangelog
+        run: python .github/workflows/parsechangelog.py
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+        
+      - run: ls -Rl artifacts
+
+      - name: Create draft release
+        run: |
+          gh release create "${{ steps.parsechangelog.outputs.releasetag }}" \
+            artifacts/GitFourchette-*/*.AppImage \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${{ steps.parsechangelog.outputs.releasetag }}" \
+            --notes-file github_actions_release_notes.md \
+            --draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
