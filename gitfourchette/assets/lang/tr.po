@@ -4,48 +4,55 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2026-06-08 20:01+0000\n"
+"Last-Translator: Selçuk Özdemir <s_05_60@hotmail.com>\n"
+"Language-Team: Turkish <https://hosted.weblate.org/projects/gitfourchette/"
+"gitfourchette/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2026.6\n"
 
 #: application.py:118 forms/aboutdialog.py:56
 msgid "The comfortable Git UI for Linux."
-msgstr ""
+msgstr "Linux için rahat kullanıcı arayüzü."
 
 #: application.py:121
 msgid "Repository paths to open on launch."
-msgstr ""
+msgstr "Başlatma sırasında açılacak kod deposunun yolları."
 
 #: application.py:308
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
 msgstr ""
+"Tercih ettiğiniz Qt bağlayıcısı {0} bu bilgisayarda mevcut değil. Bunun "
+"yerine {1} kullanılıyor."
 
 #: application.py:310
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not recognized by {app}. Using {1} instead. (Supported values: {known})"
 msgstr ""
+"Tercih ettiğiniz Qt bağlayıcısı {0}, {app} tarafından tanınmıyor. Bunun "
+"yerine {1} kullanılıyor. (Desteklenen değerler: {known})"
 
 #: application.py:314
 msgid "Qt binding unavailable"
-msgstr ""
+msgstr "Qt bağlayıcısı mevcut değil"
 
 #: application.py:447
 #, python-brace-format
 msgid "Couldn’t start {0} ({1})."
-msgstr ""
+msgstr "{0} ({1}) başlatılamadı."
 
 #: application.py:448
 msgid "Please make sure OpenSSH is installed on your system."
-msgstr ""
+msgstr "Lütfen sisteminizde OpenSSH'nin kurulu olduğundan emin olun."
 
 #: application.py:449
 msgid "SSH agent"
-msgstr ""
+msgstr "SSH aracısı"
 
 #: blameview/blamegutter.py:176
 msgid "(Uncommitted)"
@@ -56,7 +63,7 @@ msgstr ""
 #: forms/contextheader.py:122 forms/prefsdialog.py:249 tasks/misctasks.py:95
 #: tasks/nettasks.py:298 tasks/repotask.py:72
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: blameview/blamegutter.py:212
 msgid "Not Committed Yet"
@@ -64,49 +71,49 @@ msgstr ""
 
 #: blameview/blamegutter.py:212 blameview/blamegutter.py:215
 msgid "commit"
-msgstr ""
+msgstr "işle"
 
 #: blameview/blamegutter.py:216
 msgid "author"
-msgstr ""
+msgstr "yazar"
 
 #: blameview/blamegutter.py:217
 msgid "date"
-msgstr ""
+msgstr "tarih"
 
 #: blameview/blamegutter.py:218
 msgid "file name"
-msgstr ""
+msgstr "dosya adı"
 
 #: blameview/blamegutter.py:219
 msgid "revision"
-msgstr ""
+msgstr "gözden geçirme"
 
 #: blameview/blamescrubberdelegate.py:59 blameview/blamescrubbermodel.py:42
 msgid "Uncommitted Changes in Working Directory"
-msgstr ""
+msgstr "Çalışma Dizinindeki İşlenmemiş Değişiklikler"
 
 #: blameview/blametextedit.py:39
 msgid "Blame File at Uncommitted Revision"
-msgstr ""
+msgstr "İşlenmemiş Revizyondaki Hata Dosyası"
 
 #: blameview/blametextedit.py:40
 msgid "Show Diff in Working Directory"
-msgstr ""
+msgstr "Çalışma Dizininde Farkları Göster"
 
 #: blameview/blametextedit.py:42
 #, python-brace-format
 msgid "Blame File at {0}"
-msgstr ""
+msgstr "{0} konumundaki hatalı dosya"
 
 #: blameview/blametextedit.py:43
 #, python-brace-format
 msgid "Show {0} in Repo"
-msgstr ""
+msgstr "Kod Depo'sunda {0}'ı göster"
 
 #: blameview/blamewindow.py:46
 msgid "Jump"
-msgstr ""
+msgstr "Atla"
 
 #: blameview/blamewindow.py:47
 msgid "View this commit in the repo"
