@@ -26,9 +26,6 @@ class GpgButton(QToolButton):
         self.willSign = bool(flag and key)
         canSign = bool(key)
 
-        # Less intrusive button if user hasn't set up their key
-        self.setAutoRaise(not canSign)
-
         keyAction = QAction(self)
         if key:
             keyAction.setText(_("Signing key: {0}", escamp(key)))

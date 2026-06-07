@@ -126,19 +126,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="signOffCheckBox">
-       <property name="text">
-        <string>&amp;Sign off</string>
-       </property>
-       <property name="toolTip">
-        <string>Add a Signed-off-by line (Developer Certificate of Origin)</string>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QHintButton" name="signatureButton">
        <property name="focusPolicy">
         <enum>Qt::FocusPolicy::NoFocus</enum>
@@ -163,6 +150,13 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="SignoffButton" name="signoffButton">
+       <property name="text">
+        <string notr="true">SOB</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="GpgButton" name="gpg">
@@ -204,6 +198,12 @@
    <class>GpgButton</class>
    <extends>QToolButton</extends>
    <header>gitfourchette.forms.gpgbutton</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>SignoffButton</class>
+   <extends>QToolButton</extends>
+   <header>gitfourchette.forms.signoffbutton</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
