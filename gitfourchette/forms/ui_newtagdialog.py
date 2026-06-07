@@ -66,4 +66,4 @@ class Ui_NewTagDialog(object):
         self.label.setText(_p("NewTagDialog", "&Name:"))
         self.nameEdit.setPlaceholderText(_p("NewTagDialog", "Enter tag name"))
         self.pushCheckBox.setText(_p("NewTagDialog", "&Push to:"))
-        self.forceCheckBox.setText(_p("NewTagDialog", "Replace an existing tag"))
+        self.forceCheckBox.setText(_p("NewTagDialog", "Replace existing tag (locally only)"))

@@ -67,7 +67,7 @@
    <item row="2" column="1">
     <widget class="QCheckBox" name="forceCheckBox">
      <property name="text">
-      <string>Replace an existing tag</string>
+      <string>Replace existing tag (locally only)</string>
      </property>
     </widget>
    </item>
