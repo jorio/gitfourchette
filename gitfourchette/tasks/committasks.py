@@ -402,7 +402,7 @@ class NewTag(RepoTask):
         tagName = dlg.ui.nameEdit.text()
         pushIt = dlg.ui.pushCheckBox.isChecked()
         pushTo = dlg.ui.remoteComboBox.currentData()
-        forceCreate = dlg.ui.forceCheckBox.isChecked()
+        forceCreate = dlg.ui.forceCheckBox.isEnabled() and dlg.ui.forceCheckBox.isChecked()
         dlg.deleteLater()
 
         yield from self.flowEnterWorkerThread()

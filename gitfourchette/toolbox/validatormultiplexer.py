@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -41,9 +41,8 @@ class ValidatorMultiplexer(QObject):
     class Input:
         widget: QLineEdit
         validate: ValidatorMultiplexer.CallbackFunc
-        showError: bool
         mustBeValid: bool
-        errorButton: QAction
+        indicator: QAction | None
         error: str = ""
 
     gatedWidgets: list[QWidget]
@@ -53,6 +52,7 @@ class ValidatorMultiplexer(QObject):
     def __init__(self, parent):
         super().__init__(parent)
         self.gatedWidgets = []
+        self.inverseGatedWidgets = []
         self.inputs = []
         self.toolTipDelay = QTimer(self)
         self.toolTipDelay.setSingleShot(True)
@@ -70,21 +70,25 @@ class ValidatorMultiplexer(QObject):
         assert isinstance(edit, QLineEdit)
         assert callable(validate)
 
-        errorButton: QAction = edit.addAction(stockIcon("achtung"), QLineEdit.ActionPosition.TrailingPosition)
-        errorButton.setVisible(False)
-        errorButton.setObjectName("ValidatorMultiplexerLineEditAction")
+        if showError:
+            errorButton = edit.addAction(stockIcon("achtung"), QLineEdit.ActionPosition.TrailingPosition)
+            errorButton.setVisible(False)
+            errorButton.setObjectName("ValidatorMultiplexerLineEditAction")
 
-        newInput = ValidatorMultiplexer.Input(edit, validate, showError, mustBeValid, errorButton)
+            self.toolTipDelay.timeout.connect(lambda: self.showToolTip(newInput, False))
+            errorButton.triggered.connect(lambda _: self.showToolTip(newInput, True))
+        else:
+            errorButton = None
+
+        newInput = ValidatorMultiplexer.Input(edit, validate, mustBeValid, errorButton)
 
         self.inputs.append(newInput)
         edit.textChanged.connect(self.run)
 
-        self.toolTipDelay.timeout.connect(lambda: self.showToolTip(newInput, False))
-        errorButton.triggered.connect(lambda _: self.showToolTip(newInput, True))
-
     def run(self, silenceEmptyWarnings=False):
-        self.toolTipDelay.stop()
-        QToolTip.hideText()
+        if any(i.indicator for i in self.inputs):
+            self.toolTipDelay.stop()
+            QToolTip.hideText()
 
         # Run validators on each input
         success = True
@@ -92,20 +96,23 @@ class ValidatorMultiplexer(QObject):
             if not input.widget.isEnabled():  # Skip disabled inputs
                 input.error = ""
                 continue
+
             inputText = input.widget.text()
             input.error = input.validate(inputText)
+
             if input.error:
                 success &= not input.mustBeValid
                 if silenceEmptyWarnings and not inputText:
                     # Hide "cannot be empty" message, but do disable gated widgets if this input is required
                     input.error = ""
 
-            input.errorButton.setToolTip(input.error)
-            input.errorButton.setVisible(input.showError and bool(input.error))
+            if input.indicator:
+                input.indicator.setToolTip(input.error)
+                input.indicator.setVisible(bool(input.error))
 
-            # Schedule tooltip only if failed input has focus
-            if input.error and input.showError and input.widget.hasFocus():
-                self.toolTipDelay.start()
+                # Schedule tooltip only if failed input has focus
+                if input.error and input.widget.hasFocus():
+                    self.toolTipDelay.start()
 
         # Enable/disable gated widgets depending on validation success
         for w in self.gatedWidgets:

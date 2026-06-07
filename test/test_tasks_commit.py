@@ -756,8 +756,7 @@ def testNewTag(tempDir, mainWindow):
     assert newTag in rw.repo.listall_tags()
 
 
-@pytest.mark.parametrize("forceEnabled,tagOidChanged", [[False, False], [True, True]])
-def testForceNewTag(tempDir, mainWindow, forceEnabled, tagOidChanged):
+def testForceNewTag(tempDir, mainWindow):
     firstCommit = "2c349335b7f797072cf729c4f3bb0914ecb6dec9"  # "First a/a2"
     secondCommit = "ac7e7e44c1885efb472ad54a78327d66bfc4ecef"  # "First a/a1"
     newTag = "cool-tag"
@@ -782,17 +781,20 @@ def testForceNewTag(tempDir, mainWindow, forceEnabled, tagOidChanged):
     dlg: NewTagDialog = findQDialog(rw, "new tag")
     okButton = dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
 
-    QTest.keyClicks(dlg.ui.nameEdit, newTag)
+    # 'Replace' checkbox disabled until it's needed
+    assert not dlg.ui.forceCheckBox.isEnabled()
+
+    # Type in a tag name that already exists
+    dlg.ui.nameEdit.setText(newTag)
+
     assert not okButton.isEnabled()  # disabled b/c tag name is duplicated
+    assert dlg.ui.forceCheckBox.isEnabled()
+    dlg.ui.forceCheckBox.setChecked(True)
 
-    if forceEnabled:
-        QTest.mouseClick(dlg.ui.forceCheckBox, Qt.MouseButton.LeftButton)
-        assert okButton.isEnabled()
-        dlg.accept()
-    else:
-        dlg.reject()
+    assert okButton.isEnabled()
+    dlg.accept()
 
-    assert (rw.repo.commit_id_from_tag_name(newTag) == secondOid) is tagOidChanged
+    assert rw.repo.commit_id_from_tag_name(newTag) == secondOid
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
