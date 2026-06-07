@@ -43,20 +43,23 @@ class Ui_NewTagDialog(object):
         self.remoteComboBox.setObjectName("remoteComboBox")
         self.horizontalLayout.addWidget(self.remoteComboBox)
         self.formLayout.setLayout(1, QFormLayout.ItemRole.FieldRole, self.horizontalLayout)
+        self.forceCheckBox = QCheckBox(parent=NewTagDialog)
+        self.forceCheckBox.setObjectName("forceCheckBox")
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.forceCheckBox)
         self.buttonBox = QDialogButtonBox(parent=NewTagDialog)
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.formLayout.setWidget(5, QFormLayout.ItemRole.SpanningRole, self.buttonBox)
-        self.forceCheckBox = QCheckBox(parent=NewTagDialog)
-        self.forceCheckBox.setObjectName("forceCheckBox")
-        self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.forceCheckBox)
+        self.formLayout.setWidget(3, QFormLayout.ItemRole.SpanningRole, self.buttonBox)
         self.label.setBuddy(self.nameEdit)
 
         self.retranslateUi(NewTagDialog)
         self.buttonBox.accepted.connect(NewTagDialog.accept) # type: ignore
         self.buttonBox.rejected.connect(NewTagDialog.reject) # type: ignore
         self.pushCheckBox.toggled['bool'].connect(self.remoteComboBox.setEnabled) # type: ignore
+        NewTagDialog.setTabOrder(self.nameEdit, self.pushCheckBox)
+        NewTagDialog.setTabOrder(self.pushCheckBox, self.remoteComboBox)
+        NewTagDialog.setTabOrder(self.remoteComboBox, self.forceCheckBox)
 
     def retranslateUi(self, NewTagDialog):
         NewTagDialog.setWindowTitle(_p("NewTagDialog", "New tag"))

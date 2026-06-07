@@ -8,7 +8,6 @@ import os.path
 
 import pytest
 
-from gitfourchette import qt
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
