@@ -84,8 +84,9 @@ class DeleteRemoteBranch(RepoTask):
             "push",
             "--porcelain",
             "--progress",
-            remoteName,
             "--delete",
+            "--",
+            remoteName,
             branchNameOnRemote)
 
         self.epilog.status = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
@@ -149,6 +150,7 @@ class RenameRemoteBranch(RepoTask):
             "--porcelain",
             "--progress",
             "--atomic",
+            "--",
             remoteName,
             refspec1,
             refspec2)
@@ -175,8 +177,8 @@ class FetchRemotes(RepoTask):
             "--prune",
             "--progress",
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
-            *argsIf(bool(singleRemoteName), "--no-all", singleRemoteName),
-            *argsIf(not singleRemoteName, "--all"))
+            *argsIf(not singleRemoteName, "--all"),
+            *argsIf(bool(singleRemoteName), "--no-all", "--", singleRemoteName))
 
         # Old git: no --porcelain support, don't attempt to parse the ref table
         if not GitDriver.supportsFetchPorcelain():  # pragma: no cover
@@ -249,6 +251,7 @@ class FetchRemoteBranch(RepoTask):
             "--progress",
             "--no-tags",
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
+            "--",
             remoteName,
             remoteBranch)
 

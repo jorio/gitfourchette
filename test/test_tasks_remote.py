@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -32,6 +32,7 @@ def testNewRemote(tempDir, mainWindow, method):
 
     node = rw.sidebar.findNodeByKind(SidebarItem.RemotesHeader)
 
+    # Cover different ways to open the Add Remote dialog
     if method == "menubar":
         triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
     elif method == "sidebarmenu":
@@ -44,15 +45,25 @@ def testNewRemote(tempDir, mainWindow, method):
     else:
         raise NotImplementedError(f"unknown method {method}")
 
-    q: RemoteDialog = findQDialog(rw, "add remote")
-    q.ui.nameEdit.setText("otherremote")
-    q.ui.urlEdit.setText(barePath)
-    q.ui.fetchAfterAddCheckBox.setChecked(True)
-    q.accept()
+    dlg: RemoteDialog = findQDialog(rw, "add remote")
+    okButton = dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+
+    dlg.ui.urlEdit.setText(barePath)
+    dlg.ui.fetchAfterAddCheckBox.setChecked(True)
+
+    # Test name validator
+    for badName in ("", "origin", ".remote", "-remote"):
+        dlg.ui.nameEdit.setText(badName)
+        assert not okButton.isEnabled()
+
+    # Set correct name
+    dlg.ui.nameEdit.setText("otherremote")
+    assert okButton.isEnabled()
+    okButton.click()
 
     assert len(repo.remotes) == 2
-    assert repo.remotes[1].name == "otherremote"
-    assert repo.remotes[1].url == barePath
+    theRemote = next(r for r in repo.remotes if r.name == "otherremote")
+    assert theRemote.url == barePath
     assert rw.sidebar.countNodesByKind(SidebarItem.Remote) == 2
     assert next(n for n in rw.sidebar.findNodesByKind(SidebarItem.Remote) if n.data == "origin")
     assert next(n for n in rw.sidebar.findNodesByKind(SidebarItem.Remote) if n.data == "otherremote")
@@ -105,9 +116,8 @@ def testEditRemote(tempDir, mainWindow, method):
 def testDeleteRemote(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    repo = rw.repo
 
-    assert repo.remotes["origin"] is not None
+    assert rw.repo.remotes["origin"] is not None
     assert any("/origin/" in n.data for n in rw.sidebar.findNodesByKind(SidebarItem.RemoteBranch))
 
     node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
@@ -124,7 +134,7 @@ def testDeleteRemote(tempDir, mainWindow, method):
 
     acceptQMessageBox(rw, "really remove remote")
 
-    assert len(list(repo.remotes)) == 0
+    assert len(list(rw.repo.remotes)) == 0
     assert not any("/origin/" in n.data for n in rw.sidebar.findNodesByKind(SidebarItem.RemoteBranch))
 
 

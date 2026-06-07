@@ -751,6 +751,7 @@ def testNewTag(tempDir, mainWindow):
 
     dlg: NewTagDialog = findQDialog(rw, "new tag")
     QTest.keyClicks(dlg.ui.nameEdit, newTag)
+    assert dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).isEnabled()
     dlg.accept()
 
     assert newTag in rw.repo.listall_tags()

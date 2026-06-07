@@ -204,7 +204,7 @@ def testRenameBranch(tempDir, mainWindow, method):
         "@",
         "nope.lock", "nope/", "nope.",
         "nope/.nope", "nope//nope", "nope@{nope", "no..pe",
-        ".nope", "/nope",
+        ".nope", "/nope", "-nope",
         "no~pe", "no^pe", "no:pe", "no[pe", "no?pe", "no*pe", "no\\pe",
         "nul", "nope/nul", "nul/nope", "lpt3", "com2",
     ]

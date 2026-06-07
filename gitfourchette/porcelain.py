@@ -329,7 +329,7 @@ def split_remote_branch_shorthand(remote_branch_name: str) -> tuple[str, str]:
         return remote_branch_name, ""
 
 
-def validate_refname(name: str, reserved_names: list[str]):
+def validate_refname(name: str, reserved_names: list[str], allow_dash_prefix: bool = False):
     """
     Checks the validity of a ref name according to `man git-check-ref-format`.
     Raises NameValidationError if the name is incorrect.
@@ -340,39 +340,43 @@ def validate_refname(name: str, reserved_names: list[str]):
         raise NameValidationError(NameValidationError.Rule.CANNOT_BE_EMPTY)
 
     # Rule 9: can't be single character '@'
-    elif name == '@':
+    if name == '@':
         raise NameValidationError(NameValidationError.Rule.ILLEGAL_NAME)
 
     # Rule 4: forbid space, tilde, caret, colon
     # Rule 5: forbid question mark, asterisk, open bracket
     # Rule 10: forbid backslash
-    elif any(c in " ~^:[?*\\" for c in name):
+    if any(c in " ~^:[?*\\" for c in name):
         raise NameValidationError(NameValidationError.Rule.CONTAINS_ILLEGAL_CHAR)
 
     # Rule 1: slash-separated components can't start with dot or end with .lock
     # Rule 3: forbid consecutive dots
     # Rule 6: forbid consecutive slashes
     # Rule 8: forbid '@{'
-    elif any(seq in name for seq in ["/.", ".lock/", "..", "//", "@{"]):
+    if any(seq in name for seq in ["/.", ".lock/", "..", "//", "@{"]):
         raise NameValidationError(NameValidationError.Rule.CONTAINS_ILLEGAL_SEQ)
 
     # Rule 1: can't start with dot
     # Rule 6: can't start with slash
-    elif name.startswith((".", "/")):
+    if name.startswith((".", "/")):
+        raise NameValidationError(NameValidationError.Rule.ILLEGAL_PREFIX)
+
+    # Also: branches and tags can't start with dash
+    if not allow_dash_prefix and name.startswith("-"):
         raise NameValidationError(NameValidationError.Rule.ILLEGAL_PREFIX)
 
     # Rule 1: can't end with .lock
     # Rule 6: can't end with slash
     # Rule 7: can't end with dot
-    elif name.endswith((".lock", "/", ".")):
+    if name.endswith((".lock", "/", ".")):
         raise NameValidationError(NameValidationError.Rule.ILLEGAL_SUFFIX)
 
     # Prevent filenames that are reserved on Windows
-    elif WINDOWS_RESERVED_FILENAMES_PATTERN.match(name):
+    if WINDOWS_RESERVED_FILENAMES_PATTERN.match(name):
         raise NameValidationError(NameValidationError.Rule.NOT_WINDOWS_FRIENDLY)
 
     # Don't clash with existing refs
-    elif name.lower() in (n.lower() for n in reserved_names):
+    if name.lower() in (n.lower() for n in reserved_names):
         raise NameValidationError(NameValidationError.Rule.NAME_TAKEN_BY_REF)
 
     # Don't clash with ref folders. If you attempt to rename a branch to the
