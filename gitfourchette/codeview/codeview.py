@@ -40,6 +40,8 @@ class CodeView(QPlainTextEdit):
     currentLocator: NavLocator
     isDetachedWindow: bool
 
+    FormattingMarkFlags = QTextOption.Flag.ShowTabsAndSpaces
+
     def __init__(self, gutterClass, highlighterClass=CodeHighlighter, parent=None):
         super().__init__(parent)
 
@@ -284,6 +286,7 @@ class CodeView(QPlainTextEdit):
         tabWidth = settings.prefs.tabSpaces
         self.setTabStopDistance(QFontMetricsF(monoFont).horizontalAdvance(' ' * tabWidth))
         self.refreshWordWrap()
+        self.refreshFormattingMarksOption()
         self.setCursorWidth(2)
 
         self.gutter.syncFont(monoFont)
@@ -307,7 +310,6 @@ class CodeView(QPlainTextEdit):
         styleSheet = scheme.basicQss(self)
         self.setStyleSheet(styleSheet)
 
-
     def refreshWordWrap(self):
         if settings.prefs.wordWrap:
             wrapMode = QPlainTextEdit.LineWrapMode.WidgetWidth
@@ -328,6 +330,19 @@ class CodeView(QPlainTextEdit):
         settings.prefs.wordWrap = not settings.prefs.wordWrap
         settings.prefs.write()
         GFApplication.instance().prefsChanged.emit(["wordWrap"])
+
+    def refreshFormattingMarksOption(self):
+        doc = self.document()
+        if doc is None:
+            return
+        opt = QTextOption(doc.defaultTextOption())
+        flags = opt.flags()
+        if settings.prefs.showFormattingMarks:
+            flags |= self.FormattingMarkFlags
+        else:
+            flags &= ~self.FormattingMarkFlags
+        opt.setFlags(flags)
+        doc.setDefaultTextOption(opt)
 
     # ---------------------------------------------
     # Context menu

@@ -41,8 +41,6 @@ class DiffView(CodeView):
     currentDiffDocument: DiffDocument | None
     repo: Repo | None
 
-    FormattingMarkFlags = QTextOption.Flag.ShowTabsAndSpaces
-
     def __init__(self, parent=None):
         super().__init__(gutterClass=DiffGutter, highlighterClass=DiffHighlighter, parent=parent)
 
@@ -63,20 +61,6 @@ class DiffView(CodeView):
         self.gutter.lineDoubleClicked.connect(self.selectClumpOfLinesAt)
         self.gutter.selectionMiddleClicked.connect(self.onMiddleClick)
 
-    def refreshPrefs(self, changeColorScheme=True):
-        super().refreshPrefs(changeColorScheme)
-        self._applyFormattingMarksTextOption()
-
-    def _applyFormattingMarksTextOption(self):
-        doc = self.document()
-        opt = QTextOption(doc.defaultTextOption())
-        flags = opt.flags()
-        if settings.prefs.showFormattingMarks:
-            flags |= self.FormattingMarkFlags
-        else:
-            flags &= ~self.FormattingMarkFlags
-        opt.setFlags(flags)
-        doc.setDefaultTextOption(opt)
 
     def _initRubberBandButtons(self):
         self.stageButton = QToolButton()
