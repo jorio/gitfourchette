@@ -30,33 +30,6 @@ logger = logging.getLogger(__name__)
 _emptyDelta = GitDelta()
 
 
-def _qtIntEnumValue(x) -> int:
-    """Coerce Qt6/PySide6 enum Flag values to int (bitwise ops need int, not Flag)."""
-    if isinstance(x, int):
-        return x
-    val = getattr(x, "value", None)
-    if isinstance(val, int):
-        return val
-    return int(x)
-
-
-def _formattingMarkTextOptionFlags() -> int:
-    try:
-        f = QTextOption.Flag
-        option = f.ShowTabsAndSpaces
-    except AttributeError:  # PyQt5
-        option = QTextOption.ShowTabsAndSpaces
-    return _qtIntEnumValue(option)
-
-
-def _qtextoptionFlagsForSetter(flags: int):
-    """PySide6 setFlags() requires QTextOption.Flag, not int; PyQt5 uses plain int."""
-    try:
-        return QTextOption.Flag(flags)
-    except (AttributeError, TypeError, ValueError):
-        return flags
-
-
 class DiffView(CodeView):
     contextualHelp = Signal(str)
     selectionActionable = Signal(bool)
@@ -67,6 +40,8 @@ class DiffView(CodeView):
     currentDelta: GitDelta
     currentDiffDocument: DiffDocument | None
     repo: Repo | None
+
+    FormattingMarkFlags = QTextOption.Flag.ShowTabsAndSpaces
 
     def __init__(self, parent=None):
         super().__init__(gutterClass=DiffGutter, highlighterClass=DiffHighlighter, parent=parent)
@@ -94,16 +69,13 @@ class DiffView(CodeView):
 
     def _applyFormattingMarksTextOption(self):
         doc = self.document()
-        if not doc:
-            return
         opt = QTextOption(doc.defaultTextOption())
-        flags = _qtIntEnumValue(opt.flags())
-        markFlags = _formattingMarkTextOptionFlags()
+        flags = opt.flags()
         if settings.prefs.showFormattingMarks:
-            flags |= markFlags
+            flags |= self.FormattingMarkFlags
         else:
-            flags &= ~markFlags
-        opt.setFlags(_qtextoptionFlagsForSetter(flags))
+            flags &= ~self.FormattingMarkFlags
+        opt.setFlags(flags)
         doc.setDefaultTextOption(opt)
 
     def _initRubberBandButtons(self):

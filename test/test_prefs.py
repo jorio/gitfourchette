@@ -7,7 +7,6 @@
 import textwrap
 
 from gitfourchette import settings
-from gitfourchette.diffview.diffview import _formattingMarkTextOptionFlags, _qtIntEnumValue
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.gitdriver.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
@@ -158,18 +157,18 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
 
 
 def testPrefsShowFormattingMarks(tempDir, mainWindow):
-    markFlags = _formattingMarkTextOptionFlags()
+    markFlags = QTextOption.Flag.ShowTabsAndSpaces
 
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/marks.txt", "x\t y\n")
     rw = mainWindow.openRepo(wd)
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("marks.txt"))
 
-    def formatting_mark_bits_set() -> bool:
-        f = _qtIntEnumValue(rw.diffView.document().defaultTextOption().flags())
+    def formattingMarksBitsSet() -> bool:
+        f = rw.diffView.document().defaultTextOption().flags()
         return (f & markFlags) == markFlags
 
-    assert not formatting_mark_bits_set()
+    assert not formattingMarksBitsSet()
 
     dlg = mainWindow.openPrefsDialog("showFormattingMarks")
     checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
@@ -179,15 +178,15 @@ def testPrefsShowFormattingMarks(tempDir, mainWindow):
     dlg.accept()
 
     assert settings.prefs.showFormattingMarks
-    assert formatting_mark_bits_set()
+    assert formattingMarksBitsSet()
 
     dlg = mainWindow.openPrefsDialog("showFormattingMarks")
-    checkBox2: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
-    checkBox2.setChecked(False)
+    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
+    checkBox.setChecked(False)
     dlg.accept()
 
     assert not settings.prefs.showFormattingMarks
-    assert not formatting_mark_bits_set()
+    assert not formattingMarksBitsSet()
 
 
 def testComparisonMethodGitArgv(monkeypatch):

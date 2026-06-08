@@ -9,7 +9,7 @@ import re
 import textwrap
 
 from gitfourchette import settings
-from gitfourchette.diffview.diffview import DiffView, _formattingMarkTextOptionFlags, _qtIntEnumValue
+from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -825,7 +825,7 @@ def testToggleWordWrap(tempDir, mainWindow):
 
 
 def testToggleFormattingMarksHeaderButton(tempDir, mainWindow):
-    markFlags = _formattingMarkTextOptionFlags()
+    markFlags = QTextOption.Flag.ShowTabsAndSpaces
 
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/marks.txt", "x\t y\n")
@@ -838,7 +838,7 @@ def testToggleFormattingMarksHeaderButton(tempDir, mainWindow):
     assert formattingMarksButton is not None
 
     def formattingMarkBitsSet() -> bool:
-        f = _qtIntEnumValue(dv.document().defaultTextOption().flags())
+        f = dv.document().defaultTextOption().flags()
         return (f & markFlags) == markFlags
 
     assert not settings.prefs.showFormattingMarks
@@ -848,7 +848,6 @@ def testToggleFormattingMarksHeaderButton(tempDir, mainWindow):
     for enableMarks in [True, False]:
         if formattingMarksButton.isChecked() != enableMarks:
             formattingMarksButton.click()
-            QTest.qWait(0)
 
         assert formattingMarksButton.isChecked() == enableMarks
         assert settings.prefs.showFormattingMarks == enableMarks
