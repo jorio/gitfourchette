@@ -23,7 +23,6 @@ from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavLocator, NavFlags
 from gitfourchette.qt import *
-from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import TaskBook, AmendCommit, NewCommit, NewStash
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -398,22 +397,12 @@ class DiffArea(QWidget):
             return
         settings.prefs.comparisonMethod = method
         settings.prefs.write()
-        LexJobCache.clear()
-        rw = self._repoWidget()
-        if rw is not None:
-            # Reload before prefsChanged: synchronous emit runs many slots; if it runs
-            # first, Jump.invoke can be ignored or the runner can still look busy.
-            rw.reloadCurrentPatchForPrefs(fullRepoRefresh=False)
+
         GFApplication.instance().prefsChanged.emit(["comparisonMethod"])
 
-    def _repoWidget(self):
-        """DiffArea sits under a QSplitter, not directly under RepoWidget."""
-        w = self.parent()
-        while w is not None:
-            if hasattr(w, "reloadCurrentPatchForPrefs"):
-                return w
-            w = w.parent()
-        return None
+        # Trigger a reload of the patch
+        # TODO: This is inelegant, but it does the job for now. Ideally prefsChanged would suffice?
+        GFApplication.instance().mainWindow.onAcceptPrefsDialog({"comparisonMethod": method})
 
     def applyCustomStyling(self):
         for smallButton in self.discardButton, self.unstageButton, self.stageButton:

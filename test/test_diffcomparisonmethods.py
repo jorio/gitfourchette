@@ -57,17 +57,8 @@ def _waitNoChangeSpecialVisible(rw):
     waitUntilTrue(ready, timeout=8000)
 
 
-def _applyComparisonMethodAndRefresh(mainWindow, method: ComparisonMethod):
+def _applyComparisonMethod(mainWindow, method: ComparisonMethod):
     mainWindow.onAcceptPrefsDialog({"comparisonMethod": method})
-
-
-def _applyComparisonMethodViaReloadCurrentPatch(rw, method: ComparisonMethod):
-    """Same as prefs dialog for comparisonMethod, but exercises Jump-only reload path."""
-    settings.prefs.comparisonMethod = method
-    settings.prefs.write()
-    LexJobCache.clear()
-    rw.reloadCurrentPatchForPrefs(fullRepoRefresh=False)
-    rw.taskRunner.joinWorkerThread()
 
 
 def _comparisonMethodAction(rw, method: ComparisonMethod) -> QAction:
@@ -103,7 +94,7 @@ def testComparisonMethodTabsVsSpacesInDiffView(
     rw.jump(NavLocator.inUnstaged(relpath), check=True)
     _waitUnifiedDiffVisible(rw)
 
-    _applyComparisonMethodAndRefresh(mainWindow, method)
+    _applyComparisonMethod(mainWindow, method)
     if expectUnifiedDiff:
         _waitUnifiedDiffVisible(rw)
     else:
@@ -124,10 +115,10 @@ def testReloadCurrentPatchWhenSwitchingWhitespaceMode(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged(relpath), check=True)
     _waitUnifiedDiffVisible(rw)
 
-    _applyComparisonMethodViaReloadCurrentPatch(rw, ComparisonMethod.IgnoreCrAtEolAndAllSpace)
+    _applyComparisonMethod(mainWindow, ComparisonMethod.IgnoreCrAtEolAndAllSpace)
     _waitNoChangeSpecialVisible(rw)
 
-    _applyComparisonMethodViaReloadCurrentPatch(rw, ComparisonMethod.Strict)
+    _applyComparisonMethod(mainWindow, ComparisonMethod.Strict)
     _waitUnifiedDiffVisible(rw)
 
 
@@ -173,7 +164,7 @@ def testComparisonMethodSpaceRunLengthInDiffview(
     rw.jump(NavLocator.inUnstaged(relpath), check=True)
     _waitUnifiedDiffVisible(rw)
 
-    _applyComparisonMethodAndRefresh(mainWindow, method)
+    _applyComparisonMethod(mainWindow, method)
     if expectUnifiedDiff:
         _waitUnifiedDiffVisible(rw)
     else:
@@ -205,7 +196,7 @@ def testComparisonMethodLfVsCrlfInDiffView(
     rw.jump(NavLocator.inUnstaged(relpath), check=True)
     _waitUnifiedDiffVisible(rw)
 
-    _applyComparisonMethodAndRefresh(mainWindow, method)
+    _applyComparisonMethod(mainWindow, method)
     if expectUnifiedDiff:
         _waitUnifiedDiffVisible(rw)
     else:

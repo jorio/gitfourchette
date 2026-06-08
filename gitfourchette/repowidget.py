@@ -21,7 +21,7 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.localization import *
-from gitfourchette.nav import NavHistory, NavLocator, NavContext, NavFlags
+from gitfourchette.nav import NavHistory, NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
@@ -558,26 +558,6 @@ class RepoWidget(QWidget):
             self.jump(self.navLocator)
 
     # -------------------------------------------------------------------------
-
-    def reloadCurrentPatchForPrefs(self, *, fullRepoRefresh: bool):
-        """
-        Re-run LoadPatch for the current navigation position (e.g. after prefs that
-        change `git diff` output).
-
-        Patch-only reload must call Jump directly: refreshRepo(TaskEffects.Nothing,
-        jumpTo=...) ORs in stashed pendingEffects and then runs RefreshRepo instead
-        of Jump, which can leave the visible diff stale.
-
-        Use fullRepoRefresh when the graph/refs need RefreshRepo (e.g. maxCommits).
-        """
-        locator = self.taskRunner.pendingEpilog.jumpTo or self.navLocator
-        if not locator:
-            return
-        locator = locator.withExtraFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
-        if fullRepoRefresh:
-            self.refreshRepo(TaskEffects.DefaultRefresh, jumpTo=locator)
-        else:
-            tasks.Jump.invoke(self, locator)
 
     def refreshRepo(
             self,
