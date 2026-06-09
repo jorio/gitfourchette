@@ -8,8 +8,8 @@ import logging
 import typing
 from typing import Literal
 
-from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.diffbuttons import DiffButtons
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.diffview.specialdiffview import SpecialDiffView
 from gitfourchette.filelists.committedfiles import CommittedFiles
@@ -25,7 +25,6 @@ from gitfourchette.nav import NavContext, NavLocator, NavFlags
 from gitfourchette.qt import *
 from gitfourchette.tasks import TaskBook, AmendCommit, NewCommit, NewStash
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 FileStackPage = Literal["workdir", "commit"]
 DiffStackPage = Literal["text", "special", "conflict"]
@@ -83,10 +82,8 @@ class DiffArea(QWidget):
         ):
             passiveWidget.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
 
-        app = GFApplication.instance()
-        if isinstance(app, GFApplication):
-            app.prefsChanged.connect(self._syncDiffHeaderToolButtons)
-        self._syncDiffHeaderToolButtons()
+        GFApplication.instance().prefsChanged.connect(self.diffButtons.refreshPrefs)
+        self.diffButtons.refreshPrefs()
 
         # Ignore height in size policy to keep DiffArea from jumping around when we're showing a banner.
         self.setSizePolicy(self.sizePolicy().horizontalPolicy(), QSizePolicy.Policy.Ignored)
@@ -265,65 +262,14 @@ class DiffArea(QWidget):
         # Absorb horizontal space so the path stays left and toolbar stays right.
         header.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
 
-        self._wordWrapButton = QToolButton(self)
-        self._wordWrapButton.setObjectName("diffHeaderWordWrapButton")
-        self._wordWrapButton.setCheckable(True)
-        self._wordWrapButton.setIcon(stockIcon("format-text-wrap"))
-        self._wordWrapButton.setToolTip(TrTables.prefKey("wordWrap"))
-        self._wordWrapButton.toggled.connect(self._onDiffHeaderWordWrapToggled)
-
-        self._formattingMarksButton = QToolButton(self)
-        self._formattingMarksButton.setObjectName("diffHeaderFormattingMarksButton")
-        self._formattingMarksButton.setCheckable(True)
-        self._formattingMarksButton.setIcon(stockIcon("paragraph"))
-        self._formattingMarksButton.setToolTip(TrTables.prefKey("showFormattingMarks"))
-        self._formattingMarksButton.toggled.connect(self._onDiffHeaderFormattingMarksToggled)
-
-        self._diffComparisonIconNames = (
-            "diff-whitespace-strict",
-            "diff-whitespace-ignore-eol",
-            "diff-whitespace-ignore-space-change",
-            "diff-whitespace-ignore-all-space",
-        )
-        self._diffComparisonMethodMenu = QMenu(self)
-        self._diffComparisonMethodMenu.setObjectName("diffHeaderComparisonMethodMenu")
-        comparisonActionGroup = QActionGroup(self)
-        comparisonActionGroup.setExclusive(True)
-        self._diffComparisonMethodActions: dict[settings.ComparisonMethod, QAction] = {}
-        for i, method in enumerate(settings.ComparisonMethod):
-            action = QAction(
-                stockIcon(self._diffComparisonIconNames[i]),
-                TrTables.enum(method),
-                self._diffComparisonMethodMenu,
-            )
-            action.setObjectName(f"diffHeaderComparisonMethod_{method.name}")
-            action.setCheckable(True)
-            comparisonActionGroup.addAction(action)
-            self._diffComparisonMethodMenu.addAction(action)
-            action.triggered.connect(lambda _checked=False, m=method: self._onDiffHeaderComparisonMethodChosen(m))
-            self._diffComparisonMethodActions[method] = action
-
-        self._diffComparisonMethodButton = QToolButton(self)
-        self._diffComparisonMethodButton.setObjectName("diffHeaderComparisonMethodButton")
-        self._diffComparisonMethodButton.setMenu(self._diffComparisonMethodMenu)
-        self._diffComparisonMethodButton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self._diffComparisonMethodButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-
-        headerTools = QWidget(self)
-        headerTools.setObjectName("diffHeaderTools")
-        toolsLayout = QHBoxLayout(headerTools)
-        toolsLayout.setContentsMargins(0, 0, 4, 0)
-        toolsLayout.setSpacing(2)
-        toolsLayout.addWidget(self._wordWrapButton)
-        toolsLayout.addWidget(self._formattingMarksButton)
-        toolsLayout.addWidget(self._diffComparisonMethodButton)
+        diffTools = DiffButtons(self)
 
         topContainer = QWidget(self)
         topLayout = QHBoxLayout(topContainer)
         topLayout.setContentsMargins(0, 0, 0, 0)
         topLayout.setSpacing(0)
         topLayout.addWidget(header, 1)
-        topLayout.addWidget(headerTools, 0)
+        topLayout.addWidget(diffTools, 0)
 
         diff = DiffView(self)
 
@@ -360,70 +306,27 @@ class DiffArea(QWidget):
         self.conflictView = conflict
         self.specialDiffView = specialDiff
         self.diffView = diff
+        self.diffButtons = diffTools
 
         return stackContainer
 
-    def _syncDiffHeaderToolButtons(self, _prefDiff: list | None = None):
-        with QSignalBlockerContext(
-                self._wordWrapButton,
-                self._formattingMarksButton,
-                *self._diffComparisonMethodActions.values(),
-        ):
-            self._wordWrapButton.setChecked(settings.prefs.wordWrap)
-            self._formattingMarksButton.setChecked(settings.prefs.showFormattingMarks)
-            method = settings.prefs.comparisonMethod
-            for m, action in self._diffComparisonMethodActions.items():
-                action.setChecked(m == method)
-            self._diffComparisonMethodButton.setIcon(
-                stockIcon(self._diffComparisonIconNames[int(method)]))
-            self._diffComparisonMethodButton.setToolTip(TrTables.enum(method))
-
-    def _onDiffHeaderWordWrapToggled(self, checked: bool):
-        if settings.prefs.wordWrap == checked:
-            return
-        settings.prefs.wordWrap = checked
-        settings.prefs.write()
-        GFApplication.instance().prefsChanged.emit(["wordWrap"])
-
-    def _onDiffHeaderFormattingMarksToggled(self, checked: bool):
-        if settings.prefs.showFormattingMarks == checked:
-            return
-        settings.prefs.showFormattingMarks = checked
-        settings.prefs.write()
-        GFApplication.instance().prefsChanged.emit(["showFormattingMarks"])
-
-    def _onDiffHeaderComparisonMethodChosen(self, method: settings.ComparisonMethod):
-        if settings.prefs.comparisonMethod == method:
-            return
-        settings.prefs.comparisonMethod = method
-        settings.prefs.write()
-
-        GFApplication.instance().prefsChanged.emit(["comparisonMethod"])
-
-        # Trigger a reload of the patch
-        # TODO: This is inelegant, but it does the job for now. Ideally prefsChanged would suffice?
-        GFApplication.instance().mainWindow.onAcceptPrefsDialog({"comparisonMethod": method})
-
     def applyCustomStyling(self):
-        for smallButton in self.discardButton, self.unstageButton, self.stageButton:
+        for smallButton in (
+                self.discardButton,
+                self.unstageButton,
+                self.stageButton,
+                *self.diffButtons.buttons,
+        ):
             smallButton.setMaximumHeight(FILEHEADER_HEIGHT)
-            smallButton.setEnabled(False)
             smallButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             smallButton.setAutoRaise(True)
             smallButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+        for button in self.stageButton, self.unstageButton, self.discardButton:
+            button.setEnabled(False)
 
         for button in self.stageButton, self.unstageButton:
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-
-        for smallButton in (
-                self._wordWrapButton,
-                self._formattingMarksButton,
-                self._diffComparisonMethodButton,
-        ):
-            smallButton.setMaximumHeight(FILEHEADER_HEIGHT)
-            smallButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            smallButton.setAutoRaise(True)
-            smallButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
 
         # Smaller font for header text
         for smallWidget in (
@@ -435,9 +338,7 @@ class DiffArea(QWidget):
                 self.stageButton,
                 self.unstageButton,
                 self.discardButton,
-                self._wordWrapButton,
-                self._formattingMarksButton,
-                self._diffComparisonMethodButton,
+                *self.diffButtons.buttons,
         ):
             tweakWidgetFont(smallWidget, 90)
 

@@ -11,20 +11,9 @@ shown in the diff view (tabs vs spaces, run-length spaces, LF vs CRLF).
 
 import pytest
 
-from gitfourchette import settings
 from gitfourchette.nav import NavLocator
-from gitfourchette.qt import QAction
 from gitfourchette.settings import ComparisonMethod
-from gitfourchette.syntax import LexJobCache
 from .util import *
-
-
-@pytest.fixture(autouse=True)
-def _restoreComparisonMethodAfterTest():
-    previous = settings.prefs.comparisonMethod
-    settings.prefs.comparisonMethod = ComparisonMethod.Strict
-    yield
-    settings.prefs.comparisonMethod = previous
 
 
 def _commitTextFile(wd: str, relpath: str, contents: str):
@@ -39,38 +28,17 @@ def _setWorktreeText(wd: str, relpath: str, contents: str):
 
 
 def _waitUnifiedDiffVisible(rw):
-    def ready():
-        if rw.diffArea.diffStack.currentIndex() != 0:
-            return False
-        text = rw.diffView.toPlainText()
-        return "@@" in text and text.strip() != ""
-
-    waitUntilTrue(ready, timeout=8000)
+    assert rw.diffView.isVisible()
+    assert rw.diffView.toPlainText().startswith("@@")
 
 
 def _waitNoChangeSpecialVisible(rw):
-    def ready():
-        if rw.diffArea.diffStack.currentIndex() != 1:
-            return False
-        return findTextInWidget(rw.specialDiffView, r"didn.t change") is not None
-
-    waitUntilTrue(ready, timeout=8000)
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, r"didn.t change") is not None
 
 
 def _applyComparisonMethod(mainWindow, method: ComparisonMethod):
     mainWindow.onAcceptPrefsDialog({"comparisonMethod": method})
-
-
-def _comparisonMethodAction(rw, method: ComparisonMethod) -> QAction:
-    name = f"diffHeaderComparisonMethod_{method.name}"
-    action = rw.diffArea.findChild(QAction, name)
-    assert action is not None, f"missing comparison menu action {name}"
-    return action
-
-
-def _selectComparisonMethod(rw, method: ComparisonMethod):
-    # Trigger menu action directly; offscreen tests may not hit-test the tool button.
-    _comparisonMethodAction(rw, method).trigger()
 
 
 @pytest.mark.parametrize(
@@ -132,15 +100,17 @@ def testDiffHeaderWhitespaceMenuReloadPatch(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged(relpath), check=True)
     _waitUnifiedDiffVisible(rw)
-    assert _comparisonMethodAction(rw, ComparisonMethod.Strict).isChecked()
 
-    _selectComparisonMethod(rw, ComparisonMethod.IgnoreCrAtEolAndAllSpace)
+    menu = rw.diffArea.diffButtons.diffMethodButton.menu()
+    assert findMenuAction(menu, "recognize line endings and white space").isChecked()
+
+    triggerMenuAction(menu, "ignore line ending.+and all white space")
     _waitNoChangeSpecialVisible(rw)
-    assert _comparisonMethodAction(rw, ComparisonMethod.IgnoreCrAtEolAndAllSpace).isChecked()
+    assert findMenuAction(menu, "ignore line ending.+and all white space").isChecked()
 
-    _selectComparisonMethod(rw, ComparisonMethod.Strict)
+    triggerMenuAction(menu, "recognize line endings and white space")
     _waitUnifiedDiffVisible(rw)
-    assert _comparisonMethodAction(rw, ComparisonMethod.Strict).isChecked()
+    assert findMenuAction(menu, "recognize line endings and white space").isChecked()
 
 
 @pytest.mark.parametrize(

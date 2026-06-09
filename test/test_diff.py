@@ -800,7 +800,7 @@ def testToggleWordWrap(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
-    wordWrapButton = rw.diffArea.findChild(QToolButton, "diffHeaderWordWrapButton")
+    wordWrapButton = rw.diffArea.diffButtons.wordWrapButton
 
     rw.jump(NavLocator.inUnstaged("longfile.txt"), check=True)
     assert dv.horizontalScrollBar().isVisible()
@@ -834,7 +834,7 @@ def testToggleFormattingMarksHeaderButton(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged("marks.txt"), check=True)
 
     dv = rw.diffView
-    formattingMarksButton = rw.diffArea.findChild(QToolButton, "diffHeaderFormattingMarksButton")
+    formattingMarksButton = rw.diffArea.diffButtons.marksButton
     assert formattingMarksButton is not None
 
     def formattingMarkBitsSet() -> bool:
