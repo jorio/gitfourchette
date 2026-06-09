@@ -34,7 +34,7 @@ def _waitUnifiedDiffVisible(rw):
 
 def _waitNoChangeSpecialVisible(rw):
     assert rw.specialDiffView.isVisible()
-    assert findTextInWidget(rw.specialDiffView, r"didn.t change") is not None
+    assert findTextInWidget(rw.specialDiffView, r"whitespace changes ignored")
 
 
 def _applyComparisonMethod(mainWindow, method: ComparisonMethod):

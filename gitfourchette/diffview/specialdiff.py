@@ -21,6 +21,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.settings import ComparisonMethod
 from gitfourchette.tasks import RepoTask
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -97,6 +98,14 @@ class SpecialDiffError:
             else:
                 assert delta.status in "A?"  # added or untracked
                 message = _("New empty file.")
+
+        if (newFileExists
+                and oldFileExists
+                and newFile.id != oldFile.id
+                and settings.prefs.comparisonMethod != ComparisonMethod.Strict):
+            message = _("Whitespace changes ignored. Contents otherwise identical.")
+            detailsLine = "{}{} {}.".format(TrTables.prefKey("comparisonMethod"), _(":"), TrTables.enum(settings.prefs.comparisonMethod))
+            details.append(detailsLine)
 
         if oldFile.path != newFile.path:
             intro = _("Renamed:")
