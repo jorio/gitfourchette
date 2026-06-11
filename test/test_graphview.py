@@ -486,6 +486,10 @@ def testRefSortFavorsHeadBranch(tempDir, mainWindow):
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 def testCommitToolTip(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.amend_commit_on_head("fairly verbose commit message that should be elided in a narrow window")
+
     rw = mainWindow.openRepo(wd)
     row = 1
 
@@ -496,13 +500,13 @@ def testCommitToolTip(tempDir, mainWindow):
 
     QTest.qWait(100)
     toolTip = qlvSummonToolTip(rw.graphView, row)
-    assert "Delete c/c2-2.txt" not in toolTip
+    assert "should be elided" not in toolTip
     assert "a.u.thor@example.com" in toolTip
 
     mainWindow.resize(300, 600)
     QTest.qWait(0)
     toolTip = qlvSummonToolTip(rw.graphView, row)
-    assert "Delete c/c2-2.txt" in toolTip
+    assert "should be elided" in toolTip
     assert "a.u.thor@example.com" in toolTip
 
     # Amend, committer and author are different
