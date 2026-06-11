@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -7,6 +7,7 @@
 import logging
 
 from gitfourchette import colors
+from gitfourchette import settings
 from gitfourchette.syntax import ColorScheme, LexJob
 from gitfourchette.qt import *
 from gitfourchette.toolbox import benchmark, CallbackAccumulator
@@ -17,6 +18,10 @@ logger = logging.getLogger(__name__)
 class CodeHighlighter(QSyntaxHighlighter):
     scheme: ColorScheme
     lexJobs: list[LexJob]
+
+    _whitespaceRegex = QRegularExpression("[ \t]+")
+    _whitespaceRegex.optimize()
+    assert _whitespaceRegex.isValid()
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -50,8 +55,20 @@ class CodeHighlighter(QSyntaxHighlighter):
         self.lexJobs.clear()
 
     def highlightBlock(self, text: str):
-        if self.scheme and self.lexJobs:
-            self.highlightSyntax(text)
+        if self.scheme:
+            # Highlight pygments tokens
+            if self.lexJobs:
+                self.highlightSyntax(text)
+
+            # Override highlighting on whitespace with a nicer muted color
+            if settings.prefs.showFormattingMarks:
+                charFormat = self.scheme.whitespaceFormat
+                wsIter = self._whitespaceRegex.globalMatch(text)
+                while wsIter.hasNext():
+                    match = wsIter.next()
+                    self.setFormat(match.capturedStart(), match.capturedLength(), charFormat)
+
+        # Override highlighting on search term
         if self.searchTerm:
             self.highlightSearch(text)
 
