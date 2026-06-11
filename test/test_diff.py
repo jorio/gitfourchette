@@ -11,6 +11,7 @@ import textwrap
 from gitfourchette import settings
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
+from gitfourchette.settings import ComparisonMethod
 from .util import *
 
 
@@ -1113,3 +1114,51 @@ def testDiffExoticLineEndings(tempDir, mainWindow):
     expectedLines[1] = expectedLines[1].removesuffix("\r") + "<CRLF>"
 
     assert expectedLines == reconstructedText[1:]
+
+
+@requiresPygments
+def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
+    oldText = textwrap.dedent("""\
+    void hello(void) {
+    \tassignment = 0x12345678; // comment
+    }
+    """)
+
+    newText = textwrap.dedent("""\
+    void hello(void) {
+    \tif (indentNextLine)
+    \t\tassignment = 0x12345678; // comment
+    }
+    """)
+
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        for revision in oldText, newText:
+            writeFile(f"{wd}/hello.c", revision)
+            repo.index.add("hello.c")
+            repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    mainWindow.onAcceptPrefsDialog({
+        # Ignore whitespace for this diff!
+        "comparisonMethod": ComparisonMethod.IgnoreCrAtEolAndAllSpace,
+
+        # Pick a scheme that applies non-default color to identifiers
+        "syntaxHighlighting": "one-dark",
+    })
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "hello.c"), check=True)
+    waitUntilTrue(lambda: rw.diffView.highlighter.newLexJob.lexingComplete)
+
+    doc = rw.diffView.document()
+    block = doc.findBlockByLineNumber(3)
+    assert block.text() == "\t\tassignment = 0x12345678; // comment"
+
+    # Ensure syntax highlighting matches up with the actual tokens in the line
+    colorTokens = []
+    for span in block.layout().formats():
+        token = block.text()[span.start: span.start + span.length].strip()
+        if token:
+            colorTokens.append(token)
+
+    assert colorTokens == ["assignment", "=", "0x12345678", ";", "// comment"]
