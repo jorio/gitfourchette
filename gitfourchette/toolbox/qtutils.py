@@ -408,7 +408,12 @@ def installDialogReturnShortcut(dialog: QDialog):
     if okButton.findChild(QShortcut):
         return
 
-    makeWidgetShortcut(okButton, okButton.click, "Ctrl+Return", "Return", context=Qt.ShortcutContext.WindowShortcut)
+    # "Return" is the main key, "Enter" is the numpad key.
+    makeWidgetShortcut(
+        okButton, okButton.click,
+        "Ctrl+Return", "Ctrl+Enter",
+        "Return", "Enter",
+        context=Qt.ShortcutContext.WindowShortcut)
 
 
 def lerp(v1, v2, c=.5, cmin=0.0, cmax=1.0):
