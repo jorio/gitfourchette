@@ -644,7 +644,8 @@ def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):
     assert not diffView.textCursor().hasSelection()
 
 
-def testDiffContextLinesSetting(tempDir, mainWindow):
+@pytest.mark.parametrize("withDedicatedButton", [True, False])
+def testDiffContextLinesSetting(tempDir, mainWindow, withDedicatedButton):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -659,11 +660,24 @@ def testDiffContextLinesSetting(tempDir, mainWindow):
     # 1 hunk line, 3 context lines above change, 2 changed lines (- then +), 3 context lines below change
     assert 1+3+2+3 == len(rw.diffView.toPlainText().splitlines())
 
-    prefsDialog = mainWindow.openPrefsDialog("contextLines")
-    waitUntilTrue(lambda: QApplication.focusWidget() is not None
-                  and QApplication.focusWidget().objectName() == "prefctl_contextLines")
-    QTest.keyClicks(QApplication.focusWidget(), "8")
-    prefsDialog.accept()
+    if withDedicatedButton:
+        # contextButton.click() would lock up the test because the menu is modal,
+        # so fire QMenu.aboutToShow manually to set up the menu
+        menu = rw.diffArea.diffButtons.contextButton.menu()
+        menu.aboutToShow.emit()
+        menu.show()
+
+        spinBox: QSpinBox = menu.findChild(QSpinBox)
+        assert spinBox.hasFocus()
+        assert spinBox.value() == 3
+        spinBox.setValue(8)
+        menu.close()
+    else:
+        prefsDialog = mainWindow.openPrefsDialog("contextLines")
+        waitUntilTrue(lambda: QApplication.focusWidget() is not None
+                      and QApplication.focusWidget().objectName() == "prefctl_contextLines")
+        QTest.keyClicks(QApplication.focusWidget(), "8")
+        prefsDialog.accept()
 
     # 1 hunk line, 8 context lines above change, 2 changed lines (- then +), 8 context lines below change
     assert 1+8+2+8 == len(rw.diffView.toPlainText().splitlines())
