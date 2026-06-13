@@ -1,8 +1,8 @@
 <svg fill="none" stroke="gray" version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-<path d="m1.5 14v-5m0 4.5h4.5"/>
-<path d="m12 0.5h2.5v14h-2.5"/>
 <path d="m5.5 4c0-1-1-1.5-2-1.5s-2 0.5-2 2 1 2 2 2 2-0.5 2-1.5"/>
-<path d="m7.5 2.5c2.5 0 4-0.2708 4 1s-2 1-4 1m1 0c1.5 1 2.0812 2 3.5 2m-4.5 0.5v-5"/>
+<path d="m7.5 2.5c2.5 0 4-0.25 4 1s-2 1-4 1m1 0c1.5 1 2 2 3.5 2m-4.5 0.5v-5"/>
+<path d="m1.5 14v-5m0 4.5h4.5"/>
 <path d="m7.5 14v-4.5h4.5m-4.5 2h3.5"/>
-<path d="m15 0v15" stroke-width="2"/>
+<path d="M13 1.5h2 M13 14.5h2"/>
+<path d="m15.5 1v14" stroke-dasharray="2,1"/>
 </svg>

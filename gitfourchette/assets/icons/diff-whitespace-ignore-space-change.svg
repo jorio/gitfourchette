@@ -1,8 +1,7 @@
 <svg fill="none" stroke="gray" version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-<path d="m3.5 10v3h9v-3"/>
-<path d="m3 13h10" stroke-width="2"/>
-<path d="m3.5 4v5"/>
-<path d="m12.5 2v7"/>
-<path d="m3 4.5c-1.5-7.58e-5-2.5.5-2.5 2s1 2 2.5 2"/>
-<path d="m13 4.5c1.5-7.58e-5 2.5.502 2.5 2s-1 2-2.5 2"/>
+<path d="m3 4.5c-1.5-0-2.5 0.5-2.5 2s1 2 2.5 2m0.5-4.5v5"/>
+<path d="m13 4.5c1.5-0 2.5 0.5 2.5 2s-1 2-2.5 2m-0.5-6.5v7"/>
+<path d="m12 13.5h-8" stroke-dasharray="2, 1"/>
+<path d="m13.5 16 2.5-2.5-2.5-2.5h-2l2.5 2.5-2.5 2.5z" fill="gray" stroke="none"/>
+<path d="m2.5 16-2.5-2.5 2.5-2.5h2l-2.5 2.5 2.5 2.5z" fill="gray" stroke="none"/>
 </svg>

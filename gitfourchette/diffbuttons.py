@@ -11,13 +11,6 @@ from gitfourchette.settings import WhitespaceMode
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
-_WhitespaceDiffIconTable = {
-    WhitespaceMode.Strict: "diff-whitespace-strict",
-    WhitespaceMode.IgnoreChange: "diff-whitespace-ignore-space-change",
-    WhitespaceMode.IgnoreAll: "diff-whitespace-ignore-all-space",
-    WhitespaceMode.IgnoreCrAtEol: "diff-whitespace-ignore-eol",
-}
-
 
 class DiffButtons(QWidget):
     def __init__(self, parent):
@@ -25,8 +18,8 @@ class DiffButtons(QWidget):
 
         self.diffMethodActions: dict[WhitespaceMode, QAction] = {}
 
-        self.wordWrapButton = self._makeToggle("format-text-wrap", "wordWrap")
-        self.marksButton = self._makeToggle("paragraph", "showFormattingMarks")
+        self.wordWrapButton = self._makeToggle("diff-wrap", "wordWrap")
+        self.marksButton = self._makeToggle("diff-show-whitespace", "showFormattingMarks")
         self.whitespaceModeButton = self._makeWhitespaceDiffButton()
 
         self.buttons = [
@@ -53,7 +46,7 @@ class DiffButtons(QWidget):
         for mode in WhitespaceMode:
             label = escamp(TrTables.enum(mode))
             action = QAction(label)
-            action.setIcon(stockIcon(_WhitespaceDiffIconTable[mode]))
+            action.setIcon(stockIcon(f"diff-whitespace-{mode or 'strict'}"))
             action.triggered.connect(lambda _dummy, m=mode: self.setWhitespaceMode(m))
             action.setActionGroup(actionGroup)
             action.setCheckable(True)
