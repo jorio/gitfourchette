@@ -17,7 +17,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
-from gitfourchette.settings import ComparisonMethod
+from gitfourchette.settings import WhitespaceMode
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
@@ -309,23 +309,21 @@ class GitDriver(QProcess):
         return deltas
 
     @staticmethod
-    def _gitDiffComparisonArgv(forDisplay: bool) -> list[str]:
+    def diffFormattingArgs() -> list[str]:
         """
         Extra `git diff` arguments for line-ending / whitespace handling.
         Only applied when generating patches for on-screen display so exports,
         revert, and trash backups stay exact.
         """
-        if not forDisplay:
+        m = settings.prefs.whitespaceMode
+        if m == WhitespaceMode.Strict:
             return []
-        m = settings.prefs.comparisonMethod
-        if m == ComparisonMethod.Strict:
-            return []
-        if m == ComparisonMethod.IgnoreCrAtEol:
+        if m == WhitespaceMode.IgnoreChange:
+            return ["--ignore-space-change"]
+        if m == WhitespaceMode.IgnoreAll:
+            return ["--ignore-all-space"]
+        if m == WhitespaceMode.IgnoreCrAtEol:
             return ["--ignore-cr-at-eol"]
-        if m == ComparisonMethod.IgnoreCrAtEolAndSpaceChange:
-            return ["--ignore-cr-at-eol", "--ignore-space-change"]
-        if m == ComparisonMethod.IgnoreCrAtEolAndAllSpace:
-            return ["--ignore-cr-at-eol", "--ignore-all-space"]
         return []
 
     @classmethod
@@ -339,7 +337,7 @@ class GitDriver(QProcess):
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
-            *cls._gitDiffComparisonArgv(forDisplay),
+            *argsIf(forDisplay, *cls.diffFormattingArgs()),
             *argsIf(binary, "--binary"),
         ]
 
@@ -391,7 +389,7 @@ class GitDriver(QProcess):
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
-            *cls._gitDiffComparisonArgv(True),
+            *cls.diffFormattingArgs(),
             "--no-index", "--",
             delta.old.lfs.objectPath,
             delta.new.lfs.objectPath,

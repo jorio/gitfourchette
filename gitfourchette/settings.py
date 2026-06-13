@@ -88,13 +88,13 @@ class TabBarClick(enum.StrEnum):
     Terminal = "terminal"
 
 
-class ComparisonMethod(enum.IntEnum):
+class WhitespaceMode(enum.StrEnum):
     """How `git diff` treats line endings and whitespace when showing patches."""
 
-    Strict = 0
-    IgnoreCrAtEol = 1
-    IgnoreCrAtEolAndSpaceChange = 2
-    IgnoreCrAtEolAndAllSpace = 3
+    Strict = ""
+    IgnoreAll = "ignore-all-space"
+    IgnoreChange = "ignore-space-change"
+    IgnoreCrAtEol = "ignore-cr-at-eol"
 
 
 @dataclasses.dataclass
@@ -121,7 +121,7 @@ class Prefs(PrefsFile):
     wordWrap                    : bool                  = False
     showStrayCRs                : bool                  = True
     showFormattingMarks         : bool                  = False
-    comparisonMethod            : ComparisonMethod      = ComparisonMethod.Strict
+    whitespaceMode              : WhitespaceMode        = WhitespaceMode.Strict
 
     _category_imageDiff         : int                   = 0
     imageFileThresholdKB        : int                   = 5000

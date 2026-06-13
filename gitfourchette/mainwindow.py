@@ -1175,7 +1175,7 @@ class MainWindow(QMainWindow):
             "largeFileThresholdKB",
             "imageFileThresholdKB",
             "contextLines",
-            "comparisonMethod",
+            "whitespaceMode",
             "maxCommits",
             "renderSvg",
             "lfsAware",

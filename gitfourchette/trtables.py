@@ -105,7 +105,7 @@ class TrTables:
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
         from gitfourchette.settings import (
-            ComparisonMethod,
+            WhitespaceMode,
             FileListClick,
             GraphRefBoxWidth,
             GraphRowHeight,
@@ -215,15 +215,11 @@ class TrTables:
                 AuthorDisplayStyle.EmailUserName: _("Abbreviated email"),
             },
 
-            ComparisonMethod: {
-                ComparisonMethod.Strict:
-                    _("Recognize line endings and white space differences"),
-                ComparisonMethod.IgnoreCrAtEol:
-                    _("Ignore line ending differences"),
-                ComparisonMethod.IgnoreCrAtEolAndSpaceChange:
-                    _("Ignore line ending and white space length differences"),
-                ComparisonMethod.IgnoreCrAtEolAndAllSpace:
-                    _("Ignore line ending differences and all white space differences"),
+            WhitespaceMode: {
+                WhitespaceMode.Strict           : _("All whitespace is significant"),
+                WhitespaceMode.IgnoreAll        : _("Ignore all whitespace changes"),
+                WhitespaceMode.IgnoreChange     : _("Ignore length changes in existing whitespace"),
+                WhitespaceMode.IgnoreCrAtEol    : _("Ignore line ending changes ({0})", "LF ↔ CRLF"),
             },
 
             GraphRowHeight: {
@@ -443,11 +439,10 @@ class TrTables:
             "wordWrap": _("Word wrap"),
             "showStrayCRs": _("Display alien line endings (CRLF)"),
             "showFormattingMarks": _("Show formatting marks (tabs and spaces)"),
-            "comparisonMethod": _("Comparison method"),
-            "comparisonMethod_help": paragraphs(
-                _("Controls how {app} runs <code>git diff</code> when showing a patch in the diff view. "
-                  "Exporting patches, reverting files, and similar actions still use an exact comparison."),
-                _("Line-ending handling uses Git’s <code>--ignore-cr-at-eol</code> option."),
+            "whitespaceMode": _("Whitespace"),
+            "whitespaceMode_help": paragraphs(
+                _("Whether to show whitespace modifications in diffs."),
+                _("This setting only affects how diffs are displayed. Exporting patches, reverting files, etc. still account for all whitespace changes."),
             ),
             "colorblind": _("“-/+” colors"),
             "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),

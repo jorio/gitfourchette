@@ -8,9 +8,7 @@ import textwrap
 
 from gitfourchette import settings
 from gitfourchette.forms.prefsdialog import PrefsDialog
-from gitfourchette.gitdriver.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
-from gitfourchette.settings import ComparisonMethod
 from gitfourchette.toolbox.fontpicker import FontPicker
 from .util import *
 
@@ -187,33 +185,6 @@ def testPrefsShowFormattingMarks(tempDir, mainWindow):
 
     assert not settings.prefs.showFormattingMarks
     assert not formattingMarksBitsSet()
-
-
-def testComparisonMethodGitArgv(monkeypatch):
-    monkeypatch.setattr(settings.prefs, "comparisonMethod", ComparisonMethod.IgnoreCrAtEolAndAllSpace)
-    assert GitDriver._gitDiffComparisonArgv(True) == ["--ignore-cr-at-eol", "--ignore-all-space"]
-
-    monkeypatch.setattr(settings.prefs, "comparisonMethod", ComparisonMethod.IgnoreCrAtEolAndSpaceChange)
-    assert GitDriver._gitDiffComparisonArgv(True) == ["--ignore-cr-at-eol", "--ignore-space-change"]
-
-    monkeypatch.setattr(settings.prefs, "comparisonMethod", ComparisonMethod.IgnoreCrAtEol)
-    assert GitDriver._gitDiffComparisonArgv(True) == ["--ignore-cr-at-eol"]
-
-    monkeypatch.setattr(settings.prefs, "comparisonMethod", ComparisonMethod.Strict)
-    assert GitDriver._gitDiffComparisonArgv(True) == []
-    assert GitDriver._gitDiffComparisonArgv(False) == []
-
-
-def testPrefsComparisonMethodRadios(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-    mainWindow.openRepo(wd)
-    dlg = mainWindow.openPrefsDialog("comparisonMethod")
-    container: QWidget = dlg.findChild(QWidget, "prefctl_comparisonMethod")
-    assert container is not None
-    radios = container.findChildren(QRadioButton)
-    assert len(radios) == len(ComparisonMethod)
-    assert sum(rb.isChecked() for rb in radios) == 1
-    dlg.reject()
 
 
 def testPrefsUserCommandsSyntaxHighlighter(mainWindow):

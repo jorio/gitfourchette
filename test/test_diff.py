@@ -11,7 +11,7 @@ import textwrap
 from gitfourchette import settings
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
-from gitfourchette.settings import ComparisonMethod
+from gitfourchette.settings import WhitespaceMode
 from .util import *
 
 
@@ -1140,7 +1140,7 @@ def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
 
     mainWindow.onAcceptPrefsDialog({
         # Ignore whitespace for this diff!
-        "comparisonMethod": ComparisonMethod.IgnoreCrAtEolAndAllSpace,
+        "whitespaceMode": WhitespaceMode.IgnoreAll,
 
         # Pick a scheme that applies non-default color to identifiers
         "syntaxHighlighting": "one-dark",

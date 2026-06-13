@@ -379,8 +379,6 @@ class PrefsDialog(QDialog):
                 presets[_("Built-in git (sandboxed)")] = builtInGit
             presets[_("Auto-detected system git")] = ToolPresets.defaultGit(hostOnly=True)
             return self.strControlWithPresets(key, value, presets)
-        elif key == "comparisonMethod":
-            return self.radioEnumControl(key, value, type(value))
         elif issubclass(valueType, enum.Enum):
             return self.enumControl(key, value, type(value))
         elif valueType is int:
@@ -556,35 +554,6 @@ class PrefsDialog(QDialog):
         control.activated.connect(lambda i: self.assign(prefKey, control.itemData(i)[0]))  # unpack the tuple!
 
         return control
-
-    def radioEnumControl(self, prefKey: str, prefValue, enumType):
-        container = QWidget(self)
-        group = QButtonGroup(container)
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-
-        members = [m for m in enumType if TrTables.enum(m) != ""]
-
-        buttons: list[QRadioButton] = []
-        for i, enumMember in enumerate(members):
-            rb = QRadioButton(TrTables.enum(enumMember), container)
-            group.addButton(rb, i)
-            layout.addWidget(rb)
-            buttons.append(rb)
-            if prefValue == enumMember:
-                rb.setChecked(True)
-
-        if members and not any(b.isChecked() for b in buttons):
-            buttons[0].setChecked(True)
-
-        def on_button_clicked(button):
-            idx = group.id(button)
-            if 0 <= idx < len(members):
-                self.assign(prefKey, members[idx])
-
-        group.buttonClicked.connect(on_button_clicked)
-        return container
 
     def qtStyleControl(self, prefKey, prefValue):
         defaultCaption = _p("system default theme setting", "System default")

@@ -7,15 +7,15 @@
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.qt import *
-from gitfourchette.settings import ComparisonMethod
+from gitfourchette.settings import WhitespaceMode
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
-_ComparisonMethodIconTable = {
-    ComparisonMethod.Strict: "diff-whitespace-strict",
-    ComparisonMethod.IgnoreCrAtEol: "diff-whitespace-ignore-eol",
-    ComparisonMethod.IgnoreCrAtEolAndSpaceChange: "diff-whitespace-ignore-space-change",
-    ComparisonMethod.IgnoreCrAtEolAndAllSpace: "diff-whitespace-ignore-all-space",
+_WhitespaceDiffIconTable = {
+    WhitespaceMode.Strict: "diff-whitespace-strict",
+    WhitespaceMode.IgnoreChange: "diff-whitespace-ignore-space-change",
+    WhitespaceMode.IgnoreAll: "diff-whitespace-ignore-all-space",
+    WhitespaceMode.IgnoreCrAtEol: "diff-whitespace-ignore-eol",
 }
 
 
@@ -23,11 +23,17 @@ class DiffButtons(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.diffMethodActions: dict[ComparisonMethod, QAction] = {}
+        self.diffMethodActions: dict[WhitespaceMode, QAction] = {}
 
-        self.wordWrapButton = self._makeWordWrapButton()
-        self.marksButton = self._makeMarksButton()
-        self.diffMethodButton = self._makeDiffMethodButton()
+        self.wordWrapButton = self._makeToggle("format-text-wrap", "wordWrap")
+        self.marksButton = self._makeToggle("paragraph", "showFormattingMarks")
+        self.whitespaceModeButton = self._makeWhitespaceDiffButton()
+
+        self.buttons = [
+            self.wordWrapButton,
+            self.marksButton,
+            self.whitespaceModeButton,
+        ]
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 2, 0)
@@ -35,49 +41,41 @@ class DiffButtons(QWidget):
         for button in self.buttons:
             layout.addWidget(button)
 
-    @property
-    def buttons(self):
-        return self.wordWrapButton, self.marksButton, self.diffMethodButton
-
     # -------------------------------------------------------------------------
     # Constructor helpers
 
-    def _makeWordWrapButton(self):
-        button = QToolButton(self)
-        button.setCheckable(True)
-        button.setIcon(stockIcon("format-text-wrap"))
-        button.setToolTip(TrTables.prefKey("wordWrap"))
-        button.toggled.connect(self.onWordWrapToggled)
-        return button
-
-    def _makeMarksButton(self):
-        button = QToolButton(self)
-        button.setCheckable(True)
-        button.setIcon(stockIcon("paragraph"))
-        button.setToolTip(TrTables.prefKey("showFormattingMarks"))
-        button.toggled.connect(self.onMarksToggled)
-        return button
-
-    def _makeDiffMethodButton(self):
+    def _makeWhitespaceDiffButton(self):
         menu = QMenu(self)
 
         actionGroup = QActionGroup(menu)
         actionGroup.setExclusive(True)
 
-        for method in ComparisonMethod:
-            label = escamp(TrTables.enum(method))
+        for mode in WhitespaceMode:
+            label = escamp(TrTables.enum(mode))
             action = QAction(label)
-            action.setIcon(stockIcon(_ComparisonMethodIconTable[method]))
-            action.triggered.connect(lambda _dummy, m=method: self.onDiffMethodChosen(m))
+            action.setIcon(stockIcon(_WhitespaceDiffIconTable[mode]))
+            action.triggered.connect(lambda _dummy, m=mode: self.setWhitespaceMode(m))
             action.setActionGroup(actionGroup)
             action.setCheckable(True)
             menu.addAction(action)
-            self.diffMethodActions[method] = action
+            self.diffMethodActions[mode] = action
 
         button = QToolButton(self)
         button.setMenu(menu)
         button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+        # We'll "press" the button when the whitespace mode is anything but Strict.
+        button.setCheckable(True)
+
+        return button
+
+    def _makeToggle(self, icon: str, prefKey: str):
+        button = QToolButton(self)
+        button.setCheckable(True)
+        button.setIcon(stockIcon(icon))
+        button.setToolTip(TrTables.prefKey(prefKey))
+        button.toggled.connect(lambda checked: self.onGenericToggle(prefKey, checked))
         return button
 
     # -------------------------------------------------------------------------
@@ -92,40 +90,38 @@ class DiffButtons(QWidget):
             self.wordWrapButton.setChecked(settings.prefs.wordWrap)
             self.marksButton.setChecked(settings.prefs.showFormattingMarks)
 
-            method = settings.prefs.comparisonMethod
+            mode = settings.prefs.whitespaceMode
             for m, action in self.diffMethodActions.items():
-                action.setChecked(m == method)
-            action = self.diffMethodActions[method]
+                action.setChecked(m == mode)
+            action = self.diffMethodActions[mode]
 
             toolTip = stripAccelerators(action.text())
-            self.diffMethodButton.setIcon(action.icon())
-            self.diffMethodButton.setToolTip(toolTip)
+            self.whitespaceModeButton.setIcon(action.icon())
+            self.whitespaceModeButton.setToolTip(toolTip)
+
+            # "Press" the button when the mode is anything but Strict.
+            self.whitespaceModeButton.setChecked(mode != WhitespaceMode.Strict)
 
     # -------------------------------------------------------------------------
     # Button callbacks
 
-    def onWordWrapToggled(self, checked: bool):
-        if settings.prefs.wordWrap == checked:
+    @classmethod
+    def onGenericToggle(cls, prefKey: str, checked: bool):
+        if getattr(settings.prefs, prefKey) == checked:
             return
-        settings.prefs.wordWrap = checked
+        setattr(settings.prefs, prefKey, checked)
         settings.prefs.write()
-        GFApplication.instance().prefsChanged.emit(["wordWrap"])
+        GFApplication.instance().prefsChanged.emit([prefKey])
 
-    def onMarksToggled(self, checked: bool):
-        if settings.prefs.showFormattingMarks == checked:
+    def setWhitespaceMode(self, mode: WhitespaceMode):
+        if settings.prefs.whitespaceMode == mode:
             return
-        settings.prefs.showFormattingMarks = checked
-        settings.prefs.write()
-        GFApplication.instance().prefsChanged.emit(["showFormattingMarks"])
 
-    def onDiffMethodChosen(self, method: settings.ComparisonMethod):
-        if settings.prefs.comparisonMethod == method:
-            return
-        settings.prefs.comparisonMethod = method
+        settings.prefs.whitespaceMode = mode
         settings.prefs.write()
 
-        GFApplication.instance().prefsChanged.emit(["comparisonMethod"])
+        GFApplication.instance().prefsChanged.emit(["whitespaceMode"])
 
         # Trigger a reload of the patch
         # TODO: This is inelegant, but it does the job for now. Ideally prefsChanged would suffice?
-        GFApplication.instance().mainWindow.onAcceptPrefsDialog({"comparisonMethod": method})
+        GFApplication.instance().mainWindow.onAcceptPrefsDialog({"whitespaceMode": mode})
