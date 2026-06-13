@@ -4,444 +4,466 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2026-06-14 10:48+0000\n"
+"Last-Translator: Mykyta Opanasiuk <nikitaopanassiuk@outlook.com>\n"
+"Language-Team: Ukrainian <https://hosted.weblate.org/projects/gitfourchette/"
+"gitfourchette/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Weblate 2026.7.dev0\n"
 
 #: application.py:118 forms/aboutdialog.py:56
 msgid "The comfortable Git UI for Linux."
-msgstr ""
+msgstr "Зручний Git-інтерфейс для Linux."
 
 #: application.py:121
 msgid "Repository paths to open on launch."
-msgstr ""
+msgstr "Шляхи до репозиторіїв, які відкриватимуться під час запуску."
 
 #: application.py:308
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
 msgstr ""
+"Бажану прив'язку Qt {0} не знайдено на цьому комп'ютері. Натомість буде "
+"використано {1}."
 
 #: application.py:310
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not recognized by {app}. Using {1} instead. (Supported values: {known})"
 msgstr ""
+"Бажану прив'язку Qt {0} не розпізнано застосунком {app}. Використовується "
+"{1} замість неї. (Підтримувані значення: {known})"
 
 #: application.py:314
 msgid "Qt binding unavailable"
-msgstr ""
+msgstr "Прив'язка Qt недоступна"
 
 #: application.py:447
 #, python-brace-format
 msgid "Couldn’t start {0} ({1})."
-msgstr ""
+msgstr "Не вдалося запустити {0} ({1})."
 
 #: application.py:448
 msgid "Please make sure OpenSSH is installed on your system."
-msgstr ""
+msgstr "Будь ласка, переконайтеся, що OpenSSH встановлено у вашій системі."
 
 #: application.py:449
 msgid "SSH agent"
-msgstr ""
+msgstr "SSH-агент"
 
 #: blameview/blamegutter.py:176
 msgid "(Uncommitted)"
-msgstr ""
+msgstr "(Незакомічені зміни)"
 
 #: blameview/blamegutter.py:206 diffview/specialdiffview.py:114
 #: filelists/filelistmodel.py:56 forms/contextheader.py:104
 #: forms/contextheader.py:122 forms/prefsdialog.py:249 tasks/misctasks.py:95
 #: tasks/nettasks.py:298 tasks/repotask.py:72
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: blameview/blamegutter.py:212
 msgid "Not Committed Yet"
-msgstr ""
+msgstr "Ще не закомічено"
 
 #: blameview/blamegutter.py:212 blameview/blamegutter.py:215
 msgid "commit"
-msgstr ""
+msgstr "коміт"
 
 #: blameview/blamegutter.py:216
 msgid "author"
-msgstr ""
+msgstr "автор"
 
 #: blameview/blamegutter.py:217
 msgid "date"
-msgstr ""
+msgstr "дата"
 
 #: blameview/blamegutter.py:218
 msgid "file name"
-msgstr ""
+msgstr "назва файлу"
 
 #: blameview/blamegutter.py:219
 msgid "revision"
-msgstr ""
+msgstr "ревізія"
 
 #: blameview/blamescrubberdelegate.py:59 blameview/blamescrubbermodel.py:42
 msgid "Uncommitted Changes in Working Directory"
-msgstr ""
+msgstr "Незакомічені зміни в робочому каталозі"
 
 #: blameview/blametextedit.py:39
 msgid "Blame File at Uncommitted Revision"
-msgstr ""
+msgstr "Анотувати файл із незакоміченої ревізії"
 
 #: blameview/blametextedit.py:40
 msgid "Show Diff in Working Directory"
-msgstr ""
+msgstr "Показати зміни в робочому каталозі"
 
 #: blameview/blametextedit.py:42
 #, python-brace-format
 msgid "Blame File at {0}"
-msgstr ""
+msgstr "Анотувати файл на {0}"
 
 #: blameview/blametextedit.py:43
 #, python-brace-format
 msgid "Show {0} in Repo"
-msgstr ""
+msgstr "Показати {0} в репозиторії"
 
 #: blameview/blamewindow.py:46
 msgid "Jump"
-msgstr ""
+msgstr "Перейти"
 
 #: blameview/blamewindow.py:47
 msgid "View this commit in the repo"
-msgstr ""
+msgstr "Переглянути цей коміт у репозиторії"
 
 #: blameview/blamewindow.py:52
 msgid "Shift+Click:"
-msgstr ""
+msgstr "Shift+клік:"
 
 #: blameview/blamewindow.py:55
 msgid "Older"
-msgstr ""
+msgstr "Старіше"
 
 #: blameview/blamewindow.py:57
 msgid "Go to next older revision"
-msgstr ""
+msgstr "Перейти до наступної старішої ревізії"
 
 #: blameview/blamewindow.py:57
 msgid "Jump to bottom"
-msgstr ""
+msgstr "Перейти до кінця"
 
 #: blameview/blamewindow.py:61
 msgid "Newer"
-msgstr ""
+msgstr "Новіше"
 
 #: blameview/blamewindow.py:63
 msgid "Go to next newer revision"
-msgstr ""
+msgstr "Перейти до наступної новішої ревізії"
 
 #: blameview/blamewindow.py:63
 msgid "Jump to top"
-msgstr ""
+msgstr "Перейти до початку"
 
 #: blameview/blamewindow.py:67
 msgid "Back"
-msgstr ""
+msgstr "Назад"
 
 #: blameview/blamewindow.py:69 tasks/taskbook.py:65
 msgid "Navigate back"
-msgstr ""
+msgstr "Перейти назад"
 
 #: blameview/blamewindow.py:73
 msgid "Forward"
-msgstr ""
+msgstr "Вперед"
 
 #: blameview/blamewindow.py:75 tasks/taskbook.py:66 tasks/taskbook.py:67
 msgid "Navigate forward"
-msgstr ""
+msgstr "Перейти вперед"
 
 #: codeview/codeview.py:355
 msgid "&Word Wrap"
-msgstr ""
+msgstr "&Перенесення рядків"
 
 #: codeview/codeview.py:356
 msgid "Configure Appearance…"
-msgstr ""
+msgstr "Налаштувати вигляд…"
 
 #: diffarea.py:109
 msgid "Unstaged files: will not be included in the commit unless you stage them."
 msgstr ""
+"Непідготовлені файли: вони не будуть включені до коміту, якщо ви не додасте "
+"їх до індексу."
 
 #: diffarea.py:117
 msgid "Stage"
-msgstr ""
+msgstr "Підготувати до коміту"
 
 #: diffarea.py:119
 msgid "Stage selected files"
-msgstr ""
+msgstr "Підготувати вибрані файли"
 
 #: diffarea.py:124 diffview/diffview.py:78
 msgid "Discard"
-msgstr ""
+msgstr "Скасувати зміни"
 
 #: diffarea.py:126
 msgid "Discard changes in selected files"
-msgstr ""
+msgstr "Скасувати зміни у вибраних файлах"
 
 #: diffarea.py:161
 msgid "Staged files: will be included in the commit."
-msgstr ""
+msgstr "Підготовлені файли: вони будуть включені до коміту."
 
 #: diffarea.py:169
 msgid "Unstage"
-msgstr ""
+msgstr "Скасувати підготовку"
 
 #: diffarea.py:171
 msgid "Unstage selected files"
-msgstr ""
+msgstr "Скасувати підготовку вибраних файлів"
 
 #: diffarea.py:176 forms/commitdialog.py:59 tasks/committasks.py:510
 msgctxt "verb"
 msgid "Commit"
-msgstr ""
+msgstr "Закомітити"
 
 #: diffview/diffdocument.py:350
 msgid "<no newline at end of file>"
-msgstr ""
+msgstr "<немає нового рядка в кінці файлу>"
 
 #: diffview/diffview.py:66
 msgid "Stage Selection"
-msgstr ""
+msgstr "Підготувати виділене"
 
 #: diffview/diffview.py:68
 msgid "Stage selected lines"
-msgstr ""
+msgstr "Підготувати виділені рядки"
 
 #: diffview/diffview.py:72
 msgid "Unstage Selection"
-msgstr ""
+msgstr "Скасувати підготовку виділеного"
 
 #: diffview/diffview.py:75
 msgid "Unstage selected lines"
-msgstr ""
+msgstr "Скасувати підготовку виділених рядків"
 
 #: diffview/diffview.py:81
 msgid "Discard selected lines"
-msgstr ""
+msgstr "Відхилити виділені рядки"
 
 #: diffview/diffview.py:198 diffview/diffview.py:210 diffview/diffview.py:233
 #: diffview/diffview.py:262
 msgid "Export Lines as Patch…"
-msgstr ""
+msgstr "Експортувати рядки як патч…"
 
 #: diffview/diffview.py:199
 msgid "Revert Lines…"
-msgstr ""
+msgstr "Скасувати зміни в рядках…"
 
 #: diffview/diffview.py:203
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr ""
+msgstr "Експортувати фрагмент {0} як патч…"
 
 #: diffview/diffview.py:204
 msgid "Revert Hunk…"
-msgstr ""
+msgstr "Скасувати зміни в фрагменті…"
 
 #: diffview/diffview.py:214 diffview/diffview.py:249 diffview/diffview.py:274
 msgid "Export Hunk as Patch…"
-msgstr ""
+msgstr "Експортувати фрагмент як патч…"
 
 #: diffview/diffview.py:221
 msgid "Stage Lines"
-msgstr ""
+msgstr "Підготувати рядки"
 
 #: diffview/diffview.py:227
 msgid "Discard Lines…"
-msgstr ""
+msgstr "Відхилити рядки…"
 
 #: diffview/diffview.py:240
 #, python-brace-format
 msgid "Stage Hunk {0}"
-msgstr ""
+msgstr "Підготувати фрагмент {0}"
 
 #: diffview/diffview.py:245
 msgid "Discard Hunk…"
-msgstr ""
+msgstr "Відхилити фрагмент…"
 
 #: diffview/diffview.py:256
 msgid "Unstage Lines"
-msgstr ""
+msgstr "Скасувати підготовку рядків"
 
 #: diffview/diffview.py:269
 #, python-brace-format
 msgid "Unstage Hunk {0}"
-msgstr ""
+msgstr "Скасувати підготовку фрагмента {0}"
 
 #: diffview/diffview.py:325
 msgid "Export selected lines"
-msgstr ""
+msgstr "Експортувати виділені рядки"
 
 #: diffview/diffview.py:377
 msgid "Revert selected lines"
-msgstr ""
+msgstr "Скасувати зміни у виділених рядках"
 
 #: diffview/diffview.py:378
 msgid "Do you want to revert the selected lines?"
-msgstr ""
+msgstr "Скасувати зміни у виділених рядках?"
 
 #: diffview/diffview.py:402
 msgid "Revert hunk"
-msgstr ""
+msgstr "Скасувати зміни у фрагменті"
 
 #: diffview/diffview.py:403
 msgid "Do you want to revert this hunk?"
-msgstr ""
+msgstr "Скасувати зміни в цьому фрагменті?"
 
 #: diffview/diffview.py:517 diffview/diffview.py:518
 msgid "or Middle-Click"
-msgstr ""
+msgstr "або середня кнопка миші"
 
 #: diffview/diffview.py:525
 #, python-brace-format
 msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
 msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
 msgstr[0] ""
+"Натисніть {sk}, щоб підготувати {nl} рядок. Натисніть {dk}, щоб відхилити "
+"його."
 msgstr[1] ""
+"Натисніть {sk}, щоб підготувати {nl} рядки. Натисніть {dk}, щоб відхилити їх."
+msgstr[2] ""
+"Натисніть {sk}, щоб підготувати {nl} рядків. Натисніть {dk}, щоб відхилити "
+"їх."
 
 #: diffview/diffview.py:529
 #, python-brace-format
 msgid "Hit {uk} to unstage {nl} line."
 msgid_plural "Hit {uk} to unstage {nl} lines."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Натисніть {uk}, щоб скасувати підготовку {nl} рядка."
+msgstr[1] "Натисніть {uk}, щоб скасувати підготовку {nl} рядків."
+msgstr[2] "Натисніть {uk}, щоб скасувати підготовку {nl} рядків."
 
 #: diffview/specialdiff.py:82
 msgid "File contents didn’t change."
-msgstr ""
+msgstr "Вміст файлів не змінився."
 
 #: diffview/specialdiff.py:92
 msgid "Empty file was deleted."
-msgstr ""
+msgstr "Порожній файл було видалено."
 
 #: diffview/specialdiff.py:99
 msgid "New empty file."
-msgstr ""
+msgstr "Новий порожній файл."
 
 #: diffview/specialdiff.py:102
 msgid "Renamed:"
-msgstr ""
+msgstr "Перейменовано:"
 
 #: diffview/specialdiff.py:106
 msgid "Mode change:"
-msgstr ""
+msgstr "Зміна режиму доступу:"
 
 #: diffview/specialdiff.py:118
 #, python-brace-format
 msgid "In your working copy, {0} will be replaced by {1} the next time Git touches this file."
 msgstr ""
+"У вашій робочій копії {0} буде замінено на {1}, коли Git наступного разу "
+"звернеться до цього файлу."
 
 #: diffview/specialdiff.py:119
 msgid "You can stage the file to dismiss this message; no changes will be recorded."
 msgstr ""
+"Ви можете підготувати файл, щоб сховати це повідомлення; жодних змін "
+"записано не буде."
 
 #: diffview/specialdiff.py:128
 msgid "This image is very large."
-msgstr ""
+msgstr "Це зображення дуже велике."
 
 #: diffview/specialdiff.py:129
 msgid "[Load image anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Усе одно завантажити зображення] (це може зайняти деякий час)"
 
 #: diffview/specialdiff.py:130
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Налаштувати ліміт для перегляду зображень] (зараз: {0})"
 
 #: diffview/specialdiff.py:133
 msgid "This diff is very large."
-msgstr ""
+msgstr "Цей diff дуже великий."
 
 #: diffview/specialdiff.py:133
 msgid "This file is very large."
-msgstr ""
+msgstr "Цей файл дуже великий."
 
 #: diffview/specialdiff.py:134 tasks/loadtasks.py:381
 msgid "[Load diff anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Усе одно завантажити diff] (це може зайняти деякий час)"
 
 #: diffview/specialdiff.py:135
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Налаштувати ліміт для перегляду diff] (зараз: {0})"
 
 #: diffview/specialdiff.py:152
 msgid "Old type:"
-msgstr ""
+msgstr "Старий тип:"
 
 #: diffview/specialdiff.py:153
 msgid "New type:"
-msgstr ""
+msgstr "Новий тип:"
 
 #: diffview/specialdiff.py:160
 msgid "This file’s type has changed."
-msgstr ""
+msgstr "Тип цього файлу змінився."
 
 #: diffview/specialdiff.py:181
 msgid "File appears to be binary."
-msgstr ""
+msgstr "Схоже, цей файл є бінарним."
 
 #: diffview/specialdiff.py:189 gitdriver/lfspointer.py:61
 msgid "Object missing from local LFS cache."
 msgid_plural "Objects missing from local LFS cache."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Об'єкт відсутній у локальному кеші LFS."
+msgstr[1] "Об'єкти відсутні у локальному кеші LFS."
+msgstr[2] "Об'єкти відсутні у локальному кеші LFS."
 
 #: diffview/specialdiff.py:197
 msgid "Download object to display the diff"
 msgid_plural "Download objects to display the diff"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Завантажте об'єкт, щоб відобразити diff"
+msgstr[1] "Завантажте об'єкти, щоб відобразити diff"
+msgstr[2] "Завантажте об'єкти, щоб відобразити diff"
 
 #: diffview/specialdiff.py:209 diffview/specialdiffview.py:112
 msgid "not LFS"
-msgstr ""
+msgstr "не LFS"
 
 #: diffview/specialdiff.py:218
 msgid "Storage changed:"
-msgstr ""
+msgstr "Зміна сховища:"
 
 #: diffview/specialdiff.py:227
 msgid "File contents remained identical during the conversion."
-msgstr ""
+msgstr "Вміст файлу залишився ідентичним під час конвертації."
 
 #: diffview/specialdiff.py:230
 msgid "File contents modified during the conversion!"
-msgstr ""
+msgstr "Під час конвертації вміст файлу змінився!"
 
 #: diffview/specialdiff.py:238
 msgid "This untracked subtree is the root of another Git repository."
-msgstr ""
+msgstr "Це невідстежуване піддерево є коренем іншого репозиторію Git."
 
 #: diffview/specialdiff.py:244 repowidget.py:479
 #, python-brace-format
 msgid "Open {0}"
-msgstr ""
+msgstr "Відкрити {0}"
 
 #: diffview/specialdiff.py:247
 #, python-brace-format
 msgid "Absorb {0} as submodule"
-msgstr ""
+msgstr "Інтегрувати {0} як підмодуль"
 
 #: diffview/specialdiff.py:248
 msgid "Recommended action:"
-msgstr ""
+msgstr "Рекомендована дія:"
 
 #: diffview/specialdiff.py:294
 #, python-brace-format
 msgid "Submodule {0} was [removed.]"
-msgstr ""
+msgstr "Підмодуль {0} було [видалено.]"
 
 #: diffview/specialdiff.py:294
 #, python-brace-format
 msgid "Subtree {0} was [removed.]"
-msgstr ""
+msgstr "Піддерево {0} було [видалено.]"
 
 #: diffview/specialdiff.py:297
 #, python-brace-format
