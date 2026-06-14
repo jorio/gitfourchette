@@ -29,6 +29,7 @@ LANG_DIR = os.path.join(ASSETS_DIR, "lang")
 LANG_TEMPLATE = os.path.join(LANG_DIR, "gitfourchette.pot")
 
 FORCE = False
+LANG_FILTER = "*"
 
 
 def makeParser():
@@ -51,8 +52,11 @@ def makeParser():
     loc_group.add_argument("--mo", action="store_true",
                            help="compile .po files to .mo so you can try them in GitFourchette")
 
-    loc_group.add_argument("-l", "--lang", action="store_true",
-                           help="sync all .pot/.po/.mo files (run all localization steps above)")
+    loc_group.add_argument("--lang",
+                           type=str, nargs='?', const=LANG_FILTER,
+                           metavar="LANGCODE",
+                           help="Sync .pot/.po/.mo files (run all localization steps above). "
+                                "Pass 2-letter code to sync a single language, or omit to sync all.")
 
     loc_group.add_argument("--clean-po", action="store_true",
                            help="remove obsolete strings from .po files")
@@ -278,10 +282,15 @@ def updatePotTemplate():
     Path(LANG_TEMPLATE).write_text(text, "utf-8")
 
 
+def listPoFiles():
+    for poPath in Path(LANG_DIR).glob("*.po"):
+        if LANG_FILTER == "*" or poPath.stem == LANG_FILTER:
+            yield poPath
+
 
 def updatePoFiles():
     """ Update .po files from strings contained in the .pot template """
-    for poPath in Path(LANG_DIR).glob("*.po"):
+    for poPath in listPoFiles():
         call(
             "msgmerge",
             "--update",
@@ -295,7 +304,7 @@ def updatePoFiles():
 
 def cleanUpPoFiles():
     """ Remove obsolete strings from .po files """
-    for poPath in Path(LANG_DIR).glob("*.po"):
+    for poPath in listPoFiles():
         call(
             "msgattrib",
             "--sort-by-file",
@@ -314,7 +323,7 @@ def compileMoFiles():
         match = re.search(pattern, stderr)
         return int(match.group(1)) if match else 0
 
-    for poPath in sorted(Path(LANG_DIR).glob("*.po")):
+    for poPath in listPoFiles():
         moPath: Path = poPath.with_suffix(".mo")
 
         msgfmt = call("msgfmt", "--no-hash", "--statistics", "-o", str(moPath), str(poPath),
@@ -416,6 +425,7 @@ if __name__ == '__main__':
         args.pot = True
         args.po = True
         args.mo = True
+        LANG_FILTER = args.lang
 
     if args.version:
         toolVersions = ""
