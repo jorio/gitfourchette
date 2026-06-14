@@ -19,7 +19,7 @@ class CodeHighlighter(QSyntaxHighlighter):
     scheme: ColorScheme
     lexJobs: list[LexJob]
 
-    _whitespaceRegex = QRegularExpression("[ \t]+")
+    _whitespaceRegex = QRegularExpression("[\x09\x20\xA0]+")
     _whitespaceRegex.optimize()
     assert _whitespaceRegex.isValid()
 

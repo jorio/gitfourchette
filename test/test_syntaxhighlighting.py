@@ -203,3 +203,27 @@ def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
     mainWindow.openRepo(wd)
     numKnownTokens2 = len(scheme.highContrastScheme)
     assert numKnownTokens2 > numKnownTokens1
+
+
+@requiresPygments
+def testWhitespaceHighlighting(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    mainWindow.onAcceptPrefsDialog({"showWhitespace": True})
+
+    for space in [" ", "\t", "\xA0"]:
+        writeFile(f"{wd}/hello.txt", f"hello{space}space\n")
+        rw.refreshRepo()
+        QTest.qWait(0)  # wait for syntax highlighting to finish
+
+        doc: QTextDocument = rw.diffView.document()
+        block = doc.findBlockByNumber(1)
+        formatRanges = block.layout().formats()
+
+        # In plain text files, the highlighter only applies formatting to
+        # whitespace. Non-space text is not formatted. Make sure we apply
+        # formatting to all kinds of whitespace rendered by ShowTabsAndSpaces.
+        assert formatRanges
+        for span in formatRanges:
+            token = block.text()[span.start: span.start + span.length]
+            assert token == space
