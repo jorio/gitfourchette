@@ -61,7 +61,7 @@ class CodeHighlighter(QSyntaxHighlighter):
                 self.highlightSyntax(text)
 
             # Override highlighting on whitespace with a nicer muted color
-            if settings.prefs.showFormattingMarks:
+            if settings.prefs.showWhitespace:
                 charFormat = self.scheme.whitespaceFormat
                 wsIter = self._whitespaceRegex.globalMatch(text)
                 while wsIter.hasNext():

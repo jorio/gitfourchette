@@ -216,10 +216,10 @@ class TrTables:
             },
 
             WhitespaceMode: {
-                WhitespaceMode.Strict           : _("All whitespace is significant"),
+                WhitespaceMode.Strict           : _("Do not ignore whitespace changes"),
                 WhitespaceMode.IgnoreAll        : _("Ignore all whitespace changes"),
                 WhitespaceMode.IgnoreChange     : _("Ignore length changes in existing whitespace"),
-                WhitespaceMode.IgnoreCrAtEol    : _("Ignore line ending changes ({0})", "LF ↔ CRLF"),
+                WhitespaceMode.IgnoreCrAtEol    : _("Ignore line ending changes only ({0})", "LF ↔ CRLF"),
             },
 
             GraphRowHeight: {
@@ -437,13 +437,13 @@ class TrTables:
             "imageFileThresholdKB": _("Load images up to # KB"),
             "syntaxHighlighting": _("Syntax highlighting"),
             "wordWrap": _("Word wrap"),
-            "showStrayCRs": _("Display alien line endings (CRLF)"),
-            "showFormattingMarks": _("Show formatting marks (tabs and spaces)"),
-            "whitespaceMode": _("Whitespace"),
+            "showStrayCRs": _("Show alien line endings (CRLF)"),
+            "showWhitespace": _("Show whitespace symbols"),
+            "whitespaceMode": _("Whitespace diffs"),
             "whitespaceMode_help": paragraphs(
-                _("Whether to show whitespace modifications in diffs."),
-                _("This setting only affects how diffs are displayed. Exporting patches, reverting files, etc. still account for all whitespace changes."),
-            ),
+                _("How whitespace changes are shown in diffs."),
+                _("This setting only affects how diffs are displayed. "
+                  "Operations that handle patches (export, apply, revert, etc.) still honor all whitespace changes.")),
             "colorblind": _("“-/+” colors"),
             "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),
             "renderSvg": _("SVG files"),

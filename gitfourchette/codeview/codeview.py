@@ -286,7 +286,7 @@ class CodeView(QPlainTextEdit):
         tabWidth = settings.prefs.tabSpaces
         self.setTabStopDistance(QFontMetricsF(monoFont).horizontalAdvance(' ' * tabWidth))
         self.refreshWordWrap()
-        self.refreshFormattingMarksOption()
+        self.refreshShowWhitespace()
         self.setCursorWidth(2)
 
         self.gutter.syncFont(monoFont)
@@ -326,13 +326,13 @@ class CodeView(QPlainTextEdit):
         self.setLineWrapMode(wrapMode)
         self.restoreScrollPosition(topCharacter)
 
-    def refreshFormattingMarksOption(self):
+    def refreshShowWhitespace(self):
         doc = self.document()
         if doc is None:
             return
         opt = QTextOption(doc.defaultTextOption())
         flags = opt.flags()
-        if settings.prefs.showFormattingMarks:
+        if settings.prefs.showWhitespace:
             flags |= self.FormattingMarkFlags
         else:
             flags &= ~self.FormattingMarkFlags

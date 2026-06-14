@@ -120,7 +120,7 @@ class Prefs(PrefsFile):
     largeFileThresholdKB        : int                   = 500
     wordWrap                    : bool                  = False
     showStrayCRs                : bool                  = True
-    showFormattingMarks         : bool                  = False
+    showWhitespace              : bool                  = False
     whitespaceMode              : WhitespaceMode        = WhitespaceMode.Strict
 
     _category_imageDiff         : int                   = 0

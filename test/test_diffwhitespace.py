@@ -92,12 +92,12 @@ def testDiffWhitespaceModeButton(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged("master.txt"), check=True)
 
     menu = rw.diffArea.diffButtons.whitespaceModeButton.menu()
-    assert findMenuAction(menu, "whitespace is significant").isChecked()
+    assert findMenuAction(menu, "do not ignore").isChecked()
 
     triggerMenuAction(menu, "ignore all whitespace")
     assert whitespaceOnlyChangesDetected(rw)
     assert findMenuAction(menu, "ignore all whitespace").isChecked()
 
-    triggerMenuAction(menu, "whitespace is significant")
+    triggerMenuAction(menu, "do not ignore")
     assert rw.diffView.isVisible()
-    assert findMenuAction(menu, "whitespace is significant").isChecked()
+    assert findMenuAction(menu, "do not ignore").isChecked()

@@ -154,37 +154,38 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
     assert "<CRLF>" not in rw.diffView.toPlainText()
 
 
-def testPrefsShowFormattingMarks(tempDir, mainWindow):
-    markFlags = QTextOption.Flag.ShowTabsAndSpaces
+def testPrefsShowWhitespace(tempDir, mainWindow):
+    whitespaceFlags = QTextOption.Flag.ShowTabsAndSpaces
 
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/marks.txt", "x\t y\n")
+    writeFile(f"{wd}/whitespace.txt", "x\t y\n")
+
     rw = mainWindow.openRepo(wd)
-    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("marks.txt"))
+    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("whitespace.txt"))
 
-    def formattingMarksBitsSet() -> bool:
+    def whitespaceFlagsSet() -> bool:
         f = rw.diffView.document().defaultTextOption().flags()
-        return (f & markFlags) == markFlags
+        return (f & whitespaceFlags) == whitespaceFlags
 
-    assert not formattingMarksBitsSet()
+    assert not whitespaceFlagsSet()
 
-    dlg = mainWindow.openPrefsDialog("showFormattingMarks")
-    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
+    dlg = mainWindow.openPrefsDialog("showWhitespace")
+    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showWhitespace")
     assert checkBox is not None
     assert not checkBox.isChecked()
     checkBox.setChecked(True)
     dlg.accept()
 
-    assert settings.prefs.showFormattingMarks
-    assert formattingMarksBitsSet()
+    assert settings.prefs.showWhitespace
+    assert whitespaceFlagsSet()
 
-    dlg = mainWindow.openPrefsDialog("showFormattingMarks")
-    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showFormattingMarks")
+    dlg = mainWindow.openPrefsDialog("showWhitespace")
+    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showWhitespace")
     checkBox.setChecked(False)
     dlg.accept()
 
-    assert not settings.prefs.showFormattingMarks
-    assert not formattingMarksBitsSet()
+    assert not settings.prefs.showWhitespace
+    assert not whitespaceFlagsSet()
 
 
 def testPrefsUserCommandsSyntaxHighlighter(mainWindow):

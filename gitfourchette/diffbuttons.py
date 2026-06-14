@@ -23,7 +23,7 @@ class DiffButtons(QWidget):
 
         self.contextButton = self._makeContextLinesButton()
         self.wordWrapButton = self._makeToggle("diff-wrap", "wordWrap")
-        self.marksButton = self._makeToggle("diff-show-whitespace", "showFormattingMarks")
+        self.showWhitespaceButton = self._makeToggle("diff-show-whitespace", "showWhitespace")
         self.whitespaceModeButton = self._makeWhitespaceDiffButton()
         self.svgButton = self._makeToggle("diff-svg", "renderSvg")
         self.svgButton.setToolTip(_("SVG image preview"))
@@ -32,7 +32,7 @@ class DiffButtons(QWidget):
             self.svgButton,
             self.contextButton,
             self.wordWrapButton,
-            self.marksButton,
+            self.showWhitespaceButton,
             self.whitespaceModeButton,
         ]
 
@@ -61,6 +61,8 @@ class DiffButtons(QWidget):
             action.setCheckable(True)
             menu.addAction(action)
             self.diffMethodActions[mode] = action
+
+        menu.insertSeparator(list(self.diffMethodActions.values())[1])
 
         button.setMenu(menu)
         button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
@@ -126,7 +128,7 @@ class DiffButtons(QWidget):
                 *self.diffMethodActions.values(),
         ):
             self.wordWrapButton.setChecked(settings.prefs.wordWrap)
-            self.marksButton.setChecked(settings.prefs.showFormattingMarks)
+            self.showWhitespaceButton.setChecked(settings.prefs.showWhitespace)
             self.contextButton.setIcon(stockIcon("diff-context-lines", f"$TEXT$={settings.prefs.contextLines}"))
 
             mode = settings.prefs.whitespaceMode

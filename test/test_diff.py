@@ -849,34 +849,32 @@ def testToggleWordWrap(tempDir, mainWindow):
         assert dv.firstVisibleBlock().text().startswith("y4x0")
 
 
-def testToggleFormattingMarksHeaderButton(tempDir, mainWindow):
+def testToggleShowWhitespace(tempDir, mainWindow):
     markFlags = QTextOption.Flag.ShowTabsAndSpaces
 
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/marks.txt", "x\t y\n")
+    writeFile(f"{wd}/whitespace.txt", "x\t y\n")
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged("marks.txt"), check=True)
+    rw.jump(NavLocator.inUnstaged("whitespace.txt"), check=True)
 
     dv = rw.diffView
-    formattingMarksButton = rw.diffArea.diffButtons.marksButton
-    assert formattingMarksButton is not None
+    whitespaceButton = rw.diffArea.diffButtons.showWhitespaceButton
+    assert whitespaceButton is not None
 
-    def formattingMarkBitsSet() -> bool:
+    def whitespaceFlagsSet() -> bool:
         f = dv.document().defaultTextOption().flags()
         return (f & markFlags) == markFlags
 
-    assert not settings.prefs.showFormattingMarks
-    assert not formattingMarksButton.isChecked()
-    assert not formattingMarkBitsSet()
+    assert not settings.prefs.showWhitespace
+    assert not whitespaceButton.isChecked()
+    assert not whitespaceFlagsSet()
 
-    for enableMarks in [True, False]:
-        if formattingMarksButton.isChecked() != enableMarks:
-            formattingMarksButton.click()
-
-        assert formattingMarksButton.isChecked() == enableMarks
-        assert settings.prefs.showFormattingMarks == enableMarks
-        assert formattingMarkBitsSet() == enableMarks
+    for showWhitespace in [True, False]:
+        whitespaceButton.click()
+        assert whitespaceButton.isChecked() == showWhitespace
+        assert settings.prefs.showWhitespace == showWhitespace
+        assert whitespaceFlagsSet() == showWhitespace
 
 
 def testRestoreScrollPositionWithWordWrap(tempDir, mainWindow):
