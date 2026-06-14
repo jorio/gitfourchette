@@ -326,11 +326,6 @@ class CodeView(QPlainTextEdit):
         self.setLineWrapMode(wrapMode)
         self.restoreScrollPosition(topCharacter)
 
-    def toggleWordWrap(self):
-        settings.prefs.wordWrap = not settings.prefs.wordWrap
-        settings.prefs.write()
-        GFApplication.instance().prefsChanged.emit(["wordWrap"])
-
     def refreshFormattingMarksOption(self):
         doc = self.document()
         if doc is None:
@@ -367,10 +362,9 @@ class CodeView(QPlainTextEdit):
         # Append common CodeView actions
         actions += [
             ActionDef.SEPARATOR,
-            ActionDef(_("&Word Wrap"), self.toggleWordWrap, checkState=1 if settings.prefs.wordWrap else -1),
-            ActionDef(_("Configure Appearance…"), lambda: GFApplication.instance().openPrefsDialog("font"), icon="configure"),
+            *[a for a in bottomMenu.actions() if not a.isSeparator()],
             ActionDef.SEPARATOR,
-            *bottomMenu.actions(),
+            ActionDef(_("Configure Appearance…"), lambda: GFApplication.instance().openPrefsDialog("font"), icon="configure"),
         ]
 
         # Create QMenu

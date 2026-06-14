@@ -838,8 +838,7 @@ def testToggleWordWrap(tempDir, mainWindow):
 
     for enableWrap in [True, False]:
         # Toggle word wrap
-        triggerContextMenuAction(dv.viewport(), "word wrap")
-        QTest.qWait(0)
+        wordWrapButton.click()
 
         assert wordWrapButton.isChecked() == enableWrap
 
