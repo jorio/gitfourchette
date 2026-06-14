@@ -25,8 +25,11 @@ class DiffButtons(QWidget):
         self.wordWrapButton = self._makeToggle("diff-wrap", "wordWrap")
         self.marksButton = self._makeToggle("diff-show-whitespace", "showFormattingMarks")
         self.whitespaceModeButton = self._makeWhitespaceDiffButton()
+        self.svgButton = self._makeToggle("diff-svg", "renderSvg")
+        self.svgButton.setToolTip(_("SVG image preview"))
 
         self.buttons = [
+            self.svgButton,
             self.contextButton,
             self.wordWrapButton,
             self.marksButton,
@@ -138,6 +141,8 @@ class DiffButtons(QWidget):
             # "Press" the button when the mode is anything but Strict.
             self.whitespaceModeButton.setChecked(mode != WhitespaceMode.Strict)
 
+            self.svgButton.setChecked(settings.prefs.renderSvg)
+
     # -------------------------------------------------------------------------
     # Button callbacks
 
@@ -150,7 +155,7 @@ class DiffButtons(QWidget):
         settings.prefs.write()
         GFApplication.instance().prefsChanged.emit([prefKey])
 
-        if prefKey in {"whitespaceMode", "contextLines"}:
+        if prefKey in {"whitespaceMode", "contextLines", "renderSvg"}:
             # Trigger a reload of the patch
             # TODO: This is inelegant, but it does the job for now. Ideally prefsChanged would suffice?
             GFApplication.instance().mainWindow.onAcceptPrefsDialog({prefKey: newValue})

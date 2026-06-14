@@ -593,14 +593,25 @@ def testDiffLargeImage(tempDir, mainWindow):
 
 def testDiffSvgImage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/aaaa.txt", "first file in list, auto-selected on boot")
     shutil.copyfile(getTestDataPath("image3.svg"), f"{wd}/image.svg")
 
     rw = mainWindow.openRepo(wd)
+
+    # SVG button not shown unless looking at SVG file
+    assert not rw.diffArea.diffButtons.svgButton.isVisible()
+
+    # Jump to SVG file. By default, text contents are shown
     rw.jump(NavLocator.inUnstaged("image.svg"), check=True)
+    assert rw.diffArea.diffButtons.svgButton.isVisible()
+    assert not rw.diffArea.diffButtons.svgButton.isChecked()
     assert rw.diffView.isVisible()
     assert "<svg xmlns=" in rw.diffView.toPlainText()
 
-    mainWindow.onAcceptPrefsDialog({"renderSvg": True})
+    # Click SVG image preview button
+    rw.diffArea.diffButtons.svgButton.click()
+    assert rw.diffArea.diffButtons.svgButton.isChecked()
+    assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
     assert re.search("16 . 16 pixels", rw.specialDiffView.toPlainText())
 
