@@ -185,7 +185,8 @@ def testTabBarActions(tempDir, mainWindow):
             assert services.urls[-1] == QUrl.fromLocalFile(wd)
 
         triggerMenuAction(menu, "open terminal")
-        terminalShimResult = readTextFile(scratchPath, unlink=True, timeout=5000).splitlines()
+        waitForFile(scratchPath)
+        terminalShimResult = readTextFile(scratchPath, unlink=True).splitlines()
         assert terminalShimResult[0] == "hello world"
         assert terminalShimResult[1].endswith(".sh")  # path to launcher script
 

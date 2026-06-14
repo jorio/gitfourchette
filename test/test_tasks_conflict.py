@@ -391,7 +391,8 @@ def testMergeToolInBackground(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged("SomeOtherFile.txt"), check=True)
 
     # Wait for the merge tool to complete in the background
-    scratchLines = readTextFile(scratchPath, timeout=5000).strip().splitlines()
+    waitForFile(scratchPath)
+    scratchLines = readTextFile(scratchPath).strip().splitlines()
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]

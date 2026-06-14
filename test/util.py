@@ -30,6 +30,10 @@ HAS_LFS = bool(shutil.which("git-lfs"))
 HAS_GPG = bool(shutil.which("gpg"))
 HAS_FLATPAK = FREEDESKTOP and bool(shutil.which("flatpak"))
 
+# Mac CI can be very slow to start processes
+DEFAULT_TIMEOUT = 5_000 if not os.environ.get("CI", "") else 20_000
+TOOLTIP_TIMEOUT = 3_000
+
 requiresNetwork = pytest.mark.skipif(
     os.environ.get("TESTNET", "") in {"0", ""},
     reason="Requires network (test.py --with-network)")
@@ -324,39 +328,32 @@ def touchFile(path):
     os.utime(path, (0, 0))
 
 
-def writeFile(path, text):
+def writeFile(path: str, text: str):
+    pathObj = Path(path)
+
     # Prevent accidental littering of current working directory
-    assert os.path.isabs(path), "pass me an absolute path"
+    assert pathObj.is_absolute(), "pass me an absolute path"
 
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "wb") as f:
-        f.write(text.encode("utf-8"))
+    pathObj.parent.mkdir(parents=True, exist_ok=True)
+    pathObj.write_text(text, "utf-8")
 
 
-def readFile(path, timeout=0, unlink=False):
-    if timeout:
-        waitUntilTrue(lambda: os.path.exists(path), timeout=timeout)
-
-    with open(path, "rb") as f:
-        data = f.read()
-
+def readFile(path: str, unlink: bool = False) -> bytes:
+    pathObj = Path(path)
+    data = pathObj.read_bytes()
     if unlink:
-        os.unlink(path)
-
+        pathObj.unlink()
     return data
 
 
-def readTextFile(path, timeout=0, unlink=False):
-    if timeout:
-        waitUntilTrue(lambda: os.path.exists(path), timeout=timeout)
+def readTextFile(path: str, unlink: bool = False):
+    data = readFile(path, unlink=unlink)
+    return data.decode("utf-8")
 
-    with open(path, encoding="utf-8") as f:
-        data = f.read()
 
-    if unlink:
-        os.unlink(path)
-
-    return data
+def waitForFile(path: str, timeout: int = DEFAULT_TIMEOUT):
+    pathObj = Path(path)
+    waitUntilTrue(lambda: pathObj.exists(), timeout=timeout)
 
 
 def fileHasUserExecutableBit(path: str) -> bool:
@@ -571,7 +568,7 @@ def findQDialog(
 def waitForQDialog(
         parent: QWidget,
         pattern: str,
-        timeout: int = 5000,
+        timeout: int = DEFAULT_TIMEOUT,
         t: type[_TInheritsQDialog] = QDialog
 ) -> _TInheritsQDialog:
     def tryFind():
@@ -584,7 +581,7 @@ def waitForQDialog(
 
 def waitUntilTrue(
         callback: Callable[[], _T],
-        timeout: int = 5000,
+        timeout: int = DEFAULT_TIMEOUT,
         interval: int = 100,
 ) -> _T:
     assert timeout >= interval
@@ -597,7 +594,11 @@ def waitUntilTrue(
     raise TimeoutError(f"retry failed after {timeout} ms timeout")
 
 
-def waitForSignal(signal: SignalInstance, timeout=5000, disconnect=True):
+def waitForSignal(
+        signal: SignalInstance,
+        timeout: int = DEFAULT_TIMEOUT,
+        disconnect=True
+):
     loop = QEventLoop()
 
     signal.connect(loop.quit)
@@ -798,7 +799,7 @@ def summonToolTip(target: QWidget, localPoint=QPoint_zero):
     # mouse happened to be. Just discard it.
     if QToolTip.isVisible():
         QToolTip.hideText()
-        waitUntilTrue(lambda: not QToolTip.isVisible())
+        waitUntilTrue(lambda: not QToolTip.isVisible(), timeout=TOOLTIP_TIMEOUT)
 
     # Move the cursor so that context-sensitive tooltips still work.
     # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
@@ -811,10 +812,13 @@ def summonToolTip(target: QWidget, localPoint=QPoint_zero):
     assert not QToolTip.isVisible(), f"QToolTip still visible: {stripHtml(QToolTip.text())}"
     helpEvent = QHelpEvent(QEvent.Type.ToolTip, localPoint, target.mapToGlobal(localPoint))
     QApplication.instance().postEvent(target, helpEvent)
-    waitUntilTrue(QToolTip.isVisible)
+
+    waitUntilTrue(QToolTip.isVisible, timeout=TOOLTIP_TIMEOUT)
     text = QToolTip.text()
+
     QToolTip.hideText()
-    waitUntilTrue(lambda: not QToolTip.isVisible())  # may need some time to fade out
+    waitUntilTrue(lambda: not QToolTip.isVisible(), timeout=TOOLTIP_TIMEOUT)  # may need some time to fade out
+
     return text
 
 

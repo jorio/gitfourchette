@@ -11,7 +11,7 @@ jobs:
   tests:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -67,7 +67,7 @@ jobs:
     - run: ruff check
 
     - name: Unit tests
-      run: ./test.py --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
+      run: ./test.py -v --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v6

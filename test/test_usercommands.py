@@ -13,7 +13,7 @@ from .util import *
 
 # Give macOS a very generous timeout because it can take a long time to spawn a
 # shell via termcmd.sh, especially when many tests are running in parallel.
-TIMEOUT = 30_000 if (MACOS or WINDOWS) else 2_500
+TIMEOUT = max(DEFAULT_TIMEOUT, 30_000 if (MACOS or WINDOWS) else 2_500)
 
 
 @pytest.fixture
@@ -201,7 +201,8 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     action.trigger()
     acceptQMessageBox(rw, "do you want to run.+in a terminal.+shim.+")
 
-    output = readTextFile(commandsScratchFile, TIMEOUT).strip()
+    waitForFile(commandsScratchFile)
+    output = readTextFile(commandsScratchFile).strip()
     assert re.search(params.output, output)
 
     if WINDOWS:  # Let bash wrap up... TODO: Figure out a cleaner way
@@ -250,7 +251,8 @@ def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile)
     QTest.qWait(0)
 
     triggerMenuAction(mainWindow.menuBar(), "commands/hello world")
-    output = readTextFile(commandsScratchFile, TIMEOUT).strip()
+    waitForFile(commandsScratchFile, TIMEOUT)
+    output = readTextFile(commandsScratchFile).strip()
     assert re.search(r"hello world", output)
 
 
@@ -262,7 +264,8 @@ def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
     for name in ["confirm1", "confirm2", "confirm3"]:
         triggerMenuAction(mainWindow.menuBar(), "commands/" + name)
         acceptQMessageBox(mainWindow, "do you want to run")
-        output = readTextFile(commandsScratchFile, TIMEOUT, unlink=True).strip()
+        waitForFile(commandsScratchFile, TIMEOUT)
+        output = readTextFile(commandsScratchFile, unlink=True).strip()
         assert re.search(name, output)
 
 
@@ -280,7 +283,8 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
 
     acceptQMessageBox(mainWindow, "do you want to run")
 
-    output = readTextFile(commandsScratchFile, TIMEOUT).strip()
+    waitForFile(commandsScratchFile, TIMEOUT)
+    output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
 
 
@@ -292,5 +296,6 @@ def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     QTest.keySequence(mainWindow, "Ctrl+K, D")
     acceptQMessageBox(mainWindow, "do you want to run")
 
-    output = readTextFile(commandsScratchFile, TIMEOUT).strip()
+    waitForFile(commandsScratchFile, TIMEOUT)
+    output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)

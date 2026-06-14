@@ -18,7 +18,8 @@ def testTerminal(tempDir, mainWindow):
     _rw = mainWindow.openRepo(wd)
 
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
-    scratchText = readTextFile(scratch, 5000)
+    waitForFile(scratch)
+    scratchText = readTextFile(scratch)
     scratchLines = scratchText.splitlines()
     assert scratchLines[0] == "hello world"
     assert scratchLines[1].endswith(".sh")  # launcher script
@@ -76,7 +77,8 @@ def testTerminalCommandNotFound(tempDir, mainWindow):
     acceptQFileDialog(mainWindow, "where is.+editor-shim", shim)
 
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
-    scratchText = readTextFile(scratch, 5000)
+    waitForFile(scratch)
+    scratchText = readTextFile(scratch)
     scratchLines = scratchText.splitlines()
     assert scratchLines[0] == "hello world"
     assert scratchLines[1].endswith(".sh")

@@ -762,10 +762,11 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 
     mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in pause")
-    assert readFile(scratchPath, 1000).decode().strip() == "about to sleep"
+    waitForFile(scratchPath)
+    assert readTextFile(scratchPath).strip() == "about to sleep"
     mainWindow.closeAllTabs()
     pause(3)
-    assert readFile(scratchPath).decode().strip() == "about to sleep"
+    assert readTextFile(scratchPath).strip() == "about to sleep"
 
 
 # TODO: Teardown fails on Windows, which is a symptom of a minor leak that
@@ -821,7 +822,7 @@ def testGitProcessStuck(tempDir, mainWindow, taskThread, needSigkill):
         waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
         processDialog.abortButton.click()
 
-    waitUntilTrue(processDialog.isHidden, timeout=1000)
+    waitUntilTrue(processDialog.isHidden)
 
     code = "SIGKILL" if needSigkill else "SIGTERM"
     waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()

@@ -995,8 +995,7 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
         waitUntilTrue(mainWindow.statusBar2.busyLabel.isVisible)
         assert findTextInWidget(mainWindow.statusBar2.busyLabel, "busy: auto-fetch")
 
-    # Big timeout: Mac CI sometimes takes its sweet time to complete the fetch here
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy(), timeout=10_000)
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
     branches = {x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
     if enabled:
