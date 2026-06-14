@@ -1,10 +1,11 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import itertools
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import pytest
@@ -290,10 +291,14 @@ allFixtures = [
 ]
 
 
+def argchain(iterable: Iterable) -> list:
+    return list(itertools.chain.from_iterable(iterable))
+
+
 @pytest.mark.parametrize(
     argnames=("fixture", "seedsAscii", "expectedHidden"),
-    argvalues=itertools.chain.from_iterable(g.hiddenCommitsParametrizedArgs() for g in allFixtures),
-    ids=itertools.chain.from_iterable(g.hiddenCommitsParametrizedNames() for g in allFixtures),
+    argvalues=argchain(f.hiddenCommitsParametrizedArgs() for f in allFixtures),
+    ids=argchain(f.hiddenCommitsParametrizedNames() for f in allFixtures),
 )
 def testHiddenCommitMarks(fixture: ChainMarkerFixture, seedsAscii, expectedHidden):
     seeds = set(MockOid.encodeAll(seedsAscii))
@@ -325,8 +330,8 @@ def testHiddenCommitMarks(fixture: ChainMarkerFixture, seedsAscii, expectedHidde
 
 @pytest.mark.parametrize(
     argnames=("fixture", "seedsAscii", "expected"),
-    argvalues=itertools.chain.from_iterable(g.localCommitsParametrizedArgs() for g in allFixtures),
-    ids=itertools.chain.from_iterable(g.localCommitsParametrizedNames() for g in allFixtures),
+    argvalues=argchain(f.localCommitsParametrizedArgs() for f in allFixtures),
+    ids=argchain(f.localCommitsParametrizedNames() for f in allFixtures),
 )
 def testLocalCommitMarks(fixture: ChainMarkerFixture, seedsAscii, expected):
     seeds = set(MockOid.encodeAll(seedsAscii))
