@@ -14,6 +14,7 @@ import pytest
 from collections.abc import Generator
 from typing import Literal
 
+from gitfourchette.blameview.blamemodel import Revision
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
@@ -630,3 +631,39 @@ def testBlameRenamedFileInWorkdir(tempDir, mainWindow, method):
     blameWindow.close()
     if QT5:  # Qt 5 needs a breather here to actually close window
         QTest.qWait(0)
+
+
+def testBlameMissingRevisions(blameWindow):
+    # A BlameLine may reference a commit that is missing from the revlist.
+    # This may occur when blaming a workdir file during a merge in progress.
+    # Arguably, the revlist building code should handle this case; but, until
+    # then, we should respond gracefully to references to missing revisions.
+
+    rw = blameWindow._unitTestRepoWidget
+
+    # Create a fake commit
+    with RepoContext(rw.repo) as repo:
+        missingId = repo.create_commit_on_head("fake missing rev", TEST_SIGNATURE, TEST_SIGNATURE)
+    rw.refreshRepo()
+
+    shortMissingId = str(missingId)[:7]
+
+    # Inject the fake commit as the source revision
+    # for the first line in the current revision
+    blameWindow.model.currentRevision.blameLines[0] = Revision.BlameLine(missingId, 0)
+    blameWindow.model.currentRevision.blameLines[1] = Revision.BlameLine(missingId, 0)
+
+    # The application must respond gracefully beyond this point
+    blameWindow.repaint()
+
+    blameWindow.textEdit.setFocus()
+    assert blameWindow.textEdit.hasFocus()
+
+    linePos = qteBlockPoint(blameWindow.textEdit, 0)
+    text = summonToolTip(blameWindow.textEdit.gutter, linePos).lower()
+    assert "test person" in text
+    assert "fake missing rev" in text
+    assert shortMissingId in text
+
+    menu = summonContextMenu(blameWindow.textEdit.viewport(), QPoint(4, 4))
+    assert not findMenuAction(menu, f"blame file at.+{shortMissingId}").isEnabled()

@@ -59,10 +59,18 @@ class BlameModel:
 
 @dataclasses.dataclass
 class Revision:
+    """
+    State of a file at a specific commit.
+    Each line is annotated with the commit it originates from.
+    """
+
     @dataclasses.dataclass(frozen=True)
     class BlameLine:
         commitId: Oid
+        "Commit where this line appeared first."
+
         originalLineNumber: int
+        "Line number in the original file in the source commit."
 
     path: str
     commitId: Oid
@@ -104,6 +112,11 @@ class Revision:
 
 
 class RevList:
+    """
+    History of significant revisions in a file, curated to only include commits
+    that directly touched it.
+    """
+
     sequence: list[Revision]
     byCommit: dict[Oid, Revision]
     nonTipCommits: set[Oid]
@@ -121,10 +134,10 @@ class RevList:
         self.sequence.append(revision)
         self.byCommit[revision.commitId] = revision
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sequence)
 
-    def revisionForCommit(self, oid: Oid):
+    def revisionForCommit(self, oid: Oid) -> Revision:
         return self.byCommit[oid]
 
     def revisionNumber(self, oid: Oid) -> int:

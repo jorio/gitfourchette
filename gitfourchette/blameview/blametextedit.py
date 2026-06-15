@@ -31,8 +31,12 @@ class BlameTextEdit(CodeView):
         lineNumber = min(lineNumber, len(self.model.currentRevision.blameLines) - 1)
 
         commitId = self.model.currentRevision.blameLines[lineNumber].commitId
-        revision = self.model.revList.revisionForCommit(commitId)
-        locator = revision.toLocator()
+        try:
+            revision = self.model.revList.revisionForCommit(commitId)
+            locator = revision.toLocator()
+        except LookupError:
+            revision = None
+            locator = NavLocator.inCommit(commitId)
         isWorkdir = locator.context.isWorkdir()
 
         if isWorkdir:
@@ -46,7 +50,8 @@ class BlameTextEdit(CodeView):
             ActionDef(
                 blameLabel,
                 icon="git-blame",
-                callback=lambda: self.showRevision.emit(revision)
+                callback=lambda: self.showRevision.emit(revision),
+                enabled=revision is not None,
             ),
 
             ActionDef(

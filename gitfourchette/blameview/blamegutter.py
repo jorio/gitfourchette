@@ -42,6 +42,7 @@ class BlameGutter(CodeGutter):
         self.boldTextColor = QColor()
         self.freshColor = QColor()
         self.heatColor = QColor()
+        self.unknownColor = QColor()
 
         self.refreshMetrics()
 
@@ -82,6 +83,8 @@ class BlameGutter(CodeGutter):
         self.heatColor = QColor(colors.orange)
         self.freshColor = QColor(colors.aqua)
         self.freshColor.setAlphaF(.6 if isDarkTheme(self.palette()) else .8)
+        self.unknownColor = QColor(colors.fuchsia)
+        self.unknownColor.setAlphaF(.4 if isDarkTheme(self.palette()) else .6)
 
     def calcWidth(self) -> int:
         return self.preferredWidth
@@ -133,10 +136,17 @@ class BlameGutter(CodeGutter):
                 isCurrent = lineCommitId == topCommitId
                 painter.setFont(self.boldFont if isCurrent else self.font())
                 painter.setPen(boldTextPen if isCurrent else textPen)
-                revisionNumber = self.model.revList.revisionNumber(lineCommitId)
+
+                try:
+                    revisionNumber = self.model.revList.revisionNumber(lineCommitId)
+                except LookupError:
+                    revisionNumber = -1
+
                 # Compute heat color
                 if revisionNumber == topRevisionNumber:
                     bgColor = self.freshColor
+                elif revisionNumber == -1:
+                    bgColor = self.unknownColor
                 else:
                     heat = revisionNumber / (topRevisionNumber - 1)
                     heat = heat ** 2  # ease in cubic
@@ -196,9 +206,15 @@ class BlameGutter(CodeGutter):
 
         try:
             commitId = self.model.currentRevision.blameLines[lineNumber].commitId
-            revision = self.model.revList.revisionForCommit(commitId)
-        except IndexError:
+        except LookupError:
             return False
+
+        try:
+            revision = self.model.revList.revisionForCommit(commitId)
+            revisionNumber = self.model.revList.revisionNumber(commitId)
+        except LookupError:
+            revision = None
+            revisionNumber = -1
 
         text = "<table style='white-space: pre'>"
 
@@ -215,8 +231,8 @@ class BlameGutter(CodeGutter):
             text += newLine(_("commit"), shortHash(commitId))
             text += newLine(_("author"), commit.author.name)
             text += newLine(_("date"), signatureDateFormat(commit.author, settings.prefs.shortTimeFormat, localTime=False))
-        text += newLine(_("file name"), revision.path)
-        text += newLine(_("revision"), self.model.revList.revisionNumber(commitId))
+        text += newLine(_("file name"), revision.path if revision else _("(not available)"))
+        text += newLine(_("revision"), revisionNumber if revisionNumber >= 0 else _("(not available)"))
         text += "</table>"
         if not isWorkdir:
             text += "<p>" + escape(commit.message.rstrip()).replace("\n", "<br>") + "</p>"
