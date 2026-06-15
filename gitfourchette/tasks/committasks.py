@@ -205,6 +205,7 @@ class AmendCommit(RepoTask):
         headCommit = self.repo.head_commit
         fallbackSignature = self.repo.default_signature
         gpgFlag, gpgKey = NewCommit.getGpgConfig(self.repo)
+        emptyCommit = not self.repo.any_staged_changes
 
         # TODO: Retrieve draft message
         cd = CommitDialog(
@@ -214,7 +215,7 @@ class AmendCommit(RepoTask):
             amendingCommitHash=shortHash(headCommit.id),
             detachedHead=self.repo.head_is_detached,
             repositoryState=self.repo.state(),
-            emptyCommit=False,
+            emptyCommit=emptyCommit,
             gpgFlag=gpgFlag,
             gpgKey=gpgKey,
             parent=self.parentWidget())

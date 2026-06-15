@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -65,13 +65,16 @@ class CommitDialog(QDialog):
             warning = _("This commit will conclude the cherry-pick.")
         elif repositoryState == RepositoryState.REVERT:
             warning = _("This commit will conclude the revert.")
+        elif amendingCommitHash and emptyCommit:
+            warning = _("Amending commit {0} without changing its contents (no staged changes).",
+                        lquo(amendingCommitHash))
         elif amendingCommitHash:
-            warning = _("You are amending commit {0}.", lquo(amendingCommitHash))
+            warning = _("Amending commit {0}.", lquo(amendingCommitHash))
         elif detachedHead:
             warning = _("<b>Detached HEAD</b> – You are not in any branch! "
-                              "You should create a branch to keep track of your commit.")
+                        "You should create a branch to keep track of your commit.")
         elif emptyCommit:
-            warning = _("You are creating an empty commit (no staged changes).")
+            warning = _("Creating an empty commit (no staged changes).")
 
         self.ui.infoBox.setVisible(bool(warning))
         self.ui.infoText.setText(warning)

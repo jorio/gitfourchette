@@ -225,6 +225,8 @@ def testAmendCommit(tempDir, mainWindow):
 
     dialog: CommitDialog = findQDialog(rw, "amend")
     assert dialog.ui.summaryEditor.text() == oldMessage
+    assert dialog.ui.infoText.isVisible()
+    assert findTextInWidget(dialog.ui.infoText, "amending commit")
     dialog.ui.summaryEditor.setText(newMessage)
     dialog.ui.revealSignature.setChecked(True)
     dialog.ui.signature.ui.nameEdit.setText(newAuthorName)
@@ -264,13 +266,19 @@ def testAmendCommitDontBreakRefresh(tempDir, mainWindow):
 def testEmptyCommitRaisesWarning(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
+
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "create.+empty commit")
 
-    commitDialog = findQDialog(rw, "commit")
-    assert isinstance(commitDialog, CommitDialog)
+    commitDialog = findQDialog(rw, "commit", t=CommitDialog)
     assert commitDialog.ui.infoText.isVisible()
-    assert "empty commit" in commitDialog.ui.infoText.text().lower()
+    assert findTextInWidget(commitDialog.ui.infoText, "empty commit")
+    commitDialog.reject()
+
+    triggerContextMenuAction(rw.graphView.viewport(), "amend")
+    commitDialog = findQDialog(rw, "amend", t=CommitDialog)
+    assert commitDialog.ui.infoText.isVisible()
+    assert findTextInWidget(commitDialog.ui.infoText, "amending commit.+without changing its contents")
     commitDialog.reject()
 
     # Look for additional hint text when there are unstaged changes
@@ -295,8 +303,7 @@ def testCommitWithoutUserIdentity(tempDir, mainWindow):
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "create.+empty commit")
 
-    identityDialog = findQDialog(rw, "identity")
-    assert isinstance(identityDialog, IdentityDialog)
+    identityDialog = findQDialog(rw, "identity", t=IdentityDialog)
     identityOK = identityDialog.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
     assert not identityOK.isEnabled()
     identityDialog.ui.nameEdit.setText("Archibald Haddock")
@@ -304,8 +311,7 @@ def testCommitWithoutUserIdentity(tempDir, mainWindow):
     assert identityOK.isEnabled()
     identityDialog.accept()
 
-    commitDialog = findQDialog(rw, "commit")
-    assert isinstance(commitDialog, CommitDialog)
+    commitDialog = findQDialog(rw, "commit", t=CommitDialog)
     commitDialog.ui.summaryEditor.setText("ca geht's mol?")
     commitDialog.accept()
 
@@ -323,7 +329,7 @@ def testCommitStableDate(tempDir, mainWindow):
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "empty commit")
 
-    dialog: CommitDialog = findQDialog(rw, "commit")
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
     dialog.ui.summaryEditor.setText("hold on a sec...")
 
     # Wait for next second before confirming.
