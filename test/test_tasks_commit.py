@@ -763,6 +763,47 @@ def testNewTag(tempDir, mainWindow):
     assert newTag in rw.repo.listall_tags()
 
 
+def testForceNewTag(tempDir, mainWindow):
+    firstCommit = "2c349335b7f797072cf729c4f3bb0914ecb6dec9"  # "First a/a2"
+    secondCommit = "ac7e7e44c1885efb472ad54a78327d66bfc4ecef"  # "First a/a1"
+    newTag = "cool-tag"
+
+    wd = unpackRepo(tempDir)
+
+    # Nuke remotes for coverage of the no-remote code path.
+    # (See also testPushTagOnCreate)
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+        repo.create_reference(RefPrefix.TAGS + newTag, firstCommit)
+
+    rw = mainWindow.openRepo(wd)
+    assert newTag in rw.repo.listall_tags()
+    assert rw.repo.commit_id_from_tag_name(newTag) == Oid(hex=firstCommit)
+
+    secondOid = Oid(hex=secondCommit)
+
+    rw.jump(NavLocator.inCommit(secondOid))
+    triggerContextMenuAction(rw.graphView.viewport(), "tag this commit")
+
+    dlg: NewTagDialog = findQDialog(rw, "new tag")
+    okButton = dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+
+    # 'Replace' checkbox disabled until it's needed
+    assert not dlg.ui.forceCheckBox.isEnabled()
+
+    # Type in a tag name that already exists
+    dlg.ui.nameEdit.setText(newTag)
+
+    assert not okButton.isEnabled()  # disabled b/c tag name is duplicated
+    assert dlg.ui.forceCheckBox.isEnabled()
+    dlg.ui.forceCheckBox.setChecked(True)
+
+    assert okButton.isEnabled()
+    dlg.accept()
+
+    assert rw.repo.commit_id_from_tag_name(newTag) == secondOid
+
+
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testDeleteTag(tempDir, mainWindow, method):
     tagToDelete = "annotated_tag"

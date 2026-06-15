@@ -1100,14 +1100,14 @@ class RepoTaskRunner(QObject):
             # Run task's error callback
             task.onError(exception)
 
+        # Accumulate epilog (give way to task epilog over current epilog)
+        task.epilog.status = task.epilog.status or task._transientSubtaskStatus
+        self.pendingEpilog = task.epilog | self.pendingEpilog
+
         if not ranToCompletion:
             # Task aborted before completion, discard pending task
             self._releasePendingTask()
         else:
-            # Accumulate epilog (give way to task epilog over current epilog)
-            task.epilog.status = task.epilog.status or task._transientSubtaskStatus
-            self.pendingEpilog = task.epilog | self.pendingEpilog
-
             # Queue up pending task, if any, before postTask
             self._startPendingTask()
 

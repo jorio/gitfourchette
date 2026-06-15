@@ -779,6 +779,38 @@ def testPushDeleteTag(tempDir, mainWindow):
         assert "etiquette" not in bareRepo.listall_tags()
 
 
+def testPushReplacedTagFails(tempDir, mainWindow):
+    replacedTag = "annotated_tag"
+
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, keepOldUpstream=True)
+
+    # Remove origin so that we don't attempt to push to the network
+    with RepoContext(wd) as repo:
+        repo.remotes.delete("origin")
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.navLocator.commit != rw.repo.head_commit_id
+
+    node = rw.sidebar.findNodeByKind(SidebarItem.TagsHeader)
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "new tag.+HEAD")
+
+    dlg: NewTagDialog = findQDialog(rw, "new tag")
+    dlg.ui.nameEdit.setText(replacedTag)
+    assert dlg.ui.forceCheckBox.isEnabled()
+    dlg.ui.forceCheckBox.setChecked(True)
+    assert not dlg.ui.pushCheckBox.isChecked()
+    dlg.ui.pushCheckBox.setChecked(True)
+    dlg.accept()
+
+    # We don't force-push tags, for now
+    acceptQMessageBox(rw, "Updates were rejected because the tag already exists in the remote")
+
+    # Make sure the local tag has at least been updated locally
+    rw.sidebar.selectAnyRef(RefPrefix.TAGS + replacedTag)
+    assert rw.navLocator.commit == rw.repo.head_commit_id
+
+
 def testForcePushWithLeasePass(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
