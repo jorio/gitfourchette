@@ -90,6 +90,15 @@ class TabBarClick(enum.StrEnum):
     Terminal = "terminal"
 
 
+class WhitespaceMode(enum.StrEnum):
+    """How `git diff` treats line endings and whitespace when showing patches."""
+
+    Strict = ""
+    IgnoreAll = "ignore-all-space"
+    IgnoreChange = "ignore-space-change"
+    IgnoreCrAtEol = "ignore-cr-at-eol"
+
+
 @dataclasses.dataclass
 class Prefs(PrefsFile):
     _filename = "prefs.json"
@@ -113,6 +122,8 @@ class Prefs(PrefsFile):
     largeFileThresholdKB        : int                   = 500
     wordWrap                    : bool                  = False
     showStrayCRs                : bool                  = True
+    showWhitespace              : bool                  = False
+    whitespaceMode              : WhitespaceMode        = WhitespaceMode.Strict
 
     _category_imageDiff         : int                   = 0
     imageFileThresholdKB        : int                   = 5000

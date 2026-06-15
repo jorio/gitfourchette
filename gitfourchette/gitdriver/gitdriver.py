@@ -17,6 +17,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
+from gitfourchette.settings import WhitespaceMode
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
@@ -307,16 +308,36 @@ class GitDriver(QProcess):
         deltas = list(parseGitDiffRawZ(stdout))
         return deltas
 
+    @staticmethod
+    def diffFormattingArgs() -> list[str]:
+        """
+        Extra `git diff` arguments for line-ending / whitespace handling.
+        Only applied when generating patches for on-screen display so exports,
+        revert, and trash backups stay exact.
+        """
+        m = settings.prefs.whitespaceMode
+        if m == WhitespaceMode.Strict:
+            return []
+        if m == WhitespaceMode.IgnoreChange:
+            return ["--ignore-space-change"]
+        if m == WhitespaceMode.IgnoreAll:
+            return ["--ignore-all-space"]
+        if m == WhitespaceMode.IgnoreCrAtEol:
+            return ["--ignore-cr-at-eol"]
+        return []
+
     @classmethod
     def buildDiffCommand(
             cls,
             delta: GitDelta | tuple[Oid | None, Oid | None] | None,
-            binary=True
+            binary=True,
+            forDisplay: bool = False,
     ) -> list[str]:
         tokens = [
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
             "diff",
+            *argsIf(forDisplay, *cls.diffFormattingArgs()),
             *argsIf(binary, "--binary"),
         ]
 
@@ -367,7 +388,9 @@ class GitDriver(QProcess):
             "--git-dir=",
             "-c", "core.abbrev=no",
             "-c", f"diff.context={settings.prefs.contextLines}",
-            "diff", "--no-index", "--",
+            "diff",
+            *cls.diffFormattingArgs(),
+            "--no-index", "--",
             delta.old.lfs.objectPath,
             delta.new.lfs.objectPath,
         ]

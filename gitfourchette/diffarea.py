@@ -8,6 +8,8 @@ import logging
 import typing
 from typing import Literal
 
+from gitfourchette.application import GFApplication
+from gitfourchette.diffbuttons import DiffButtons
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.diffview.specialdiffview import SpecialDiffView
 from gitfourchette.filelists.committedfiles import CommittedFiles
@@ -79,6 +81,9 @@ class DiffArea(QWidget):
                 self.stagedHeader
         ):
             passiveWidget.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+
+        GFApplication.instance().prefsChanged.connect(self.diffButtons.refreshPrefs)
+        self.diffButtons.refreshPrefs()
 
         # Ignore height in size policy to keep DiffArea from jumping around when we're showing a banner.
         self.setSizePolicy(self.sizePolicy().horizontalPolicy(), QSizePolicy.Policy.Ignored)
@@ -253,13 +258,18 @@ class DiffArea(QWidget):
         header.setObjectName("diffHeader")
         header.setMinimumHeight(FILEHEADER_HEIGHT)
         header.setContentsMargins(4, 0, 4, 0)
-        # Don't let header dictate window width if displaying long filename
+        header.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        # Absorb horizontal space so the path stays left and toolbar stays right.
         header.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
+
+        diffTools = DiffButtons(self)
 
         topContainer = QWidget(self)
         topLayout = QHBoxLayout(topContainer)
         topLayout.setContentsMargins(0, 0, 0, 0)
-        topLayout.addWidget(header)
+        topLayout.setSpacing(0)
+        topLayout.addWidget(header, 1)
+        topLayout.addWidget(diffTools, 0)
 
         diff = DiffView(self)
 
@@ -296,16 +306,24 @@ class DiffArea(QWidget):
         self.conflictView = conflict
         self.specialDiffView = specialDiff
         self.diffView = diff
+        self.diffButtons = diffTools
 
         return stackContainer
 
     def applyCustomStyling(self):
-        for smallButton in self.discardButton, self.unstageButton, self.stageButton:
+        for smallButton in (
+                self.discardButton,
+                self.unstageButton,
+                self.stageButton,
+                *self.diffButtons.buttons,
+        ):
             smallButton.setMaximumHeight(FILEHEADER_HEIGHT)
-            smallButton.setEnabled(False)
             smallButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             smallButton.setAutoRaise(True)
             smallButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+        for button in self.stageButton, self.unstageButton, self.discardButton:
+            button.setEnabled(False)
 
         for button in self.stageButton, self.unstageButton:
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
@@ -320,6 +338,7 @@ class DiffArea(QWidget):
                 self.stageButton,
                 self.unstageButton,
                 self.discardButton,
+                *self.diffButtons.buttons,
         ):
             tweakWidgetFont(smallWidget, 90)
 

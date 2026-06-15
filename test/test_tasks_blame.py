@@ -23,7 +23,6 @@ from .util import *
 from gitfourchette.blameview.blamewindow import BlameWindow
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.repowidget import RepoWidget
-from gitfourchette.syntax import syntaxHighlightingAvailable
 
 
 class BlameFixture:
@@ -362,7 +361,7 @@ def testBlameUnborn(tempDir, mainWindow):
     acceptQMessageBox(mainWindow, "no commits in this repository")
 
 
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 def testBlameSyntaxHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

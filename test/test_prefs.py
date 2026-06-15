@@ -6,6 +6,7 @@
 
 import textwrap
 
+from gitfourchette import settings
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.toolbox.fontpicker import FontPicker
@@ -151,6 +152,40 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
 
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("crlf.txt"))
     assert "<CRLF>" not in rw.diffView.toPlainText()
+
+
+def testPrefsShowWhitespace(tempDir, mainWindow):
+    whitespaceFlags = QTextOption.Flag.ShowTabsAndSpaces
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/whitespace.txt", "x\t y\n")
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("whitespace.txt"))
+
+    def whitespaceFlagsSet() -> bool:
+        f = rw.diffView.document().defaultTextOption().flags()
+        return (f & whitespaceFlags) == whitespaceFlags
+
+    assert not whitespaceFlagsSet()
+
+    dlg = mainWindow.openPrefsDialog("showWhitespace")
+    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showWhitespace")
+    assert checkBox is not None
+    assert not checkBox.isChecked()
+    checkBox.setChecked(True)
+    dlg.accept()
+
+    assert settings.prefs.showWhitespace
+    assert whitespaceFlagsSet()
+
+    dlg = mainWindow.openPrefsDialog("showWhitespace")
+    checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showWhitespace")
+    checkBox.setChecked(False)
+    dlg.accept()
+
+    assert not settings.prefs.showWhitespace
+    assert not whitespaceFlagsSet()
 
 
 def testPrefsUserCommandsSyntaxHighlighter(mainWindow):

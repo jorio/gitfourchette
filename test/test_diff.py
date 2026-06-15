@@ -8,8 +8,10 @@ import pytest
 import re
 import textwrap
 
+from gitfourchette import settings
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
+from gitfourchette.settings import WhitespaceMode
 from .util import *
 
 
@@ -591,14 +593,25 @@ def testDiffLargeImage(tempDir, mainWindow):
 
 def testDiffSvgImage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/aaaa.txt", "first file in list, auto-selected on boot")
     shutil.copyfile(getTestDataPath("image3.svg"), f"{wd}/image.svg")
 
     rw = mainWindow.openRepo(wd)
+
+    # SVG button not shown unless looking at SVG file
+    assert not rw.diffArea.diffButtons.svgButton.isVisible()
+
+    # Jump to SVG file. By default, text contents are shown
     rw.jump(NavLocator.inUnstaged("image.svg"), check=True)
+    assert rw.diffArea.diffButtons.svgButton.isVisible()
+    assert not rw.diffArea.diffButtons.svgButton.isChecked()
     assert rw.diffView.isVisible()
     assert "<svg xmlns=" in rw.diffView.toPlainText()
 
-    mainWindow.onAcceptPrefsDialog({"renderSvg": True})
+    # Click SVG image preview button
+    rw.diffArea.diffButtons.svgButton.click()
+    assert rw.diffArea.diffButtons.svgButton.isChecked()
+    assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
     assert re.search("16 . 16 pixels", rw.specialDiffView.toPlainText())
 
@@ -642,7 +655,8 @@ def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):
     assert not diffView.textCursor().hasSelection()
 
 
-def testDiffContextLinesSetting(tempDir, mainWindow):
+@pytest.mark.parametrize("withDedicatedButton", [True, False])
+def testDiffContextLinesSetting(tempDir, mainWindow, withDedicatedButton):
     wd = unpackRepo(tempDir)
 
     with RepoContext(wd) as repo:
@@ -657,11 +671,24 @@ def testDiffContextLinesSetting(tempDir, mainWindow):
     # 1 hunk line, 3 context lines above change, 2 changed lines (- then +), 3 context lines below change
     assert 1+3+2+3 == len(rw.diffView.toPlainText().splitlines())
 
-    prefsDialog = mainWindow.openPrefsDialog("contextLines")
-    waitUntilTrue(lambda: QApplication.focusWidget() is not None
-                  and QApplication.focusWidget().objectName() == "prefctl_contextLines")
-    QTest.keyClicks(QApplication.focusWidget(), "8")
-    prefsDialog.accept()
+    if withDedicatedButton:
+        # contextButton.click() would lock up the test because the menu is modal,
+        # so fire QMenu.aboutToShow manually to set up the menu
+        menu = rw.diffArea.diffButtons.contextButton.menu()
+        menu.aboutToShow.emit()
+        menu.show()
+
+        spinBox: QSpinBox = menu.findChild(QSpinBox)
+        assert spinBox.hasFocus()
+        assert spinBox.value() == 3
+        spinBox.setValue(8)
+        menu.close()
+    else:
+        prefsDialog = mainWindow.openPrefsDialog("contextLines")
+        waitUntilTrue(lambda: QApplication.focusWidget() is not None
+                      and QApplication.focusWidget().objectName() == "prefctl_contextLines")
+        QTest.keyClicks(QApplication.focusWidget(), "8")
+        prefsDialog.accept()
 
     # 1 hunk line, 8 context lines above change, 2 changed lines (- then +), 8 context lines below change
     assert 1+8+2+8 == len(rw.diffView.toPlainText().splitlines())
@@ -799,9 +826,11 @@ def testToggleWordWrap(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     dv = rw.diffView
+    wordWrapButton = rw.diffArea.diffButtons.wordWrapButton
 
     rw.jump(NavLocator.inUnstaged("longfile.txt"), check=True)
     assert dv.horizontalScrollBar().isVisible()
+    assert not wordWrapButton.isChecked()
 
     # Scroll down a bit and look at the first visible word
     dv.verticalScrollBar().setValue(5)
@@ -809,14 +838,43 @@ def testToggleWordWrap(tempDir, mainWindow):
 
     for enableWrap in [True, False]:
         # Toggle word wrap
-        triggerContextMenuAction(dv.viewport(), "word wrap")
-        QTest.qWait(0)
+        wordWrapButton.click()
+
+        assert wordWrapButton.isChecked() == enableWrap
 
         # Horizontal scroll bar should only be visible without wrap
         assert dv.horizontalScrollBar().isVisible() == (not enableWrap)
 
         # Scroll position should be stable after toggling word wrap
         assert dv.firstVisibleBlock().text().startswith("y4x0")
+
+
+def testToggleShowWhitespace(tempDir, mainWindow):
+    markFlags = QTextOption.Flag.ShowTabsAndSpaces
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/whitespace.txt", "x\t y\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("whitespace.txt"), check=True)
+
+    dv = rw.diffView
+    whitespaceButton = rw.diffArea.diffButtons.showWhitespaceButton
+    assert whitespaceButton is not None
+
+    def whitespaceFlagsSet() -> bool:
+        f = dv.document().defaultTextOption().flags()
+        return (f & markFlags) == markFlags
+
+    assert not settings.prefs.showWhitespace
+    assert not whitespaceButton.isChecked()
+    assert not whitespaceFlagsSet()
+
+    for showWhitespace in [True, False]:
+        whitespaceButton.click()
+        assert whitespaceButton.isChecked() == showWhitespace
+        assert settings.prefs.showWhitespace == showWhitespace
+        assert whitespaceFlagsSet() == showWhitespace
 
 
 def testRestoreScrollPositionWithWordWrap(tempDir, mainWindow):
@@ -1078,3 +1136,51 @@ def testDiffExoticLineEndings(tempDir, mainWindow):
     expectedLines[1] = expectedLines[1].removesuffix("\r") + "<CRLF>"
 
     assert expectedLines == reconstructedText[1:]
+
+
+@requiresPygments
+def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
+    oldText = textwrap.dedent("""\
+    void hello(void) {
+    \tassignment = 0x12345678; // comment
+    }
+    """)
+
+    newText = textwrap.dedent("""\
+    void hello(void) {
+    \tif (indentNextLine)
+    \t\tassignment = 0x12345678; // comment
+    }
+    """)
+
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        for revision in oldText, newText:
+            writeFile(f"{wd}/hello.c", revision)
+            repo.index.add("hello.c")
+            repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
+
+    mainWindow.onAcceptPrefsDialog({
+        # Ignore whitespace for this diff!
+        "whitespaceMode": WhitespaceMode.IgnoreAll,
+
+        # Pick a scheme that applies non-default color to identifiers
+        "syntaxHighlighting": "one-dark",
+    })
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "hello.c"), check=True)
+    waitUntilTrue(lambda: rw.diffView.highlighter.newLexJob.lexingComplete)
+
+    doc = rw.diffView.document()
+    block = doc.findBlockByLineNumber(3)
+    assert block.text() == "\t\tassignment = 0x12345678; // comment"
+
+    # Ensure syntax highlighting matches up with the actual tokens in the line
+    colorTokens = []
+    for span in block.layout().formats():
+        token = block.text()[span.start: span.start + span.length].strip()
+        if token:
+            colorTokens.append(token)
+
+    assert colorTokens == ["assignment", "=", "0x12345678", ";", "// comment"]

@@ -8,7 +8,7 @@ import pytest
 
 from .util import *
 
-from gitfourchette.syntax import syntaxHighlightingAvailable, LexJobCache, LexJob
+from gitfourchette.syntax import LexJobCache, LexJob
 from gitfourchette.nav import NavLocator
 
 SAMPLE_CODE = """\
@@ -32,7 +32,7 @@ def digestFormatRange(formatRange: QTextLayout.FormatRange):
     return (start, length, isStyled)
 
 
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 def testDeferredSyntaxHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -67,7 +67,7 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
     assert digestFormatRange(formatRange) == (0, len("hello multiline comment"), True)
 
 
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 def testLexJobCaching(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({"largeFileThresholdKB": 0})
 
@@ -112,7 +112,7 @@ def testLexJobCaching(tempDir, mainWindow):
     assert job is getNewLexJob()
 
 
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
 def testEvictLexJobFromCache(tempDir, mainWindow):
     mainWindow.onAcceptPrefsDialog({ 'largeFileThresholdKB': 1e6 })
@@ -164,7 +164,7 @@ def testEvictLexJobFromCache(tempDir, mainWindow):
 
 
 # Simple coverage test
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 def testSyntaxHighlightingNullOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -177,7 +177,7 @@ def testSyntaxHighlightingNullOid(tempDir, mainWindow):
 
 
 # Simple coverage test
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -189,7 +189,7 @@ def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
     mainWindow.openRepo(wd)
 
 
-@pytest.mark.skipif(not syntaxHighlightingAvailable, reason="pygments not available")
+@requiresPygments
 def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
     # YAML has bespoke token types that aren't part of the standard Pygments token set,
     # e.g. Token.Literal.Scalar.Plain, Token.Punctuation.Indicator.
@@ -203,3 +203,27 @@ def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
     mainWindow.openRepo(wd)
     numKnownTokens2 = len(scheme.highContrastScheme)
     assert numKnownTokens2 > numKnownTokens1
+
+
+@requiresPygments
+def testWhitespaceHighlighting(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    mainWindow.onAcceptPrefsDialog({"showWhitespace": True})
+
+    for space in [" ", "\t", "\xA0"]:
+        writeFile(f"{wd}/hello.txt", f"hello{space}space\n")
+        rw.refreshRepo()
+        QTest.qWait(0)  # wait for syntax highlighting to finish
+
+        doc: QTextDocument = rw.diffView.document()
+        block = doc.findBlockByNumber(1)
+        formatRanges = block.layout().formats()
+
+        # In plain text files, the highlighter only applies formatting to
+        # whitespace. Non-space text is not formatted. Make sure we apply
+        # formatting to all kinds of whitespace rendered by ShowTabsAndSpaces.
+        assert formatRanges
+        for span in formatRanges:
+            token = block.text()[span.start: span.start + span.length]
+            assert token == space

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,7 +13,9 @@ from gitfourchette.toolbox.benchmark import benchmark
 
 try:
     import pygments.styles
+    import pygments.token
     hasPygments = True
+    Token = pygments.token.Token
 except ImportError:  # pragma: no cover
     hasPygments = False
 
@@ -120,10 +122,23 @@ class ColorScheme:
             scheme.scheme[tokenType] = charFormat
 
         with suppress(KeyError):
-            scheme.foregroundColor = scheme.scheme[pygments.token.Token.Text].foreground().color()
+            scheme.foregroundColor = scheme.scheme[Token.Text].foreground().color()
+
+        # Set consistent whitespace color
+        wsColor = QColor(scheme.foregroundColor)
+        wsColor.setAlphaF(.18)
+        wsFormat = QTextCharFormat()
+        wsFormat.setForeground(wsColor)
+        scheme.scheme[Token.Whitespace] = wsFormat
 
         cls._cachedScheme = scheme
         return scheme
+
+    @property
+    def whitespaceFormat(self) -> QTextCharFormat:
+        assert hasPygments
+        assert self.scheme
+        return self.scheme[Token.Whitespace]
 
     @classmethod
     @benchmark
@@ -153,9 +168,9 @@ class ColorScheme:
         for styleName in sorted(allStyles):
             style = pygments.styles.get_style_by_name(styleName)
             bgColor = QColor(style.background_color)
-            accent1 = extractColor(style, pygments.token.Name.Class, pygments.token.Text)
-            accent2 = extractColor(style, pygments.token.Name.Function, pygments.token.Operator)
-            accent3 = extractColor(style, pygments.token.Keyword, pygments.token.Comment)
+            accent1 = extractColor(style, Token.Name.Class, Token.Text)
+            accent2 = extractColor(style, Token.Name.Function, Token.Operator)
+            accent3 = extractColor(style, Token.Keyword, Token.Comment)
 
             # Little icon to preview the colors in this style (colorscheme-chip.svg)
             chipColors = f"black={bgColor.name()} white={accent1.name()} red={accent2.name()} blue={accent3.name()}"
@@ -177,8 +192,7 @@ class ColorScheme:
 
     @classmethod
     def fillInFallback(cls, scheme: dict, tokenType) -> QTextCharFormat:
-        from pygments.token import Token
-
+        assert hasPygments
         assert Token in scheme
         assert tokenType not in scheme
 

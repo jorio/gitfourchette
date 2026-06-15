@@ -44,7 +44,7 @@ class DiffHighlighter(CodeHighlighter):
         if not lineData.origin:  # Hunk header, etc.
             return
 
-        if lineData.origin == '+':
+        if lineData.origin != '-':
             lexJob = self.newLexJob
             lineNumber = lineData.newLineNo
         else:

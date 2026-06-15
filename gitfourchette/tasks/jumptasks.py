@@ -534,6 +534,12 @@ class Jump(RepoTask):
         header = self.makeHeaderText(result.document, result.delta, result.locator)
         area.diffHeader.setText(header)
 
+        # Document-specific controls
+        showSvgButton = (result.delta is not None
+                         and result.delta.new.path.lower().endswith(".svg")
+                         and isImageFormatSupported("file.svg"))
+        area.diffButtons.svgButton.setVisible(showSvgButton)
+
         # Set document
         if document is None:
             area.clearDocument(result.locator)

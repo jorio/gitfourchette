@@ -40,6 +40,8 @@ class CodeView(QPlainTextEdit):
     currentLocator: NavLocator
     isDetachedWindow: bool
 
+    FormattingMarkFlags = QTextOption.Flag.ShowTabsAndSpaces
+
     def __init__(self, gutterClass, highlighterClass=CodeHighlighter, parent=None):
         super().__init__(parent)
 
@@ -284,6 +286,7 @@ class CodeView(QPlainTextEdit):
         tabWidth = settings.prefs.tabSpaces
         self.setTabStopDistance(QFontMetricsF(monoFont).horizontalAdvance(' ' * tabWidth))
         self.refreshWordWrap()
+        self.refreshShowWhitespace()
         self.setCursorWidth(2)
 
         self.gutter.syncFont(monoFont)
@@ -307,7 +310,6 @@ class CodeView(QPlainTextEdit):
         styleSheet = scheme.basicQss(self)
         self.setStyleSheet(styleSheet)
 
-
     def refreshWordWrap(self):
         if settings.prefs.wordWrap:
             wrapMode = QPlainTextEdit.LineWrapMode.WidgetWidth
@@ -324,10 +326,18 @@ class CodeView(QPlainTextEdit):
         self.setLineWrapMode(wrapMode)
         self.restoreScrollPosition(topCharacter)
 
-    def toggleWordWrap(self):
-        settings.prefs.wordWrap = not settings.prefs.wordWrap
-        settings.prefs.write()
-        self.refreshWordWrap()
+    def refreshShowWhitespace(self):
+        doc = self.document()
+        if doc is None:
+            return
+        opt = QTextOption(doc.defaultTextOption())
+        flags = opt.flags()
+        if settings.prefs.showWhitespace:
+            flags |= self.FormattingMarkFlags
+        else:
+            flags &= ~self.FormattingMarkFlags
+        opt.setFlags(flags)
+        doc.setDefaultTextOption(opt)
 
     # ---------------------------------------------
     # Context menu
@@ -352,10 +362,9 @@ class CodeView(QPlainTextEdit):
         # Append common CodeView actions
         actions += [
             ActionDef.SEPARATOR,
-            ActionDef(_("&Word Wrap"), self.toggleWordWrap, checkState=1 if settings.prefs.wordWrap else -1),
-            ActionDef(_("Configure Appearance…"), lambda: GFApplication.instance().openPrefsDialog("font"), icon="configure"),
+            *[a for a in bottomMenu.actions() if not a.isSeparator()],
             ActionDef.SEPARATOR,
-            *bottomMenu.actions(),
+            ActionDef(_("Configure Appearance…"), lambda: GFApplication.instance().openPrefsDialog("font"), icon="configure"),
         ]
 
         # Create QMenu

@@ -61,6 +61,7 @@ class DiffView(CodeView):
         self.gutter.lineDoubleClicked.connect(self.selectClumpOfLinesAt)
         self.gutter.selectionMiddleClicked.connect(self.onMiddleClick)
 
+
     def _initRubberBandButtons(self):
         self.stageButton = QToolButton()
         self.stageButton.setText(_("Stage Selection"))

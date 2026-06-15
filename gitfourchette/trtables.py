@@ -104,7 +104,15 @@ class TrTables:
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
-        from gitfourchette.settings import GraphRowHeight, QtApiNames, GraphRefBoxWidth, RefSort, TabBarClick, FileListClick
+        from gitfourchette.settings import (
+            WhitespaceMode,
+            FileListClick,
+            GraphRefBoxWidth,
+            GraphRowHeight,
+            QtApiNames,
+            RefSort,
+            TabBarClick,
+        )
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -205,6 +213,13 @@ class TrTables:
                 AuthorDisplayStyle.Initials     : _("Initials"),
                 AuthorDisplayStyle.FullEmail    : _("Full email"),
                 AuthorDisplayStyle.EmailUserName: _("Abbreviated email"),
+            },
+
+            WhitespaceMode: {
+                WhitespaceMode.Strict           : _("Do not ignore whitespace changes"),
+                WhitespaceMode.IgnoreAll        : _("Ignore all whitespace changes"),
+                WhitespaceMode.IgnoreChange     : _("Ignore length changes in existing whitespace"),
+                WhitespaceMode.IgnoreCrAtEol    : _("Ignore line ending changes only ({0})", "LF ↔ CRLF"),
             },
 
             GraphRowHeight: {
@@ -422,7 +437,13 @@ class TrTables:
             "imageFileThresholdKB": _("Load images up to # KB"),
             "syntaxHighlighting": _("Syntax highlighting"),
             "wordWrap": _("Word wrap"),
-            "showStrayCRs": _("Display alien line endings (CRLF)"),
+            "showStrayCRs": _("Show alien line endings (CRLF)"),
+            "showWhitespace": _("Show whitespace symbols"),
+            "whitespaceMode": _("Whitespace diffs"),
+            "whitespaceMode_help": paragraphs(
+                _("How whitespace changes are shown in diffs."),
+                _("This setting only affects how diffs are displayed. "
+                  "Operations that handle patches (export, apply, revert, etc.) still honor all whitespace changes.")),
             "colorblind": _("“-/+” colors"),
             "colorblind_help": _("Background colors for deleted (-) and added (+) lines."),
             "renderSvg": _("SVG files"),

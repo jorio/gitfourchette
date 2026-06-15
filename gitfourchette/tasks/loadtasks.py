@@ -341,7 +341,7 @@ class LoadPatch(RepoTask):
         if loadLfs:
             tokens = GitDriver.buildDiffCommandLFS(delta)
         else:
-            tokens = GitDriver.buildDiffCommand(delta, binary=False)
+            tokens = GitDriver.buildDiffCommand(delta, binary=False, forDisplay=True)
 
         # Run diff command
         driver = yield from self.flowCallGit(*tokens, autoFail=False)
