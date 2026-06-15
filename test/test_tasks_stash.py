@@ -7,6 +7,7 @@
 from . import reposcenario
 from .util import *
 from gitfourchette.gitdriver import GitDriver
+from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.stashdialog import StashDialog
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 import os
@@ -175,17 +176,51 @@ def testNewStashNothingToStash(tempDir, mainWindow):
     acceptQMessageBox(rw, "no.+changes to stash")
 
 
-def testNewStashCantStashSubmodule(tempDir, mainWindow):
+def testNewStashCantStashSubmoduleOrSubtree(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+
+    # Create untracked subtree
+    pygit2.init_repository(f"{wd}new_untracked_tree")
+
+    # Create tracked submodule + a pending change within
     submoAbsPath, submoCommit = reposcenario.submodule(wd)
     writeFile(f"{submoAbsPath}/dirty.txt", "coucou")
+
     rw = mainWindow.openRepo(wd)
+    assert qlvGetRowData(rw.dirtyFiles, FileListModel.Role.FilePath) == ["new_untracked_tree", "submodir"]
 
     node = rw.sidebar.findNodeByKind(SidebarItem.StashesHeader)
     menu = rw.sidebar.makeNodeMenu(node)
     triggerMenuAction(menu, "stash changes")
 
-    acceptQMessageBox(rw, "submodules cannot be stashed")
+    acceptQMessageBox(rw, "cannot stash submodules")
+
+
+def testNewStashNoIgnoredFiles(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        writeFile(f"{wd}/.gitignore", "recipes/*\n"
+                                      "!recipes/drinks\n")
+        writeFile(f"{wd}/recipes/drinks/kombucha.txt", "ginger")
+        repo.index.add_all()
+        repo.create_commit_on_head("kombucha")
+
+    # Convoluted ignore scenario that fails if NewStash uses repo.status()
+    # instead of vanilla git status
+    writeFile(f"{wd}/master.txt", "unrelated change, stashing OK\n")
+    writeFile(f"{wd}/.git/info/exclude", "recipes\n")
+    writeFile(f"{wd}/recipes/drinks/DONT_SUGGEST_STASHING_THIS", "yikes!")
+
+    rw = mainWindow.openRepo(wd)
+    assert qlvGetRowData(rw.dirtyFiles) == ["master.txt"]
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/stash")
+
+    stashDialog = findQDialog(rw, "stash", t=StashDialog)
+    assert qlvGetRowData(stashDialog.ui.fileList) == ["master.txt"]
+
+    stashDialog.reject()
 
 
 def testPopStash(tempDir, mainWindow):

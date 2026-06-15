@@ -38,7 +38,11 @@ class GitDelta:
         return "M" in sub or "U" in sub
 
     def isSubtreeCommitPatch(self) -> bool:
-        return FileMode.COMMIT in (self.old.mode, self.new.mode)
+        return (self.old.mode | self.new.mode) & FileMode.COMMIT == FileMode.COMMIT
+
+    def isTreeOrSubmodule(self) -> bool:
+        assert (FileMode.COMMIT & FileMode.TREE) == FileMode.TREE  # commit must contain tree bit
+        return (self.old.mode | self.new.mode) & FileMode.TREE == FileMode.TREE
 
     def cacheLfsPointers(self, repo: Repo):
         old = self.old

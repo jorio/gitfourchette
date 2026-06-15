@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import itertools
+
 from gitfourchette.forms.stashdialog import StashDialog
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
@@ -12,6 +14,29 @@ from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, TaskPrereqs
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
+
+_indexStatusTable = {
+    "A": FileStatus.INDEX_NEW,
+    "D": FileStatus.INDEX_DELETED,
+    "M": FileStatus.INDEX_MODIFIED,
+    "R": FileStatus.INDEX_RENAMED,
+    "T": FileStatus.INDEX_TYPECHANGE,
+}
+"""
+Vanilla git staged file status to libgit2 index status flags
+"""
+
+_wtStatusTable = {
+    "?": FileStatus.WT_NEW,
+    "A": FileStatus.WT_NEW,
+    "D": FileStatus.WT_DELETED,
+    "M": FileStatus.WT_MODIFIED,
+    "R": FileStatus.WT_RENAMED,
+    "T": FileStatus.WT_TYPECHANGE,
+}
+"""
+Vanilla git unstaged file status to libgit2 worktree status flags
+"""
 
 
 def backupStash(repo: Repo, stashCommitId: Oid):
@@ -43,18 +68,36 @@ class NewStash(RepoTask):
         return TaskPrereqs.NoConflicts | TaskPrereqs.NoUnborn
 
     def flow(self, paths: list[str] | None = None):
-        status = self.repo.status(untracked_files="all", ignored=False)
+        gitStatus = yield from self.flowCallGit(
+            "--no-optional-locks",
+            "status",
+            "--porcelain=v2",
+            "-z",
+            "--untracked-files=all")
+        # Get GitDelta lists from 'git status' output
+        numEntries, stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z(self.repo.head_commit_id)
 
-        if not status:
+        if not numEntries:
             raise AbortTask(_("There are no uncommitted changes to stash."), "information")
 
-        # Prevent stashing any submodules: remove them from the available files
-        for submodulePath in self.repo.listall_submodules_fast():
-            status.pop(submodulePath, None)
+        # Filter out any submodules or trees
+        stagedDeltas   = [d for d in stagedDeltas   if not d.isTreeOrSubmodule()]
+        unstagedDeltas = [d for d in unstagedDeltas if not d.isTreeOrSubmodule()]
 
         # If the selection only contained submodules, bail here
-        if not status:
-            raise AbortTask(_("Submodules cannot be stashed."), "information")
+        if not stagedDeltas and not unstagedDeltas:
+            raise AbortTask(_("Cannot stash submodules or subtrees."), "information")
+
+        # Convert to libgit2 status flags for StashDialog
+        status: dict[str, FileStatus] = {}
+        for delta, statusConversion in itertools.chain(
+                ((sd, _indexStatusTable) for sd in stagedDeltas),
+                ((ud, _wtStatusTable) for ud in unstagedDeltas)
+        ):
+            path = delta.new.path
+            bits = status.get(path, 0)
+            bits |= statusConversion.get(delta.status, 0)
+            status[path] = bits
 
         # Ask user what to stash
         dlg = StashDialog(status, paths or [], self.parentWidget())
