@@ -31,6 +31,14 @@ class QTabBar2(QTabBar):
         self.doubleClickedIndex = -1
         self.setObjectName("QTabBar2")
 
+    def tabSizeHint(self, index: int) -> QSize:
+        # Keep individual tabs from getting too wide when several tabs compete
+        # for real estate. Qt may ignore this hint when the tab bar is wide
+        # enough to fit all tabs.
+        hint = super().tabSizeHint(index)
+        hint.setWidth(min(self.width()//3, hint.width()))
+        return hint
+
     def tabLayoutChange(self):
         self.layoutChanged.emit()
 
@@ -159,7 +167,7 @@ class QTabWidget2(QWidget):
         self.tabScrollArea.setFrameStyle(QFrame.Shape.NoFrame)
         self.tabScrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.tabScrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.tabScrollArea.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)  # works ok but tries to expand the window width when opening a new tab?
+        self.tabScrollArea.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.tabScrollArea.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.tabs = QTabBar2(self.tabScrollArea)
@@ -172,6 +180,7 @@ class QTabWidget2(QWidget):
         self.tabs.setMovable(True)
         self.tabs.setDocumentMode(True)  # dramatically improves the tabs' appearance on macOS
         self.tabs.setUsesScrollButtons(False)  # can't have those with scroll area
+        self.tabs.setElideMode(Qt.TextElideMode.ElideMiddle)
 
         self.overflowButton = QToolButton(self)
         self.overflowButton.setArrowType(Qt.ArrowType.DownArrow)

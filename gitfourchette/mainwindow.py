@@ -426,6 +426,8 @@ class MainWindow(QMainWindow):
             if nickname:
                 caption += f" ({tquo(nickname)})"
 
+            caption = elide(caption, ems=60)  # don't let menus get absurdly wide
+
             openAction = ActionDef(
                 escamp(caption),
                 lambda p=path: self.openRepo(p, exactMatch=True),
