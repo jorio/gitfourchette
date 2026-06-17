@@ -10,16 +10,17 @@ from contextlib import suppress
 import pytest
 from pytestqt.qtbot import QtBot
 
-from gitfourchette.forms.processdialog import ProcessDialog
-from gitfourchette.gitdriver import GitDriver
 from .util import *
 
+from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.donateprompt import DonatePrompt
+from gitfourchette.forms.processdialog import ProcessDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.forms.repostub import RepoStub
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow, CommitLogModel
 from gitfourchette.mainwindow import MainWindow
 from gitfourchette.nav import NavLocator
@@ -908,8 +909,6 @@ def testDiffHeader(tempDir, mainWindow):
 
 
 def testPrefsFileGenericAliases(tempDir, mainWindow):
-    from gitfourchette import settings
-
     assert settings.prefs.dontShowAgain == []
     settings.prefs.dontShowAgain.append("NoFastForwardNecessary")
     settings.prefs.setDirty()
@@ -928,3 +927,16 @@ def testPrefsFileGenericAliases(tempDir, mainWindow):
     settings.history.load()
     assert settings.history.cloneHistory == ["https://github.com/jorio/gitfourchette"]
     assert settings.history.getRepoNickname("/tmp/hello", strict=True) == "HelloWorld"
+
+
+def testWindowSizeUnaffectedByLongRepoNames(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    assert not settings.history.repos
+    settings.history.setRepoNickname(wd, "extremely long name " * 200)
+
+    desiredSize = QSize(800, 600)
+    mainWindow.resize(desiredSize)
+    assert mainWindow.size() == desiredSize
+
+    mainWindow.openRepo(wd)
+    assert mainWindow.size() == desiredSize

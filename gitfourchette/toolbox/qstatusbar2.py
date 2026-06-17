@@ -27,7 +27,7 @@ class QStatusBar2(QStatusBar):
 
         self.busyWidget = QWidget(self)
         self.busySpinner = QBusySpinner(self.busyWidget)
-        self.busyLabel = QLabel(self.busyWidget)
+        self.busyLabel = QElidedLabel(self.busyWidget)
         # Emojis such as the lightbulb may increase the label's height
         self.busyWidget.setMaximumHeight(self.fontMetrics().height())
 
