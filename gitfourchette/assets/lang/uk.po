@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-06-14 10:48+0000\n"
+"PO-Revision-Date: 2026-06-19 18:01+0000\n"
 "Last-Translator: Mykyta Opanasiuk <nikitaopanassiuk@outlook.com>\n"
 "Language-Team: Ukrainian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/uk/>\n"
@@ -468,141 +468,155 @@ msgstr "Піддерево {0} було [видалено.]"
 #: diffview/specialdiff.py:297
 #, python-brace-format
 msgid "Submodule {0} was [added.]"
-msgstr ""
+msgstr "Підмодуль {0} було [додано.]"
 
 #: diffview/specialdiff.py:297
 #, python-brace-format
 msgid "Subtree {0} was [added.]"
-msgstr ""
+msgstr "Піддерево {0} було [додано.]"
 
 #: diffview/specialdiff.py:300
 #, python-brace-format
 msgid "Submodule {0} was updated."
-msgstr ""
+msgstr "Підмодуль {0} було оновлено."
 
 #: diffview/specialdiff.py:300
 #, python-brace-format
 msgid "Subtree {0} was updated."
-msgstr ""
+msgstr "Піддерево {0} було оновлено."
 
 #: diffview/specialdiff.py:302
 #, python-brace-format
 msgid "Submodule {0} contains changes."
-msgstr ""
+msgstr "Підмодуль {0} містить зміни."
 
 #: diffview/specialdiff.py:302
 #, python-brace-format
 msgid "Subtree {0} contains changes."
-msgstr ""
+msgstr "Піддерево {0} містить зміни."
 
 #: diffview/specialdiff.py:310
 msgid "Open submodule"
-msgstr ""
+msgstr "Відкрити підмодуль"
 
 #: diffview/specialdiff.py:310
 msgid "Open subtree"
-msgstr ""
+msgstr "Відкрити піддерево"
 
 #: diffview/specialdiff.py:312
 #, python-brace-format
 msgid "(path: {0})"
-msgstr ""
+msgstr "(шлях: {0})"
 
 #: diffview/specialdiff.py:347
 msgid "The subtree’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "Покажчик <b>HEAD</b> піддерева перемістився на інший коміт."
 
 #: diffview/specialdiff.py:348
 msgid "The submodule’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "Покажчик <b>HEAD</b> підмодулю перемістився на інший коміт."
 
 #: diffview/specialdiff.py:350
 msgid "You can stage this update:"
-msgstr ""
+msgstr "Ви можете підготувати цю зміну:"
 
 #: diffview/specialdiff.py:354
 msgid "Old:"
-msgstr ""
+msgstr "Старе:"
 
 #: diffview/specialdiff.py:355
 msgid "New:"
-msgstr ""
+msgstr "Нове:"
 
 #: diffview/specialdiff.py:363
 #, python-brace-format
 msgid "To complete the removal of this submodule, <b>remove it from {gitmodules}</b>."
 msgstr ""
+"Щоб завершити видалення цього підмодуля, <b>видаліть його з {gitmodules}</b>."
 
 #: diffview/specialdiff.py:365
 #, python-brace-format
 msgid "To complete the removal of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
+"Щоб завершити видалення цього підмодуля, обов'язково <b>закомітьте "
+"{gitmodules}</b> разом із самою текою підмодуля."
 
 #: diffview/specialdiff.py:369
 #, python-brace-format
 msgid "To complete the addition of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
+"Щоб завершити додавання цього підмодуля, обов'язково <b>закомітьте "
+"{gitmodules}</b> разом із самою текою підмодуля."
 
 #: diffview/specialdiff.py:374
 msgid "<b>This subtree isn’t a submodule yet!</b> You should [absorb this subtree] into the parent repository so it becomes a submodule."
 msgstr ""
+"<b>Це піддерево ще не є підмодулем!</b> Його слід [інтегрувати в основний "
+"репозиторій], щоб воно стало підмодулем."
 
 #: diffview/specialdiff.py:377
 msgid "To complete the addition of this submodule, you should [absorb the submodule] into the parent repository."
 msgstr ""
+"Щоб завершити додавання цього підмодуля, його слід [інтегрувати] в основний "
+"репозиторій."
 
 #: diffview/specialdiff.py:382
 #, python-brace-format
 msgid "To complete the addition of this submodule, [register it in {gitmodules}]."
 msgstr ""
+"Щоб завершити додавання цього підмодуля, [зареєструйте його в {gitmodules}]."
 
 #: diffview/specialdiff.py:387
 msgid "IMPORTANT"
-msgstr ""
+msgstr "ВАЖЛИВО"
 
 #: diffview/specialdiff.py:395
 msgid "The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
+"Піддерево містить <b>незакомічені зміни</b>. Їх не можна закомітити з "
+"основного репозиторію. Ви можете:"
 
 #: diffview/specialdiff.py:396
 msgid "[Open] the subtree and commit the changes."
-msgstr ""
+msgstr "[Відкрити] піддерево та закомітити зміни."
 
 #: diffview/specialdiff.py:397
 msgid "Or, [Reset] the subtree to a clean state."
-msgstr ""
+msgstr "Або [скинути] піддерево до чистого стану."
 
 #: diffview/specialdiff.py:399
 msgid "The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
+"Підмодуль містить <b>незакомічені зміни</b>. Їх не можна закомітити з "
+"основного репозиторію. Ви можете:"
 
 #: diffview/specialdiff.py:400
 msgid "[Open] the submodule and commit the changes."
-msgstr ""
+msgstr "[Відкрити] підмодуль та закомітити зміни."
 
 #: diffview/specialdiff.py:401
 msgid "Or, [Reset] the submodule to a clean state."
-msgstr ""
+msgstr "Або [скинути] підмодуль до чистого стану."
 
 #: diffview/specialdiffview.py:106
 msgid "New image"
-msgstr ""
+msgstr "Нове зображення"
 
 #: diffview/specialdiffview.py:107
 msgid "Old image"
-msgstr ""
+msgstr "Старе зображення"
 
 #: diffview/specialdiffview.py:108
 msgid "Deleted image"
-msgstr ""
+msgstr "Видалене зображення"
 
 #: diffview/specialdiffview.py:121
 msgid "pixels"
-msgstr ""
+msgstr "пікселів"
 
 #: diffview/specialdiffview.py:125
 msgid "shown below"
-msgstr ""
+msgstr "наведено нижче"
 
 #: dropzone.py:38
 #, python-brace-format
