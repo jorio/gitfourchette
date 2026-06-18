@@ -11,7 +11,6 @@ from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette import tasks
-from gitfourchette.application import GFApplication
 from gitfourchette.diffarea import DiffArea
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
@@ -163,8 +162,6 @@ class RepoWidget(QWidget):
 
         # ----------------------------------
         # Connect signals
-
-        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
 
         # save splitter state in splitterMoved signal
         for splitter in self.splittersToSave:
@@ -701,20 +698,6 @@ class RepoWidget(QWidget):
     def onRepoGone(self):
         message = _("Repository folder went missing:") + "\n" + escamp(self.workdir)
         self.replaceWithStub(message=message)
-
-    def refreshPrefs(self, prefDiff: list[str]):
-        self.diffView.refreshPrefs()
-        self.specialDiffView.refreshPrefs()
-        self.graphView.refreshPrefs()
-        if ToolProcess.PrefKeyMergeTool in prefDiff:
-            self.conflictView.refreshPrefs()
-        self.sidebar.refreshPrefs()
-        self.dirtyFiles.refreshPrefs()
-        self.stagedFiles.refreshPrefs()
-        self.committedFiles.refreshPrefs()
-
-        # Reflect any change in titlebar prefs
-        self.refreshWindowTitle()
 
     def onAutoFetchTimerTimeout(self):
         if not settings.prefs.autoFetch or not self.isVisible() or self.taskRunner.isBusy():
