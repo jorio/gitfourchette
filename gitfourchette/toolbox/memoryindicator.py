@@ -1,12 +1,11 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import gc
 import logging
-import time
 
 import pygit2
 
@@ -56,10 +55,10 @@ class MemoryIndicator(QPushButton):
         super().paintEvent(e)
 
     def updateMemoryIndicator(self):
-        now = time.time()
-        if now - self.lastUpdate < 0.03:
+        now = QDateTime.currentMSecsSinceEpoch()
+        if now - self.lastUpdate < 30:
             return
-        self.lastUpdate = time.time()
+        self.lastUpdate = now
 
         allIds = set()
         for w in QApplication.topLevelWidgets():

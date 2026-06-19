@@ -6,7 +6,6 @@
 
 import logging
 import os
-import time
 from contextlib import suppress
 
 from gitfourchette import settings
@@ -91,7 +90,7 @@ class RepoWidget(QWidget):
         self.taskRunner.processStarted.connect(self.processDialog.connectProcess)
 
         self.repoModel = repoModel
-        self.lastAutoFetchTime = time.time()
+        self.lastAutoFetchTime = QDateTime.currentSecsSinceEpoch()
 
         self.busyCursorDelayer = QTimer(self)
         self.busyCursorDelayer.setSingleShot(True)
@@ -704,7 +703,7 @@ class RepoWidget(QWidget):
             return
 
         # Check if it's time to auto-fetch.
-        now = time.time()
+        now = QDateTime.currentSecsSinceEpoch()
         interval = max(1, settings.prefs.autoFetchMinutes) * 60
         if now - self.lastAutoFetchTime > interval:
             AutoFetchRemotes.invoke(self)

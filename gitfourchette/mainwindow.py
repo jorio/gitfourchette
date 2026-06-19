@@ -9,7 +9,6 @@ import gc
 import logging
 import os
 import re
-import time
 from collections.abc import Sequence, Callable
 from contextlib import suppress
 from pathlib import Path
@@ -1186,7 +1185,7 @@ class MainWindow(QMainWindow):
             settings.prefs.resetDontShowAgain = False
 
         if "refSort" in prefDiff:
-            settings.prefs.refSortClearTimestamp = int(time.time())
+            settings.prefs.refSortClearTimestamp = QDateTime.currentSecsSinceEpoch()
             settings.prefs.setDirty()
 
         # Write prefs to disk

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-import time
 from typing import ClassVar, TYPE_CHECKING
 
 from gitfourchette.localization import *
@@ -19,7 +18,7 @@ from gitfourchette.toolbox import *
 if TYPE_CHECKING:
     from gitfourchette.graphview.commitlogmodel import SpecialRow
 
-PUSH_INTERVAL = 0.5
+PUSH_INTERVAL_MS = 500
 
 
 class NavFlags(enum.IntFlag):
@@ -362,15 +361,15 @@ class NavHistory:
     recent: dict[str, NavLocator]
     "Most recent NavPos by context key"
 
-    lastPushTime: float
-    """Timestamp of the last modification to the history,
+    lastPushTime: int
+    """Millisecond timestamp of the last modification to the history,
     to avoid pushing a million entries when dragging the mouse, etc."""
 
     def __init__(self):
         self.history = []
         self.recent = {}
         self.current = 0
-        self.lastPushTime = 0.0
+        self.lastPushTime = 0
         self.ignoreDelay = False
 
         # In a real use case, locators are dropped from the history if push()
@@ -405,11 +404,11 @@ class NavHistory:
             # "abstract" workdir locator (e.g. by clicking on Uncommitted Changes).
             self.recent[NavContext.WORKDIR.name] = pos
 
-        now = time.time()
+        now = QDateTime.currentMSecsSinceEpoch()
         if self.ignoreDelay:
             recentPush = False
         else:
-            recentPush = (now - self.lastPushTime) < PUSH_INTERVAL
+            recentPush = (now - self.lastPushTime) < PUSH_INTERVAL_MS
 
         if len(self.history) > 0 and \
                 (recentPush or self.history[self.current].isSimilarEnoughTo(pos)):
