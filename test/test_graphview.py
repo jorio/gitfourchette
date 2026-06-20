@@ -723,7 +723,7 @@ def testSelect3PlusCommits(tempDir, mainWindow):
 
 
 def testIllegalRowComparisons(tempDir, mainWindow):
-    mainWindow.onAcceptPrefsDialog({"maxCommits": 5})
+    GFApplication.applyPrefs(maxCommits=5)
 
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)

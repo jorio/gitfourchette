@@ -53,7 +53,7 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
         "[new subtree] SmallTree",
     }
 
-    mainWindow.onAcceptPrefsDialog({"maxTrashFileKB": largeFileThreshold // 1024})
+    GFApplication.applyPrefs(maxTrashFileKB=largeFileThreshold // 1024)
     rw = mainWindow.openRepo(wd)
 
     if WINDOWS:

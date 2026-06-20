@@ -248,6 +248,43 @@ class Prefs(PrefsFile):
         return self.gitPath.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
 
 
+class PrefEffects:
+    RebuildMenu = {
+        "language",
+        "commands",
+        "confirmCommands",
+    }
+    "Pref keys that trigger a rebuild of the main menu."
+
+    ReloadDiff = {
+        "showStrayCRs",
+        "colorblind",
+        "largeFileThresholdKB",
+        "imageFileThresholdKB",
+        "contextLines",
+        "whitespaceMode",
+        "maxCommits",
+        "renderSvg",
+        "lfsAware",
+        "syntaxHighlighting",
+    }
+    "Pref keys that trigger a reload of the current diff."
+
+    ReloadRepo = {
+        "chronologicalOrder",
+        "maxCommits",
+        "refSort",
+    }
+    "Pref keys that fully take effect after a repo reload."
+
+    RestartApp = {
+        "language",
+        "forceQtApi",
+        "pygmentsPlugins",
+    }
+    "Pref keys that fully take effect after an app restart."
+
+
 @dataclasses.dataclass
 class History(PrefsFile):
     _filename = "history.json"

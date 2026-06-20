@@ -70,7 +70,7 @@ def testDiffDeletedFile(tempDir, mainWindow):
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 @pytest.mark.parametrize("method", ["key", "button", "mmbviewport", "mmbgutter"])
 def testDiffViewStageLines(tempDir, mainWindow, method):
-    mainWindow.onAcceptPrefsDialog({"middleClickStageLines": True})
+    GFApplication.applyPrefs(middleClickStageLines=True)
 
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/NewFile.txt", "line A\nline B\nline C\nline D\nline E")
@@ -684,7 +684,7 @@ def testDiffContextLinesSetting(tempDir, mainWindow, withDedicatedButton):
         spinBox.setValue(8)
         menu.close()
     else:
-        prefsDialog = mainWindow.openPrefsDialog("contextLines")
+        prefsDialog = GFApplication.instance().openPrefsDialog("contextLines")
         waitUntilTrue(lambda: QApplication.focusWidget() is not None
                       and QApplication.focusWidget().objectName() == "prefctl_contextLines")
         QTest.keyClicks(QApplication.focusWidget(), "8")
@@ -884,7 +884,7 @@ def testRestoreScrollPositionWithWordWrap(tempDir, mainWindow):
     writeLongFile(f"{wd}/longfile.txt", 50, 200)
 
     # Enable word wrap and make window narrow enough for the lines to wrap significantly
-    mainWindow.onAcceptPrefsDialog({"wordWrap": True})
+    GFApplication.applyPrefs(wordWrap=True)
     mainWindow.resize(999, 600)
 
     rw = mainWindow.openRepo(wd)
@@ -1160,13 +1160,11 @@ def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
             repo.index.add("hello.c")
             repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
 
-    mainWindow.onAcceptPrefsDialog({
-        # Ignore whitespace for this diff!
-        "whitespaceMode": WhitespaceMode.IgnoreAll,
-
-        # Pick a scheme that applies non-default color to identifiers
-        "syntaxHighlighting": "one-dark",
-    })
+    # Ignore whitespace for this diff.
+    # Pick a scheme that applies non-default color to identifiers.
+    GFApplication.applyPrefs(
+        whitespaceMode=WhitespaceMode.IgnoreAll,
+        syntaxHighlighting="one-dark")
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "hello.c"), check=True)

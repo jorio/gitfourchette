@@ -12,7 +12,7 @@ from .util import *
 def testTerminal(tempDir, mainWindow):
     shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"terminal": f"'{shim}' '{scratch}' 'hello world' $COMMAND"})
+    GFApplication.applyPrefs(terminal=f"'{shim}' '{scratch}' 'hello world' $COMMAND")
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -30,7 +30,7 @@ def testTerminal(tempDir, mainWindow):
 
 
 def testTerminalNotConfiguredYet(tempDir, mainWindow):
-    mainWindow.onAcceptPrefsDialog({"terminal": ""})
+    GFApplication.applyPrefs(terminal="")
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -43,7 +43,7 @@ def testTerminalNotConfiguredYet(tempDir, mainWindow):
 def testTerminalPlaceholderTokenMissing(tempDir, mainWindow):
     shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"terminal": f"'{shim}' '{scratch}' 'hello world'"})
+    GFApplication.applyPrefs(terminal=f"'{shim}' '{scratch}' 'hello world'")
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -65,7 +65,7 @@ def testTerminalCommandNotFound(tempDir, mainWindow):
     _rw = mainWindow.openRepo(wd)
 
     # First, set the editor to an incorrect command to go through the "locate" code path
-    mainWindow.onAcceptPrefsDialog({"terminal": f"'{shim}-BOGUSCOMMAND' '{scratch}' 'hello world' $COMMAND"})
+    GFApplication.applyPrefs(terminal=f"'{shim}-BOGUSCOMMAND' '{scratch}' 'hello world' $COMMAND")
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
 
     qmb = waitForQMessageBox(mainWindow, "couldn.t start.+editor-shim.+terminal")

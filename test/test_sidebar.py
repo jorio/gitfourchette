@@ -236,7 +236,7 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
 
     # Test clearing via prefs
     pause(1)  # Let a full second roll over so that refSortResetDate (timestamp) changes
-    dlg = mainWindow.openPrefsDialog("refSort")
+    dlg = GFApplication.instance().openPrefsDialog("refSort")
     comboBox: QComboBox = dlg.findChild(QWidget, "prefctl_refSort")
     qcbSetIndex(comboBox, "name.+a-z")
     dlg.accept()

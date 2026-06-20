@@ -382,7 +382,7 @@ def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
     # Enable GPG verification queue and make sure the oldest signed commits
     # remain "below the fold"
     mainWindow.resize(1024, 512)
-    mainWindow.onAcceptPrefsDialog({"verifyGpgOnTheFly": True, "graphRowHeight": GraphRowHeight.Spacious})
+    GFApplication.applyPrefs(verifyGpgOnTheFly=True, graphRowHeight=GraphRowHeight.Spacious)
     QTest.qWait(0)
 
     rw = mainWindow.openRepo(wd)
@@ -411,7 +411,7 @@ def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
     _signedOids = [makeSignedCommit(wd, aliceFpr, message=f"Signed commit #{i}") for i in range(40)]
 
     # Cram as many signed commits on the screen as possible
-    mainWindow.onAcceptPrefsDialog({"verifyGpgOnTheFly": True, "graphRowHeight": GraphRowHeight.Cramped})
+    GFApplication.applyPrefs(verifyGpgOnTheFly=True, graphRowHeight=GraphRowHeight.Cramped)
     QTest.qWait(0)
 
     mainWindow.openRepo(wd)

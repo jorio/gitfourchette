@@ -200,7 +200,7 @@ def testNewNestedRepo(tempDir, mainWindow):
 def testTruncatedHistory(tempDir, mainWindow, method, action):
     bottomCommit = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
-    mainWindow.onAcceptPrefsDialog({"maxCommits": 5})
+    GFApplication.applyPrefs(maxCommits=5)
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     assert rw.graphView.clFilter.rowCount() == 7  # 1 Workdir, 5 Commits, 1 Truncated
@@ -494,7 +494,7 @@ def testAutoHideMenuBar(mainWindow):
     assert menuBar.height() != 0
 
     # Hide menu bar
-    mainWindow.onAcceptPrefsDialog({"showMenuBar": False})
+    GFApplication.applyPrefs(showMenuBar=False)
     acceptQMessageBox(mainWindow, "menu bar.+hidden")
     assert menuBar.height() == 0
 
@@ -522,7 +522,7 @@ def testAutoHideMenuBar(mainWindow):
     assert menuBar.height() == 0
 
     # Restore menu bar
-    mainWindow.onAcceptPrefsDialog({"showMenuBar": True})
+    GFApplication.applyPrefs(showMenuBar=True)
     QTest.qWait(0)
     assert menuBar.height() != 0
 
@@ -890,7 +890,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     editorPath = getTestDataPath("pause.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in pause")
     waitForFile(scratchPath)
     assert readTextFile(scratchPath).strip() == "about to sleep"
@@ -907,9 +907,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 #  again if the user tries to reload the repo from RepoStub.
 @pytest.mark.skipif(WINDOWS, reason="TODO: tricky teardown, see comment")
 def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
-    mainWindow.onAcceptPrefsDialog({
-        "gitPath": "/tmp/supposedly-a-git-executable-but-it-doesnt-exist"
-    })
+    GFApplication.applyPrefs(gitPath="/tmp/supposedly-a-git-executable-but-it-doesnt-exist")
 
     wd = unpackRepo(tempDir)
 

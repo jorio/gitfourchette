@@ -27,9 +27,9 @@ def commandsScratchFile(tempDir, mainWindow):
     else:
         terminalShim = "git-bash --no-needs-console --command=usr/bin/bash.exe -c $COMMAND"
 
-    mainWindow.onAcceptPrefsDialog({
-        "terminal": terminalShim,
-        "commands": f"""
+    GFApplication.applyPrefs(
+        terminal=terminalShim,
+        commands=f"""
             {wrapper} 'hello world'
             # ------
             {wrapper} $BADTOKEN         # Bad Token
@@ -52,7 +52,7 @@ def commandsScratchFile(tempDir, mainWindow):
             ?{wrapper} confirm1
             ? {wrapper} confirm2
             ?\t{wrapper} confirm3
-        """})
+        """)
 
     QTest.qWait(0)
     return scratch
@@ -100,7 +100,7 @@ def testUserCommandsMenuHiddenByDefault(tempDir, mainWindow):
     assert mainWindow.mainToolBar.terminalAction.menu() is None
 
     # Add some commands
-    mainWindow.onAcceptPrefsDialog({"commands": "helloworld"})
+    GFApplication.applyPrefs(commands="helloworld")
     QTest.qWait(0)
     assert findMenuAction(mainWindow.menuBar(), "commands/helloworld")
     assert findMenuAction(mainWindow.menuBar(), "commands/edit commands")
@@ -108,7 +108,7 @@ def testUserCommandsMenuHiddenByDefault(tempDir, mainWindow):
     assert findMenuAction(mainWindow.mainToolBar.terminalAction.menu(), "edit commands")
 
     # Clear the commands
-    mainWindow.onAcceptPrefsDialog({"commands": ""})
+    GFApplication.applyPrefs(commands="")
     QTest.qWait(0)
     with pytest.raises(KeyError):
         findMenuAction(mainWindow.menuBar(), "commands/edit commands")
@@ -247,7 +247,7 @@ def testUserCommandTokenPrerequisitesNotMet(tempDir, mainWindow, commandsScratch
 
 def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile):
     mainWindow.openRepo(unpackRepo(tempDir))
-    mainWindow.onAcceptPrefsDialog({"confirmCommands": False})
+    GFApplication.applyPrefs(confirmCommands=False)
     QTest.qWait(0)
 
     triggerMenuAction(mainWindow.menuBar(), "commands/hello world")
@@ -258,7 +258,7 @@ def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile)
 
 def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
     mainWindow.openRepo(unpackRepo(tempDir))
-    mainWindow.onAcceptPrefsDialog({"confirmCommands": False})
+    GFApplication.applyPrefs(confirmCommands=False)
     QTest.qWait(0)
 
     for name in ["confirm1", "confirm2", "confirm3"]:

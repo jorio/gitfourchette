@@ -19,6 +19,7 @@ from typing import TypeVar, Literal
 import pygit2
 import pytest
 
+from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.porcelain import *
 from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
@@ -174,11 +175,6 @@ class DelayGitCommandContext:
         self.oldCommand = rawCommand
         self.newCommand = delayCommand(*rawTokens, delay=delay, block=block)
 
-    @property
-    def mainWindow(self):
-        from gitfourchette.application import GFApplication
-        return GFApplication.instance().mainWindow
-
     def __enter__(self):
         # We'll change the git command in the prefs, which invalidates
         # GitDriver's cached version info. Some tasks need this version info
@@ -188,13 +184,13 @@ class DelayGitCommandContext:
         from gitfourchette.gitdriver import GitDriver
         rawVersionText = GitDriver.runSync("version")
 
-        self.mainWindow.onAcceptPrefsDialog({"gitPath": self.newCommand})
+        GFApplication.applyPrefs(gitPath=self.newCommand)
 
         assert not GitDriver._cachedGitVersionValid
         GitDriver._cacheGitVersion(rawVersionText)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.mainWindow.onAcceptPrefsDialog({"gitPath": self.oldCommand})
+        GFApplication.applyPrefs(gitPath=self.oldCommand)
 
 
 class MockDesktopServicesContext(QObject):

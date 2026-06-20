@@ -312,7 +312,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Try merging with a tool that doesn't touch the output file
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     assert "editor-shim" in cv.ui.mergeButton.text()
     assert cv.ui.mergeButton.isVisible()
@@ -332,7 +332,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Try merging with a missing command
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}-BOGUS" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{noopMergeToolPath}-BOGUS" "{scratchPath}" $M $L $R $B')
     assert findTextInWidget(cv.ui.mergeButton, "BOGUS")  # warning: may be elided
     cv.ui.mergeButton.click()
 
@@ -347,7 +347,7 @@ def testMergeTool(tempDir, mainWindow):
     writeFile(scratchPath, "oops, file locked!")
     os.chmod(scratchPath, 0o400)
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo')
 
     assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
     assert not findTextInWidget(cv.ui.mergeToolStatus, "exit code")
@@ -363,7 +363,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Now try merging with a good tool
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar')
     assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
     cv.ui.mergeButton.click()
 
@@ -418,7 +418,7 @@ def testMergeTool(tempDir, mainWindow):
 def testFake3WayMerge(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     with RepoContext(wd) as repo:
@@ -458,7 +458,7 @@ def testFake3WayMerge(tempDir, mainWindow):
 def testMergeToolInBackground(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     writeFile(f"{wd}/SomeOtherFile.txt", "hello")
@@ -506,7 +506,7 @@ def testMergeToolInBackground(tempDir, mainWindow):
 def testDiscardMergeResolution(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
 
