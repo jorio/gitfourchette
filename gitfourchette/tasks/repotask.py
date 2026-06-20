@@ -625,7 +625,6 @@ class RepoTask(QObject):
         # (re-showing may reset its position on the screen)
         if not dialog.isVisible():
             dialog.show()
-            installDialogReturnShortcut(dialog)
 
         yield waitToken
 

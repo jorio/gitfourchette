@@ -56,7 +56,6 @@ from .qtutils import (
     tweakWidgetFont,
     formatWidgetText,
     formatWidgetTooltip,
-    installDialogReturnShortcut,
     itemViewVisibleRowRange,
     isDarkTheme,
     mutedTextColorHex,

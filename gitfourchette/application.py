@@ -579,6 +579,9 @@ class GFApplication(QApplication):
                 assert not event.tip(), "assuming QStatusTipEvent is always empty"
             return True
 
+        elif eventType == QEvent.Type.Show and isinstance(watched, QDialog):
+            self.installDialogReturnShortcut(watched)
+
         return False
 
     # -------------------------------------------------------------------------
@@ -607,12 +610,64 @@ class GFApplication(QApplication):
 
     def openPrefsDialog(self, focusOnPrefKey: str = "") -> PrefsDialog:
         from gitfourchette.forms.prefsdialog import PrefsDialog
-        from gitfourchette.toolbox.qtutils import installDialogReturnShortcut
 
         dlg = PrefsDialog(self.mainWindow, focusOnPrefKey)
         dlg.accepted.connect(lambda: self._applyPrefs(dlg.prefDiff, writeNow=True))
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
         dlg.show()
-        installDialogReturnShortcut(dlg)
         return dlg
 
+    @staticmethod
+    def installDialogReturnShortcut(dialog: QDialog):
+        """
+        In KDE, the Return key typically triggers a QDialog's default button
+        ("OK") regardless of the widget that has keyboard focus.
+
+        However, in other desktop environments like GNOME or Cinnamon, Return
+        triggers the QRadioButton or QCheckBox that has keyboard focus (in
+        addition to Space), preventing the QDialog from being accepted.
+
+        This function overrides DE-specific behavior and makes the Return key
+        accept the dialog consistently, like in KDE.
+
+        Call this *after* the dialog has been shown to avoid conflicts with any
+        shortcuts that the desktop environment may want to install.
+        """
+
+        assert dialog.isVisible(), "call QDialog.show() first"
+
+        # Skip dialogs we've already seen.
+        attr = "_guard_installDialogReturnShortcut"
+        if getattr(dialog, attr, False):
+            return
+        setattr(dialog, attr, True)
+
+        # Don't tamper with shortcuts in environments where the native behavior
+        # is adequate.
+        if (KDE or MACOS) and not OFFSCREEN:
+            return
+
+        buttonBox = dialog.findChild(QDialogButtonBox)
+        if not buttonBox:
+            return
+
+        okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        if not okButton:
+            return
+
+        # Don't conflict with any shortcuts that may have been installed
+        # by the desktop environment after QDialog.show().
+        # For example, KDE installs its own Ctrl+Return shortcut.
+        if okButton.findChild(QShortcut):
+            return
+
+        from gitfourchette.toolbox.qtutils import makeWidgetShortcut
+
+        # "Return" is the main key, "Enter" is the numpad key.
+        makeWidgetShortcut(
+            okButton, okButton.click,
+            "Ctrl+Return", "Ctrl+Enter",
+            "Return", "Enter",
+            context=Qt.ShortcutContext.WindowShortcut)
+
+        logger.debug(f"Installed return shortcut on {dialog}")

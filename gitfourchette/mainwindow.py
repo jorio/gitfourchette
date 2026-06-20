@@ -824,7 +824,6 @@ class MainWindow(QMainWindow):
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
-        installDialogReturnShortcut(dlg)
 
     def openDialog(self):
         qfd = PersistentFileDialog.openDirectory(self, "NewRepo", _("Open repository"))
