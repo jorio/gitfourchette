@@ -4,7 +4,9 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import os
 import os.path
+import shutil
 from contextlib import suppress
 
 import pytest
@@ -286,6 +288,99 @@ def testRepoNickname(tempDir, mainWindow):
     dlg.ui.nicknameEdit.clear()
     dlg.accept()
     assert "TestGitRepository" in mainWindow.windowTitle()
+
+
+def testTabNameDisambiguationByParentFolders(tempDir, mainWindow):
+    """Test that tab names are disambiguated by parent folders."""
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    # Create two repos in different parent folders
+    path1 = os.path.join(tempDir.name, "a", "repo")
+    path2 = os.path.join(tempDir.name, "b", "repo")
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    # Tab names should be "a/repo" and "b/repo" (adjusted for OS separator)
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.tabText(0) == os.path.join("a", "repo")
+    assert tabBar.tabText(1) == os.path.join("b", "repo")
+
+
+def testTabNameDisambiguationFallbackToMiddleEllipsis(tempDir, mainWindow):
+    """If parent folders differ only far from the repo, elide the middle of the path."""
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    # Create two repos in different parent folders. Two levels above are identical (x, y).
+    path1 = os.path.join(tempDir.name, "a", "x", "y", "repo")
+    path2 = os.path.join(tempDir.name, "b", "x", "y", "repo")
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    tabBar = mainWindow.tabs.tabs
+    ellipsis = "…"
+    assert tabBar.tabText(0) == os.path.join("a", ellipsis, "repo")
+    assert tabBar.tabText(1) == os.path.join("b", ellipsis, "repo")
+
+
+def testTabNameDisambiguationRevertsOnClose(tempDir, mainWindow):
+    """Closing one of two disambiguated tabs reverts the other to the repo name."""
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    path1 = os.path.join(tempDir.name, "a", "repo")
+    path2 = os.path.join(tempDir.name, "b", "repo")
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.tabText(0) == os.path.join("a", "repo")
+    assert tabBar.tabText(1) == os.path.join("b", "repo")
+
+    mainWindow.closeTab(0)
+    assert mainWindow.tabs.count() == 1
+    assert tabBar.tabText(0) == "repo"
+
+
+def testTabNameDisambiguationRespectsCustomNickname(tempDir, mainWindow):
+    """Custom nicknames are kept even when multiple tabs share the same name."""
+    from gitfourchette import settings
+
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    path1 = os.path.realpath(os.path.join(tempDir.name, "a", "repo"))
+    path2 = os.path.realpath(os.path.join(tempDir.name, "b", "repo"))
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    settings.history.setRepoNickname(path1, "myrepo")
+    settings.history.setRepoNickname(path2, "myrepo")
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.tabText(0) == "myrepo"
+    assert tabBar.tabText(1) == "myrepo"
 
 
 @pytest.mark.parametrize("name", ["Zhack Sheerack", ""])

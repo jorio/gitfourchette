@@ -646,6 +646,7 @@ class MainWindow(QMainWindow):
             self.tabs.setTabTooltip(tabIndex, compactPath(path))
             if foreground:
                 self.tabs.setCurrentIndex(tabIndex)
+        self.refreshAllTabTexts()
 
         # We've got at least one tab now, so switch away from WelcomeWidget
         assert self.tabs.count() > 0
@@ -663,7 +664,7 @@ class MainWindow(QMainWindow):
         assert tabIndex >= 0, "stub to replace isn't in tabs"
         assert isinstance(repoStub, RepoStub), "yanked widget isn't RepoStub"
 
-        rw.nameChange.connect(lambda: self.onRepoNameChanged(rw))
+        rw.nameChange.connect(self.onRepoNameChanged)
         rw.requestAttention.connect(lambda: self.onRepoRequestsAttention(rw))
         rw.openRepo.connect(lambda path, locator: self.openRepoNextTo(rw, path, locator))
         rw.openPrefs.connect(self.openPrefsDialog)
@@ -677,6 +678,7 @@ class MainWindow(QMainWindow):
         rw.windowTitleChanged.connect(lambda: self.onRepoWindowTitleChanged(rw))
 
         self.tabs.swapWidget(tabIndex, rw)
+        self.refreshAllTabTexts()
 
         repoStub.setParent(None)  # tabs don't deparent the widget
         repoStub.deleteLater()
@@ -685,6 +687,7 @@ class MainWindow(QMainWindow):
         tabIndex = self.tabs.indexOf(oldWidget)
         assert tabIndex >= 0, "RepoWidget to replace isn't in tabs"
         self.tabs.swapWidget(tabIndex, stub)
+        self.refreshAllTabTexts()
 
         oldWidget.setParent(None)  # tabs don't deparent the widget
         oldWidget.close()  # will call cleanup
@@ -700,8 +703,8 @@ class MainWindow(QMainWindow):
         with suppress(NoRepoWidgetError):
             self.currentRepoWidget().refreshRepo()
 
-    def onRepoNameChanged(self, rw: RepoWidget):
-        self.refreshTabText(rw)
+    def onRepoNameChanged(self):
+        self.refreshAllTabTexts()
         self.fillRecentMenu()
 
     def onRepoWindowTitleChanged(self, rw: RepoWidget):
@@ -853,6 +856,7 @@ class MainWindow(QMainWindow):
         # Remove the tab BEFORE cleaning up the widget
         # to prevent any interaction with it while it's wrapping up.
         self.tabs.removeTab(index)
+        self.refreshAllTabTexts()
 
         # Clean up the widget
         widget.close()  # will call RepoWidget.cleanup()
@@ -910,10 +914,31 @@ class MainWindow(QMainWindow):
         rw = self.currentRepoWidget()
         rw.replaceWithStub()
 
-    def refreshTabText(self, rw):
-        index = self.tabs.indexOf(rw)
-        title = escamp(rw.getTitle())
-        self.tabs.setTabText(index, title)
+    def refreshAllTabTexts(self):
+        widgets = list(self.tabs.widgets())
+        baseTitles = [widget.getTitle() for widget in widgets]
+        newTitles = baseTitles[:]
+
+        groupsByTitle: dict[str, list[int]] = {}
+        for i, title in enumerate(baseTitles):
+            groupsByTitle.setdefault(title, []).append(i)
+
+        for group in groupsByTitle.values():
+            if len(group) <= 1:
+                continue
+            # Only disambiguate default (basename) titles; custom nicknames are kept as-is.
+            defaultIndices = [
+                i for i in group
+                if not settings.history.getRepoNickname(widgets[i].workdir, strict=True)]
+            if len(defaultIndices) <= 1:
+                continue
+            workdirs = [widgets[i].workdir for i in defaultIndices]
+            disambiguatedTitles = disambiguateTabTitlesByPath(workdirs)
+            for idx, title in zip(defaultIndices, disambiguatedTitles, strict=True):
+                newTitles[idx] = title
+
+        for i, title in enumerate(newTitles):
+            self.tabs.setTabText(i, escamp(title))
 
     def openRepoNextTo(self, rw, path: str, locator: NavLocator = NavLocator.Empty):
         index = self.tabs.indexOf(rw)
