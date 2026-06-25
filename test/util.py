@@ -259,9 +259,10 @@ def unpackRepo(
         renameTo="",
 ) -> str:
     tempDirPath = tempDir if isinstance(tempDir, str) else tempDir.name
+    tempDirPath = Path(tempDirPath)
+    tempDirPath = tempDirPath.resolve()
 
     path = Path(tempDirPath, testRepoName)
-    path = path.resolve()
     assert not path.exists()
 
     zipPath = getTestDataPath(f"{testRepoName}.zip")

@@ -12,6 +12,8 @@ from contextlib import suppress
 import pytest
 from pytestqt.qtbot import QtBot
 
+from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.repowidget import RepoWidget
 from .util import *
 
 from gitfourchette import settings
@@ -33,8 +35,7 @@ from gitfourchette.sidebar.sidebarmodel import SidebarItem
 def bringUpRepoSettings(rw):
     node = rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader)
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "repo.+settings")
-    dlg: RepoSettingsDialog = findQDialog(rw, "repo.+settings")
-    return dlg
+    return findQDialog(rw, "repo.+settings", t=RepoSettingsDialog)
 
 
 def testEmptyRepo(tempDir, mainWindow):
@@ -260,34 +261,67 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
     assert not rw.diffBanner.isVisible()
 
 
-def testRepoNickname(tempDir, mainWindow):
+@pytest.mark.parametrize("dedicatedNicknameDialog", [True, False])
+def testRepoNickname(tempDir, mainWindow, dedicatedNicknameDialog):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
+
+    def nicknameUi() -> tuple[QDialog, QLineEdit]:
+        if dedicatedNicknameDialog:
+            triggerContextMenuAction(mainWindow.tabs.tabs, "rename")
+            dlg = findQDialog(mainWindow, "nickname", t=TextInputDialog)
+            return dlg, dlg.lineEdit
+        else:
+            dlg = bringUpRepoSettings(rw)
+            return dlg, dlg.ui.nicknameEdit
 
     assert "TestGitRepository" in mainWindow.windowTitle()
     assert "TestGitRepository" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
     assert findMenuAction(mainWindow.menuBar(), "file/recent/TestGitRepository")
 
     # Rename to "coolrepo"
-    dlg = bringUpRepoSettings(rw)
-    assert dlg.ui.nicknameEdit.text() == ""
-    dlg.ui.nicknameEdit.setText("coolrepo")
+    dlg, lineEdit = nicknameUi()
+    assert lineEdit.text() == ""
+    lineEdit.setText("coolrepo")
     dlg.accept()
 
     assert "TestGitRepository" not in mainWindow.windowTitle()
     assert "coolrepo" in mainWindow.windowTitle()
     assert "coolrepo" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
+    assert "coolrepo" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
     recentAction = findMenuAction(mainWindow.menuBar(), "file/recent/coolrepo")
-    assert recentAction
-    assert recentAction is findMenuAction(mainWindow.menuBar(), "file/recent/TestGitRepository")
+    assert "TestGitRepository" in recentAction.text()
 
     # Reset to default name
-    dlg = bringUpRepoSettings(rw)
-    assert dlg.ui.nicknameEdit.text() == "coolrepo"
-    assert dlg.ui.nicknameEdit.isClearButtonEnabled()
-    dlg.ui.nicknameEdit.clear()
+    dlg, lineEdit = nicknameUi()
+    assert lineEdit.text() == "coolrepo"
+    assert lineEdit.isClearButtonEnabled()
+    lineEdit.clear()
     dlg.accept()
+
     assert "TestGitRepository" in mainWindow.windowTitle()
+    assert "TestGitRepository" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
+
+
+def testRepoNicknameBackgroundTab(tempDir, mainWindow):
+    wd1 = unpackRepo(tempDir, renameTo="repo1")
+    wd2 = unpackRepo(tempDir, renameTo="repo2")
+    mainWindow._openRepo(wd1, foreground=False)
+    mainWindow.openRepo(wd2)
+
+    assert mainWindow.tabs.currentIndex() == 1
+    assert isinstance(mainWindow.tabs.widget(0), RepoStub)
+    assert isinstance(mainWindow.tabs.widget(1), RepoWidget)
+
+    triggerContextMenuAction(mainWindow.tabs.tabs, "rename")
+    dlg = findQDialog(mainWindow, "nickname", t=TextInputDialog)
+    assert "repo1" in dlg.lineEdit.placeholderText()
+    dlg.lineEdit.setText("backgroundrepo")
+    dlg.accept()
+
+    assert "backgroundrepo" in mainWindow.tabs.tabs.tabText(0)
+    mainWindow.tabs.setCurrentIndex(0)
+    assert "backgroundrepo" in mainWindow.windowTitle()
 
 
 def testTabNameDisambiguationByParentFolders(tempDir, mainWindow):

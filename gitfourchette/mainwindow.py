@@ -28,6 +28,7 @@ from gitfourchette.forms.maintoolbar import MainToolBar
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
+from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.forms.welcomewidget import WelcomeWidget
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.globalshortcuts import GlobalShortcuts
@@ -1361,7 +1362,45 @@ class MainWindow(QMainWindow):
                 lambda: self.repolessOpenSuperproject(workdirProxy(), superproject),
                 enabled=superprojectEnabled,
             ),
+
+            ActionDef(
+                _("Re&name\u2026"),
+                lambda: self.repolessSetNickname(workdirProxy()),
+                icon="rename",
+            ),
         ]
+
+    def repolessSetNickname(self, workdir: str):
+        defaultName = Path(workdir).name
+        oldNickname = settings.history.getRepoNickname(workdir, strict=True)
+
+        title = _("Nickname for {0}", tquoe(defaultName))
+        label = _("Enter or clear nickname for this repository:")
+        leaveBlank = _("Leave blank to refer to this repo as {0}", tquoe(defaultName))
+        hint = "<p>" + _p(  # Sync with ui_reposettingsdialog.py to keep existing translation
+            "RepoSettingsDialog",
+            "This nickname will appear within {app} in tab names, menus, etc. "
+            "It does not change the actual name of the repo’s directory. "
+            "Leave blank to clear the nickname.",
+            app=qAppName())
+
+        tid = TextInputDialog(self, title, label, subtitle=escamp(compactPath(workdir)), hint=hint)
+        tid.lineEdit.setClearButtonEnabled(True)
+        tid.lineEdit.setPlaceholderText(leaveBlank)
+        tid.lineEdit.setText(oldNickname)
+        tid.lineEdit.selectAll()
+        tid.textAccepted.connect(lambda nick: self._repolessSetNicknameImpl(workdir, nick))
+        tid.show()
+
+    def _repolessSetNicknameImpl(self, workdir: str, nick: str):
+        settings.history.setRepoNickname(workdir, nick)
+        tabWidget = self.tabWidgetForWorkdirPath(workdir)
+        if isinstance(tabWidget, RepoWidget):
+            # Percolate to sidebar, etc.
+            tabWidget.nameChange.emit()
+        else:
+            # RepoStub
+            self.onRepoNameChanged()
 
     def repolessCopyPath(self, workdir: str):
         QApplication.clipboard().setText(workdir)
