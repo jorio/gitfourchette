@@ -366,21 +366,6 @@ class HardSolveConflicts(RepoTask):
         self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(ours) + len(theirs) + len(remove))
 
 
-class MarkConflictSolved(RepoTask):
-    def flow(self, path: str):
-        yield from self.flowEnterWorkerThread()
-        self.epilog.effects |= TaskEffects.Workdir
-
-        repo = self.repo
-
-        repo.refresh_index()
-        assert (repo.index.conflicts is not None) and (path in repo.index.conflicts)
-
-        del repo.index.conflicts[path]
-        assert (repo.index.conflicts is None) or (path not in repo.index.conflicts)
-        repo.index.write()
-
-
 class AcceptMergeConflictResolution(RepoTask):
     def canKill(self, task: RepoTask) -> bool:
         from gitfourchette.tasks import RefreshRepo, Jump
