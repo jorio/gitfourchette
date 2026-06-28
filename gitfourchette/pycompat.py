@@ -2,6 +2,7 @@
 
 import enum as _enum
 import glob as _glob
+from pathlib import Path as _Path
 
 
 # Python 3.10 compatibility (enum.StrEnum is new in Python 3.11)
@@ -19,6 +20,34 @@ if not hasattr(_enum, "StrEnum"):
             return self._value_
 
     _enum.StrEnum = _StrEnumCompat
+
+
+# Python 3.10, 3.11 compatibility (Path.walk is new in Python 3.12)
+if not hasattr(_Path, "walk"):
+    def _pathWalk(self: _Path, top_down=True, on_error=None, follow_symlinks=False):
+        import os
+        for root1, dirs1, files1 in os.walk(
+                top=self,
+                topdown=top_down,
+                onerror=on_error,
+                followlinks=follow_symlinks
+        ):
+            root2 = _Path(root1)
+
+            if not follow_symlinks:
+                # "Unlike os.walk(), Path.walk() lists symlinks to directories
+                # in filenames if follow_symlinks is false."
+                dirs2 = []
+                for d in dirs1:
+                    if not follow_symlinks and (root2 / d).is_symlink():
+                        files1.append(d)
+                    else:
+                        dirs2.append(d)
+                dirs1[:] = dirs2
+
+            yield root2, dirs1, files1
+
+    _Path.walk = _pathWalk
 
 
 # Python 3.10, 3.11, 3.12 compatibility (glob.translate is new Python 3.13)

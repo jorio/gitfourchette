@@ -25,7 +25,7 @@ def testMountCommitFileListing(tempDir, mainWindow):
     waitUntilTrue(lambda: (mountPoint / "master.txt").exists())
 
     allFiles = []
-    for root, _dirs, files in os.walk(mountPoint):  # TODO: Switch to Path.walk once we can drop Python 3.11 and older
+    for root, _dirs, files in mountPoint.walk():
         allFiles.extend(Path(root, f).relative_to(mountPoint) for f in files)
     assert {str(p) for p in allFiles} == {
         "master.txt", "a/a1.txt", "a/a2.txt",

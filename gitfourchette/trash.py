@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 from tarfile import TarFile
 
+import gitfourchette.pycompat  # noqa: F401 - Path.walk for Python 3.10, 3.11
 from gitfourchette import settings
 from gitfourchette.qt import *
 from gitfourchette.toolbox import withUniqueSuffix
