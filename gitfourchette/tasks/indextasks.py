@@ -7,7 +7,6 @@
 import logging
 import os
 import shutil
-from contextlib import suppress
 from itertools import chain
 from pathlib import Path
 
@@ -175,7 +174,12 @@ class DiscardFiles(_BaseStagingTask):
             self.epilog.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
 
         # Back up discarded patches
-        yield from self.backUpPatches(deltas)
+        if Trash.enabled():
+            for delta in deltas:
+                try:
+                    yield from self._backupDelta(delta)
+                except Trash.BackupSkipped as ex:
+                    logger.warning(f"Backup skipped: {ex}")
 
         tracked = [d.new.path for d in deltas if d.status != "?"]
         untrackedFiles = [d.new.path for d in deltas if d.status == "?" and d.new.mode != FileMode.TREE]
@@ -201,32 +205,29 @@ class DiscardFiles(_BaseStagingTask):
 
         self.epilog.status = _n("File discarded.", "{n} files discarded.", len(deltas))
 
-    def backUpPatches(self, deltas: list[GitDelta]):
+    def _backupDelta(self, delta: GitDelta):
+        # Don't back up deletions
+        if delta.status == "D":
+            return
+
         trash = Trash.instance()
+        path = delta.new.path
         workdir = self.repo.workdir
 
-        for delta in deltas:
-            path = delta.new.path
-
-            if delta.status == "D":
-                # It doesn't make sense to back up a file deletion
-                continue
-
-            elif delta.status == "?" and delta.new.mode == FileMode.TREE:
+        if delta.status == "?":
+            if delta.new.mode == FileMode.TREE:
                 # Untracked tree
                 trash.backupTree(workdir, path)
-
-            elif delta.status == "?":
+            else:
                 # Untracked file
                 # TODO: Also binary files?
                 trash.backupFile(workdir, path)
-
-            else:
-                # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
-                tokens = GitDriver.buildDiffCommand(delta)
-                driver = yield from self.flowCallGit(*tokens, autoFail=False)
-                patchText = driver.stdoutScrollback()
-                trash.backupPatch(workdir, patchText, path)
+        else:
+            # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
+            tokens = GitDriver.buildDiffCommand(delta)
+            driver = yield from self.flowCallGit(*tokens, autoFail=False)
+            patchText = driver.stdoutScrollback()
+            trash.backupPatch(workdir, patchText, path)
 
 
 class UnstageFiles(_BaseStagingTask):
@@ -308,7 +309,10 @@ class ApplyPatch(RepoTask):
             textPara.append(_("This cannot be undone!"))
             yield from self.flowConfirm(title, text=paragraphs(textPara), verb=title, buttonIcon="git-discard-lines")
 
-            Trash.instance().backupPatch(self.repo.workdir, subPatch, delta.new.path)
+            try:
+                Trash.instance().backupPatch(self.repo.workdir, subPatch, delta.new.path)
+            except Trash.BackupSkipped as ex:
+                logger.warning(f"Backup skipped: {ex}")
 
             applyLocation = ApplyLocation.WORKDIR
         else:
@@ -328,10 +332,13 @@ class ApplyPatch(RepoTask):
 
 class HardSolveConflicts(RepoTask):
     def flow(self, ours: list[str], theirs: list[str], remove: list[str]):
-        # Back up affected files (no need to back up those for which we keep "our" side)
-        for path in chain(theirs, remove):
-            with suppress(FileNotFoundError):  # ignore FileNotFoundError for DELETED_BY_US conflicts
-                Trash.instance().backupFile(self.repo.workdir, path)
+        # Back up affected files
+        if Trash.enabled():
+            for path in chain(theirs, remove):
+                try:
+                    Trash.instance().backupFile(self.repo.workdir, path)
+                except Trash.BackupSkipped as ex:
+                    logger.warning(f"Backup skipped: {ex}")
 
         # Restore desired sides
         self.epilog.effects |= TaskEffects.Workdir

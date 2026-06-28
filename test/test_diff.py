@@ -242,7 +242,7 @@ def testBackUpDiscardedHunkInTrash(tempDir, mainWindow):
     trash.refreshFiles()
     assert len(trash.trashFiles) == 1
     triggerMenuAction(mainWindow.menuBar(), "file/revert patch file")
-    acceptQFileDialog(rw, "patch", f"{trash.trashDir}/{trash.trashFiles[0]}")
+    acceptQFileDialog(rw, "patch", str(trash.trashFiles[0]))
     acceptQMessageBox(rw, "do you want to revert patch file")
     assert readTextFile(f"{wd}/master.txt") == newContents
 

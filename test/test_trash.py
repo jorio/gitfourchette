@@ -23,6 +23,7 @@ def _fillTrashWithJunk(n):
 
 
 def testBackupDiscardedPatches(tempDir, mainWindow):
+    # The mainWindow fixture ensures proper setup/teardown of the trash
     largeFileThreshold = 1024 + 1
 
     wd = unpackRepo(tempDir)
@@ -68,8 +69,8 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
     QTest.keySequence(rw.dirtyFiles, QKeySequence("Ctrl+A,Del"))
     acceptQMessageBox(rw, "really discard changes")
 
-    def findInTrash(partialFileName: str):
-        return next((f for f in trash.trashFiles if partialFileName in f), None)
+    def findInTrash(partialFileName: str) -> Path | None:
+        return next((f for f in trash.trashFiles if partialFileName in f.name), None)
 
     assert findInTrash("a1.txt")
     assert findInTrash("SomeNewFile.txt")
@@ -81,7 +82,7 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
     # Find symlink
     if not WINDOWS:
         assert findInTrash("symlink")
-        assert Path(findInTrash("symlink")).is_symlink()
+        assert findInTrash("symlink").is_symlink()
 
     # Make sure tree.tar contains our repo
     tarballFiles = TarFile(findInTrash("SmallTree.tar")).getnames()
@@ -91,6 +92,7 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
 
 
 def testTrashFull(tempDir, mainWindow):
+    # The mainWindow fixture ensures proper setup/teardown of the trash
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -105,8 +107,9 @@ def testTrashFull(tempDir, mainWindow):
     acceptQMessageBox(rw, "really discard changes")
 
     # Trash should have been purged to make room for new patch
-    assert len(Trash.instance().trashFiles) == settings.prefs.maxTrashFiles
-    assert "a1.txt" in Trash.instance().trashFiles[0]
+    trashInstance = Trash.instance()
+    assert len(trashInstance.trashFiles) == settings.prefs.maxTrashFiles
+    assert "a1.txt" in trashInstance.trashFiles[0].name
 
 
 def testClearTrash(mainWindow):
