@@ -18,8 +18,8 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     scenario = """
         # Prepare "their" modification (modify a1.txt and a2.txt)
         git checkout -b THEIR-BRANCH
-        echo 'they modified' > a/a1.txt
-        echo 'they modified' > a/a2.txt
+        echo 'they modified 1' > a/a1.txt
+        echo 'they modified 2' > a/a2.txt
         git commit -a -m 'they modified 2 files'
 
         # no-parent has no a1.txt, a2.txt; create a conflict on those
@@ -52,6 +52,8 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+ours")
 
+    assert not Path(wd, "a/a1.txt").exists()
+
     # -------------------------
     # Take their a2.txt
 
@@ -70,6 +72,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_NEW}
+    assert readTextFile(f"{wd}/a/a2.txt").strip() == "they modified 2"
 
 
 @pytest.mark.parametrize("viaContextMenu", [False, True])
@@ -130,6 +133,96 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_DELETED}
+
+
+@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
+@pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "context"])
+def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContextMenu):
+    scenario = """
+        git branch OUR-BRANCH
+        git checkout -b THEIR-BRANCH
+        ln -s a added_by_both
+        git add added_by_both
+        git commit -m 'Their Commit'
+
+        git checkout OUR-BRANCH
+        ln -s b added_by_both
+        git add added_by_both
+        git commit -m 'Our Commit'
+
+        git merge THEIR-BRANCH || true
+    """
+
+    wd = unpackRepo(tempDir)
+    runShellScript(scenario, directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    symlinkPath = Path(wd, "added_by_both")
+    assert symlinkPath.is_symlink()
+    assert symlinkPath.resolve().samefile(Path(wd, "b"))
+    assert "added_by_both" in rw.repo.index.conflicts
+
+    if keepOurs:
+        solveButton = rw.conflictView.ui.oursButton
+    else:
+        solveButton = rw.conflictView.ui.theirsButton
+    assert solveButton.isVisible()
+
+    if viaContextMenu:
+        label = "resolve by.+" + ("ours" if keepOurs else "theirs")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), label)
+    else:
+        solveButton.click()
+
+    assert symlinkPath.is_symlink()
+    assert symlinkPath.resolve().samefile(Path(wd, "b" if keepOurs else "a"))
+    assert rw.repo.index.conflicts is None
+
+
+@pytest.mark.parametrize("viaContextMenuLabel", ["", "resolve by.+ours", "resolve by.+theirs"])
+def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLabel):
+    scenario = """
+        mkdir -p xxx
+        echo 'hello world' > xxx/zzz
+        git add xxx/zzz
+        git commit -m 'Fork Point'
+
+        git branch OUR-BRANCH
+        git checkout -b THEIR-BRANCH
+        git mv xxx/zzz whateverA
+        git commit -m 'Their Commit'
+
+        git checkout OUR-BRANCH
+        git mv xxx/zzz whateverB
+        rmdir xxx
+        ln -s master.txt xxx  # 'xxx' isn't a directory anymore
+        git commit -m 'Our Commit'
+
+        git merge THEIR-BRANCH || true
+    """
+
+    wd = unpackRepo(tempDir)
+    runShellScript(scenario, directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("xxx/zzz"), check=True)
+
+    assert "xxx/zzz" in rw.repo.index.conflicts
+
+    solveButton = rw.conflictView.ui.confirmDeletionButton
+    assert solveButton.isVisible()
+
+    if not viaContextMenuLabel:
+        solveButton.click()
+    else:
+        # The context menu presents two options (accept theirs, keep ours)
+        # because it doesn't have a special case for Deleted By Both.
+        # Both options should yield the same outcome for Deleted By Both.
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), viaContextMenuLabel)
+
+    assert not Path(wd, "xxx/zzz").exists()
+    assert "xxx/zzz" not in rw.repo.index.conflicts
 
 
 def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
