@@ -833,3 +833,11 @@ def dismissToolTip(pattern: str):
     assert re.search(pattern, QToolTip.text(), re.I)
     QToolTip.hideText()
     waitUntilTrue(lambda: not QToolTip.isVisible())
+
+
+def runShellScript(script: str, directory: str):
+    scenarioPath = Path(qTempDir(), "scenario.sh")
+    preamble = "#!/usr/bin/env bash\nset -e\n"
+    scenarioPath.write_text(preamble + script)
+    scenarioPath.chmod(0o700)
+    ToolCommands.runSync(str(scenarioPath), directory=directory, strict=True)

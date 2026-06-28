@@ -15,24 +15,26 @@ from gitfourchette.porcelain import *
 
 @pytest.mark.parametrize("viaContextMenu", [False, True])
 def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
-    wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
+    scenario = """
         # Prepare "their" modification (modify a1.txt and a2.txt)
-        writeFile(f"{wd}/a/a1.txt", "they modified")
-        writeFile(f"{wd}/a/a2.txt", "they modified")
-        repo.index.add_all(["a/a1.txt", "a/a2.txt"])
-        oid = repo.create_commit_on_head("they modified 2 files", TEST_SIGNATURE, TEST_SIGNATURE)
+        git checkout -b THEIR-BRANCH
+        echo 'they modified' > a/a1.txt
+        echo 'they modified' > a/a2.txt
+        git commit -a -m 'they modified 2 files'
 
-        # Switch to no-parent (it has no a1.txt and a2.txt) and merge "their" modification
-        assert not repo.any_conflicts
-        repo.checkout_local_branch("no-parent")
-        repo.cherrypick(oid)
-        assert repo.any_conflicts
-        assert "a/a1.txt" in repo.index.conflicts
-        assert "a/a2.txt" in repo.index.conflicts
+        # no-parent has no a1.txt, a2.txt; create a conflict on those
+        git checkout no-parent
+        git cherry-pick THEIR-BRANCH || true
+    """
+
+    wd = unpackRepo(tempDir)
+    runShellScript(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+
+    assert rw.repo.any_conflicts
+    assert "a/a1.txt" in rw.repo.index.conflicts
+    assert "a/a2.txt" in rw.repo.index.conflicts
 
     # -------------------------
     # Keep our deletion of a1.txt
@@ -72,27 +74,28 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
 
 @pytest.mark.parametrize("viaContextMenu", [False, True])
 def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
+    scenario = """
+        git checkout -b THEIR-BRANCH
+        git rm a/a1.txt a/a2.txt
+        git commit -m 'they deleted 2 files'
+
+        git checkout no-parent
+        mkdir -p a
+        echo 'we modified' > a/a1.txt
+        echo 'we modified' > a/a2.txt
+        git add a/a1.txt a/a2.txt
+        git commit -m 'we touched 2 files'
+        git cherry-pick THEIR-BRANCH || true
+    """
+
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        # Prepare "their" modification (delete a1.txt and a2.txt)
-        repo.index.remove_all(["a/a1.txt", "a/a2.txt"])
-        oid = repo.create_commit_on_head("they deleted 2 files", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        repo.checkout_local_branch("no-parent")
-
-        writeFile(f"{wd}/a/a1.txt", "we modified")
-        writeFile(f"{wd}/a/a2.txt", "we modified")
-        repo.index.add_all(["a/a1.txt", "a/a2.txt"])
-        repo.create_commit_on_head("we touched 2 files", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        assert not repo.any_conflicts
-        repo.cherrypick(oid)
-        assert repo.any_conflicts
-        assert "a/a1.txt" in repo.index.conflicts
-        assert "a/a2.txt" in repo.index.conflicts
+    runShellScript(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+
+    assert rw.repo.any_conflicts
+    assert "a/a1.txt" in rw.repo.index.conflicts
+    assert "a/a2.txt" in rw.repo.index.conflicts
 
     # -------------------------
     # Keep our a1.txt
@@ -130,21 +133,21 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
 
 
 def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
+    scenario = """
+        git checkout -b THEIR-BRANCH
+        echo 'they modified' > a/a1.txt
+        git commit -a -m 'they modified'
+
+        # no-parent has no a1.txt; create a conflict on a1.txt
+        git checkout no-parent
+        git cherry-pick THEIR-BRANCH || true
+    """
+
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        # Prepare "their" modification (modify a1.txt)
-        writeFile(f"{wd}/a/a1.txt", "they modified")
-        repo.index.add_all(["a/a1.txt"])
-        oid = repo.create_commit_on_head("they modified a1.txt", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        # Switch to no-parent (it has no a1.txt) and merge "their" modification to cause a conflict on a1.txt
-        assert not repo.any_conflicts
-        repo.checkout_local_branch("no-parent")
-        repo.cherrypick(oid)
-        assert "a/a1.txt" in repo.index.conflicts
+    runShellScript(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+    assert "a/a1.txt" in rw.repo.index.conflicts
 
     # Modify some other file with both staged and unstaged changes
     writeFile(f"{wd}/b/b1.txt", "b1\nb1\nstaged change\n")
@@ -171,11 +174,7 @@ def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")))
 
     # Cause a conflict outside the app
-    with RepoContext(wd) as repo:
-        oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
-        assert not repo.any_conflicts
-        repo.cherrypick(oid)
-        assert "c/c2.txt" in repo.index.conflicts
+    runShellScript("git cherry-pick ce112d052 || true", directory=wd)
 
     rw.refreshRepo()
     assert rw.mergeBanner.isVisible()
