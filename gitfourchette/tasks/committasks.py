@@ -148,13 +148,6 @@ class NewCommit(RepoTask):
             explicitGpgSign=False,
             explicitNoGpgSign=False,
     ):
-        def signatureEnvironmentVariables(sig: Signature, infix: str) -> dict[str, str]:
-            return {
-                f"GIT_{infix}_NAME": sig.name,
-                f"GIT_{infix}_EMAIL": sig.email,
-                f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
-            }
-
         # Git ignores GIT_AUTHOR_* when amending or concluding a cherrypick
         # unless we pass --reset-author.
         resetAuthor = author and (amend or repositoryState == RepositoryState.CHERRYPICK)

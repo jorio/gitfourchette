@@ -6,6 +6,7 @@
 
 import re
 from contextlib import suppress
+from typing import Literal
 
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -154,6 +155,14 @@ def formatTimeOffset(minutes: int):
     h = abs(minutes) // 60
     m = abs(minutes) % 60
     return f"{p}{h:02}:{m:02}"
+
+
+def signatureEnvironmentVariables(sig: Signature, infix: Literal["AUTHOR", "COMMITTER"]) -> dict[str, str]:
+    return {
+        f"GIT_{infix}_NAME": sig.name,
+        f"GIT_{infix}_EMAIL": sig.email,
+        f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
+    }
 
 
 def signatureQDateTime(signature: Signature, localTime=False) -> QDateTime:

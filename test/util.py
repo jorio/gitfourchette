@@ -835,9 +835,34 @@ def dismissToolTip(pattern: str):
     waitUntilTrue(lambda: not QToolTip.isVisible())
 
 
-def runShellScript(script: str, directory: str):
-    scenarioPath = Path(qTempDir(), "scenario.sh")
-    preamble = "#!/usr/bin/env bash\nset -e\n"
-    scenarioPath.write_text(preamble + script)
-    scenarioPath.chmod(0o700)
-    ToolCommands.runSync(str(scenarioPath), directory=directory, strict=True)
+def runShellScript(script: str, directory: str, sig=TEST_SIGNATURE):
+    from gitfourchette.toolbox.gitutils import signatureEnvironmentVariables
+
+    env = {}
+
+    # Sanitize author/committer
+    env.update(signatureEnvironmentVariables(sig, "AUTHOR"))
+    env.update(signatureEnvironmentVariables(sig, "COMMITTER"))
+
+    # Make sure we're forwarding the correct git config directories
+    assert os.environ.get("GIT_CONFIG_GLOBAL", ""), "fixture didn't set GIT_CONFIG_GLOBAL"
+    assert os.environ.get("GIT_CONFIG_SYSTEM", ""), "fixture didn't set GIT_CONFIG_SYSTEM"
+
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -eu",
+    ]
+    lines.extend(f"export {k}={shlex.quote(v)}" for k, v in env.items())
+    lines.append(script)
+
+    scriptPath = Path(qTempDir(), "scenario.sh")
+    scriptPath.write_text("\n".join(lines))
+    scriptPath.chmod(0o700)
+    scriptPath = str(scriptPath)
+
+    # Run script inside Flatpak sandbox, not via flatpak-spawn
+    # (this will inherit anything set in os.environ)
+    if FLATPAK:
+        scriptPath = ToolCommands.FlatpakSandboxedCommandPrefix + scriptPath
+
+    ToolCommands.runSync(scriptPath, directory=directory, strict=True)

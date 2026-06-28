@@ -23,6 +23,7 @@ from .gitutils import (
     splitRemoteUrl,
     guessRemoteUrlFromText,
     formatTimeOffset,
+    signatureEnvironmentVariables,
     signatureQDateTime,
     signatureDateFormat,
 )
