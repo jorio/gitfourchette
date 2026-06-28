@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 from contextlib import suppress
+from itertools import chain
 from pathlib import Path
 
 from gitfourchette import settings
@@ -326,50 +327,36 @@ class ApplyPatch(RepoTask):
 
 
 class HardSolveConflicts(RepoTask):
-    def flow(self, conflictedFiles: dict[str, Oid]):
-        yield from self.flowEnterWorkerThread()
+    def flow(self, ours: list[str], theirs: list[str], remove: list[str]):
+        # Back up affected files (no need to back up those for which we keep "our" side)
+        for path in chain(theirs, remove):
+            with suppress(FileNotFoundError):  # ignore FileNotFoundError for DELETED_BY_US conflicts
+                Trash.instance().backupFile(self.repo.workdir, path)
+
+        # Restore desired sides
         self.epilog.effects |= TaskEffects.Workdir
 
-        repo = self.repo
-        repo.refresh_index()
-        index = repo.index
-        conflicts = index.conflicts
-        assert conflicts is not None
+        if ours:
+            yield from self.flowCallGit("restore", "--progress", "--ours", "--", *ours)
 
-        assert isinstance(conflictedFiles, dict)
-        for path, keepId in conflictedFiles.items():
-            assert type(path) is str
-            assert type(keepId) is Oid
-            assert path in conflicts
+        if theirs:
+            yield from self.flowCallGit("restore", "--progress", "--theirs", "--", *theirs)
 
-            with suppress(FileNotFoundError):  # ignore FileNotFoundError for DELETED_BY_US conflicts
-                Trash.instance().backupFile(repo.workdir, path)
+        # Stage the files we kept to resolve the conflict
+        if ours or theirs:
+            yield from self.flowCallGit("add", "--force", "--", *chain(ours, theirs))
 
-            fullPath = repo.in_workdir(path)
+        # Stage deletions to resolve the conflict
+        if remove:
+            yield from self.flowCallGit("rm", "--", *remove)
 
-            # TODO: we should probably set the modes correctly and stuff as well
-            if keepId == NULL_OID:
-                if os.path.isfile(fullPath):  # the file may not exist in DELETED_BY_BOTH conflicts
-                    os.unlink(fullPath)
-            else:
-                blob = repo.peel_blob(keepId)
-                with open(fullPath, "wb") as f:
-                    f.write(blob.data)
-
-            del conflicts[path]
-            assert path not in conflicts
-
-            if keepId != NULL_OID:
-                # Stage the file so it doesn't show up in both file lists
-                index.add(path)
-
-                # Jump to staged file after the task
+        # Jump to any staged file after the task
+        for path in chain(ours, theirs):
+            if Path(self.repo.in_workdir(path)).is_file():
                 self.epilog.jumpTo = NavLocator.inStaged(path)
+                break
 
-        # Write index modifications to disk
-        index.write()
-
-        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflictedFiles))
+        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(ours) + len(theirs) + len(remove))
 
 
 class MarkConflictSolved(RepoTask):

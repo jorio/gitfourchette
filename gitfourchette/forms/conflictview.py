@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,15 +9,12 @@ import os
 from dataclasses import dataclass
 from typing import Literal
 
-from pygit2 import Oid
-
 from gitfourchette import settings, colors
 from gitfourchette.application import GFApplication
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
 from gitfourchette.gitdriver import GitConflict, GitConflictSides
 from gitfourchette.localization import *
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.porcelain import NULL_OID
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution
@@ -91,44 +88,57 @@ class ConflictView(QWidget):
         S = GitConflictSides
 
         if conflict.sides in (S.DeletedByUs, S.AddedByThem):
+            # Theirs: take incoming change. Ours: keep deletion.
             assert conflict.theirs
             assert version in ["ours", "theirs"]
-            if version == "theirs":
-                self.hardSolve(conflict.theirs.path, Oid(hex=conflict.theirs.id))
-            elif version == "ours":  # ignore incoming change, keep deletion
-                self.hardSolve(conflict.theirs.path, NULL_OID)
+            if version == "ours":
+                # Ours - Keep deletion
+                self.hardSolveRemove(conflict.theirs.path)
+            else:
+                # Theirs - Take incoming changes
+                self.hardSolveTakeTheirs(conflict.theirs.path)
 
         elif conflict.sides in (S.DeletedByThem, S.AddedByUs):
+            # Theirs: take incoming deletion. Ours: ignore deletion.
             assert conflict.ours
             assert version in ["ours", "theirs"]
-            if version == "theirs":  # accept deletion
-                self.hardSolve(conflict.ours.path, NULL_OID)
-            elif version == "ours":  # ignore incoming deletion
-                self.hardSolve(conflict.ours.path, Oid(hex=conflict.ours.id))
+            if version == "ours":
+                # Ours - Ignore deletion
+                self.hardSolveKeepOurs(conflict.ours.path)
+            else:
+                # Theirs - Take incoming deletion
+                self.hardSolveRemove(conflict.ours.path)
 
         elif conflict.sides == S.BothDeleted:
+            # Delete the file.
             assert conflict.ancestor
             assert version == "ancestor"
-            self.hardSolve(conflict.ancestor.path, NULL_OID)
+            self.hardSolveRemove(conflict.ancestor.path)
 
         elif conflict.sides in (S.BothModified, S.BothAdded):
+            # Pick a side to keep, or merge.
             assert conflict.ours
             assert conflict.theirs
             assert version in ["ours", "theirs", "merge", "remerge"]
             if version == "ours":
-                self.hardSolve(conflict.ours.path, Oid(hex=conflict.ours.id))
+                self.hardSolveKeepOurs(conflict.ours.path)
             elif version == "theirs":
-                self.hardSolve(conflict.ours.path, Oid(hex=conflict.theirs.id))
-            elif version == "merge":
-                self.openMergeTool(conflict)
-            elif version == "remerge":
-                self.openMergeTool(conflict, True)
+                self.hardSolveTakeTheirs(conflict.theirs.path)
+            else:
+                reopen = version == "remerge"
+                self.openMergeTool(conflict, reopen)
 
         else:
             raise NotImplementedError(f"unsupported conflict sides: {conflict.sides}")
 
-    def hardSolve(self, path: str, oid=NULL_OID):
-        HardSolveConflicts.invoke(self, {path: oid})
+    def hardSolveKeepOurs(self, path: str):
+        HardSolveConflicts.invoke(self, [path], [], [])
+
+    def hardSolveTakeTheirs(self, path: str):
+        HardSolveConflicts.invoke(self, [], [path], [])
+
+    def hardSolveRemove(self, path: str):
+        HardSolveConflicts.invoke(self, [], [], [path])
 
     def openMergeTool(self, conflict: GitConflict, reopenWorkInProgress=False):
         mergeDriver = MergeDriver.findOngoingMerge(conflict)

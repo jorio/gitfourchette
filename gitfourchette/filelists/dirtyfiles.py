@@ -143,17 +143,22 @@ class DirtyFiles(FileList):
 
     def _mergeKeep(self, keepOurs: bool):
         conflicts = self.repo.index.conflicts
-        table = {}
+        restore = []
+        remove = []
 
-        for delta in self.selectedDeltas():
-            path = delta.new.path
+        for path in self.selectedPaths():
             ancestor, ours, theirs = conflicts[path]
-
             keepEntry = ours if keepOurs else theirs
-            keepId = keepEntry.id if keepEntry is not None else NULL_OID
-            table[path] = keepId
+            if keepEntry is not None:
+                assert keepEntry.path == path
+                restore.append(keepEntry.path)
+            else:
+                remove.append(path)
 
-        HardSolveConflicts.invoke(self, table)
+        if keepOurs:
+            HardSolveConflicts.invoke(self, restore, [], remove)
+        else:
+            HardSolveConflicts.invoke(self, [], restore, remove)
 
     def mergeKeepOurs(self):
         self._mergeKeep(keepOurs=True)
