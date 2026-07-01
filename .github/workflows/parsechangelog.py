@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import re
 import datetime
@@ -9,7 +11,7 @@ def parseChangelog():
     lines = Path("CHANGELOG.md").read_text().splitlines()
 
     bound1 = next(i for i, v in enumerate(lines) if v.startswith("## "))
-    bound2 = next(i for i, v in enumerate(lines[bound1+1:]) if v.startswith("## "))
+    bound2 = next(i for i, v in enumerate(lines) if v.startswith("## ") and i > bound1)
 
     versionLine = lines[bound1]
     notes = "\n".join(lines[bound1+1:bound2]).strip()
