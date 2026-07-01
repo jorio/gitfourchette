@@ -344,6 +344,7 @@ def compileMoFiles():
 
         wipLanguages += [f"{moPath.stem} {ratio}"]
 
+    wipLanguages.sort()
     Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages) + "\n")
 
 
@@ -353,6 +354,7 @@ def formatTranslatorCredits(jsonReportPath: str):
 
     renameLanguages = {
         "Chinese (Simplified Han script)": "S. Chinese",
+        "Chinese (Traditional Han script)": "T. Chinese",
     }
 
     def formatPerson(person):
