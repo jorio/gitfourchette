@@ -1,5 +1,35 @@
 # GitFourchette version history
 
+## 1.9.0 (2026-07-01)
+
+New features:
+
+- Show/hide whitespace symbols (#108)
+- Options to ignore whitespace in diffs (#108)
+
+Quality of life improvements:
+
+- Tool buttons above DiffView give quick access to: word wrap, whitespace, context lines, SVG preview (#108)
+- NewTagDialog offers replacing existing local tags (#102)
+- Tabs: Disambiguate tab labels when several repos share the same basename (#113)
+- The "repo nickname" feature is now easier to access (right-click on a tab → Rename)
+- Blame: Reevaluate search term when switching to another revision
+- Allow resizing Commit Info dialog when showing a long commit message (#109)
+- Allow Keypad Enter to accept dialogs in non-KDE environments, in addition to the main Return key which was supported since 1.5.0. (Note: KDE already supports this by default.) (#110)
+
+Bug fixes:
+
+- Fix benign error message on startup if you ticked a "Don't Show Again" checkbox in a previous session (#112)
+- Blame: Fix crash when blaming workdir file during merge in progress
+- Handle edge cases in "Added by both"/"Deleted by both" conflicts involving symlinks (#115)
+- Fix minor UX papercuts with very long repository tab names
+- NewRepo: Fix button label in non-empty directory warning
+- NewRepo: Restore "Create" button in nested repository warning
+
+Maintenance:
+
+- Continued from work started in v1.5.0, more operations were rewritten to be implemented with "standard" Git instead of libgit2 for improved compatibility (New Tag, Delete Tag, Resolve by Keeping Ours/Taking Theirs).
+
 ## 1.8.0 (2026-05-21)
 
 New features:
