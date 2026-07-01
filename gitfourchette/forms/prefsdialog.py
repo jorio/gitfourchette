@@ -24,6 +24,16 @@ logger = logging.getLogger(__name__)
 SAMPLE_SIGNATURE = Signature("Jean-Michel Tartempion", "jm.tarte@example.com", 0, 0)
 SAMPLE_FILE_PATH = "spam/.ham/eggs/hello.c"
 
+# This dict initially contains hardcoded language names, e.g. to disambiguate
+# both Portugueses, to give U.S. English a shorter name, etc. For all other
+# languages, the dict is fleshed out with QLocale.nativeLanguageName().
+LANGUAGE_NAMES = {
+    "en": "English",
+    "es": "Español",
+    "pt": "Português PT",
+    "pt_BR": "Português BR",
+}
+
 
 def _boxWidget(layoutType, *controls):
     w = QWidget()
@@ -48,6 +58,17 @@ def makeshiftSpacer(height=1):
     spacer.setEnabled(False)
     spacer.setFixedSize(1, height)
     return spacer
+
+
+def localeCodeToLanguageName(code: str):
+    try:
+        name = LANGUAGE_NAMES[code]
+    except KeyError:
+        # Cache native language name
+        name = QLocale(code).nativeLanguageName()
+        LANGUAGE_NAMES[code] = name
+
+    return name
 
 
 class PrefsDialog(QDialog):
@@ -411,7 +432,7 @@ class PrefsDialog(QDialog):
         assert "en" not in localeCodes, "English shouldn't have an .mo file"
         localeCodes.append("en")
 
-        localeNames = {code: QLocale(code).nativeLanguageName() for code in localeCodes}
+        localeNames = {code: localeCodeToLanguageName(code) for code in localeCodes}
         localeCodes.sort(key=lambda code: "0" if code == "en" else localeNames[code].casefold())
 
         for code in localeCodes:
@@ -422,6 +443,10 @@ class PrefsDialog(QDialog):
 
         control.setCurrentIndex(control.findData(prefValue))
         control.activated.connect(lambda index: self.assign(prefKey, control.currentData(Qt.ItemDataRole.UserRole)))
+
+        control.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
+        control.setMaxVisibleItems(20)
+
         return control
 
     def fontControl(self, prefKey: str):
