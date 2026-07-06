@@ -67,7 +67,7 @@ class ToolPresets:
         "macOS Terminal": "assets:mac/terminal.scpt $COMMAND",
         "kitty"         : "kitty --single-instance $COMMAND",  # single instance looks better in dock
         "WezTerm"       : "wezterm start $COMMAND",  # 'start' instead of '-e' to reuse app instance
-        "Ghostty"       : "ghostty +new-window -e $COMMAND",
+        "Ghostty"       : "open -na ghostty.app --args -e $COMMAND",
     }
 
     _windowsTerminals = {
