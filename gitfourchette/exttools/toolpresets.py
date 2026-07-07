@@ -67,6 +67,7 @@ class ToolPresets:
         "macOS Terminal": "assets:mac/terminal.scpt $COMMAND",
         "kitty"         : "kitty --single-instance $COMMAND",  # single instance looks better in dock
         "WezTerm"       : "wezterm start $COMMAND",  # 'start' instead of '-e' to reuse app instance
+        "Ghostty"       : "open -na ghostty.app --args -e $COMMAND",
     }
 
     _windowsTerminals = {
@@ -84,6 +85,7 @@ class ToolPresets:
         "Alacritty"     : "alacritty -e $COMMAND",
         "Contour"       : "contour $COMMAND",
         "foot"          : "foot $COMMAND",
+        "Ghostty"       : "ghostty -e $COMMAND",
         "GNOME Terminal": "gnome-terminal -- $COMMAND",
         "kitty"         : "kitty $COMMAND",
         "Konsole"       : "konsole -e $COMMAND",
