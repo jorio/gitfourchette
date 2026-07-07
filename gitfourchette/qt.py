@@ -240,6 +240,10 @@ if not hasattr(QCheckBox, 'checkStateChanged'):
     # Note: this forwards an int, not a real CheckState, but the values are the same.
     QCheckBox.checkStateChanged = QCheckBox.stateChanged
 
+# Qt 6.6 introduces QPalette.accent
+if not hasattr(QPalette, 'accent'):
+    QPalette.accent = lambda *_args, **_kwargs: QBrush(QColor(0x1da0d3))  # type: ignore[method-assign]
+
 # Pythonic iterator for QTextFragments in a QTextBlock. Use this instead of QTextBlock.__iter__,
 # which in PySide6 is an inconvenient QTextBlock::iterator, and in PyQt6 isn't implemented at all.
 def _QTextBlock_fragments(block: QTextBlock) -> _collections_abc.Iterator[QTextFragment]:
