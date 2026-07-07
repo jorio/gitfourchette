@@ -71,7 +71,7 @@ def testDiffWhitespaceModes(tempDir, mainWindow, textA, textB, ignoredWith):
     effectivelyIgnored = []
 
     for strategy in WhitespaceMode:
-        mainWindow.onAcceptPrefsDialog({"whitespaceMode": strategy})
+        GFApplication.applyPrefs(whitespaceMode=strategy)
 
         if whitespaceOnlyChangesDetected(rw):
             effectivelyIgnored.append(strategy)

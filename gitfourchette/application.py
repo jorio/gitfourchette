@@ -11,7 +11,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Import as few internal modules as possible here to avoid premature initialization
 # from cascading imports before the QApplication has booted.
@@ -19,6 +19,7 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 
 if TYPE_CHECKING:
+    from gitfourchette.forms.prefsdialog import PrefsDialog
     from gitfourchette.mainwindow import MainWindow
     from gitfourchette.settings import Session
     from gitfourchette.mount.mountmanager import MountManager
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class GFApplication(QApplication):
     restyle = Signal()
-    prefsChanged = Signal(list)
+    prefsChanged = Signal()
     regainForeground = Signal()
     fileDraggedToDockIcon = Signal(str)
     mouseSideButtonPressed = Signal(bool)
@@ -219,7 +220,7 @@ class GFApplication(QApplication):
             settings.history.setDirty()
 
         # Set logging level from prefs
-        self.applyLoggingLevelPref()
+        self.dispatchSimplePrefsToStandaloneClasses()
 
         # Set language from prefs
         self.applyLanguagePref()
@@ -393,6 +394,82 @@ class GFApplication(QApplication):
 
     # -------------------------------------------------------------------------
 
+    @classmethod
+    def applyPrefs(cls, **kwargs):
+        cls.instance()._applyPrefs(kwargs)
+
+    def _applyPrefs(self, prefDiff: dict[str, Any], writeNow=False):
+        from gitfourchette.settings import prefs
+
+        # Reset "don't show again" dialogs
+        if prefDiff.get("resetDontShowAgain", False):
+            prefDiff["resetDontShowAgain"] = False
+            prefDiff["dontShowAgain"] = []
+
+        # Invalidate stale per-repo ref sorting settings
+        if "refSort" in prefDiff:
+            prefDiff["refSortClearTimestamp"] = QDateTime.currentSecsSinceEpoch()
+
+        # Commit changes from prefDiff to the actual prefs
+        dirty = False
+        realPrefDict = prefs.__dict__
+        for key, newValue in prefDiff.items():
+            try:
+                oldValue = realPrefDict[key]
+            except KeyError as ex:
+                raise KeyError(f"invalid pref key {key}") from ex
+
+            if oldValue == newValue:  # no-op
+                pass
+
+            oldType = type(oldValue)
+            newType = type(newValue)
+            if oldType != newType:
+                raise TypeError(f"{key} type mismatch: expected {oldType}, got {newType}")
+
+            realPrefDict[key] = newValue
+            dirty = True
+
+        # Early out if the prefs didn't change
+        if not dirty:
+            return
+
+        prefs.setDirty()
+        if writeNow:
+            prefs.write()
+
+        # ---------------------------------------------------------------------
+        # Heed new settings in GFApplication
+
+        assert self.mainWindow is not None
+
+        self.dispatchSimplePrefsToStandaloneClasses()
+
+        if "qtStyle" in prefDiff:
+            self.applyQtStylePref(forceApplyDefault=True)
+
+        if "language" in prefDiff:
+            self.applyLanguagePref()
+
+        if "ownSshAgent" in prefDiff:
+            self.applySshAgentPref()
+
+        # ---------------------------------------------------------------------
+        # Notify widgets
+
+        changedKeys = set(prefDiff.keys())
+        self.prefsChanged.emit()
+        self.mainWindow.onApplyPrefs(changedKeys)
+
+    def dispatchSimplePrefsToStandaloneClasses(self):
+        from gitfourchette import settings
+        from gitfourchette.gitdriver import GitDriver
+        from gitfourchette.toolbox.fittedtext import FittedText
+
+        logging.root.setLevel(settings.prefs.verbosity.value)
+        GitDriver.setGitPath(settings.prefs.gitPath)
+        FittedText.enable = settings.prefs.condensedFonts
+
     def applyLanguagePref(self):
         from gitfourchette import settings
         from gitfourchette.trtables import TrTables
@@ -414,11 +491,6 @@ class GFApplication(QApplication):
 
         if MACOS:
             self.setAttribute(Qt.ApplicationAttribute.AA_DontShowIconsInMenus, settings.qtIsNativeMacosStyle())
-
-    def applyLoggingLevelPref(self):
-        from gitfourchette import settings
-
-        logging.root.setLevel(settings.prefs.verbosity.value)
 
     def applySshAgentPref(self):
         from gitfourchette import settings
@@ -507,6 +579,9 @@ class GFApplication(QApplication):
                 assert not event.tip(), "assuming QStatusTipEvent is always empty"
             return True
 
+        elif eventType == QEvent.Type.Show and isinstance(watched, QDialog):
+            self.installDialogReturnShortcut(watched)
+
         return False
 
     # -------------------------------------------------------------------------
@@ -533,5 +608,66 @@ class GFApplication(QApplication):
     # -------------------------------------------------------------------------
     # Utilities
 
-    def openPrefsDialog(self, prefKey: str):
-        self.mainWindow.openPrefsDialog(prefKey)
+    def openPrefsDialog(self, focusOnPrefKey: str = "") -> PrefsDialog:
+        from gitfourchette.forms.prefsdialog import PrefsDialog
+
+        dlg = PrefsDialog(self.mainWindow, focusOnPrefKey)
+        dlg.accepted.connect(lambda: self._applyPrefs(dlg.prefDiff, writeNow=True))
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
+        dlg.show()
+        return dlg
+
+    @staticmethod
+    def installDialogReturnShortcut(dialog: QDialog):
+        """
+        In KDE, the Return key typically triggers a QDialog's default button
+        ("OK") regardless of the widget that has keyboard focus.
+
+        However, in other desktop environments like GNOME or Cinnamon, Return
+        triggers the QRadioButton or QCheckBox that has keyboard focus (in
+        addition to Space), preventing the QDialog from being accepted.
+
+        This function overrides DE-specific behavior and makes the Return key
+        accept the dialog consistently, like in KDE.
+
+        Call this *after* the dialog has been shown to avoid conflicts with any
+        shortcuts that the desktop environment may want to install.
+        """
+
+        assert dialog.isVisible(), "call QDialog.show() first"
+
+        # Skip dialogs we've already seen.
+        attr = "_guard_installDialogReturnShortcut"
+        if getattr(dialog, attr, False):
+            return
+        setattr(dialog, attr, True)
+
+        # Don't tamper with shortcuts in environments where the native behavior
+        # is adequate.
+        if (KDE or MACOS) and not OFFSCREEN:
+            return
+
+        buttonBox = dialog.findChild(QDialogButtonBox)
+        if not buttonBox:
+            return
+
+        okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
+        if not okButton:
+            return
+
+        # Don't conflict with any shortcuts that may have been installed
+        # by the desktop environment after QDialog.show().
+        # For example, KDE installs its own Ctrl+Return shortcut.
+        if okButton.findChild(QShortcut):
+            return
+
+        from gitfourchette.toolbox.qtutils import makeWidgetShortcut
+
+        # "Return" is the main key, "Enter" is the numpad key.
+        makeWidgetShortcut(
+            okButton, okButton.click,
+            "Ctrl+Return", "Ctrl+Enter",
+            "Return", "Enter",
+            context=Qt.ShortcutContext.WindowShortcut)
+
+        logger.debug(f"Installed return shortcut on {dialog}")

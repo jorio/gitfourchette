@@ -4,8 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from typing import Any
-
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
@@ -116,7 +114,7 @@ class DiffButtons(QWidget):
         button.setCheckable(True)
         button.setIcon(stockIcon(icon))
         button.setToolTip(TrTables.prefKey(prefKey))
-        button.toggled.connect(lambda checked: self.setPref(prefKey, checked))
+        button.toggled.connect(lambda checked: GFApplication.applyPrefs(**{prefKey: checked}))
         return button
 
     # -------------------------------------------------------------------------
@@ -148,22 +146,10 @@ class DiffButtons(QWidget):
     # -------------------------------------------------------------------------
     # Button callbacks
 
-    @classmethod
-    def setPref(cls, prefKey: str, newValue: Any):
-        if getattr(settings.prefs, prefKey) == newValue:
-            return
+    @staticmethod
+    def setWhitespaceMode(mode: WhitespaceMode):
+        GFApplication.applyPrefs(whitespaceMode=mode)
 
-        setattr(settings.prefs, prefKey, newValue)
-        settings.prefs.write()
-        GFApplication.instance().prefsChanged.emit([prefKey])
-
-        if prefKey in {"whitespaceMode", "contextLines", "renderSvg"}:
-            # Trigger a reload of the patch
-            # TODO: This is inelegant, but it does the job for now. Ideally prefsChanged would suffice?
-            GFApplication.instance().mainWindow.onAcceptPrefsDialog({prefKey: newValue})
-
-    def setWhitespaceMode(self, mode: WhitespaceMode):
-        self.setPref("whitespaceMode", mode)
-
-    def setContextLines(self, n: int):
-        self.setPref("contextLines", n)
+    @staticmethod
+    def setContextLines(n: int):
+        GFApplication.applyPrefs(contextLines=n)

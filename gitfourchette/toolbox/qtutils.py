@@ -375,47 +375,6 @@ def makeWidgetShortcut(
     return shortcut
 
 
-def installDialogReturnShortcut(dialog: QDialog):
-    """
-    In KDE, the Return key typically triggers the default button in a QDialog
-    regardless of the widget that has keyboard focus.
-
-    However, in other DEs like GNOME, the Return key triggers the QRadioButton
-    or QCheckBox that has keyboard focus (in addition to the Space key),
-    preventing the QDialog from being accepted. This function overrides this
-    behavior to make dialogs behave more like KDE in these environments.
-
-    Do not call this before the dialog has been shown to avoid conflicts
-    with any shortcuts that the desktop environment may want to install.
-    """
-
-    # Don't tamper with shortcuts in environments where the native behavior is
-    # adequate.
-    if KDE and not OFFSCREEN:
-        return
-
-    buttonBox = dialog.findChild(QDialogButtonBox)
-    if not buttonBox:
-        return
-
-    okButton = buttonBox.button(QDialogButtonBox.StandardButton.Ok)
-    if not okButton:
-        return
-
-    # Don't conflict with any shortcuts that may have been installed
-    # by the desktop environment after QDialog.show().
-    # For example, KDE installs its own Ctrl+Return shortcut.
-    if okButton.findChild(QShortcut):
-        return
-
-    # "Return" is the main key, "Enter" is the numpad key.
-    makeWidgetShortcut(
-        okButton, okButton.click,
-        "Ctrl+Return", "Ctrl+Enter",
-        "Return", "Enter",
-        context=Qt.ShortcutContext.WindowShortcut)
-
-
 def lerp(v1, v2, c=.5, cmin=0.0, cmax=1.0):
     p = (c-cmin) / (cmax-cmin)
     p = max(p, 0)

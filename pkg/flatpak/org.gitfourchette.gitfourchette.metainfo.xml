@@ -66,6 +66,39 @@
   </keywords>
 
   <releases>
+    <release version="1.9.0" date="2026-07-01" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.9.0</url>
+      <description>
+        <p>New features:</p>
+        <ul>
+        <li>Show/hide whitespace symbols (#108)</li>
+        <li>Options to ignore whitespace in diffs (#108)</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>Tool buttons above DiffView give quick access to: word wrap, whitespace, context lines, SVG preview (#108)</li>
+        <li>NewTagDialog offers replacing existing local tags (#102)</li>
+        <li>Tabs: Disambiguate tab labels when several repos share the same basename (#113)</li>
+        <li>The "repo nickname" feature is now easier to access (right-click on a tab → Rename)</li>
+        <li>Blame: Reevaluate search term when switching to another revision</li>
+        <li>Allow resizing Commit Info dialog when showing a long commit message (#109)</li>
+        <li>Allow Keypad Enter to accept dialogs in non-KDE environments, in addition to the main Return key which was supported since 1.5.0. (Note: KDE already supports this by default.) (#110)</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix benign error message on startup if you ticked a "Don't Show Again" checkbox in a previous session (#112)</li>
+        <li>Blame: Fix crash when blaming workdir file during merge in progress</li>
+        <li>Handle edge cases in "Added by both"/"Deleted by both" conflicts involving symlinks (#115)</li>
+        <li>Fix minor UX papercuts with very long repository tab names</li>
+        <li>NewRepo: Fix button label in non-empty directory warning</li>
+        <li>NewRepo: Restore "Create" button in nested repository warning</li>
+        </ul>
+        <p>Maintenance:</p>
+        <ul>
+        <li>Continued from work started in v1.5.0, more operations were rewritten to be implemented with "standard" Git instead of libgit2 for improved compatibility (New Tag, Delete Tag, Resolve by Keeping Ours/Taking Theirs).</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.8.0" date="2026-05-21" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.8.0</url>
       <description>

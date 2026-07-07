@@ -6,12 +6,10 @@
 
 import logging
 import os
-import time
 from contextlib import suppress
 
 from gitfourchette import settings
 from gitfourchette import tasks
-from gitfourchette.application import GFApplication
 from gitfourchette.diffarea import DiffArea
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
@@ -92,7 +90,7 @@ class RepoWidget(QWidget):
         self.taskRunner.processStarted.connect(self.processDialog.connectProcess)
 
         self.repoModel = repoModel
-        self.lastAutoFetchTime = time.time()
+        self.lastAutoFetchTime = QDateTime.currentSecsSinceEpoch()
 
         self.busyCursorDelayer = QTimer(self)
         self.busyCursorDelayer.setSingleShot(True)
@@ -163,8 +161,6 @@ class RepoWidget(QWidget):
 
         # ----------------------------------
         # Connect signals
-
-        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
 
         # save splitter state in splitterMoved signal
         for splitter in self.splittersToSave:
@@ -702,26 +698,12 @@ class RepoWidget(QWidget):
         message = _("Repository folder went missing:") + "\n" + escamp(self.workdir)
         self.replaceWithStub(message=message)
 
-    def refreshPrefs(self, prefDiff: list[str]):
-        self.diffView.refreshPrefs()
-        self.specialDiffView.refreshPrefs()
-        self.graphView.refreshPrefs()
-        if ToolProcess.PrefKeyMergeTool in prefDiff:
-            self.conflictView.refreshPrefs()
-        self.sidebar.refreshPrefs()
-        self.dirtyFiles.refreshPrefs()
-        self.stagedFiles.refreshPrefs()
-        self.committedFiles.refreshPrefs()
-
-        # Reflect any change in titlebar prefs
-        self.refreshWindowTitle()
-
     def onAutoFetchTimerTimeout(self):
         if not settings.prefs.autoFetch or not self.isVisible() or self.taskRunner.isBusy():
             return
 
         # Check if it's time to auto-fetch.
-        now = time.time()
+        now = QDateTime.currentSecsSinceEpoch()
         interval = max(1, settings.prefs.autoFetchMinutes) * 60
         if now - self.lastAutoFetchTime > interval:
             AutoFetchRemotes.invoke(self)

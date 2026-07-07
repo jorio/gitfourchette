@@ -15,24 +15,26 @@ from gitfourchette.porcelain import *
 
 @pytest.mark.parametrize("viaContextMenu", [False, True])
 def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
-    wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
+    scenario = """
         # Prepare "their" modification (modify a1.txt and a2.txt)
-        writeFile(f"{wd}/a/a1.txt", "they modified")
-        writeFile(f"{wd}/a/a2.txt", "they modified")
-        repo.index.add_all(["a/a1.txt", "a/a2.txt"])
-        oid = repo.create_commit_on_head("they modified 2 files", TEST_SIGNATURE, TEST_SIGNATURE)
+        git checkout -b THEIR-BRANCH
+        echo 'they modified 1' > a/a1.txt
+        echo 'they modified 2' > a/a2.txt
+        git commit -a -m 'they modified 2 files'
 
-        # Switch to no-parent (it has no a1.txt and a2.txt) and merge "their" modification
-        assert not repo.any_conflicts
-        repo.checkout_local_branch("no-parent")
-        repo.cherrypick(oid)
-        assert repo.any_conflicts
-        assert "a/a1.txt" in repo.index.conflicts
-        assert "a/a2.txt" in repo.index.conflicts
+        # no-parent has no a1.txt, a2.txt; create a conflict on those
+        git checkout no-parent
+        git cherry-pick THEIR-BRANCH || true
+    """
+
+    wd = unpackRepo(tempDir)
+    runShellScript(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+
+    assert rw.repo.any_conflicts
+    assert "a/a1.txt" in rw.repo.index.conflicts
+    assert "a/a2.txt" in rw.repo.index.conflicts
 
     # -------------------------
     # Keep our deletion of a1.txt
@@ -49,6 +51,8 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
         rw.conflictView.ui.oursButton.click()
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+ours")
+
+    assert not Path(wd, "a/a1.txt").exists()
 
     # -------------------------
     # Take their a2.txt
@@ -68,31 +72,33 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_NEW}
+    assert readTextFile(f"{wd}/a/a2.txt").strip() == "they modified 2"
 
 
 @pytest.mark.parametrize("viaContextMenu", [False, True])
 def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
+    scenario = """
+        git checkout -b THEIR-BRANCH
+        git rm a/a1.txt a/a2.txt
+        git commit -m 'they deleted 2 files'
+
+        git checkout no-parent
+        mkdir -p a
+        echo 'we modified' > a/a1.txt
+        echo 'we modified' > a/a2.txt
+        git add a/a1.txt a/a2.txt
+        git commit -m 'we touched 2 files'
+        git cherry-pick THEIR-BRANCH || true
+    """
+
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        # Prepare "their" modification (delete a1.txt and a2.txt)
-        repo.index.remove_all(["a/a1.txt", "a/a2.txt"])
-        oid = repo.create_commit_on_head("they deleted 2 files", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        repo.checkout_local_branch("no-parent")
-
-        writeFile(f"{wd}/a/a1.txt", "we modified")
-        writeFile(f"{wd}/a/a2.txt", "we modified")
-        repo.index.add_all(["a/a1.txt", "a/a2.txt"])
-        repo.create_commit_on_head("we touched 2 files", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        assert not repo.any_conflicts
-        repo.cherrypick(oid)
-        assert repo.any_conflicts
-        assert "a/a1.txt" in repo.index.conflicts
-        assert "a/a2.txt" in repo.index.conflicts
+    runShellScript(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+
+    assert rw.repo.any_conflicts
+    assert "a/a1.txt" in rw.repo.index.conflicts
+    assert "a/a2.txt" in rw.repo.index.conflicts
 
     # -------------------------
     # Keep our a1.txt
@@ -129,22 +135,112 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_DELETED}
 
 
-def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
+@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
+@pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "context"])
+def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContextMenu):
+    scenario = """
+        git branch OUR-BRANCH
+        git checkout -b THEIR-BRANCH
+        ln -s a added_by_both
+        git add added_by_both
+        git commit -m 'Their Commit'
+
+        git checkout OUR-BRANCH
+        ln -s b added_by_both
+        git add added_by_both
+        git commit -m 'Our Commit'
+
+        git merge THEIR-BRANCH || true
+    """
+
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        # Prepare "their" modification (modify a1.txt)
-        writeFile(f"{wd}/a/a1.txt", "they modified")
-        repo.index.add_all(["a/a1.txt"])
-        oid = repo.create_commit_on_head("they modified a1.txt", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        # Switch to no-parent (it has no a1.txt) and merge "their" modification to cause a conflict on a1.txt
-        assert not repo.any_conflicts
-        repo.checkout_local_branch("no-parent")
-        repo.cherrypick(oid)
-        assert "a/a1.txt" in repo.index.conflicts
+    runShellScript(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+
+    symlinkPath = Path(wd, "added_by_both")
+    assert symlinkPath.is_symlink()
+    assert symlinkPath.resolve().samefile(Path(wd, "b"))
+    assert "added_by_both" in rw.repo.index.conflicts
+
+    if keepOurs:
+        solveButton = rw.conflictView.ui.oursButton
+    else:
+        solveButton = rw.conflictView.ui.theirsButton
+    assert solveButton.isVisible()
+
+    if viaContextMenu:
+        label = "resolve by.+" + ("ours" if keepOurs else "theirs")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), label)
+    else:
+        solveButton.click()
+
+    assert symlinkPath.is_symlink()
+    assert symlinkPath.resolve().samefile(Path(wd, "b" if keepOurs else "a"))
+    assert rw.repo.index.conflicts is None
+
+
+@pytest.mark.parametrize("viaContextMenuLabel", ["", "resolve by.+ours", "resolve by.+theirs"])
+def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLabel):
+    scenario = """
+        mkdir -p xxx
+        echo 'hello world' > xxx/zzz
+        git add xxx/zzz
+        git commit -m 'Fork Point'
+
+        git branch OUR-BRANCH
+        git checkout -b THEIR-BRANCH
+        git mv xxx/zzz whateverA
+        git commit -m 'Their Commit'
+
+        git checkout OUR-BRANCH
+        git mv xxx/zzz whateverB
+        rmdir xxx
+        ln -s master.txt xxx  # 'xxx' isn't a directory anymore
+        git commit -m 'Our Commit'
+
+        git merge THEIR-BRANCH || true
+    """
+
+    wd = unpackRepo(tempDir)
+    runShellScript(scenario, directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("xxx/zzz"), check=True)
+
+    assert "xxx/zzz" in rw.repo.index.conflicts
+
+    solveButton = rw.conflictView.ui.confirmDeletionButton
+    assert solveButton.isVisible()
+
+    if not viaContextMenuLabel:
+        solveButton.click()
+    else:
+        # The context menu presents two options (accept theirs, keep ours)
+        # because it doesn't have a special case for Deleted By Both.
+        # Both options should yield the same outcome for Deleted By Both.
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), viaContextMenuLabel)
+
+    assert not Path(wd, "xxx/zzz").exists()
+    assert "xxx/zzz" not in rw.repo.index.conflicts
+
+
+def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
+    scenario = """
+        git checkout -b THEIR-BRANCH
+        echo 'they modified' > a/a1.txt
+        git commit -a -m 'they modified'
+
+        # no-parent has no a1.txt; create a conflict on a1.txt
+        git checkout no-parent
+        git cherry-pick THEIR-BRANCH || true
+    """
+
+    wd = unpackRepo(tempDir)
+    runShellScript(scenario, directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+    assert "a/a1.txt" in rw.repo.index.conflicts
 
     # Modify some other file with both staged and unstaged changes
     writeFile(f"{wd}/b/b1.txt", "b1\nb1\nstaged change\n")
@@ -171,11 +267,7 @@ def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")))
 
     # Cause a conflict outside the app
-    with RepoContext(wd) as repo:
-        oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
-        assert not repo.any_conflicts
-        repo.cherrypick(oid)
-        assert "c/c2.txt" in repo.index.conflicts
+    runShellScript("git cherry-pick ce112d052 || true", directory=wd)
 
     rw.refreshRepo()
     assert rw.mergeBanner.isVisible()
@@ -220,7 +312,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Try merging with a tool that doesn't touch the output file
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     assert "editor-shim" in cv.ui.mergeButton.text()
     assert cv.ui.mergeButton.isVisible()
@@ -240,7 +332,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Try merging with a missing command
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{noopMergeToolPath}-BOGUS" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{noopMergeToolPath}-BOGUS" "{scratchPath}" $M $L $R $B')
     assert findTextInWidget(cv.ui.mergeButton, "BOGUS")  # warning: may be elided
     cv.ui.mergeButton.click()
 
@@ -255,7 +347,7 @@ def testMergeTool(tempDir, mainWindow):
     writeFile(scratchPath, "oops, file locked!")
     os.chmod(scratchPath, 0o400)
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo')
 
     assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
     assert not findTextInWidget(cv.ui.mergeToolStatus, "exit code")
@@ -271,7 +363,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Now try merging with a good tool
 
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar')
     assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
     cv.ui.mergeButton.click()
 
@@ -326,7 +418,7 @@ def testMergeTool(tempDir, mainWindow):
 def testFake3WayMerge(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     with RepoContext(wd) as repo:
@@ -366,7 +458,7 @@ def testFake3WayMerge(tempDir, mainWindow):
 def testMergeToolInBackground(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     writeFile(f"{wd}/SomeOtherFile.txt", "hello")
@@ -414,7 +506,7 @@ def testMergeToolInBackground(tempDir, mainWindow):
 def testDiscardMergeResolution(tempDir, mainWindow):
     mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalMerge": f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B'})
+    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
 

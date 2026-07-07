@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-11-24 15:51+0000\n"
-"Last-Translator: Dani Rodríguez <dani@danirod.es>\n"
+"PO-Revision-Date: 2026-04-17 13:09+0000\n"
+"Last-Translator: LordTenebrous <danielmorenoperez836@gmail.com>\n"
 "Language-Team: Spanish <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/es/>\n"
 "Language: es\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15-dev\n"
+"X-Generator: Weblate 5.17.1-dev\n"
 
 #: application.py:84 forms/aboutdialog.py:52
 msgid "The comfortable Git UI for Linux."
@@ -2709,20 +2709,22 @@ msgstr "No hay nada en esta ruta."
 #: mainwindow.py:507 tasks/loadtasks.py:68
 #, python-brace-format
 msgid "Sorry, {app} doesn’t support bare repositories."
-msgstr ""
+msgstr "Lo siento, {app} no admite repositorios denudos (\"bare repository\")."
 
 #: mainwindow.py:638
 msgid "Open trash folder"
-msgstr ""
+msgstr "Abrir la carpeta de la papelera"
 
 #: mainwindow.py:639
 #, python-brace-format
 msgid "There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet."
 msgstr ""
+"No hay carpeta de papelera. Tal vez no has descartado un cambio con {0} "
+"todavía."
 
 #: mainwindow.py:648 mainwindow.py:663
 msgid "Clear trash folder"
-msgstr ""
+msgstr "Vaciar la carpeta de la papelera"
 
 #: mainwindow.py:649
 msgid "There are no discarded changes to delete."
@@ -2732,8 +2734,8 @@ msgstr "No hay cambios descartados que eliminar."
 #, python-brace-format
 msgid "Do you want to permanently delete <b>{n}</b> discarded patch?"
 msgid_plural "Do you want to permanently delete <b>{n}</b> discarded patches?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "¿Quieres eliminar permanentemente <b>{n}</b> parche descartado?"
+msgstr[1] "¿Quieres eliminar permanentemente <b>{n}</b> parches descartados?"
 
 #: mainwindow.py:657
 #, python-brace-format
@@ -2781,7 +2783,7 @@ msgstr "Aquí ya existe un repositorio:"
 
 #: mainwindow.py:719
 msgid "Repository already exists"
-msgstr ""
+msgstr "El repositorio ya existe"
 
 #: mainwindow.py:721
 msgid "&Open existing repo"
@@ -2823,15 +2825,19 @@ msgstr[1] ""
 msgid "The session couldn’t be restored fully because a repository failed to load:"
 msgid_plural "The session couldn’t be restored fully because {n} repositories failed to load:"
 msgstr[0] ""
+"La sesión no pudo ser restaurada completamente porque un repositorio falló "
+"al cargar:"
 msgstr[1] ""
+"La sesión no pudo ser restaurada completamente porque {n} repositorios "
+"fallaron al cargar:"
 
 #: mainwindow.py:934
 msgid "Restore session"
-msgstr ""
+msgstr "Restaurar sesión"
 
 #: mainwindow.py:1092 mainwindow.py:1096
 msgid "Apply Settings"
-msgstr ""
+msgstr "Aplicar Ajustes"
 
 #: mainwindow.py:1093
 #, python-brace-format
@@ -2848,7 +2854,7 @@ msgstr "&Recargar"
 
 #: mainwindow.py:1104
 msgid "&Not Now"
-msgstr ""
+msgstr "&Ahora No"
 
 #: mergedriver.py:123
 #, python-brace-format
@@ -3005,7 +3011,7 @@ msgstr ""
 #: remotelink.py:356
 #, python-brace-format
 msgid "{0}: {1} → {2}."
-msgstr ""
+msgstr "{0}: {1} → {2}."
 
 #: remotelink.py:359
 msgid "No new commits."
@@ -3013,7 +3019,7 @@ msgstr ""
 
 #: repowidget.py:555
 msgid "Try to reload"
-msgstr ""
+msgstr "Intente recargar"
 
 #: repowidget.py:566
 msgid "Only text diffs may be opened in a separate window."
@@ -3034,7 +3040,7 @@ msgstr "El archivo {0} no existe."
 
 #: repowidget.py:632
 msgid "Do you want to create it?"
-msgstr ""
+msgstr "¿Quieres crearlo?"
 
 #: repowidget.py:633
 #, python-brace-format
@@ -3131,7 +3137,7 @@ msgstr ""
 
 #: repowidget.py:996
 msgid "&Local Config Files"
-msgstr ""
+msgstr "&Archivos de Configuración Local"
 
 #: repowidget.py:1014
 #, python-brace-format
@@ -3294,11 +3300,11 @@ msgstr ""
 
 #: sidebar/sidebar.py:321
 msgid "Collapse All Folders"
-msgstr ""
+msgstr "Colapsar todas las carpetas"
 
 #: sidebar/sidebar.py:325
 msgid "Expand All Folders"
-msgstr ""
+msgstr "Expandir todas las carpetas"
 
 #: sidebar/sidebar.py:342
 msgid "&Edit Remote…"
@@ -3843,7 +3849,7 @@ msgstr ""
 
 #: tasks/committasks.py:409 tasks/committasks.py:455
 msgid "Review changes"
-msgstr ""
+msgstr "Revisar cambios"
 
 #: tasks/committasks.py:438
 #, python-brace-format
@@ -4093,12 +4099,12 @@ msgstr ""
 #: tasks/indextasks.py:505
 msgctxt "preposition slotted into '...BEFORE this commit'"
 msgid "before"
-msgstr ""
+msgstr "antes"
 
 #: tasks/indextasks.py:509
 msgctxt "preposition slotted into '...AT this commit'"
 msgid "at"
-msgstr ""
+msgstr "en"
 
 #: tasks/indextasks.py:517
 #, python-brace-format
@@ -4129,7 +4135,7 @@ msgstr "Este archivo será {processed} en tu directorio de trabajo."
 
 #: tasks/indextasks.py:532
 msgid "Restore"
-msgstr ""
+msgstr "Restaurar"
 
 #: tasks/indextasks.py:545
 #, python-brace-format
@@ -4323,7 +4329,7 @@ msgstr ""
 #: tasks/loadtasks.py:137
 #, python-brace-format
 msgid "{0} commits total."
-msgstr ""
+msgstr "{0} commits en total."
 
 #: tasks/loadtasks.py:285
 msgid "Try to reload the file."
@@ -4463,12 +4469,12 @@ msgstr ""
 #: tasks/nettasks.py:221
 #, python-brace-format
 msgid "No new commits on {0}."
-msgstr ""
+msgstr "No hay nuevos commits en {0}."
 
 #: tasks/nettasks.py:232
 #, python-brace-format
 msgid "{0} has disappeared from the remote server."
-msgstr ""
+msgstr "{0} ha desaparecido del servidor remoto."
 
 #: tasks/nettasks.py:240
 #, python-brace-format
@@ -4488,7 +4494,7 @@ msgstr ""
 
 #: tasks/nettasks.py:316 tasks/repotask.py:557
 msgid "Please switch to a local branch before performing this action."
-msgstr ""
+msgstr "Por favor, cambie a una rama local antes de realizar esta acción."
 
 #: tasks/nettasks.py:377
 msgid "Push complete."
@@ -4554,7 +4560,7 @@ msgstr ""
 #: tasks/repotask.py:294 tasks/repotask.py:304 toolbox/messageboxes.py:301
 #, python-brace-format
 msgid "Operation failed: {0}."
-msgstr ""
+msgstr "La operación falló: {0}."
 
 #: tasks/repotask.py:505
 msgid "Don’t ask me to confirm this again"

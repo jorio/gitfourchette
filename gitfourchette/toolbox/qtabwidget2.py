@@ -24,23 +24,45 @@ class QTabBar2(QTabBar):
 
     middleClickedIndex: int
     doubleClickedIndex: int
+    shadowText: list[str]
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.middleClickedIndex = -1
         self.doubleClickedIndex = -1
         self.setObjectName("QTabBar2")
+        self.shadowText = []
+
+        self.tabMoved.connect(self._onTabMoved)
+
+    # -------------------------------------------------------------------------
+    # Layout
 
     def tabSizeHint(self, index: int) -> QSize:
         # Keep individual tabs from getting too wide when several tabs compete
         # for real estate. Qt may ignore this hint when the tab bar is wide
         # enough to fit all tabs.
+
+        try:
+            # Avoid tabText() here - it may return pre-elided text!
+            text = self.shadowText[index]
+        except IndexError:
+            # May occur until tabInserted is called
+           text = self.tabText(index)
+
         hint = super().tabSizeHint(index)
-        hint.setWidth(min(self.width()//3, hint.width()))
+
+        w = 32 + self.fontMetrics().horizontalAdvance(text)
+        w = min(w, 250)
+
+        hint.setWidth(w)
         return hint
 
     def tabLayoutChange(self):
         self.layoutChanged.emit()
+
+    # -------------------------------------------------------------------------
+    # Mouse
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.MiddleButton:
@@ -96,6 +118,9 @@ class QTabBar2(QTabBar):
         if runStandardHandler:
             super().mouseReleaseEvent(event)
 
+    # -------------------------------------------------------------------------
+    # Misc. events
+
     def focusInEvent(self, event: QFocusEvent):
         """Suggest scrolling to current tab when we receive keyboard focus"""
         super().focusInEvent(event)
@@ -105,6 +130,30 @@ class QTabBar2(QTabBar):
         """Forward setVisible to parent scroll area (when we get hidden due to only 1 tab remaining)"""
         super().setVisible(visible)
         self.visibilityChanged.emit(visible)
+
+    # -------------------------------------------------------------------------
+    # Shadow text bookkeeping - Needed because calling tabText() inside
+    # tabSizeHint() returns elided text!
+
+    def _onTabMoved(self, i: int, j: int):
+        del self.shadowText[i]
+        self.shadowText.insert(j, self.tabText(j))
+
+    def tabInserted(self, index):
+        self.shadowText.insert(index, self.tabText(index))
+        super().tabInserted(index)
+
+    def tabRemoved(self, index):
+        del self.shadowText[index]
+        super().tabRemoved(index)
+
+    def setTabText(self, index: int, text: str):
+        currentText = self.shadowText[index]
+
+        # Overriding tab text can be expensive, so avoid if there's no change
+        if currentText != text:
+            self.shadowText[index] = text
+            super().setTabText(index, text)
 
 
 class QTabWidget2OverflowGradient(QWidget):
@@ -180,7 +229,7 @@ class QTabWidget2(QWidget):
         self.tabs.setMovable(True)
         self.tabs.setDocumentMode(True)  # dramatically improves the tabs' appearance on macOS
         self.tabs.setUsesScrollButtons(False)  # can't have those with scroll area
-        self.tabs.setElideMode(Qt.TextElideMode.ElideMiddle)
+        self.tabs.setElideMode(Qt.TextElideMode.ElideRight)
 
         self.overflowButton = QToolButton(self)
         self.overflowButton.setArrowType(Qt.ArrowType.DownArrow)
@@ -363,7 +412,14 @@ class QTabWidget2(QWidget):
     def scrollTabs(self, delta: QPoint):
         x = delta.x()
         y = delta.y()
-        deltaValue = x if abs(x) > abs(y) else y
+        xBias = abs(x) - abs(y)
+
+        # Reduce jitter when it's unclear which axis the user intends to scroll on
+        # (for trackpads)
+        if abs(xBias) < 1:
+            return
+
+        deltaValue = x if xBias > 0 else y
         scrollBar = self.tabScrollArea.horizontalScrollBar()
         scrollBar.setValue(scrollBar.value() - deltaValue)
 

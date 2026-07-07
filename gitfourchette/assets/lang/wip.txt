@@ -1,6 +1,11 @@
 cs 4
 es 37
 fr 100
-it 43
+it 55
+pt 1
+pt_BR 1
 ru 3
-zh_Hans 78
+tr 1
+uk 9
+zh_Hans 76
+zh_Hant 1

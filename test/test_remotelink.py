@@ -36,7 +36,7 @@ class AskpassShim:
         self.dumpFile.touch(exist_ok=True)
         self.environBackup = dict(os.environ)
 
-        app.mainWindow.onAcceptPrefsDialog({"ownAskpass": False})
+        app.applyPrefs(ownAskpass=False)
 
         os.environ.update({
             "SSH_ASKPASS": getTestDataPath("askpass-shim.py"),
@@ -172,7 +172,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
 @requiresNetwork
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
 def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, passphraseProtectedKey):
-    mainWindow.onAcceptPrefsDialog({"ownSshAgent": True})
+    GFApplication.applyPrefs(ownSshAgent=True)
 
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)

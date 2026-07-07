@@ -396,7 +396,7 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
 
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalEditor": f'"{editorPath}" "{scratchPath}"'})
+    GFApplication.applyPrefs(externalEditor=f'"{editorPath}" "{scratchPath}"')
 
     def getRevisionPath():
         waitForFile(scratchPath)
@@ -433,7 +433,7 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in editor-shim")
     waitForFile(scratchPath)
     scratchText = readFile(scratchPath, unlink=True).decode("utf-8")
@@ -466,7 +466,7 @@ def testOpenFileInQDesktopServices(tempDir, mainWindow, locator):
 
 @requiresFlatpak
 def testEditFileInMissingFlatpak(tempDir, mainWindow):
-    mainWindow.onAcceptPrefsDialog({"externalDiff": "flatpak run org.gitfourchette.BogusEditorName $L $R"})
+    GFApplication.applyPrefs(externalDiff="flatpak run org.gitfourchette.BogusEditorName $L $R")
 
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -672,7 +672,7 @@ def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external diff tool scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({
+    GFApplication.applyPrefs(**{
         f"{click}ClickFileList": action,
         "externalDiff": f"'{editorPath}' '{scratchPath}' $L $R",
     })
@@ -788,7 +788,7 @@ def testIgnorePatternValidation(tempDir, mainWindow, userPattern, isValid):
 def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
 
     wd = unpackRepo(tempDir)
 

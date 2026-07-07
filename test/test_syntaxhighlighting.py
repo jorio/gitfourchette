@@ -69,7 +69,7 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
 
 @requiresPygments
 def testLexJobCaching(tempDir, mainWindow):
-    mainWindow.onAcceptPrefsDialog({"largeFileThresholdKB": 0})
+    GFApplication.applyPrefs(largeFileThresholdKB=0)
 
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/aaaa.empty", "")  # first file is empty to avoid starting a LexJob off the bat
@@ -115,7 +115,7 @@ def testLexJobCaching(tempDir, mainWindow):
 @requiresPygments
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
 def testEvictLexJobFromCache(tempDir, mainWindow):
-    mainWindow.onAcceptPrefsDialog({ 'largeFileThresholdKB': 1e6 })
+    GFApplication.applyPrefs(largeFileThresholdKB=1_000_000)
     assert not LexJobCache.cache
     assert LexJobCache.totalFileSize == 0
 
@@ -209,7 +209,7 @@ def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
 def testWhitespaceHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    mainWindow.onAcceptPrefsDialog({"showWhitespace": True})
+    GFApplication.applyPrefs(showWhitespace=True)
 
     for space in [" ", "\t", "\xA0"]:
         writeFile(f"{wd}/hello.txt", f"hello{space}space\n")

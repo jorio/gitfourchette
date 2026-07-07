@@ -7,6 +7,7 @@
 import enum
 import os
 from os import PathLike
+from pathlib import Path
 
 HOME = os.path.abspath(os.path.expanduser('~'))
 
@@ -24,6 +25,30 @@ def compactPath(path: str | PathLike) -> str:
     if path.startswith(HOME):
         path = "~" + path[len(HOME):]
     return path
+
+
+def disambiguateTabTitlesByPath(workdirs: list[str]) -> list[str]:
+    """Return unique tab titles for repos that share the same base name."""
+    partsList = [Path(compactPath(workdir)).parts for workdir in workdirs]
+
+    maxDepth = max(len(parts) for parts in partsList)
+    uniqueDepth = maxDepth
+    for depth in range(1, maxDepth + 1):
+        tails = [parts[-depth:] for parts in partsList]
+        if len(set(tails)) == len(tails):
+            uniqueDepth = depth
+            break
+
+    labels = []
+    for parts in partsList:
+        tail = parts[-uniqueDepth:]
+        if len(tail) == 1:
+            labels.append(tail[0])
+        elif len(tail) == 2:
+            labels.append(str(Path(*tail)))
+        else:
+            labels.append(str(Path(tail[0], "…", tail[-1])))
+    return labels
 
 
 def abbreviatePath(

@@ -60,7 +60,7 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
     QTest.qWait(1)
     assert not mainWindow.tabs.overflowButton.isVisible()
 
-    mainWindow.onAcceptPrefsDialog({"autoHideTabs": True})
+    GFApplication.applyPrefs(autoHideTabs=True)
     QTest.qWait(1)
     assert not mainWindow.tabs.overflowButton.isVisible()
 
@@ -68,12 +68,12 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
 @pytest.mark.parametrize("click", ["middle", "double"])
 @pytest.mark.parametrize("action", TabBarClick)
 def testTabSpecialClick(tempDir, mainWindow, click, action):
-    mainWindow.onAcceptPrefsDialog({f"{click}ClickTabBar": action})
+    GFApplication.applyPrefs(**{f"{click}ClickTabBar": action})
 
     if action == "terminal":
         editorPath = getTestDataPath("editor-shim.py")
         scratchPath = f"{tempDir.name}/scratch file.txt"
-        mainWindow.onAcceptPrefsDialog({"terminal": f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND'})
+        GFApplication.applyPrefs(terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND')
 
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")

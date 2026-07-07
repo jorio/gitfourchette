@@ -20,6 +20,7 @@ from gitfourchette import settings
 
 WEBSITE_URL = "https://gitfourchette.org"
 DONATE_URL = "https://ko-fi.com/jorio"
+TRANSLATE_URL = "https://gitfourchette.org/localization"
 
 
 def getPygit2FeatureStrings():
@@ -130,7 +131,10 @@ class AboutDialog(QDialog):
         ackText = [
             _("Additional contributions by:") + contributorCredits,
 
-            _("Brought to your native language by:") + translatorCredits,
+            linkify(_("Translations welcome!"), TRANSLATE_URL)
+            + " "
+            + _("Brought to your native language by:")
+            + translatorCredits,
 
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
         ]

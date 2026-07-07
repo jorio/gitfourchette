@@ -4,7 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import time
 import warnings
 from collections.abc import Callable, Iterable
 from contextlib import suppress
@@ -138,7 +137,7 @@ class Sidebar(QTreeView):
             if currentMode == newMode:
                 return
             setattr(repoPrefs, prefKey, newMode)
-            repoPrefs.refSortClearTimestamp = int(time.time())
+            repoPrefs.refSortClearTimestamp = QDateTime.currentSecsSinceEpoch()
             repoPrefs.setDirty()
             self.backUpSelection()
             self.refresh(repoModel)

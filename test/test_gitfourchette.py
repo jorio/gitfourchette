@@ -4,12 +4,16 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import os
 import os.path
+import shutil
 from contextlib import suppress
 
 import pytest
 from pytestqt.qtbot import QtBot
 
+from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.repowidget import RepoWidget
 from .util import *
 
 from gitfourchette import settings
@@ -31,8 +35,7 @@ from gitfourchette.sidebar.sidebarmodel import SidebarItem
 def bringUpRepoSettings(rw):
     node = rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader)
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "repo.+settings")
-    dlg: RepoSettingsDialog = findQDialog(rw, "repo.+settings")
-    return dlg
+    return findQDialog(rw, "repo.+settings", t=RepoSettingsDialog)
 
 
 def testEmptyRepo(tempDir, mainWindow):
@@ -197,7 +200,7 @@ def testNewNestedRepo(tempDir, mainWindow):
 def testTruncatedHistory(tempDir, mainWindow, method, action):
     bottomCommit = Oid(hex="42e4e7c5e507e113ebbb7801b16b52cf867b7ce1")
 
-    mainWindow.onAcceptPrefsDialog({"maxCommits": 5})
+    GFApplication.applyPrefs(maxCommits=5)
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     assert rw.graphView.clFilter.rowCount() == 7  # 1 Workdir, 5 Commits, 1 Truncated
@@ -258,34 +261,160 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
     assert not rw.diffBanner.isVisible()
 
 
-def testRepoNickname(tempDir, mainWindow):
+@pytest.mark.parametrize("dedicatedNicknameDialog", [True, False])
+def testRepoNickname(tempDir, mainWindow, dedicatedNicknameDialog):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
+
+    def nicknameUi() -> tuple[QDialog, QLineEdit]:
+        if dedicatedNicknameDialog:
+            triggerContextMenuAction(mainWindow.tabs.tabs, "rename")
+            dlg = findQDialog(mainWindow, "nickname", t=TextInputDialog)
+            return dlg, dlg.lineEdit
+        else:
+            dlg = bringUpRepoSettings(rw)
+            return dlg, dlg.ui.nicknameEdit
 
     assert "TestGitRepository" in mainWindow.windowTitle()
     assert "TestGitRepository" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
     assert findMenuAction(mainWindow.menuBar(), "file/recent/TestGitRepository")
 
     # Rename to "coolrepo"
-    dlg = bringUpRepoSettings(rw)
-    assert dlg.ui.nicknameEdit.text() == ""
-    dlg.ui.nicknameEdit.setText("coolrepo")
+    dlg, lineEdit = nicknameUi()
+    assert lineEdit.text() == ""
+    lineEdit.setText("coolrepo")
     dlg.accept()
 
     assert "TestGitRepository" not in mainWindow.windowTitle()
     assert "coolrepo" in mainWindow.windowTitle()
     assert "coolrepo" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
+    assert "coolrepo" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
     recentAction = findMenuAction(mainWindow.menuBar(), "file/recent/coolrepo")
-    assert recentAction
-    assert recentAction is findMenuAction(mainWindow.menuBar(), "file/recent/TestGitRepository")
+    assert "TestGitRepository" in recentAction.text()
 
     # Reset to default name
-    dlg = bringUpRepoSettings(rw)
-    assert dlg.ui.nicknameEdit.text() == "coolrepo"
-    assert dlg.ui.nicknameEdit.isClearButtonEnabled()
-    dlg.ui.nicknameEdit.clear()
+    dlg, lineEdit = nicknameUi()
+    assert lineEdit.text() == "coolrepo"
+    assert lineEdit.isClearButtonEnabled()
+    lineEdit.clear()
     dlg.accept()
+
     assert "TestGitRepository" in mainWindow.windowTitle()
+    assert "TestGitRepository" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
+
+
+def testRepoNicknameBackgroundTab(tempDir, mainWindow):
+    wd1 = unpackRepo(tempDir, renameTo="repo1")
+    wd2 = unpackRepo(tempDir, renameTo="repo2")
+    mainWindow._openRepo(wd1, foreground=False)
+    mainWindow.openRepo(wd2)
+
+    assert mainWindow.tabs.currentIndex() == 1
+    assert isinstance(mainWindow.tabs.widget(0), RepoStub)
+    assert isinstance(mainWindow.tabs.widget(1), RepoWidget)
+
+    triggerContextMenuAction(mainWindow.tabs.tabs, "rename")
+    dlg = findQDialog(mainWindow, "nickname", t=TextInputDialog)
+    assert "repo1" in dlg.lineEdit.placeholderText()
+    dlg.lineEdit.setText("backgroundrepo")
+    dlg.accept()
+
+    assert "backgroundrepo" in mainWindow.tabs.tabs.tabText(0)
+    mainWindow.tabs.setCurrentIndex(0)
+    assert "backgroundrepo" in mainWindow.windowTitle()
+
+
+def testTabNameDisambiguationByParentFolders(tempDir, mainWindow):
+    """Test that tab names are disambiguated by parent folders."""
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    # Create two repos in different parent folders
+    path1 = os.path.join(tempDir.name, "a", "repo")
+    path2 = os.path.join(tempDir.name, "b", "repo")
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    # Tab names should be "a/repo" and "b/repo" (adjusted for OS separator)
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.tabText(0) == os.path.join("a", "repo")
+    assert tabBar.tabText(1) == os.path.join("b", "repo")
+
+
+def testTabNameDisambiguationFallbackToMiddleEllipsis(tempDir, mainWindow):
+    """If parent folders differ only far from the repo, elide the middle of the path."""
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    # Create two repos in different parent folders. Two levels above are identical (x, y).
+    path1 = os.path.join(tempDir.name, "a", "x", "y", "repo")
+    path2 = os.path.join(tempDir.name, "b", "x", "y", "repo")
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    tabBar = mainWindow.tabs.tabs
+    ellipsis = "…"
+    assert tabBar.tabText(0) == os.path.join("a", ellipsis, "repo")
+    assert tabBar.tabText(1) == os.path.join("b", ellipsis, "repo")
+
+
+def testTabNameDisambiguationRevertsOnClose(tempDir, mainWindow):
+    """Closing one of two disambiguated tabs reverts the other to the repo name."""
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    path1 = os.path.join(tempDir.name, "a", "repo")
+    path2 = os.path.join(tempDir.name, "b", "repo")
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.tabText(0) == os.path.join("a", "repo")
+    assert tabBar.tabText(1) == os.path.join("b", "repo")
+
+    mainWindow.closeTab(0)
+    assert mainWindow.tabs.count() == 1
+    assert tabBar.tabText(0) == "repo"
+
+
+def testTabNameDisambiguationRespectsCustomNickname(tempDir, mainWindow):
+    """Custom nicknames are kept even when multiple tabs share the same name."""
+    from gitfourchette import settings
+
+    wd1 = unpackRepo(tempDir, renameTo="tmprepo1")
+    wd2 = unpackRepo(tempDir, renameTo="tmprepo2")
+
+    path1 = os.path.realpath(os.path.join(tempDir.name, "a", "repo"))
+    path2 = os.path.realpath(os.path.join(tempDir.name, "b", "repo"))
+    os.makedirs(os.path.dirname(path1), exist_ok=True)
+    os.makedirs(os.path.dirname(path2), exist_ok=True)
+    shutil.move(os.path.normpath(wd1), path1)
+    shutil.move(os.path.normpath(wd2), path2)
+
+    settings.history.setRepoNickname(path1, "myrepo")
+    settings.history.setRepoNickname(path2, "myrepo")
+
+    mainWindow.openRepo(path1)
+    mainWindow.openRepo(path2)
+
+    tabBar = mainWindow.tabs.tabs
+    assert tabBar.tabText(0) == "myrepo"
+    assert tabBar.tabText(1) == "myrepo"
 
 
 @pytest.mark.parametrize("name", ["Zhack Sheerack", ""])
@@ -365,7 +494,7 @@ def testAutoHideMenuBar(mainWindow):
     assert menuBar.height() != 0
 
     # Hide menu bar
-    mainWindow.onAcceptPrefsDialog({"showMenuBar": False})
+    GFApplication.applyPrefs(showMenuBar=False)
     acceptQMessageBox(mainWindow, "menu bar.+hidden")
     assert menuBar.height() == 0
 
@@ -393,7 +522,7 @@ def testAutoHideMenuBar(mainWindow):
     assert menuBar.height() == 0
 
     # Restore menu bar
-    mainWindow.onAcceptPrefsDialog({"showMenuBar": True})
+    GFApplication.applyPrefs(showMenuBar=True)
     QTest.qWait(0)
     assert menuBar.height() != 0
 
@@ -761,7 +890,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     editorPath = getTestDataPath("pause.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
 
-    mainWindow.onAcceptPrefsDialog({"externalDiff": f'"{editorPath}" "{scratchPath}" $L $R'})
+    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in pause")
     waitForFile(scratchPath)
     assert readTextFile(scratchPath).strip() == "about to sleep"
@@ -778,9 +907,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 #  again if the user tries to reload the repo from RepoStub.
 @pytest.mark.skipif(WINDOWS, reason="TODO: tricky teardown, see comment")
 def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
-    mainWindow.onAcceptPrefsDialog({
-        "gitPath": "/tmp/supposedly-a-git-executable-but-it-doesnt-exist"
-    })
+    GFApplication.applyPrefs(gitPath="/tmp/supposedly-a-git-executable-but-it-doesnt-exist")
 
     wd = unpackRepo(tempDir)
 

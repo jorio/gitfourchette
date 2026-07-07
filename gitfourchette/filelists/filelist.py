@@ -235,13 +235,10 @@ class FileList(QListView):
         """ To be overridden """
 
         def pathDisplayStyleAction(pds: PathDisplayStyle):
-            def setIt():
-                settings.prefs.pathDisplayStyle = pds
-                settings.prefs.setDirty()
-                GFApplication.instance().prefsChanged.emit(["pathDisplayStyle"])
-            isCurrent = settings.prefs.pathDisplayStyle == pds
-            name = englishTitleCase(TrTables.enum(pds))
-            return ActionDef(name, setIt, checkState=isCurrent)
+            return ActionDef(
+                englishTitleCase(TrTables.enum(pds)),
+                lambda: GFApplication.applyPrefs(pathDisplayStyle=pds),
+                checkState=settings.prefs.pathDisplayStyle == pds)
 
         n = len(deltas)
 

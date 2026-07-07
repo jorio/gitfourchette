@@ -23,6 +23,7 @@ from .gitutils import (
     splitRemoteUrl,
     guessRemoteUrlFromText,
     formatTimeOffset,
+    signatureEnvironmentVariables,
     signatureQDateTime,
     signatureDateFormat,
 )
@@ -33,7 +34,7 @@ from .messageboxes import (
     addULToMessageBox,
     NonCriticalOperation)
 from .iconbank import stockIcon, stockIconImgTag
-from .pathutils import PathDisplayStyle, abbreviatePath, compactPath
+from .pathutils import PathDisplayStyle, abbreviatePath, compactPath, disambiguateTabTitlesByPath
 from .persistentfiledialog import PersistentFileDialog
 from .qbusyspinner import QBusySpinner
 from .qcomboboxwithpreview import QComboBoxWithPreview
@@ -55,7 +56,6 @@ from .qtutils import (
     tweakWidgetFont,
     formatWidgetText,
     formatWidgetTooltip,
-    installDialogReturnShortcut,
     itemViewVisibleRowRange,
     isDarkTheme,
     mutedTextColorHex,

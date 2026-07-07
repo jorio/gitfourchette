@@ -9,7 +9,6 @@ import gc
 import logging
 import os
 import re
-import time
 from collections.abc import Sequence, Callable
 from contextlib import suppress
 from pathlib import Path
@@ -26,22 +25,20 @@ from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
 from gitfourchette.forms.maintoolbar import MainToolBar
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.forms.prefsdialog import PrefsDialog
 from gitfourchette.forms.searchbar import SearchBar
+from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.forms.welcomewidget import WelcomeWidget
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
-from gitfourchette.settings import TabBarClick
+from gitfourchette.settings import PrefEffects, TabBarClick
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import TaskBook, RepoTaskRunner
 from gitfourchette.tasks.newrepotasks import NewRepo
 from gitfourchette.toolbox import *
-from gitfourchette.toolbox.fittedtext import FittedText
 from gitfourchette.trash import Trash
 
 logger = logging.getLogger(__name__)
@@ -106,7 +103,7 @@ class MainWindow(QMainWindow):
         self.mainToolBar = MainToolBar(self)
         self.addToolBar(self.mainToolBar)
         self.mainToolBar.openDialog.connect(self.openDialog)
-        self.mainToolBar.openPrefs.connect(self.openPrefsDialog)
+        self.mainToolBar.openPrefs.connect(GFApplication.instance().openPrefsDialog)
         self.mainToolBar.reveal.connect(lambda: self.currentRepoWidget().openRepoFolder())
         self.mainToolBar.openTerminal.connect(lambda: self.currentRepoWidget().openTerminal())
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -123,6 +120,7 @@ class MainWindow(QMainWindow):
 
         self.setAcceptDrops(True)
 
+        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
         self.refreshPrefs()
 
         self.dropZone = DropZone(self)
@@ -256,7 +254,7 @@ class MainWindow(QMainWindow):
 
             ActionDef.SEPARATOR,
 
-            ActionDef(_("&Settings…"), self.openPrefsDialog,
+            ActionDef(_("&Settings…"), GFApplication.instance().openPrefsDialog,
                       shortcuts=QKeySequence.StandardKey.Preferences, icon="configure",
                       menuRole=QAction.MenuRole.PreferencesRole,
                       tip=_("Configure {app}", app=qAppName())),
@@ -306,8 +304,8 @@ class MainWindow(QMainWindow):
         ActionDef.addToQMenu(
             viewMenu,
             self.mainToolBar.toggleViewAction(),
-            ActionDef(englishTitleCase(_("Show status bar")), self.toggleStatusBar, objectName="ShowStatusBarAction"),
-            ActionDef(englishTitleCase(_("Show menu bar")), self.toggleMenuBar, objectName="ShowMenuBarAction"),
+            ActionDef(englishTitleCase(_("Show status bar")), self.toggleStatusBar, checkState=-1, objectName="ShowStatusBarAction"),
+            ActionDef(englishTitleCase(_("Show menu bar")), self.toggleMenuBar, checkState=-1, objectName="ShowMenuBarAction"),
             ActionDef.SEPARATOR,
             TaskBook.action(self, tasks.JumpToUncommittedChanges, accel="U"),
             TaskBook.action(self, tasks.JumpToHEAD, accel="H"),
@@ -368,7 +366,7 @@ class MainWindow(QMainWindow):
                 *commandActions,
                 ActionDef.SEPARATOR,
                 ActionDef(_("Edit Commands…"), icon="document-edit",
-                          callback=lambda: self.openPrefsDialog("commands")),
+                          callback=lambda: GFApplication.instance().openPrefsDialog("commands")),
             )
 
             # Don't share commandsMenu with the terminal button: commandsMenu.aboutToShow
@@ -535,7 +533,7 @@ class MainWindow(QMainWindow):
             ActionDef.SEPARATOR,
             *self.repolessActions(widget.workdir),
             ActionDef.SEPARATOR,
-            ActionDef(_("Configure Tabs…"), lambda: self.openPrefsDialog("tabCloseButton")),
+            ActionDef(_("Configure Tabs…"), lambda: GFApplication.instance().openPrefsDialog("tabCloseButton")),
         )
 
         return menu
@@ -646,6 +644,7 @@ class MainWindow(QMainWindow):
             self.tabs.setTabTooltip(tabIndex, compactPath(path))
             if foreground:
                 self.tabs.setCurrentIndex(tabIndex)
+        self.refreshAllTabTexts()
 
         # We've got at least one tab now, so switch away from WelcomeWidget
         assert self.tabs.count() > 0
@@ -663,10 +662,10 @@ class MainWindow(QMainWindow):
         assert tabIndex >= 0, "stub to replace isn't in tabs"
         assert isinstance(repoStub, RepoStub), "yanked widget isn't RepoStub"
 
-        rw.nameChange.connect(lambda: self.onRepoNameChanged(rw))
+        rw.nameChange.connect(self.onRepoNameChanged)
         rw.requestAttention.connect(lambda: self.onRepoRequestsAttention(rw))
         rw.openRepo.connect(lambda path, locator: self.openRepoNextTo(rw, path, locator))
-        rw.openPrefs.connect(self.openPrefsDialog)
+        rw.openPrefs.connect(GFApplication.instance().openPrefsDialog)
         rw.mustReplaceWithStub.connect(lambda stub: self.replaceRepoWidgetWithStub(rw, stub))
 
         rw.statusMessage.connect(self.statusBar2.showMessage)
@@ -677,6 +676,7 @@ class MainWindow(QMainWindow):
         rw.windowTitleChanged.connect(lambda: self.onRepoWindowTitleChanged(rw))
 
         self.tabs.swapWidget(tabIndex, rw)
+        self.refreshAllTabTexts()
 
         repoStub.setParent(None)  # tabs don't deparent the widget
         repoStub.deleteLater()
@@ -685,6 +685,7 @@ class MainWindow(QMainWindow):
         tabIndex = self.tabs.indexOf(oldWidget)
         assert tabIndex >= 0, "RepoWidget to replace isn't in tabs"
         self.tabs.swapWidget(tabIndex, stub)
+        self.refreshAllTabTexts()
 
         oldWidget.setParent(None)  # tabs don't deparent the widget
         oldWidget.close()  # will call cleanup
@@ -700,8 +701,8 @@ class MainWindow(QMainWindow):
         with suppress(NoRepoWidgetError):
             self.currentRepoWidget().refreshRepo()
 
-    def onRepoNameChanged(self, rw: RepoWidget):
-        self.refreshTabText(rw)
+    def onRepoNameChanged(self):
+        self.refreshAllTabTexts()
         self.fillRecentMenu()
 
     def onRepoWindowTitleChanged(self, rw: RepoWidget):
@@ -720,16 +721,10 @@ class MainWindow(QMainWindow):
     # View menu
 
     def toggleStatusBar(self):
-        settings.prefs.showStatusBar = not settings.prefs.showStatusBar
-        settings.prefs.setDirty()
-        self.refreshPrefs("showStatusBar")
+        GFApplication.applyPrefs(showStatusBar=not settings.prefs.showStatusBar)
 
     def toggleMenuBar(self):
-        settings.prefs.showMenuBar = not settings.prefs.showMenuBar
-        settings.prefs.setDirty()
-        self.refreshPrefs("showMenuBar")
-        if not settings.prefs.showMenuBar:
-            self.showMenuBarHiddenWarning()
+        GFApplication.applyPrefs(showMenuBar=not settings.prefs.showMenuBar)
 
     def selectUncommittedChanges(self):
         self.currentRepoWidget().jump(NavLocator.inWorkdir())
@@ -829,7 +824,6 @@ class MainWindow(QMainWindow):
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
-        installDialogReturnShortcut(dlg)
 
     def openDialog(self):
         qfd = PersistentFileDialog.openDirectory(self, "NewRepo", _("Open repository"))
@@ -853,6 +847,7 @@ class MainWindow(QMainWindow):
         # Remove the tab BEFORE cleaning up the widget
         # to prevent any interaction with it while it's wrapping up.
         self.tabs.removeTab(index)
+        self.refreshAllTabTexts()
 
         # Clean up the widget
         widget.close()  # will call RepoWidget.cleanup()
@@ -910,10 +905,31 @@ class MainWindow(QMainWindow):
         rw = self.currentRepoWidget()
         rw.replaceWithStub()
 
-    def refreshTabText(self, rw):
-        index = self.tabs.indexOf(rw)
-        title = escamp(rw.getTitle())
-        self.tabs.setTabText(index, title)
+    def refreshAllTabTexts(self):
+        widgets = list(self.tabs.widgets())
+        baseTitles = [widget.getTitle() for widget in widgets]
+        newTitles = baseTitles[:]
+
+        groupsByTitle: dict[str, list[int]] = {}
+        for i, title in enumerate(baseTitles):
+            groupsByTitle.setdefault(title, []).append(i)
+
+        for group in groupsByTitle.values():
+            if len(group) <= 1:
+                continue
+            # Only disambiguate default (basename) titles; custom nicknames are kept as-is.
+            defaultIndices = [
+                i for i in group
+                if not settings.history.getRepoNickname(widgets[i].workdir, strict=True)]
+            if len(defaultIndices) <= 1:
+                continue
+            workdirs = [widgets[i].workdir for i in defaultIndices]
+            disambiguatedTitles = disambiguateTabTitlesByPath(workdirs)
+            for idx, title in zip(defaultIndices, disambiguatedTitles, strict=True):
+                newTitles[idx] = title
+
+        for i, title in enumerate(newTitles):
+            self.tabs.setTabText(i, escamp(title))
 
     def openRepoNextTo(self, rw, path: str, locator: NavLocator = NavLocator.Empty):
         index = self.tabs.indexOf(rw)
@@ -1105,119 +1121,40 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Prefs
 
-    def refreshPrefs(self, *prefDiff: str):
-        app = GFApplication.instance()
-
-        FittedText.enable = settings.prefs.condensedFonts
-
-        # Apply new style
-        if "qtStyle" in prefDiff:
-            app.applyQtStylePref(forceApplyDefault=True)
-
-        if "verbosity" in prefDiff:
-            app.applyLoggingLevelPref()
-
-        if "language" in prefDiff:
-            app.applyLanguagePref()
-            self.fillGlobalMenuBar()
-
-        if "ownSshAgent" in prefDiff:
-            app.applySshAgentPref()
-
-        if "commands" in prefDiff or "confirmCommands" in prefDiff:
-            self.fillGlobalMenuBar()
-
-        if "maxRecentRepos" in prefDiff:
-            self.fillRecentMenu()
-
-        GitDriver.setGitPath(settings.prefs.gitPath)
-
+    def refreshPrefs(self):
         self.statusBar2.setVisible(settings.prefs.showStatusBar)
         self.statusBar2.enableMemoryIndicator(APP_DEBUG)
-
         self.mainToolBar.setVisible(settings.prefs.showToolBar)
-
-        self.showStatusBarAction.setCheckable(True)
         self.showStatusBarAction.setChecked(settings.prefs.showStatusBar)
-
-        self.showMenuBarAction.setCheckable(True)
         self.showMenuBarAction.setChecked(settings.prefs.showMenuBar)
 
-        app.prefsChanged.emit(list(prefDiff))
-
-    def onAcceptPrefsDialog(self, prefDiff: dict):
-        # Early out if the prefs didn't change
-        if not prefDiff:
-            return
-
-        # Apply changes from prefDiff to the actual prefs
-        for k, v in prefDiff.items():
-            settings.prefs.__dict__[k] = v
-
-        # Reset "don't show again" if necessary
-        if settings.prefs.resetDontShowAgain:
-            settings.prefs.dontShowAgain = []
-            settings.prefs.resetDontShowAgain = False
-
-        if "refSort" in prefDiff:
-            settings.prefs.refSortClearTimestamp = int(time.time())
-            settings.prefs.setDirty()
-
-        # Write prefs to disk
-        settings.prefs.write()
-
-        # Notify widgets
-        self.refreshPrefs(*prefDiff.keys())
-
-        # Warn if changed any setting that requires a reload
-        autoReload = [
-            # Those settings a reload of the current diff
-            "showStrayCRs",
-            "colorblind",
-            "largeFileThresholdKB",
-            "imageFileThresholdKB",
-            "contextLines",
-            "whitespaceMode",
-            "maxCommits",
-            "renderSvg",
-            "lfsAware",
-            "syntaxHighlighting",
-        ]
-
-        warnIfChanged = [
-            "chronologicalOrder",  # need to reload entire commit sequence
-            "maxCommits",
-            "refSort",
-        ]
-
-        warnIfNeedRestart = [
-            "language",
-            "forceQtApi",
-            "pygmentsPlugins",
-        ]
-
-        if "showMenuBar" in prefDiff and not prefDiff["showMenuBar"]:
+    def onApplyPrefs(self, changedKeys: set[str]):
+        if "showMenuBar" in changedKeys and not settings.prefs.showMenuBar:
             self.showMenuBarHiddenWarning()
 
-        if any(k in warnIfNeedRestart for k in prefDiff):
+        if PrefEffects.RebuildMenu & changedKeys:
+            self.fillGlobalMenuBar()
+
+        if PrefEffects.RestartApp & changedKeys:
             showInformation(
-                self, _("Apply Settings"),
+                self,
+                _("Apply Settings"),
                 _("You may need to restart {app} for the new settings to take effect fully.", app=qAppName()))
-        elif any(k in warnIfChanged for k in prefDiff) and self.tabs.count():
+        elif PrefEffects.ReloadRepo & changedKeys and self.tabs.count() != 0:
             qmb = asyncMessageBox(
-                self, "question", _("Apply Settings"),
+                self,
+                "question",
+                _("Apply Settings"),
                 _("The new settings won’t take effect fully until you reload the current repositories."),
                 buttons=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-            reloadButton = qmb.button(QMessageBox.StandardButton.Ok)
-            reloadButton.setText(_("&Reload"))
+            qmb.button(QMessageBox.StandardButton.Ok).setText(_("&Reload"))
+            qmb.button(QMessageBox.StandardButton.Cancel).setText(_("&Not Now"))
             qmb.accepted.connect(self.reloadAllTabs)
-            cancelButton = qmb.button(QMessageBox.StandardButton.Cancel)
-            cancelButton.setText(_("&Not Now"))
             qmb.show()
 
         # If any changed setting matches autoReload, schedule a forced refresh
         # of the current diff in all loaded RepoWidgets.
-        if any(k in autoReload for k in prefDiff):
+        if PrefEffects.ReloadDiff & changedKeys:
             # Nuke cached syntax highlighting
             LexJobCache.clear()
 
@@ -1228,14 +1165,6 @@ class MainWindow(QMainWindow):
                 locator = locator.withExtraFlags(NavFlags.ForceDiff | NavFlags.ForceRecreateDocument)
                 rw.taskRunner.pendingEpilog.jumpTo = locator
                 rw.refreshRepo()
-
-    def openPrefsDialog(self, focusOn: str = ""):
-        dlg = PrefsDialog(self, focusOn)
-        dlg.accepted.connect(lambda: self.onAcceptPrefsDialog(dlg.prefDiff))
-        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
-        dlg.show()
-        installDialogReturnShortcut(dlg)
-        return dlg
 
     # -------------------------------------------------------------------------
     # Dispatch commands to detached windows
@@ -1336,7 +1265,45 @@ class MainWindow(QMainWindow):
                 lambda: self.repolessOpenSuperproject(workdirProxy(), superproject),
                 enabled=superprojectEnabled,
             ),
+
+            ActionDef(
+                _("Re&name\u2026"),
+                lambda: self.repolessSetNickname(workdirProxy()),
+                icon="rename",
+            ),
         ]
+
+    def repolessSetNickname(self, workdir: str):
+        defaultName = Path(workdir).name
+        oldNickname = settings.history.getRepoNickname(workdir, strict=True)
+
+        title = _("Nickname for {0}", tquoe(defaultName))
+        label = _("Enter or clear nickname for this repository:")
+        leaveBlank = _("Leave blank to refer to this repo as {0}", tquoe(defaultName))
+        hint = "<p>" + _p(  # Sync with ui_reposettingsdialog.py to keep existing translation
+            "RepoSettingsDialog",
+            "This nickname will appear within {app} in tab names, menus, etc. "
+            "It does not change the actual name of the repo’s directory. "
+            "Leave blank to clear the nickname.",
+            app=qAppName())
+
+        tid = TextInputDialog(self, title, label, subtitle=escamp(compactPath(workdir)), hint=hint)
+        tid.lineEdit.setClearButtonEnabled(True)
+        tid.lineEdit.setPlaceholderText(leaveBlank)
+        tid.lineEdit.setText(oldNickname)
+        tid.lineEdit.selectAll()
+        tid.textAccepted.connect(lambda nick: self._repolessSetNicknameImpl(workdir, nick))
+        tid.show()
+
+    def _repolessSetNicknameImpl(self, workdir: str, nick: str):
+        settings.history.setRepoNickname(workdir, nick)
+        tabWidget = self.tabWidgetForWorkdirPath(workdir)
+        if isinstance(tabWidget, RepoWidget):
+            # Percolate to sidebar, etc.
+            tabWidget.nameChange.emit()
+        else:
+            # RepoStub
+            self.onRepoNameChanged()
 
     def repolessCopyPath(self, workdir: str):
         QApplication.clipboard().setText(workdir)

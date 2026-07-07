@@ -1,18 +1,26 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.qt import *
-from gitfourchette.toolbox import ValidatorMultiplexer, setTabOrder
+from gitfourchette.toolbox import QHintButton, ValidatorMultiplexer, setTabOrder
 
 
 class TextInputDialog(QDialog):
     textAccepted = Signal(str)
 
-    def __init__(self, parent: QWidget, title: str, label: str, subtitle: str = "", multilineSubtitle: bool = False):
+    def __init__(
+            self,
+            parent: QWidget,
+            title: str,
+            label: str,
+            subtitle: str = "",
+            multilineSubtitle: bool = False,
+            hint: str = "",
+    ) -> None:
         super().__init__(parent)
 
         self.setWindowTitle(title)
@@ -30,6 +38,10 @@ class TextInputDialog(QDialog):
             promptLabel.setTextFormat(Qt.TextFormat.AutoText)
             promptLabel.setWordWrap(True)
             layout.addWidget(promptLabel, 0, 0)
+
+        if hint:
+            hintButton = QHintButton(self, hint)
+            self.buttonBox.addButton(hintButton, QDialogButtonBox.ButtonRole.HelpRole)
 
         layout.addWidget(self.lineEdit, 1, 0)
         layout.addWidget(self.buttonBox, 3, 0, 1, -1)

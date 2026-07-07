@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-09-17 07:01+0000\n"
+"PO-Revision-Date: 2026-04-23 22:09+0000\n"
 "Last-Translator: Iliyas Jorio <iliyas@jor.io>\n"
 "Language-Team: Chinese (Simplified Han script) <https://hosted.weblate.org/"
 "projects/gitfourchette/gitfourchette/zh_Hans/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.14-dev\n"
+"X-Generator: Weblate 5.17.1-dev\n"
 
 #: application.py:86 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -267,7 +267,7 @@ msgstr "您可以暂存该文件以关闭此消息；不会记录任何更改。
 #: diffview/specialdiff.py:120
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
-msgstr "【配置差异预览限制】（当前：{0}）"
+msgstr "[配置差异预览限制]（当前：{0}）"
 
 #: diffview/specialdiff.py:123
 msgid "This diff is very large."
@@ -280,12 +280,12 @@ msgstr "差异大小：{0}"
 
 #: diffview/specialdiff.py:136
 msgid "[Load image anyway] (this may take a moment)"
-msgstr "【仍然加载图片】（这可能需要一些时间）"
+msgstr "[仍然加载图片]（这可能需要一些时间）"
 
 #: diffview/specialdiff.py:137
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
-msgstr "【配置图片预览限制】（当前：{0}）"
+msgstr "[配置图片预览限制]（当前：{0}）"
 
 #: diffview/specialdiff.py:140
 msgid "This image is very large."

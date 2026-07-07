@@ -7,7 +7,7 @@
 import logging
 import os
 import shutil
-from contextlib import suppress
+from itertools import chain
 from pathlib import Path
 
 from gitfourchette import settings
@@ -174,7 +174,12 @@ class DiscardFiles(_BaseStagingTask):
             self.epilog.effects |= TaskEffects.Refs  # We don't have TaskEffects.Submodules so .Refs is the next best thing
 
         # Back up discarded patches
-        yield from self.backUpPatches(deltas)
+        if Trash.enabled():
+            for delta in deltas:
+                try:
+                    yield from self._backupDelta(delta)
+                except Trash.BackupSkipped as ex:
+                    logger.warning(f"Backup skipped: {ex}")
 
         tracked = [d.new.path for d in deltas if d.status != "?"]
         untrackedFiles = [d.new.path for d in deltas if d.status == "?" and d.new.mode != FileMode.TREE]
@@ -200,32 +205,29 @@ class DiscardFiles(_BaseStagingTask):
 
         self.epilog.status = _n("File discarded.", "{n} files discarded.", len(deltas))
 
-    def backUpPatches(self, deltas: list[GitDelta]):
+    def _backupDelta(self, delta: GitDelta):
+        # Don't back up deletions
+        if delta.status == "D":
+            return
+
         trash = Trash.instance()
+        path = delta.new.path
         workdir = self.repo.workdir
 
-        for delta in deltas:
-            path = delta.new.path
-
-            if delta.status == "D":
-                # It doesn't make sense to back up a file deletion
-                continue
-
-            elif delta.status == "?" and delta.new.mode == FileMode.TREE:
+        if delta.status == "?":
+            if delta.new.mode == FileMode.TREE:
                 # Untracked tree
                 trash.backupTree(workdir, path)
-
-            elif delta.status == "?":
+            else:
                 # Untracked file
                 # TODO: Also binary files?
                 trash.backupFile(workdir, path)
-
-            else:
-                # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
-                tokens = GitDriver.buildDiffCommand(delta)
-                driver = yield from self.flowCallGit(*tokens, autoFail=False)
-                patchText = driver.stdoutScrollback()
-                trash.backupPatch(workdir, patchText, path)
+        else:
+            # TODO: Cache patch in GitDelta? So we don't have to regenerate the patch if we've already displayed it
+            tokens = GitDriver.buildDiffCommand(delta)
+            driver = yield from self.flowCallGit(*tokens, autoFail=False)
+            patchText = driver.stdoutScrollback()
+            trash.backupPatch(workdir, patchText, path)
 
 
 class UnstageFiles(_BaseStagingTask):
@@ -307,7 +309,10 @@ class ApplyPatch(RepoTask):
             textPara.append(_("This cannot be undone!"))
             yield from self.flowConfirm(title, text=paragraphs(textPara), verb=title, buttonIcon="git-discard-lines")
 
-            Trash.instance().backupPatch(self.repo.workdir, subPatch, delta.new.path)
+            try:
+                Trash.instance().backupPatch(self.repo.workdir, subPatch, delta.new.path)
+            except Trash.BackupSkipped as ex:
+                logger.warning(f"Backup skipped: {ex}")
 
             applyLocation = ApplyLocation.WORKDIR
         else:
@@ -326,65 +331,39 @@ class ApplyPatch(RepoTask):
 
 
 class HardSolveConflicts(RepoTask):
-    def flow(self, conflictedFiles: dict[str, Oid]):
-        yield from self.flowEnterWorkerThread()
+    def flow(self, ours: list[str], theirs: list[str], remove: list[str]):
+        # Back up affected files
+        if Trash.enabled():
+            for path in chain(theirs, remove):
+                try:
+                    Trash.instance().backupFile(self.repo.workdir, path)
+                except Trash.BackupSkipped as ex:
+                    logger.warning(f"Backup skipped: {ex}")
+
+        # Restore desired sides
         self.epilog.effects |= TaskEffects.Workdir
 
-        repo = self.repo
-        repo.refresh_index()
-        index = repo.index
-        conflicts = index.conflicts
-        assert conflicts is not None
+        if ours:
+            yield from self.flowCallGit("restore", "--progress", "--ours", "--", *ours)
 
-        assert isinstance(conflictedFiles, dict)
-        for path, keepId in conflictedFiles.items():
-            assert type(path) is str
-            assert type(keepId) is Oid
-            assert path in conflicts
+        if theirs:
+            yield from self.flowCallGit("restore", "--progress", "--theirs", "--", *theirs)
 
-            with suppress(FileNotFoundError):  # ignore FileNotFoundError for DELETED_BY_US conflicts
-                Trash.instance().backupFile(repo.workdir, path)
+        # Stage the files we kept to resolve the conflict
+        if ours or theirs:
+            yield from self.flowCallGit("add", "--force", "--", *chain(ours, theirs))
 
-            fullPath = repo.in_workdir(path)
+        # Stage deletions to resolve the conflict
+        if remove:
+            yield from self.flowCallGit("rm", "--", *remove)
 
-            # TODO: we should probably set the modes correctly and stuff as well
-            if keepId == NULL_OID:
-                if os.path.isfile(fullPath):  # the file may not exist in DELETED_BY_BOTH conflicts
-                    os.unlink(fullPath)
-            else:
-                blob = repo.peel_blob(keepId)
-                with open(fullPath, "wb") as f:
-                    f.write(blob.data)
-
-            del conflicts[path]
-            assert path not in conflicts
-
-            if keepId != NULL_OID:
-                # Stage the file so it doesn't show up in both file lists
-                index.add(path)
-
-                # Jump to staged file after the task
+        # Jump to any staged file after the task
+        for path in chain(ours, theirs):
+            if Path(self.repo.in_workdir(path)).is_file():
                 self.epilog.jumpTo = NavLocator.inStaged(path)
+                break
 
-        # Write index modifications to disk
-        index.write()
-
-        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflictedFiles))
-
-
-class MarkConflictSolved(RepoTask):
-    def flow(self, path: str):
-        yield from self.flowEnterWorkerThread()
-        self.epilog.effects |= TaskEffects.Workdir
-
-        repo = self.repo
-
-        repo.refresh_index()
-        assert (repo.index.conflicts is not None) and (path in repo.index.conflicts)
-
-        del repo.index.conflicts[path]
-        assert (repo.index.conflicts is None) or (path not in repo.index.conflicts)
-        repo.index.write()
+        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(ours) + len(theirs) + len(remove))
 
 
 class AcceptMergeConflictResolution(RepoTask):

@@ -999,10 +999,7 @@ def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
     # Enable or disable auto-fetch.
-    mainWindow.onAcceptPrefsDialog({
-        "autoFetch": enabled,
-        "autoFetchMinutes": 1,
-    })
+    GFApplication.applyPrefs(autoFetch=enabled, autoFetchMinutes=1)
 
     with RepoContext(barePath) as bareRepo:
         assert bareRepo.is_bare
@@ -1046,7 +1043,7 @@ def testAutoFetchFailure(tempDir, mainWindow):
     GitDriver.runSync("remote", "set-url", "origin", "https://this-will-fail-to-resolve.invalid/whatever.git",
                       directory=wd, strict=True)
 
-    mainWindow.onAcceptPrefsDialog({"autoFetch": True, "autoFetchMinutes": 1})
+    GFApplication.applyPrefs(autoFetch=True, autoFetchMinutes=1)
 
     rw = mainWindow.openRepo(wd)
 
@@ -1064,7 +1061,7 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     gitCmd = settings.prefs.gitPath
 
     # Enable auto-fetch
-    mainWindow.onAcceptPrefsDialog({"autoFetch": True, "autoFetchMinutes": 1})
+    GFApplication.applyPrefs(autoFetch=True, autoFetchMinutes=1)
 
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
@@ -1085,8 +1082,8 @@ def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
     assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)
 
     # Don't delay git for the next task
-    mainWindow.onAcceptPrefsDialog({"gitPath": gitCmd})
-    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)  # just making sure a future version of onAcceptPrefsDialog doesn't kill the task...
+    GFApplication.applyPrefs(gitPath=gitCmd)
+    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)  # just making sure a future version of applyPrefs doesn't kill the task...
 
     # Perform a task - any task! - while auto-fetching is in progress.
     # It shouldn't be blocked by an ongoing auto-fetch.

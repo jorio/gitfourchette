@@ -65,7 +65,7 @@ def testPrefsDialog(tempDir, mainWindow):
 
 def testPrefsComboBoxWithPreview(tempDir, mainWindow):
     # Play with QComboBoxWithPreview (for coverage)
-    dlg = mainWindow.openPrefsDialog("shortTimeFormat")
+    dlg = GFApplication.instance().openPrefsDialog("shortTimeFormat")
     comboBox: QComboBox = dlg.findChild(QWidget, "prefctl_shortTimeFormat").findChild(QComboBox)
     comboBox.setFocus()
     QTest.keyClick(comboBox, Qt.Key.Key_Down, Qt.KeyboardModifier.AltModifier)
@@ -95,7 +95,7 @@ def testPrefsFontControl(tempDir, mainWindow):
     assert defaultFamily != randomFamily
 
     # Change font setting, and accept
-    dlg = mainWindow.openPrefsDialog("font")
+    dlg = GFApplication.instance().openPrefsDialog("font")
     fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
     assert not fontPicker.resetButton.isEnabled()
     fontPicker.familyEdit.showPopup()
@@ -108,7 +108,7 @@ def testPrefsFontControl(tempDir, mainWindow):
     assert effectiveFont.family() == randomFamily
     assert effectiveFont.pointSize() == 27
 
-    dlg = mainWindow.openPrefsDialog("font")
+    dlg = GFApplication.instance().openPrefsDialog("font")
     fontPicker: FontPicker = dlg.findChild(FontPicker, "prefctl_font")
     assert fontPicker.resetButton.isEnabled()
     fontPicker.resetButton.click()
@@ -124,7 +124,7 @@ def testPrefsLanguageControl(tempDir, mainWindow):
     mainWindow.openRepo(wd)
 
     # Change font setting, and accept
-    dlg = mainWindow.openPrefsDialog("language")
+    dlg = GFApplication.instance().openPrefsDialog("language")
     comboBox: QComboBox = dlg.findChild(QWidget, "prefctl_language")
     qcbSetIndex(comboBox, "fran.ais")
     dlg.accept()
@@ -144,7 +144,7 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("crlf.txt"))
     assert "<CRLF>" in rw.diffView.toPlainText()
 
-    dlg = mainWindow.openPrefsDialog("showStrayCRs")
+    dlg = GFApplication.instance().openPrefsDialog("showStrayCRs")
     checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showStrayCRs")
     assert checkBox.isChecked()
     checkBox.setChecked(False)
@@ -169,7 +169,7 @@ def testPrefsShowWhitespace(tempDir, mainWindow):
 
     assert not whitespaceFlagsSet()
 
-    dlg = mainWindow.openPrefsDialog("showWhitespace")
+    dlg = GFApplication.instance().openPrefsDialog("showWhitespace")
     checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showWhitespace")
     assert checkBox is not None
     assert not checkBox.isChecked()
@@ -179,7 +179,7 @@ def testPrefsShowWhitespace(tempDir, mainWindow):
     assert settings.prefs.showWhitespace
     assert whitespaceFlagsSet()
 
-    dlg = mainWindow.openPrefsDialog("showWhitespace")
+    dlg = GFApplication.instance().openPrefsDialog("showWhitespace")
     checkBox: QCheckBox = dlg.findChild(QCheckBox, "prefctl_showWhitespace")
     checkBox.setChecked(False)
     dlg.accept()
@@ -190,7 +190,7 @@ def testPrefsShowWhitespace(tempDir, mainWindow):
 
 def testPrefsUserCommandsSyntaxHighlighter(mainWindow):
     # This is just for code coverage for now.
-    dlg = mainWindow.openPrefsDialog("commands")
+    dlg = GFApplication.instance().openPrefsDialog("commands")
     editor: QPlainTextEdit = dlg.findChild(QPlainTextEdit, "prefctl_commands")
     editor.setPlainText(textwrap.dedent("""\
     # this is a standalone comment (not a command title)
@@ -202,12 +202,12 @@ def testPrefsUserCommandsSyntaxHighlighter(mainWindow):
 
 
 def testPrefsUserCommandsGuide(mainWindow):
-    dlg = mainWindow.openPrefsDialog("language")
+    dlg = GFApplication.instance().openPrefsDialog("language")
     if not QT5:  # Qt 5 doesn't want to hide the guide button initially, but I don't care about Qt 5
         assert not dlg.guideButton.isVisible()
     dlg.reject()
 
-    dlg = mainWindow.openPrefsDialog("commands")
+    dlg = GFApplication.instance().openPrefsDialog("commands")
     guideBrowser = dlg.guideBrowser
     guideButton = dlg.guideButton
     assert guideButton.isVisible()

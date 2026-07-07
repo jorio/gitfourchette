@@ -19,6 +19,7 @@ from typing import TypeVar, Literal
 import pygit2
 import pytest
 
+from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.porcelain import *
 from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
@@ -174,11 +175,6 @@ class DelayGitCommandContext:
         self.oldCommand = rawCommand
         self.newCommand = delayCommand(*rawTokens, delay=delay, block=block)
 
-    @property
-    def mainWindow(self):
-        from gitfourchette.application import GFApplication
-        return GFApplication.instance().mainWindow
-
     def __enter__(self):
         # We'll change the git command in the prefs, which invalidates
         # GitDriver's cached version info. Some tasks need this version info
@@ -188,13 +184,13 @@ class DelayGitCommandContext:
         from gitfourchette.gitdriver import GitDriver
         rawVersionText = GitDriver.runSync("version")
 
-        self.mainWindow.onAcceptPrefsDialog({"gitPath": self.newCommand})
+        GFApplication.applyPrefs(gitPath=self.newCommand)
 
         assert not GitDriver._cachedGitVersionValid
         GitDriver._cacheGitVersion(rawVersionText)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.mainWindow.onAcceptPrefsDialog({"gitPath": self.oldCommand})
+        GFApplication.applyPrefs(gitPath=self.oldCommand)
 
 
 class MockDesktopServicesContext(QObject):
@@ -259,9 +255,10 @@ def unpackRepo(
         renameTo="",
 ) -> str:
     tempDirPath = tempDir if isinstance(tempDir, str) else tempDir.name
+    tempDirPath = Path(tempDirPath)
+    tempDirPath = tempDirPath.resolve()
 
     path = Path(tempDirPath, testRepoName)
-    path = path.resolve()
     assert not path.exists()
 
     zipPath = getTestDataPath(f"{testRepoName}.zip")
@@ -832,3 +829,36 @@ def dismissToolTip(pattern: str):
     assert re.search(pattern, QToolTip.text(), re.I)
     QToolTip.hideText()
     waitUntilTrue(lambda: not QToolTip.isVisible())
+
+
+def runShellScript(script: str, directory: str, sig=TEST_SIGNATURE):
+    from gitfourchette.toolbox.gitutils import signatureEnvironmentVariables
+
+    env = {}
+
+    # Sanitize author/committer
+    env.update(signatureEnvironmentVariables(sig, "AUTHOR"))
+    env.update(signatureEnvironmentVariables(sig, "COMMITTER"))
+
+    # Make sure we're forwarding the correct git config directories
+    assert os.environ.get("GIT_CONFIG_GLOBAL", ""), "fixture didn't set GIT_CONFIG_GLOBAL"
+    assert os.environ.get("GIT_CONFIG_SYSTEM", ""), "fixture didn't set GIT_CONFIG_SYSTEM"
+
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -eu",
+    ]
+    lines.extend(f"export {k}={shlex.quote(v)}" for k, v in env.items())
+    lines.append(script)
+
+    scriptPath = Path(qTempDir(), "scenario.sh")
+    scriptPath.write_text("\n".join(lines))
+    scriptPath.chmod(0o700)
+    scriptPath = str(scriptPath)
+
+    # Run script inside Flatpak sandbox, not via flatpak-spawn
+    # (this will inherit anything set in os.environ)
+    if FLATPAK:
+        scriptPath = ToolCommands.FlatpakSandboxedCommandPrefix + scriptPath
+
+    ToolCommands.runSync(scriptPath, directory=directory, strict=True)
