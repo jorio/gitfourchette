@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -53,8 +53,14 @@ class Banner(QFrame):
         button = QToolButton(self)
         button.setText(text)
         button.setProperty(PERMANENT_PROPERTY, "true" if permanent else "")
+
+        # Harmonize button width in vertical banner
+        if self.orientation == Qt.Orientation.Vertical:
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
         if self.property("class") != "merge":
             button.setAutoRaise(True)
+
         self.buttons.append(button)
 
         if callback is not None:
