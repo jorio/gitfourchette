@@ -1256,8 +1256,8 @@ class MainWindow(QMainWindow):
 
             ActionDef(
                 _(f"Op&en in {getExternalEditorName()}"),
-                lambda: ToolProcess.startTextEditor(self, workdirProxy()),
                 icon="code",
+                lambda: self.openRepoInEditor(workdirProxy()),
                 shortcuts=GlobalShortcuts.NO_SHORTCUT,
                 tip=_(f"Open this repo’s working directory in {getExternalEditorName()}"),
             ),
@@ -1280,6 +1280,13 @@ class MainWindow(QMainWindow):
                 icon="rename",
             ),
         ]
+
+    def openRepoInEditor(self, workdir: str) -> None:
+        if settings.prefs.externalEditor == "":
+            setUpToolCommand(self, "externalEditor")
+            return
+
+        ToolProcess.startTextEditor(self, workdir)
 
     def repolessSetNickname(self, workdir: str):
         defaultName = Path(workdir).name
