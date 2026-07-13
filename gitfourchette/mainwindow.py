@@ -34,7 +34,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
-from gitfourchette.settings import PrefEffects, TabBarClick
+from gitfourchette.settings import PrefEffects, TabBarClick, getExternalEditorName
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import TaskBook, RepoTaskRunner
 from gitfourchette.tasks.newrepotasks import NewRepo
@@ -1252,6 +1252,14 @@ class MainWindow(QMainWindow):
                 icon="terminal",
                 shortcuts=GlobalShortcuts.openTerminal,
                 tip=_("Open a terminal in the repo’s working directory"),
+            ),
+
+            ActionDef(
+                _(f"Op&en in {getExternalEditorName()}"),
+                lambda: ToolProcess.startTextEditor(self, workdirProxy()),
+                icon="code",
+                shortcuts=GlobalShortcuts.NO_SHORTCUT,
+                tip=_(f"Open this repo’s working directory in {getExternalEditorName()}"),
             ),
 
             ActionDef(
