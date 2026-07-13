@@ -1255,11 +1255,11 @@ class MainWindow(QMainWindow):
             ),
 
             ActionDef(
-                _(f"Op&en in {getExternalEditorName()}"),
+                _("Op&en Repo in {0}", getExternalEditorName()),
                 lambda: self.openRepoInEditor(workdirProxy()),
                 icon="prefs-diff",
                 shortcuts=GlobalShortcuts.NO_SHORTCUT,
-                tip=_(f"Open this repo’s working directory in {getExternalEditorName()}"),
+                tip=_("Open this repo’s working directory in {0}", getExternalEditorName()),
             ),
 
             ActionDef(
