@@ -196,7 +196,7 @@ def testTabBarActions(tempDir, mainWindow):
         triggerMenuAction(menu, "open repo in editor-shim.py")
         waitForFile(scratchPath)
         editorShimResult = readTextFile(scratchPath, unlink=True).splitlines()
-        assert terminalShimResult[0] == "hello world" # ensure editor opens
+        assert editorShimResult[0] == "hello world" # ensure editor opens
 
 
         menu.close()
