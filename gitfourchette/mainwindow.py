@@ -19,7 +19,7 @@ from gitfourchette import tasks
 from gitfourchette.application import GFApplication
 from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.dropzone import DropAction, DropZone
-from gitfourchette.exttools.toolprocess import ToolProcess
+from gitfourchette.exttools.toolprocess import ToolProcess, setUpToolCommand
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
