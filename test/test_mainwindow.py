@@ -156,7 +156,10 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 def testTabBarActions(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
-    GFApplication.applyPrefs(terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND')
+    GFApplication.applyPrefs(
+        terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND',
+        externalEditor=f'"{editorPath}" "{scratchPath}" "hello world"'
+        )
 
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")
@@ -189,6 +192,12 @@ def testTabBarActions(tempDir, mainWindow):
         terminalShimResult = readTextFile(scratchPath, unlink=True).splitlines()
         assert terminalShimResult[0] == "hello world"
         assert terminalShimResult[1].endswith(".sh")  # path to launcher script
+
+        triggerMenuAction(menu, "open repo in editor-shim.py")
+        waitForFile(scratchPath)
+        editorShimResult = readTextFile(scratchPath, unlink=True).splitlines()
+        assert terminalShimResult[0] == "hello world" # ensure editor opens
+
 
         menu.close()
 
