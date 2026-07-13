@@ -1256,8 +1256,8 @@ class MainWindow(QMainWindow):
 
             ActionDef(
                 _(f"Op&en in {getExternalEditorName()}"),
-                icon="code",
                 lambda: self.openRepoInEditor(workdirProxy()),
+                icon="prefs-diff",
                 shortcuts=GlobalShortcuts.NO_SHORTCUT,
                 tip=_(f"Open this repo’s working directory in {getExternalEditorName()}"),
             ),
