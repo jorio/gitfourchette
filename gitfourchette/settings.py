@@ -253,6 +253,7 @@ class PrefEffects:
         "language",
         "commands",
         "confirmCommands",
+        "externalEditor"
     }
     "Pref keys that trigger a rebuild of the main menu."
 
