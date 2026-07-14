@@ -35,7 +35,13 @@ class Trash:
         if not APP_TESTMODE:
             cacheDir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation)
         else:
-            cacheDir = qTempDir()
+            # CacheLocation is common for all tests, but we don't want parallel
+            # tests to pollute each other's trashes. So, use the test-specific
+            # temporary directory. Put the trash into a subdirectory that needs
+            # to be created in order to simulate a fresh install where the cache
+            # directory doesn't exist yet.
+            cacheDir = Path(qTempDir(), "fake_cache_directory")
+
         self.trashDir = Path(cacheDir, Trash.DirectoryName)
         self.trashFiles = []
         self.refreshFiles()
@@ -89,7 +95,7 @@ class Trash:
         maxFiles = max(0, self.maxFileCount() - 1)
         self.makeRoom(maxFiles)
 
-        self.trashDir.mkdir(exist_ok=True)
+        self.trashDir.mkdir(parents=True, exist_ok=True)
 
         now = QDateTime.currentDateTime().toString(Trash.QDateTimeFormat)
         wdID = Path(workdir).name
