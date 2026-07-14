@@ -207,7 +207,7 @@ class MockDesktopServicesContext(QObject):
     def recordUrl(self, url: QUrl):
         self.urls.append(url)
 
-    def lastUrlAsLocalFile(self):
+    def lastUrlAsLocalFile(self) -> str:
         url = self.urls[-1]
         if not url.isLocalFile():
             raise ValueError(f"last URL isn't a local file: {url}")

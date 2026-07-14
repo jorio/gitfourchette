@@ -775,7 +775,7 @@ class MainWindow(QMainWindow):
     def openRescueFolder(self):
         trash = Trash.instance()
         if trash.exists():
-            openFolder(trash.trashDir)
+            openFolder(str(trash.trashDir))
         else:
             showInformation(
                 self,

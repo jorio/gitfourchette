@@ -123,3 +123,16 @@ def testClearTrash(mainWindow):
     mainWindow.clearRescueFolder()
     acceptQMessageBox(mainWindow, "delete.+40.+discarded (patches|changes)")
     assert Trash.instance().size()[1] == 0
+
+
+def testOpenTrashFolder(mainWindow):
+    # Attempt to open trash without any files in it
+    triggerMenuAction(mainWindow.menuBar(), "help/open trash")
+    rejectQMessageBox(mainWindow, "there.s no trash folder")
+
+    # Open trash with some files
+    _fillTrashWithJunk(40)
+    with MockDesktopServicesContext(mainWindow) as services:
+        triggerMenuAction(mainWindow.menuBar(), "help/open trash")
+        openedPath = services.lastUrlAsLocalFile()
+        assert Trash.instance().trashDir.samefile(openedPath)
