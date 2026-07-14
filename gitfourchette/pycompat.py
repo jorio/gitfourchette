@@ -55,11 +55,25 @@ if not hasattr(_Path, "walk"):
 # Python 3.10, 3.11 compatibility
 # (`follow_symlinks` argument in Path.exists() is new in Python 3.12)
 if _sys.version_info < (3, 12):
-    def _pathExists(self: _Path, follow_symlinks=True):
-        return _pathExistsVanilla(self) if follow_symlinks else _os.path.lexists(self)
+    def _pathExists(self: _Path, follow_symlinks=True) -> bool:
+        if follow_symlinks:
+            return _pathExistsVanilla(self)
+        return _os.path.lexists(self)
 
     _pathExistsVanilla = _Path.exists
     _Path.exists = _pathExists
+
+
+# Python 3.10, 3.11, 3.12 compatibility
+# (`follow_symlinks` argument in Path.is_file() is new in Python 3.13)
+if _sys.version_info < (3, 13):
+    def _pathIsFile(self: _Path, follow_symlinks=True) -> bool:
+        if follow_symlinks:
+            return _pathIsFileVanilla(self)
+        return not self.is_symlink() and _pathIsFileVanilla(self)
+
+    _pathIsFileVanilla = _Path.is_file
+    _Path.is_file = _pathIsFile
 
 
 # Python 3.10, 3.11, 3.12 compatibility (glob.translate is new Python 3.13)

@@ -78,7 +78,9 @@ class Trash:
         return self.trashDir.is_dir()
 
     def pathIsTrashManaged(self, p: Path) -> bool:
-        return p.is_relative_to(self.trashDir) and (p.is_file() or p.is_symlink())
+        if not p.is_relative_to(self.trashDir):
+            return False
+        return p.is_file(follow_symlinks=False) or p.is_symlink()
 
     def refreshFiles(self):
         self.trashFiles.clear()
@@ -89,7 +91,7 @@ class Trash:
     def makeRoom(self, maxFiles: int):
         while len(self.trashFiles) > maxFiles:
             f = self.trashFiles.pop()
-            if f.is_file():
+            if self.pathIsTrashManaged(f):
                 logger.debug(f"Deleting trash file {f}")
                 f.unlink()
 
