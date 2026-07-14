@@ -1,5 +1,6 @@
 Sidebar {
     background: palette(window);
+    color: palette(text);  /* improve contrast on Fedora/GNOME */
 }
 
 Banner.diff, ContextHeader {
