@@ -2,6 +2,8 @@
 
 import enum as _enum
 import glob as _glob
+import os as _os
+import sys as _sys
 from pathlib import Path as _Path
 
 
@@ -48,6 +50,16 @@ if not hasattr(_Path, "walk"):
             yield root2, dirs1, files1
 
     _Path.walk = _pathWalk
+
+
+# Python 3.10, 3.11 compatibility
+# (`follow_symlinks` argument in Path.exists() is new in Python 3.12)
+if _sys.version_info < (3, 12):
+    def _pathExists(self: _Path, follow_symlinks=True):
+        return _pathExistsVanilla(self) if follow_symlinks else _os.path.lexists(self)
+
+    _pathExistsVanilla = _Path.exists
+    _Path.exists = _pathExists
 
 
 # Python 3.10, 3.11, 3.12 compatibility (glob.translate is new Python 3.13)
