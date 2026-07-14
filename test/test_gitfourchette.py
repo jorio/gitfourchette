@@ -689,6 +689,12 @@ def testRestoreSession(tempDir, mainWindow):
     # Hide something in sidebar
     rw.toggleHideRefPattern("refs/heads/no-parent")
 
+    # Set repo nickname
+    triggerMenuAction(mainWindow.menuBar(), "repo/rename")
+    tid = findQDialog(mainWindow, "nickname", t=TextInputDialog)
+    tid.lineEdit.setText("Nickname0005")
+    tid.accept()
+
     # End this session
     originalWindow = mainWindow
     originalWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
@@ -722,6 +728,9 @@ def testRestoreSession(tempDir, mainWindow):
     # Make sure hidden branch is still hidden
     hiddenBranchNode = rw.sidebar.findNodeByRef("refs/heads/no-parent")
     assert rw.sidebar.sidebarModel.isExplicitlyHidden(hiddenBranchNode)
+
+    # Make sure nickname still set
+    assert mainWindow2.tabs.tabs.tabText(mainWindow2.tabs.currentIndex()) == "Nickname0005"
 
     # Clean up
     mainWindow2.close()

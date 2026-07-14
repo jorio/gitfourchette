@@ -1297,6 +1297,7 @@ class MainWindow(QMainWindow):
 
     def _repolessSetNicknameImpl(self, workdir: str, nick: str):
         settings.history.setRepoNickname(workdir, nick)
+        settings.history.setDirty()
         tabWidget = self.tabWidgetForWorkdirPath(workdir)
         if isinstance(tabWidget, RepoWidget):
             # Percolate to sidebar, etc.
