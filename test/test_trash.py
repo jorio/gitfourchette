@@ -113,16 +113,16 @@ def testTrashFull(tempDir, mainWindow):
 
 
 def testClearTrash(mainWindow):
-    assert Trash.instance().size()[1] == 0
+    assert Trash.instance().count() == 0
 
     mainWindow.clearRescueFolder()
     acceptQMessageBox(mainWindow, "no discarded (patches|changes) to delete")
 
     _fillTrashWithJunk(40)
-    assert Trash.instance().size()[1] == 40
+    assert Trash.instance().count() == 40
     mainWindow.clearRescueFolder()
     acceptQMessageBox(mainWindow, "delete.+40.+discarded (patches|changes)")
-    assert Trash.instance().size()[1] == 0
+    assert Trash.instance().count() == 0
 
 
 def testOpenTrashFolder(mainWindow):
@@ -136,3 +136,20 @@ def testOpenTrashFolder(mainWindow):
         triggerMenuAction(mainWindow.menuBar(), "help/open trash")
         openedPath = services.lastUrlAsLocalFile()
         assert Trash.instance().trashDir.samefile(openedPath)
+
+
+def testTrashSymlinkNameConflicts(mainWindow, tempDir):
+    wd = tempDir.name
+    trash = Trash.instance()
+
+    from gitfourchette import settings
+    settings.prefs.maxTrashFiles = max(300, settings.prefs.maxTrashFiles)
+
+    assert trash.maxFileCount() >= 300
+    assert trash.MaxUniqueSuffix < trash.maxFileCount()
+
+    Path(wd, "trashed_symlink").symlink_to(Path(wd, "nowhere"))
+
+    # Saturate trash with symlinks
+    while trash.count() < trash.maxFileCount():
+        trash.backupFile(wd, "trashed_symlink")

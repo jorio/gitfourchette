@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class Trash:
     DirectoryName = "trash"
     QDateTimeFormat = "yyyyMMdd-HHmmss"
+    MaxUniqueSuffix = 99
 
     _instance: Trash | None = None
 
@@ -76,10 +77,13 @@ class Trash:
     def exists(self) -> bool:
         return self.trashDir.is_dir()
 
+    def pathIsTrashManaged(self, p: Path) -> bool:
+        return p.is_relative_to(self.trashDir) and (p.is_file() or p.is_symlink())
+
     def refreshFiles(self):
         self.trashFiles.clear()
         if self.exists():
-            self.trashFiles.extend(p for p in self.trashDir.iterdir() if p.is_file())
+            self.trashFiles.extend(p for p in self.trashDir.iterdir() if self.pathIsTrashManaged(p))
             self.trashFiles.sort(reverse=True)
 
     def makeRoom(self, maxFiles: int):
@@ -106,11 +110,15 @@ class Trash:
         uniqueName = withUniqueSuffix(
             stem,
             ext=ext,
-            reserved=lambda candidate: Path(self.trashDir, candidate).exists(),
-            stop=99,
+            reserved=lambda candidate: Path(self.trashDir, candidate).exists(follow_symlinks=False),
+            stop=Trash.MaxUniqueSuffix,
             suffixFormat="({})")
 
         path = Path(self.trashDir, uniqueName)
+
+        # Replace existing file if withUniqueSuffix ran out of suffixes
+        path.unlink(missing_ok=True)
+
         self.trashFiles.insert(0, path)
         return path
 
@@ -168,11 +176,14 @@ class Trash:
         count = 0
 
         for f in self.trashFiles:
-            if f.is_file():
+            if self.pathIsTrashManaged(f):
                 size += f.lstat().st_size
                 count += 1
 
         return size, count
+
+    def count(self) -> int:
+        return self.size()[1]
 
     def clear(self):
         self.makeRoom(0)
