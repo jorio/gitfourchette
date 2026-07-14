@@ -1,5 +1,18 @@
 # GitFourchette version history
 
+## 1.9.1 (2026-07-14)
+
+Quality of life improvements:
+
+- Add Ghostty terminal preset (#116)
+- More legible text contrast in the sidebar in some desktop environments (Fedora/GNOME)
+
+Bug fixes:
+
+- Fix "repo nickname" dialog introduced in 1.9.0 didn't save nickname across sessions
+- Fix regression in trash system (first discard after fresh install) (#119)
+- Fix "empty trash" didn't clean up trashed symlinks
+
 ## 1.9.0 (2026-07-01)
 
 New features:

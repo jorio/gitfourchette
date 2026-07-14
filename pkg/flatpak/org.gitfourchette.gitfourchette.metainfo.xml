@@ -66,6 +66,22 @@
   </keywords>
 
   <releases>
+    <release version="1.9.1" date="2026-07-14" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.9.1</url>
+      <description>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>Add Ghostty terminal preset (#116)</li>
+        <li>More legible text contrast in the sidebar in some desktop environments (Fedora/GNOME)</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Fix "repo nickname" dialog introduced in 1.9.0 didn't save nickname across sessions</li>
+        <li>Fix regression in trash system (first discard after fresh install) (#119)</li>
+        <li>Fix "empty trash" didn't clean up trashed symlinks</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.9.0" date="2026-07-01" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.9.0</url>
       <description>
