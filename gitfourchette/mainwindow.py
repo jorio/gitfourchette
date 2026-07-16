@@ -19,7 +19,7 @@ from gitfourchette import tasks
 from gitfourchette.application import GFApplication
 from gitfourchette.codeview.codeview import CodeView
 from gitfourchette.dropzone import DropAction, DropZone
-from gitfourchette.exttools.toolprocess import ToolProcess
+from gitfourchette.exttools.toolprocess import ToolProcess, setUpToolCommand
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.clonedialog import CloneDialog
@@ -34,7 +34,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repowidget import RepoWidget
-from gitfourchette.settings import PrefEffects, TabBarClick
+from gitfourchette.settings import PrefEffects, TabBarClick, getExternalEditorName
 from gitfourchette.syntax import LexJobCache
 from gitfourchette.tasks import TaskBook, RepoTaskRunner
 from gitfourchette.tasks.newrepotasks import NewRepo
@@ -1255,6 +1255,14 @@ class MainWindow(QMainWindow):
             ),
 
             ActionDef(
+                _("Op&en Repo in {0}", getExternalEditorName()),
+                lambda: self.openRepoInEditor(workdirProxy()),
+                icon="prefs-diff",
+                shortcuts=GlobalShortcuts.NO_SHORTCUT,
+                tip=_("Open this repo’s working directory in {0}", getExternalEditorName()),
+            ),
+
+            ActionDef(
                 _("Cop&y Repo Path"),
                 lambda: self.repolessCopyPath(workdirProxy()),
                 tip=_("Copy the absolute path to this repo’s working directory to the clipboard"),
@@ -1272,6 +1280,13 @@ class MainWindow(QMainWindow):
                 icon="rename",
             ),
         ]
+
+    def openRepoInEditor(self, workdir: str) -> None:
+        if settings.prefs.externalEditor == "":
+            setUpToolCommand(self, "externalEditor")
+            return
+
+        ToolProcess.startTextEditor(self, workdir)
 
     def repolessSetNickname(self, workdir: str):
         defaultName = Path(workdir).name

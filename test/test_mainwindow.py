@@ -156,7 +156,9 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 def testTabBarActions(tempDir, mainWindow):
     editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
-    GFApplication.applyPrefs(terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND')
+    GFApplication.applyPrefs(
+        terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND'
+    )
 
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")
@@ -172,11 +174,13 @@ def testTabBarActions(tempDir, mainWindow):
     assert isinstance(widget0, RepoWidget)
     assert isinstance(widget1, RepoStub)
 
-    for tabIndex, wd in enumerate([wd0, wd1]):
+    def getMenu(tIndex: int) -> QMenu:
         tabBar = mainWindow.tabs.tabs
-        tabRect = tabBar.tabRect(tabIndex)
-        menu = summonContextMenu(tabBar, tabRect.center())
+        tabRect = tabBar.tabRect(tIndex)
+        return summonContextMenu(tabBar, tabRect.center())
 
+    for tabIndex, wd in enumerate([wd0, wd1]):
+        menu = getMenu(tabIndex)
         triggerMenuAction(menu, "copy repo path")
         assert QApplication.clipboard().text() == wd
 
@@ -189,6 +193,25 @@ def testTabBarActions(tempDir, mainWindow):
         terminalShimResult = readTextFile(scratchPath, unlink=True).splitlines()
         assert terminalShimResult[0] == "hello world"
         assert terminalShimResult[1].endswith(".sh")  # path to launcher script
+
+        # Test open repo in editor, with editor not set.
+        triggerMenuAction(menu, "open repo in external editor")
+        rejectQMessageBox(mainWindow, r"text editor.+isn.t configured")
+
+        # Test open repo in editor, with editor is set
+        GFApplication.applyPrefs(
+            externalEditor=f'"{editorPath}" "{scratchPath}" "hello world"'
+        )
+        menu.close()
+        menu = getMenu(tabIndex)  # reload menu, and verify editor changed + is working.
+        triggerMenuAction(menu, "open repo in editor-shim.py")
+        waitForFile(scratchPath)
+        editorShimResult = readTextFile(scratchPath, unlink=True).splitlines()
+        assert editorShimResult[0] == "hello world"  # ensure editor opens
+        assert Path(wd).samefile(editorShimResult[1])
+        GFApplication.applyPrefs(
+            externalEditor=""
+        )  # revert to no external editor, for the next wd.
 
         menu.close()
 
