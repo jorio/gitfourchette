@@ -1180,7 +1180,9 @@ class RepoTaskRunner(QObject):
         if message and exception.asStatusMessage:
             self.progress.emit("\u26a0 " + message, False)
         elif message:
-            qmb = asyncMessageBox(self.parent(), exception.icon, task.name(), message)
+            parentWidget = self.parent()
+            assert isinstance(parentWidget, (QWidget, None))
+            qmb = asyncMessageBox(parentWidget, exception.icon, task.name(), message)
             if exception.details:
                 qmb.setDetailedText(exception.details)
             qmb.show()

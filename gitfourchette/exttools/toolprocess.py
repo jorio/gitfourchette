@@ -152,18 +152,23 @@ class ToolProcess(QProcess):
             self.start()
             logger.info(f"(PID {self.processId()})")
 
-    def onFinished(self, code, status):
+    def parentWidget(self) -> QWidget:
+        parent = self.parent()
+        assert isinstance(parent, QWidget)
+        return parent
+
+    def onFinished(self, code: int, status: QProcess.ExitStatus):
         logger.info(f"Process done: {code} {status}")
         self.disconnectFromParent()
         if not WINDOWS and code == 127:
             # The Flatpak distribution runs non-Flatpak commands through `env`,
             # which returns 127 if the command isn't found.
-            onExternalToolProcessError(self.parent(), self.prefKey)
+            onExternalToolProcessError(self.parentWidget(), self.prefKey)
 
-    def onErrorOccurred(self, processError):
+    def onErrorOccurred(self, processError: QProcess.ProcessError):
         logger.info(f"Process error: {processError}")
         self.disconnectFromParent()
-        onExternalToolProcessError(self.parent(), self.prefKey)
+        onExternalToolProcessError(self.parentWidget(), self.prefKey)
 
     def onParentDestroyedWhileProcessRunning(self):
         # Disconnect signals

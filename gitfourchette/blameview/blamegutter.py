@@ -90,7 +90,7 @@ class BlameGutter(CodeGutter):
         return self.preferredWidth
 
     def eventFilter(self, watched, event: QEvent):
-        if event.type() == QEvent.Type.ToolTip:
+        if event.type() == QEvent.Type.ToolTip and isinstance(event, QHelpEvent):
             return self.doToolTip(event)
         return False
 

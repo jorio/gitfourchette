@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from gitfourchette.graph.graph import CommitTraits
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -194,7 +195,7 @@ class CommitLogModel(QAbstractListModel):
         return False
 
 
-def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
+def commitAuthorTooltip(commit: CommitTraits, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
     def formatTime(sig: Signature):
         return escape(signatureDateFormat(sig))
 
@@ -231,7 +232,7 @@ def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus, gpgKeyInfo: str) -
     return markup
 
 
-def commitMessageTooltip(commit: Commit) -> str:
+def commitMessageTooltip(commit: CommitTraits) -> str:
     message = commit.message.rstrip()
     maxLength = max(len(line) for line in message.splitlines())
     message = escape(message)

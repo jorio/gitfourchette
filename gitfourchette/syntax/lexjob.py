@@ -30,7 +30,7 @@ class LexJob(QObject):
 
     pulse = Signal()
 
-    def __init__(self, lexer: Lexer, data: bytes, fileKey: KeyType):
+    def __init__(self, lexer: Lexer, data: bytes | str, fileKey: KeyType):
         # Don't bind the QObject to a parent to allow Python's refcounting to
         # purge evicted cache entries that are not currently in use by the UI.
         super().__init__(None)
@@ -46,7 +46,7 @@ class LexJob(QObject):
         self.fileSize = len(data)
 
         self.currentLine = 1
-        self.lexGen = lexer.get_tokens(data)
+        self.lexGen = lexer.get_tokens(data)  # type: ignore[arg-type] # pygments stubs unaware that data can be bytes
 
         self.scheduler = QTimer(self)
         self.scheduler.setSingleShot(True)

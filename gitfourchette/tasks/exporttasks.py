@@ -51,6 +51,19 @@ class ExportCommitAsPatch(RepoTask):
         yield from savePatch(self, patch, fileName)
 
 
+class ExportStashAsPatch(ExportCommitAsPatch):
+    def flow(self, oid: Oid, fileName=""):
+        if not fileName:
+            commit = self.repo.peel_commit(oid)
+            message = _p("patch file name, please keep it short",
+                         "stashed on {commit}",
+                         commit=shortHash(commit.parent_ids[0]))
+            summary = strip_stash_message(commit.message)[:50].strip()
+            fileName = f"{self.repo.repo_name()} - {message} - {summary}.patch"
+
+        yield from super().flow(oid, fileName)
+
+
 class ExportABDiffAsPatch(RepoTask):
     def flow(self, diffAB: tuple[Oid, Oid]):
         fileName = f"{self.repo.repo_name()} - {shortHash(diffAB[0])}...{shortHash(diffAB[1])}.patch"
@@ -60,16 +73,6 @@ class ExportABDiffAsPatch(RepoTask):
         patch = driver.stdoutScrollback()
 
         yield from savePatch(self, patch, fileName)
-
-
-class ExportStashAsPatch(ExportCommitAsPatch):
-    def flow(self, oid: Oid):
-        commit = self.repo.peel_commit(oid)
-        message = _p("patch file name, please keep it short",
-                     "stashed on {commit}", commit=shortHash(commit.parent_ids[0]))
-        summary = strip_stash_message(commit.message)[:50].strip()
-        fileName = f"{self.repo.repo_name()} - {message} - {summary}.patch"
-        yield from super().flow(oid, fileName)
 
 
 class ExportWorkdirAsPatch(RepoTask):

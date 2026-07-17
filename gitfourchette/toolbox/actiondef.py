@@ -37,7 +37,7 @@ class ActionDef:
     checkState: int = 0
     radioGroup: str = ""
     enabled: bool = True
-    submenu: list[ActionDef] = dataclasses.field(default_factory=list)
+    submenu: list[ActionDef] | QMenu = dataclasses.field(default_factory=list)
     shortcuts: MultiShortcut | ShortcutKeys = ""
     tip: str = ""
     objectName: str = ""
@@ -99,6 +99,7 @@ class ActionDef:
 
     def makeSubmenu(self, parent: QMenu) -> QMenu:
         assert self.submenu
+        assert not isinstance(self.submenu, QMenu)
 
         submenu = ActionDef.makeQMenu(parent=parent, actionDefs=self.submenu)
         submenu.setObjectName(f"{parent.objectName()}_ActionDefSubmenu" if parent else "ActionDefSubmenu")

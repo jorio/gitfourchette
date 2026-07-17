@@ -158,7 +158,7 @@ class PrefsFile:
                 continue
 
             try:
-                value = self.decode(value, fields[key].type)
+                value = self.decode(value, fields[key].type)  # type: ignore
             except ValueError as error:
                 logger.warning(f"{prefsPath}: {key}: {error}")
                 continue
@@ -182,7 +182,7 @@ class PrefsFile:
         return o
 
     @staticmethod
-    def decode(o: Any, dstType: type | UnionType | GenericAlias) -> Any:
+    def decode(o: Any, dstType: type) -> Any:
         """ Convert a value coming from a JSON blob to a target type """
         construct: typing.Callable[[Any], Any] | None = None
 

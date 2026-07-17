@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -166,7 +166,7 @@ def _showExcMessageBox(qmb):
 
 
 def asyncMessageBox(
-        parent: QWidget,
+        parent: QWidget | None,
         icon: MessageBoxIconName,
         title: str,
         text: str,

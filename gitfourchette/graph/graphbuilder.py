@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,11 +9,10 @@ import functools
 import logging
 from collections.abc import Sequence, Iterable, Callable, Set
 
-from gitfourchette.graph.graph import Graph, BatchRow, KF_INTERVAL, Oid
+from gitfourchette.graph.graph import Graph, BatchRow, KF_INTERVAL, Oid, CommitTraits
 from gitfourchette.graph.graphsplicer import GraphSplicer
 from gitfourchette.graph.graphtrickle import GraphTrickle
 from gitfourchette.graph.graphweaver import GraphWeaver
-from gitfourchette.porcelain import Commit as _RealCommitType
 from gitfourchette.toolbox import Benchmark
 
 logger = logging.getLogger(__name__)
@@ -169,7 +168,7 @@ class GraphSpliceLoop:
     def __init__(
             self,
             graph: Graph,
-            oldCommitSequence: list[_RealCommitType | MockCommit],
+            oldCommitSequence: list[CommitTraits],
             oldHeads: Iterable[Oid],
             newHeads: Iterable[Oid],
             hideSeeds: Set[Oid] | None = None,
@@ -184,7 +183,7 @@ class GraphSpliceLoop:
 
         self.graph = graph
         self.oldCommitSequence = oldCommitSequence
-        self.commitSequence: list[_RealCommitType | MockCommit] = []  # unknown yet
+        self.commitSequence: list[CommitTraits] = []  # unknown yet
         self.oldHeads = oldHeads
         self.newHeads = newHeads
         self.hideSeeds = hideSeeds

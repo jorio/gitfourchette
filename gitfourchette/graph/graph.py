@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -10,12 +10,22 @@ import bisect
 import logging
 from dataclasses import dataclass
 from collections.abc import Iterable, Iterator, Set
-from typing import ClassVar
+from typing import ClassVar, Protocol
 
 from gitfourchette.appconsts import *
-from gitfourchette.porcelain import Oid
+from gitfourchette.porcelain import Oid, Signature
 
 logger = logging.getLogger(__name__)
+
+
+class CommitTraits(Protocol):
+    id: Oid
+    parent_ids: list[Oid]
+    message: str
+    author: Signature
+    committer: Signature
+    gpg_signature: tuple[bytes, bytes]
+
 
 KF_INTERVAL = 5000
 """
@@ -259,10 +269,10 @@ class Arc:
     lane: int
     "Lane assigned to this arc"
 
-    openedBy: Oid
+    openedBy: Oid | None
     "Hash of the opening commit (in git parlance, the child commit)"
 
-    closedBy: Oid
+    closedBy: Oid | None
     "Hash of the closing commit (in git parlance, the parent commit)"
 
     junctions: list[ArcJunction]
@@ -344,7 +354,7 @@ class Frame:
     """ A frame is a slice of the graph at a given row. """
 
     row: BatchRow
-    commit: Oid
+    commit: Oid | None
     solvedArcs: list[Arc | None]  # Arcs that have resolved their parent commit
     openArcs: list[Arc | None]  # Arcs that have not resolved their parent commit yet
     lastArc: Arc
@@ -617,8 +627,8 @@ class Graph:
             closedAt=BATCHROW_UNDEF,
             chain=ChainHandle(BATCHROW_UNDEF, BATCHROW_UNDEF),
             lane=-1,
-            openedBy="!TOP",
-            closedBy="!BOTTOM",
+            openedBy=None,
+            closedBy=None,
             junctions=[],
             nextArc=None)
         self.ownBatches = []

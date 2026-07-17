@@ -224,9 +224,15 @@ class VerifyGpgSignature(RepoTask):
             paras.append(f"<i>{escape(keyInfo)}</i>")
 
         title = _("Verify signature in commit {0}", tquo(shortHash(oid)))
-        mbIcon = ("information" if not fail else
-                  "critical" if status in [GpgStatus.RevokedKey, GpgStatus.Bad] else
-                  "warning")
+
+        mbIcon: MessageBoxIconName
+        if not fail:
+            mbIcon = "information"
+        elif status in [GpgStatus.RevokedKey, GpgStatus.Bad]:
+            mbIcon = "critical"
+        else:
+            mbIcon = "warning"
+
         qmb = asyncMessageBox(self.parentWidget(), mbIcon, title, paragraphs(paras),
                               QMessageBox.StandardButton.Ok)# | QMessageBox.StandardButton.Help)
         qmb.setDetailedText(driver.stderrScrollback())

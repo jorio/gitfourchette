@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -54,9 +54,11 @@ def paragraphs(*args: str | list[str]) -> str:
 
     # If passed an actual list object, use that as the argument list.
     if len(args) == 1 and isinstance(args[0], list):
-        args = args[0]
+        strings = args[0]
+    else:
+        strings = args
 
-    inner = "</p><p>".join(args)
+    inner = "</p><p>".join(strings)
     return f"<p>{inner}</p>"
 
 
