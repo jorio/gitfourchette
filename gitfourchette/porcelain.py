@@ -722,13 +722,13 @@ class Repo(_VanillaRepository):
     def head_branch_fullname(self) -> str:
         return self.head.name
 
-    def peel_commit(self, commit_id: Oid) -> Commit:
+    def peel_commit(self, commit_id: Oid | str) -> Commit:
         return self[commit_id].peel(Commit)
 
-    def peel_blob(self, blob_id: Oid) -> Blob:
+    def peel_blob(self, blob_id: Oid | str) -> Blob:
         return self[blob_id].peel(Blob)
 
-    def peel_tree(self, tree_id: Oid) -> Tree:
+    def peel_tree(self, tree_id: Oid | str) -> Tree:
         return self[tree_id].peel(Tree)
 
     def in_workdir(self, path: str) -> str:

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ statusPrecedence = {
 class StashDialog(QDialog):
     def __init__(
             self,
-            repoStatus: dict[str, int],
+            repoStatus: dict[str, FileStatus],
             preTicked: list[str],
             parent: QWidget):
         super().__init__(parent)

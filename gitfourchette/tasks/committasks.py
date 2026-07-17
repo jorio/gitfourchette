@@ -150,7 +150,7 @@ class NewCommit(RepoTask):
     ):
         # Git ignores GIT_AUTHOR_* when amending or concluding a cherrypick
         # unless we pass --reset-author.
-        resetAuthor = author and (amend or repositoryState == RepositoryState.CHERRYPICK)
+        resetAuthor = bool(author and (amend or repositoryState == RepositoryState.CHERRYPICK))
 
         args = [
             "-c", "core.abbrev=no",

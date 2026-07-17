@@ -13,6 +13,7 @@ from gitfourchette import settings
 from gitfourchette.appconsts import *
 from gitfourchette.gitdriver import GitDelta
 from gitfourchette.graph import Graph, GraphSpliceLoop, MockCommit
+from gitfourchette.graph.graphbuilder import CommitTraits
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
@@ -106,7 +107,7 @@ class RepoModel:
     """Walker used to generate the graph. Call initializeWalker before use.
     Keep it around to speed up ulterior refreshes."""
 
-    commitSequence: list[Commit]
+    commitSequence: list[CommitTraits]
     "Ordered list of commits."
 
     truncatedHistory: bool
@@ -588,7 +589,7 @@ class RepoModel:
                 if ref.startswith(refPattern):
                     yield oid
 
-    def getCachedGpgStatus(self, commit: Commit) -> tuple[GpgStatus, str]:
+    def getCachedGpgStatus(self, commit: CommitTraits) -> tuple[GpgStatus, str]:
         oid = commit.id
 
         try:

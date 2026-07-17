@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -130,7 +130,7 @@ class GraphDiagram:
         self.scanlines.pop()
         self.margins.pop()
 
-    def bake(self):
+    def bake(self) -> str:
         if self.margins:
             numMargins = max(len(rowMargins) for rowMargins in self.margins)
         else:
@@ -142,7 +142,8 @@ class GraphDiagram:
 
         text = ""
         for margins, scanline in zip(self.margins, self.scanlines, strict=True):
-            for mWidth, mText in zip_longest(reversed(marginWidths), reversed(margins), fillvalue=""):
+            for mWidth, mText in zip_longest(reversed(marginWidths), reversed(margins)):
+                mWidth, mText = mWidth or 0, mText or ""
                 text += mText.rjust(mWidth) + " "
             text += ''.join(scanline).rstrip()
             text += "\n"

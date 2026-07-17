@@ -8,15 +8,12 @@ import logging
 import os
 import stat
 from pathlib import Path
-from typing import TypeVar
 
 import mfusepy as fuse
 from pygit2 import Blob, Commit, Object, Tree, Repository
 from pygit2.enums import ObjectType
 
 logger = logging.getLogger(__name__)
-
-TPeelable = TypeVar("TPeelable", bound=Object)
 
 
 class TreeMount(fuse.Operations):
@@ -27,10 +24,10 @@ class TreeMount(fuse.Operations):
         repo = Repository(workdir)
         try:
             try:
-                commit = repo[lookup]
+                gitObj = repo[lookup]
             except ValueError:
-                commit = repo.lookup_reference_dwim(lookup)
-            commit = commit.peel(Commit)
+                gitObj = repo.lookup_reference_dwim(lookup)
+            commit = gitObj.peel(Commit)
             ops = cls(commit, mountPoint)
             fuse.FUSE(ops, mountPoint, foreground=True, ro=True)
         finally:
@@ -48,15 +45,13 @@ class TreeMount(fuse.Operations):
         except AttributeError:  # Windows doesn't have these
             self.defaultGid, self.defaultUid = 0, 0
 
-    def _resolve(self, path: str, t: type[TPeelable] = Object) -> TPeelable:
+    def _resolve(self, path: str) -> Object:
         assert path.startswith("/")
         path = path.removeprefix("/")
         o = self.tree
         if path:
             for part in path.split("/"):
                 o = o[part]
-        if t is not Object:
-            return o.peel(t)
         return o
 
     @fuse.overrides(fuse.Operations)
@@ -70,9 +65,13 @@ class TreeMount(fuse.Operations):
         if o.type in (ObjectType.TREE, ObjectType.COMMIT):
             size = 0
             mode = stat.S_IFDIR | 0o111
-        else:
+        elif o.type == ObjectType.BLOB:
+            assert isinstance(o, Blob)
             size = o.size
             mode = o.filemode
+        else:
+            logger.warning(f"Unsupported object type {o.type} for: {path}")
+            return {}
 
         mode |= 0o444  # Make everything readable
 
@@ -101,12 +100,12 @@ class TreeMount(fuse.Operations):
 
     @fuse.overrides(fuse.Operations)
     def read(self, path: str, size: int, offset: int, fh: int) -> bytes:
-        blob = self._resolve(path, Blob)
+        blob = self._resolve(path).peel(Blob)
         return blob.data[offset: offset+size]
 
     @fuse.overrides(fuse.Operations)
     def readlink(self, path: str) -> str:
-        blobText = self._resolve(path, Blob).data.decode("utf-8")
+        blobText = self._resolve(path).peel(Blob).data.decode("utf-8")
         absTarget = Path(path).parent / blobText
         absOnHost = self.mountPointPathObj / absTarget.relative_to("/")
         return str(absOnHost)

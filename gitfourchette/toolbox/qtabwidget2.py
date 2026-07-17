@@ -207,7 +207,7 @@ class QTabWidget2(QWidget):
         self.stacked = QStackedWidget(self)
         self.stacked.setObjectName("QTW2StackedWidget")
 
-        self.shadowCurrentWidgetRef = weakref.ref(self)
+        self.shadowCurrentWidgetRef: weakref.ref[QWidget] = weakref.ref(self)
         """ Keep a weakref instead of a real reference to not impede GC of a
         dead widget. (A weakref on self stands in for "none".) """
 
