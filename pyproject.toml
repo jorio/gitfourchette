@@ -36,7 +36,15 @@ gitfourchette-askpass = "gitfourchette.forms.askpassdialog:main"
 gitfourchette-mount = "gitfourchette.mount.treemount:main"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-qt", "pytest-cov", "pytest-xdist", "ruff"]
+test = [
+    "pytest",
+    "pytest-qt",
+    "pytest-cov",
+    "pytest-xdist",
+    "ruff",
+    "mypy",
+    "types-Pygments",
+]
 pyqt6 = ["pyqt6"]
 # WARNING: PyQt5 support is deprecated and will be removed soon
 pyqt5 = ["pyqt5"]
@@ -153,3 +161,23 @@ ignore = ['E501', 'F403', 'F405', 'C901', 'B028']
 'gitfourchette/porcelain.py' = ['F401']
 'gitfourchette/qt.py' = ['F401']
 '**/__init__.py' = ['F401']
+
+#------------------------------------------------------------------------------
+# Type checking
+
+[tool.mypy]
+strict_optional = false
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+[[tool.mypy.overrides]]
+module = [
+    "gitfourchette.qt",
+    "gitfourchette.pycompat",
+    "gitfourchette.exttools.win32ctrlc",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["mfusepy", "psutil"]
+ignore_missing_imports = true

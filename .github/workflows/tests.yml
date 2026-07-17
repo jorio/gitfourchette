@@ -66,6 +66,10 @@ jobs:
 
     - run: ruff check
 
+    - name: Run mypy (only PyQt6 + recent Python)
+      run: mypy gitfourchette
+      if: ${{ matrix.qt == 'pyqt6' && matrix.py >= '3.13' }}
+
     - name: Unit tests
       run: ./test.py -v --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
 
