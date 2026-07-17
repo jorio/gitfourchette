@@ -6,6 +6,7 @@
 
 import logging
 from collections.abc import Generator
+from typing import TypeAlias
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -32,7 +33,7 @@ RENAME_COUNT_THRESHOLD = 100
 
 LONG_LINE_THRESHOLD = 10_000
 
-TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
+TAbstractDiffDocument: TypeAlias = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
 
 
 class PrimeRepo(RepoTask):
@@ -416,7 +417,8 @@ class LoadPatch(RepoTask):
         elif file.hasDiskStat():
             # Blob SHA-1 not available, but we've got a stat
             # (E.g. unstaged modification to an LFS file)
-            key = file.diskStat
+            mtime, size = file.diskStat
+            key = f"disk:{mtime},{size}"
         else:
             raise NotImplementedError("need valid blob id or stat for lexing")
 

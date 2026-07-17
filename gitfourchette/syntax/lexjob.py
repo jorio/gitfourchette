@@ -1,25 +1,26 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
-try:
-    from pygments.lexer import Lexer
-    from pygments.token import Token
-except ImportError:  # pragma: no cover
-    # If Pygments isn't available, LexJob should never be instantiated!
-    pass
+import typing
 
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import benchmark
 from gitfourchette.toolbox.textutils import qstringLength
 
+if typing.TYPE_CHECKING:
+    from pygments.lexer import Lexer
+    from pygments.token import _TokenType
+
 
 class LexJob(QObject):
-    KeyType = str
+    KeyType: typing.TypeAlias = str | Oid
+
     ChunkSize = 5000  # tokens
     ScheduleInitialDelay = 0  # ms
     ScheduleInterval = 0  # ms
@@ -58,7 +59,7 @@ class LexJob(QObject):
     def lexingComplete(self):
         return self.currentLine == 0
 
-    def tokens(self, lineNumber: int, fallbackText: str) -> list[tuple[Token, int]]:
+    def tokens(self, lineNumber: int, fallbackText: str) -> list[tuple[_TokenType, int]]:
         if self.lexingComplete or self.currentLine > lineNumber:
             return self.hqTokenMap[lineNumber]
 
