@@ -85,7 +85,7 @@ for _tentative in _qtBindingOrder:
     assert _tentative.islower()
 
     with _suppress(ImportError):
-        if _tentative == "pyside6":
+        if _tentative == "pyside6" and not _typing.TYPE_CHECKING:
             from PySide6.QtCore import *
             from PySide6.QtWidgets import *
             from PySide6.QtGui import *
@@ -99,7 +99,7 @@ for _tentative in _qtBindingOrder:
             QT_BINDING_VERSION = PYQT_VERSION_STR
             QT_BINDING = "PyQt6"
             QT6 = PYQT6 = True
-        elif _tentative == "pyqt5":
+        elif _tentative == "pyqt5" and not _typing.TYPE_CHECKING:
             from PyQt5.QtCore import *
             from PyQt5.QtWidgets import *
             from PyQt5.QtGui import *
