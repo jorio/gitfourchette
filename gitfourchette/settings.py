@@ -314,7 +314,7 @@ class History(PrefsFile):
         try:
             repo = self.repos[path]
         except KeyError:
-            repo: History.JsonRepo = {}
+            repo = History.JsonRepo()
             self.repos[path] = repo
         return repo
 
