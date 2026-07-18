@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from contextlib import suppress
-from typing import Any, overload
+from typing import Any, overload, TYPE_CHECKING
 
 from gitfourchette import settings
 from gitfourchette.localization import *
@@ -223,7 +223,10 @@ class SidebarModel(QAbstractItemModel):
 
     @property
     def _parentWidget(self) -> QWidget:
-        return QObject.parent(self)
+        parent = QObject.parent(self)
+        if APP_DEBUG or TYPE_CHECKING:
+            assert isinstance(parent, QWidget)
+        return parent
 
     @property
     def repo(self) -> Repo:
