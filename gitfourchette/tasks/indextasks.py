@@ -384,28 +384,39 @@ class AcceptMergeConflictResolution(RepoTask):
 
 
 class ApplyPatchFile(RepoTask):
-    def flow(self, reverse: bool = False, path: str = ""):
-        if reverse:
-            verb, title = _("revert"), _("Revert patch file")
-        else:
-            verb, title = _("apply"), _("Apply patch file")
-
-        patchFileCaption = _("Patch file")
-        allFilesCaption = _("All files")
-
-        if not path:
-            qfd = PersistentFileDialog.openFile(
-                self.parentWidget(), "OpenPatch", title,
-                filter=f"{patchFileCaption} (*.patch);;{allFilesCaption} (*)")
-            path = yield from self.flowFileDialog(qfd)
-
-        question = _("Do you want to {verb} patch file {path}?",
-                     verb=btag(verb), path=bquoe(os.path.basename(path)))
-
-        yield from ApplyPatchFile.do(self, reverse, -1, path, title, question)
+    def flow(self, path: str = ""):
+        yield from ApplyPatchFile.do(self, path=path)
 
     @staticmethod
-    def do(task: RepoTask, reverse: bool, context: int, path: str, title: str, question: str):
+    def do(
+            task: RepoTask,
+            path: str = "",
+            reverse: bool = False,
+            context: int = -1,
+            title: str = "",
+            question: str = "",
+    ):
+        # Fallback title
+        title = title or task.name()
+
+        # If no path, bring up file dialog
+        if not path:
+            patchFileCaption = _("Patch file")
+            allFilesCaption = _("All files")
+
+            qfd = PersistentFileDialog.openFile(
+                task.parentWidget(), "OpenPatch", title,
+                filter=f"{patchFileCaption} (*.patch);;{allFilesCaption} (*)")
+            path = yield from task.flowFileDialog(qfd)
+
+        # Fallback question
+        if not question:
+            verb = _("revert") if reverse else _("apply")
+            basename = Path(path).name
+            question = _("Do you want to {verb} patch file {path}?",
+                         verb=btag(verb), path=bquoe(basename))
+
+        # Build command
         stem = [
             "apply",
             *argsIf(reverse, "--reverse"),
@@ -444,9 +455,9 @@ class ApplyPatchFile(RepoTask):
                                 "{n} files modified in the working directory.", n=numFiles)
 
 
-class ApplyPatchFileReverse(ApplyPatchFile):
+class ApplyPatchFileReverse(RepoTask):
     def flow(self, path: str = ""):
-        yield from ApplyPatchFile.flow(self, reverse=True, path=path)
+        yield from ApplyPatchFile.do(self, path=path, reverse=True)
 
 
 class ApplyPatchData(RepoTask):
@@ -463,7 +474,13 @@ class ApplyPatchData(RepoTask):
         tempPatch.close()
         path = tempPatch.fileName()
 
-        yield from ApplyPatchFile.do(self, reverse, context, path, title, question)
+        yield from ApplyPatchFile.do(
+            self,
+            path=path,
+            reverse=reverse,
+            context=context,
+            title=title,
+            question=question)
 
 
 class RestoreRevisionToWorkdir(RepoTask):

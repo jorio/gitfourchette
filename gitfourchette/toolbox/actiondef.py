@@ -58,7 +58,9 @@ class ActionDef:
         elif isinstance(self.callback, SignalInstance):
             action.triggered.connect(self.callback)
         else:
-            action.triggered.connect(lambda: self.callback())
+            cb = self.callback
+            assert callable(cb)
+            action.triggered.connect(lambda: cb())
 
         if self.icon:
             action.setIcon(stockIcon(self.icon))

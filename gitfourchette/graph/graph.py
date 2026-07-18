@@ -158,8 +158,11 @@ class BatchRow:
     def __gt__(self, other: BatchRow | int) -> bool:
         return int(self) > int(other)
 
-    def __eq__(self, other: BatchRow | int) -> bool:
-        return int(self) == int(other)
+    def __eq__(self, other: object) -> bool:
+        try:
+            return int(self) == int(other)
+        except (TypeError, ValueError):
+            return False
 
 
 BATCHROW_UNDEF = BatchRow(-1, -1)

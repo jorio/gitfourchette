@@ -29,7 +29,7 @@ class BlameScrubberModel(QAbstractListModel):
     def rowCount(self, parent = ...) -> int:
         return len(self.blameModel.revList.sequence)
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         assert index.isValid()
 
         row = index.row()

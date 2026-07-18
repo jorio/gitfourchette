@@ -105,7 +105,7 @@ class CommitLogModel(QAbstractListModel):
             n += 1
         return n
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         row = index.row()
 
         if role == Qt.ItemDataRole.DisplayRole:

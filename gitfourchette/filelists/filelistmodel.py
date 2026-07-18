@@ -210,7 +210,7 @@ class FileListModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = QModelIndex_default) -> int:
         return len(self.deltas)
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         row = index.row()
         try:
             delta = self.deltas[row]

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from contextlib import suppress
-from typing import Any
+from typing import Any, overload
 
 from gitfourchette import settings
 from gitfourchette.localization import *
@@ -547,8 +547,20 @@ class SidebarModel(QAbstractItemModel):
 
         return self.createIndexFromNode(node)
 
-    def parent(self, index: QModelIndex) -> QModelIndex:
+    # Type checking boilerplate
+    @overload
+    def parent(self, child: QModelIndex) -> QModelIndex: ...
+
+    # Type checking boilerplate
+    @overload
+    def parent(self) -> QObject | None: ...
+
+    def parent(self, child: QModelIndex | None = None) -> QModelIndex | QObject | None:
+        if child is None:
+            return super().parent()
+
         # Return the parent of the given index
+        index = child
 
         # No repo or root node: no parent
         if not index.isValid():
@@ -575,7 +587,7 @@ class SidebarModel(QAbstractItemModel):
     def columnCount(self, parent: QModelIndex = QModelIndex_default) -> int:
         return 1
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
 

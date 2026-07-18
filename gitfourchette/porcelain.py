@@ -1305,7 +1305,7 @@ class Repo(_VanillaRepository):
     def apply(self,
               patch_data_or_diff: bytes | str | Diff,
               location: ApplyLocation = ApplyLocation.WORKDIR
-              ) -> Diff:
+              ):
         if isinstance(patch_data_or_diff, bytes | str):
             diff = Diff.parse_diff(patch_data_or_diff)
         elif isinstance(patch_data_or_diff, Diff):
@@ -1314,7 +1314,6 @@ class Repo(_VanillaRepository):
             raise TypeError("patch_data_or_diff must be bytes, str, or Diff")
 
         super().apply(diff, location)
-        return diff
 
     def get_submodule_workdir(self, submo_key: str) -> str:
         submo = self.submodules[submo_key]
