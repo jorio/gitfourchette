@@ -61,7 +61,6 @@ class DiffView(CodeView):
         self.gutter.lineDoubleClicked.connect(self.selectClumpOfLinesAt)
         self.gutter.selectionMiddleClicked.connect(self.onMiddleClick)
 
-
     def _initRubberBandButtons(self):
         self.stageButton = QToolButton()
         self.stageButton.setText(_("Stage Selection"))
@@ -128,6 +127,8 @@ class DiffView(CodeView):
     @benchmark
     def replaceDocument(self, repo: Repo, delta: GitDelta, locator: NavLocator, newDoc: DiffDocument):
         assert newDoc.document is not None
+        assert isinstance(self.highlighter, DiffHighlighter)
+        assert isinstance(self.gutter, DiffGutter)
 
         # No-op if reloading same document
         if newDoc is self.currentDiffDocument:

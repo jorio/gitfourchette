@@ -7,10 +7,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.codeview.codehighlighter import CodeHighlighter
 from gitfourchette.codeview.coderubberband import CodeRubberBand
 from gitfourchette.codeview.codesearch import CodeSearch
@@ -22,9 +22,6 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.qt import *
 from gitfourchette.syntax import ColorScheme
 from gitfourchette.toolbox import *
-
-if TYPE_CHECKING:
-    from gitfourchette.codeview.codegutter import CodeGutter
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +39,12 @@ class CodeView(QPlainTextEdit):
 
     FormattingMarkFlags = QTextOption.Flag.ShowTabsAndSpaces
 
-    def __init__(self, gutterClass, highlighterClass=CodeHighlighter, parent=None):
+    def __init__(
+            self,
+            gutterClass: type[CodeGutter] = CodeGutter,
+            highlighterClass: type[CodeHighlighter] = CodeHighlighter,
+            parent=None
+    ):
         super().__init__(parent)
 
         self.setReadOnly(True)

@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 
 
 class RepoWidget(QWidget):
+    sharedSplitterSizes: dict[str, list[int]] = {}
+    "Shared reference among all RepoWidgets"
+
     nameChange = Signal()
     openRepo = Signal(str, NavLocator)
     openPrefs = Signal(str)
@@ -55,7 +58,6 @@ class RepoWidget(QWidget):
     navHistory: NavHistory
 
     splittersToSave: list[QSplitter]
-    sharedSplitterSizes: dict[str, list[int]]
     centralSplitSizesBackup: list[int]
 
     @property
@@ -100,7 +102,6 @@ class RepoWidget(QWidget):
         self.navLocator = NavLocator()
         self.navHistory = NavHistory()
 
-        self.sharedSplitterSizes = self.window().sharedSplitterSizes  # Shared reference in MainWindow
         self.centralSplitSizesBackup = []
 
         # ----------------------------------

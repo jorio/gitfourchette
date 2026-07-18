@@ -109,10 +109,9 @@ def parseGitStatus(stdout: str, workdir: str) -> Iterator[tuple[GitDelta | None,
 def _parseStatusLine(ident: str, *tokens: str) -> tuple[GitDelta | None, GitDelta | None]:
     if ident == "1":
         # Ordinary changed entries
-        tokens = list(tokens)
-        path = tokens.pop()
-        tokens.extend(("0", path, path))
-        return _parseStatus2(*tokens)
+        path = tokens[-1]
+        tweakedTokens = tokens[:-1] + ("0", path, path)
+        return _parseStatus2(*tweakedTokens)
     elif ident == "2":
         # Renamed or copied entries
         return _parseStatus2(*tokens)

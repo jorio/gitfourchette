@@ -138,7 +138,7 @@ class SidebarDelegate(QStyledItemDelegate):
         iconMode = QIcon.Mode.Normal
         if isSelected:
             penColor = option.palette.color(colorGroup, QPalette.ColorRole.HighlightedText)
-            iconMode = QIcon.Mode.Selected if isActive else QIcon.Mode.SelectedInactive
+            iconMode = QIcon.Mode.Selected if isActive else QIcon.Mode.SelectedInactive  # type: ignore[attr-defined]
         elif not node.parent.parent and node.kind != SidebarItem.UncommittedChanges:
             penColor = option.palette.color(colorGroup, QPalette.ColorRole.WindowText)
             penColor.setAlphaF(.66)

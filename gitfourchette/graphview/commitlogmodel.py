@@ -153,7 +153,10 @@ class CommitLogModel(QAbstractListModel):
             if commit is None or commit.id == UC_FAKEID:
                 return tip
 
-            x = self.parent().mapFromGlobal(QCursor.pos()).x()
+            parentWidget = self.parent()
+            assert isinstance(parentWidget, QWidget)
+            x = parentWidget.mapFromGlobal(QCursor.pos()).x()
+
             for zone in reversed(zones):
                 if not (zone.left <= x <= zone.right):
                     continue

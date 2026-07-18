@@ -48,7 +48,7 @@ def showInFolder(path: str):  # pragma: no cover (platform-specific)
                     stringType = QMetaType.Type.QString.value
                 dbusArgs = QDBusArgument()
                 dbusArgs.beginArray(stringType)
-                dbusArgs.add(path)
+                dbusArgs.add(path)  # type: ignore[attr-defined] # incomplete stubs
                 dbusArgs.endArray()
             else:
                 # Thankfully, PySide6 is more pythonic here.

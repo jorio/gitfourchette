@@ -59,8 +59,6 @@ class MainWindow(QMainWindow):
     showStatusBarAction: QAction
     showMenuBarAction: QAction
 
-    sharedSplitterSizes: dict[str, list[int]]
-
     def __init__(self):
         super().__init__()
 
@@ -68,8 +66,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.welcomeStack)
 
         self.setObjectName("GFMainWindow")
-
-        self.sharedSplitterSizes = {}
 
         self.setWindowTitle(qAppName())
 
@@ -963,7 +959,7 @@ class MainWindow(QMainWindow):
         # restored in application.py to avoid flashing a window with incorrect
         # dimensions on boot
 
-        self.sharedSplitterSizes = copy.deepcopy(session.splitterSizes)
+        RepoWidget.sharedSplitterSizes = copy.deepcopy(session.splitterSizes)
 
         # Stop here if there are no tabs to load
         if not session.tabs:
@@ -1031,7 +1027,7 @@ class MainWindow(QMainWindow):
     def saveSession(self, writeNow=False):
         session = settings.Session()
         session.windowGeometry = self.saveGeometry().data()
-        session.splitterSizes = self.sharedSplitterSizes.copy()
+        session.splitterSizes = RepoWidget.sharedSplitterSizes.copy()
         session.tabs = [widget.workdir for widget in self.tabs.widgets()]
         session.activeTabIndex = self.tabs.currentIndex()
         session.setDirty()

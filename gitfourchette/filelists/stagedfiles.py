@@ -76,6 +76,9 @@ class StagedFiles(FileList):
         actions += super().contextMenuActions(deltas)
         return actions
 
+    def wantStageOrUnstage(self):
+        self.unstage()
+
     def unstage(self):
         deltas = list(self.selectedDeltas())
         UnstageFiles.invoke(self, deltas)

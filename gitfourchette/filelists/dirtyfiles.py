@@ -129,6 +129,9 @@ class DirtyFiles(FileList):
         actions += super().contextMenuActions(deltas)
         return actions
 
+    def wantStageOrUnstage(self):
+        self.stage()
+
     def stage(self):
         deltas = list(self.selectedDeltas())
         StageFiles.invoke(self, deltas)

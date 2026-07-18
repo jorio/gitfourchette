@@ -181,7 +181,9 @@ class CloneDialog(QDialog):
         # QComboBox's arrow button - which cannot be hidden - still pops up
         # something when clicked, as the user might expect.
         if not settings.history.cloneHistory:
-            clearItem: QStandardItem = urlEdit.model().item(urlEdit.count()-1)
+            itemModel = urlEdit.model()
+            assert isinstance(itemModel, QStandardItemModel)
+            clearItem: QStandardItem = itemModel.item(urlEdit.count() - 1)
             clearItem.setFlags(clearItem.flags() & ~Qt.ItemFlag.ItemIsEnabled)
 
         self.ui.urlEdit.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
