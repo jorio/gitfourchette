@@ -13,7 +13,7 @@ from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 
 
-def savePatch(task: RepoTask, patch: str, fileName="") -> str:
+def savePatch(task: RepoTask, patch: str, fileName="") -> RepoTask.FlowGeneratorType:
     if not patch:
         raise AbortTask(_("Nothing to export. The patch is empty."), icon="information")
 

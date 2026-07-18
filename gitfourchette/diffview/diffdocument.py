@@ -270,7 +270,7 @@ class DiffDocument:
                 perfectClumpTally -= 1
                 minuses += 1
             else:
-                assert origin == " ", f"unknown origin: '{origin.encode('unicode_escape')}'"
+                assert origin == " ", f"unknown origin: {origin.encode('unicode_escape')!r}"
                 assert ld.newLineNo == newLine
                 assert ld.oldLineNo == oldLine
                 newLine += 1

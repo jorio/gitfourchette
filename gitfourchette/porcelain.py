@@ -1541,9 +1541,11 @@ class Repo(_VanillaRepository):
 
     def listall_submodules_dict_at_head(self) -> dict[str, str]:
         try:
-            old_gitmodules = self.head_tree[".gitmodules"].data.decode("utf-8")
-        except KeyError:
+            gitmodules_blob: Blob = self.head_tree[".gitmodules"].peel(Blob)
+        except (KeyError,  # .gitmodules doesn't exist
+                ValueError):  # .gitmodules not Blob (probably Tree)
             return {}
+        old_gitmodules = gitmodules_blob.data.decode("utf-8")
         return self.listall_submodules_dict(config_text=old_gitmodules)
 
     def _get_cached_config(self, cache_key: str, path: str, strict: bool) -> _configparser.ConfigParser:
