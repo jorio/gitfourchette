@@ -359,10 +359,11 @@ class CodeView(QPlainTextEdit):
         clickedCursor = self.cursorForPosition(point)
 
         # Get actions from concrete class
-        actions = self.contextMenuActions(clickedCursor)
+        specializedActions = self.contextMenuActions(clickedCursor)
 
         # Append common CodeView actions
-        actions += [
+        actions: list[ActionDef | QAction] = [
+            *specializedActions,
             ActionDef.SEPARATOR,
             *[a for a in bottomMenu.actions() if not a.isSeparator()],
             ActionDef.SEPARATOR,
