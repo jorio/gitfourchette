@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import suppress
 from typing import Literal
 
@@ -578,11 +578,11 @@ class FileList(QListView):
         else:
             raise NotImplementedError(f"unknown special click action '{click}'")
 
-    def selectedDeltas(self) -> Generator[GitDelta, None, None]:
+    def selectedDeltas(self) -> Iterator[GitDelta]:
         for index in self.selectedIndexes():
             yield index.data(FileListModel.Role.Delta)
 
-    def selectedPaths(self) -> Generator[str, None, None]:
+    def selectedPaths(self) -> Iterator[str]:
         for index in self.selectedIndexes():
             yield index.data(FileListModel.Role.FilePath)
 

@@ -6,6 +6,7 @@
 
 import logging
 import re
+from collections.abc import Iterator
 from pathlib import Path
 
 from gitfourchette.gitdriver.gitdelta import GitDelta
@@ -241,7 +242,7 @@ def parseGitBlame(stdout: str):
             pass
 
 
-def parseAheadBehind(stdout: str):
+def parseAheadBehind(stdout: str) -> Iterator[tuple[str, tuple[int, int]]]:
     for pos, endPos in iterateLines(stdout):
         match = _aheadBehindPattern.match(stdout, pos, endPos)
         if not match:

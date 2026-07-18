@@ -9,7 +9,7 @@ from __future__ import annotations
 import difflib
 import re
 from bisect import bisect_left
-from collections.abc import Generator
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from gitfourchette import colors
@@ -416,7 +416,7 @@ class DiffDocument:
         assert not doppelgangerBlocksQueue, "should've consumed all doppelganger matching blocks!"
 
 
-def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Generator[tuple[int, int], None, None]:
+def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Iterator[tuple[int, int]]:
     px = 0
 
     for block in blockList:

@@ -25,6 +25,7 @@ import logging as _logging
 import os as _os
 import sys as _sys
 import typing as _typing
+from collections import abc as _collections_abc
 from contextlib import suppress as _suppress
 
 from gitfourchette.appconsts import *
@@ -243,7 +244,7 @@ if not hasattr(QCheckBox, 'checkStateChanged'):
 
 # Pythonic iterator for QTextFragments in a QTextBlock. Use this instead of QTextBlock.__iter__,
 # which in PySide6 is an inconvenient QTextBlock::iterator, and in PyQt6 isn't implemented at all.
-def _QTextBlock_fragments(block: QTextBlock) -> _typing.Generator[QTextFragment, None, None]:
+def _QTextBlock_fragments(block: QTextBlock) -> _collections_abc.Iterator[QTextFragment]:
     iterator = block.begin()  # QTextBlock::iterator
     while not iterator.atEnd():
         fragment = iterator.fragment()

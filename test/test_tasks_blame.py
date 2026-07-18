@@ -11,7 +11,7 @@ from contextlib import suppress
 
 import pytest
 
-from collections.abc import Generator
+from collections.abc import Iterator
 from typing import Literal
 
 from gitfourchette.blameview.blamemodel import Revision
@@ -48,7 +48,7 @@ class BlameFixture:
 
 
 @pytest.fixture
-def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
+def blameWindow(tempDir, mainWindow) -> Iterator[BlameWindow]:
     wd = unpackRepo(tempDir, "testrepoformerging")
 
     # Edit file so we have some uncommitted changes

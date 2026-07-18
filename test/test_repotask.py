@@ -4,7 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from collections.abc import Generator
+from collections.abc import Iterator
 
 import pytest
 
@@ -30,7 +30,7 @@ class SupportingWidget(QLabel):
 
 
 @pytest.fixture
-def taskRunner(qapp) -> Generator[RepoTaskRunner, None, None]:
+def taskRunner(qapp) -> Iterator[RepoTaskRunner]:
     widget = SupportingWidget()
     widget.show()
     assert not widget.taskRunner.isBusy()
