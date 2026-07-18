@@ -165,9 +165,6 @@ class RepoModel:
     workdirUnstagedDeltas: list[GitDelta]
     workdirStagedDeltas: list[GitDelta]
 
-    numUncommittedChanges: int
-    "Number of unstaged+staged files. Negative means unknown count."
-
     headIsDetached: bool
     homeBranch: str
 
@@ -234,6 +231,7 @@ class RepoModel:
 
     @property
     def numUncommittedChanges(self) -> int:
+        """ Number of unstaged+staged files. Negative means unknown count. """
         if self.workdirStatusReady:
             return self.workdirNumChanges
         else:
