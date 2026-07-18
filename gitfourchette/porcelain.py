@@ -31,6 +31,8 @@ from os.path import (
 )
 from pathlib import Path as _Path
 
+from pygit2 import settings as _pygit2settings
+
 from pygit2 import (
     Blob,
     Branch,
@@ -61,7 +63,6 @@ from pygit2 import (
 
     __version__ as PYGIT2_VERSION,
     LIBGIT2_VERSION,
-    settings as GitSettings,
 )
 
 from pygit2.enums import (
@@ -501,12 +502,10 @@ class GitConfigHelper:
         if not (GitConfigLevel.PROGRAMDATA <= level <= GitConfigLevel.GLOBAL):
             raise NotImplementedError(f"unsupported level {level}")
 
-        search_paths = GitSettings.search_path[level]
-
         # Several paths may be concatenated with GIT_PATH_LIST_SEPARATOR,
         # which git2/common.h defines as ":" (or ";" on Windows).
         # pygit2 doesn't expose this, but it appears to match os.pathsep.
-        search_paths = search_paths.split(_os.pathsep)
+        search_paths = _pygit2settings.search_path[level].split(_os.pathsep)
         search_paths = [path for path in search_paths if path]  # filter out any empty paths
 
         if not search_paths:
@@ -745,7 +744,7 @@ class Repo(_VanillaRepository):
                 and (include_gitdir or not path_obj.is_relative_to(self.path)))
 
     @property
-    def commondir(self):
+    def commondir(self) -> str:
         """
         Return the absolute path to this worktree's $GIT_COMMON_DIR.
         If this Repo isn't a worktree, the return value resolves to the same
@@ -756,9 +755,9 @@ class Repo(_VanillaRepository):
             commondir = _Path(path, "commondir")
             if commondir.exists():
                 path = commondir.read_text().rstrip()
-                path = commondir.parent / path
-                path = path.resolve(strict=True)
-                path = str(path)
+                path_obj = commondir.parent / path
+                path_obj = path_obj.resolve(strict=True)
+                path = str(path_obj)
                 # For compatibility with Repository.path, tack a '/' to the end
                 assert not path.endswith(_os.sep)
                 path += _os.sep

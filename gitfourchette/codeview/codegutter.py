@@ -1,18 +1,13 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
-
-if TYPE_CHECKING:
-    from gitfourchette.codeview.codeview import CodeView
 
 
 class CodeGutter(QWidget):
@@ -26,9 +21,9 @@ class CodeGutter(QWidget):
     lineDoubleClicked = Signal(QPoint)
     selectionMiddleClicked = Signal()
 
-    codeView: CodeView
+    codeView: QPlainTextEdit
 
-    def __init__(self, parent):
+    def __init__(self, parent: QPlainTextEdit):
         super().__init__(parent)
         self.codeView = parent
 
@@ -67,17 +62,14 @@ class CodeGutter(QWidget):
         # Double click to select clump of lines
         if event.button() == Qt.MouseButton.LeftButton:
             pos = event.position().toPoint()
-            # self.codeView.selectClumpOfLinesAt(clickPoint=pos)
             self.lineDoubleClicked.emit(pos)
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             pos = event.position().toPoint()
             if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
-                # self.codeView.selectWholeLinesTo(pos)
                 self.lineShiftClicked.emit(pos)
             else:
-                # self.codeView.selectWholeLineAt(pos)
                 self.lineClicked.emit(pos)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
@@ -87,7 +79,6 @@ class CodeGutter(QWidget):
     def mouseMoveEvent(self, event: QMouseEvent):
         if event.buttons() == Qt.MouseButton.LeftButton:
             pos = event.position().toPoint()
-            # self.codeView.selectWholeLinesTo(pos)
             self.lineShiftClicked.emit(pos)
 
     def paintBlocks(self, event: QPaintEvent, painter: QPainter, lineColor: QColor):

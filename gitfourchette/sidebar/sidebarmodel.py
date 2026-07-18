@@ -445,7 +445,7 @@ class SidebarModel(QAbstractItemModel):
         # Stashes
         # -----------------------------
         for i, stashCommitId in enumerate(repoModel.stashes):
-            message = repo[stashCommitId].message
+            message = repo[stashCommitId].peel(Commit).message
             message = strip_stash_message(message)
             refName = f"stash@{{{i}}}"
             node = SidebarNode(SidebarItem.Stash, str(stashCommitId))

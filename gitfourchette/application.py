@@ -143,19 +143,21 @@ class GFApplication(QApplication):
     # -------------------------------------------------------------------------
 
     def createTempDir(self):
-        tempDirPath = os.environ.get("GITFOURCHETTE_TEMPDIR", "")
-        if tempDirPath:
+        path: str | Path = os.environ.get("GITFOURCHETTE_TEMPDIR", "")
+        if path:
             pass
         elif FLATPAK:
             # Flatpak guarantees that "/run/user/1000/app/org.gitfourchette.gitfourchette" sits on a tmpfs,
             # and "/tmp" actually resolves to "/run/user/1000/app/org.gitfourchette.gitfourchette/tmp".
             # Use the real path instead of "/tmp" (QDir.tempPath() default value)
             # so that we can pass it to external tools outside our sandbox.
-            tempDirPath = Path(XDG_RUNTIME_DIR, "app", FLATPAK_ID)
-            assert tempDirPath.exists(), f"Expected to find Flatpak temp dir at: {tempDirPath}"
+            path = Path(XDG_RUNTIME_DIR, "app", FLATPAK_ID)
+            assert path.exists(), f"Expected to find Flatpak temp dir at: {path}"
         else:
-            tempDirPath = QDir.tempPath()
-        tempDirTemplate = str(Path(tempDirPath, self.applicationName()))
+            path = QDir.tempPath()
+
+        path = Path(path, self.applicationName())
+        tempDirTemplate = str(path)
         self.tempDir = QTemporaryDir(tempDirTemplate)
         self.tempDir.setAutoRemove(True)
 
@@ -576,7 +578,8 @@ class GFApplication(QApplication):
             # Eat QStatusTipEvent. The menubar emits those when a menu is hovered;
             # but since we don't use status tips, the status bar is cleared for no reason.
             if APP_DEBUG:
-                assert not event.tip(), "assuming QStatusTipEvent is always empty"
+                tip: str = event.tip() # type: ignore[attr-defined] # incomplete stubs
+                assert not tip, "assuming QStatusTipEvent is always empty"
             return True
 
         elif eventType == QEvent.Type.Show and isinstance(watched, QDialog):

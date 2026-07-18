@@ -11,7 +11,7 @@ import enum
 import logging
 import shlex
 from collections.abc import Generator
-from typing import Any, TYPE_CHECKING, Literal, TypeVar
+from typing import Any, TYPE_CHECKING, Literal, TypeVar, ClassVar
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.askpassdialog import AskpassDialog
@@ -121,6 +121,8 @@ class FlowControlToken:
     """
     Object that can be yielded from `RepoTask.flow()` to control the flow of the coroutine.
     """
+
+    BootstrapFlow: ClassVar[FlowControlToken]
 
     class Kind(enum.IntEnum):
         ContinueOnUiThread = enum.auto()
@@ -474,7 +476,7 @@ class RepoTask(QObject):
 
         token = FlowControlToken(FlowControlToken.Kind.WaitUserReady)
         try:
-            becameVisible = parentWidget.becameVisible
+            becameVisible: SignalInstance = parentWidget.becameVisible  # type: ignore[attr-defined]
         except AttributeError:
             logger.warning("Widget does not support becameVisible")
             return
@@ -1016,9 +1018,9 @@ class RepoTaskRunner(QObject):
             if task.broadcastProcesses():
                 process = task.currentProcess
                 try:
-                    _dummy = process._repoTaskBroadcastYet
+                    _dummy = process._repoTaskBroadcastYet  # type: ignore[attr-defined]
                 except AttributeError:
-                    process._repoTaskBroadcastYet = True
+                    process._repoTaskBroadcastYet = True  # type: ignore[attr-defined]
                     self.processStarted.emit(process, task.name())
 
             if RepoTaskRunner.ForceSerial:  # In unit tests, block until process has completed
@@ -1307,13 +1309,14 @@ class TaskInvocation:
             return
 
         # Find TaskRunner in QObject hierarchy
+        runner: RepoTaskRunner
         obj = self.invoker
         if isinstance(obj, RepoTaskRunner):
             runner = obj
         else:
             while obj is not None:
                 try:
-                    runner = obj.taskRunner
+                    runner = obj.taskRunner  # type: ignore[attr-defined]
                     assert isinstance(runner, RepoTaskRunner)
                     break
                 except AttributeError:

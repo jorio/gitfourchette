@@ -145,7 +145,7 @@ class FileList(QListView):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.onContextMenuRequested)
 
-        flModel = FileListModel(self, navContext)
+        flModel = FileListModel(self, self.repoModel.repo, navContext)
         self.setModel(flModel)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
@@ -574,12 +574,7 @@ class FileList(QListView):
         elif action == FileListClick.DiffTool:
             self.wantOpenInDiffTool()
         elif action == FileListClick.Stage:
-            if self.navContext == NavContext.UNSTAGED:
-                self.stage()
-            elif self.navContext == NavContext.STAGED:
-                self.unstage()
-            else:
-                QApplication.beep()
+            self.wantStageOrUnstage()
         else:
             raise NotImplementedError(f"unknown special click action '{click}'")
 
@@ -655,6 +650,10 @@ class FileList(QListView):
             paths.add(delta.old.path)
             paths.add(delta.new.path)
         NewStash.invoke(self, list(paths))
+
+    def wantStageOrUnstage(self):
+        # To be overridden in DirtyFiles and StagedFiles
+        QApplication.beep()
 
     def openSubmoduleTabs(self):
         for delta in self.selectedDeltas():

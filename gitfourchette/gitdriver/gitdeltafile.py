@@ -264,8 +264,7 @@ class GitDeltaFile:
             sha256 = _sha1ToSha256Equivalent[self.id]
         except KeyError:
             blobContents = self.read(repo)
-            sha256 = hashlib.sha256(blobContents)
-            sha256 = sha256.hexdigest()
+            sha256 = hashlib.sha256(blobContents).hexdigest()
             _sha1ToSha256Equivalent[self.id] = sha256
         return sha256
 

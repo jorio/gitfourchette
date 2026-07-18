@@ -158,6 +158,8 @@ class FileListModel(QAbstractListModel):
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
 
+    repo: Repo
+
     navContext: NavContext
     """
     COMMITTED, STAGED or UNSTAGED.
@@ -171,15 +173,12 @@ class FileListModel(QAbstractListModel):
     Does not contain paths.
     """
 
-    def __init__(self, parent: QWidget, navContext: NavContext):
+    def __init__(self, parent: QWidget, repo: Repo, navContext: NavContext):
         super().__init__(parent)
+        self.repo = repo
         self.navContext = navContext
         self.navLocator = NavLocator.Empty
         self.clear()
-
-    @property
-    def repo(self) -> Repo:
-        return self.parent().repo
 
     @property
     def parentWidget(self) -> QWidget:

@@ -8,6 +8,8 @@ import logging
 from contextlib import suppress
 from pathlib import Path
 
+import pygit2
+
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
@@ -270,7 +272,7 @@ class SetUpGitIdentity(RepoTask):
         # Fall back to a sensible path if the identity comes from /etc/gitconfig or some other systemwide file
         if editLevel not in [GitConfigLevel.XDG, GitConfigLevel.GLOBAL]:
             # Favor XDG path if we can, otherwise use ~/.gitconfig
-            if FREEDESKTOP and GitSettings.search_path[GitConfigLevel.XDG]:
+            if FREEDESKTOP and pygit2.settings.search_path[GitConfigLevel.XDG]:
                 editLevel = GitConfigLevel.XDG
             else:
                 editLevel = GitConfigLevel.GLOBAL

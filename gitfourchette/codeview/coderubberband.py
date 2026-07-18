@@ -26,7 +26,7 @@ class CodeRubberBand(QWidget):
         outlineColor: QColor = palette.color(QPalette.ColorRole.Base)
         outlineColor.setAlphaF(.75 if outlineColor.lightnessF() < .5 else .5)  # light mode: subtler alpha
 
-        if self.parent().hasFocus():
+        if self.parentWidget().hasFocus():
             try:
                 penColor = palette.accent().color()
             except AttributeError:  # pragma: no cover - TODO: Remove once we can drop compatibility with Qt <6.7.

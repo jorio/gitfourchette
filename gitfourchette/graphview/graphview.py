@@ -361,7 +361,7 @@ class GraphView(QListView):
 
         # Force redraw to reflect changes in row height, flattening, date format, etc.
         if invalidateMetrics:
-            self.itemDelegate().invalidateMetrics()
+            self.clDelegate.invalidateMetrics()
             self.model().layoutChanged.emit()
 
     # -------------------------------------------------------------------------
