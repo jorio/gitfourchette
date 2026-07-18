@@ -160,7 +160,7 @@ class BatchRow:
 
     def __eq__(self, other: object) -> bool:
         try:
-            return int(self) == int(other)
+            return int(self) == int(other)  # type: ignore[call-overload]
         except (TypeError, ValueError):
             return False
 

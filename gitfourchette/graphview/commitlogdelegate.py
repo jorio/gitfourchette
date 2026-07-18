@@ -568,13 +568,21 @@ class CommitLogDelegate(QStyledItemDelegate):
             yt =  .5 + frameRect.top()
             yb = -.5 + frameRect.bottom()
             ym =  .5 + int((yt+yb)/2)
+
             if rClip:
-                painter.drawLine(QLineF(x, yt, x, yb))
+                # Simple divider
+                divider = [QLineF(x, yt, x, yb)]
             else:
-                painter.drawLines([QLineF(x, yt, x, ym-3),
-                                   QLineF(x, ym+3, x, yb),
-                                   QLineF(x-2, ym-1, x+2, ym-1),
-                                   QLineF(x-2, ym+1, x+2, ym+1)])
+                # "Equals" sign punches through divider
+                divider = [QLineF(x, yt, x, ym-3),
+                           QLineF(x, ym+3, x, yb),
+                           QLineF(x-2, ym-1, x+2, ym-1),
+                           QLineF(x-2, ym+1, x+2, ym+1)]
+
+            if PYSIDE6:
+                painter.drawLines(divider)  # type: ignore[call-overload] # skip PySide6 for type checking
+            else:
+                painter.drawLines(*divider)
 
         # Append tooltip
         refToolTip = CommitToolTipZone(rect.left(), boxRect.right(), "ref", refName)
