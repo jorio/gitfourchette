@@ -1110,7 +1110,7 @@ class MainWindow(QMainWindow):
         elif action == DropAction.Open:
             self.openRepo(data, exactMatch=True)
         elif action == DropAction.Patch:
-            tasks.ApplyPatchFile.invoke(self, False, data)
+            tasks.ApplyPatchFile.invoke(self, data)
         else:
             warnings.warn(f"Unsupported drag-and-drop outcome {action}")
 
