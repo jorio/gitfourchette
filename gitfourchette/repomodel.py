@@ -7,7 +7,7 @@
 import enum
 import itertools
 import logging
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable, Iterator
 
 from gitfourchette import settings
 from gitfourchette.appconsts import *
@@ -574,7 +574,7 @@ class RepoModel:
 
         return seeds
 
-    def commitsMatchingRefPattern(self, refPattern: str) -> Generator[Oid, None, None]:
+    def commitsMatchingRefPattern(self, refPattern: str) -> Iterator[Oid]:
         if not refPattern.endswith("/"):
             # Explicit ref
             try:
