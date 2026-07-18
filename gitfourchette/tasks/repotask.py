@@ -279,7 +279,7 @@ class RepoTask(QObject):
     @property
     def rw(self) -> RepoWidget:  # hack for now - assume parent is a RepoWidget
         parentWidget = self.parentWidget()
-        if APP_DEBUG:
+        if APP_DEBUG or TYPE_CHECKING:
             from gitfourchette.repowidget import RepoWidget
             assert isinstance(parentWidget, RepoWidget)
         return parentWidget

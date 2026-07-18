@@ -91,13 +91,13 @@ class CommitPathspecFilter(QObject):
         self.filterOnly = False
 
     def wantFilter(self) -> bool:
-        return self.needle and self.matchingIds is not None and self.filterOnly
+        return bool(self.needle) and self.matchingIds is not None and self.filterOnly
 
     def isReady(self) -> bool:
-        return self.needle and self.matchingIds is not None
+        return bool(self.needle) and self.matchingIds is not None
 
     def isQueryPending(self) -> bool:
-        return self.needle and self.matchingIds is None
+        return bool(self.needle) and self.matchingIds is None
 
 
 class RepoModel:
