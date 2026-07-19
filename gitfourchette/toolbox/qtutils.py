@@ -233,8 +233,8 @@ class DisableWidgetUpdatesContext:
         self.widget.setUpdatesEnabled(True)
 
     @staticmethod
-    def methodDecorator(func):
-        def wrapper(*args, **kwargs):
+    def methodDecorator(func: Callable) -> Callable:
+        def wrapper(*args, **kwargs) -> Callable:
             widget: QWidget = args[0]
             with DisableWidgetUpdatesContext(widget):
                 return func(*args, **kwargs)
