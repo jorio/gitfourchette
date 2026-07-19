@@ -79,13 +79,19 @@ def parseGitStatus(stdout: str, workdir: str):
 
     while pos < limit:
         ident = stdout[pos]
-        try:
-            pattern = _gitStatusPatterns[ident]
-        except KeyError:
-            logging.warning(f"unknown git status ident '{ident}'")
+        pattern = _gitStatusPatterns.get(ident)
+        match = pattern.match(stdout, pos) if pattern is not None else None
+
+        if match is None:
+            # Unknown ident or malformed record. Skip to the next NUL-terminated
+            # entry rather than re-reading the same character forever.
+            logging.warning(f"skipping unparseable git status entry (ident '{ident}')")
+            nul = stdout.find("\x00", pos)
+            if nul < 0:
+                break
+            pos = nul + 1
             continue
 
-        match = pattern.match(stdout, pos)
         pos = match.end()
 
         staged, unstaged = _parseStatusLine(ident, *match.groups())
