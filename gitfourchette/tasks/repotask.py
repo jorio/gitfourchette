@@ -503,6 +503,9 @@ class RepoTask(QObject):
             yield from processWrapper.coWaitStart()
             if stdin:
                 process.write(stdin.encode("utf-8"))
+                # Close the write channel so children that read stdin to EOF
+                # (e.g. 'git lfs smudge') don't block forever.
+                process.closeWriteChannel()
             yield from processWrapper.coWaitFinished(autoFail)
         finally:
             self._currentProcess = None
