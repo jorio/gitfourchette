@@ -139,7 +139,7 @@ class AboutDialog(QDialog):
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
         ]
 
-        self.ui.ackBlurb.setText(paragraphs(ackText))
+        self.ui.ackBlurb.setText(paragraphs(*ackText))
 
         # ---------------------------------------------------------------------
         # License page

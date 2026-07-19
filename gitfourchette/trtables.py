@@ -383,12 +383,11 @@ class TrTables:
 
         sshAuthSock = os.environ.get("SSH_AUTH_SOCK", "")
         if sshAuthSock:
-            sshAuthSockHelp = paragraphs([
+            sshAuthSockHelp = paragraphs(
                 _("Note: Per {k}, your system is providing an ssh-agent ({v}). "
                   "It’s recommended to use this one."),
                 _("If your system’s agent isn’t saving any passphrases, "
-                  "make sure you’ve enabled {c} in your SSH configuration."),
-            ])
+                  "make sure you’ve enabled {c} in your SSH configuration."))
         else:
             sshAuthSockHelp = _("Note: Per {k}, no ssh-agent seems to be running on your system.")
         sshAuthSockHelp = "<blockquote>" + sshAuthSockHelp.format(

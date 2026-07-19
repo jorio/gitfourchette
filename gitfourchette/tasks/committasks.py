@@ -57,7 +57,7 @@ class NewCommit(RepoTask):
             yield from self.flowConfirm(
                 title=_("Create empty commit"),
                 verb=_("Empty commit"),
-                text=paragraphs(text))
+                text=paragraphs(*text))
 
         yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Commit"))
 

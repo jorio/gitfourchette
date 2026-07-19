@@ -195,14 +195,15 @@ class ApplyStash(RepoTask):
                          "because your files have diverged since they were stashed.", bquoe(stashMessage))]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
-            showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(message))
+            showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(*message))
 
         else:
             self.epilog.status = _("Stash {0} couldn’t be applied.", tquoe(stashMessage))
             message = [self.epilog.status]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
-            raise AbortTask(driver.htmlErrorText(paragraphs(message)), details=driver.formatCommandLine())
+            markup = driver.htmlErrorText(paragraphs(*message))
+            raise AbortTask(markup, details=driver.formatCommandLine())
 
 
 class DropStash(RepoTask):

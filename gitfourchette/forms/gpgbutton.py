@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -77,8 +77,10 @@ class GpgButton(QToolButton):
         else:
             lines.append(_("Tip: You can configure {flagconf} if you want to sign every commit."))
 
-        tip = "<html style='white-space: pre-wrap;'>" + paragraphs(lines).format(
-            flagconf="<i>commit.gpgSign</i>", keyconf="<i>user.signingKey</i>", yourkey=escape(key))
+        tip = "<html style='white-space: pre-wrap;'>" + paragraphs(*lines)
+        tip = tip.format(flagconf="<i>commit.gpgSign</i>",
+                         keyconf="<i>user.signingKey</i>",
+                         yourkey=escape(key))
 
         if willSign:
             icon = stockIcon("gpg-key", f"gray={colors.olive.name()}")

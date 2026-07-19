@@ -233,7 +233,7 @@ class VerifyGpgSignature(RepoTask):
         else:
             mbIcon = "warning"
 
-        qmb = asyncMessageBox(self.parentWidget(), mbIcon, title, paragraphs(paras),
+        qmb = asyncMessageBox(self.parentWidget(), mbIcon, title, paragraphs(*paras),
                               QMessageBox.StandardButton.Ok)# | QMessageBox.StandardButton.Help)
         qmb.setDetailedText(driver.stderrScrollback())
 

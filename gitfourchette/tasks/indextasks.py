@@ -167,7 +167,7 @@ class DiscardFiles(_BaseStagingTask):
 
         textPara.append(_("This cannot be undone!"))
 
-        yield from self.flowConfirm(text=paragraphs(textPara), verb=verb, buttonIcon="git-discard")
+        yield from self.flowConfirm(text=paragraphs(*textPara), verb=verb, buttonIcon="git-discard")
 
         self.epilog.effects |= TaskEffects.Workdir
         if numSubmos:
@@ -253,17 +253,18 @@ class DiscardModeChanges(_BaseStagingTask):
     def flow(self, deltas: list[GitDelta]):
         paths = [delta.new.path for delta in deltas]
         numFiles = len(paths)
-        textPara = []
 
         if numFiles == 0:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
             QApplication.beep()
             raise AbortTask()
-        elif numFiles == 1:
-            textPara.append(_("Really discard mode change in {0}?", bquo(paths[0])))
-        else:
-            textPara.append(_("Really discard mode changes in <b>{n} files</b>?", n=numFiles))
-        textPara.append(_("This cannot be undone!"))
-        yield from self.flowConfirm(text=paragraphs(textPara), verb=_("Discard mode changes"), buttonIcon="git-discard")
+
+        text = paragraphs(
+            (_("Really discard mode change in {0}?", bquo(paths[0]))
+             if numFiles == 1 else
+             _("Really discard mode changes in <b>{n} files</b>?", n=numFiles)),
+            _("This cannot be undone!"))
+
+        yield from self.flowConfirm(text=text, verb=_("Discard mode changes"), buttonIcon="git-discard")
 
         yield from self.flowEnterWorkerThread()
         self.epilog.effects |= TaskEffects.Workdir
@@ -301,13 +302,11 @@ class ApplyPatch(RepoTask):
 
         if purpose & PatchPurpose.Discard:
             title = TrTables.enum(purpose)
-            textPara = []
-            if purpose & PatchPurpose.Hunk:
-                textPara.append(_("Really discard this hunk?"))
-            else:
-                textPara.append(_("Really discard the selected lines?"))
-            textPara.append(_("This cannot be undone!"))
-            yield from self.flowConfirm(title, text=paragraphs(textPara), verb=title, buttonIcon="git-discard-lines")
+            isHunk = purpose & PatchPurpose.Hunk
+            text = paragraphs(
+                _("Really discard this hunk?") if isHunk else _("Really discard the selected lines?"),
+                _("This cannot be undone!"))
+            yield from self.flowConfirm(title, text=text, verb=title, buttonIcon="git-discard-lines")
 
             try:
                 Trash.instance().backupPatch(self.repo.workdir, subPatch, delta.new.path)
@@ -584,7 +583,7 @@ class AbortMerge(RepoTask):
                 lines.append(_("All <b>staged</b> changes will be lost."))
             lines.append(_n("This file will be reset:", "{n} files will be reset:", len(abortList)))
 
-        yield from self.flowConfirm(title=title, text=paragraphs(lines), verb=englishTitleCase(title),
+        yield from self.flowConfirm(title=title, text=paragraphs(*lines), verb=englishTitleCase(title),
                                     detailList=[escape(f) for f in abortList])
 
         self.epilog.effects |= TaskEffects.DefaultRefresh
