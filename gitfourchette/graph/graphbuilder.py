@@ -8,6 +8,7 @@ import dataclasses
 import functools
 import logging
 from collections.abc import Sequence, Iterable, Callable, Set
+from typing import cast
 
 from gitfourchette.graph.graph import Graph, BatchRow, KF_INTERVAL, Oid, CommitTraits
 from gitfourchette.graph.graphsplicer import GraphSplicer
@@ -34,33 +35,38 @@ class MockCommit:
     parent_ids: Sequence[Oid]
 
 
-# pygit2.Oid can't be subclassed.
+# pygit2.Oid can't be subclassed, and it prevents reassigning __repr__,
+# so we have to create a separate class that honors the Oid protocol.
 @functools.total_ordering  # saves me from implementing le,ne,gt,ge
 class MockOid:
-    @classmethod
-    def encode(cls, fakeOid: str) -> Oid:
-        assert isinstance(fakeOid, str)
-        return cls(fakeOid)
+    """
+    An Oid-like object augmented with a custom __repr__ string for unit tests.
 
+    MockOid("hello") encodes "hello" into a 20-byte buffer that serves as a
+    SHA-1 hash for interoperability with code that expects a real Oid.
+    MockOid.__repr__ decodes the original string from the 20-byte buffer
+    (e.g. "hello").
+    """
     @classmethod
-    def encodeAll(cls, *fakeOids) -> list[Oid]:
-        if not isinstance(fakeOids[0], str):
-            assert len(fakeOids) == 1
-            assert not isinstance(fakeOids[0], str)
-            fakeOidList = fakeOids[0]
-        else:
-            fakeOidList = fakeOids
-        return [cls.encode(o) for o in fakeOidList]
+    def encodeAll(cls, texts: Iterable[str]) -> list[Oid]:
+        assert not isinstance(texts, str), "don't pass a single string"
+        return [cast(Oid, MockOid(o)) for o in texts]
 
-    def __init__(self, fakeOid: str):
-        self.oid = Oid(raw=fakeOid.encode())
+    def __init__(self, text: str):
+        encoded: bytes = text.encode()
+        assert len(encoded) <= 20, f"too long for 20-byte Oid: {text}"
+        self.oid = Oid(raw=encoded)
 
     @property
     def __class__(self):
         return Oid
 
+    @__class__.setter
+    def __class__(self, value):
+        raise TypeError("cannot reassign __class__")
+
     @property
-    def raw(self):
+    def raw(self) -> bytes:
         return self.oid.raw
 
     def __str__(self):
