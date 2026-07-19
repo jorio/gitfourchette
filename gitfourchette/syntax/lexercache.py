@@ -141,7 +141,7 @@ class LexerCache:
                 continue
 
             lexerName = aliases[0]
-            patternSet = set()
+            patternSet: set[str] = set()
             if lexerName in lexers:  # pragma: no cover
                 logger.warning(f"Duplicated lexer name: {lexerName}")
             lexers[lexerName] = patternSet

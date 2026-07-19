@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
+
 from gitfourchette.application import GFApplication
 from gitfourchette.blameview.blamemodel import BlameModel, Revision
 from gitfourchette.blameview.blamescrubber import BlameScrubber
@@ -20,7 +22,7 @@ from gitfourchette.toolbox import *
 class BlameWindow(QWidget):
     exploreCommit = Signal(NavLocator)
 
-    _currentBlameWindows = []
+    _currentBlameWindows: list[BlameWindow] = []
     "Currently open BlameWindows"
 
     def __init__(self, blameModel: BlameModel):

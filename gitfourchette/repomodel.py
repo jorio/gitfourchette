@@ -136,6 +136,10 @@ class RepoModel:
     upstreams: dict[str, str]
     "Table of local branch names to upstream shorthand names."
 
+    aheadBehind: dict[str, tuple[int, int]]
+    """Table of local branch names to the number of commits the branch is
+    ahead/behind of its upstream."""
+
     superproject: str
     "Path of the superproject. Empty string if this isn't a submodule."
 
@@ -155,6 +159,7 @@ class RepoModel:
     commitPathspecFilter: CommitPathspecFilter
 
     gpgStatusCache: dict[Oid, tuple[GpgStatus, str]]
+    gpgVerifyQueue: set[Oid]
 
     workdirStale: bool
     "Flag indicating that the workdir should be refreshed before use."
@@ -280,7 +285,7 @@ class RepoModel:
             return headWasDetached != self.headIsDetached
 
         # Build reverse ref cache.
-        refsAt = {}
+        refsAt: dict[Oid, list[str]] = {}
         for k, v in refs.items():
             try:
                 refsAt[v].append(k)

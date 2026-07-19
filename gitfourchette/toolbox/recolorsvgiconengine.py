@@ -72,7 +72,7 @@ class RecolorSvgIconEngine(QIconEngine):
         self.svg = svg
         self.informalIconName = iconPath.name  # for debugging
         self.basePixmapKey = hash(svg)
-        self.renderers = {}
+        self.renderers: dict[QIcon.Mode, QSvgRenderer] = {}
         self.referenceSize = QSize(0, 0)
 
         self.initVariants()

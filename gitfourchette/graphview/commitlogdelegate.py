@@ -365,7 +365,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         xMax = painter.clipBoundingRect().right()
 
         # Group refs in clusters (branches with same upstream)
-        clusters = {}
+        clusters: dict[str, list[str]] = {}
         nonLooseRefs = set()
         for refName in refs:
             # Skip refboxes for hidden refs

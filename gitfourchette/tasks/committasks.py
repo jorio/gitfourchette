@@ -149,7 +149,7 @@ class NewCommit(RepoTask):
             amend=False,
             explicitGpgSign=False,
             explicitNoGpgSign=False,
-    ):
+    ) -> tuple[list[str], dict[str, str]]:
         # Git ignores GIT_AUTHOR_* when amending or concluding a cherrypick
         # unless we pass --reset-author.
         resetAuthor = bool(author and (amend or repositoryState == RepositoryState.CHERRYPICK))
@@ -166,7 +166,7 @@ class NewCommit(RepoTask):
             f"--message={message}"
         ]
 
-        env = {}
+        env: dict[str, str] = {}
 
         if author is not None:
             env |= signatureEnvironmentVariables(author, "AUTHOR")

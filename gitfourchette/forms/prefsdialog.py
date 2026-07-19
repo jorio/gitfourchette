@@ -74,9 +74,6 @@ def localeCodeToLanguageName(code: str):
 class PrefsDialog(QDialog):
     lastCategory = 0
 
-    prefDiff: dict[str, Any]
-    "Delta to on-disk preferences."
-
     CategoryPrefix = "_category_"
     SpacerPrefix = "_spacer"
     LabelPrefix = "_label_"
@@ -91,8 +88,10 @@ class PrefsDialog(QDialog):
         self.setObjectName("PrefsDialog")
         self.setWindowTitle(_("{app} Settings", app=qAppName()))
 
-        self.prefDiff = {}
-        self.categoryKeys = []
+        self.prefDiff: dict[str, Any] = {}
+        "Delta to on-disk preferences."
+
+        self.categoryKeys: list[str] = []
 
         self.categoryList = QListWidget()
         self.categoryList.setWordWrap(True)
