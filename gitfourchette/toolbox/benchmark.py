@@ -7,6 +7,7 @@
 import logging
 import os
 import time
+from collections.abc import Callable
 
 BENCHMARK_LOGGING_LEVEL = 5
 
@@ -72,9 +73,9 @@ class Benchmark:
         self.exit(exc_type)
 
 
-def benchmark(func):
+def benchmark(func: Callable) -> Callable:
     """ Function decorator that reports how long the function takes to run. """
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Callable:
         with Benchmark(func.__qualname__):
             return func(*args, **kwargs)
     return wrapper

@@ -54,7 +54,7 @@ class TreeMount(fuse.Operations):
                 o = o[part]
         return o
 
-    @fuse.overrides(fuse.Operations)
+    @fuse.overrides(fuse.Operations)  # type: ignore[untyped-decorator]
     def getattr(self, path: str, fh: int) -> dict[str, int]:
         try:
             o = self._resolve(path)
@@ -86,7 +86,7 @@ class TreeMount(fuse.Operations):
             "st_mode": mode,
         }
 
-    @fuse.overrides(fuse.Operations)
+    @fuse.overrides(fuse.Operations)  # type: ignore[untyped-decorator]
     def readdir(self, path: str, fh: int) -> fuse.ReadDirResult:
         o = self._resolve(path)
         if o.type == ObjectType.TREE:
@@ -98,12 +98,12 @@ class TreeMount(fuse.Operations):
         else:
             return []
 
-    @fuse.overrides(fuse.Operations)
+    @fuse.overrides(fuse.Operations)  # type: ignore[untyped-decorator]
     def read(self, path: str, size: int, offset: int, fh: int) -> bytes:
         blob = self._resolve(path).peel(Blob)
         return blob.data[offset: offset+size]
 
-    @fuse.overrides(fuse.Operations)
+    @fuse.overrides(fuse.Operations)  # type: ignore[untyped-decorator]
     def readlink(self, path: str) -> str:
         blobText = self._resolve(path).peel(Blob).data.decode("utf-8")
         absTarget = Path(path).parent / blobText
