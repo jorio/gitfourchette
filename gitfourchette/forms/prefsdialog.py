@@ -35,7 +35,7 @@ LANGUAGE_NAMES = {
 }
 
 
-def _boxWidget(layoutType, *controls):
+def _boxWidget(layoutType: type[QVBoxLayout | QHBoxLayout], *controls) -> QWidget:
     w = QWidget()
     layout: QBoxLayout = layoutType(w)
     layout.setSpacing(0)
@@ -144,7 +144,7 @@ class PrefsDialog(QDialog):
 
         self.setModal(True)
 
-    def _fillControls(self, focusOn):
+    def _fillControls(self, focusOn: str):
         skipKeys = self.getHiddenSettingKeys()
         form: QFormLayout | None = None
 

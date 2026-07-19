@@ -414,7 +414,7 @@ class CodeView(QPlainTextEdit):
     # ---------------------------------------------
     # Cursor/selection
 
-    def getSelectedLineExtents(self):
+    def getSelectedLineExtents(self) -> tuple[int, int]:
         """ Return block numbers of the first and last blocks encompassing the current selection """
 
         cursor: QTextCursor = self.textCursor()
@@ -430,11 +430,11 @@ class CodeView(QPlainTextEdit):
 
         return startBlock, endBlock
 
-    def getMaxPosition(self):
+    def getMaxPosition(self) -> int:
         lastBlock = self.document().lastBlock()
         return lastBlock.position() + max(0, lastBlock.length() - 1)
 
-    def getAnchorHomeLinePosition(self):
+    def getAnchorHomeLinePosition(self) -> int:
         cursor: QTextCursor = self.textCursor()
 
         # Snap anchor to start of home line
@@ -443,7 +443,7 @@ class CodeView(QPlainTextEdit):
 
         return cursor.anchor()
 
-    def getStartOfLineAt(self, point: QPoint):
+    def getStartOfLineAt(self, point: QPoint) -> int:
         clickedCursor: QTextCursor = self.cursorForPosition(point)
         clickedCursor.movePosition(QTextCursor.MoveOperation.StartOfBlock)
         return clickedCursor.position()
