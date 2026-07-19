@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -53,10 +53,6 @@ class QFilePickerCheckBox(QWidget):
         """ Override this function to display a validation warning when the user selects a file.
         Returning an empty string causes the warning to disappear. """
         raise NotImplementedError("override this")
-
-    def makeFixedHeight(self):
-        lh = self.browseButton.maximumHeight()
-        self.layout().setRowMinimumHeight(1, lh)
 
     def setText(self, caption: str):
         self.checkBox.setText(caption)
