@@ -356,10 +356,10 @@ class RepoWidget(QWidget):
             assert self.navLocator.isSimilarEnoughTo(locator), f"failed to jump to: {locator}"
 
     def navigateBack(self):
-        tasks.JumpBackOrForward.invoke(self, -1)
+        tasks.JumpBack.invoke(self)
 
     def navigateForward(self):
-        tasks.JumpBackOrForward.invoke(self, 1)
+        tasks.JumpForward.invoke(self)
 
     # -------------------------------------------------------------------------
 

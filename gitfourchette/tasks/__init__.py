@@ -52,7 +52,6 @@ from gitfourchette.tasks.misctasks import (
 from gitfourchette.tasks.jumptasks import (
     Jump,
     JumpBack,
-    JumpBackOrForward,
     JumpForward,
     JumpToHEAD,
     JumpToUncommittedChanges,

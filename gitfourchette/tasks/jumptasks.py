@@ -153,7 +153,12 @@ class Jump(RepoTask):
         delta: GitDelta | None = None
 
     def canKill(self, task: RepoTask):
-        return isinstance(task, Jump | RefreshRepo)
+        return isinstance(task, Jump
+                          | JumpBack
+                          | JumpForward
+                          | JumpToHEAD
+                          | JumpToUncommittedChanges
+                          | RefreshRepo)
 
     def flow(self, locator: NavLocator):
         if not locator:
@@ -608,16 +613,15 @@ class Jump(RepoTask):
             parts.append(f" <span style='color: gray;'>({suffix})</span>")
         return "".join(parts)
 
+    @classmethod
+    def _jumpDelta(cls, task: RepoTask, delta: int):
+        """
+        Navigate back or forward in the RepoWidget's NavHistory.
+        """
 
-class JumpBackOrForward(RepoTask):
-    """
-    Navigate back or forward in the RepoWidget's NavHistory.
-    """
-
-    def flow(self, delta: int):
         assert delta in [-1, 1], "illegal delta value"
 
-        rw = self.rw
+        rw = task.rw
 
         # Get starting point
         rw.saveFilePositions()
@@ -638,7 +642,7 @@ class JumpBackOrForward(RepoTask):
                 continue
 
             # Do the jump. This may be a no-op if the locator is stale.
-            yield from self.flowSubtask(Jump, locator)
+            yield from task.flowSubtask(cls, locator)
 
             # The jump was successful if the RepoWidget's locator
             # comes out similar enough to the one from the history.
@@ -654,27 +658,29 @@ class JumpBackOrForward(RepoTask):
         rw.historyChanged.emit()
 
 
-class JumpBack(JumpBackOrForward):
+class JumpBack(RepoTask):
     def flow(self):
-        yield from JumpBackOrForward.flow(self, -1)
+        yield from Jump._jumpDelta(self, -1)
 
 
-class JumpForward(JumpBackOrForward):
+class JumpForward(RepoTask):
     def flow(self):
-        yield from JumpBackOrForward.flow(self, 1)
+        yield from Jump._jumpDelta(self, 1)
 
 
-class JumpToUncommittedChanges(Jump):
+class JumpToUncommittedChanges(RepoTask):
     def flow(self):
-        yield from Jump.flow(self, NavLocator.inWorkdir())
+        locator = NavLocator.inWorkdir()
+        yield from self.flowSubtask(Jump, locator)
 
 
-class JumpToHEAD(Jump):
+class JumpToHEAD(RepoTask):
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoUnborn
 
     def flow(self):
-        yield from Jump.flow(self, NavLocator.inRef("HEAD"))
+        locator = NavLocator.inRef("HEAD")
+        yield from self.flowSubtask(Jump, locator)
 
 
 class RefreshRepo(RepoTask):

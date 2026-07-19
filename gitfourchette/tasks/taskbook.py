@@ -63,7 +63,6 @@ class TaskBook:
             tasks.HardSolveConflicts: _("Accept/reject incoming changes"),
             tasks.Jump: _("Navigate in repo"),
             tasks.JumpBack: _("Navigate back"),
-            tasks.JumpBackOrForward: _("Navigate forward"),
             tasks.JumpForward: _("Navigate forward"),
             tasks.JumpToHEAD: _("Go to HEAD commit"),
             tasks.JumpToUncommittedChanges: _("Go to Working Directory"),
