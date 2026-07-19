@@ -98,8 +98,7 @@ class ToolPresets:
     }
 
     # Filled in depending on platform
-    Terminals = {
-    }
+    Terminals: dict[str, str] = {}
 
     FlatpakIDs = {
         "CLion"             : ("CLion",         "com.jetbrains.CLion"),

@@ -27,7 +27,7 @@ class GraphDiagram:
 
     @staticmethod
     def parseDefinition(text: str) -> tuple[list[MockCommit], set[Oid]]:
-        sequence = []
+        sequence: list[MockCommit] = []
         seen: set[Oid] = set()
         heads: set[Oid] = set()
         commitsById: dict[Oid, MockCommit] = {}

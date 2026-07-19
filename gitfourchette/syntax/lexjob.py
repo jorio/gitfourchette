@@ -17,6 +17,11 @@ if typing.TYPE_CHECKING:
     from pygments.lexer import Lexer
     from pygments.token import _TokenType
 
+    LineTokenization: typing.TypeAlias = list[tuple[_TokenType, int]]
+    "Type alias for the tokens in a line + their UTF-16 lengths."
+
+_EmptyLineTokenization: LineTokenization = []
+
 
 class LexJob(QObject):
     KeyType: typing.TypeAlias = str | Oid
@@ -26,7 +31,6 @@ class LexJob(QObject):
     ScheduleInterval = 0  # ms
     MaxLowQualityLines = 100
     MaxLowQualityLineLength = 200
-    _EmptyTokenization = []
 
     pulse = Signal()
 
@@ -40,8 +44,8 @@ class LexJob(QObject):
         assert data, "don't create a LexJob without some data"
 
         self.lexer = lexer
-        self.lqTokenMap = {}
-        self.hqTokenMap = {1: []}
+        self.lqTokenMap: dict[int, LineTokenization] = {}
+        self.hqTokenMap: dict[int, LineTokenization] = {1: []}
         self.fileKey = fileKey
         self.fileSize = len(data)
 
@@ -59,7 +63,7 @@ class LexJob(QObject):
     def lexingComplete(self):
         return self.currentLine == 0
 
-    def tokens(self, lineNumber: int, fallbackText: str) -> list[tuple[_TokenType, int]]:
+    def tokens(self, lineNumber: int, fallbackText: str) -> LineTokenization:
         if self.lexingComplete or self.currentLine > lineNumber:
             return self.hqTokenMap[lineNumber]
 
@@ -77,7 +81,7 @@ class LexJob(QObject):
             if (len(self.lqTokenMap) > LexJob.MaxLowQualityLines
                     or len(fallbackText) > LexJob.MaxLowQualityLineLength):
                 # To ease CPU load, skip long lines and stop LQ-lexing "below the fold".
-                lqTokens = LexJob._EmptyTokenization
+                lqTokens = _EmptyLineTokenization
             else:
                 # Perform low-quality lexing and cache the result.
                 lqTokens = [(t, qstringLength(v)) for _i, t, v in self.lexer.get_tokens_unprocessed(fallbackText)]

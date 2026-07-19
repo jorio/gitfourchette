@@ -162,8 +162,8 @@ class ColorScheme:
                     return QColor('#' + style.style_for_token(t)['color'])
             return QColor(Qt.GlobalColor.black)
 
-        primary = {}
-        secondary = {}
+        primary: dict[str, str] = {}
+        secondary: dict[str, str] = {}
 
         for styleName in sorted(allStyles):
             style = pygments.styles.get_style_by_name(styleName)

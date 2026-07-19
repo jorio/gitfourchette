@@ -1195,9 +1195,9 @@ class MainWindow(QMainWindow):
     def parseUserCommands(self):
         self.userCommands = list(UserCommand.parseCommandBlock(settings.prefs.commands))
 
-    def contextualUserCommands(self, *placeholderTokens: UserCommand.Token):
+    def contextualUserCommands(self, *placeholderTokens: UserCommand.Token) -> list[ActionDef]:
         tokenSet = set(placeholderTokens)
-        actions = []
+        actions: list[ActionDef] = []
         for command in self.userCommands:
             if not command.matchesContext(tokenSet):
                 continue

@@ -205,7 +205,7 @@ class GitDriver(QProcess):
     @classmethod
     def reformatHintText(cls, stderr: str):
         previousTag = ""
-        parts = []
+        parts: list[str] = []
 
         for stderrLine in stderr.splitlines():
             try:

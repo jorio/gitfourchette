@@ -12,7 +12,7 @@ _stockIconCache: dict[int, QIcon] = {}
 _stockIconHtmlCache: dict[int, str] = {}
 
 # Override some icon IDs depending on desktop environment
-_overrideIconIds = {}
+_overrideIconIds: dict[str, str] = {}
 _overrideIconIdsReady = False
 
 _autoDarkVariants = {
@@ -31,7 +31,7 @@ _autoDarkVariants = {
 }
 
 
-def _iconOverrideTable():
+def _iconOverrideTable() -> dict[str, str]:
     overrides = {}
 
     assert QApplication.instance(), "need app instance for QIcon.themeName()"
