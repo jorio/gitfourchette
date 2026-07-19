@@ -143,7 +143,7 @@ class Trash:
 
     def backupPatch(self, workdir: str, text: str, originalPath: str = "") -> Path:
         trashFile = self.newFile(workdir, ext=".patch", originalPath=originalPath)
-        trashFile.write_text(text, encoding="utf-8")
+        trashFile.write_text(text, encoding="utf-8", newline="\n")
         return trashFile
 
     def backupTree(self, workdir: str, treePath: str) -> Path:
