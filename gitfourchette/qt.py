@@ -281,11 +281,11 @@ if APP_VERBOSEDEL:
 # -----------------------------------------------------------------------------
 # Utility functions
 
-def qAppName():
+def qAppName() -> str:
     """ User-facing application name. Shorthand for QApplication.applicationDisplayName(). """
     return QApplication.applicationDisplayName()
 
 
-def qTempDir():
+def qTempDir() -> str:
     """ Path to temporary directory for this session. """
     return QApplication.instance().tempDir.path()

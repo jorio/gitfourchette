@@ -1305,12 +1305,12 @@ class TaskInvocation:
     def __repr__(self):
         return f"{self.__class__.__name__}({self.taskClass.__name__})"
 
-    def run(self):
+    def run(self) -> RepoTaskRunner | None:
         assert isinstance(self.invoker, QObject)
         if self.invoker.signalsBlocked():
             logger.debug(f"Ignoring {repr(self)} from invoker with blocked signals: " +
                          (self.invoker.objectName() or self.invoker.__class__.__name__))
-            return
+            return None
 
         # Find TaskRunner in QObject hierarchy
         runner: RepoTaskRunner
@@ -1329,6 +1329,7 @@ class TaskInvocation:
                 raise AssertionError("Could not find RepoTaskRunner")
 
         runner.put(self)
+        return runner
 
 
 RepoTaskSubtype = TypeVar('RepoTaskSubtype', bound=RepoTask)

@@ -586,7 +586,7 @@ class FileList(QListView):
         for index in self.selectedIndexes():
             yield index.data(FileListModel.Role.FilePath)
 
-    def earliestSelectedRow(self):
+    def earliestSelectedRow(self) -> int:
         try:
             return list(self.selectedIndexes())[0].row()
         except IndexError:
@@ -667,7 +667,7 @@ class FileList(QListView):
     def clearSelectionBackup(self):
         self._selectionBackup = []
 
-    def restoreSelectionBackup(self):
+    def restoreSelectionBackup(self) -> bool:
         if not self._selectionBackup:
             return False
 
