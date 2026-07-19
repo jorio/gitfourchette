@@ -6,7 +6,7 @@
 
 import logging
 import re
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
 
@@ -21,7 +21,7 @@ from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
 from gitfourchette.tasks import TaskEffects
-from gitfourchette.tasks.repotask import RepoTask, AbortTask, FlowControlToken
+from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -449,8 +449,7 @@ class QueryCommitsTouchingPath(RepoTask):
 
         cpf.resultsUpdated.emit()
 
-    def _findMatchingCommits(self, pathspec: str
-                             ) -> Generator[FlowControlToken, None, set[Oid]]:
+    def _findMatchingCommits(self, pathspec: str) -> RepoTask.Flow[set[Oid]]:
         oids: set[Oid] = set()
 
         pathspec = pathspec.strip()

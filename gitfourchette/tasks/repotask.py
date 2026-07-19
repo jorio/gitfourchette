@@ -11,7 +11,7 @@ import enum
 import logging
 import shlex
 from collections.abc import Generator
-from typing import Any, TYPE_CHECKING, Literal, TypeVar, ClassVar
+from typing import Any, TYPE_CHECKING, Literal, TypeVar, ClassVar, TypeAlias
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.askpassdialog import AskpassDialog
@@ -148,7 +148,7 @@ FlowControlToken.BootstrapFlow = FlowControlToken()
 class FlowWorkerThread(QThread):
     tokenReady = Signal(FlowControlToken)
 
-    flow: RepoTask.FlowGeneratorType | None
+    flow: RepoTask.Flow[Any] | None
 
     @calledFromQThread  # enable code coverage in task threads
     def run(self):
@@ -201,7 +201,11 @@ class RepoTask(QObject):
     Task that manipulates a repository.
     """
 
-    FlowGeneratorType = Generator[FlowControlToken, None, Any]
+    # TODO: Once we can drop support for Python <= 3.10, switch to...:
+    #       type Flow[FlowReturnType] = Generator[FlowControlToken, None, FlowReturnType]
+    #       ...instead of:
+    _FlowReturnType = TypeVar('_FlowReturnType')
+    Flow: TypeAlias[_FlowReturnType] = Generator[FlowControlToken, None, _FlowReturnType]
 
     uiReady = Signal()
 
@@ -217,7 +221,7 @@ class RepoTask(QObject):
     This is only valid in the root task in the stack (non-root tasks are allowed
     to set the root task's current process). """
 
-    _currentFlow: FlowGeneratorType | None
+    _currentFlow: Flow[Any] | None
     _currentIteration: int
 
     _taskStack: list[RepoTask]
@@ -314,7 +318,7 @@ class RepoTask(QObject):
     def _isRunningOnAppThread(self):
         return onAppThread() and self._runningOnUiThread
 
-    def flow(self, *args, **kwargs) -> FlowGeneratorType:
+    def flow(self, *args, **kwargs) -> Flow[Any]:
         """
         Generator that performs the task. You can think of this as a coroutine.
 
@@ -391,7 +395,7 @@ class RepoTask(QObject):
         yield FlowControlToken(FlowControlToken.Kind.ContinueOnUiThread)
 
     def flowSubtask(self, subtaskClass: type[RepoTaskSubtype], *args, **kwargs
-                    ) -> Generator[FlowControlToken, None, RepoTaskSubtype]:
+                    ) -> Flow[RepoTaskSubtype]:
         """
         Run a subtask's flow() method as if it were part of this task.
         Note that if the subtask raises an exception, the root task's flow will be stopped as well.
@@ -459,7 +463,7 @@ class RepoTask(QObject):
 
         return subtask
 
-    def flowRequestForegroundUi(self):
+    def flowRequestForegroundUi(self) -> Flow[None]:
         """
         Pause the coroutine until the parent widget becomes the foreground tab.
         No-op if the parent widget is already visible or lacks the
@@ -485,7 +489,7 @@ class RepoTask(QObject):
         yield token
         becameVisible.disconnect(self.uiReady)
 
-    def flowStartProcess(self, process: QProcess, autoFail=True, stdin: str = "") -> Generator[FlowControlToken, None, None]:
+    def flowStartProcess(self, process: QProcess, autoFail=True, stdin: str = "") -> Flow[None]:
         assert self._isRunningOnAppThread(), "start processes from UI thread"
         assert not any(t.currentProcess for t in self._taskStack), \
             "a process is already running in this subtask chain"
@@ -517,7 +521,7 @@ class RepoTask(QObject):
             workdir="",
             env: dict[str, str] | None = None,
             autoFail=True,
-    ) -> Generator[FlowControlToken, None, GitDriver]:
+    ) -> Flow[GitDriver]:
         process = self.createGitProcess(*args, customKey=customKey, workdir=workdir, env=env)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process
@@ -639,7 +643,7 @@ class RepoTask(QObject):
         if proceedSignal:
             proceedSignal.disconnect(self.uiReady)
 
-    def flowFileDialog(self, dialog: QFileDialog) -> Generator[FlowControlToken, None, str]:
+    def flowFileDialog(self, dialog: QFileDialog) -> Flow[str]:
         yield from self.flowDialog(dialog)
 
         files = dialog.selectedFiles()
@@ -1138,7 +1142,7 @@ class RepoTaskRunner(QObject):
         return effects, jumpTo
 
     @staticmethod
-    def _getNextToken(flow: RepoTask.FlowGeneratorType) -> FlowControlToken:
+    def _getNextToken(flow: RepoTask.Flow[Any]) -> FlowControlToken:
         try:
             token = next(flow)
         except BaseException as exception:

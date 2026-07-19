@@ -14,7 +14,6 @@ import dataclasses
 import logging
 import os
 import re
-from collections.abc import Generator
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -29,7 +28,7 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF, UC_FAKEID
 from gitfourchette.tasks import TaskPrereqs
 from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument
-from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken
+from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -172,7 +171,7 @@ class Jump(RepoTask):
         if locator.hasFlags(NavFlags.ActivateWindow):  # initial locator!
             self.rw.activateWindow()
 
-    def loadResult(self, locator: NavLocator) -> Generator[FlowControlToken, None, Result]:
+    def loadResult(self, locator: NavLocator) -> RepoTask.Flow[Result]:
         rw = self.rw
 
         # If the locator is "coarse" (i.e. no specific path given, just a generic context),
@@ -260,7 +259,7 @@ class Jump(RepoTask):
 
         return delta == currentDelta
 
-    def showWorkdir(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
+    def showWorkdir(self, locator: NavLocator) -> RepoTask.Flow[NavLocator]:
         rw = self.rw
         repoModel = self.repoModel
 
@@ -398,7 +397,7 @@ class Jump(RepoTask):
 
         raise Jump.Result(locator, sde)
 
-    def showCommit(self, locator: NavLocator) -> Generator[FlowControlToken, None, NavLocator]:
+    def showCommit(self, locator: NavLocator) -> RepoTask.Flow[NavLocator]:
         """
         Jump to a commit.
         Return a refined NavLocator.

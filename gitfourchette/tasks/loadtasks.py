@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import logging
-from collections.abc import Generator
 from typing import TypeAlias
 
 from gitfourchette import settings
@@ -23,7 +22,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import RepoTask, TaskEffects, FlowControlToken, AbortTask
+from gitfourchette.tasks.repotask import RepoTask, TaskEffects, AbortTask
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -275,7 +274,7 @@ class LoadPatch(RepoTask):
             self,
             delta: GitDelta,
             locator: NavLocator,
-    ) -> Generator[FlowControlToken, None, TAbstractDiffDocument]:
+    ) -> RepoTask.Flow[TAbstractDiffDocument]:
         if delta.conflict is not None:
             return delta.conflict
 

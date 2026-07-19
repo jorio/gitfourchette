@@ -6,12 +6,12 @@
 
 import logging
 import os
-from collections.abc import Callable, Generator
+from collections.abc import Callable
 from pathlib import Path
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import RepoTask, AbortTask, FlowControlToken
+from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class NewRepo(RepoTask):
             path: Path,
             parentPath: Path,
             parentWorkdir: Path
-    ) -> Generator[FlowControlToken, None, bool]:
+    ) -> RepoTask.Flow[bool]:
         """
         If the user is attempting to initialize a repo nested inside a parent
         repo, ask them if they'd rather open the parent repo.
