@@ -461,12 +461,11 @@ class FastForwardBranch(RepoTask):
 
         yield from self.flowEnterUiThread()
         if upToDate:
-            lines = [_("No fast-forwarding necessary.")]
-            if ahead:
-                lines.append(_("Your local branch {0} is ahead of {1}."))
-            else:
-                lines.append(_("Your local branch {0} is already up to date with {1}."))
-            message = paragraphs(lines).format(bquo(localBranchName), bquo(remoteBranchName))
+            message = paragraphs(
+                _("No fast-forwarding necessary."),
+                _("Your local branch {0} is ahead of {1}.") if ahead else
+                _("Your local branch {0} is already up to date with {1}."))
+            message = message.format(bquo(localBranchName), bquo(remoteBranchName))
             self.epilog.status = stripHtml(message)
             yield from self.flowConfirm(text=message, canCancel=False, dontShowAgainKey="NoFastForwardingNecessary")
 

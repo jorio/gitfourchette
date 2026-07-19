@@ -106,7 +106,7 @@ class AskpassDialog(TextInputDialog):
         promptLines = escape(prompt).splitlines()
         if self.unknownHostFingerprint:
             promptLines.append("<b>" + _("To continue connecting, do you trust this key?"))
-        htmlPrompt = paragraphs(promptLines)
+        htmlPrompt = paragraphs(*promptLines)
 
         super().__init__(
             parent, title, htmlPrompt, subtitle,

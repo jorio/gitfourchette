@@ -49,15 +49,8 @@ def escamp(text: str) -> str:
     return text.replace('&', '&&')
 
 
-def paragraphs(*args: str | list[str]) -> str:
+def paragraphs(*strings: str) -> str:
     """ Return a string of HTML "P" tags surrounding each argument. """
-
-    # If passed an actual list object, use that as the argument list.
-    if len(args) == 1 and isinstance(args[0], list):
-        strings = args[0]
-    else:
-        strings = args
-
     inner = "</p><p>".join(strings)
     return f"<p>{inner}</p>"
 
