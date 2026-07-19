@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import itertools
+import logging
 
 from gitfourchette.forms.stashdialog import StashDialog
 from gitfourchette.localization import *
@@ -14,6 +15,8 @@ from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, TaskPrereqs
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
+
+logger = logging.getLogger(__name__)
 
 _indexStatusTable = {
     "A": FileStatus.INDEX_NEW,
@@ -40,9 +43,10 @@ Vanilla git unstaged file status to libgit2 worktree status flags
 
 
 def backupStash(repo: Repo, stashCommitId: Oid):
-    trashFile = Trash.instance().newFile(repo.workdir, ext=".txt", originalPath="DELETED_STASH")
-
-    if not trashFile:
+    try:
+        trashFile = Trash.instance().newFile(repo.workdir, ext=".txt", originalPath="DELETED_STASH")
+    except Trash.BackupSkipped as ex:
+        logger.warning(f"Stash backup skipped: {ex}")
         return
 
     text = F"""\
