@@ -171,13 +171,5 @@ check_untyped_defs = true
 disallow_untyped_decorators = true
 
 [[tool.mypy.overrides]]
-module = [
-    "gitfourchette.qt",
-    "gitfourchette.pycompat",
-    "gitfourchette.exttools.win32ctrlc",
-]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = ["mfusepy", "psutil"]
 ignore_missing_imports = true

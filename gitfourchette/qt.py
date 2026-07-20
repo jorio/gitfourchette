@@ -19,12 +19,10 @@ PyQt6/PySide6/PyQt5 compatibility layer
 # If you're running unit tests, use the PYTEST_QT_API environment variable instead.
 # If you're packaging the app, you may prefer to force a binding via appconsts.py.
 
-import enum as _enum
 import json as _json
 import logging as _logging
 import os as _os
 import sys as _sys
-import typing as _typing
 from collections import abc as _collections_abc
 from contextlib import suppress as _suppress
 
@@ -96,7 +94,7 @@ for _tentative in _qtBindingOrder:
         elif _tentative == "pyqt6":
             from PyQt6.QtCore import *
             from PyQt6.QtWidgets import *
-            from PyQt6.QtGui import *
+            from PyQt6.QtGui import *  # type: ignore[no-redef]
             QT_BINDING_VERSION = PYQT_VERSION_STR
             QT_BINDING = "PyQt6"
             QT6 = PYQT6 = True
@@ -153,9 +151,9 @@ HAS_QTEST = False
 with _suppress(ImportError):
     if PYQT6:
         from PyQt6.QtTest import QAbstractItemModelTester, QTest, QSignalSpy
-    elif PYQT5:
+    elif PYQT5 and not TYPE_CHECKING:
         from PyQt5.QtTest import QAbstractItemModelTester, QTest, QSignalSpy
-    elif PYSIDE6:
+    elif PYSIDE6 and not TYPE_CHECKING:
         from PySide6.QtTest import QAbstractItemModelTester, QTest, QSignalSpy
     HAS_QTEST = True
 
@@ -163,12 +161,12 @@ with _suppress(ImportError):
 HAS_QTDBUS = False
 if FREEDESKTOP:
     with _suppress(ImportError):
-        if PYSIDE6:
-            from PySide6.QtDBus import *
-        elif PYQT6:
+        if PYQT6:
             from PyQt6.QtDBus import *
-        elif PYQT5:
+        elif PYQT5 and not TYPE_CHECKING:
             from PyQt5.QtDBus import *
+        elif PYSIDE6 and not TYPE_CHECKING:
+            from PySide6.QtDBus import *
         else:
             raise ImportError("QtDBus")
         HAS_QTDBUS = True
@@ -176,9 +174,9 @@ if FREEDESKTOP:
 try:
     if PYQT6:
         from PyQt6.QtSvg import QSvgRenderer
-    elif PYSIDE6:
+    elif PYSIDE6 and not TYPE_CHECKING:
         from PySide6.QtSvg import QSvgRenderer
-    elif PYQT5:
+    elif PYQT5 and not TYPE_CHECKING:
         from PyQt5.QtSvg import QSvgRenderer
     else:
         raise ImportError("QtSvg")
@@ -194,7 +192,7 @@ if PYQT5 or PYQT6:
     SignalInstance = pyqtBoundSignal
     Slot = pyqtSlot
 
-if PYSIDE6:
+if PYSIDE6 and not TYPE_CHECKING:
     def _QCommandLineParser_addOptions(self, options):
         for o in options:
             self.addOption(o)
@@ -207,13 +205,13 @@ if PYSIDE6:
     except NameError:
         QWIDGETSIZE_MAX = 16777215
 
-if QT5:
+if QT5 and not TYPE_CHECKING:
     # Disable "What's this?" in Qt 5 dialog box title bars (Qt 6 sets this off by default.)
     QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_DisableWindowContextHelpButton)
 
     # QMouseEvent.pos() is deprecated in Qt 6, so we don't use it.
     # Fill in QMouseEvent.position() for Qt 5.
-    def _QMouseEvent_position(self):
+    def _QMouseEvent_position(self: QMouseEvent) -> QPointF:
         return QPointF(self.pos())
 
     QMouseEvent.position = _QMouseEvent_position
@@ -222,9 +220,9 @@ if QT5:
     _QFontDatabase_families = QFontDatabase.families
     _QFontDatabase_isFixedPitch = QFontDatabase.isFixedPitch
     _QFontDatabase_isPrivateFamily = QFontDatabase.isPrivateFamily
-    QFontDatabase.families = lambda *a, **k: _QFontDatabase_families(QFontDatabase(), *a, **k)
-    QFontDatabase.isFixedPitch = lambda *a, **k: _QFontDatabase_isFixedPitch(QFontDatabase(), *a, **k)
-    QFontDatabase.isPrivateFamily = lambda *a, **k: _QFontDatabase_isPrivateFamily(QFontDatabase(), *a, **k)
+    QFontDatabase.families = lambda *_args, **_kwargs: _QFontDatabase_families(QFontDatabase(), *_args, **_kwargs)
+    QFontDatabase.isFixedPitch = lambda *_args, **_kwargs: _QFontDatabase_isFixedPitch(QFontDatabase(), *_args, **_kwargs)
+    QFontDatabase.isPrivateFamily = lambda *_args, **_kwargs: _QFontDatabase_isPrivateFamily(QFontDatabase(), *_args, **_kwargs)
 
 # Return Consolas as default fixed font instead of Courier New on Windows.
 if WINDOWS:
@@ -235,7 +233,7 @@ if WINDOWS:
         return font
 
     _QFontDatabase_systemFont = QFontDatabase.systemFont
-    QFontDatabase.systemFont = _QFontDatabase_systemFont_override
+    QFontDatabase.systemFont = _QFontDatabase_systemFont_override  # type: ignore[method-assign]
 
 # Qt 6.7 replaces QCheckBox.stateChanged with checkStateChanged.
 if not hasattr(QCheckBox, 'checkStateChanged'):
@@ -251,10 +249,11 @@ def _QTextBlock_fragments(block: QTextBlock) -> _collections_abc.Iterator[QTextF
         if fragment.isValid():
             yield iterator.fragment()
         iterator += 1
-QTextBlock.fragments = _QTextBlock_fragments
+
+QTextBlock.fragments = _QTextBlock_fragments  # type: ignore[attr-defined]
 
 # Custom "selected, no focus" icon mode.
-QIcon.Mode.SelectedInactive = QIcon.Mode(4)
+QIcon.Mode.SelectedInactive = QIcon.Mode(4)  # type: ignore[attr-defined]
 
 
 # -----------------------------------------------------------------------------
@@ -274,7 +273,7 @@ if APP_VERBOSEDEL:
         _logger.info(message)
 
     assert not hasattr(QObject, "__del__")
-    QObject.__del__ = _QObject_dtor
+    QObject.__del__ = _QObject_dtor  # type: ignore[attr-defined]
     _logger.info("Verbose QObject destructors enabled")
 
 
@@ -288,4 +287,4 @@ def qAppName() -> str:
 
 def qTempDir() -> str:
     """ Path to temporary directory for this session. """
-    return QApplication.instance().tempDir.path()
+    return QApplication.instance().tempDir.path()  # type: ignore[attr-defined]

@@ -18,7 +18,7 @@ def main():
         if rc == 0:
             sys.exit(exitCode)
 
-    kernel = ctypes.windll.kernel32
+    kernel = ctypes.windll.kernel32  # type: ignore[attr-defined]
 
     result = kernel.FreeConsole()
     check(result, 1)
