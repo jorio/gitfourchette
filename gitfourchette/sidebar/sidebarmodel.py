@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from contextlib import suppress
-from typing import Any, overload, TYPE_CHECKING
+from typing import Any, overload
 
 from gitfourchette import settings
 from gitfourchette.localization import *

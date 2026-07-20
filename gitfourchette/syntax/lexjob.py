@@ -13,7 +13,7 @@ from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import benchmark
 from gitfourchette.toolbox.textutils import qstringLength
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from pygments.lexer import Lexer
     from pygments.token import _TokenType
 

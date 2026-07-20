@@ -6,13 +6,12 @@
 
 from __future__ import annotations
 
-import typing
 
 from gitfourchette import settings
 from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.qt import *
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from gitfourchette.diffview.diffview import DiffView
 
 
@@ -35,7 +34,7 @@ class DiffGutter(CodeGutter):
 
     def paintEvent(self, event: QPaintEvent):
         diffView = self.codeView
-        if typing.TYPE_CHECKING:
+        if TYPE_CHECKING:
             assert isinstance(diffView, DiffView)
 
         painter = QPainter(self)

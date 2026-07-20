@@ -10,8 +10,8 @@ import os
 import re
 import textwrap
 from enum import Enum
-from typing import TYPE_CHECKING
 
+from gitfourchette.appconsts import *
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 

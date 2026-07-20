@@ -11,7 +11,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # Import as few internal modules as possible here to avoid premature initialization
 # from cascading imports before the QApplication has booted.
