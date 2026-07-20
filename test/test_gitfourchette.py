@@ -1076,3 +1076,28 @@ def testWindowSizeUnaffectedByLongRepoNames(tempDir, mainWindow):
 
     mainWindow.openRepo(wd)
     assert mainWindow.size() == desiredSize
+
+
+def testSshAgentSandboxingMatchesGit(tempDir, mainWindow):
+    app = GFApplication.instance()
+    app.applyPrefs(ownSshAgent=True)
+
+    if not FLATPAK:
+        assert not settings.prefs.isGitSandboxed()
+        assert not app.sshAgent.isSandboxed()
+        return
+
+    app.applyPrefs(gitPath="flatpak:/app/bin/git")
+    assert settings.prefs.isGitSandboxed()
+    assert app.sshAgent.isSandboxed()
+
+    # Resetting just ssh-agent should preserve correct sandboxed state
+    app.applyPrefs(ownSshAgent=False)
+    assert app.sshAgent is None
+    app.applyPrefs(ownSshAgent=True)
+    assert app.sshAgent.isSandboxed()
+
+    # Changing the git program setting should reset ssh-agent's sandboxed state
+    app.applyPrefs(gitPath="/usr/bin/git")
+    assert not settings.prefs.isGitSandboxed()
+    assert not app.sshAgent.isSandboxed()

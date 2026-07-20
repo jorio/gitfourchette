@@ -451,7 +451,11 @@ class GFApplication(QApplication):
         if "language" in prefDiff:
             self.applyLanguagePref()
 
-        if "ownSshAgent" in prefDiff:
+        resetSshAgent = "ownSshAgent" in prefDiff
+        # Flatpak: If git's sandboxed state changes, we need to recreate
+        # ssh-agent to be (non-)sandboxed accordingly
+        resetSshAgent |= FLATPAK and "gitPath" in prefDiff
+        if resetSshAgent:
             self.applySshAgentPref()
 
         # ---------------------------------------------------------------------

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -19,6 +19,7 @@ class SshAgent(QProcess):
     EnvBuiltInAgentPid = "GITFOURCHETTE_AGENT"
 
     environment: dict[str, str]
+    sandboxed: bool
 
     def __init__(self, parent: QObject, sandbox: bool = False):
         super().__init__(parent)
@@ -28,6 +29,9 @@ class SshAgent(QProcess):
 
         if FLATPAK and sandbox:
             program = ToolCommands.FlatpakSandboxedCommandPrefix + program
+            self.sandboxed = True
+        else:
+            self.sandboxed = False
 
         tokens = [program, "-c", "-D"]
         process = self
@@ -59,6 +63,9 @@ class SshAgent(QProcess):
         }
 
         logger.info(f"ssh-agent started on PID {sshAgentPid} ({sshAuthSock})")
+
+    def isSandboxed(self) -> bool:
+        return self.sandboxed
 
     def stopAndWait(self, msec: int = 500):
         if self.state() != QProcess.ProcessState.Running:
