@@ -4,6 +4,7 @@ import enum as _enum
 import glob as _glob
 import os as _os
 import sys as _sys
+import typing as _typing
 from pathlib import Path as _Path
 
 
@@ -21,7 +22,7 @@ if not hasattr(_enum, "StrEnum"):
         def __str__(self):
             return self._value_
 
-    _enum.StrEnum = _StrEnumCompat
+    _enum.StrEnum = _StrEnumCompat  # type: ignore
 
 
 # Python 3.10, 3.11 compatibility (Path.walk is new in Python 3.12)
@@ -49,7 +50,7 @@ if not hasattr(_Path, "walk"):
 
             yield root2, dirs1, files1
 
-    _Path.walk = _pathWalk
+    _Path.walk = _pathWalk  # type: ignore[method-assign]
 
 
 # Python 3.10, 3.11 compatibility
@@ -61,7 +62,7 @@ if _sys.version_info < (3, 12):
         return _os.path.lexists(self)
 
     _pathExistsVanilla = _Path.exists
-    _Path.exists = _pathExists
+    _Path.exists = _pathExists  # type: ignore[method-assign]
 
 
 # Python 3.10, 3.11, 3.12 compatibility
@@ -73,7 +74,7 @@ if _sys.version_info < (3, 13):
         return not self.is_symlink() and _pathIsFileVanilla(self)
 
     _pathIsFileVanilla = _Path.is_file
-    _Path.is_file = _pathIsFile
+    _Path.is_file = _pathIsFile  # type: ignore[method-assign]
 
 
 # Python 3.10, 3.11, 3.12 compatibility (glob.translate is new Python 3.13)
@@ -115,6 +116,7 @@ if not hasattr(_glob, "translate"):
         res = ''.join(results)
         return fr'(?s:{res})\Z'
 
+    @_typing.no_type_check
     def _fnmatch_translate(pat, star, question_mark):
         import re
         import functools
@@ -194,4 +196,4 @@ if not hasattr(_glob, "translate"):
         assert i == n
         return res
 
-    _glob.translate = _globTranslate
+    _glob.translate = _globTranslate  # type: ignore[assignment]
