@@ -4,8 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette.pycompat import *
-
 import os
 import re
 import shlex

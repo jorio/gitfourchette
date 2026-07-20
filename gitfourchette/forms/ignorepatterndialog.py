@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,10 +8,10 @@ import glob
 import re
 from pathlib import Path
 
+from gitfourchette import pycompat  # noqa: F401 - glob.translate for Python 3.12
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.ui_ignorepatterndialog import Ui_IgnorePatternDialog
 from gitfourchette.localization import *
-from gitfourchette.pycompat import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
 

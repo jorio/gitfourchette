@@ -18,10 +18,9 @@ jobs:
         include:
         # Legacy config with no optional dependencies and ancient pygit2
         # pytest 8.3.5 is the last version without a mandatory requirement for pygments
-        - {name: '310-pyqt5-legacy', os: ubuntu-22.04, py: '3.10', qt: pyqt5, downgrade-git: true, skip-fuse: true,
+        - {name: '312-pyqt5-legacy', os: ubuntu-22.04, py: '3.12', qt: pyqt5, downgrade-git: true, skip-fuse: true,
            piptweak: 'pip install pygit2==1.14.1 pytest==8.3.5 && pip uninstall -y pygments mfusepy' }
         # Semi-legacy configs
-        - {name: '311-pyqt6', os: ubuntu-latest, py: '3.11', qt: pyqt6, downgrade-git: true}
         - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
         - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, downgrade-git: true}
         # Up-to-date configs

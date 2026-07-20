@@ -1,71 +1,12 @@
 # NOTE: Some parts adapted from cpython
 
-import enum as _enum
 import glob as _glob
-import os as _os
 import sys as _sys
 import typing as _typing
 from pathlib import Path as _Path
 
 
-# Python 3.10 compatibility (enum.StrEnum is new in Python 3.11)
-if not hasattr(_enum, "StrEnum"):
-    class _StrEnumCompat(str, _enum.Enum):
-        def __new__(cls, *values):
-            if len(values) != 1 or not isinstance(values[0], str):
-                raise ValueError("StrEnum value must be a 1-value tuple containing a string")
-            value = str(*values)
-            member = str.__new__(cls, value)
-            member._value_ = value
-            return member
-
-        def __str__(self):
-            return self._value_
-
-    _enum.StrEnum = _StrEnumCompat  # type: ignore
-
-
-# Python 3.10, 3.11 compatibility (Path.walk is new in Python 3.12)
-if not hasattr(_Path, "walk"):
-    def _pathWalk(self: _Path, top_down=True, on_error=None, follow_symlinks=False):
-        import os
-        for root1, dirs1, files1 in os.walk(
-                top=self,
-                topdown=top_down,
-                onerror=on_error,
-                followlinks=follow_symlinks
-        ):
-            root2 = _Path(root1)
-
-            if not follow_symlinks:
-                # "Unlike os.walk(), Path.walk() lists symlinks to directories
-                # in filenames if follow_symlinks is false."
-                dirs2 = []
-                for d in dirs1:
-                    if not follow_symlinks and (root2 / d).is_symlink():
-                        files1.append(d)
-                    else:
-                        dirs2.append(d)
-                dirs1[:] = dirs2
-
-            yield root2, dirs1, files1
-
-    _Path.walk = _pathWalk  # type: ignore[method-assign]
-
-
-# Python 3.10, 3.11 compatibility
-# (`follow_symlinks` argument in Path.exists() is new in Python 3.12)
-if _sys.version_info < (3, 12):
-    def _pathExists(self: _Path, follow_symlinks=True) -> bool:
-        if follow_symlinks:
-            return _pathExistsVanilla(self)
-        return _os.path.lexists(self)
-
-    _pathExistsVanilla = _Path.exists
-    _Path.exists = _pathExists  # type: ignore[method-assign]
-
-
-# Python 3.10, 3.11, 3.12 compatibility
+# Python 3.12 compatibility
 # (`follow_symlinks` argument in Path.is_file() is new in Python 3.13)
 if _sys.version_info < (3, 13):
     def _pathIsFile(self: _Path, follow_symlinks=True) -> bool:
@@ -77,7 +18,7 @@ if _sys.version_info < (3, 13):
     _Path.is_file = _pathIsFile  # type: ignore[method-assign]
 
 
-# Python 3.10, 3.11, 3.12 compatibility (glob.translate is new Python 3.13)
+# Python 3.12 compatibility (glob.translate is new Python 3.13)
 # Adapted from cpython/Lib/glob.py
 if not hasattr(_glob, "translate"):
     def _globTranslate(pat: str, recursive: bool, include_hidden: bool):

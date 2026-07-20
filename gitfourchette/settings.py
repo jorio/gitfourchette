@@ -13,7 +13,6 @@ from contextlib import suppress
 from typing import TypedDict
 
 from gitfourchette import colors
-from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *

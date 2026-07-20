@@ -11,7 +11,7 @@ import enum
 import logging
 import shlex
 from collections.abc import Generator
-from typing import Any, Literal, TypeVar, ClassVar, TypeAlias
+from typing import Any, Literal, ClassVar
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.askpassdialog import AskpassDialog
@@ -201,11 +201,7 @@ class RepoTask(QObject):
     Task that manipulates a repository.
     """
 
-    # TODO: Once we can drop support for Python <= 3.10, switch to...:
-    #       type Flow[FlowReturnType] = Generator[FlowControlToken, None, FlowReturnType]
-    #       ...instead of:
-    _FlowReturnType = TypeVar('_FlowReturnType')
-    Flow: TypeAlias[_FlowReturnType] = Generator[FlowControlToken, None, _FlowReturnType]
+    type Flow[FlowReturnType] = Generator[FlowControlToken, None, FlowReturnType]
 
     uiReady = Signal()
 
@@ -394,8 +390,7 @@ class RepoTask(QObject):
         self._runningOnUiThread = True
         yield FlowControlToken(FlowControlToken.Kind.ContinueOnUiThread)
 
-    def flowSubtask(self, subtaskClass: type[RepoTaskSubtype], *args, **kwargs
-                    ) -> Flow[RepoTaskSubtype]:
+    def flowSubtask[T: RepoTask](self, subtaskClass: type[T], *args, **kwargs) -> Flow[T]:
         """
         Run a subtask's flow() method as if it were part of this task.
         Note that if the subtask raises an exception, the root task's flow will be stopped as well.
@@ -1330,6 +1325,3 @@ class TaskInvocation:
 
         runner.put(self)
         return runner
-
-
-RepoTaskSubtype = TypeVar('RepoTaskSubtype', bound=RepoTask)

@@ -193,8 +193,7 @@ class NavLocator:
 
     @staticmethod
     def inSpecial(special: SpecialRow) -> NavLocator:
-        intValue = special.value  # TODO: Just use 'str(special)' once we drop Python 3.10 compat
-        return NavLocator(context=NavContext.SPECIAL, path=str(intValue))
+        return NavLocator(context=NavContext.SPECIAL, path=str(special))
 
     def isSimilarEnoughTo(
             self,

@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import logging
-from typing import TypeAlias
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -32,7 +31,7 @@ RENAME_COUNT_THRESHOLD = 100
 
 LONG_LINE_THRESHOLD = 10_000
 
-TAbstractDiffDocument: TypeAlias = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
+type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
 
 
 class PrimeRepo(RepoTask):
