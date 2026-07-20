@@ -36,7 +36,9 @@ class FileListDelegate(QStyledItemDelegate):
     """
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
-        widget: FileList = option.widget
+        widget = option.widget
+        assert isinstance(widget, FileList)
+
         isActive = bool(option.state & QStyle.StateFlag.State_Active)
         isSelected = bool(option.state & QStyle.StateFlag.State_Selected)
         colorGroup = QPalette.ColorGroup.Active if isActive else QPalette.ColorGroup.Inactive

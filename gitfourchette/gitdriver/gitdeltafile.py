@@ -220,6 +220,7 @@ class GitDeltaFile:
             return
 
         # Get filter attribute for this file
+        attr: str | bool | None
         if isinstance(checkOrKnownValue, str):
             attr = checkOrKnownValue
         else:

@@ -209,7 +209,7 @@ class DiffDocument:
             # Start new hunk
             if firstChar == "@":
                 rawLine = patch[pos:endPos]
-                oldLine, _dummy, newLine, _dummy, _dummy = _parseHunkHeader(rawLine)
+                oldLine, _dummy1, newLine, _dummy2, _dummy3 = _parseHunkHeader(rawLine)
 
                 hunkID += 1
                 hunkLineNum = -1

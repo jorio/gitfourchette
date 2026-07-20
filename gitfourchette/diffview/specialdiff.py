@@ -73,7 +73,7 @@ class SpecialDiffError:
         self.preformatted = preformatted
         self.longform = longform
         self.links = DocumentLinks()
-        self.taskInvoker = None
+        self.taskInvoker: QObject | None = None
 
     def taskLink(self, taskClass: type[RepoTask], *args, **kwargs) -> str:
         return self.links.new(lambda: taskClass.invoke(self.taskInvoker, *args, **kwargs))

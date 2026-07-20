@@ -52,7 +52,7 @@ def showInFolder(path: str):  # pragma: no cover (platform-specific)
                 dbusArgs.endArray()
             else:
                 # Thankfully, PySide6 is more pythonic here.
-                dbusArgs = [path]
+                dbusArgs = [path]  # type: ignore # consider only PyQt6 for type checking
             iface.call("ShowItems", dbusArgs, "")
             iface.deleteLater()
             return
@@ -163,7 +163,8 @@ def enforceComboBoxMaxVisibleItems(comboBox: QComboBox, maxItems=0):
     # QStyleSheetStyle::styleHint() (qstylesheetstyle.cpp)
     comboBox.setStyleSheet(comboBox.styleSheet() + "\nQComboBox { combobox-popup: 0; }")
 
-    listView: QListView = comboBox.view()
+    listView = comboBox.view()
+    assert isinstance(listView, QListView)
     listView.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
 
@@ -334,22 +335,16 @@ def makeInternalLink(urlAuthority: str, urlPath: str = "", urlFragment: str = ""
     return url.toString()
 
 
-def makeMultiShortcut(*args) -> MultiShortcut:
-    if len(args) == 1 and isinstance(args[0], list):
-        args = args[0]
-
-    shortcuts = []
+def makeMultiShortcut(*args: str | QKeySequence.StandardKey | Qt.Key | QKeySequence) -> MultiShortcut:
+    shortcuts: list[QKeySequence] = []
 
     for alt in args:
-        t = type(alt)
-        if t is str:
-            shortcuts.append(QKeySequence(alt))
-        elif t is QKeySequence.StandardKey:
+        if isinstance(alt, QKeySequence.StandardKey):
             shortcuts.extend(QKeySequence.keyBindings(alt))
-        elif t is Qt.Key:
+        elif isinstance(alt, (str, Qt.Key)):
             shortcuts.append(QKeySequence(alt))
         else:
-            assert t is QKeySequence
+            assert isinstance(alt, QKeySequence)
             shortcuts.append(alt)
 
     # Ensure no duplicates (stable order since Python 3.7+)

@@ -41,7 +41,7 @@ class SearchBar(QWidget):
     Receives the search term as input, performs the actual search.
     """
 
-    providers: tuple[SearchProvider]
+    providers: tuple[SearchProvider, ...]
     """
     All search providers supported by this search bar.
     """

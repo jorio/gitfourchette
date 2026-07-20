@@ -34,7 +34,7 @@ class Trash:
 
     def __init__(self):
         if not APP_TESTMODE:
-            cacheDir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation)
+            cacheDir = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.CacheLocation))
         else:
             # CacheLocation is common for all tests, but we don't want parallel
             # tests to pollute each other's trashes. So, use the test-specific

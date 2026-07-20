@@ -38,6 +38,9 @@ _wtStatusTable = {
 Vanilla git unstaged file status to libgit2 worktree status flags
 """
 
+_statusZero = FileStatus.CURRENT
+assert _statusZero == 0
+
 
 def backupStash(repo: Repo, stashCommitId: Oid):
     trashFile = Trash.instance().newFile(repo.workdir, ext=".txt", originalPath="DELETED_STASH")
@@ -95,8 +98,8 @@ class NewStash(RepoTask):
                 ((ud, _wtStatusTable) for ud in unstagedDeltas)
         ):
             path = delta.new.path
-            bits = status.get(path, 0)
-            bits |= statusConversion.get(delta.status, 0)
+            bits = status.get(path, _statusZero)
+            bits |= statusConversion.get(delta.status, _statusZero)
             status[path] = bits
 
         # Ask user what to stash

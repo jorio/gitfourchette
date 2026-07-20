@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -58,7 +58,9 @@ class QComboBoxWithPreviewDelegate(QStyledItemDelegate):
         super().paint(painter, option, index)
         painter.save()
 
-        pw: QComboBoxWithPreview = self.parent()
+        pw = self.parent()
+        assert isinstance(pw, QComboBoxWithPreview)
+
         rect = QRect(option.rect)
         rect.setLeft(rect.left() + 3 + pw.captionWidth)
 

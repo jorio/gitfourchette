@@ -157,6 +157,8 @@ class PrefsDialog(QDialog):
                 form = self._newCategoryForm(category)
                 continue
 
+            assert form is not None
+
             # Spacer
             if key.startswith(self.SpacerPrefix):
                 form.addRow(makeshiftSpacer())
@@ -179,8 +181,11 @@ class PrefsDialog(QDialog):
                 continue
 
             # Add the control to the form layout, with a leading caption if any
-            control, formRowItems = self._newRow(key)
-            form.addRow(*formRowItems)
+            control, label, field = self._newRow(key)
+            if label is not None:
+                form.addRow(label, field)
+            else:
+                form.addRow(field)
 
             # If the current key matches the setting we want to focus on,
             # bring this tab to the foreground
@@ -213,7 +218,13 @@ class PrefsDialog(QDialog):
 
         return form
 
-    def _newRow(self, key: str) -> tuple[QWidget, list]:
+    def _newRow(self, key: str) -> tuple[QWidget, QLabel | None, QWidget | QLayout]:
+        """
+        Build the widgets representing the given setting.
+        Return tuple: main control widget, label (if any), field to be inserted
+        into the QFormLayout.
+        """
+
         # Get caption and suffix
         suffix = ""
         caption = TrTables.prefKey(key)
@@ -250,6 +261,7 @@ class PrefsDialog(QDialog):
 
         # Gather what to add to the form as a single item.
         # If we have more than a single widget to add to the form, lay them out in a row.
+        formField: QWidget | QLayout
         if len(rowWidgets) == 1:
             formField = control
         else:
@@ -263,7 +275,7 @@ class PrefsDialog(QDialog):
 
         # No caption, make field span entire row
         if not caption or isinstance(rowWidgets[0], QCheckBox):
-            return control, [formField]
+            return control, None, formField
 
         # There's a leading caption, so add it as the label in the row
         caption += _(":")
@@ -271,7 +283,7 @@ class PrefsDialog(QDialog):
         label.setBuddy(rowWidgets[0])
         if tip:
             label.setToolTip(tip)
-        return control, [label, formField]
+        return control, label, formField
 
     def setCategory(self, row: int):
         self.categoryList.setCurrentRow(row)
@@ -550,7 +562,8 @@ class PrefsDialog(QDialog):
         control.checkStateChanged.connect(lambda state, k=prefKey: self.assign(k, state == Qt.CheckState.Checked))
         return control
 
-    def enumControl(self, prefKey, prefValue, enumType, previewCallback=None):
+    def enumControl(self, prefKey, prefValue, enumType, previewCallback=None) -> QComboBox | QComboBoxWithPreview:
+        control: QComboBox | QComboBoxWithPreview
         if previewCallback:
             control = QComboBoxWithPreview(self)
         else:
@@ -566,7 +579,7 @@ class PrefsDialog(QDialog):
                 continue
 
             if previewCallback:
-                control.addItemWithPreview(name, data, previewCallback(enumMember))
+                control.addItemWithPreview(name, data, previewCallback(enumMember))  # type: ignore[attr-defined] # mypy not smart enough here
             else:
                 control.addItem(name, data)
             if prefValue == enumMember:

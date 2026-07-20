@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -76,8 +76,7 @@ class FittedText:
 
         # Still no room at most condensed preset, must elide the text
         text = metrics.elidedText(text, mode, maxWidth)
-        width = metrics.horizontalAdvance(text)
-        width = ceil(width)
+        width = ceil(metrics.horizontalAdvance(text))
         return text, font, width
 
     @classmethod

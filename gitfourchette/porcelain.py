@@ -1018,8 +1018,9 @@ class Repo(_VanillaRepository):
             # Get the ref name pointed to by HEAD, but DON'T use repo.head! It won't work if HEAD is unborn.
             # Both git and libgit2 store a default branch name in .git/HEAD when they init a repo,
             # so we should always have a ref name, even though it might not point to anything.
-            ref_to_update = self.lookup_reference("HEAD").target
-            assert isinstance(ref_to_update, str), "HEAD isn't a symbolic reference!"
+            target = self.lookup_reference("HEAD").target
+            assert isinstance(target, str), "HEAD isn't a symbolic reference!"
+            ref_to_update = target
 
         # Prep parent list
         if self.head_is_unborn:

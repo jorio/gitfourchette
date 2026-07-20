@@ -197,6 +197,7 @@ class ConflictView(QWidget):
         isMergeReady = merge and merge.state == MergeDriver.State.Ready
 
         # Hide arrows if all we can do is pick ours/theirs.
+        w: QWidget
         for w in self.ui.oursArrow, self.ui.theirsArrow:
             w.setVisible(kit.page is not self.ui.emptyPage)
 
