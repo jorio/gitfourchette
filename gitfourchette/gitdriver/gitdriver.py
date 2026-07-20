@@ -50,7 +50,7 @@ class GitDriver(QProcess):
 
     _cachedGitVersionValid = False
     _cachedGitVersion = ""
-    _cachedGitVersionTuple = (0,)
+    _cachedGitVersionTuple: tuple[int, ...] = (0,)
 
     _cachedLfsVersionValid = False
     _cachedLfsVersion = ""
@@ -168,7 +168,7 @@ class GitDriver(QProcess):
 
         self.readyReadStandardError.connect(self._onReadyReadStandardError)
         self._stderrScrollback = io.BytesIO()
-        self._stdout = None
+        self._stdout: str | None = None
 
     def stdoutTable(self, pattern: str, linesep="\n", strict=True) -> list:
         stdout = self.stdoutScrollback()

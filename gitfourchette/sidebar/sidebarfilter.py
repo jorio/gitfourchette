@@ -43,8 +43,7 @@ class SidebarFilter(QSortFilterProxyModel):
         if not self._filterText:
             return True
 
-        sourceModel: SidebarModel = self.sourceModel()
-        index = sourceModel.index(sourceRow, 0, sourceParent)
+        index = self.sourceModel().index(sourceRow, 0, sourceParent)
 
         if not index.isValid():
             return True

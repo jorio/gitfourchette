@@ -41,7 +41,7 @@ class SidebarDelegate(QStyledItemDelegate):
 
     sidebar: Sidebar
 
-    def __init__(self, parent: QTreeView):
+    def __init__(self, parent: Sidebar):
         super().__init__(parent)
         self.sidebar = parent
 

@@ -55,7 +55,7 @@ class PrimeRepo(RepoTask):
         from gitfourchette.repomodel import RepoModel
         from gitfourchette.tasks import Jump
 
-        mainWindow: MainWindow = repoStub.window()
+        mainWindow = repoStub.window()
         assert isinstance(repoStub, RepoStub)
         assert isinstance(mainWindow, MainWindow)
 

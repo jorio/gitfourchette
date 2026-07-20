@@ -58,7 +58,7 @@ class AskpassPrompt(StrEnum):
 
 
 class AskpassDialog(TextInputDialog):
-    promptKind: AskpassPrompt
+    promptKind: AskpassPrompt | str
 
     autoYesOnAcceptEmptyText: bool
     "Reply 'yes' if the dialog is accepted with an empty text input."

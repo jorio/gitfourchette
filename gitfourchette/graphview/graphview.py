@@ -438,10 +438,12 @@ class GraphView(QListView):
         repoModel = self.repoModel
         repo = repoModel.repo
         oid = self.currentCommitId
+        assert oid is not None
 
         myRef = lquo(repoModel.homeBranch) if repoModel.homeBranch else "HEAD"
 
         # Figure out a nice ref name to initiate a merge, or fall back to commit id
+        mergeWhat: str | Oid
         try:
             refsHere = repoModel.refsAt[oid]
             mergeWhat = next(ref for ref in refsHere if ref.startswith((RefPrefix.HEADS, RefPrefix.REMOTES)))

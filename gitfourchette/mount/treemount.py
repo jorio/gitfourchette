@@ -10,7 +10,7 @@ import stat
 from pathlib import Path
 
 import mfusepy as fuse
-from pygit2 import Blob, Commit, Object, Tree, Repository
+from pygit2 import Blob, Commit, Object, Tree, Repository, Reference
 from pygit2.enums import ObjectType
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ class TreeMount(fuse.Operations):
     def run(cls, workdir: str, lookup: str, mountPoint: str):
         repo = Repository(workdir)
         try:
+            gitObj: Reference | Object
             try:
                 gitObj = repo[lookup]
             except ValueError:
@@ -48,11 +49,12 @@ class TreeMount(fuse.Operations):
     def _resolve(self, path: str) -> Object:
         assert path.startswith("/")
         path = path.removeprefix("/")
-        o = self.tree
+        obj: Object = self.tree
         if path:
             for part in path.split("/"):
-                o = o[part]
-        return o
+                tree = obj.peel(Tree)
+                obj = tree[part]
+        return obj
 
     @fuse.overrides(fuse.Operations)  # type: ignore[untyped-decorator]
     def getattr(self, path: str, fh: int) -> dict[str, int]:
