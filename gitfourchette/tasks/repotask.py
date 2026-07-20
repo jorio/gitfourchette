@@ -11,7 +11,7 @@ import enum
 import logging
 import shlex
 from collections.abc import Generator
-from typing import Any, TYPE_CHECKING, Literal, TypeVar, ClassVar, TypeAlias
+from typing import Any, Literal, TypeVar, ClassVar, TypeAlias
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.forms.askpassdialog import AskpassDialog

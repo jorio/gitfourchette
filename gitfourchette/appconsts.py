@@ -6,6 +6,7 @@
 
 import sys as _sys
 import os as _os
+from typing import TYPE_CHECKING  # noqa: F401
 
 
 def _envBool(key: str) -> bool:

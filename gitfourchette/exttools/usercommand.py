@@ -12,10 +12,10 @@ import re
 import shlex
 import traceback
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
 from gitfourchette import settings
+from gitfourchette.appconsts import *
 from gitfourchette.localization import _, _p
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import RefPrefix, split_remote_branch_shorthand

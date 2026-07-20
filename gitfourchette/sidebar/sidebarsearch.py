@@ -6,8 +6,7 @@
 
 from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
 
-from typing import TYPE_CHECKING
-
+from gitfourchette.appconsts import *
 from gitfourchette.search.searchprovider import SearchProvider
 
 if TYPE_CHECKING:

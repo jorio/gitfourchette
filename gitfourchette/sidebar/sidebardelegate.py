@@ -7,14 +7,13 @@
 from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
 
 import enum
-import typing
 
 from gitfourchette.qt import *
 from gitfourchette.sidebar.sidebarmodel import SidebarNode, SidebarModel, SidebarItem, SidebarLayout, SYMBOL_AHEAD, SYMBOL_BEHIND
 from gitfourchette.toolbox import stockIcon, FittedText
 from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from gitfourchette.sidebar.sidebar import Sidebar
 
 PE_EXPANDED = QStyle.PrimitiveElement.PE_IndicatorArrowDown

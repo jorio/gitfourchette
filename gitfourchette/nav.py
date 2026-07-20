@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-from typing import ClassVar, TYPE_CHECKING
+from typing import ClassVar
 
 from gitfourchette.localization import *
 from gitfourchette.porcelain import NULL_OID, Oid
