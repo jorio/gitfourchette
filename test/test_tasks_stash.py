@@ -10,6 +10,7 @@ from gitfourchette.gitdriver import GitDriver
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.stashdialog import StashDialog
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.trash import Trash
 import os
 import pytest
 
@@ -223,11 +224,14 @@ def testNewStashNoIgnoredFiles(tempDir, mainWindow):
     stashDialog.reject()
 
 
-def testPopStash(tempDir, mainWindow):
+@pytest.mark.parametrize("trashEnabled", [True, False])
+def testPopStash(tempDir, mainWindow, trashEnabled):
+    GFApplication.instance().applyPrefs(maxTrashFiles=250 if trashEnabled else 0)
+
     wd = unpackRepo(tempDir)
     reposcenario.stashedChange(wd)
     rw = mainWindow.openRepo(wd)
-    repo = rw.repo
+    stash = rw.repo.listall_stashes()[-1]
 
     assert 1 == rw.sidebar.countNodesByKind(SidebarItem.Stash)
     node = rw.sidebar.findNodeByRef("stash@{0}")
@@ -239,9 +243,17 @@ def testPopStash(tempDir, mainWindow):
     qmb.checkBox().setChecked(True)
     qmb.accept()
 
-    assert 0 == len(repo.listall_stashes())
+    assert 0 == len(rw.repo.listall_stashes())
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.Stash)
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt"]
+
+    if trashEnabled:
+        # Popped stash goes to trash
+        lastTrashFile = Trash.instance().trashFiles[-1]
+        assert "DELETED_STASH" in lastTrashFile.name
+        assert str(stash.commit_id) in readTextFile(lastTrashFile)
+    else:
+        assert 0 == Trash.instance().count()
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick"])
