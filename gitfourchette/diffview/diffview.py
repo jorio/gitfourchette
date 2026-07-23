@@ -320,7 +320,7 @@ class DiffView(CodeView):
             return
 
         def dump(path: str):
-            Path(path).write_text(patchData, encoding="utf-8")
+            Path(path).write_text(patchData, encoding="utf-8", newline="\n")
 
         name = os.path.basename(self.currentLocator.path) + "[partial].patch"
         qfd = PersistentFileDialog.saveFile(self, "SaveFile", _("Export selected lines"), name)

@@ -25,7 +25,10 @@ def savePatch(task: RepoTask, patch: str, fileName="") -> str:
     savePath = yield from task.flowFileDialog(qfd)
 
     yield from task.flowEnterWorkerThread()
-    Path(savePath).write_text(patch)
+    # Write patches verbatim: force UTF-8 (not the locale encoding, which fails
+    # on non-cp1252 content on Windows) and keep LF line endings (CRLF
+    # translation corrupts --binary base85 payloads and can break git apply).
+    Path(savePath).write_text(patch, encoding="utf-8", newline="\n")
 
     if task.repo.is_in_workdir(savePath):
         task.epilog.effects |= TaskEffects.Workdir  # invalidate workdir if saved file to it
