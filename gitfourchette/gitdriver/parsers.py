@@ -7,6 +7,7 @@
 import logging
 import re
 from pathlib import Path
+from collections.abc import Iterator
 
 from gitfourchette.gitdriver.gitdelta import GitDelta
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, GitDeltaSource, FileMode, HexHash0000, HexHashFFFF
@@ -59,7 +60,7 @@ def parseMode(octal: str) -> FileMode:
     return FileMode(int(octal, 8))
 
 
-def iterateLines(text: str):
+def iterateLines(text: str) -> Iterator[tuple[int, int]]:
     pos = 0
     limit = len(text)
 
@@ -73,20 +74,24 @@ def iterateLines(text: str):
         pos = nextPos
 
 
-def parseGitStatus(stdout: str, workdir: str):
+def parseGitStatus(stdout: str, workdir: str) -> Iterator[tuple[GitDelta | None, GitDelta | None]]:
     pos = 0
     limit = len(stdout)
 
     while pos < limit:
         ident = stdout[pos]
+
         try:
             pattern = _gitStatusPatterns[ident]
-        except KeyError:
-            logging.warning(f"unknown git status ident '{ident}'")
-            continue
+        except KeyError as ex:
+            raise ValueError(f"unknown ident {ident}") from ex
 
         match = pattern.match(stdout, pos)
+        if match is None:
+            raise ValueError(f"malformed record {ident}")
+
         pos = match.end()
+        assert stdout[pos-1] == '\0'
 
         staged, unstaged = _parseStatusLine(ident, *match.groups())
 

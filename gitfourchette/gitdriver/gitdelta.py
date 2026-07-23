@@ -8,7 +8,6 @@ import dataclasses
 
 from pygit2.enums import AttrCheck
 
-from gitfourchette.appconsts import APP_DEBUG
 from gitfourchette.gitdriver.gitconflict import GitConflict
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState
@@ -24,9 +23,12 @@ class GitDelta:
     submoduleStatus: str = ""  # Only in UNSTAGED contexts
     conflict: GitConflict | None = None  # Only in UNSTAGED contexts
 
-    if APP_DEBUG:
-        def __post_init__(self):
-            assert self.old.source != GitDeltaSource.Dirty, "old source cannot be dirty"
+    def __post_init__(self):
+        assert self.old.source != GitDeltaSource.Dirty, "old source cannot be dirty"
+
+        # Clear empty submodule status so it's falsy
+        if self.submoduleStatus == "N...":
+            self.submoduleStatus = ""
 
     @property
     def source(self) -> GitDeltaSource:
