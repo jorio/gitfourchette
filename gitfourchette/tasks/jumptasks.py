@@ -31,6 +31,7 @@ from gitfourchette.tasks import TaskPrereqs
 from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError, FlowControlToken
 from gitfourchette.toolbox import *
+from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -579,7 +580,8 @@ class Jump(RepoTask):
         details = []
 
         if locator.context.isWorkdir():
-            details.append(locator.context.translateName().lower())
+            contextName = TrTables.enum(locator.context).lower()
+            details.append(contextName)
         elif locator.context == NavContext.COMMITTED:
             diffAB = locator.commitDiffAB()
             if diffAB:

@@ -10,7 +10,6 @@ import dataclasses
 import enum
 from typing import ClassVar, TYPE_CHECKING
 
-from gitfourchette.localization import *
 from gitfourchette.porcelain import NULL_OID, Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
@@ -76,15 +75,6 @@ class NavContext(enum.IntEnum):
 
     def isWorkdir(self) -> bool:
         return self == NavContext.WORKDIR or self == NavContext.UNSTAGED or self == NavContext.STAGED
-
-    def translateName(self):
-        names = {
-            NavContext.EMPTY: _p("NavContext", "Empty"),
-            NavContext.UNSTAGED: _p("NavContext", "Unstaged"),
-            NavContext.STAGED: _p("NavContext", "Staged"),
-            NavContext.COMMITTED: _p("NavContext", "Committed"),
-        }
-        return names.get(self, _p("NavContext", "Unknown"))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -224,14 +214,6 @@ class NavLocator:
 
     def hasFlags(self, flags: NavFlags):
         return flags == (self.flags & flags)
-
-    def asTitle(self):
-        header = self.path
-        if self.context == NavContext.COMMITTED:
-            header += " @ " + shortHash(self.commit)
-        elif self.context.isWorkdir():
-            header += " [" + self.context.translateName() + "]"
-        return header
 
     def url(self):
         if self.context == NavContext.COMMITTED:

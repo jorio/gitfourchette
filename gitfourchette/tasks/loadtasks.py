@@ -24,6 +24,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import RepoTask, TaskEffects, FlowControlToken, AbortTask
 from gitfourchette.toolbox import *
+from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -445,9 +446,16 @@ class LoadPatchInNewWindow(LoadPatch):
 
         from gitfourchette.diffview.diffview import DiffView
 
+        if locator.context == NavContext.COMMITTED:
+            title = f"{locator.path} @ {shortHash(locator.commit)}"
+        elif self.context.isWorkdir():
+            title = f"{locator.path} [{TrTables.enum(locator.context)}]"
+        else:
+            title = locator.path
+
         diffWindow = QWidget(self.parentWidget())
         diffWindow.setObjectName("DetachedDiffWindow")
-        diffWindow.setWindowTitle(locator.asTitle())
+        diffWindow.setWindowTitle(title)
         diffWindow.setWindowFlag(Qt.WindowType.Window, True)
         diffWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 

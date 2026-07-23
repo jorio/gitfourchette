@@ -101,6 +101,7 @@ class TrTables:
     @staticmethod
     def _init_enums():
         from gitfourchette.gitdriver import GitConflictSides
+        from gitfourchette.nav import NavContext
         from gitfourchette.porcelain import FileMode, NameValidationError
         from gitfourchette.toolbox import toLengthVariants
         from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -164,6 +165,13 @@ class TrTables:
                 GitConflictSides.DeletedByUs    : _p("ConflictSides", "deleted by us"),
                 GitConflictSides.BothAdded      : _p("ConflictSides", "added by both sides"),
                 GitConflictSides.BothModified   : _p("ConflictSides", "modified by both sides"),
+            },
+
+            NavContext: {
+                NavContext.EMPTY                : _p("NavContext", "Empty"),
+                NavContext.UNSTAGED             : _p("NavContext", "Unstaged"),
+                NavContext.STAGED               : _p("NavContext", "Staged"),
+                NavContext.COMMITTED            : _p("NavContext", "Committed"),
             },
 
             PatchPurpose: {
