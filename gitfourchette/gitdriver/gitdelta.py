@@ -10,7 +10,7 @@ from pygit2.enums import AttrCheck
 
 from gitfourchette.appconsts import APP_DEBUG
 from gitfourchette.gitdriver.gitconflict import GitConflict
-from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, NavContext
+from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState
 from gitfourchette.porcelain import Repo
 
@@ -26,10 +26,10 @@ class GitDelta:
 
     if APP_DEBUG:
         def __post_init__(self):
-            assert not self.old.source == NavContext.UNSTAGED, "old source cannot be unstaged/untracked"
+            assert self.old.source != GitDeltaSource.Dirty, "old source cannot be dirty"
 
     @property
-    def context(self) -> NavContext:
+    def source(self) -> GitDeltaSource:
         return self.new.source
 
     @property
@@ -56,10 +56,10 @@ class GitDelta:
             # Untracked/unstaged: No pointer yet
             old.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
-            if old.source == NavContext.COMMITTED:
+            if old.source == GitDeltaSource.Commit:
                 oldCheck = AttrCheck.INCLUDE_COMMIT
             else:
-                assert not old.source == NavContext.UNSTAGED, "old source cannot be dirty"
+                assert old.source != GitDeltaSource.Dirty, "old source cannot be dirty"
                 oldCheck = AttrCheck.INDEX_THEN_FILE
                 if not repo.head_is_unborn:
                     oldCheck |= AttrCheck.INCLUDE_HEAD
@@ -74,9 +74,9 @@ class GitDelta:
             # Deletion: No pointer
             new.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
-            if new.source == NavContext.COMMITTED:
+            if new.source == GitDeltaSource.Commit:
                 newCheck = AttrCheck.INCLUDE_COMMIT
-            elif new.source == NavContext.UNSTAGED:
+            elif new.source == GitDeltaSource.Dirty:
                 # Note: If .gitattributes itself contains unstaged changes, then
                 # this check is unreliable with libgit2 alone (we'd need an
                 # AttrCheck.FILE_ONLY flag). For that specific case,

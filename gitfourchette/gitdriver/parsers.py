@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from gitfourchette.gitdriver.gitdelta import GitDelta
-from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, FileMode, HexHash0000, HexHashFFFF, NavContext
+from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, GitDeltaSource, FileMode, HexHash0000, HexHashFFFF
 from gitfourchette.gitdriver.gitconflict import GitConflict, GitConflictSides
 
 _logger = logging.getLogger(__name__)
@@ -127,19 +127,19 @@ def _parseStatus2(x, y, sub, mh, mi, mw, hh, hi, score, newPath, origPath):
         path=origPath,
         id=hh,
         mode=parseMode(mh),
-        source=NavContext.COMMITTED)
+        source=GitDeltaSource.Commit)
 
     fileIndex = GitDeltaFile(
         path=newPath,
         id=hi,
         mode=parseMode(mi),
-        source=NavContext.STAGED)
+        source=GitDeltaSource.Index)
 
     fileWorktree = GitDeltaFile(
         path=newPath,
         id=HexHash0000 if y == "D" else HexHashFFFF,
         mode=parseMode(mw),
-        source=NavContext.UNSTAGED)
+        source=GitDeltaSource.Dirty)
 
     xDelta, yDelta = None, None
 
@@ -153,8 +153,8 @@ def _parseStatus2(x, y, sub, mh, mi, mw, hh, hi, score, newPath, origPath):
 
 
 def _parseStatusConflict(xy, sub, m1, m2, m3, mw, h1, h2, h3, path):
-    indexFile = GitDeltaFile(path=path, source=NavContext.STAGED)
-    worktreeFile = GitDeltaFile(path=path, id=HexHashFFFF, mode=parseMode(mw), source=NavContext.UNSTAGED)
+    indexFile = GitDeltaFile(path=path, source=GitDeltaSource.Index)
+    worktreeFile = GitDeltaFile(path=path, id=HexHashFFFF, mode=parseMode(mw), source=GitDeltaSource.Dirty)
 
     sides = GitConflictSides(xy)
     stage1 = GitDeltaFile(path=path, id=h1, mode=parseMode(m1))
@@ -175,9 +175,9 @@ def _parseStatusUntracked(ident: str, path: str):
         mode = FileMode.UNREADABLE  # a more precise mode will be filled in from the file's stats
 
     # "Old" state = empty file (not indexed yet)
-    indexFile = GitDeltaFile(path=path, id=HexHash0000, mode=FileMode.UNREADABLE, source=NavContext.STAGED)
+    indexFile = GitDeltaFile(path=path, id=HexHash0000, mode=FileMode.UNREADABLE, source=GitDeltaSource.Index)
 
-    worktreeFile = GitDeltaFile(path=path, id=HexHashFFFF, mode=mode, source=NavContext.UNSTAGED)
+    worktreeFile = GitDeltaFile(path=path, id=HexHashFFFF, mode=mode, source=GitDeltaSource.Dirty)
 
     yDelta = GitDelta(status=ident, old=indexFile, new=worktreeFile)
     return None, yDelta
@@ -212,13 +212,13 @@ def _parseShowLine(ms, md, hs, hd, status, score, path1, path2) -> GitDelta:
         path=path1,
         id=hs,
         mode=parseMode(ms),
-        source=NavContext.COMMITTED)
+        source=GitDeltaSource.Commit)
 
     fileDst = GitDeltaFile(
         path=path2,
         id=hd,
         mode=parseMode(md),
-        source=NavContext.COMMITTED)
+        source=GitDeltaSource.Commit)
 
     return GitDelta(status, fileSrc, fileDst, similarity=int(score) if score else 0)
 

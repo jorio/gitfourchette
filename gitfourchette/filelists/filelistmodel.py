@@ -10,7 +10,7 @@ from contextlib import suppress
 from typing import Any
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import GitDelta
+from gitfourchette.gitdriver import GitDelta, GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsPointerState
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavLocator
@@ -48,7 +48,6 @@ def fileTooltip(
     of = delta.old
     nf = delta.new
     sc = delta.status
-    navContext = delta.context
 
     text = "<table style='white-space: pre'>"
 
@@ -90,11 +89,11 @@ def fileTooltip(
     sizeIsAccurate = False
     if nf.isBlob() and not nf.isId0():
         # Stat workdir file (get size on disk, modification time)
-        if navContext.isWorkdir():
+        if delta.source.isWorkdir():
             mTimeNS, size = nf.stat(repo)
 
         # Get accurate size in index if it's not an unstaged file
-        if navContext in (NavContext.STAGED, NavContext.COMMITTED):
+        if delta.source != GitDeltaSource.Dirty:
             assert nf.isIdValid()
             size = repo.peel_blob(nf.id).size
             sizeIsAccurate = True
@@ -136,7 +135,7 @@ def fileTooltip(
         text += newLine(idLegend, f"{oldId} \u2192 {newId}")
 
     if isCounterpart:
-        if navContext == NavContext.UNSTAGED:
+        if delta.source == GitDeltaSource.Dirty:
             counterpartText = _("Currently viewing diff of staged changes in this file; "
                                 "it also has <u>unstaged</u> changes.")
         else:
@@ -229,7 +228,8 @@ class FileListModel(QAbstractListModel):
             if self.navLocator:
                 return self.navLocator.replace(path=delta.new.path)
             else:
-                return NavLocator(delta.new.source, path=delta.new.path)
+                context = NavContext.fromGitDeltaSource(delta.new.source)
+                return NavLocator(context, path=delta.new.path)
 
         elif role == Qt.ItemDataRole.DisplayRole:
             # TODO: Canonical path for submodules?

@@ -17,13 +17,13 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
-from gitfourchette.settings import WhitespaceMode
 from gitfourchette.gitdriver.gitdelta import GitDelta
+from gitfourchette.gitdriver.gitdeltafile import GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
-from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import version_to_tuple, Oid, EMPTYTREE_OID
 from gitfourchette.qt import *
+from gitfourchette.settings import WhitespaceMode
 
 logger = logging.getLogger(__name__)
 
@@ -342,9 +342,9 @@ class GitDriver(QProcess):
         ]
 
         if isinstance(delta, GitDelta):
-            if delta.context == NavContext.STAGED:
+            if delta.source == GitDeltaSource.Index:
                 tokens.append("--staged")
-            elif delta.context == NavContext.COMMITTED:
+            elif delta.source == GitDeltaSource.Commit:
                 # Append treeishes being compared
                 assert delta.new.sourceCommit
                 compareB = delta.new.sourceCommit

@@ -211,7 +211,7 @@ class Jump(RepoTask):
             return Jump.Result(locator, None)
 
         delta = fileList.deltaForFile(locator.path)
-        assert delta.context == locator.context
+        assert locator.context == NavContext.fromGitDeltaSource(delta.source)
 
         # If DiffView is already set up to display this specific patch,
         # we don't need to bother shelling out to 'git diff'.

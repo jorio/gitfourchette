@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from gitfourchette.graphview.commitinfosearch import CommitInfoSearch
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator, NavFlags
+from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.qt import *
 from gitfourchette.repomodel import CommitPathspecFilter, UC_FAKEID
 from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
@@ -66,7 +66,9 @@ class CommitFileSearch(ItemViewSearchProvider):
         oid = self.buddyModel.data(index, CommitLogModel.Role.Oid)
         if oid == UC_FAKEID:
             delta = self._buddy.repoModel.workdirMatchesPathNeedle(self._term)
-            locator = NavLocator(delta.context, oid, delta.new.path)
+            assert delta is not None
+            context = NavContext.fromGitDeltaSource(delta.source)
+            locator = NavLocator(context, oid, delta.new.path)
         else:
             locator = NavLocator.inCommit(oid, self._term).withExtraFlags(NavFlags.FuzzyPath)
         Jump.invoke(self._buddy, locator)

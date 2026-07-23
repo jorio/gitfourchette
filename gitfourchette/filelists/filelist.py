@@ -15,8 +15,7 @@ from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
-from gitfourchette.gitdriver import GitDelta, GitDriver
-from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
+from gitfourchette.gitdriver import *
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -344,8 +343,8 @@ class FileList(QListView):
         isEnabled = False
         if len(deltas) == 1:
             delta = deltas[0]
-            assert delta.context == self.navContext
-            isEnabled = (not delta.context.isWorkdir()) or (delta.status not in "?A")
+            assert self.navContext == NavContext.fromGitDeltaSource(delta.source)
+            isEnabled = (not delta.source.isWorkdir()) or (delta.status not in "?A")
 
         return ActionDef(
             englishTitleCase(OpenBlame.name()) + "\u2026",
@@ -414,20 +413,20 @@ class FileList(QListView):
         diffDir = qTempDir()
         repo = self.repo
 
-        if delta.context == NavContext.UNSTAGED:
+        if delta.source == GitDeltaSource.Dirty:
             # Unstaged: compare indexed state to workdir file
             oldPath = delta.old.dump(repo, diffDir, "[INDEXED]")
             newPath = repo.in_workdir(delta.new.path)
-        elif delta.context == NavContext.STAGED:
+        elif delta.source == GitDeltaSource.Index:
             # Staged: compare HEAD state to indexed state
             oldPath = delta.old.dump(repo, diffDir, "[HEAD]")
             newPath = delta.new.dump(repo, diffDir, "[STAGED]")
-        elif delta.context == NavContext.COMMITTED:
+        elif delta.source == GitDeltaSource.Commit:
             # Committed: compare parent state to this commit
             oldPath = delta.old.dump(repo, diffDir, "[OLD]")
             newPath = delta.new.dump(repo, diffDir, "[NEW]")
         else:
-            raise NotImplementedError(f"unsupported context {delta.context}")
+            raise NotImplementedError(f"unsupported source {delta.source}")
 
         return ToolProcess.startDiffTool(self, oldPath, newPath)
 
@@ -708,7 +707,7 @@ class FileList(QListView):
 
     def blameFile(self):
         def run(delta: GitDelta):
-            if delta.context.isWorkdir():
+            if delta.source.isWorkdir():
                 path = delta.old.path
                 commit = NULL_OID
             else:

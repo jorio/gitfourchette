@@ -10,6 +10,7 @@ import dataclasses
 import enum
 from typing import ClassVar, TYPE_CHECKING
 
+from gitfourchette.gitdriver import GitDeltaSource
 from gitfourchette.porcelain import NULL_OID, Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
@@ -75,6 +76,15 @@ class NavContext(enum.IntEnum):
 
     def isWorkdir(self) -> bool:
         return self == NavContext.WORKDIR or self == NavContext.UNSTAGED or self == NavContext.STAGED
+
+    @classmethod
+    def fromGitDeltaSource(cls, source: GitDeltaSource):
+        _deltaContextToNavContext = {
+            GitDeltaSource.Dirty: NavContext.UNSTAGED,
+            GitDeltaSource.Index: NavContext.STAGED,
+            GitDeltaSource.Commit: NavContext.COMMITTED,
+        }
+        return _deltaContextToNavContext[source]
 
 
 @dataclasses.dataclass(frozen=True)

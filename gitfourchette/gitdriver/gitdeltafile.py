@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import enum
 import fnmatch
 import hashlib
 import os
@@ -14,7 +15,6 @@ from pathlib import Path
 from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern, LfsObjectCacheMissingError
-from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, pygit2_version_at_least
 
 HexHash0000 = "0" * 40
@@ -33,6 +33,16 @@ _sha1ToSha256Equivalent: dict[str, str] = {}
 Map SHA-1 blob hashes to SHA-256 equivalents for quick comparison of regular
 git blobs (SHA-1) to LFS pointers (SHA-256).
 """
+
+
+class GitDeltaSource(enum.IntEnum):
+    Unknown = 0
+    Dirty = 1
+    Index = 2
+    Commit = 3
+
+    def isWorkdir(self) -> bool:
+        return self == GitDeltaSource.Dirty or self == GitDeltaSource.Index
 
 
 @dataclasses.dataclass
@@ -57,14 +67,15 @@ class GitDeltaFile:
     in the filesystem.
     """
 
-    source: NavContext = NavContext.EMPTY
+    source: GitDeltaSource = GitDeltaSource.Unknown
     """
-    Where this GitDeltaFile was sampled from, i.e. a commit or the workdir.
+    Where this GitDeltaFile was sampled from: a commit, the index, or an
+    unstaged change or untracked file in the workdir.
     """
 
     sourceCommit: Oid | None = None
     """
-    Only valid if source == NavContext.COMMITTED.
+    Only valid when source == GitDeltaSource.Commit.
     """
 
     diskStat: tuple[int, int] = _NoDiskStat
@@ -147,7 +158,7 @@ class GitDeltaFile:
             except KeyError:
                 # Blob ID isn't in the database. Typically, that means
                 # it's an unstaged file. Read it from the workdir.
-                assert self.source == NavContext.UNSTAGED, f"expecting untracked/unstaged, got {self.source}"
+                assert self.source == GitDeltaSource.Dirty, f"expecting untracked/unstaged, got {self.source}"
                 self._data = repo.apply_filters_to_workdir(self.path)
 
         assert self.isDataValid(), "data should be valid here"
@@ -232,7 +243,7 @@ class GitDeltaFile:
             return
 
         # Unstaged: Force read data from wd
-        if self.source == NavContext.UNSTAGED:
+        if self.source == GitDeltaSource.Dirty:
             assert self.sourceCommit is None
             objectPath = repo.in_workdir(self.path)
             self.lfs = LfsPointer(LfsPointerState.UnstagedTentative, objectPath=objectPath)

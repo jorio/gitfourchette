@@ -12,9 +12,9 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
-from gitfourchette.gitdriver import argsIf, GitDelta, GitDriver
+from gitfourchette.gitdriver import *
 from gitfourchette.localization import *
-from gitfourchette.nav import NavLocator, NavContext
+from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
@@ -120,8 +120,7 @@ class StageFiles(_BaseStagingTask):
 
 class DiscardFiles(_BaseStagingTask):
     def flow(self, deltas: list[GitDelta]):
-        context = NavContext.UNSTAGED
-        assert all(d.context == context for d in deltas)
+        assert all(d.source == GitDeltaSource.Dirty for d in deltas)
 
         textPara = []
         really = ""

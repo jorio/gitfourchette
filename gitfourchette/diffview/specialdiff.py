@@ -15,8 +15,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from gitfourchette import settings
-from gitfourchette.gitdriver import GitDelta, GitDriver, GitDeltaFile
-from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
+from gitfourchette.gitdriver import *
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -115,7 +114,7 @@ class SpecialDiffError:
             intro = _("Mode change:")
             details.append(f"{intro} {TrTables.enum(oldFile.mode)} &rarr; {TrTables.enum(newFile.mode)}.")
 
-        if delta.context.isWorkdir() and stderr:
+        if delta.source == GitDeltaSource.Dirty and stderr:
             crlfWarningPattern = _workdirCrlfWarning
             if GitDriver.gitVersionTuple() < (2, 37):
                 crlfWarningPattern = _workdirCrlfWarningLegacy
@@ -265,8 +264,7 @@ class SpecialDiffError:
     def submoduleDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError:
         from gitfourchette.tasks import AbsorbSubmodule, DiscardFiles, RegisterSubmodule
 
-        assert delta.context == locator.context
-        context = delta.context
+        assert locator.context == NavContext.fromGitDeltaSource(delta.source)
 
         path = delta.new.path
         absPath = repo.in_workdir(path)
@@ -288,7 +286,7 @@ class SpecialDiffError:
             name = path  # Fallback to inner path as the name
             isRegistered = False
 
-        if context.isWorkdir():
+        if delta.source.isWorkdir():
             wasRegistered = path in repo.listall_submodules_dict_at_head()
         else:
             wasRegistered = True
@@ -355,7 +353,7 @@ class SpecialDiffError:
 
             intro = (_("The subtree’s <b>HEAD</b> has moved to another commit.") if isTree else
                      _("The submodule’s <b>HEAD</b> has moved to another commit."))
-            if context == NavContext.UNSTAGED:
+            if delta.source == GitDeltaSource.Dirty:
                 intro += " " + _("You can stage this update:")
             longformParts.append(
                 f"{intro}"
@@ -365,7 +363,7 @@ class SpecialDiffError:
                 "</table></p>")
 
         # Show additional tips if this submodule is in the workdir.
-        if context.isWorkdir():
+        if delta.source.isWorkdir():
             m = ""
             if isDel:
                 if isRegistered:
