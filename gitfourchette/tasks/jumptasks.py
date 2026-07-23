@@ -236,7 +236,7 @@ class Jump(RepoTask):
 
         # Special case for unstaged files: a valid hash may not be available
         # in delta.new, so we rely on the file's stats on disk.
-        if locator.context.isDirty():
+        if locator.context == NavContext.UNSTAGED:
             if delta.new.path != currentDelta.new.path:
                 return False
 

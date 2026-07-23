@@ -70,21 +70,16 @@ class NavContext(enum.IntEnum):
     EMPTY       = 0
     COMMITTED   = 1
     WORKDIR     = 2
-    UNTRACKED   = 3
-    UNSTAGED    = 4
-    STAGED      = 5
-    SPECIAL     = 6
+    UNSTAGED    = 3
+    STAGED      = 4
+    SPECIAL     = 5
 
-    def isWorkdir(self):
-        return self == NavContext.WORKDIR or self == NavContext.UNTRACKED or self == NavContext.UNSTAGED or self == NavContext.STAGED
-
-    def isDirty(self):
-        return self == NavContext.UNTRACKED or self == NavContext.UNSTAGED
+    def isWorkdir(self) -> bool:
+        return self == NavContext.WORKDIR or self == NavContext.UNSTAGED or self == NavContext.STAGED
 
     def translateName(self):
         names = {
             NavContext.EMPTY: _p("NavContext", "Empty"),
-            NavContext.UNTRACKED: _p("NavContext", "Untracked"),
             NavContext.UNSTAGED: _p("NavContext", "Unstaged"),
             NavContext.STAGED: _p("NavContext", "Staged"),
             NavContext.COMMITTED: _p("NavContext", "Committed"),

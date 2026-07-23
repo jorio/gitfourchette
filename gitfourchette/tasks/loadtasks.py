@@ -362,7 +362,7 @@ class LoadPatch(RepoTask):
         # modified. (We don't need to stat non-unstaged files because blob
         # hashes are known in advance, so for those, we can simply compare the
         # hashes stored in GitDelta to figure out if it's fresh.)
-        if locator.context.isDirty():
+        if locator.context == NavContext.UNSTAGED:
             delta.new.diskStat = delta.new.stat(self.repo)
 
         try:

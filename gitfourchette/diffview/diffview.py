@@ -205,16 +205,6 @@ class DiffView(CodeView):
                     ActionDef(_("Revert Hunk…"), lambda: self.revertHunk(clickedHunkID)),
                 ]
 
-        elif navContext == NavContext.UNTRACKED:
-            if hasSelection:
-                actions = [
-                    ActionDef(_("Export Lines as Patch…"), self.exportSelection),
-                ]
-            else:
-                actions = [
-                    ActionDef(_("Export Hunk as Patch…"), lambda: self.exportHunk(clickedHunkID)),
-                ]
-
         elif navContext == NavContext.UNSTAGED:
             if hasSelection:
                 actions = [

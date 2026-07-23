@@ -26,7 +26,7 @@ class GitDelta:
 
     if APP_DEBUG:
         def __post_init__(self):
-            assert not self.old.source.isDirty(), "old source cannot be unstaged/untracked"
+            assert not self.old.source == NavContext.UNSTAGED, "old source cannot be unstaged/untracked"
 
     @property
     def context(self) -> NavContext:
@@ -59,7 +59,7 @@ class GitDelta:
             if old.source == NavContext.COMMITTED:
                 oldCheck = AttrCheck.INCLUDE_COMMIT
             else:
-                assert not old.source.isDirty(), "old source cannot be dirty"
+                assert not old.source == NavContext.UNSTAGED, "old source cannot be dirty"
                 oldCheck = AttrCheck.INDEX_THEN_FILE
                 if not repo.head_is_unborn:
                     oldCheck |= AttrCheck.INCLUDE_HEAD
@@ -76,7 +76,7 @@ class GitDelta:
         else:
             if new.source == NavContext.COMMITTED:
                 newCheck = AttrCheck.INCLUDE_COMMIT
-            elif new.source.isDirty():
+            elif new.source == NavContext.UNSTAGED:
                 # Note: If .gitattributes itself contains unstaged changes, then
                 # this check is unreliable with libgit2 alone (we'd need an
                 # AttrCheck.FILE_ONLY flag). For that specific case,

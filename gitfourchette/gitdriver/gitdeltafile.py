@@ -147,7 +147,7 @@ class GitDeltaFile:
             except KeyError:
                 # Blob ID isn't in the database. Typically, that means
                 # it's an unstaged file. Read it from the workdir.
-                assert self.source.isDirty(), f"expecting untracked/unstaged, got {self.source}"
+                assert self.source == NavContext.UNSTAGED, f"expecting untracked/unstaged, got {self.source}"
                 self._data = repo.apply_filters_to_workdir(self.path)
 
         assert self.isDataValid(), "data should be valid here"
@@ -232,7 +232,7 @@ class GitDeltaFile:
             return
 
         # Unstaged: Force read data from wd
-        if self.source.isDirty():
+        if self.source == NavContext.UNSTAGED:
             assert self.sourceCommit is None
             objectPath = repo.in_workdir(self.path)
             self.lfs = LfsPointer(LfsPointerState.UnstagedTentative, objectPath=objectPath)
