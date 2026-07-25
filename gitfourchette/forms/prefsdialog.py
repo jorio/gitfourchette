@@ -599,7 +599,7 @@ class PrefsDialog(QDialog):
         if not prefValue:
             control.setCurrentIndex(0)
         control.insertSeparator(1)
-        for availableStyle in QStyleFactory.keys():
+        for availableStyle in QStyleFactory.keys():  # noqa: SIM118
             control.addItem(availableStyle, userData=availableStyle)
             if prefValue == availableStyle:
                 control.setCurrentIndex(control.count() - 1)

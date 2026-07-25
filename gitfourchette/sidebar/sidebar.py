@@ -466,7 +466,7 @@ class Sidebar(QTreeView):
             ]
 
         elif item == SidebarItem.TagsHeader:
-            refspecs = [ref for ref in self.sidebarModel.repoModel.refs.keys()
+            refspecs = [ref for ref in self.sidebarModel.repoModel.refs
                         if ref.startswith(RefPrefix.TAGS)]
 
             actions += [

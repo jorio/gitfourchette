@@ -175,7 +175,7 @@ class ToolCommands:
     def filterQProcessEnvironment(cls, process: QProcess) -> dict[str, str]:
         processEnvironment = process.processEnvironment()
         env = {}
-        for key in processEnvironment.keys():
+        for key in processEnvironment.keys():  # noqa: SIM118
             value = processEnvironment.value(key)
             if value != INITIAL_ENVIRONMENT.get(key, None):
                 env[key] = value

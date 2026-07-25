@@ -204,7 +204,7 @@ def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     app.clipboard().setText(clipboardBackup)
 
     # Don't leak any modifier keys to the next test
-    for keyName in "Shift Control Alt Meta".split():
+    for keyName in ["Shift", "Control", "Alt", "Meta"]:
         qt.QTest.keyRelease(app.mainWindow, getattr(qt.Qt.Key, f"Key_{keyName}"))
     assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
 

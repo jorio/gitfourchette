@@ -65,7 +65,7 @@ class GraphDiagram:
                 commitsById[oid] = mockCommit
 
         for mockCommit in sequence:
-            mockParents = [commitsById.get(p, None) for p in mockCommit.parent_ids]
+            mockParents = [commitsById.get(p) for p in mockCommit.parent_ids]
             mockCommit.parents = mockParents  # type: ignore[attr-defined]
 
         return sequence, heads
