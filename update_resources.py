@@ -179,8 +179,8 @@ def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=T
 
     elif "from PyQt" in text:
         # Clean up pyuic6 output (pyqt6, generated code is compatible with pyside6 too)
-        text = re.sub(r"^from PyQt[56] import .+$", myImport, text, count=1, flags=re.M)
-        text = re.sub(r"_translate(?=\(\")", "_p", text, flags=re.M)
+        text = re.sub(r"^from PyQt[56] import .+$", myImport, text, count=1, flags=re.MULTILINE)
+        text = re.sub(r"_translate(?=\(\")", "_p", text, flags=re.MULTILINE)
 
         nukePatterns = [
             # No need to spell out Qt module names with gitfourchette.qt
@@ -201,8 +201,8 @@ def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=T
     elif "from PySide" in text:
         # WARNING: pyside6-uic cleanup provided here for convenience,
         # but note that the generated code incompatible with pyqt6!
-        text = re.sub(r"^from PySide6.* import \([^\)]+\)$", myImport, text, count=1, flags=re.M)
-        text = re.sub(r"QCoreApplication\.translate\((.+), None\)", r"_p(\1)", text, flags=re.M)
+        text = re.sub(r"^from PySide6.* import \([^\)]+\)$", myImport, text, count=1, flags=re.MULTILINE)
+        text = re.sub(r"QCoreApplication\.translate\((.+), None\)", r"_p(\1)", text, flags=re.MULTILINE)
         nukePatterns = [
             r"^#if QT_CONFIG\(.+\n",
             r"^#endif // QT_CONFIG\(.+\n",
@@ -217,7 +217,7 @@ def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=T
         print("Unknown uic output")
 
     for pattern in nukePatterns:
-        text = re.sub(pattern, "", text, flags=re.M)
+        text = re.sub(pattern, "", text, flags=re.MULTILINE)
 
     writeIfDifferent(pyPath, text, ignoreDiffs)
 
@@ -278,7 +278,7 @@ def updatePotTemplate():
     ]
     text = Path(LANG_TEMPLATE).read_text(encoding="utf-8")
     for pattern in nukePatterns:
-        text = re.sub(pattern, "", text, flags=re.M)
+        text = re.sub(pattern, "", text, flags=re.MULTILINE)
     Path(LANG_TEMPLATE).write_text(text, "utf-8")
 
 

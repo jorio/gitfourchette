@@ -32,7 +32,7 @@ def testEmptyDiffEmptyFile(tempDir, mainWindow):
 
     assert not rw.diffView.isVisible()
     assert rw.specialDiffView.isVisible()
-    assert re.search(r"empty file", rw.specialDiffView.toPlainText(), re.I)
+    assert re.search(r"empty file", rw.specialDiffView.toPlainText(), re.IGNORECASE)
 
 
 @pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
@@ -42,7 +42,7 @@ def testEmptyDiffWithModeChange(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     qlvClickNthRow(rw.dirtyFiles, 0)
-    assert re.search(r"mode change:.+(normal|regular).+executable", rw.specialDiffView.toPlainText(), re.I)
+    assert re.search(r"mode change:.+(normal|regular).+executable", rw.specialDiffView.toPlainText(), re.IGNORECASE)
 
 
 def testEmptyDiffWithNameChange(tempDir, mainWindow):
@@ -55,7 +55,7 @@ def testEmptyDiffWithNameChange(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
 
     qlvClickNthRow(rw.stagedFiles, 0)
-    assert re.search(r"renamed:.+master\.txt.+mastiff\.txt", rw.specialDiffView.toPlainText(), re.I)
+    assert re.search(r"renamed:.+master\.txt.+mastiff\.txt", rw.specialDiffView.toPlainText(), re.IGNORECASE)
 
 
 def testDiffDeletedFile(tempDir, mainWindow):
@@ -87,7 +87,7 @@ def testDiffViewStageLines(tempDir, mainWindow, method):
 
     qteClickBlock(rw.diffView, 0)
     QTest.keyPress(rw.diffView, Qt.Key.Key_Return)
-    assert re.search(r"can.t stage", mainWindow.statusBar().currentMessage(), re.I)
+    assert re.search(r"can.t stage", mainWindow.statusBar().currentMessage(), re.IGNORECASE)
     qteSelectBlocks(rw.diffView, 3, 4)
 
     assert rw.diffView.rubberBand.isVisible()
@@ -648,8 +648,8 @@ def testDiffTypeChange(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     assert rw.specialDiffView.isVisible()
     text = rw.specialDiffView.toPlainText()
-    assert re.search(r"type has changed", text, re.I)
-    assert re.search(r"old type.+regular file.+new type.+symbolic link", text, re.I | re.S)
+    assert re.search(r"type has changed", text, re.IGNORECASE)
+    assert re.search(r"old type.+regular file.+new type.+symbolic link", text, re.IGNORECASE | re.DOTALL)
 
 
 def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):

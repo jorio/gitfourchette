@@ -31,7 +31,7 @@ _ClearTextPromptPatterns = [
 
 _UnknownHostPrompt = "Are you sure you want to continue connecting (yes/no/[fingerprint])?"
 
-_KeyFingerprintPattern = re.compile(r"key fingerprint is:? (.+?)\.?$", re.M)
+_KeyFingerprintPattern = re.compile(r"key fingerprint is:? (.+?)\.?$", re.MULTILINE)
 
 
 class AskpassPrompt(StrEnum):

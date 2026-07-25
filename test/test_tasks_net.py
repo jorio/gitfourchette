@@ -66,19 +66,19 @@ def testCloneRepoWithSubmodules(tempDir, mainWindow):
     cloneDialog.ui.pathEdit.setText(tempDir.name)
     QTest.qWait(0)
     assert not cloneDialog.cloneButton.isEnabled()
-    assert re.search(r"isn.t empty", QToolTip.text(), re.I)
+    assert re.search(r"isn.t empty", QToolTip.text(), re.IGNORECASE)
 
     # Disallow cloning to empty path
     cloneDialog.ui.pathEdit.setText("")
     QTest.qWait(0)
     assert not cloneDialog.cloneButton.isEnabled()
-    assert re.search(r"enter.+absolute path", QToolTip.text(), re.I)
+    assert re.search(r"enter.+absolute path", QToolTip.text(), re.IGNORECASE)
 
     # Disallow cloning to file path
     cloneDialog.ui.pathEdit.setText(f"{wd}/master.txt")
     QTest.qWait(0)
     assert not cloneDialog.cloneButton.isEnabled()
-    assert re.search(r"file at this path", QToolTip.text(), re.I)
+    assert re.search(r"file at this path", QToolTip.text(), re.IGNORECASE)
 
     # Set target path in clone dialog
     cloneDialog.ui.browseButton.click()
@@ -279,7 +279,7 @@ def testFetchRemoteBranch(tempDir, mainWindow):
         assert re.search(
             fr"localfs/master.+{str(oldHead)[:7]}.+{str(newHead)[:7]}",
             mainWindow.statusBar().currentMessage(),
-            re.I)
+            re.IGNORECASE)
 
     # The position of the remote's master branch should be up to date now
     assert rw.repo.branches.remote["localfs/master"].target == newHead
@@ -554,7 +554,7 @@ def testPush(tempDir, mainWindow, asNewBranch):
     assert dlg.ui.trackCheckBox.isChecked()
     assert not dlg.willPushToNewBranch
     assert dlg.currentRemoteBranchFullName == "origin/master"
-    assert re.search(r"already tracks.+origin/master", dlg.ui.trackingLabel.text(), re.I)
+    assert re.search(r"already tracks.+origin/master", dlg.ui.trackingLabel.text(), re.IGNORECASE)
 
     if not asNewBranch:
         qcbSetIndex(dlg.ui.remoteBranchEdit, "localfs/master")
@@ -572,7 +572,7 @@ def testPush(tempDir, mainWindow, asNewBranch):
         assert dlg.willPushToNewBranch
 
         QTest.keyClicks(dlg.ui.newRemoteBranchNameEdit, "new")  # keyClicks ensures the correct signal is emitted
-        assert re.search(r"will track.+localfs/new.+instead of.+origin/master", dlg.ui.trackingLabel.text(), re.I)
+        assert re.search(r"will track.+localfs/new.+instead of.+origin/master", dlg.ui.trackingLabel.text(), re.IGNORECASE)
         assert dlg.currentRemoteBranchFullName == "localfs/new"
         assert dlg.willPushToNewBranch
 
@@ -678,7 +678,7 @@ def testPushMissingUpstream(tempDir, mainWindow):
     triggerMenuAction(menu, "push")
 
     pushDialog = findQDialog(rw, "Push", t=PushDialog)
-    assert re.match("new remote branch on .localfs.", pushDialog.ui.remoteBranchEdit.currentText(), re.I)
+    assert re.match("new remote branch on .localfs.", pushDialog.ui.remoteBranchEdit.currentText(), re.IGNORECASE)
     assert pushDialog.ui.newRemoteBranchNameEdit.isVisible()
     assert pushDialog.ui.newRemoteBranchNameEdit.text() == "missing-upstream"
 
@@ -854,7 +854,7 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
     blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
     assert blurbLabel.isVisible()
-    assert re.search(r"force.push.+rejected to prevent data loss", blurbLabel.text(), re.I)
+    assert re.search(r"force.push.+rejected to prevent data loss", blurbLabel.text(), re.IGNORECASE)
     pushDialog.reject()
 
     assert rw.repo.branches.remote["remote2/master"].target != newOid
@@ -980,7 +980,7 @@ def testRemoteSkipFetchAll(tempDir, mainWindow):
 
     # Look for message in sidebar tooltip
     tip = rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search("skipped when fetching all remotes", tip, re.I)
+    assert re.search("skipped when fetching all remotes", tip, re.IGNORECASE)
 
     # Fetch
     triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
@@ -1052,7 +1052,7 @@ def testAutoFetchFailure(tempDir, mainWindow):
     rw.onAutoFetchTimerTimeout()
 
     # Make sure we're showing a discreet message in the status bar instead of a message box
-    assert re.search("couldn.t auto-fetch", mainWindow.statusBar2.currentMessage(), re.I)
+    assert re.search("couldn.t auto-fetch", mainWindow.statusBar2.currentMessage(), re.IGNORECASE)
 
 
 @pytest.mark.notParallelizableOnWindows

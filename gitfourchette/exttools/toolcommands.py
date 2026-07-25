@@ -80,8 +80,8 @@ class ToolCommands:
 
         # Remove single quotes added around our placeholders by shlex.join()
         # (e.g. '$L' --> $L, '--output=$M' --> $M)
-        newCommand = re.sub(r" '(\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.I | re.A)
-        newCommand = re.sub(r" '(--?[a-z0-9\-_]+=\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.I | re.A)
+        newCommand = re.sub(r" '(\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.IGNORECASE)
+        newCommand = re.sub(r" '(--?[a-z0-9\-_]+=\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.IGNORECASE)
 
         return newCommand
 

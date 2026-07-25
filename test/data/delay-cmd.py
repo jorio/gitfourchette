@@ -29,7 +29,7 @@ for i in range(n + 1):
           end="\r", file=sys.stderr)
     time.sleep(secs / n)
 
-print("", end="\r\n", file=sys.stderr)
+print(end="\r\n", file=sys.stderr)
 
 # Restore SIGINT and SIGTERM after sleeping
 if args.block:

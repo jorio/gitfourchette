@@ -110,8 +110,8 @@ CORE_STASH_MESSAGE_PATTERN = _re.compile(r"^On (?:[^\s:]+|\(no branch\)): (.+)")
 WINDOWS_RESERVED_FILENAMES_PATTERN = _re.compile(r"(.*/)?(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)($|\.|/)", _re.IGNORECASE)
 DIFF_HEADER_PATTERN = _re.compile(r"^diff --git (\"?\w/[^\"]+\"?) (\"?\w/[^\"]+\"?)")
 
-SUBPROJECT_COMMIT_MINUS_PATTERN = _re.compile(r"^-Subproject commit (.+)$", _re.M)
-SUBPROJECT_COMMIT_PLUS_PATTERN = _re.compile(r"^\+Subproject commit (.+)$", _re.M)
+SUBPROJECT_COMMIT_MINUS_PATTERN = _re.compile(r"^-Subproject commit (.+)$", _re.MULTILINE)
+SUBPROJECT_COMMIT_PLUS_PATTERN = _re.compile(r"^\+Subproject commit (.+)$", _re.MULTILINE)
 
 FileStatus_INDEX_MASK = (
         FileStatus.INDEX_NEW

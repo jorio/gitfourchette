@@ -34,7 +34,7 @@ from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
-_submoduleIndexLinePattern = re.compile(r"^index ([\da-f]+)\.\.([\da-f]+)", re.M)
+_submoduleIndexLinePattern = re.compile(r"^index ([\da-f]+)\.\.([\da-f]+)", re.MULTILINE)
 
 
 def loadWorkdir(task: RepoTask, allowWriteIndex: bool):

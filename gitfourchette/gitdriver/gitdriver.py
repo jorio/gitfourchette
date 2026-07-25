@@ -253,7 +253,7 @@ class GitDriver(QProcess):
         # [master (root-commit) 123abc]
         # [detached HEAD 123abc]
         stdout = self.stdoutScrollback()
-        match = re.match(r"^\[(.+)\s+([\da-f]+)]", stdout, re.I)
+        match = re.match(r"^\[(.+)\s+([\da-f]+)]", stdout, re.IGNORECASE)
         if not match:
             raise ValueError("couldn't parse post-commit stdout: " + stdout.splitlines()[0])
         branchName = match.group(1)
