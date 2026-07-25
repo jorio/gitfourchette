@@ -22,7 +22,7 @@ def padx(x):
 class GraphDiagram:
     @staticmethod
     def parse(text: str):
-        sequence, heads = GraphDiagram.parseDefinition(text)
+        sequence, _heads = GraphDiagram.parseDefinition(text)
         return GraphBuildLoop().sendAll(sequence).graph
 
     @staticmethod

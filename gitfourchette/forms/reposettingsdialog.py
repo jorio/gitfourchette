@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ class RepoSettingsDialog(QDialog):
         localName, localEmail = repo.get_local_identity()
         useLocalIdentity = bool(localName or localEmail)
 
-        globalName, globalEmail, globalIdentityLevel = GitConfigHelper.global_identity()
+        globalName, globalEmail, _globalIdentityLevel = GitConfigHelper.global_identity()
         for text, edit in [(globalName, ui.nameEdit), (globalEmail, ui.emailEdit)]:
             if text:
                 text += " <" + _p("RepoSettingsDialog", "from global config") + ">"

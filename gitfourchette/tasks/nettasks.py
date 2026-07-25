@@ -260,7 +260,7 @@ class FetchRemoteBranch(RepoTask):
             return
 
         updatedRefs = driver.readFetchPorcelainUpdatedRefs()
-        flag, oldTarget, newTarget = updatedRefs[fullRemoteRef]
+        flag, _oldTarget, newTarget = updatedRefs[fullRemoteRef]
 
         self.epilog.status = formatUpdatedRefs(
             updatedRefs,

@@ -34,7 +34,7 @@ from .util import *
 
 def testCloneRepoWithSubmodules(tempDir, mainWindow):
     wd = unpackRepo(tempDir, renameTo="unpacked-repo")
-    subWd, _dummy = reposcenario.submodule(wd, True)  # spice it up with a submodule
+    reposcenario.submodule(wd, True)  # spice it up with a submodule
     bare = makeBareCopy(wd, addAsRemote="", preFetch=False)
     target = str(Path(f"{tempDir.name}", "the-clone").resolve())
 

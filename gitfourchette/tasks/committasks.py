@@ -243,7 +243,7 @@ class AmendCommit(RepoTask):
             explicitNoGpgSign=explicitNoGpgSign)
         driver = yield from self.flowCallGit(*args, env=env)
 
-        branchName, newHash = driver.readPostCommitInfo()
+        _branchName, newHash = driver.readPostCommitInfo()
         newOid = Oid(hex=newHash)
 
         # Trust this commit if we've just signed it
@@ -313,7 +313,7 @@ class CheckoutCommit(RepoTask):
         refs = [r for r in refs if r.startswith((RefPrefix.HEADS, RefPrefix.REMOTES))]
 
         commitMessage = self.repo.get_commit_message(oid)
-        commitMessage, junk = messageSummary(commitMessage)
+        commitMessage, _junk = messageSummary(commitMessage)
         anySubmodules = bool(self.repo.listall_submodules_fast())
 
         dlg = CheckoutCommitDialog(

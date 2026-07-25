@@ -184,7 +184,7 @@ def testNewStashCantStashSubmoduleOrSubtree(tempDir, mainWindow):
     pygit2.init_repository(f"{wd}new_untracked_tree")
 
     # Create tracked submodule + a pending change within
-    submoAbsPath, submoCommit = reposcenario.submodule(wd)
+    submoAbsPath, _submoCommit = reposcenario.submodule(wd)
     writeFile(f"{submoAbsPath}/dirty.txt", "coucou")
 
     rw = mainWindow.openRepo(wd)

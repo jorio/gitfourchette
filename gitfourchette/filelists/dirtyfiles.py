@@ -151,7 +151,7 @@ class DirtyFiles(FileList):
         remove = []
 
         for path in self.selectedPaths():
-            ancestor, ours, theirs = conflicts[path]
+            _ancestor, ours, theirs = conflicts[path]
             keepEntry = ours if keepOurs else theirs
             if keepEntry is not None:
                 assert keepEntry.path == path

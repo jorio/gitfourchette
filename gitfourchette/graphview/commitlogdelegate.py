@@ -193,7 +193,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             author = commit.author
             committer = commit.committer
 
-            summaryText, contd = messageSummary(commit.message, ELISION)
+            summaryText, _contd = messageSummary(commit.message, ELISION)
             hashText = shortHash(oid)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
@@ -408,7 +408,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             if repoModel.singleRemote and len(localRefList) == 1:
                 assert upstreamRef.startswith(RefPrefix.REMOTES)
                 upstreamShorthand = upstreamRef.removeprefix(RefPrefix.REMOTES)
-                remoteName, remoteBranchName = split_remote_branch_shorthand(upstreamShorthand)
+                _remoteName, remoteBranchName = split_remote_branch_shorthand(upstreamShorthand)
                 _localBranchPrefix, localBranchName = RefPrefix.split(localRefList[0])
                 omitRemoteName = remoteBranchName == localBranchName
             else:

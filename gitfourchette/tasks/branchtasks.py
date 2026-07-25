@@ -294,7 +294,7 @@ class NewBranchFromCommit(RepoTask):
         forbiddenBranchNames = repo.listall_branches(BranchType.LOCAL)
 
         commitMessage = repo.get_commit_message(tip)
-        commitMessage, junk = messageSummary(commitMessage)
+        commitMessage, _junk = messageSummary(commitMessage)
 
         dlg = NewBranchDialog(
             initialName=localName,
