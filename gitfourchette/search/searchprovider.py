@@ -125,7 +125,6 @@ class SearchProvider(QObject):
         This function can be a no-op; otherwise, it should typically change the
         current status to Good, Bad, or Loading.
         """
-        pass
 
     def jump(self, forward: bool):
         """

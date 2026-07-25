@@ -457,7 +457,6 @@ class Jump(RepoTask):
                 and locator.selectedCommits == rw.navLocator.selectedCommits):
             # No need to reload the same commit diff
             logger.debug("Don't reload same commit diff")
-            pass
 
         else:
             # Loading a different commit

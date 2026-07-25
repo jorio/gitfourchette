@@ -589,8 +589,9 @@ class FileList(QListView):
 
     def earliestSelectedRow(self) -> int:
         try:
-            return list(self.selectedIndexes())[0].row()
-        except IndexError:
+            i = iter(self.selectedIndexes())
+            return next(i).row()
+        except StopIteration:
             return -1
 
     def savePatchAs(self):

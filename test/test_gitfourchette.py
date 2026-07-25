@@ -613,8 +613,8 @@ def testDonatePrompt(mainWindow):
         # Don't schedule the prompt before hitting 10 launches
         assert 0 == settings.prefs.donatePrompt
 
-        with Session(begin=i != 0) as mainWindow:
-            assert not mainWindow.findChild(DonatePrompt)
+        with Session(begin=i != 0) as window:
+            assert not window.findChild(DonatePrompt)
 
     # Tenth launch should schedule donate prompt to appear in 60 days
     assert 59 <= daysToNextPrompt() <= 61
@@ -626,24 +626,24 @@ def testDonatePrompt(mainWindow):
     bogusSesh = settings.Session()
     bogusSesh.tabs = [qTempDir() + "/---this-path-should-not-exist---"]
     bogusSesh.write(True)
-    with Session() as mainWindow:
-        acceptQMessageBox(mainWindow, "session couldn.t be restored")
-        assert not mainWindow.findChild(DonatePrompt)
+    with Session() as window:
+        acceptQMessageBox(window, "session couldn.t be restored")
+        assert not window.findChild(DonatePrompt)
 
     # Intercept prompt and click "never show again"
-    with Session() as mainWindow:
-        donate: DonatePrompt = mainWindow.findChild(DonatePrompt)
+    with Session() as window:
+        donate: DonatePrompt = window.findChild(DonatePrompt)
         donate.ui.byeButton.click()
-    with Session() as mainWindow:
-        assert not mainWindow.findChild(DonatePrompt)
+    with Session() as window:
+        assert not window.findChild(DonatePrompt)
         assert settings.prefs.donatePrompt < 0  # permanently disabled
 
     # Force prompt to appear at the next launch again
     schedulePromptInThePast()
 
     # Intercept prompt and click "remind me in 3 months"
-    with Session() as mainWindow:
-        donate: DonatePrompt = mainWindow.findChild(DonatePrompt)
+    with Session() as window:
+        donate: DonatePrompt = window.findChild(DonatePrompt)
         donate.ui.postponeButton.click()
     assert 89 <= daysToNextPrompt() <= 91
 
@@ -651,17 +651,17 @@ def testDonatePrompt(mainWindow):
     schedulePromptInThePast()
 
     # Intercept prompt and click "donate"
-    with Session() as mainWindow, MockDesktopServicesContext() as services:
+    with Session() as window, MockDesktopServicesContext() as services:
         assert not services.urls
-        donate: DonatePrompt = mainWindow.findChild(DonatePrompt)
+        donate: DonatePrompt = window.findChild(DonatePrompt)
         donate.ui.donateButton.click()
         QTest.qWait(1500)
         assert len(services.urls) == 1
         assert services.urls[0].toString() == "https://ko-fi.com/jorio"
 
     # Prompt must not show up again
-    with Session(end=False) as mainWindow:
-        assert not mainWindow.findChild(DonatePrompt)
+    with Session(end=False) as window:
+        assert not window.findChild(DonatePrompt)
         assert settings.prefs.donatePrompt < 0  # permanently disabled
 
 

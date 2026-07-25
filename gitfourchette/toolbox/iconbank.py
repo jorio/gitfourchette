@@ -50,7 +50,6 @@ def _iconOverrideTable() -> dict[str, str]:
 
 def stockIcon(iconId: str, colorTable="") -> QIcon:
     # Special cases
-    global _overrideIconIdsReady
     if not _overrideIconIdsReady:
         _overrideIconIds.clear()
         _overrideIconIds.update(_iconOverrideTable())

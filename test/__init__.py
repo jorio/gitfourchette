@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -21,4 +21,4 @@ else:
 # Force qtpy (if used) to honor QT_API
 os.environ["FORCE_QT_API"] = "1"
 
-from gitfourchette.qt import *  # noqa: E402 - intentionally importing Qt at this specific point
+from gitfourchette.qt import *  # intentionally importing Qt at this point

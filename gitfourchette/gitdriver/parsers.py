@@ -52,7 +52,7 @@ def distillMode(realMode: int) -> FileMode:
         if stripped == (realMode & stripped):
             return gitMode
 
-    logging.warning(f"cannot map to git FileMode: 0o{realMode:o}")
+    _logger.warning(f"cannot map to git FileMode: 0o{realMode:o}")
     return FileMode.UNREADABLE
 
 

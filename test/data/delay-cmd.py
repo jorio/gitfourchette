@@ -36,5 +36,5 @@ if args.block:
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
-completed = subprocess.run(args.command)
+completed = subprocess.run(args.command, check=False)
 sys.exit(completed.returncode)

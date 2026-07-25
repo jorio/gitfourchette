@@ -45,7 +45,7 @@ class MemoryIndicator(QPushButton):
         windows = '\n'.join(f'\t* {w.__class__.__name__} {w.objectName()}' for w in QApplication.topLevelWindows())
         widgets = '\n'.join(f'\t* {w.__class__.__name__} {w.objectName()}' for w in QApplication.topLevelWidgets())
         report = f"\nTop-Level Windows:\n{windows}\nTop-Level Widgets:\n{widgets}\n"
-        logging.info(report)
+        logger.info(report)
 
         self.lastUpdate = 0
         self.updateMemoryIndicator()

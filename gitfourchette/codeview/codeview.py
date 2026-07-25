@@ -350,7 +350,7 @@ class CodeView(QPlainTextEdit):
     def onContextMenuRequested(self, point: QPoint):
         # Don't show the context menu if we're empty
         if self.document().isEmpty():
-            return None
+            return
 
         # Get standard context menu (copy, select all, etc.)
         bottomMenu: QMenu = self.createStandardContextMenu()

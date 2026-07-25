@@ -37,6 +37,8 @@ SHORT_DATE_PRESETS = {
     "American": "M/d/yy h:mm ap",
 }
 
+SHORT_DATE_DEFAULT_PRESET = next(iter(SHORT_DATE_PRESETS.values()))
+
 
 class RefSort(enum.IntEnum):
     TimeDesc = 0
@@ -134,7 +136,7 @@ class Prefs(PrefsFile):
     graphRowHeight              : GraphRowHeight        = GraphRowHeight.Relaxed
     refBoxMaxWidth              : GraphRefBoxWidth      = GraphRefBoxWidth.Standard
     authorDisplayStyle          : AuthorDisplayStyle    = AuthorDisplayStyle.FullName
-    shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
+    shortTimeFormat             : str                   = SHORT_DATE_DEFAULT_PRESET
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
     verifyGpgOnTheFly           : bool                  = False

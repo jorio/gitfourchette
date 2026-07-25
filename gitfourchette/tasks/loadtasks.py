@@ -117,7 +117,7 @@ class PrimeRepo(RepoTask):
             maxCommits = settings.prefs.maxCommits
         if maxCommits == 0:  # 0 means infinity
             maxCommits = 2**63  # ought to be enough
-        progressInterval = 1000 if maxCommits >= 10000 else 1000
+        progressInterval = 1000
 
         commitSequence = [repoModel.uncommittedChangesMockCommit()]
 

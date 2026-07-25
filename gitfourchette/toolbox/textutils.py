@@ -6,7 +6,7 @@
 
 import re
 from collections.abc import Iterable, Callable, Container
-from html import escape as escape
+from html import escape
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *

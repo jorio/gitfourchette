@@ -651,7 +651,7 @@ def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
         if not qmb.isVisibleTo(parent):  # skip zombie QMBs
             continue
         numBoxesFound += 1
-        haystack = "\n".join([qmb.windowTitle(), qmb.text(), qmb.informativeText()])
+        haystack = f"{qmb.windowTitle()}\n{qmb.text()}\n{qmb.informativeText()}"
         haystack = stripHtml(haystack)
         if re.search(textPattern, haystack, re.IGNORECASE | re.DOTALL):
             return qmb

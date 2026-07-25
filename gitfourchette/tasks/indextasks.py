@@ -569,7 +569,7 @@ class AbortMerge(RepoTask):
                 "Cannot {verb} right now, because {n} files contain both staged and unstaged changes.",
                 n=len(exc.file_exceptions), verb=clause)
             exc.message += " " + _("Please unstage the changes and try again.")
-            raise exc
+            raise  # re-raise MultiFileError
 
         lines = [_("Do you want to {0}?", clause)]
 
