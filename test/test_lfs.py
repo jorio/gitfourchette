@@ -320,18 +320,22 @@ def testLfsDownloadMissingObjectsToCache(tempDir, mainWindow):
     assert "int foobar(void)" in rw.diffView.toPlainText()
 
 
+@requiresLfs
 def testLfsSaveRevision(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
+    hexIdB = "74ff36893e8e528c18cd59d9603b54f9a00210da"
+    hexIdA = "5d74f8e6ac1271eb706807e2cbfe67eef5e1e8a8"  # parent commit of the above
+
     rw = mainWindow.openRepo(wd)
 
-    rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)
+    rw.jump(NavLocator.inCommit(Oid(hex=hexIdB), "textfile.c"), check=True)
     triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/before.+commit")
     acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
 
     # Make sure we've exported the actual contents, not the LFS pointer
-    assert "int hello(void)" in readTextFile(f"{tempDir.name}/textfile@before-74ff368.c")
+    assert "int hello(void)" in readTextFile(f"{tempDir.name}/textfile@{hexIdA[:7]}.c")
 
 
 @requiresLfs

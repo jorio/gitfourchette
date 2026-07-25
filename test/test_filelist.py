@@ -30,10 +30,10 @@ def testParentlessCommitFileList(tempDir, mainWindow):
     "commit,side,path,outPath,result",
     [
         ("1203b03", "as of", "c/c2.txt", "c2@1203b03.txt", "c2\nc2\n"),
-        ("1203b03", "before", "c/c2.txt", "c2@before-1203b03.txt", "c2\n"),
+        ("1203b03", "before", "c/c2.txt", "c2@bab66b4.txt", "c2\n"),
         ("c9ed7bf", "as of", "c/c2-2.txt", None, "file.+deleted by.+commit"),
         ("f7c2153", "as of", "master.txt", "[+x]master@f7c2153.txt", "now executable\n"),
-        ("f7c2153", "before", "master.txt", "master@before-f7c2153.txt", "On master\nOn master\n"),
+        ("f7c2153", "before", "master.txt", "master@c9ed7bf.txt", "On master\nOn master\n"),
     ])
 def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, result):
     wd = unpackRepo(tempDir)

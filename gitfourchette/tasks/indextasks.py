@@ -12,6 +12,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
+from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.gitdriver import *
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
@@ -529,7 +530,7 @@ class RestoreRevisionToWorkdir(RepoTask):
 
 
 class SaveRevisionAs(RepoTask):
-    def flow(self, delta: GitDelta, old: bool):
+    def flow(self, delta: GitDelta, old: bool, saveIntoDir: str = ""):
         if old:
             diffFile = delta.old
             if delta.status == "A":
@@ -539,17 +540,19 @@ class SaveRevisionAs(RepoTask):
             if delta.status == "D":
                 raise AbortTask(_("This file was deleted by the commit."))
 
-        atCommit = delta.new.sourceCommit
-        assert atCommit
-
-        atSuffix1 = "before-" if old else ""
-        atSuffix2 = shortHash(atCommit)
+        assert diffFile.sourceCommit
 
         dfPath = Path(diffFile.path)
-        name = f"{dfPath.stem}@{atSuffix1}{atSuffix2}{dfPath.suffix}"
+        suggStem = f"{dfPath.stem}@{shortHash(diffFile.sourceCommit)}"
+        suggExt = dfPath.suffix
+        suggName = suggStem + suggExt
 
-        qfd = PersistentFileDialog.saveFile(self.parentWidget(), "SaveFile", _("Save file revision as"), name)
-        targetStr = yield from self.flowFileDialog(qfd)
+        if saveIntoDir:
+            targetStr = withUniqueSuffix(suggStem, ext=suggExt, reserved=lambda s: Path(saveIntoDir, s).exists())
+            targetStr = str(Path(saveIntoDir, targetStr))
+        else:
+            qfd = PersistentFileDialog.saveFile(self.parentWidget(), "SaveFile", _("Save file revision as"), suggName)
+            targetStr = yield from self.flowFileDialog(qfd)
         target = Path(targetStr)
 
         driver = yield from self.flowCallGit(
@@ -564,6 +567,16 @@ class SaveRevisionAs(RepoTask):
         if diffFile.mode == FileMode.BLOB_EXECUTABLE:
             mode = 0o100 | target.lstat().st_mode
             target.lchmod(mode)
+
+        return str(target)
+
+
+class OpenRevisionInEditor(RepoTask):
+    def flow(self, delta: GitDelta, old: bool):
+        path = yield from self.flowSubtask(SaveRevisionAs, delta, old, qTempDir())
+        assert isinstance(path, str)
+
+        ToolProcess.startTextEditor(self.parentWidget(), path)
 
 
 class AbortMerge(RepoTask):

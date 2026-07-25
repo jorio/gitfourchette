@@ -4,19 +4,18 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import errno
 import os
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.filelists.filelist import FileList
-from gitfourchette.gitdriver import GitDelta, GitDeltaFile
+from gitfourchette.gitdriver import GitDelta
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.tasks import LoadPatchInNewWindow, RestoreRevisionToWorkdir, SaveRevisionAs
+from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
 
@@ -129,23 +128,10 @@ class CommittedFiles(FileList):
     def restoreOldRevision(self):
         self._restoreRevision(old=True)
 
-    def saveRevisionAsTempFile(self, delta: GitDelta, beforeCommit: bool = False):
-        # May raise FileNotFoundError!
-        name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
-        data = diffFile.read(self.repo)
-
-        tempPath = os.path.join(qTempDir(), name)
-
-        with open(tempPath, "wb") as f:
-            f.write(data)
-
-        return tempPath
-
     # TODO: Send all files to text editor in one command?
     def openRevision(self, beforeCommit: bool = False):
         def run(delta: GitDelta):
-            tempPath = self.saveRevisionAsTempFile(delta, beforeCommit)
-            ToolProcess.startTextEditor(self, tempPath)
+            OpenRevisionInEditor.invoke(self, delta, beforeCommit)
 
         if beforeCommit:
             title = _("Open revision before commit")
@@ -164,27 +150,6 @@ class CommittedFiles(FileList):
             title = _("Save revision at commit")
 
         self.confirmBatch(run, title, _("Really export <b>{n} files</b>?"))
-
-    @classmethod
-    def getFileRevisionInfo(cls, delta: GitDelta, beforeCommit: bool = False) -> tuple[str, GitDeltaFile]:
-        if beforeCommit:
-            diffFile = delta.old
-            if delta.status == "A":
-                raise FileNotFoundError(errno.ENOENT, _("This file didn’t exist before the commit."), diffFile.path)
-        else:
-            diffFile = delta.new
-            if delta.status == "D":
-                raise FileNotFoundError(errno.ENOENT, _("This file was deleted by the commit."), diffFile.path)
-
-        atCommit = delta.new.sourceCommit
-        atSuffix = shortHash(atCommit)
-        if beforeCommit:
-            atSuffix = F"before-{atSuffix}"
-
-        name, ext = os.path.splitext(os.path.basename(diffFile.path))
-        name = F"{name}@{atSuffix}{ext}"
-
-        return name, diffFile
 
     def openWorkingCopyRevision(self):
         def run(delta: GitDelta):
