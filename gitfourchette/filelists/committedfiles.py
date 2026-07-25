@@ -16,7 +16,7 @@ from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.tasks import LoadPatchInNewWindow, RestoreRevisionToWorkdir
+from gitfourchette.tasks import LoadPatchInNewWindow, RestoreRevisionToWorkdir, SaveRevisionAs
 from gitfourchette.toolbox import *
 
 
@@ -154,21 +154,9 @@ class CommittedFiles(FileList):
 
         self.confirmBatch(run, title, _("Really open <b>{n} files</b> in external editor?"))
 
-    # TODO: Perhaps this could be a RepoTask?
     def saveRevisionAs(self, beforeCommit: bool = False):
-        def dump(path: str, mode: int, data: bytes):
-            with open(path, "wb") as f:
-                f.write(data)
-            os.chmod(path, mode)
-
         def run(delta: GitDelta):
-            # May raise FileNotFoundError!
-            name, diffFile = self.getFileRevisionInfo(delta, beforeCommit)
-            data = diffFile.read(self.repo)
-
-            qfd = PersistentFileDialog.saveFile(self, "SaveFile", _("Save file revision as"), name)
-            qfd.fileSelected.connect(lambda path: dump(path, diffFile.mode, data))
-            qfd.show()
+            SaveRevisionAs.invoke(self, delta, old=beforeCommit)
 
         if beforeCommit:
             title = _("Save revision before commit")

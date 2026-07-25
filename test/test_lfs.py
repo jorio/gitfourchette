@@ -334,6 +334,7 @@ def testLfsSaveRevision(tempDir, mainWindow):
     assert "int hello(void)" in readTextFile(f"{tempDir.name}/textfile@before-74ff368.c")
 
 
+@requiresLfs
 def testLfsSaveRevisionMissingObjectFromCache(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
@@ -345,4 +346,7 @@ def testLfsSaveRevisionMissingObjectFromCache(tempDir, mainWindow):
 
     rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)
     triggerContextMenuAction(rw.committedFiles.viewport(), "save a copy/before this commit")
-    acceptQMessageBox(rw, "save revision.+ran into an issue.+object missing from local LFS cache")
+    acceptQFileDialog(rw, "save file revision", tempDir.name, useSuggestedName=True)
+
+    # This should auto download the LFS object
+    assert "int hello(void)" in readTextFile(f"{tempDir.name}/textfile@5d74f8e.c")

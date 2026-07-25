@@ -528,6 +528,44 @@ class RestoreRevisionToWorkdir(RepoTask):
         self.epilog.jumpTo = NavLocator.inUnstaged(diffFile.path)
 
 
+class SaveRevisionAs(RepoTask):
+    def flow(self, delta: GitDelta, old: bool):
+        if old:
+            diffFile = delta.old
+            if delta.status == "A":
+                raise AbortTask(_("This file didn’t exist before the commit."))
+        else:
+            diffFile = delta.new
+            if delta.status == "D":
+                raise AbortTask(_("This file was deleted by the commit."))
+
+        atCommit = delta.new.sourceCommit
+        assert atCommit
+
+        atSuffix1 = "before-" if old else ""
+        atSuffix2 = shortHash(atCommit)
+
+        dfPath = Path(diffFile.path)
+        name = f"{dfPath.stem}@{atSuffix1}{atSuffix2}{dfPath.suffix}"
+
+        qfd = PersistentFileDialog.saveFile(self.parentWidget(), "SaveFile", _("Save file revision as"), name)
+        targetStr = yield from self.flowFileDialog(qfd)
+        target = Path(targetStr)
+
+        driver = yield from self.flowCallGit(
+            "cat-file",
+            "--filters",  # For LFS awareness
+            f"{diffFile.sourceCommit}:{diffFile.path}")
+
+        assert not driver._stdout, "stdout consumed prematurely"
+        data = driver.readAllStandardOutput().data()
+        target.write_bytes(data)
+
+        if diffFile.mode == FileMode.BLOB_EXECUTABLE:
+            mode = 0o100 | target.lstat().st_mode
+            target.lchmod(mode)
+
+
 class AbortMerge(RepoTask):
     def flow(self):
         self.repo.refresh_index()

@@ -89,6 +89,7 @@ from gitfourchette.tasks.indextasks import (
     UnstageFiles,
     UnstageModeChanges,
     RestoreRevisionToWorkdir,
+    SaveRevisionAs,
 )
 
 from gitfourchette.tasks.stashtasks import (

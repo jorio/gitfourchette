@@ -93,6 +93,7 @@ class TaskBook:
             tasks.RevertCommit: _("Revert commit"),
             tasks.SetUpGitIdentity: _("Git identity"),
             tasks.EditRepoSettings: _("Repository settings"),
+            tasks.SaveRevisionAs: _("Save file revision as"),
             tasks.StageFiles: _("Stage files"),
             tasks.SwitchBranch: _("Switch to branch"),
             tasks.UpdateSubmodule: _("Update submodule"),

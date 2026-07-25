@@ -26,40 +26,43 @@ def testParentlessCommitFileList(tempDir, mainWindow):
     assert qlvGetRowData(rw.committedFiles) == ["c/c1.txt"]
 
 
-def testSaveRevisionAtCommit(tempDir, mainWindow):
+@pytest.mark.parametrize(
+    "commit,side,path,outPath,result",
+    [
+        ("1203b03", "as of", "c/c2.txt", "c2@1203b03.txt", "c2\nc2\n"),
+        ("1203b03", "before", "c/c2.txt", "c2@before-1203b03.txt", "c2\n"),
+        ("c9ed7bf", "as of", "c/c2-2.txt", None, "file.+deleted by.+commit"),
+        ("f7c2153", "as of", "master.txt", "[+x]master@f7c2153.txt", "now executable\n"),
+        ("f7c2153", "before", "master.txt", "master@before-f7c2153.txt", "On master\nOn master\n"),
+    ])
+def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, result):
     wd = unpackRepo(tempDir)
+    runShellScript("""
+        chmod +x master.txt
+        echo 'now executable' > master.txt
+        git commit -am 'make master.txt executable'
+    """, directory=wd)
+
     rw = mainWindow.openRepo(wd)
 
-    oid = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
-    rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
+    oid = rw.repo[commit].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, path), check=True)
 
-    triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/as of.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), f"save.+copy/{side}.+commit")
+
+    if outPath is None:
+        acceptQMessageBox(rw, result)
+        return
+
     acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
-    assert b"c2\nc2\n" == readFile(f"{tempDir.name}/c2@1203b03.txt")
 
+    executable = outPath.startswith("[+x]")
+    outPath = outPath.removeprefix("[+x]")
 
-def testSaveRevisionBeforeCommit(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-    rw = mainWindow.openRepo(wd)
+    assert readTextFile(f"{tempDir.name}/{outPath}") == result
 
-    oid = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
-    rw.jump(NavLocator.inCommit(oid, "c/c2.txt"), check=True)
-
-    triggerContextMenuAction(rw.committedFiles.viewport(), "save.+copy/before.+commit")
-    acceptQFileDialog(rw, "save.+revision as", tempDir.name, useSuggestedName=True)
-    assert b"c2\n" == readFile(f"{tempDir.name}/c2@before-1203b03.txt")
-
-
-def testSaveOldRevisionOfDeletedFile(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-    rw = mainWindow.openRepo(wd)
-
-    commitId = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
-    rw.jump(NavLocator.inCommit(commitId, "c/c2-2.txt"), check=True)
-
-    # c2-2.txt was deleted by the commit. Expect a warning about this.
-    triggerContextMenuAction(rw.committedFiles.viewport(), r"save.+copy/as of.+commit")
-    acceptQMessageBox(rw, r"file.+deleted by.+commit")
+    mode = Path(f"{tempDir.name}/{outPath}").lstat().st_mode
+    assert bool(mode & 0o100) == executable
 
 
 @pytest.mark.parametrize(
@@ -92,15 +95,16 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
     triggerContextMenuAction(rw.committedFiles.viewport(), f"restore/{side}.+commit")
     if result == "[NOP]":
         acceptQMessageBox(rw, "working copy.+already matches.+revision")
-    else:
-        acceptQMessageBox(rw, "restore")
-        if result == "[DEL]":
-            assert not os.path.exists(f"{wd}/{path}")
-        else:
-            assert result.encode() == readFile(f"{wd}/{path}")
+        return
 
-        # Make sure we've jumped to the file in the workdir
-        assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
+    acceptQMessageBox(rw, "restore")
+    if result == "[DEL]":
+        assert not Path(f"{wd}/{path}").exists()
+    else:
+        assert result.encode() == readFile(f"{wd}/{path}")
+
+    # Make sure we've jumped to the file in the workdir
+    assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
 
 
 def testRevertCommittedFile(tempDir, mainWindow):
