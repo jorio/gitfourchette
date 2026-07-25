@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -72,8 +72,8 @@ def testAskpassDialogAddToKnownHosts(tempDir, mainWindow, capfd, captureExitCode
         "This key is not known by any other names.\n"
         "Are you sure you want to continue connecting (yes/no/[fingerprint])? ")
 
-    assert dialog.lineEdit.echoMode() == QLineEdit.EchoMode.Normal
-    dialog.lineEdit.setText("yes")
+    assert not dialog.lineEdit.isVisible()
+    assert findTextInWidget(dialog.okButton, "trust")
     dialog.accept()
     out, _err = capfd.readouterr()
     assert out == "yes\n"

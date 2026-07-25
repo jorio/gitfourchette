@@ -16,7 +16,21 @@ from gitfourchette.localization import *
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.qt import *
 from gitfourchette.sshagent import SshAgent
-from gitfourchette.toolbox import escape, stockIcon, tquo
+from gitfourchette.toolbox import escape, stockIcon, tquo, paragraphs
+
+
+_ClearTextPromptPatterns = [
+    # When connecting to an HTTPS remote with user/pass, the username is requested first.
+    r"^Username(:| for )",
+
+    # First time connecting to a host that's not in ~/.ssh/known_hosts
+    r"Are you sure you want to continue connecting \(yes/no",
+
+    # Follow-up question to the above
+    r"Please type 'yes'"
+]
+
+_UnknownHostPrompt = "Are you sure you want to continue connecting (yes/no/[fingerprint])?"
 
 
 class AskpassPrompt(StrEnum):
@@ -43,29 +57,29 @@ class AskpassPrompt(StrEnum):
 
 
 class AskpassDialog(TextInputDialog):
-    ClearTextPatterns = [
-        # When connecting to an HTTPS remote with user/pass, the username is requested first.
-        r"^Username(:| for )",
+    promptKind: AskpassPrompt
 
-        # First time connecting to a host that's not in ~/.ssh/known_hosts
-        r"Are you sure you want to continue connecting \(yes/no",
-
-        # Follow-up question to the above
-        r"Please type 'yes'"
-    ]
+    autoYesOnAcceptEmptyText: bool
+    "Reply 'yes' if the dialog is accepted with an empty text input."
 
     def __init__(self, parent: QWidget | None, prompt: str):
         promptKind = os.environ.get("SSH_ASKPASS_PROMPT", AskpassPrompt.Entry)
         self.promptKind = promptKind
 
+        prompt = prompt.strip()
+        clearText = any(re.search(pattern, prompt) for pattern in _ClearTextPromptPatterns)
+
+        unknownHost = clearText and promptKind == AskpassPrompt.Entry and prompt.endswith(_UnknownHostPrompt)
+        self.autoYesOnAcceptEmptyText = unknownHost
+
         if promptKind == AskpassPrompt.Confirm:
             title = _("SSH is asking for your confirmation")
         elif promptKind == AskpassPrompt.Message:
             title = _("Message from SSH")
+        elif unknownHost:
+            title = _("Connecting to unknown SSH host")
         else:
             title = _("Enter SSH credentials")
-
-        clearText = any(re.search(pattern, prompt) for pattern in self.ClearTextPatterns)
 
         subtitle = ""
         if promptKind == AskpassPrompt.Entry and not clearText:
@@ -81,9 +95,16 @@ class AskpassDialog(TextInputDialog):
                 subtitle = _("This credential will not be remembered "
                              "because ssh-agent isn’t running on your system.")
 
-        htmlPrompt = f"<html style='white-space: pre-wrap;'>{escape(prompt)}"
+        if unknownHost:
+            prompt = prompt.removesuffix(_UnknownHostPrompt).strip()
+        promptLines = escape(prompt).splitlines()
+        if unknownHost:
+            promptLines.append("<b>" + _("To continue connecting, do you trust this key?"))
+        htmlPrompt = paragraphs(promptLines)
 
-        super().__init__(parent, title, htmlPrompt, subtitle, multilineSubtitle=True)
+        super().__init__(
+            parent, title, htmlPrompt, subtitle,
+            multilineSubtitle=True, selectableLabel=True)
 
         self.lineEdit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
 
@@ -95,8 +116,10 @@ class AskpassDialog(TextInputDialog):
 
         self.finished.connect(self.onFinish)
 
-        if promptKind == AskpassPrompt.Confirm:
-
+        if unknownHost:
+            self.okButton.setText(_("Trust"))
+            self.lineEdit.setVisible(False)
+        elif promptKind == AskpassPrompt.Confirm:
             self.okButton.setText(_("Yes"))
             self.cancelButton.setText(_("No"))
             self.lineEdit.setVisible(False)
@@ -119,6 +142,10 @@ class AskpassDialog(TextInputDialog):
 
         if self.promptKind == AskpassPrompt.Entry:
             secret = self.lineEdit.text()
+
+            if not secret and self.autoYesOnAcceptEmptyText:
+                secret = "yes"
+
             print(secret)
 
         QApplication.instance().exit(0)
