@@ -147,3 +147,6 @@ def stockIconImgTag(iconId: str, dpr: float = 0) -> str:
 def clearStockIconCache():
     _stockIconCache.clear()
     _stockIconHtmlCache.clear()
+
+    # Force reevaluate color scheme
+    RecolorSvgIconEngine.IconColors.initialized = False

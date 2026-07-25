@@ -27,9 +27,10 @@ class RecolorSvgIconEngine(QIconEngine):
         background = QColor(0xFFFFFF)
         foreground = QColor(0x000000)
         highlight = QColor(0x00FFFF)
-        mainColor = QColor(0xFF00FF)
+        mainColor = QColor(0xFF00FF if APP_DEBUG else 0x808080)
         preferDarkVariants = False
         systemFont = "sans-serif"
+        initialized = False
 
         @classmethod
         def refresh(cls):
@@ -40,9 +41,14 @@ class RecolorSvgIconEngine(QIconEngine):
             cls.mainColor = mixColors(cls.background, cls.foreground, .58)
             cls.preferDarkVariants = cls.background.lightness() < cls.foreground.lightness()
             cls.systemFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont).family()
+            cls.initialized = True
 
     def __init__(self, iconPath: str, colorTable: str = ""):
         super().__init__()
+
+        # Initialize color scheme
+        if not RecolorSvgIconEngine.IconColors.initialized:
+            RecolorSvgIconEngine.IconColors.refresh()
 
         # Read in SVG data
         assert iconPath.endswith(".svg")
