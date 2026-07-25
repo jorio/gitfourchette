@@ -706,6 +706,29 @@ def testCherrypickDud(tempDir, mainWindow):
     assert rw.repo.state() == RepositoryState.NONE
 
 
+def testCherrypickGitError(tempDir, mainWindow):
+    """Cherry-pick failing with an unexpected exit code must report Git's own
+    error message instead of raising an opaque NotImplementedError."""
+    wd = unpackRepo(tempDir)
+
+    with RepoContext(wd) as repo:
+        repo.checkout_local_branch("no-parent")
+
+    # Dirty a file that the cherry-pick would overwrite: git bails out with rc 128.
+    writeFile(f"{wd}/a/a1.txt", "local uncommitted changes\n")
+
+    oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid))
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+ac7e7e4")
+
+    qmb = findQMessageBox(rw, "would be overwritten")
+    qmb.accept()
+    assert rw.repo.state() == RepositoryState.NONE
+
+
 def testAbortCherrypick(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

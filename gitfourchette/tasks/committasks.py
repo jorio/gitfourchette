@@ -528,7 +528,9 @@ class CherrypickCommit(RepoTask):
         exitCode = driver.exitCode()
         logger.debug(f"cherry-pick rc={exitCode}")
         if exitCode not in [0, 1]:
-            raise NotImplementedError(f"'git cherry-pick' exit code {exitCode}")
+            # Surface Git's own error message instead of an opaque exception
+            # (e.g. exit code 128 when local changes would be overwritten).
+            raise AbortTask(driver.htmlErrorText(), details=driver.formatCommandLine())
 
         yield from self.flowEnterWorkerThread()
 
