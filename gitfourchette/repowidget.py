@@ -753,9 +753,6 @@ class RepoWidget(QWidget):
     def contextMenuItems(self):
         return self.contextMenuItemsByProxy(self, lambda: self)
 
-    def pathsMenuItems(self):
-        return self.pathsMenuItemsByProxy(self, lambda: self)
-
     @classmethod
     def contextMenuItemsByProxy(cls, invoker, proxy):
         return [
