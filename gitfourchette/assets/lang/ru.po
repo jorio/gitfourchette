@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-01-19 04:01+0000\n"
-"Last-Translator: Konstantin Adamov <xrayadamo@gmail.com>\n"
+"PO-Revision-Date: 2026-07-26 15:01+0000\n"
+"Last-Translator: Abduloh Raupov <abdulohraupov@gmail.com>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/ru/>\n"
 "Language: ru\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 5.15.2\n"
+"X-Generator: Weblate 2026.8.dev0\n"
 
 #: application.py:90 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -115,7 +115,7 @@ msgstr "Шифт+Нажатие:"
 
 #: blameview/blamewindow.py:59
 msgid "Older"
-msgstr "Старее"
+msgstr "Более старое"
 
 #: blameview/blamewindow.py:61
 msgid "Go to next older revision"
@@ -127,7 +127,7 @@ msgstr "Перейти в конец"
 
 #: blameview/blamewindow.py:65
 msgid "Newer"
-msgstr "Никогда"
+msgstr "Более новые"
 
 #: blameview/blamewindow.py:67
 msgid "Go to next newer revision"
@@ -263,7 +263,7 @@ msgstr "Подготовить выбранные строки"
 
 #: diffview/diffview.py:70
 msgid "Unstage Selection"
-msgstr "Убрать выбранное из подготовленных"
+msgstr "Исключить выбранное"
 
 #: diffview/diffview.py:73
 msgid "Unstage selected lines"
@@ -271,97 +271,105 @@ msgstr "Убрать выбранные строки из подготовлен
 
 #: diffview/diffview.py:79
 msgid "Discard selected lines"
-msgstr ""
+msgstr "Отменить выбранные строки"
 
 #: diffview/diffview.py:246 diffview/diffview.py:258 diffview/diffview.py:281
 #: diffview/diffview.py:310
 msgid "Export Lines as Patch…"
-msgstr ""
+msgstr "Экспорт строк в виде патча…"
 
 #: diffview/diffview.py:247
 msgid "Revert Lines…"
-msgstr ""
+msgstr "Восстановить строки…"
 
 #: diffview/diffview.py:251
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr ""
+msgstr "Экспорт фрагмента {0} как патч…"
 
 #: diffview/diffview.py:252
 msgid "Revert Hunk…"
-msgstr ""
+msgstr "Восстановить фрагмент…"
 
 #: diffview/diffview.py:262 diffview/diffview.py:297 diffview/diffview.py:322
 msgid "Export Hunk as Patch…"
-msgstr ""
+msgstr "Экспорт фрагмента в виде патча…"
 
 #: diffview/diffview.py:269
 msgid "Stage Lines"
-msgstr ""
+msgstr "Подготовить строки"
 
 #: diffview/diffview.py:275
 msgid "Discard Lines…"
-msgstr ""
+msgstr "Отменить строки…"
 
 #: diffview/diffview.py:288
 #, python-brace-format
 msgid "Stage Hunk {0}"
-msgstr ""
+msgstr "Подготовить фрагмент {0}"
 
 #: diffview/diffview.py:293
 msgid "Discard Hunk…"
-msgstr ""
+msgstr "Отменить фрагмент…"
 
 #: diffview/diffview.py:304
 msgid "Unstage Lines"
-msgstr ""
+msgstr "Исключить строки"
 
 #: diffview/diffview.py:317
 #, python-brace-format
 msgid "Unstage Hunk {0}"
-msgstr ""
+msgstr "Исключить фрагмент {0}"
 
 #: diffview/diffview.py:395
 msgid "Export selected lines"
-msgstr ""
+msgstr "Экспорт выделенных строк"
 
 #: diffview/diffview.py:572 diffview/diffview.py:573
 msgid "or Middle-Click"
-msgstr ""
+msgstr "или Middle-Click"
 
 #: diffview/diffview.py:580
 #, python-brace-format
 msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
 msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
 msgstr[0] ""
+"Нажмите {sk}, чтобы подготовить {nl} строку. Нажмите {dk}, чтобы отменить "
+"изменения в ней."
 msgstr[1] ""
+"Нажмите {sk}, чтобы подготовить {nl} строки. Нажмите {dk}, чтобы отменить "
+"изменения в них."
+msgstr[2] ""
+"Нажмите {sk}, чтобы подготовить {nl} строк. Нажмите {dk}, чтобы отменить "
+"изменения в них."
 
 #: diffview/diffview.py:584
 #, python-brace-format
 msgid "Hit {uk} to unstage {nl} line."
 msgid_plural "Hit {uk} to unstage {nl} lines."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Нажмите {uk}, чтобы исключить {nl} строку."
+msgstr[1] "Нажмите {uk}, чтобы исключить {nl} строки."
+msgstr[2] "Нажмите {uk}, чтобы исключить {nl} строк."
 
 #: diffview/specialdiff.py:71
 msgid "File contents didn’t change."
-msgstr ""
+msgstr "Содержимое файла не изменилось."
 
 #: diffview/specialdiff.py:82
 msgid "Empty file was deleted."
-msgstr ""
+msgstr "Пустой файл был удалён."
 
 #: diffview/specialdiff.py:89
 msgid "New empty file."
-msgstr ""
+msgstr "Новый пустой файл."
 
 #: diffview/specialdiff.py:92
 msgid "Renamed:"
-msgstr ""
+msgstr "Переименован:"
 
 #: diffview/specialdiff.py:96
 msgid "Mode change:"
-msgstr ""
+msgstr "Изменение прав доступа:"
 
 #: diffview/specialdiff.py:100
 msgid "Canonical file contents unchanged."
@@ -375,15 +383,17 @@ msgstr ""
 #: diffview/specialdiff.py:105
 msgid "You can stage the file to dismiss this message; no changes will be recorded."
 msgstr ""
+"Вы можете подготовить файл, чтобы скрыть это сообщение; изменения не будут "
+"записаны."
 
 #: diffview/specialdiff.py:119
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Настроить лимит предпросмотра изменений] (текущее: {0})"
 
 #: diffview/specialdiff.py:122
 msgid "This diff is very large."
-msgstr ""
+msgstr "Эти изменения слишком велики."
 
 #: diffview/specialdiff.py:123
 #, python-brace-format
@@ -392,16 +402,16 @@ msgstr ""
 
 #: diffview/specialdiff.py:135
 msgid "[Load image anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Всё равно загрузить изображение] (это может занять некоторое время)"
 
 #: diffview/specialdiff.py:136
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Настроить лимит предпросмотра изображений] (текущее: {0})"
 
 #: diffview/specialdiff.py:139
 msgid "This image is very large."
-msgstr ""
+msgstr "Это изображение слишком велико."
 
 #: diffview/specialdiff.py:140
 #, python-brace-format
@@ -410,110 +420,110 @@ msgstr ""
 
 #: diffview/specialdiff.py:148
 msgid "Old type:"
-msgstr ""
+msgstr "Старый тип:"
 
 #: diffview/specialdiff.py:149
 msgid "New type:"
-msgstr ""
+msgstr "Новый тип:"
 
 #: diffview/specialdiff.py:156
 msgid "This file’s type has changed."
-msgstr ""
+msgstr "Тип данного файла был изменён."
 
 #: diffview/specialdiff.py:175
 msgid "File appears to be binary."
-msgstr ""
+msgstr "Похоже, это бинарный файл."
 
 #: diffview/specialdiff.py:184
 msgid "This untracked subtree is the root of another Git repository."
-msgstr ""
+msgstr "Это неотслеживаемое поддерево является корнем другого репозитория Git."
 
 #: diffview/specialdiff.py:187 repowidget.py:504
 #, python-brace-format
 msgid "Open {0}"
-msgstr ""
+msgstr "Открыть {0}"
 
 #: diffview/specialdiff.py:190
 #, python-brace-format
 msgid "Absorb {0} as submodule"
-msgstr ""
+msgstr "Зарегистрировать {0} как подмодуль"
 
 #: diffview/specialdiff.py:191
 msgid "Recommended action:"
-msgstr ""
+msgstr "Рекомендованное действие:"
 
 #: diffview/specialdiff.py:210
 #, python-brace-format
 msgid "Subtree {0} was [removed.]"
-msgstr ""
+msgstr "Поддерево {0} было [удалено.]"
 
 #: diffview/specialdiff.py:211
 #, python-brace-format
 msgid "Submodule {0} was [removed.]"
-msgstr ""
+msgstr "Подмодуль {0} был [удалён.]"
 
 #: diffview/specialdiff.py:214
 #, python-brace-format
 msgid "Subtree {0} was [added.]"
-msgstr ""
+msgstr "Поддерево {0} было [добавлено.]"
 
 #: diffview/specialdiff.py:215
 #, python-brace-format
 msgid "Submodule {0} was [added.]"
-msgstr ""
+msgstr "Подмодуль {0} был [добавлен.]"
 
 #: diffview/specialdiff.py:218
 #, python-brace-format
 msgid "Subtree {0} was updated."
-msgstr ""
+msgstr "Поддерево {0} было обновлено."
 
 #: diffview/specialdiff.py:219
 #, python-brace-format
 msgid "Submodule {0} was updated."
-msgstr ""
+msgstr "Подмодуль {0} был обновлён."
 
 #: diffview/specialdiff.py:221
 #, python-brace-format
 msgid "Subtree {0} contains changes."
-msgstr ""
+msgstr "Поддерево {0} содержит изменения."
 
 #: diffview/specialdiff.py:222
 #, python-brace-format
 msgid "Submodule {0} contains changes."
-msgstr ""
+msgstr "Подмодуль {0} содержит изменения."
 
 #: diffview/specialdiff.py:230
 msgid "Open submodule"
-msgstr ""
+msgstr "Открыть подмодуль"
 
 #: diffview/specialdiff.py:230
 msgid "Open subtree"
-msgstr ""
+msgstr "Открыть поддерево"
 
 #: diffview/specialdiff.py:232
 #, python-brace-format
 msgid "(path: {0})"
-msgstr ""
+msgstr "(путь: {0})"
 
 #: diffview/specialdiff.py:267 diffview/specialdiffview.py:104
 msgid "Old:"
-msgstr ""
+msgstr "Старый:"
 
 #: diffview/specialdiff.py:268 diffview/specialdiffview.py:105
 msgid "New:"
-msgstr ""
+msgstr "Новый:"
 
 #: diffview/specialdiff.py:274
 msgid "The subtree’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "<b>HEAD </b> поддерева переместился на иной коммит."
 
 #: diffview/specialdiff.py:275
 msgid "The submodule’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "<b>HEAD </b> подмодуля переместился на иной коммит."
 
 #: diffview/specialdiff.py:277
 msgid "You can stage this update:"
-msgstr ""
+msgstr "Вы можете подготовить это обновление:"
 
 #: diffview/specialdiff.py:285
 #, python-brace-format
