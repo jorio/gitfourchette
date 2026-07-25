@@ -16,8 +16,7 @@ from gitfourchette.localization import *
 from gitfourchette.forms.textinputdialog import TextInputDialog
 from gitfourchette.qt import *
 from gitfourchette.sshagent import SshAgent
-from gitfourchette.toolbox import escape, stockIcon, tquo, paragraphs
-
+from gitfourchette.toolbox import escape, stockIcon, tquo, paragraphs, tweakWidgetFont, QHintButton
 
 _ClearTextPromptPatterns = [
     # When connecting to an HTTPS remote with user/pass, the username is requested first.
@@ -31,6 +30,8 @@ _ClearTextPromptPatterns = [
 ]
 
 _UnknownHostPrompt = "Are you sure you want to continue connecting (yes/no/[fingerprint])?"
+
+_KeyFingerprintPattern = re.compile(r"key fingerprint is:? (.+?)\.?$", re.M)
 
 
 class AskpassPrompt(StrEnum):
@@ -69,14 +70,21 @@ class AskpassDialog(TextInputDialog):
         prompt = prompt.strip()
         clearText = any(re.search(pattern, prompt) for pattern in _ClearTextPromptPatterns)
 
-        unknownHost = clearText and promptKind == AskpassPrompt.Entry and prompt.endswith(_UnknownHostPrompt)
-        self.autoYesOnAcceptEmptyText = unknownHost
+        # Detect "unknown host" message
+        self.unknownHostFingerprint = ""
+        if clearText and promptKind == AskpassPrompt.Entry and prompt.endswith(_UnknownHostPrompt):
+            fingerprintMatch = _KeyFingerprintPattern.search(prompt)
+            if fingerprintMatch:
+                self.unknownHostFingerprint = fingerprintMatch.group(1)
+                prompt = prompt.removesuffix(_UnknownHostPrompt).strip()
+
+        self.autoYesOnAcceptEmptyText = bool(self.unknownHostFingerprint)
 
         if promptKind == AskpassPrompt.Confirm:
             title = _("SSH is asking for your confirmation")
         elif promptKind == AskpassPrompt.Message:
             title = _("Message from SSH")
-        elif unknownHost:
+        elif self.unknownHostFingerprint:
             title = _("Connecting to unknown SSH host")
         else:
             title = _("Enter SSH credentials")
@@ -95,18 +103,14 @@ class AskpassDialog(TextInputDialog):
                 subtitle = _("This credential will not be remembered "
                              "because ssh-agent isn’t running on your system.")
 
-        if unknownHost:
-            prompt = prompt.removesuffix(_UnknownHostPrompt).strip()
         promptLines = escape(prompt).splitlines()
-        if unknownHost:
+        if self.unknownHostFingerprint:
             promptLines.append("<b>" + _("To continue connecting, do you trust this key?"))
         htmlPrompt = paragraphs(promptLines)
 
         super().__init__(
             parent, title, htmlPrompt, subtitle,
             multilineSubtitle=True, selectableLabel=True)
-
-        self.lineEdit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
 
         if not clearText:
             self.lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
@@ -116,9 +120,8 @@ class AskpassDialog(TextInputDialog):
 
         self.finished.connect(self.onFinish)
 
-        if unknownHost:
-            self.okButton.setText(_("Trust"))
-            self.lineEdit.setVisible(False)
+        if self.unknownHostFingerprint:
+            self._setUpUnknownHostUi()
         elif promptKind == AskpassPrompt.Confirm:
             self.okButton.setText(_("Yes"))
             self.cancelButton.setText(_("No"))
@@ -127,6 +130,46 @@ class AskpassDialog(TextInputDialog):
             self.cancelButton.setVisible(False)
             self.lineEdit.setVisible(False)
 
+    def _setUpUnknownHostUi(self):
+        self.okButton.setText(_("Trust"))
+
+        hintParts = [
+            _("Check that the host’s key matches one you trust:"),
+            "<ol><li><p>",
+            _("Get the host’s fingerprint from a trusted source. "
+              "(Do not use the one shown in this dialog!)"),
+            "</p></li><li>",
+            _("Paste the trusted fingerprint here. "
+              "If it matches the host’s, you may trust this host and proceed."),
+            "</p></li></ol>",
+            _("This is safer than visually comparing fingerprints because it "
+              "prevents “fuzzy fingerprint” attacks, where a malicious "
+              "fingerprint is crafted to look like the real one."),
+        ]
+
+        checkbox = QCheckBox(_("&Verify fingerprint before trusting (optional)"))
+        checkbox.setObjectName("VerifyFingerprintQCheckBox")
+        checkbox.toggled.connect(self.onToggleFingerprintCheckbox)
+
+        hint = QHintButton(toolTip="".join(hintParts))
+
+        fingerprintWidget = QWidget()
+        layout = QGridLayout(fingerprintWidget)
+        layout.setContentsMargins(QMargins(0, 0, 0, 16))
+        layout.addWidget(checkbox,      0, 0)
+        layout.addWidget(hint,          0, 1)
+        layout.addWidget(self.lineEdit, 1, 0, 1, 3)  # yank lineEdit out of its layout and into ours
+        layout.setColumnStretch(2, 1)
+        layout.setVerticalSpacing(0)
+        tweakWidgetFont(fingerprintWidget, 80)
+
+        self.setExtraWidget(fingerprintWidget)
+        self.setValidator(self.validateFingerprint)
+
+        # Prime unchecked state
+        self.onToggleFingerprintCheckbox(True)
+        self.onToggleFingerprintCheckbox(False)
+
     def onToggleEchoMode(self):
         passwordMode = self.lineEdit.echoMode() == QLineEdit.EchoMode.Password
         passwordMode = not passwordMode
@@ -134,6 +177,30 @@ class AskpassDialog(TextInputDialog):
         self.echoModeAction.setIcon(stockIcon("view-visible" if passwordMode else "view-hidden"))
         self.echoModeAction.setToolTip(_("Reveal passphrase") if passwordMode else _("Hide passphrase"))
         self.echoModeAction.setChecked(not passwordMode)
+
+    def onToggleFingerprintCheckbox(self, checked: bool):
+        self.lineEdit.setEnabled(checked)
+        if checked:
+            self.validator.successText = _("Both fingerprints match")
+            self.lineEdit.setPlaceholderText(_("Enter fingerprint from trusted source"))
+            if self.isVisible():
+                self.lineEdit.setFocus()
+        else:
+            self.validator.successText = ""
+            self.lineEdit.setPlaceholderText("")
+            self.lineEdit.clear()
+        self.validator.run(silenceEmptyWarnings=True)
+
+    def validateFingerprint(self, s: str):
+        if not self.lineEdit.isEnabled():
+            return ""
+
+        s = s.strip()
+        if not s:
+            return _("Cannot be empty.")
+        if s != self.unknownHostFingerprint:
+            return _("Fingerprint does not match.") + "\n" + self.unknownHostFingerprint
+        return ""
 
     def onFinish(self, result: int):
         if not result:

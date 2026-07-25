@@ -49,6 +49,7 @@ class TextInputDialog(QDialog):
         layout.addWidget(self.lineEdit, 1, 0)
         layout.addWidget(self.buttonBox, 3, 0, 1, -1)
         # Leave row 2 free for setExtraWidget
+        layout.setRowStretch(1, 1)
         self.contentsLayout = layout
 
         convertToBrandedDialog(self, subtitleText=subtitle, multilineSubtitle=multilineSubtitle)

@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from gitfourchette.qt import *
 from gitfourchette.toolbox.iconbank import stockIcon
 
+_IconFail = "achtung"
+_IconPass = "input-validated"
+
 
 class ValidatorMultiplexer(QObject):
     """
@@ -49,6 +52,10 @@ class ValidatorMultiplexer(QObject):
     inputs: list[Input]
     toolTipDelay: QTimer
 
+    successText: str
+    """ When the input is valid, show a green icon with this tooltip text.
+    The green icon won't be shown if this string is empty. """
+
     def __init__(self, parent):
         super().__init__(parent)
         self.gatedWidgets = []
@@ -57,6 +64,7 @@ class ValidatorMultiplexer(QObject):
         self.toolTipDelay = QTimer(self)
         self.toolTipDelay.setSingleShot(True)
         self.toolTipDelay.setInterval(500 if not APP_TESTMODE else 0)
+        self.successText = ""
 
     def setGatedWidgets(self, *args: QWidget):
         self.gatedWidgets = list(args)
@@ -71,7 +79,7 @@ class ValidatorMultiplexer(QObject):
         assert callable(validate)
 
         if showError:
-            errorButton = edit.addAction(stockIcon("achtung"), QLineEdit.ActionPosition.TrailingPosition)
+            errorButton = edit.addAction(stockIcon(_IconFail), QLineEdit.ActionPosition.TrailingPosition)
             errorButton.setVisible(False)
             errorButton.setObjectName("ValidatorMultiplexerLineEditAction")
 
@@ -107,6 +115,7 @@ class ValidatorMultiplexer(QObject):
                     input.error = ""
 
             if input.indicator:
+                input.indicator.setIcon(stockIcon(_IconFail))
                 input.indicator.setToolTip(input.error)
                 input.indicator.setVisible(bool(input.error))
 
@@ -117,6 +126,12 @@ class ValidatorMultiplexer(QObject):
         # Enable/disable gated widgets depending on validation success
         for w in self.gatedWidgets:
             w.setEnabled(success)
+
+        if success and self.successText:
+            for input in self.inputs:
+                input.indicator.setIcon(stockIcon(_IconPass))
+                input.indicator.setToolTip(self.successText)
+                input.indicator.setVisible(True)
 
     def showToolTip(self, input: ValidatorMultiplexer.Input, atMousePosition=True):
         self.toolTipDelay.stop()  # Prevent delayed warning from appearing after clicking errorButton

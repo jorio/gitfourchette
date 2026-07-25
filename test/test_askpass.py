@@ -65,18 +65,34 @@ def testAskpassDialogCancel(tempDir, mainWindow, capfd, captureExitCode):
     assert captureExitCode() == 1
 
 
-def testAskpassDialogAddToKnownHosts(tempDir, mainWindow, capfd, captureExitCode):
+@pytest.mark.parametrize("verifyFingerprint", [False, True])
+def testAskpassDialogAddToKnownHosts(tempDir, mainWindow, capfd, captureExitCode, verifyFingerprint):
     dialog = AskpassDialog.run(
         "The authenticity of host '[0.0.0.0]:8888 ([0.0.0.0]:8888)' can't be established.\n"
-        "ED25519 key fingerprint is SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.\n"
+        "ED25519 key fingerprint is: SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
         "This key is not known by any other names.\n"
         "Are you sure you want to continue connecting (yes/no/[fingerprint])? ")
 
-    assert not dialog.lineEdit.isVisible()
+    verify = dialog.findChild(QCheckBox, "VerifyFingerprintQCheckBox")
+
     assert findTextInWidget(dialog.okButton, "trust")
+    assert not verify.isChecked()
+
+    if verifyFingerprint:
+        verify.setChecked(True)
+        assert not dialog.okButton.isEnabled()
+        dialog.lineEdit.setText("SHA256:FINGERPRINT_MISMATCH")
+        assert not dialog.okButton.isEnabled()
+        dialog.lineEdit.setText("SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        expectedStdout = "SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+    else:
+        expectedStdout = "yes\n"
+
+    assert dialog.okButton.isEnabled()
     dialog.accept()
+
     out, _err = capfd.readouterr()
-    assert out == "yes\n"
+    assert out == expectedStdout
     assert captureExitCode() == 0
 
 

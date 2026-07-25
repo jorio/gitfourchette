@@ -111,6 +111,28 @@ def testAuthorNameAbbreviation(fullName):
     assert abbreviatePerson(sig, AuthorDisplayStyle.EmailUserName) == "hello"
 
 
+def testAskpassFingerprintExtractionPattern():
+    from gitfourchette.forms.askpassdialog import _KeyFingerprintPattern as pattern
+
+    # OpenSSH_10.2p1/Linux (colon, no period)
+    style1 = (
+        "The authenticity of host 'github.com (127.0.0.1)' can't be established.\n"
+        "ED25519 key fingerprint is: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU\n"
+        "This key is not known by any other names.\n"
+        "Are you sure you want to continue connecting (yes/no/[fingerprint])? ")
+
+    # OpenSSH_9.9p2/macOS (no colon, period)
+    style2 = (
+        "The authenticity of host 'github.com (127.0.0.1)' can't be established.\n"
+        "ED25519 key fingerprint is SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU.\n"
+        "This key is not known by any other names.\n"
+        "Are you sure you want to continue connecting (yes/no/[fingerprint])? ")
+
+    for prompt in [style1, style2]:
+        match = pattern.search(prompt)
+        assert match.group(1) == "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU"
+
+
 @pytest.mark.parametrize("command", GIT_VERBS.keys())
 def testGitVerbPattern(command):
     from gitfourchette.forms.statusform import _gitVerbPattern
