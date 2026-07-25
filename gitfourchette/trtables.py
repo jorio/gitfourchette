@@ -10,6 +10,7 @@ import os
 import re
 import textwrap
 from enum import Enum
+from typing import ClassVar
 
 from gitfourchette.appconsts import *
 from gitfourchette.localization import *
@@ -31,12 +32,12 @@ def _tokenReferenceTable(table):
 
 
 class TrTables:
-    _enums                      : dict[type[Enum], dict[Enum, str]] = {}
-    _exceptionNames             : dict[str, str] = {}
-    _prefKeys                   : dict[str, str] = {}
-    _diffStatusChars            : dict[str, str] = {}
-    _shortFileModes             : dict[FileMode, str] = {}
-    _patchPurposesPastTense     : dict[PatchPurpose, str] = {}
+    _enums                  : ClassVar[dict[type[Enum], dict[Enum, str]]] = {}
+    _exceptionNames         : ClassVar[dict[str, str]] = {}
+    _prefKeys               : ClassVar[dict[str, str]] = {}
+    _diffStatusChars        : ClassVar[dict[str, str]] = {}
+    _shortFileModes         : ClassVar[dict[FileMode, str]] = {}
+    _patchPurposesPastTense : ClassVar[dict[PatchPurpose, str]] = {}
 
     @classmethod
     def init(cls):

@@ -14,6 +14,7 @@ import shlex
 import signal
 from enum import StrEnum
 from pathlib import Path
+from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -46,14 +47,12 @@ class VanillaFetchStatusFlag(StrEnum):
 
 
 class GitDriver(QProcess):
-    _commandStem = ["/usr/bin/git"]
-
-    _cachedGitVersionValid = False
-    _cachedGitVersion = ""
-    _cachedGitVersionTuple: tuple[int, ...] = (0,)
-
-    _cachedLfsVersionValid = False
-    _cachedLfsVersion = ""
+    _commandStem            : ClassVar[list[str]] = ["/usr/bin/git"]
+    _cachedGitVersionValid  : ClassVar[bool] = False
+    _cachedGitVersion       : ClassVar[str] = ""
+    _cachedGitVersionTuple  : ClassVar[tuple[int, ...]] = (0,)
+    _cachedLfsVersionValid  : ClassVar[bool] = False
+    _cachedLfsVersion       : ClassVar[str] = ""
 
     progressMessage = Signal(str)
     progressFraction = Signal(int, int)

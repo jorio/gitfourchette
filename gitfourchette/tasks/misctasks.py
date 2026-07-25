@@ -9,6 +9,7 @@ import re
 from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
+from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
@@ -179,9 +180,7 @@ class GetCommitInfo(RepoTask):
 
 
 class VerifyGpgSignature(RepoTask):
-    _GnupgLinePattern = re.compile(r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
-
-    _GnupgStatusTable = {
+    _GnupgStatusTable: ClassVar = {
         # The order in this table is significant for parseGnupgVerification
         "NO_PUBKEY" : GpgStatus.MissingKey,
         "GOODSIG"   : GpgStatus.GoodUntrusted,
@@ -192,8 +191,14 @@ class VerifyGpgSignature(RepoTask):
         "BADSIG"    : GpgStatus.Bad,
     }
 
-    _SshGoodTrustedPattern = re.compile(r'^Good "git" signature for (.+) with \S+ key (.+)')
-    _SshGoodUntrustedPattern = re.compile(r'^Good "git" signature with \S+ key (.+)')
+    _GnupgLinePattern: ClassVar = re.compile(
+        r"^\[GNUPG:]\s+(\w+)\s*(.*)$")
+
+    _SshGoodTrustedPattern: ClassVar = re.compile(
+        r'^Good "git" signature for (.+) with \S+ key (.+)')
+
+    _SshGoodUntrustedPattern: ClassVar = re.compile(
+        r'^Good "git" signature with \S+ key (.+)')
 
     def flow(self, oid: Oid, dialogParent: QWidget | None = None):
         commit = self.repo.peel_commit(oid)

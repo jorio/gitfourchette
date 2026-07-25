@@ -474,7 +474,7 @@ def parse_submodule_patch(text: str) -> tuple[Oid, Oid, bool]:
 
 class GitConfigHelper:
     # Rough equivalent of git_config_open_default (not available in pygit2 yet)
-    default_config_getters = [
+    default_config_getters: _typing.ClassVar = [
         (GitConfigLevel.GLOBAL, GitConfig.get_global_config),   # ~/.gitconfig
         (GitConfigLevel.XDG,    GitConfig.get_xdg_config),      # ~/.config/git/config
         (GitConfigLevel.SYSTEM, GitConfig.get_system_config),   # /etc/gitconfig

@@ -8,6 +8,7 @@ import logging
 import os
 import time
 from collections.abc import Callable
+from typing import ClassVar
 
 BENCHMARK_LOGGING_LEVEL = 5
 
@@ -30,7 +31,7 @@ def getRSS():
 class Benchmark:
     """ Context manager that reports how long a piece of code takes to run. """
 
-    nesting: list[str] = []
+    nesting: ClassVar[list[str]] = []
 
     def __init__(self, name: str):
         self.name = name

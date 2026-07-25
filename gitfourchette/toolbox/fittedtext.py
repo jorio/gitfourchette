@@ -5,13 +5,14 @@
 # -----------------------------------------------------------------------------
 
 from math import ceil
+from typing import ClassVar
 
 from gitfourchette.qt import *
 
 class FittedText:
     enable = True
 
-    stretchPresets = [
+    stretchPresets: ClassVar = [
         QFont.Stretch.SemiCondensed,  # 87
         QFont.Stretch.Condensed,  # 75
         QFont.Stretch(70),

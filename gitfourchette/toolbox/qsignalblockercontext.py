@@ -6,6 +6,7 @@
 
 import warnings
 import weakref
+from typing import ClassVar
 
 from gitfourchette.qt import *
 
@@ -15,14 +16,14 @@ class QSignalBlockerContext:
     Context manager wrapper around QSignalBlocker.
     """
 
-    nestingLevels: dict[weakref.ReferenceType[QObject], int] = {}  # Map object id to nesting depth
-    concurrentBlockers = 0
+    nestingLevels: ClassVar[dict[weakref.ReferenceType[QObject], int]] = {}  # Map object id to nesting depth
+    concurrentBlockers: ClassVar[int] = 0
 
     def __init__(self, *objectsToBlock: QObject):
         self.objectsToBlock = [weakref.ref(o) for o in objectsToBlock]
 
     def __enter__(self):
-        self.concurrentBlockers += 1
+        QSignalBlockerContext.concurrentBlockers += 1
 
         for ref in self.objectsToBlock:
             o = ref()
@@ -47,6 +48,6 @@ class QSignalBlockerContext:
                     o.blockSignals(False)
                     del self.nestingLevels[ref]
 
-        self.concurrentBlockers -= 1
-        assert self.concurrentBlockers >= 0
-        assert self.concurrentBlockers != 0 or not self.concurrentBlockers
+        QSignalBlockerContext.concurrentBlockers -= 1
+        assert QSignalBlockerContext.concurrentBlockers >= 0
+        assert QSignalBlockerContext.concurrentBlockers != 0 or not QSignalBlockerContext.concurrentBlockers

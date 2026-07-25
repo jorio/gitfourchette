@@ -6,6 +6,7 @@
 
 import os
 import shlex
+from typing import ClassVar
 
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.qt import *
@@ -17,7 +18,7 @@ class ToolPresets:
     DefaultTerminalCommand = ""
     FlatpakNamePrefix = "Flatpak: "
 
-    Editors = {
+    Editors: ClassVar = {
         "System default": "",
         "BBEdit"        : "bbedit",
         "GVim"          : "gvim",
@@ -27,7 +28,7 @@ class ToolPresets:
         "VS Code"       : "code",
     }
 
-    DiffTools = {
+    DiffTools: ClassVar = {
         "Beyond Compare": "bcompare $L $R",
         "CLion"         : "clion diff $L $R",
         "DiffMerge"     : "diffmerge $L $R",
@@ -47,7 +48,7 @@ class ToolPresets:
     # $L: OURS/LOCAL/LEFT
     # $R: THEIRS/REMOTE/RIGHT
     # $M: MERGED/OUTPUT
-    MergeTools = {
+    MergeTools: ClassVar = {
         "Beyond Compare": "bcompare $L $R $B $M",
         "CLion"         : "clion merge $L $R $B $M",
         "DiffMerge"     : "diffmerge --merge --result=$M $L $B $R",
@@ -63,14 +64,14 @@ class ToolPresets:
         "WinMerge"      : "winmergeu /u /wl /wm /wr /am $B $L $R /o $M",
     }
 
-    _macTerminals = {
+    _macTerminals: ClassVar = {
         "macOS Terminal": "assets:mac/terminal.scpt $COMMAND",
         "kitty"         : "kitty --single-instance $COMMAND",  # single instance looks better in dock
         "WezTerm"       : "wezterm start $COMMAND",  # 'start' instead of '-e' to reuse app instance
         "Ghostty"       : "open -na ghostty.app --args -e $COMMAND",
     }
 
-    _windowsTerminals = {
+    _windowsTerminals: ClassVar = {
         # By default, git-bash starts bash with -i --login, which appends the
         # contents of our kicker script to the user's .bash_history.
         # To bypass this, invoke mintty manually.
@@ -81,7 +82,7 @@ class ToolPresets:
         # "PowerShell"    : "cmd /c start powershell -NoExit -Command $COMMAND",
     }
 
-    _freedesktopTerminals = {
+    _freedesktopTerminals: ClassVar = {
         "Alacritty"     : "alacritty -e $COMMAND",
         "Contour"       : "contour $COMMAND",
         "foot"          : "foot $COMMAND",
@@ -98,9 +99,9 @@ class ToolPresets:
     }
 
     # Filled in depending on platform
-    Terminals: dict[str, str] = {}
+    Terminals: ClassVar[dict[str, str]] = {}
 
-    FlatpakIDs = {
+    FlatpakIDs: ClassVar = {
         "CLion"             : ("CLion",         "com.jetbrains.CLion"),
         "GVim"              : ("GVim",          "org.vim.Vim"),
         "IntelliJ IDEA CE"  : ("IntelliJ IDEA", "com.jetbrains.IntelliJ-IDEA-Community"),

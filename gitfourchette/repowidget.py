@@ -7,6 +7,7 @@
 import logging
 import os
 from contextlib import suppress
+from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette import tasks
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class RepoWidget(QWidget):
-    sharedSplitterSizes: dict[str, list[int]] = {}
+    sharedSplitterSizes: ClassVar[dict[str, list[int]]] = {}
     "Shared reference among all RepoWidgets"
 
     nameChange = Signal()

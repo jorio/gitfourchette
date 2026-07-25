@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any
+from typing import Any, ClassVar
 
 from gitfourchette import tasks
 from gitfourchette.localization import *
@@ -19,12 +19,12 @@ from gitfourchette.toolbox import MultiShortcut, makeMultiShortcut, ActionDef, e
 class TaskBook:
     """ Registry of metadata about task commands """
 
-    names: dict[type[RepoTask], str] = {}
-    toolbarNames: dict[type[RepoTask], str] = {}
-    tips: dict[type[RepoTask], str] = {}
-    shortcuts: dict[type[RepoTask], MultiShortcut] = {}
-    icons: dict[type[RepoTask], str] = {}
-    noEllipsis: set[type[RepoTask]]
+    names       : ClassVar[dict[type[RepoTask], str]] = {}
+    toolbarNames: ClassVar[dict[type[RepoTask], str]] = {}
+    tips        : ClassVar[dict[type[RepoTask], str]] = {}
+    shortcuts   : ClassVar[dict[type[RepoTask], MultiShortcut]] = {}
+    icons       : ClassVar[dict[type[RepoTask], str]] = {}
+    noEllipsis  : ClassVar[set[type[RepoTask]]] = set()
 
     @classmethod
     def retranslate(cls):

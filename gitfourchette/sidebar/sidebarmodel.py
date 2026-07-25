@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from contextlib import suppress
-from typing import Any, overload
+from typing import Any, overload, ClassVar
 
 from gitfourchette import settings
 from gitfourchette.localization import *
@@ -50,7 +50,7 @@ class SidebarItem(enum.IntEnum):
 
 
 class SidebarLayout:
-    RootItems = [
+    RootItems: ClassVar = [
         SidebarItem.WorkdirHeader,
         SidebarItem.UncommittedChanges,
         SidebarItem.Spacer,
@@ -65,11 +65,11 @@ class SidebarLayout:
         SidebarItem.SubmodulesHeader,
     ]
 
-    ForceExpand = [
+    ForceExpand: ClassVar = [
         SidebarItem.WorkdirHeader
     ]
 
-    NonleafItems = sorted([
+    NonleafItems: ClassVar = sorted([
         SidebarItem.Root,
         SidebarItem.WorkdirHeader,
         SidebarItem.LocalBranchesHeader,
@@ -81,7 +81,7 @@ class SidebarLayout:
         SidebarItem.TagsHeader,
     ])
 
-    UnindentItems = {
+    UnindentItems: ClassVar = {
         SidebarItem.LocalBranch: -1,
         SidebarItem.UnbornHead: -1,
         SidebarItem.DetachedHead: -1,
@@ -93,7 +93,7 @@ class SidebarLayout:
         SidebarItem.RefFolder: -1,
     }
 
-    HideableItems = sorted([
+    HideableItems: ClassVar = sorted([
         SidebarItem.LocalBranch,
         SidebarItem.Remote,
         SidebarItem.RemoteBranch,

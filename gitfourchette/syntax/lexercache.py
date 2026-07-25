@@ -10,6 +10,7 @@ import logging
 import os.path
 import re
 from contextlib import suppress
+from typing import ClassVar
 
 try:
     import pygments.lexers
@@ -79,10 +80,10 @@ class LexerCache:
     Fast drop-in replacement for pygments.lexers.get_lexer_for_filename().
     """
 
-    lexerAliases: dict[str, str] = {}
+    lexerAliases: ClassVar[dict[str, str]] = {}
     " Lexer aliases by file extensions or verbatim file names "
 
-    lexerInstances: dict[str, Lexer] = {}
+    lexerInstances: ClassVar[dict[str, Lexer]] = {}
     " Lexer instances by aliases "
 
     @classmethod
