@@ -1311,7 +1311,7 @@ class TaskInvocation:
     def run(self) -> RepoTaskRunner | None:
         assert isinstance(self.invoker, QObject)
         if self.invoker.signalsBlocked():
-            logger.debug(f"Ignoring {repr(self)} from invoker with blocked signals: " +
+            logger.debug(f"Ignoring {self!r} from invoker with blocked signals: " +
                          (self.invoker.objectName() or self.invoker.__class__.__name__))
             return None
 

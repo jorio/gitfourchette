@@ -505,7 +505,7 @@ class FastForwardBranch(RepoTask):
             raise DivergentBranchesError(branch, upstream)
         else:
             # Unborn or something...
-            raise NotImplementedError(f"Cannot fast-forward with {repr(analysis)}.")
+            raise NotImplementedError(f"Cannot fast-forward with {analysis!r}.")
 
         self.epilog.effects |= TaskEffects.Refs
         if branch.is_checked_out():
@@ -548,7 +548,7 @@ class MergeBranch(RepoTask):
         wantMergeCommit = True
 
         yield from self.flowEnterUiThread()
-        logger.info(f"Merge analysis: {repr(analysis)} {repr(pref)}")
+        logger.info(f"Merge analysis: {analysis!r} {pref!r}")
 
         if anyConflicts:
             message = paragraphs(
@@ -587,7 +587,7 @@ class MergeBranch(RepoTask):
                                         dontShowAgainKey="MergeMayCauseConflicts")
 
         else:
-            raise NotImplementedError(f"Unsupported MergeAnalysis! ma={repr(analysis)} mp={repr(pref)}")
+            raise NotImplementedError(f"Unsupported MergeAnalysis! ma={analysis!r} mp={pref!r}")
 
         # -----------------------------------------------------------
         # Actually perform the fast-forward or the merge

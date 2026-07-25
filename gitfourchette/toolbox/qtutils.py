@@ -392,7 +392,7 @@ def findParentWidget(o: QObject) -> QWidget:
         if isinstance(p, QWidget):
             return p
         p = p.parent()
-    raise ValueError(f"No parent widget found for {repr(o)}")
+    raise ValueError(f"No parent widget found for {o!r}")
 
 
 def setTabOrder(*args: QWidget):

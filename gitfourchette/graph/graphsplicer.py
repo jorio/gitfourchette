@@ -124,7 +124,7 @@ class GraphSplicer:
         self.equilibriumOldRow = equilibriumOldRow
         self.oldGraphRowOffset = rowShiftInOldGraph
 
-        logger.debug(f"Equilibrium: commit={str(self.oldPlayer.commit):.7} new={equilibriumNewRow} old={equilibriumOldRow}")
+        logger.debug(f"Equilibrium: commit={self.oldPlayer.commit!s:.7} new={equilibriumNewRow} old={equilibriumOldRow}")
 
         # We can bail now if nothing changed.
         if equilibriumOldRow == 0 and equilibriumNewRow == 0:

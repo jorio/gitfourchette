@@ -1352,7 +1352,7 @@ class Repo(_VanillaRepository):
                 rb = self.branches[target_shorthand]
 
         merge_analysis, merge_pref = self.merge_analysis(rb.target, RefPrefix.HEADS + local_branch_name)
-        _logger.debug(f"Merge analysis: {repr(merge_analysis)}. Merge preference: {repr(merge_pref)}.")
+        _logger.debug(f"Merge analysis: {merge_analysis!r}. Merge preference: {merge_pref!r}.")
 
         if merge_analysis & MergeAnalysis.UP_TO_DATE:
             # Local branch is up to date with remote branch, nothing to do.
@@ -1378,7 +1378,7 @@ class Repo(_VanillaRepository):
 
         else:
             # Unborn or something...
-            raise NotImplementedError(f"Cannot fast-forward with {repr(merge_analysis)}.")
+            raise NotImplementedError(f"Cannot fast-forward with {merge_analysis!r}.")
 
     def repo_name(self):
         return _basename(_normpath(self.workdir))
