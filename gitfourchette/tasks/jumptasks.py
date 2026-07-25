@@ -224,8 +224,8 @@ class Jump(RepoTask):
             return Jump.Result(rw.diffView.currentLocator, rw.diffView.currentDiffDocument, delta)
 
         # Load the patch
-        patchTask = yield from self.flowSubtask(LoadPatch, delta, locator)
-        return Jump.Result(locator, patchTask.diffDocument, delta)
+        diffDocument = yield from self.flowSubtask(LoadPatch, delta, locator)
+        return Jump.Result(locator, diffDocument, delta)
 
     def isDiffViewAlreadySetUpFor(self, locator: NavLocator, delta: GitDelta) -> bool:
         currentLocator = self.rw.diffView.currentLocator

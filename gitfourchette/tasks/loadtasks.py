@@ -239,8 +239,6 @@ class PrimeRepo(RepoTask):
 
 
 class LoadPatch(RepoTask):
-    diffDocument: TAbstractDiffDocument
-
     def canKill(self, task: RepoTask):
         return isinstance(task, LoadPatch)
 
@@ -268,7 +266,7 @@ class LoadPatch(RepoTask):
             # Prime lexer
             diff.oldLexJob, diff.newLexJob = self._primeLexJobs(delta)
 
-        self.diffDocument = diff
+        return diff
 
     def _getPatch(
             self,
@@ -436,11 +434,10 @@ class LoadPatch(RepoTask):
         return job
 
 
-class LoadPatchInNewWindow(LoadPatch):
+class LoadPatchInNewWindow(RepoTask):
     def flow(self, delta: GitDelta, locator: NavLocator):
-        yield from super().flow(delta, locator)
+        diffDocument = yield from self.flowSubtask(LoadPatch, delta, locator)
 
-        diffDocument = self.diffDocument
         if not isinstance(diffDocument, DiffDocument):
             raise AbortTask(_("Only text diffs may be opened in a separate window."), icon="information")
 

@@ -395,7 +395,7 @@ class RepoTask(QObject):
         yield FlowControlToken(FlowControlToken.Kind.ContinueOnUiThread)
 
     def flowSubtask(self, subtaskClass: type[RepoTaskSubtype], *args, **kwargs
-                    ) -> Flow[RepoTaskSubtype]:
+                    ) -> Flow[Any]:
         """
         Run a subtask's flow() method as if it were part of this task.
         Note that if the subtask raises an exception, the root task's flow will be stopped as well.
@@ -411,7 +411,6 @@ class RepoTask(QObject):
         subtask = subtaskClass(self)
         subtask.setRepoModel(self.repoModel)
         subtask.setObjectName(f"{self.objectName()}:{subtask.objectName()}")
-        # logger.debug(f"Subtask {subtask}")
 
         # Push subtask onto stack
         subtask._taskStack = self._taskStack  # share reference to task stack
@@ -425,7 +424,7 @@ class RepoTask(QObject):
         subtask.uiReady.connect(self.uiReady)
 
         # Actually perform the subtask
-        yield from subtask._currentFlow
+        subtaskResult = yield from subtask._currentFlow
 
         # Make sure we're back on the UI thread before re-entering the root task
         if not self._isRunningOnAppThread():
@@ -435,7 +434,7 @@ class RepoTask(QObject):
         rc = self._popSubtask()
         assert rc is subtask
 
-        return subtask
+        return subtaskResult
 
     def _popSubtask(self) -> RepoTask:
         assert self._taskStack, "task stack is already empty!"
