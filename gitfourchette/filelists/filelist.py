@@ -16,6 +16,7 @@ from gitfourchette.exttools.usercommand import UserCommand
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.gitdriver import *
+from gitfourchette.gitdriver.gitdeltafile import HexHashFFFF
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -24,6 +25,7 @@ from gitfourchette.repomodel import RepoModel
 from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
 from gitfourchette.settings import FileListClick
 from gitfourchette.tasks import *
+from gitfourchette.tasks.indextasks import OpenRevisionInEditor
 from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
@@ -338,7 +340,9 @@ class FileList(QListView):
 
             ActionDef(
                 _n("Edit &HEAD Version in {tool}", "Edit &HEAD Versions in {tool}", n=n, tool=settings.getExternalEditorName()),
-                self.openHeadRevision),
+                self.openHeadRevision,
+                enabled=any(d.status not in "?A" for d in deltas),
+            ),
         ]
 
     def contextMenuActionBlame(self, deltas: list[GitDelta]) -> ActionDef:
@@ -638,8 +642,9 @@ class FileList(QListView):
 
     def openHeadRevision(self):
         def run(delta: GitDelta):
-            tempPath = delta.old.dump(self.repo, qTempDir(), "[HEAD]")
-            ToolProcess.startTextEditor(self, tempPath)
+            fakeHeadFile = GitDeltaFile(delta.old.path, HexHashFFFF, source=GitDeltaSource.Commit, sourceCommit=self.repo.head_commit_id)
+            fakeHeadDelta = GitDelta("M", new=fakeHeadFile)
+            OpenRevisionInEditor.invoke(self, fakeHeadDelta, old=False)
 
         self.confirmBatch(run, _("Open HEAD version of file"),
                           _("Really open <b>{n} files</b> in external editor?"))

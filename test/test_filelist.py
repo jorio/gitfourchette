@@ -389,7 +389,11 @@ def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):
 
 def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/a/a1", "modified in workdir")
+    runShellScript("""
+        echo 'staged in workdir' > a/a1
+        git add a/a1
+        echo 'modified in workdir' > a/a1
+    """, directory=wd)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
