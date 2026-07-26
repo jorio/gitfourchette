@@ -445,8 +445,8 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in editor-shim")
     waitForFile(scratchPath)
     scratchText = readFile(scratchPath, unlink=True).decode("utf-8")
-    assert "[OLD]b2.txt" in scratchText
-    assert "[NEW]b2.txt" in scratchText
+    assert "[OLD]b2@59706a1.txt" in scratchText
+    assert "[NEW]b2@7f82283.txt" in scratchText
 
 
 # Cover all FileList subclasses (unstaged, staged, committed)
@@ -705,7 +705,7 @@ def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
     elif action == FileListClick.DiffTool:
         waitForFile(scratchPath)
         paths = readTextFile(scratchPath).strip().splitlines()
-        assert paths[0].endswith("[HEAD]a1.txt")
+        assert paths[0].endswith("[HEAD]a1@c9ed7bf.txt")
         assert paths[1].endswith("[STAGED]a1.txt")
     elif action == FileListClick.Folder:
         assert Path(wd, "a").samefile(services.lastUrlAsLocalFile())

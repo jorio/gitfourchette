@@ -530,7 +530,8 @@ class RestoreRevisionToWorkdir(RepoTask):
 
 
 class SaveRevisionAs(RepoTask):
-    def flow(self, delta: GitDelta, old: bool, saveIntoDir: str = ""):
+    def flow(self, delta: GitDelta, old: bool, saveIntoDir: str = "", prefix: str = ""):
+        diffFile: GitDeltaFile
         if old:
             diffFile = delta.old
             if delta.status == "A":
@@ -540,10 +541,18 @@ class SaveRevisionAs(RepoTask):
             if delta.status == "D":
                 raise AbortTask(_("This file was deleted by the commit."))
 
-        assert diffFile.sourceCommit
-
         dfPath = Path(diffFile.path)
-        suggStem = f"{dfPath.stem}@{shortHash(diffFile.sourceCommit)}"
+
+        if diffFile.source == GitDeltaSource.Commit:
+            assert diffFile.sourceCommit not in [None, NULL_OID]
+            suggStem = f"{prefix}{dfPath.stem}@{shortHash(diffFile.sourceCommit)}"
+            catFileArg = f"{diffFile.sourceCommit}:{diffFile.path}"
+        elif diffFile.source == GitDeltaSource.Index:
+            suggStem = f"{prefix}{dfPath.stem}"
+            catFileArg = f":{diffFile.path}"
+        else:
+            raise NotImplementedError("SaveRevisionAs on dirty file")
+
         suggExt = dfPath.suffix
         suggName = suggStem + suggExt
 
@@ -555,10 +564,8 @@ class SaveRevisionAs(RepoTask):
             targetStr = yield from self.flowFileDialog(qfd)
         target = Path(targetStr)
 
-        driver = yield from self.flowCallGit(
-            "cat-file",
-            "--filters",  # For LFS awareness
-            f"{diffFile.sourceCommit}:{diffFile.path}")
+        # --filters for LFS awareness
+        driver = yield from self.flowCallGit("cat-file", "--filters", catFileArg)
 
         assert not driver._stdout, "stdout consumed prematurely"
         data = driver.readAllStandardOutput().data()
@@ -577,6 +584,38 @@ class OpenRevisionInEditor(RepoTask):
         assert isinstance(path, str)
 
         ToolProcess.startTextEditor(self.parentWidget(), path)
+
+
+class OpenInDiffTool(RepoTask):
+    def flow(self, delta: GitDelta):
+        if delta.new.isId0():
+            raise FileNotFoundError(_("Can’t open external diff tool on a deleted file."))
+
+        if delta.old.isId0():
+            raise FileNotFoundError(_("Can’t open external diff tool on a new file."))
+
+        into = qTempDir()
+
+        if delta.source == GitDeltaSource.Dirty:
+            # Unstaged: compare indexed state to workdir file
+            oldPath = yield from self.dump(into, delta, "old", "[INDEXED]")
+            newPath = self.repo.in_workdir(delta.new.path)
+        elif delta.source == GitDeltaSource.Index:
+            # Staged: compare HEAD state to indexed state
+            oldPath = yield from self.dump(into, delta, "old", "[HEAD]")
+            newPath = yield from self.dump(into, delta, "new", "[STAGED]")
+        elif delta.source == GitDeltaSource.Commit:
+            # Committed: compare parent state to this commit
+            oldPath = yield from self.dump(into, delta, "old", "[OLD]")
+            newPath = yield from self.dump(into, delta, "new", "[NEW]")
+        else:
+            raise NotImplementedError(f"unsupported source {delta.source}")
+
+        return ToolProcess.startDiffTool(self.parentWidget(), oldPath, newPath)
+
+    def dump(self, into: str, delta: GitDelta, oldNew: str, prefix: str):
+        path = yield from self.flowSubtask(SaveRevisionAs, delta, old=oldNew=="old", saveIntoDir=into, prefix=prefix)
+        return path
 
 
 class AbortMerge(RepoTask):

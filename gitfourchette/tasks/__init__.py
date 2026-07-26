@@ -91,6 +91,7 @@ from gitfourchette.tasks.indextasks import (
     RestoreRevisionToWorkdir,
     SaveRevisionAs,
     OpenRevisionInEditor,
+    OpenInDiffTool,
 )
 
 from gitfourchette.tasks.stashtasks import (

@@ -406,35 +406,11 @@ class FileList(QListView):
                           _("Really open <b>{n} files</b> in external editor?"))
 
     def wantOpenInDiffTool(self):
-        self.confirmBatch(self._openInDiffTool, _("Open in external diff tool"),
+        def run(delta: GitDelta):
+            OpenInDiffTool.invoke(self, delta)
+
+        self.confirmBatch(run, _("Open in external diff tool"),
                           _("Really open <b>{n} files</b> in external diff tool?"))
-
-    def _openInDiffTool(self, delta: GitDelta):
-        if delta.new.isId0():
-            raise FileNotFoundError(_("Can’t open external diff tool on a deleted file."))
-
-        if delta.old.isId0():
-            raise FileNotFoundError(_("Can’t open external diff tool on a new file."))
-
-        diffDir = qTempDir()
-        repo = self.repo
-
-        if delta.source == GitDeltaSource.Dirty:
-            # Unstaged: compare indexed state to workdir file
-            oldPath = delta.old.dump(repo, diffDir, "[INDEXED]")
-            newPath = repo.in_workdir(delta.new.path)
-        elif delta.source == GitDeltaSource.Index:
-            # Staged: compare HEAD state to indexed state
-            oldPath = delta.old.dump(repo, diffDir, "[HEAD]")
-            newPath = delta.new.dump(repo, diffDir, "[STAGED]")
-        elif delta.source == GitDeltaSource.Commit:
-            # Committed: compare parent state to this commit
-            oldPath = delta.old.dump(repo, diffDir, "[OLD]")
-            newPath = delta.new.dump(repo, diffDir, "[NEW]")
-        else:
-            raise NotImplementedError(f"unsupported source {delta.source}")
-
-        return ToolProcess.startDiffTool(self, oldPath, newPath)
 
     def showInFolder(self):
         def run(delta: GitDelta):
