@@ -365,6 +365,66 @@ class HardSolveConflicts(RepoTask):
         self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(ours) + len(theirs) + len(remove))
 
 
+class OpenMergeTool(RepoTask):
+    def flow(self, conflict: GitConflict, reopenWorkInProgress: bool):
+        mergeDriver = MergeDriver.findOngoingMerge(conflict)
+
+        if mergeDriver is None:
+            mergeDriver = yield from self.makeMergeDriver(conflict)
+
+        mergeDriver.startProcess(reopenWorkInProgress)
+        return mergeDriver
+
+    def makeMergeDriver(self, conflict: GitConflict):
+        mergeTempDir = QTemporaryDir(str(Path(qTempDir(), "merge")))
+        into = mergeTempDir.path()
+        repo = self.repo
+
+        def dump(df: GitDeltaFile, prefix: str):
+            path = yield from self.flowSubtask(SaveDeltaFileAs, df, saveIntoDir=into, prefix=prefix)
+            return path
+
+        targetPath = repo.in_workdir(conflict.ours.path)
+        baseName = Path(targetPath).name
+
+        # Dump OURS and THEIRS blobs into the temporary directory
+        oursPath = yield from dump(conflict.ours, prefix="[OURS]")
+        theirsPath = yield from dump(conflict.theirs, prefix="[THEIRS]")
+
+        if conflict.ancestor:
+            # Dump ANCESTOR blob into the temporary directory
+            ancestorPath = yield from dump(conflict.ancestor, prefix="[ANCESTOR]")
+        else:
+            # There's no ancestor! Some merge tools can fake a 3-way merge without
+            # an ancestor (e.g. PyCharm), but others won't (e.g. VS Code).
+            # To make sure we get a 3-way merge, copy our current workdir file as
+            # the fake ANCESTOR file. It should contain chevron conflict markers
+            # (<<<<<<< >>>>>>>) which should trigger conflicts between OURS and
+            # THEIRS in the merge tool.
+            ancestorPath = str(Path(into, f"[NO-ANCESTOR]{baseName}"))
+            shutil.copyfile(targetPath, ancestorPath)
+
+        # Create scratch file (merge tool output).
+        # Some merge tools (such as VS Code) use the contents of this file
+        # as a starting point, so copy the workdir version for this purpose.
+        scratchPath = Path(into, f"[MERGED]{baseName}")
+        shutil.copyfile(targetPath, scratchPath)
+
+        paths = MergeDriver.MergeFiles(
+            ours=oursPath,
+            theirs=theirsPath,
+            ancestor=ancestorPath,
+            scratch=str(scratchPath),
+            target=targetPath)
+
+        mergeDriver = MergeDriver(self.parentWidget(), conflict, paths)
+
+        # Keep a reference to temp dir so it doesn't vanish
+        mergeDriver._keepAroundMergeTempDir = mergeTempDir  # type: ignore[attr-defined]
+
+        return mergeDriver
+
+
 class AcceptMergeConflictResolution(RepoTask):
     def canKill(self, task: RepoTask) -> bool:
         from gitfourchette.tasks import RefreshRepo, Jump
@@ -372,7 +432,7 @@ class AcceptMergeConflictResolution(RepoTask):
 
     def flow(self, mergeDriver: MergeDriver):
         self.epilog.effects |= TaskEffects.Workdir
-        path = mergeDriver.relativeTargetPath
+        path = mergeDriver.conflict.ours.path
         mergeDriver.copyScratchToTarget()
         mergeDriver.deleteNow()
         yield from self.flowCallGit("add", "--force", "--", path)
@@ -532,29 +592,22 @@ class RestoreRevisionToWorkdir(RepoTask):
         self.epilog.jumpTo = NavLocator.inUnstaged(diffFile.path)
 
 
-class SaveRevisionAs(RepoTask):
-    def flow(self, delta: GitDelta, old: bool, saveIntoDir: str = "", prefix: str = ""):
-        diffFile: GitDeltaFile
-        if old:
-            diffFile = delta.old
-            if delta.status == "A":
-                raise AbortTask(_("This file didn’t exist before the commit."))
-        else:
-            diffFile = delta.new
-            if delta.status == "D":
-                raise AbortTask(_("This file was deleted by the commit."))
+class SaveDeltaFileAs(RepoTask):
+    def flow(self, file: GitDeltaFile, saveIntoDir: str = "", prefix: str = ""):
+        dfPath = Path(file.path)
+        suggStem = prefix + dfPath.stem
 
-        dfPath = Path(diffFile.path)
-
-        if diffFile.source == GitDeltaSource.Commit:
-            assert diffFile.sourceCommit not in [None, NULL_OID]
-            suggStem = f"{prefix}{dfPath.stem}@{shortHash(diffFile.sourceCommit)}"
-            catFileArg = f"{diffFile.sourceCommit}:{diffFile.path}"
-        elif diffFile.source == GitDeltaSource.Index:
-            suggStem = f"{prefix}{dfPath.stem}"
-            catFileArg = f":{diffFile.path}"
+        if file.source == GitDeltaSource.Commit:
+            assert file.sourceCommit not in [None, NULL_OID]
+            suggStem += f"@{shortHash(file.sourceCommit)}"
+            catFileArgs = ["--filters", f"{file.sourceCommit}:{file.path}"]  # --filters for LFS awareness
+        elif file.source == GitDeltaSource.Index:
+            catFileArgs = ["--filters", f":{file.path}"]  # --filters for LFS awareness
+        elif file.source == GitDeltaSource.Unknown:  # Most likely from GitConflict
+            assert file.isIdValid()
+            catFileArgs = ["blob", str(file.id)]
         else:
-            raise NotImplementedError("SaveRevisionAs on dirty file")
+            raise NotImplementedError()
 
         suggExt = dfPath.suffix
         suggName = suggStem + suggExt
@@ -567,18 +620,32 @@ class SaveRevisionAs(RepoTask):
             targetStr = yield from self.flowFileDialog(qfd)
         target = Path(targetStr)
 
-        # --filters for LFS awareness
-        driver = yield from self.flowCallGit("cat-file", "--filters", catFileArg)
+        driver = yield from self.flowCallGit("cat-file", *catFileArgs)
 
         assert not driver._stdout, "stdout consumed prematurely"
         data = driver.readAllStandardOutput().data()
         target.write_bytes(data)
 
-        if diffFile.mode == FileMode.BLOB_EXECUTABLE:
+        if file.mode == FileMode.BLOB_EXECUTABLE:
             mode = 0o100 | target.lstat().st_mode
             target.lchmod(mode)
 
         return str(target)
+
+
+class SaveRevisionAs(RepoTask):
+    def flow(self, delta: GitDelta, old: bool, saveIntoDir: str = "", prefix: str = ""):
+        if old:
+            diffFile = delta.old
+            if delta.status == "A":
+                raise AbortTask(_("This file didn’t exist before the commit."))
+        else:
+            diffFile = delta.new
+            if delta.status == "D":
+                raise AbortTask(_("This file was deleted by the commit."))
+
+        outPath = yield from self.flowSubtask(SaveDeltaFileAs, diffFile, saveIntoDir, prefix)
+        return outPath
 
 
 class OpenRevisionInEditor(RepoTask):
@@ -599,26 +666,26 @@ class OpenInDiffTool(RepoTask):
 
         into = qTempDir()
 
+        def dump(file: GitDeltaFile, prefix: str):
+            path = yield from self.flowSubtask(SaveDeltaFileAs, file, saveIntoDir=into, prefix=prefix)
+            return path
+
         if delta.source == GitDeltaSource.Dirty:
             # Unstaged: compare indexed state to workdir file
-            oldPath = yield from self.dump(into, delta, "old", "[INDEXED]")
+            oldPath = yield from dump(delta.old, "[INDEXED]")
             newPath = self.repo.in_workdir(delta.new.path)
         elif delta.source == GitDeltaSource.Index:
             # Staged: compare HEAD state to indexed state
-            oldPath = yield from self.dump(into, delta, "old", "[HEAD]")
-            newPath = yield from self.dump(into, delta, "new", "[STAGED]")
+            oldPath = yield from dump(delta.old, "[HEAD]")
+            newPath = yield from dump(delta.new, "[STAGED]")
         elif delta.source == GitDeltaSource.Commit:
             # Committed: compare parent state to this commit
-            oldPath = yield from self.dump(into, delta, "old", "[OLD]")
-            newPath = yield from self.dump(into, delta, "new", "[NEW]")
+            oldPath = yield from dump(delta.old, "[OLD]")
+            newPath = yield from dump(delta.new, "[NEW]")
         else:
             raise NotImplementedError(f"unsupported source {delta.source}")
 
         return ToolProcess.startDiffTool(self.parentWidget(), oldPath, newPath)
-
-    def dump(self, into: str, delta: GitDelta, oldNew: str, prefix: str):
-        path = yield from self.flowSubtask(SaveRevisionAs, delta, old=oldNew=="old", saveIntoDir=into, prefix=prefix)
-        return path
 
 
 class AbortMerge(RepoTask):

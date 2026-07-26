@@ -17,7 +17,7 @@ from gitfourchette.localization import *
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
-from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution
+from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution, OpenMergeTool
 from gitfourchette.toolbox import *
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.trtables import TrTables
@@ -141,10 +141,7 @@ class ConflictView(QWidget):
         HardSolveConflicts.invoke(self, [], [], [path])
 
     def openMergeTool(self, conflict: GitConflict, reopenWorkInProgress=False):
-        mergeDriver = MergeDriver.findOngoingMerge(conflict)
-        if mergeDriver is None:
-            mergeDriver = MergeDriver(self, self.repoModel.repo, conflict)
-        mergeDriver.startProcess(reopenWorkInProgress)
+        OpenMergeTool.invoke(self, conflict, reopenWorkInProgress)
         self.refresh()
 
     def onMergeDriverResponse(self):

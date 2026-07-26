@@ -78,6 +78,7 @@ class TaskBook:
             tasks.NewTag: _("New tag"),
             tasks.OpenBlame: _("Blame file"),
             tasks.OpenInDiffTool: _("Open in external diff tool"),
+            tasks.OpenMergeTool: _("Open in merge tool"),
             tasks.OpenRevisionInEditor: _("Open file revision"),
             tasks.QueryCommitsTouchingPath: _("Find commits touching path"),
             tasks.PullBranch: _("Pull remote branch"),

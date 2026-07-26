@@ -9,7 +9,6 @@ import enum
 import fnmatch
 import hashlib
 import os
-import warnings
 from pathlib import Path
 
 from pygit2.enums import AttrCheck
@@ -163,23 +162,6 @@ class GitDeltaFile:
 
         assert self.isDataValid(), "data should be valid here"
         return self._data
-
-    def dump(self, repo: Repo, directory: str, namePrefix: str) -> str:
-        if self.isId0():
-            warnings.warn(f"dumping file with id zero: {self}")
-
-        data = self.read(repo)
-        relPathObj = Path(self.path)
-        pathObj = Path(directory, f"{namePrefix}{relPathObj.name}")
-        pathObj.write_bytes(data)
-
-        """
-        # Make it read-only
-        mode = pathObj.stat().st_mode
-        pathObj.chmod(mode & ~0o222)  # ~(write, write, write)
-        """
-
-        return str(pathObj)
 
     def stat(self, repo: Repo) -> tuple[int, int]:
         diskStat = _NoDiskStat
