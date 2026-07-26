@@ -13,6 +13,7 @@ from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.exttools.usercommand import UserCommand
+from gitfourchette.filelists.filebatchtask import FileBatchTask
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.gitdriver import *
@@ -23,10 +24,8 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
-from gitfourchette.settings import FileListClick
+from gitfourchette.settings import FileListClick, getDiffToolName, getExternalEditorName
 from gitfourchette.tasks import *
-from gitfourchette.tasks.indextasks import OpenRevisionInEditor
-from gitfourchette.tasks.repotask import showMultiFileErrorMessage
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -362,66 +361,44 @@ class FileList(QListView):
 
     # -------------------------------------------------------------------------
 
-    def confirmBatch(self, callback: Callable[[GitDelta], None], title: str, prompt: str, threshold: int = 3):
+    def confirmBatch(self, callback: FileBatchTask.UnitFunc, title: str, prompt: str):
         deltas = list(self.selectedDeltas())
-        numFiles = len(deltas)
-
-        def runBatch():
-            errors = MultiFileError()
-
-            for delta in deltas:
-                try:
-                    callback(delta)
-                    errors.add_file_success()
-                except (OSError,  # typically FileNotFoundError
-                        LfsObjectCacheMissingError
-                        ) as exc:
-                    errors.add_file_error(delta.new.path, exc)
-
-            if errors:
-                showMultiFileErrorMessage(self, errors, title)
-
-        if numFiles <= threshold:
-            runBatch()
-            return
-
-        qmb = askConfirmation(
-            self,
-            title,
-            prompt.format(n=numFiles),
-            runBatch,
-            QMessageBox.StandardButton.YesToAll | QMessageBox.StandardButton.Cancel,
-            show=False)
-
-        addULToMessageBox(qmb, [d.new.path for d in deltas])
-
-        qmb.show()
+        FileBatchTask.invoke(self, deltas, callback, title, prompt)
 
     def openWorkdirFile(self):
-        def run(delta: GitDelta):
-            entryPath = self.repo.in_workdir(delta.new.path)
-            ToolProcess.startTextEditor(self, entryPath)
+        def run(task: RepoTask, delta: GitDelta):
+            entryPath = task.repo.in_workdir(delta.new.path)
+            ToolProcess.startTextEditor(task.parentWidget(), entryPath)
+            yield from task.flowEnterUiThread()  # dummy yield
 
-        self.confirmBatch(run, _("Open in external editor"),
-                          _("Really open <b>{n} files</b> in external editor?"))
+        toolName = getExternalEditorName()
+
+        self.confirmBatch(
+            run,
+            _("Open in {0}", toolName),
+            _("Really open [# files] in {0}?", toolName))
 
     def wantOpenInDiffTool(self):
-        def run(delta: GitDelta):
-            OpenInDiffTool.invoke(self, delta)
+        def run(task: RepoTask, delta: GitDelta):
+            yield from task.flowSubtask(OpenInDiffTool, delta)
 
-        self.confirmBatch(run, _("Open in external diff tool"),
-                          _("Really open <b>{n} files</b> in external diff tool?"))
+        toolName = getDiffToolName()
+
+        self.confirmBatch(
+            run,
+            _("Open in {0}", toolName),
+            _("Really open [# files] in {0}?", toolName))
 
     def showInFolder(self):
-        def run(delta: GitDelta):
-            path = self.repo.in_workdir(delta.new.path)
+        def run(task: RepoTask, delta: GitDelta):
+            path = task.repo.in_workdir(delta.new.path)
             path = os.path.normpath(path)  # get rid of any trailing slashes (submodules)
             if not os.path.exists(path):  # check exists, not isfile, for submodules
                 raise FileNotFoundError(_("File doesn’t exist at this path anymore."))
             showInFolder(path)
+            yield from task.flowEnterUiThread()  # dummy yield
 
-        self.confirmBatch(run, _("Open paths"),
-                          _("Really open <b>{n} folders</b>?"))
+        self.confirmBatch(run, _("Open paths"), _("Really open [# folders]?"))
 
     def copyPaths(self):
         text = '\n'.join(self.repo.in_workdir(path) for path in self.selectedPaths())
@@ -617,13 +594,16 @@ class FileList(QListView):
         return self.flModel.deltas[row]
 
     def openHeadRevision(self):
-        def run(delta: GitDelta):
+        def run(task: RepoTask, delta: GitDelta):
             fakeHeadFile = GitDeltaFile(delta.old.path, HexHashFFFF, source=GitDeltaSource.Commit, sourceCommit=self.repo.head_commit_id)
             fakeHeadDelta = GitDelta("M", new=fakeHeadFile)
-            OpenRevisionInEditor.invoke(self, fakeHeadDelta, old=False)
+            yield from task.flowSubtask(OpenRevisionInEditor, fakeHeadDelta, old=False)
 
-        self.confirmBatch(run, _("Open HEAD version of file"),
-                          _("Really open <b>{n} files</b> in external editor?"))
+        toolName = getExternalEditorName()
+        self.confirmBatch(
+            run,
+            _("Open HEAD revision"),
+            _("Really open [# files] in {0}?", toolName))
 
     def wantPartialStash(self):
         paths = set()

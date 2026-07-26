@@ -15,6 +15,7 @@ from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
+from gitfourchette.settings import getExternalEditorName
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
@@ -130,39 +131,40 @@ class CommittedFiles(FileList):
 
     # TODO: Send all files to text editor in one command?
     def openRevision(self, beforeCommit: bool = False):
-        def run(delta: GitDelta):
-            OpenRevisionInEditor.invoke(self, delta, beforeCommit)
+        def run(task: RepoTask, delta: GitDelta):
+            yield from task.flowSubtask(OpenRevisionInEditor, delta, beforeCommit)
 
-        if beforeCommit:
-            title = _("Open revision before commit")
-        else:
-            title = _("Open revision at commit")
-
-        self.confirmBatch(run, title, _("Really open <b>{n} files</b> in external editor?"))
+        toolName = getExternalEditorName()
+        self.confirmBatch(
+            run,
+            _("Open file revision"),
+            _("Really open [# files] in {0}?", toolName))
 
     def saveRevisionAs(self, beforeCommit: bool = False):
-        def run(delta: GitDelta):
-            SaveRevisionAs.invoke(self, delta, old=beforeCommit)
+        def run(task: RepoTask, delta: GitDelta):
+            yield from task.flowSubtask(SaveRevisionAs, delta, old=beforeCommit)
 
-        if beforeCommit:
-            title = _("Save revision before commit")
-        else:
-            title = _("Save revision at commit")
-
-        self.confirmBatch(run, title, _("Really export <b>{n} files</b>?"))
+        self.confirmBatch(run, _("Save file revision as"), _("Really export [# files]?"))
 
     def openWorkingCopyRevision(self):
-        def run(delta: GitDelta):
-            path = self.repo.in_workdir(delta.new.path)
+        def run(task: RepoTask, delta: GitDelta):
+            path = task.repo.in_workdir(delta.new.path)
             if not os.path.isfile(path):
                 raise FileNotFoundError(_("There’s no file at this path in the working copy."))
-            ToolProcess.startTextEditor(self, path)
+            ToolProcess.startTextEditor(task.parentWidget(), path)
+            yield from task.flowEnterUiThread()  # dummy yield
 
-        self.confirmBatch(run, _("Open working copy revision"), _("Really open <b>{n} files</b>?"))
+        toolName = getExternalEditorName()
+        self.confirmBatch(
+            run,
+            _("Open working copy revision"),
+            _("Really open [# files] in {0}?", toolName))
 
     def wantOpenDiffInNewWindow(self):
-        def run(delta: GitDelta):
-            locator = self.flModel.navLocator.replace(path=delta.new.path)
-            LoadPatchInNewWindow.invoke(self, delta, locator)
+        sourceLocator = self.flModel.navLocator
 
-        self.confirmBatch(run, _("Open diff in new window"), _("Really open <b>{n} windows</b>?"))
+        def run(task: RepoTask, delta: GitDelta):
+            locator = sourceLocator.replace(path=delta.new.path)
+            yield from task.flowSubtask(LoadPatchInNewWindow, delta, locator)
+
+        self.confirmBatch(run, _("Open diff in new window"), _("Really open [# windows]?"))
