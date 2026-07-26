@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-07-26 20:43+0000\n"
+"PO-Revision-Date: 2026-07-27 21:01+0000\n"
 "Last-Translator: Abduloh Raupov <abdulohraupov@gmail.com>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/ru/>\n"
@@ -2107,7 +2107,7 @@ msgstr ""
 #: forms/ui_clonedialog.py:130
 msgctxt "CloneDialog"
 msgid "Clone repository"
-msgstr ""
+msgstr "Клонировать репозиторий"
 
 #: forms/ui_clonedialog.py:131
 msgctxt "CloneDialog"
@@ -2152,7 +2152,7 @@ msgstr ""
 #: forms/ui_commitdialog.py:95
 msgctxt "CommitDialog"
 msgid "Commit"
-msgstr ""
+msgstr "Коммит"
 
 #: forms/ui_commitdialog.py:96
 msgctxt "CommitDialog"
@@ -2198,7 +2198,7 @@ msgstr ""
 #: forms/ui_conflictview.py:231
 msgctxt "ConflictView"
 msgid "or"
-msgstr ""
+msgstr "или"
 
 #: forms/ui_conflictview.py:232
 msgctxt "ConflictView"
@@ -2273,18 +2273,18 @@ msgstr ""
 #: forms/ui_conflictview.py:245
 msgctxt "ConflictView"
 msgid "Confirm deletion"
-msgstr ""
+msgstr "Потвердить удаление"
 
 #: forms/ui_deletetagdialog.py:50
 msgctxt "DeleteTagDialog"
 msgid "Delete tag"
-msgstr ""
+msgstr "Удалить тег"
 
 #: forms/ui_deletetagdialog.py:51
 #, python-brace-format
 msgctxt "DeleteTagDialog"
 msgid "Really delete tag {0}?"
-msgstr ""
+msgstr "Действительно удалить тег {0}?"
 
 #: forms/ui_deletetagdialog.py:52
 msgctxt "DeleteTagDialog"
@@ -2306,23 +2306,23 @@ msgstr ""
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Donate {amount}"
-msgstr ""
+msgstr "Пожертвовать {amount}"
 
 #: forms/ui_donateprompt.py:96
 msgctxt "DonatePrompt"
 msgid "Never show this again"
-msgstr ""
+msgstr "Никогда не показывать снова"
 
 #: forms/ui_donateprompt.py:97
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Remind me in {month}"
-msgstr ""
+msgstr "Напомнить мне через {month}"
 
 #: forms/ui_donateprompt.py:98
 msgctxt "DonatePrompt"
 msgid "THANK YOU!"
-msgstr ""
+msgstr "СПАСИБО!"
 
 #: forms/ui_identitydialog.py:63
 msgctxt "IdentityDialog"
@@ -2332,12 +2332,12 @@ msgstr ""
 #: forms/ui_identitydialog.py:64
 msgctxt "IdentityDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_identitydialog.py:65
 msgctxt "IdentityDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&Электронная почта:"
 
 #: forms/ui_identitydialog.py:66
 msgctxt "IdentityDialog"
@@ -2368,22 +2368,22 @@ msgstr ""
 #: forms/ui_newbranchdialog.py:81
 msgctxt "NewBranchDialog"
 msgid "New branch"
-msgstr ""
+msgstr "Новая ветка"
 
 #: forms/ui_newbranchdialog.py:82
 msgctxt "NewBranchDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_newbranchdialog.py:83
 msgctxt "NewBranchDialog"
 msgid "Options:"
-msgstr ""
+msgstr "Параметры:"
 
 #: forms/ui_newbranchdialog.py:84
 msgctxt "NewBranchDialog"
 msgid "&Switch to branch after creating"
-msgstr ""
+msgstr "&Переключиться на ветку после создания"
 
 #: forms/ui_newbranchdialog.py:85
 msgctxt "NewBranchDialog"
@@ -2398,17 +2398,17 @@ msgstr ""
 #: forms/ui_newtagdialog.py:60
 msgctxt "NewTagDialog"
 msgid "New tag"
-msgstr ""
+msgstr "Новый тег"
 
 #: forms/ui_newtagdialog.py:61
 msgctxt "NewTagDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_newtagdialog.py:62
 msgctxt "NewTagDialog"
 msgid "Enter tag name"
-msgstr ""
+msgstr "Введите имя для тега"
 
 #: forms/ui_newtagdialog.py:63
 msgctxt "NewTagDialog"
@@ -2423,7 +2423,7 @@ msgstr ""
 #: forms/ui_pushdialog.py:127
 msgctxt "PushDialog"
 msgid "&Local branch:"
-msgstr ""
+msgstr "&Локальная ветка:"
 
 #: forms/ui_pushdialog.py:128
 msgctxt "PushDialog"
@@ -2463,7 +2463,7 @@ msgstr ""
 #: forms/ui_registersubmoduledialog.py:98
 msgctxt "RegisterSubmoduleDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_registersubmoduledialog.py:99
 msgctxt "RegisterSubmoduleDialog"
@@ -2494,12 +2494,12 @@ msgstr ""
 #: forms/ui_remotedialog.py:72
 msgctxt "RemoteDialog"
 msgid "&URL:"
-msgstr ""
+msgstr "&URL:"
 
 #: forms/ui_remotedialog.py:73
 msgctxt "RemoteDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_remotedialog.py:74
 msgctxt "RemoteDialog"
@@ -2546,12 +2546,12 @@ msgstr ""
 #: forms/ui_reposettingsdialog.py:70
 msgctxt "RepoSettingsDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_reposettingsdialog.py:71
 msgctxt "RepoSettingsDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&Электронная почта:"
 
 #: forms/ui_repostub.py:96
 msgctxt "RepoStub"
@@ -2630,7 +2630,7 @@ msgstr ""
 #: forms/ui_searchbar.py:51
 msgctxt "SearchBar"
 msgid "Done"
-msgstr ""
+msgstr "Готово"
 
 #: forms/ui_signatureform.py:73
 msgctxt "SignatureForm"
@@ -2650,17 +2650,17 @@ msgstr ""
 #: forms/ui_signatureform.py:76 forms/ui_signatureform.py:77
 msgctxt "SignatureForm"
 msgid "Name"
-msgstr ""
+msgstr "Имя"
 
 #: forms/ui_signatureform.py:78 forms/ui_signatureform.py:79
 msgctxt "SignatureForm"
 msgid "Email"
-msgstr ""
+msgstr "Электронная почта"
 
 #: forms/ui_signatureform.py:80
 msgctxt "SignatureForm"
 msgid "&Time:"
-msgstr ""
+msgstr "&Время:"
 
 #: forms/ui_signatureform.py:81
 msgctxt "SignatureForm"
@@ -2675,7 +2675,7 @@ msgstr ""
 #: forms/ui_signatureform.py:83
 msgctxt "SignatureForm"
 msgid "Now"
-msgstr ""
+msgstr "Сейчас"
 
 #: forms/ui_signatureform.py:84
 msgctxt "SignatureForm"
@@ -2725,7 +2725,7 @@ msgstr ""
 #: forms/ui_welcomewidget.py:68
 msgctxt "WelcomeWidget"
 msgid "Welcome"
-msgstr ""
+msgstr "Добро пожаловать"
 
 #: forms/ui_welcomewidget.py:69
 msgctxt "WelcomeWidget"
@@ -2735,23 +2735,23 @@ msgstr ""
 #: forms/ui_welcomewidget.py:70
 msgctxt "WelcomeWidget"
 msgid "New empty repository"
-msgstr ""
+msgstr "Новый пустой репозиторий"
 
 #: forms/ui_welcomewidget.py:71
 msgctxt "WelcomeWidget"
 msgid "Open local repository"
-msgstr ""
+msgstr "Открыть локальный репозиторий"
 
 #: forms/ui_welcomewidget.py:72
 msgctxt "WelcomeWidget"
 msgid "Recent repositories"
-msgstr ""
+msgstr "Недавние репозитории"
 
 #: forms/ui_welcomewidget.py:73
 #, python-brace-format
 msgctxt "WelcomeWidget"
 msgid "Welcome to<br>{app}"
-msgstr ""
+msgstr "Добро пожаловать в<br>{app}"
 
 #: graphview/commitlogdelegate.py:208
 #, python-brace-format
@@ -2878,47 +2878,47 @@ msgstr ""
 
 #: mainwindow.py:184
 msgid "&File"
-msgstr ""
+msgstr "&Файл"
 
 #: mainwindow.py:185
 msgid "&Edit"
-msgstr ""
+msgstr "&Редактирование"
 
 #: mainwindow.py:186
 msgid "&View"
-msgstr ""
+msgstr "&Просмотр"
 
 #: mainwindow.py:187
 msgid "&Repo"
-msgstr ""
+msgstr "&Репо"
 
 #: mainwindow.py:188
 msgid "&Help"
-msgstr ""
+msgstr "&Помощь"
 
 #: mainwindow.py:201
 msgid "&New Repository…"
-msgstr ""
+msgstr "&Новый репозиторий…"
 
 #: mainwindow.py:203
 msgid "Create an empty Git repo"
-msgstr ""
+msgstr "Создать пустой Git репозиторий"
 
 #: mainwindow.py:205
 msgid "C&lone Repository…"
-msgstr ""
+msgstr "К&лонировать репозиторий…"
 
 #: mainwindow.py:207
 msgid "Download a Git repo and open it"
-msgstr ""
+msgstr "Загрузить Git репозиторий и открыть его"
 
 #: mainwindow.py:211
 msgid "&Open Repository…"
-msgstr ""
+msgstr "&Открыть репозиторий…"
 
 #: mainwindow.py:215
 msgid "Open &Recent"
-msgstr ""
+msgstr "Открыть &недавние"
 
 #: mainwindow.py:217
 msgid "List of recently opened Git repos"
@@ -2926,28 +2926,28 @@ msgstr ""
 
 #: mainwindow.py:227
 msgid "&Settings…"
-msgstr ""
+msgstr "&Настройки…"
 
 #: mainwindow.py:237
 msgid "&Close Tab"
-msgstr ""
+msgstr "&Закрыть вкладку"
 
 #: mainwindow.py:239
 msgid "Close current repository tab"
-msgstr ""
+msgstr "Закрыть вкладку текущего репозитория"
 
 #: mainwindow.py:241
 msgid "&Quit"
-msgstr ""
+msgstr "&Выйти"
 
 #: mainwindow.py:243
 #, python-brace-format
 msgid "Quit {app}"
-msgstr ""
+msgstr "Закрыть {app}"
 
 #: mainwindow.py:252
 msgid "&Find…"
-msgstr ""
+msgstr "&Найти…"
 
 #: mainwindow.py:254
 msgid "Search for a piece of text in commit messages, the current diff, or the name of a file"
