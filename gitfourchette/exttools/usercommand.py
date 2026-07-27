@@ -9,7 +9,6 @@ from __future__ import annotations
 import dataclasses
 import enum
 import re
-import shlex
 import traceback
 from pathlib import Path
 
@@ -85,7 +84,7 @@ class UserCommand:
             return False
         return any(t in tokenSet for t in self.placeholderTokens)
 
-    def compile(self, context: RepoWidget) -> str:
+    def compile(self, context: RepoWidget) -> list[str]:
         tokens = ToolCommands.splitCommandTokens(self.command)
         placeholders = set(ToolCommands.findPlaceholderTokens(tokens))
 
@@ -108,8 +107,7 @@ class UserCommand:
             raise UserCommand.MultiTokenError(errors)
 
         tokens = ToolCommands.injectReplacements(tokens, replacements)
-        command = shlex.join(tokens)
-        return command
+        return tokens
 
     @classmethod
     def evalWorkdir(cls, context: RepoWidget):

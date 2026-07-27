@@ -279,7 +279,7 @@ class ToolCommands:
         return shutil.which(name, path=_whichPath)
 
     @classmethod
-    def makeTerminalScript(cls, workdir: str, command: str) -> str:
+    def makeTerminalScript(cls, workdir: str, commandTokens: list[str]) -> str:
         # While we could simply export the parameters as environment variables
         # then run termcmd.sh from the static assets, this approach fails if
         # the terminal is a Flatpak (custom env vars always seem to be erased).
@@ -302,7 +302,7 @@ class ToolCommands:
 
         script = textwrap.dedent(f"""\
             #!/usr/bin/env bash
-            _GF_COMMAND="{command}"
+            _GF_COMMAND={shlex.quote(shlex.join(commandTokens))}
             _GF_APPNAME={shlex.quote(qAppName())}
             _GF_YKEY={shlex.quote(yKey)}
             _GF_NKEY={shlex.quote(nKey)}

@@ -257,8 +257,11 @@ class ToolProcess(QProcess):
             replacements={"$L": a, "$R": b})
 
     @classmethod
-    def startTerminal(cls, parent: QWidget, workdir: str, command: str = ""):
-        launcherScriptPath = ToolCommands.makeTerminalScript(workdir, command)
+    def startTerminal(cls, parent: QWidget, workdir: str, commandTokens: list[str] | None = None):
+        if commandTokens is None:
+            commandTokens = []
+
+        launcherScriptPath = ToolCommands.makeTerminalScript(workdir, commandTokens)
 
         if WINDOWS:  # Compatibility with bash.exe
             launcherScriptPath = Path(launcherScriptPath).as_posix()

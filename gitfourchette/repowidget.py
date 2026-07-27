@@ -6,6 +6,7 @@
 
 import logging
 import os
+import shlex
 from contextlib import suppress
 from typing import ClassVar
 
@@ -508,7 +509,8 @@ class RepoWidget(QWidget):
                 question = _("Do you want to run this command in a terminal?")
             else:
                 question = _("Do you want to run {0} in a terminal?").format(hquo(stripAccelerators(command.userTitle)))
-            question += f"<p><tt>{escape(compiledCommand)}</tt></p>"
+            commandString = shlex.join(compiledCommand)
+            question += f"<p><tt>{escape(commandString)}</tt></p>"
             askConfirmation(self, title, question, callback=run)
         else:
             run()

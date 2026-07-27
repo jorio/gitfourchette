@@ -299,3 +299,25 @@ def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     waitForFile(commandsScratchFile, TIMEOUT)
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
+
+
+@pytest.mark.parametrize("hostileFileName", [
+    "`touch gotcha`",
+    "$(touch gotcha)"
+])
+def testUserCommandHostileTokenSubstitution(tempDir, mainWindow, commandsScratchFile, hostileFileName):
+    """Make sure a hostile repo cannot inject a malicious command into the
+    terminal kicker script via User Command token substitution."""
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/{hostileFileName}", "hello")
+    mainWindow.openRepo(wd)
+    QTest.qWait(0)
+
+    triggerMenuAction(mainWindow.menuBar(), "commands/file path")
+    acceptQMessageBox(mainWindow, "do you want to run")
+
+    waitForFile(commandsScratchFile, TIMEOUT)
+    output = readTextFile(commandsScratchFile).strip()
+    assert output == hostileFileName
+    assert not Path(f"{wd}/gotcha").exists()
