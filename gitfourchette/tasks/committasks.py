@@ -474,14 +474,20 @@ class RevertCommit(RepoTask):
 
         self.epilog.effects |= TaskEffects.Workdir
 
-        # Don't raise AbortTask if git returns non-0
-        yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
+        driver = yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
+
+        # 0: Successful (or dud)
+        # 1: Conflicts
+        # 128: Local changes would be overwritten, etc.
+        exitCode = driver.exitCode()
+        if exitCode not in [0, 1]:
+            raise AbortTask(driver.htmlErrorText(), details=driver.formatCommandLine())
 
         # Refresh libgit2 index for conflict analysis
         yield from self.flowEnterWorkerThread()
         self.repo.refresh_index()
 
-        anyConflicts = repo.any_conflicts
+        anyConflicts = exitCode != 0
         dud = not anyConflicts and not repo.any_staged_changes
 
         # If reverting didn't do anything, don't let the REVERT state linger.
@@ -489,14 +495,13 @@ class RevertCommit(RepoTask):
         if dud:
             repo.state_cleanup()
 
+        # Back to UI thread
         yield from self.flowEnterUiThread()
 
         if dud:
             info = _("There’s nothing to revert from {0} "
                      "that the current branch hasn’t already undone.", bquo(shortHash(oid)))
             raise AbortTask(info, "information")
-
-        yield from self.flowEnterUiThread()
 
         repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
         repoModel.prefs.setDirty()
@@ -526,7 +531,6 @@ class CherrypickCommit(RepoTask):
         driver = yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid), autoFail=False)
 
         exitCode = driver.exitCode()
-        logger.debug(f"cherry-pick rc={exitCode}")
         if exitCode not in [0, 1]:
             # Surface Git's own error message instead of an opaque exception
             # (e.g. exit code 128 when local changes would be overwritten).

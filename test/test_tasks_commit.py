@@ -568,6 +568,23 @@ def testRevertCommitCausesConflicts(tempDir, mainWindow):
     assert rw.repo.state() == RepositoryState.NONE
 
 
+def testRevertCommitGitError(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    # Dirty a file that revert would overwrite: git bails out with rc 128.
+    writeFile(f"{wd}/master.txt", "local uncommitted changes\n")
+
+    oid = Oid(hex='58be4659bb571194ed4562d04b359d26216f526e')  # "On master again"
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid, "master.txt"), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "revert")
+    acceptQMessageBox(rw, "do you want to revert commit 58be465")
+
+    acceptQMessageBox(rw, "would be overwritten")
+    assert rw.repo.state() == RepositoryState.NONE
+
+
 def testAbortRevertCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
