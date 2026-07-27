@@ -188,7 +188,7 @@ def extractSubpatch(
         if hunkID == spanEndPos.hunkID:  # Last hunk in selection?
             boundEnd = spanEndPos.hunkLineNum
             if boundEnd < 0:  # The hunk header's relative line number is -1
-                boundEnd = 0
+                assert boundEnd == -1
         else:  # Middle hunk: take all lines in hunk
             boundEnd = numHunkLines-1
 

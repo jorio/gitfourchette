@@ -288,6 +288,29 @@ def testSubpatchNoEOL(tempDir, mainWindow):
     assert rw.repo.status() == {}
 
 
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+def testSubpatchSelectUpToNextHunkHeader(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    runShellScript("""
+        echo '1\n2\n3\n4\n5\n6\n7\n8\n9' > master.txt
+        git commit -a -m 'change 1'
+        echo 'HEAD\n2\n3\n4\n5\n6\n7\n8\nTAIL' > master.txt
+    """, directory=wd)
+
+    GFApplication.instance().applyPrefs(contextLines=0)
+    rw = mainWindow.openRepo(wd)
+
+    # Include hunk header
+    qteSelectBlocks(rw.diffView, 2, 3)
+    assert rw.diffView.textCursor().selectedText() == "HEAD\u2029@@ -9 +9 @@"
+
+    QTest.keyPress(rw.diffView, Qt.Key.Key_Enter)
+    stagedEntry = rw.repo.index["master.txt"]
+    stagedData = rw.repo[stagedEntry.id].peel(Blob).data.decode("utf-8")
+    assert stagedData == "1\nHEAD\n2\n3\n4\n5\n6\n7\n8\n9\n"
+
+
 @pytest.mark.parametrize("closeKey", [
     "",
     QKeySequence.StandardKey.Close,
