@@ -39,7 +39,15 @@ def _parseHunkHeader(text: str) -> tuple[int, int, int, int, str]:
 @dataclass
 class DiffLinePos:
     hunkID: int
+
     hunkLineNum: int
+    """
+    0-indexed line number within the hunk.
+    -1 means the hunk header line itself ("@@ ... @@").
+    """
+
+    def isHunkHeaderLine(self) -> bool:
+        return self.hunkLineNum == -1
 
 
 @dataclass
@@ -91,6 +99,22 @@ class LineData:
     def parseHunkHeader(self) -> tuple[int, int, int, int, str]:
         assert self.hunkPos.hunkLineNum == -1
         return _parseHunkHeader(self.text)
+
+    @property
+    def originDelta(self) -> int:
+        if self.origin == "+":
+            return 1
+        if self.origin == "-":
+            return -1
+        return 0
+
+    @property
+    def reverseOrigin(self) -> str:
+        if self.origin == "+":
+            return "-"
+        if self.origin == "-":
+            return "+"
+        return self.origin
 
 
 class DiffTextFormats:

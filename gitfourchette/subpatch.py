@@ -5,18 +5,10 @@
 # -----------------------------------------------------------------------------
 
 from collections.abc import Iterable
-from io import StringIO
-
-from pygit2.enums import FileMode
 
 from gitfourchette.diffview.diffdocument import LineData
 from gitfourchette.gitdriver import GitDelta
-
-REVERSE_ORIGIN_MAP = {
-    ' ': ' ',
-    '+': '-',
-    '-': '+',
-}
+from gitfourchette.porcelain import FileMode
 
 QUOTE_PATH_ESCAPES = {
     '"': '\\"',
@@ -67,7 +59,7 @@ def quotePath(path: str) -> str:
     return "".join(safePath)
 
 
-def getPatchPreamble(delta: GitDelta, reverse=False) -> str:
+def getPatchPreamble(delta: GitDelta, reverse=False) -> list[str]:
     old = delta.old
     new = delta.new
 
@@ -106,23 +98,10 @@ def getPatchPreamble(delta: GitDelta, reverse=False) -> str:
     preamble.append(f"--- {oldPathQuoted if oldExists else '/dev/null'}\n")
     preamble.append(f"+++ {newPathQuoted if newExists else '/dev/null'}\n")
 
-    return "".join(preamble)
+    return preamble
 
 
-def originToDelta(origin):
-    if origin == '+':
-        return 1
-    elif origin == '-':
-        return -1
-    else:
-        return 0
-
-
-def reverseOrigin(origin):
-    return REVERSE_ORIGIN_MAP.get(origin, origin)
-
-
-def writeContext(subpatch: StringIO, reverse: bool, lines: Iterable[LineData]):
+def writeContext(subpatch: list[str], reverse: bool, lines: Iterable[LineData]):
     skipOrigin = '-' if reverse else '+'
     for line in lines:
         assert line.origin in " +-", f"unknown origin {line.origin}"
@@ -132,14 +111,14 @@ def writeContext(subpatch: StringIO, reverse: bool, lines: Iterable[LineData]):
             continue
 
         # Make it a context line
-        subpatch.write(" ")
-        subpatch.write(line.text)
-        subpatch.write(line.hiddenSuffix)
+        subpatch.append(" ")
+        subpatch.append(line.text)
+        subpatch.append(line.hiddenSuffix)
 
 
 def extractSubpatch(
         masterDelta: GitDelta,
-        masterLineDatas: list[LineData],
+        lines: list[LineData],
         spanStart: int,
         spanEnd: int,
         reverse: bool
@@ -148,62 +127,58 @@ def extractSubpatch(
     Create a patch (in unified diff format) from a range of selected lines in a diff.
     """
 
-    spanStartPos = masterLineDatas[spanStart].hunkPos
-    spanEndPos = masterLineDatas[spanEnd].hunkPos
-
-    # Edge case: a single hunk header line is selected
-    if (spanStartPos.hunkID == spanEndPos.hunkID
-            and spanStartPos.hunkLineNum < 0
-            and spanEndPos.hunkLineNum < 0):
-        return ""
-
-    patch = StringIO()
-
-    preamble = getPatchPreamble(masterDelta, reverse)
-    patch.write(preamble)
+    patch = getPatchPreamble(masterDelta, reverse)
+    preamblePartCount = len(patch)
 
     newHunkStartOffset = 0
-    subpatchIsEmpty = True
 
-    for hunkID in range(spanStartPos.hunkID, spanEndPos.hunkID + 1):
+    firstLinePos = lines[spanStart].hunkPos
+    lastLinePos = lines[spanEnd].hunkPos
+
+    for hunkID in range(firstLinePos.hunkID, lastLinePos.hunkID + 1):
         assert hunkID >= 0
 
-        hunkStart, hunkEnd = LineData.getHunkExtents(masterLineDatas, hunkID)
-        hunkHeader = masterLineDatas[hunkStart]
-        hunkContents = masterLineDatas[hunkStart + 1 : hunkEnd + 1]  # Skip header line
-        numHunkLines = len(hunkContents)
+        hunkStart, hunkLast = LineData.getHunkExtents(lines, hunkID)
+        hunkHeader = lines[hunkStart]
+        assert hunkHeader.hunkPos.isHunkHeaderLine()
+        hunkStart += 1  # Skip header line
+        hunkStop = hunkLast + 1
 
         # ---------------------------------------------------------------------
         # Compute selection bounds within the hunk
 
-        # Compute start line boundary for this hunk
-        if hunkID == spanStartPos.hunkID:  # First hunk in selection?
-            boundStart = spanStartPos.hunkLineNum
-            if boundStart < 0:  # The hunk header's hunkLineNum is -1
-                boundStart = 0
-        else:  # Middle hunk: take all lines in hunk
-            boundStart = 0
+        if hunkID == firstLinePos.hunkID and not firstLinePos.isHunkHeaderLine():
+            # Start of selection falls inside this hunk: Adjust slice start
+            sliceStart = hunkStart + firstLinePos.hunkLineNum
+        else:
+            # Start of selection was before this hunk: Take entire hunk
+            sliceStart = hunkStart
 
-        # Compute end line boundary for this hunk
-        if hunkID == spanEndPos.hunkID:  # Last hunk in selection?
-            boundEnd = spanEndPos.hunkLineNum
-            if boundEnd < 0:  # The hunk header's relative line number is -1
-                assert boundEnd == -1
-        else:  # Middle hunk: take all lines in hunk
-            boundEnd = numHunkLines-1
+        if hunkID == lastLinePos.hunkID:
+            if lastLinePos.isHunkHeaderLine():
+                # End of selection falls inside hunk header: ignore this hunk
+                break
+
+            # End of selection falls inside current hunk: adjust slice end
+            sliceStop = hunkStart + lastLinePos.hunkLineNum + 1
+        else:
+            # End of selection is beyond this hunk: Take entire hunk
+            sliceStop = hunkStop
+
+        # Selected line numbers in this hunk
+        sliceRange = range(sliceStart, sliceStop)
+        # Context line numbers above/below selection in this hunk
+        headContextRange = range(hunkStart, sliceStart)
+        tailContextRange = range(sliceStop, hunkStop)
 
         # Compute line count delta in this hunk
-        lineCountDelta = sum(originToDelta(hunkContents[ln].origin)
-                             for ln in range(boundStart, boundEnd + 1))
+        lineCountDelta = sum(lines[ln].originDelta for ln in sliceRange)
         if reverse:
             lineCountDelta = -lineCountDelta
 
         # Skip this hunk if all selected lines are context
-        if lineCountDelta == 0 and \
-                all(originToDelta(hunkContents[ln].origin) == 0 for ln in range(boundStart, boundEnd + 1)):
+        if lineCountDelta == 0 and all(lines[ln].originDelta == 0 for ln in sliceRange):
             continue
-
-        subpatchIsEmpty = False
 
         # ---------------------------------------------------------------------
         # Adapt hunk header
@@ -223,8 +198,8 @@ def extractSubpatch(
 
         # Assemble doctored hunk header
         assert hunkComment.endswith("\n")
-        patch.write(f"@@ -{oldStart},{oldLines} +{newStart},{newLines} @@")
-        patch.write(hunkComment)
+        patch.append(f"@@ -{oldStart},{oldLines} +{newStart},{newLines} @@")
+        patch.append(hunkComment)
 
         # Account for line count delta in next new hunk's start offset
         newHunkStartOffset += lineCountDelta
@@ -233,8 +208,7 @@ def extractSubpatch(
         # Write hunk contents
 
         # Write non-selected lines at beginning of hunk as context
-        writeContext(patch, reverse,
-                     (hunkContents[ln] for ln in range(0, boundStart)))
+        writeContext(patch, reverse, (lines[ln] for ln in headContextRange))
 
         # We'll reorder all non-context lines so that "-" lines always appear above "+" lines.
         # This buffer will hold "+" lines while we're processing a clump of non-context lines.
@@ -244,42 +218,38 @@ def extractSubpatch(
         #   +hello                                -hallo
         #   \ No newline at end of file           +hello
         #   -hallo                                \ No newline at end of file
-        plusLines = StringIO()
+        buffer = []
 
         # Write selected lines within the hunk
-        for ln in range(boundStart, boundEnd + 1):
-            line = hunkContents[ln]
+        for ln in sliceRange:
+            line = lines[ln]
+            origin = line.reverseOrigin if reverse else line.origin
 
-            if not reverse:
-                origin = line.origin
-            else:
-                origin = reverseOrigin(line.origin)
+            if origin == " " and buffer:
+                # A context line breaks up the clump of non-context lines - flush buffer
+                patch.extend(buffer)
+                buffer.clear()
 
-            buffer = patch
             if origin == "+":
-                # Save this line for the end of the clump - write to plusLines for now
-                buffer = plusLines
-            elif origin == " " and plusLines.tell() != 0:
-                # A context line breaks up the clump of non-context lines - flush plusLines
-                patch.write(plusLines.getvalue())
-                plusLines = StringIO()
+                # Save "+" line for the end of the clump
+                writeTo = buffer
+            else:
+                # Write "-" and " " lines to final patch now
+                writeTo = patch
+            writeTo.append(origin)
+            writeTo.append(line.text)
+            writeTo.append(line.hiddenSuffix)
 
-            buffer.write(origin)
-            buffer.write(line.text)
-            buffer.write(line.hiddenSuffix)
+        # Flush any remaining buffered "+" lines
+        patch.extend(buffer)
 
         # End of selected lines.
         # All remaining lines in the hunk are context from now on.
-
-        # Flush plusLines
-        if plusLines.tell() != 0:
-            patch.write(plusLines.getvalue())
-
         # Write non-selected lines at end of hunk as context
-        writeContext(patch, reverse,
-                     (hunkContents[ln] for ln in range(boundEnd + 1, len(hunkContents))))
+        writeContext(patch, reverse, (lines[ln] for ln in tailContextRange))
 
-    if subpatchIsEmpty:
+    # Bail if the patch comes out empty
+    if len(patch) <= preamblePartCount:
         return ""
 
-    return patch.getvalue()
+    return "".join(patch)
