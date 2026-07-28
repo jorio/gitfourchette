@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-07-28 09:57+0000\n"
+"PO-Revision-Date: 2026-07-28 10:00+0000\n"
 "Last-Translator: Michal Várady <miko.vaji@gmail.com>\n"
 "Language-Team: Czech <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/cs/>\n"
@@ -17,33 +17,33 @@ msgstr ""
 
 #: application.py:90 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
-msgstr "Pohodlné rozhraní Git pro Linux."
+msgstr "Pohodlné uživatelské rozhraní pro Git v Linuxu."
 
 #: application.py:93
 msgid "Repository paths to open on launch."
-msgstr "Cesty repozitářů pro otevření při startu."
+msgstr "Cesty k repozitářům, které se mají otevřít při spuštění."
 
 #: application.py:224
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not available on this machine. Using {1} instead."
 msgstr ""
-"Vámi preferované napojení Qt {0} není na tomto počítači dostupné. Používám "
-"{1}."
+"Upřednostňovaná vazba Qt {0} není na tomto počítači dostupná. Namísto ní se "
+"použije {1}."
 
 #: application.py:226
 #, python-brace-format
 msgid "Your preferred Qt binding {0} is not recognized by {app}. Using {1} instead. (Supported values: {known})"
 msgstr ""
-"Vámi preferované napojení Qt {0} {app} nerozeznal. Používám {1}. ("
-"Podporované hodnoty: {known})"
+"Aplikace {app} nerozpoznala upřednostňovanou vazbu Qt {0}. Namísto ní se "
+"použije {1}. (Podporované hodnoty: {known})"
 
 #: application.py:230
 msgid "Qt binding unavailable"
-msgstr "Napojení Qt není dostupné"
+msgstr "Vazba Qt není dostupná"
 
 #: application.py:270 toolbox/messageboxes.py:40
 msgid "Please open a repository before performing this action."
-msgstr "Otevřete prosím repozitář, než provedete tuto akci."
+msgstr "Před provedením této akce otevřete repozitář."
 
 #: blameview/blamegutter.py:157 blameview/blamewindow.py:184
 msgid "(Uncommitted)"
@@ -80,37 +80,37 @@ msgstr "revize"
 
 #: blameview/blamescrubberdelegate.py:55 blameview/blamescrubbermodel.py:43
 msgid "Uncommitted Changes in Working Directory"
-msgstr "Nepotvrzené změny v pracovní složce"
+msgstr "Nepotvrzené změny v pracovním adresáři"
 
 #: blameview/blametextedit.py:44
 msgid "Blame File at Uncommitted Revision"
-msgstr "Blame na soubor v nepotvrzené revizi"
+msgstr "Zobrazit autorství souboru v nepotvrzené revizi"
 
 #: blameview/blametextedit.py:45
 msgid "Show Diff in Working Directory"
-msgstr "Zobraz Diff v pracovní složce"
+msgstr "Zobrazit porovnání v pracovním adresáři"
 
 #: blameview/blametextedit.py:47
 #, python-brace-format
 msgid "Blame File at {0}"
-msgstr "Blame na soubor v {0}"
+msgstr "Zobrazit autorství souboru v {0}"
 
 #: blameview/blametextedit.py:48
 #, python-brace-format
 msgid "Show {0} in Repo"
-msgstr "Zobraz {0} v repozitáři"
+msgstr "Zobrazit {0} v repozitáři"
 
 #: blameview/blamewindow.py:50
 msgid "Jump"
-msgstr "Skok"
+msgstr "Přejít"
 
 #: blameview/blamewindow.py:51
 msgid "View this commit in the repo"
-msgstr "Zobraz tento commit v repozitáři"
+msgstr "Zobrazit tento commit v repozitáři"
 
 #: blameview/blamewindow.py:56
 msgid "Shift+Click:"
-msgstr "Shift+Klik:"
+msgstr "Shift+kliknutí:"
 
 #: blameview/blamewindow.py:59
 msgid "Older"
@@ -118,11 +118,11 @@ msgstr "Starší"
 
 #: blameview/blamewindow.py:61
 msgid "Go to next older revision"
-msgstr "Jdi na starší revizi"
+msgstr "Přejít na další starší revizi"
 
 #: blameview/blamewindow.py:61
 msgid "Jump to bottom"
-msgstr "Skoč na konec"
+msgstr "Přejít na konec"
 
 #: blameview/blamewindow.py:65
 msgid "Newer"
@@ -130,11 +130,11 @@ msgstr "Novější"
 
 #: blameview/blamewindow.py:67
 msgid "Go to next newer revision"
-msgstr "Jdi na novější revizi"
+msgstr "Přejít na další novější revizi"
 
 #: blameview/blamewindow.py:67
 msgid "Jump to top"
-msgstr "Skoč na začátek"
+msgstr "Přejít na začátek"
 
 #: blameview/blamewindow.py:71
 msgid "Back"
@@ -142,20 +142,20 @@ msgstr "Zpět"
 
 #: blameview/blamewindow.py:73 tasks/taskbook.py:63
 msgid "Navigate back"
-msgstr "Přejdi zpět"
+msgstr "Přejít zpět"
 
 #: blameview/blamewindow.py:77
 msgid "Forward"
-msgstr "Dopředu"
+msgstr "Vpřed"
 
 #: blameview/blamewindow.py:79 tasks/taskbook.py:64 tasks/taskbook.py:65
 msgid "Navigate forward"
-msgstr "Přejdi dopředu"
+msgstr "Přejít vpřed"
 
 #: blameview/blamewindow.py:163
 #, python-brace-format
 msgid "File deleted in commit {0}"
-msgstr "Soubor smazán v commitu {0}"
+msgstr "Soubor odstraněn v commitu {0}"
 
 #: blameview/blamewindow.py:169
 #, python-brace-format
@@ -199,7 +199,7 @@ msgstr "Obalit"
 #: diffarea.py:109
 msgid "Unstaged files: will not be included in the commit unless you stage them."
 msgstr ""
-"Nepřipravené soubory: nebudou zahrnuty v commitu, pokud je nepřipravíte."
+"Nepřipravené soubory: nebudou zahrnuty do commitu, dokud je nepřipravíte."
 
 #: diffarea.py:117
 msgid "Stage"
@@ -207,7 +207,7 @@ msgstr "Připravit"
 
 #: diffarea.py:119
 msgid "Stage selected files"
-msgstr "Připravit zvolené soubory"
+msgstr "Připravit vybrané soubory"
 
 #: diffarea.py:124 diffview/diffview.py:76
 msgid "Discard"
@@ -215,11 +215,11 @@ msgstr "Zahodit"
 
 #: diffarea.py:126
 msgid "Discard changes in selected files"
-msgstr "Zahodit změny ve zvolených souborech"
+msgstr "Zahodit změny ve vybraných souborech"
 
 #: diffarea.py:161
 msgid "Staged files: will be included in the commit."
-msgstr "Připravené soubory: budou zahrnuty v commitu."
+msgstr "Připravené soubory: budou zahrnuty do commitu."
 
 #: diffarea.py:169
 msgid "Unstage"
@@ -227,13 +227,13 @@ msgstr "Zrušit přípravu"
 
 #: diffarea.py:171
 msgid "Unstage selected files"
-msgstr "Zrušit přípravu zvolených souborů"
+msgstr "Zrušit přípravu vybraných souborů"
 
 #: diffarea.py:176 forms/commitdialog.py:55 tasks/committasks.py:423
 #: tasks/committasks.py:468
 msgctxt "verb"
 msgid "Commit"
-msgstr "Commit"
+msgstr "Vytvořit commit"
 
 #: diffview/diffdocument.py:191
 msgid "This file contains very long lines."
@@ -241,11 +241,11 @@ msgstr "Tento soubor obsahuje velmi dlouhé řádky."
 
 #: diffview/diffdocument.py:192 diffview/specialdiff.py:118
 msgid "[Load diff anyway] (this may take a moment)"
-msgstr "[Přesto načíst Diff] (toto může nějakou dobu trvat)"
+msgstr "[Přesto načíst porovnání] (může to chvíli trvat)"
 
 #: diffview/diffdocument.py:269
 msgid "<no newline at end of file>"
-msgstr "<žádný nový řádek na konci souboru>"
+msgstr "<chybí nový řádek na konci souboru>"
 
 #: diffview/diffview.py:53
 msgid "Find text in diff|Find in diff"
@@ -253,32 +253,32 @@ msgstr "Hledat text v Diffu|Hledat v Diffu"
 
 #: diffview/diffview.py:64
 msgid "Stage Selection"
-msgstr "Připravit označené"
+msgstr "Připravit výběr"
 
 #: diffview/diffview.py:66
 msgid "Stage selected lines"
-msgstr "Připravit zvolené řádky"
+msgstr "Připravit vybrané řádky"
 
 #: diffview/diffview.py:70
 msgid "Unstage Selection"
-msgstr "Zrušit přípravu označeným"
+msgstr "Zrušit přípravu výběru"
 
 #: diffview/diffview.py:73
 msgid "Unstage selected lines"
-msgstr "Zrušit přípravu zvolených řádků"
+msgstr "Zrušit přípravu vybraných řádků"
 
 #: diffview/diffview.py:79
 msgid "Discard selected lines"
-msgstr "Zahodit zvolené řádky"
+msgstr "Zahodit vybrané řádky"
 
 #: diffview/diffview.py:246 diffview/diffview.py:258 diffview/diffview.py:281
 #: diffview/diffview.py:310
 msgid "Export Lines as Patch…"
-msgstr "Export řádků jako Patch…"
+msgstr "Exportovat řádky jako záplatu…"
 
 #: diffview/diffview.py:247
 msgid "Revert Lines…"
-msgstr "Vrátit řádky zpět…"
+msgstr "Vrátit řádky…"
 
 #: diffview/diffview.py:251
 #, python-brace-format
@@ -321,35 +321,35 @@ msgstr "Zrušit přípravu bloku změn {0}"
 
 #: diffview/diffview.py:395
 msgid "Export selected lines"
-msgstr "Exportovat zvolené řádky"
+msgstr "Exportovat vybrané řádky"
 
 #: diffview/diffview.py:572 diffview/diffview.py:573
 msgid "or Middle-Click"
-msgstr "nebo kliknutím prostředním tlačítkem myši"
+msgstr "nebo kliknout prostředním tlačítkem"
 
 #: diffview/diffview.py:580
 #, python-brace-format
 msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
 msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
-msgstr[0] "Stiskněte {sk} pro přípravu {nl} řádku. Stiskněte {dk} pro zahození."
-msgstr[1] "Stiskněte {sk} pro přípravu {nl} řádků. Stiskněte {dk} pro zahození."
-msgstr[2] "Stiskněte {sk} pro přípravu {nl} řádků. Stiskněte {dk} pro zahození."
+msgstr[0] "Stisknutím {sk} připravíte {nl} řádek. Stisknutím {dk} jej zahodíte."
+msgstr[1] "Stisknutím {sk} připravíte {nl} řádky. Stisknutím {dk} je zahodíte."
+msgstr[2] "Stisknutím {sk} připravíte {nl} řádků. Stisknutím {dk} je zahodíte."
 
 #: diffview/diffview.py:584
 #, python-brace-format
 msgid "Hit {uk} to unstage {nl} line."
 msgid_plural "Hit {uk} to unstage {nl} lines."
-msgstr[0] "Stiskněte {uk} pro zrušení přípravy {nl} řádku."
-msgstr[1] "Stiskněte {uk} pro zrušení přípravy {nl} řádků."
-msgstr[2] "Stiskněte {uk} pro zrušení přípravy {nl} řádků."
+msgstr[0] "Stisknutím {uk} zrušíte přípravu {nl} řádku."
+msgstr[1] "Stisknutím {uk} zrušíte přípravu {nl} řádků."
+msgstr[2] "Stisknutím {uk} zrušíte přípravu {nl} řádků."
 
 #: diffview/specialdiff.py:71
 msgid "File contents didn’t change."
-msgstr "Obsah souboru nebyl změněn."
+msgstr "Obsah souboru se nezměnil."
 
 #: diffview/specialdiff.py:82
 msgid "Empty file was deleted."
-msgstr "Prázdný soubor byl smazán."
+msgstr "Prázdný soubor byl odstraněn."
 
 #: diffview/specialdiff.py:89
 msgid "New empty file."
