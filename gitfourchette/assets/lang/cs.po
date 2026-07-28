@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2025-08-19 17:02+0000\n"
-"Last-Translator: Michael Slíva <michael@sliva.dev>\n"
+"PO-Revision-Date: 2026-07-28 09:57+0000\n"
+"Last-Translator: Michal Várady <miko.vaji@gmail.com>\n"
 "Language-Team: Czech <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/cs/>\n"
 "Language: cs\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
-"X-Generator: Weblate 5.13\n"
+"X-Generator: Weblate 2026.8.dev0\n"
 
 #: application.py:90 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -283,15 +283,15 @@ msgstr "Vrátit řádky zpět…"
 #: diffview/diffview.py:251
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr ""
+msgstr "Exportovat blok změn {0} jako záplatu…"
 
 #: diffview/diffview.py:252
 msgid "Revert Hunk…"
-msgstr ""
+msgstr "Vrátit blok změn…"
 
 #: diffview/diffview.py:262 diffview/diffview.py:297 diffview/diffview.py:322
 msgid "Export Hunk as Patch…"
-msgstr ""
+msgstr "Exportovat blok změn jako záplatu…"
 
 #: diffview/diffview.py:269
 msgid "Stage Lines"
@@ -304,11 +304,11 @@ msgstr "Zahodit řádky…"
 #: diffview/diffview.py:288
 #, python-brace-format
 msgid "Stage Hunk {0}"
-msgstr ""
+msgstr "Připravit blok změn {0}"
 
 #: diffview/diffview.py:293
 msgid "Discard Hunk…"
-msgstr ""
+msgstr "Zahodit blok změn…"
 
 #: diffview/diffview.py:304
 msgid "Unstage Lines"
@@ -317,7 +317,7 @@ msgstr "Zrušit přípravu řádků"
 #: diffview/diffview.py:317
 #, python-brace-format
 msgid "Unstage Hunk {0}"
-msgstr ""
+msgstr "Zrušit přípravu bloku změn {0}"
 
 #: diffview/diffview.py:395
 msgid "Export selected lines"
@@ -375,15 +375,17 @@ msgstr ""
 #: diffview/specialdiff.py:105
 msgid "You can stage the file to dismiss this message; no changes will be recorded."
 msgstr ""
+"Chcete-li tuto zprávu skrýt, můžete soubor připravit; žádné změny se "
+"nezaznamenají."
 
 #: diffview/specialdiff.py:119
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Nastavit limit náhledu porovnání] (nyní: {0})"
 
 #: diffview/specialdiff.py:122
 msgid "This diff is very large."
-msgstr ""
+msgstr "Toto porovnání je velmi velké."
 
 #: diffview/specialdiff.py:123
 #, python-brace-format
@@ -392,16 +394,16 @@ msgstr ""
 
 #: diffview/specialdiff.py:135
 msgid "[Load image anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Přesto obrázek načíst] (může to chvíli trvat)"
 
 #: diffview/specialdiff.py:136
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Nastavit limit náhledu obrázků] (nyní: {0})"
 
 #: diffview/specialdiff.py:139
 msgid "This image is very large."
-msgstr ""
+msgstr "Tento obrázek je velmi velký."
 
 #: diffview/specialdiff.py:140
 #, python-brace-format
@@ -410,166 +412,181 @@ msgstr ""
 
 #: diffview/specialdiff.py:148
 msgid "Old type:"
-msgstr ""
+msgstr "Původní typ:"
 
 #: diffview/specialdiff.py:149
 msgid "New type:"
-msgstr ""
+msgstr "Nový typ:"
 
 #: diffview/specialdiff.py:156
 msgid "This file’s type has changed."
-msgstr ""
+msgstr "Typ tohoto souboru se změnil."
 
 #: diffview/specialdiff.py:175
 msgid "File appears to be binary."
-msgstr ""
+msgstr "Soubor je zřejmě binární."
 
 #: diffview/specialdiff.py:184
 msgid "This untracked subtree is the root of another Git repository."
-msgstr ""
+msgstr "Tento nesledovaný podstrom je kořenem jiného repozitáře Git."
 
 #: diffview/specialdiff.py:187 repowidget.py:504
 #, python-brace-format
 msgid "Open {0}"
-msgstr ""
+msgstr "Otevřít {0}"
 
 #: diffview/specialdiff.py:190
 #, python-brace-format
 msgid "Absorb {0} as submodule"
-msgstr ""
+msgstr "Převzít {0} jako submodul"
 
 #: diffview/specialdiff.py:191
 msgid "Recommended action:"
-msgstr ""
+msgstr "Doporučená akce:"
 
 #: diffview/specialdiff.py:210
 #, python-brace-format
 msgid "Subtree {0} was [removed.]"
-msgstr ""
+msgstr "Podstrom {0} byl [odstraněn.]"
 
 #: diffview/specialdiff.py:211
 #, python-brace-format
 msgid "Submodule {0} was [removed.]"
-msgstr ""
+msgstr "Submodul {0} byl [odstraněn.]"
 
 #: diffview/specialdiff.py:214
 #, python-brace-format
 msgid "Subtree {0} was [added.]"
-msgstr ""
+msgstr "Podstrom {0} byl [přidán.]"
 
 #: diffview/specialdiff.py:215
 #, python-brace-format
 msgid "Submodule {0} was [added.]"
-msgstr ""
+msgstr "Submodul {0} byl [přidán.]"
 
 #: diffview/specialdiff.py:218
 #, python-brace-format
 msgid "Subtree {0} was updated."
-msgstr ""
+msgstr "Podstrom {0} byl aktualizován."
 
 #: diffview/specialdiff.py:219
 #, python-brace-format
 msgid "Submodule {0} was updated."
-msgstr ""
+msgstr "Submodul {0} byl aktualizován."
 
 #: diffview/specialdiff.py:221
 #, python-brace-format
 msgid "Subtree {0} contains changes."
-msgstr ""
+msgstr "Podstrom {0} obsahuje změny."
 
 #: diffview/specialdiff.py:222
 #, python-brace-format
 msgid "Submodule {0} contains changes."
-msgstr ""
+msgstr "Submodul {0} obsahuje změny."
 
 #: diffview/specialdiff.py:230
 msgid "Open submodule"
-msgstr ""
+msgstr "Otevřít submodul"
 
 #: diffview/specialdiff.py:230
 msgid "Open subtree"
-msgstr ""
+msgstr "Otevřít podstrom"
 
 #: diffview/specialdiff.py:232
 #, python-brace-format
 msgid "(path: {0})"
-msgstr ""
+msgstr "(cesta: {0})"
 
 #: diffview/specialdiff.py:267 diffview/specialdiffview.py:104
 msgid "Old:"
-msgstr ""
+msgstr "Původní:"
 
 #: diffview/specialdiff.py:268 diffview/specialdiffview.py:105
 msgid "New:"
-msgstr ""
+msgstr "Nový:"
 
 #: diffview/specialdiff.py:274
 msgid "The subtree’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "Ukazatel <b>HEAD</b> podstromu se přesunul na jiný commit."
 
 #: diffview/specialdiff.py:275
 msgid "The submodule’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "Ukazatel <b>HEAD</b> submodulu se přesunul na jiný commit."
 
 #: diffview/specialdiff.py:277
 msgid "You can stage this update:"
-msgstr ""
+msgstr "Tuto aktualizaci můžete připravit:"
 
 #: diffview/specialdiff.py:285
 #, python-brace-format
 msgid "To complete the removal of this submodule, <b>remove it from {gitmodules}</b>."
 msgstr ""
+"Odstranění tohoto submodulu dokončíte jeho <b>odebráním ze souboru "
+"{gitmodules}</b>."
 
 #: diffview/specialdiff.py:287
 #, python-brace-format
 msgid "To complete the removal of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
+"Odstranění tohoto submodulu dokončíte tak, že <b>soubor {gitmodules} "
+"zahrnete do stejného commitu</b> jako samotnou složku submodulu."
 
 #: diffview/specialdiff.py:291
 #, python-brace-format
 msgid "To complete the addition of this submodule, make sure to <b>commit {gitmodules}</b> at the same time as the submodule folder itself."
 msgstr ""
+"Přidání tohoto submodulu dokončíte tak, že <b>soubor {gitmodules} zahrnete "
+"do stejného commitu</b> jako samotnou složku submodulu."
 
 #: diffview/specialdiff.py:296
 msgid "<b>This subtree isn’t a submodule yet!</b> You should [absorb this subtree] into the parent repository so it becomes a submodule."
 msgstr ""
+"<b>Tento podstrom zatím není submodulem!</b> Měli byste [jej převzít] do "
+"nadřazeného repozitáře, aby se z něj stal submodul."
 
 #: diffview/specialdiff.py:299
 msgid "To complete the addition of this submodule, you should [absorb the submodule] into the parent repository."
 msgstr ""
+"Přidání tohoto submodulu dokončíte jeho [převzetím] do nadřazeného "
+"repozitáře."
 
 #: diffview/specialdiff.py:304
 #, python-brace-format
 msgid "To complete the addition of this submodule, [register it in {gitmodules}]."
 msgstr ""
+"Přidání tohoto submodulu dokončíte jeho [registrací v souboru {gitmodules}]."
 
 #: diffview/specialdiff.py:308
 msgid "IMPORTANT"
-msgstr ""
+msgstr "DŮLEŽITÉ"
 
 #: diffview/specialdiff.py:318
 msgid "The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
+"Podstrom obsahuje <b>nepotvrzené změny</b>. Z nadřazeného repozitáře je "
+"nelze zahrnout do commitu. Můžete:"
 
 #: diffview/specialdiff.py:319
 msgid "[Open] the subtree and commit the changes."
-msgstr ""
+msgstr "[Otevřít] podstrom a vytvořit commit se změnami."
 
 #: diffview/specialdiff.py:320
 msgid "Or, [Reset] the subtree to a clean state."
-msgstr ""
+msgstr "Nebo podstrom [resetovat] do čistého stavu."
 
 #: diffview/specialdiff.py:322
 msgid "The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:"
 msgstr ""
+"Submodul obsahuje <b>nepotvrzené změny</b>. Z nadřazeného repozitáře je "
+"nelze zahrnout do commitu. Můžete:"
 
 #: diffview/specialdiff.py:323
 msgid "[Open] the submodule and commit the changes."
-msgstr ""
+msgstr "[Otevřít] submodul a vytvořit commit se změnami."
 
 #: diffview/specialdiff.py:324
 msgid "Or, [Reset] the submodule to a clean state."
-msgstr ""
+msgstr "Nebo submodul [resetovat] do čistého stavu."
 
 #: diffview/specialdiffview.py:104 diffview/specialdiffview.py:105
 #, python-brace-format
@@ -587,286 +604,295 @@ msgstr ""
 #: dropzone.py:38
 #, python-brace-format
 msgid "Drop here to open repo {0}"
-msgstr ""
+msgstr "Přetažením sem otevřete repozitář {0}"
 
 #: dropzone.py:41
 #, python-brace-format
 msgid "Drop here to clone {0}"
-msgstr ""
+msgstr "Přetažením sem naklonujete {0}"
 
 #: dropzone.py:45
 #, python-brace-format
 msgid "Drop here to apply patch {0}"
-msgstr ""
+msgstr "Přetažením sem použijete záplatu {0}"
 
 #: dropzone.py:49
 #, python-brace-format
 msgid "Drop here to blame {0}"
-msgstr ""
+msgstr "Přetažením sem zobrazíte autorství {0}"
 
 #: exttools/mergedriver.py:123
 #, python-brace-format
 msgid "{0} failed to start."
-msgstr ""
+msgstr "{0} se nepodařilo spustit."
 
 #: exttools/mergedriver.py:126
 #, python-brace-format
 msgid "{0} ran into error {1}."
-msgstr ""
+msgstr "V aplikaci {0} nastala chyba {1}."
 
 #: exttools/mergedriver.py:137
 #, python-brace-format
 msgid "{0} didn’t complete the merge."
-msgstr ""
+msgstr "{0} nedokončila sloučení."
 
 #: exttools/mergedriver.py:138
 #, python-brace-format
 msgid "Exit code: {0}."
-msgstr ""
+msgstr "Kód ukončení: {0}."
 
 #: exttools/toolcommands.py:104
 #, python-brace-format
 msgid "Unknown placeholder: {0}"
-msgstr ""
+msgstr "Neznámý zástupný symbol: {0}"
 
 #: exttools/toolcommands.py:114
 msgid "Missing placeholder:"
 msgid_plural "Missing placeholders:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Chybí zástupný symbol:"
+msgstr[1] "Chybí zástupné symboly:"
+msgstr[2] "Chybí zástupné symboly:"
 
 #: exttools/toolcommands.py:207
 msgid "Command exited with code:"
-msgstr ""
+msgstr "Příkaz skončil s kódem:"
 
 #: exttools/toolcommands.py:208
 msgid "Continue in a shell?"
-msgstr ""
+msgstr "Pokračovat v shellu?"
 
 #: exttools/toolprocess.py:44
 #, python-brace-format
 msgid "Failed to start {tool}"
-msgstr ""
+msgstr "Nástroj {tool} se nepodařilo spustit"
 
 #: exttools/toolprocess.py:47
 #, python-brace-format
 msgid "There is an issue with the {tool} command template in your settings:"
-msgstr ""
+msgstr "V nastavení je problém se šablonou příkazu nástroje {tool}:"
 
 #: exttools/toolprocess.py:52
 #, python-brace-format
 msgid "Couldn’t start Flatpak {command} ({tool})."
-msgstr ""
+msgstr "Příkaz Flatpak {command} ({tool}) se nepodařilo spustit."
 
 #: exttools/toolprocess.py:54
 #, python-brace-format
 msgid "Couldn’t start {command} ({tool})."
-msgstr ""
+msgstr "Příkaz {command} ({tool}) se nepodařilo spustit."
 
 #: exttools/toolprocess.py:56
 msgid "It might not be installed on your machine."
-msgstr ""
+msgstr "Možná není v počítači nainstalován."
 
 #: exttools/toolprocess.py:66
 #, python-brace-format
 msgid "Where is {tool}?"
-msgstr ""
+msgstr "Kde je {tool}?"
 
 #: exttools/toolprocess.py:76
 msgid "Edit Command…"
-msgstr ""
+msgstr "Upravit příkaz…"
 
 #: exttools/toolprocess.py:81
 #, python-brace-format
 msgid "Locate {tool}…"
-msgstr ""
+msgstr "Vyhledat {tool}…"
 
 #: exttools/toolprocess.py:100
 #, python-brace-format
 msgid "{tool} isn’t configured in your settings yet."
-msgstr ""
+msgstr "Nástroj {tool} zatím není v nastavení nakonfigurován."
 
 #: exttools/toolprocess.py:106
 #, python-brace-format
 msgid "Set up {tool}"
-msgstr ""
+msgstr "Nastavit {tool}"
 
 #: exttools/usercommand.py:100
 msgid "Unknown placeholder token"
-msgstr ""
+msgstr "Neznámý zástupný token"
 
 #: exttools/usercommand.py:125
 msgid "A commit must be selected in the history"
-msgstr ""
+msgstr "V historii musí být vybrán commit"
 
 #: exttools/usercommand.py:134
 msgid "HEAD cannot be unborn"
-msgstr ""
+msgstr "HEAD nesmí být bez počátečního commitu"
 
 #: exttools/usercommand.py:149
 msgid "A ref (local branch, remote branch, or tag) must be selected in the sidebar"
 msgstr ""
+"V postranním panelu musí být vybrána reference (místní větev, vzdálená větev "
+"nebo značka)"
 
 #: exttools/usercommand.py:156 exttools/usercommand.py:163
 msgid "HEAD cannot be unborn or detached"
-msgstr ""
+msgstr "HEAD nesmí být bez počátečního commitu ani odpojený"
 
 #: exttools/usercommand.py:168
 msgid "Current branch has no upstream"
-msgstr ""
+msgstr "Aktuální větev nemá nadřazenou větev"
 
 #: exttools/usercommand.py:174
 msgid "A file must be selected"
-msgstr ""
+msgstr "Musí být vybrán soubor"
 
 #: exttools/usercommand.py:201
 msgid "A remote or a remote branch must be selected"
-msgstr ""
+msgstr "Musí být vybrán vzdálený repozitář nebo vzdálená větev"
 
 #: exttools/usercommand.py:206
 msgctxt "relative path"
 msgid "(relative)"
-msgstr ""
+msgstr "(relativní)"
 
 #: exttools/usercommand.py:207
 msgctxt "absolute path"
 msgid "(absolute)"
-msgstr ""
+msgstr "(absolutní)"
 
 #: exttools/usercommand.py:209
 msgid "Hash of the selected commit in the history"
-msgstr ""
+msgstr "Otisk commitu vybraného v historii"
 
 #: exttools/usercommand.py:210 exttools/usercommand.py:211
 msgid "Path to the selected file"
-msgstr ""
+msgstr "Cesta k vybranému souboru"
 
 #: exttools/usercommand.py:212 exttools/usercommand.py:213
 msgid "Path to the selected file’s parent directory"
-msgstr ""
+msgstr "Cesta k nadřazenému adresáři vybraného souboru"
 
 #: exttools/usercommand.py:214
 msgid "Hash of the HEAD commit"
-msgstr ""
+msgstr "Otisk commitu HEAD"
 
 #: exttools/usercommand.py:215
 msgid "Ref name of the HEAD branch"
-msgstr ""
+msgstr "Název reference větve HEAD"
 
 #: exttools/usercommand.py:216
 msgid "Ref name of the HEAD branch’s upstream"
-msgstr ""
+msgstr "Název reference nadřazené větve pro HEAD"
 
 #: exttools/usercommand.py:217
 msgid "Name of the selected ref in the sidebar (local branches, remote branches, tags)"
 msgstr ""
+"Název reference vybrané v postranním panelu (místní větve, vzdálené větve, "
+"značky)"
 
 #: exttools/usercommand.py:218
 msgid "Name of the selected remote in the sidebar"
-msgstr ""
+msgstr "Název vzdáleného repozitáře vybraného v postranním panelu"
 
 #: exttools/usercommand.py:219
 msgid "Path to the repository’s working directory"
-msgstr ""
+msgstr "Cesta k pracovnímu adresáři repozitáře"
 
 #: filelists/committedfiles.py:40
 msgid "Open Diff in New &Window"
-msgstr ""
+msgstr "Otevřít porovnání v novém &okně"
 
 #: filelists/committedfiles.py:49
 msgid "&Revert This Change…"
 msgid_plural "&Revert These Changes…"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Vrátit tuto změnu…"
+msgstr[1] "&Vrátit tyto změny…"
+msgstr[2] "&Vrátit tyto změny…"
 
 #: filelists/committedfiles.py:54
 msgid "Restor&e File Revision…"
-msgstr ""
+msgstr "Obnovit &revizi souboru…"
 
 #: filelists/committedfiles.py:56 filelists/committedfiles.py:67
 #: filelists/committedfiles.py:75
 msgid "&As Of This Commit"
-msgstr ""
+msgstr "&Ve stavu tohoto commitu"
 
 #: filelists/committedfiles.py:57 filelists/committedfiles.py:68
 #: filelists/committedfiles.py:76
 msgid "&Before This Commit"
-msgstr ""
+msgstr "&Před tímto commitem"
 
 #: filelists/committedfiles.py:64
 #, python-brace-format
 msgid "&Open File in {0}"
 msgid_plural "&Open {n} Files in {0}"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Otevřít soubor v aplikaci {0}"
+msgstr[1] "&Otevřít {n} soubory v aplikaci {0}"
+msgstr[2] "&Otevřít {n} souborů v aplikaci {0}"
 
 #: filelists/committedfiles.py:66
 msgid "&Current Revision (Working Copy)"
-msgstr ""
+msgstr "&Aktuální revize (pracovní kopie)"
 
 #: filelists/committedfiles.py:73
 msgid "&Save a Copy…"
-msgstr ""
+msgstr "&Uložit kopii…"
 
 #: filelists/committedfiles.py:84 filelists/dirtyfiles.py:95
 #: filelists/stagedfiles.py:55
 #, python-brace-format
 msgid "Submodule"
 msgid_plural "{n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Submodul"
+msgstr[1] "{n} submoduly"
+msgstr[2] "{n} submodulů"
 
 #: filelists/committedfiles.py:89 filelists/dirtyfiles.py:107
 #: filelists/stagedfiles.py:65
 #, python-brace-format
 msgid "Open Submodule in New Tab"
 msgid_plural "Open {n} Submodules in New Tabs"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Otevřít submodul na nové kartě"
+msgstr[1] "Otevřít {n} submoduly na nových kartách"
+msgstr[2] "Otevřít {n} submodulů na nových kartách"
 
 #: filelists/committedfiles.py:95 filelists/dirtyfiles.py:115
 #: filelists/stagedfiles.py:71
 msgid "Please review the files individually."
-msgstr ""
+msgstr "Prohlédněte soubory jednotlivě."
 
 #: filelists/committedfiles.py:148
 msgid "Open revision before commit"
-msgstr ""
+msgstr "Otevřít revizi před commitem"
 
 #: filelists/committedfiles.py:150
 msgid "Open revision at commit"
-msgstr ""
+msgstr "Otevřít revizi v commitu"
 
 #: filelists/committedfiles.py:152 filelists/filelist.py:378
 #: filelists/filelist.py:618
 #, python-brace-format
 msgid "Really open <b>{n} files</b> in external editor?"
-msgstr ""
+msgstr "Opravdu chcete otevřít <b>{n} souborů</b> v externím editoru?"
 
 #: filelists/committedfiles.py:167
 msgid "Save file revision as"
-msgstr ""
+msgstr "Uložit revizi souboru jako"
 
 #: filelists/committedfiles.py:172
 msgid "Save revision before commit"
-msgstr ""
+msgstr "Uložit revizi před commitem"
 
 #: filelists/committedfiles.py:174
 msgid "Save revision at commit"
-msgstr ""
+msgstr "Uložit revizi v commitu"
 
 #: filelists/committedfiles.py:176
 #, python-brace-format
 msgid "Really export <b>{n} files</b>?"
-msgstr ""
+msgstr "Opravdu chcete exportovat <b>{n} souborů</b>?"
 
 #: filelists/committedfiles.py:182
 msgid "This file didn’t exist before the commit."
-msgstr ""
+msgstr "Tento soubor před commitem neexistoval."
 
 #: filelists/committedfiles.py:186
 msgid "This file was deleted by the commit."
-msgstr ""
+msgstr "Tento soubor byl commitem odstraněn."
 
 #: filelists/committedfiles.py:206
 #, python-brace-format
@@ -875,81 +901,88 @@ msgstr ""
 
 #: filelists/committedfiles.py:208
 msgid "Open working copy revision"
-msgstr ""
+msgstr "Otevřít revizi pracovní kopie"
 
 #: filelists/committedfiles.py:208
 #, python-brace-format
 msgid "Really open <b>{n} files</b>?"
-msgstr ""
+msgstr "Opravdu chcete otevřít <b>{n} souborů</b>?"
 
 #: filelists/committedfiles.py:214 repowidget.py:428
 msgid "Open diff in new window"
-msgstr ""
+msgstr "Otevřít porovnání v novém okně"
 
 #: filelists/committedfiles.py:214 filelists/filelist.py:700
 #, python-brace-format
 msgid "Really open <b>{n} windows</b>?"
-msgstr ""
+msgstr "Opravdu chcete otevřít <b>{n} oken</b>?"
 
 #: filelists/dirtyfiles.py:43
 #, python-brace-format
 msgid "&Stage File"
 msgid_plural "&Stage {n} Files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Připravit soubor"
+msgstr[1] "&Připravit {n} soubory"
+msgstr[2] "&Připravit {n} souborů"
 
 #: filelists/dirtyfiles.py:49
 msgid "&Ignore Untracked File…"
 msgid_plural "&Ignore Untracked Files…"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Ignorovat nesledovaný soubor…"
+msgstr[1] "&Ignorovat nesledované soubory…"
+msgstr[2] "&Ignorovat nesledované soubory…"
 
 #: filelists/dirtyfiles.py:54
 #, python-brace-format
 msgid "&Delete File…"
 msgid_plural "&Delete {n} Files…"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "O&dstranit soubor…"
+msgstr[1] "O&dstranit {n} soubory…"
+msgstr[2] "O&dstranit {n} souborů…"
 
 #: filelists/dirtyfiles.py:56
 #, python-brace-format
 msgid "&Discard Changes in File…"
 msgid_plural "&Discard Changes in {n} Files…"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Zahodit změny v souboru…"
+msgstr[1] "&Zahodit změny v {n} souborech…"
+msgstr[2] "&Zahodit změny v {n} souborech…"
 
 #: filelists/dirtyfiles.py:77
 #, python-brace-format
 msgid "Merge Conflict"
 msgid_plural "{n} Merge Conflicts"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Konflikt při slučování"
+msgstr[1] "{n} konflikty při slučování"
+msgstr[2] "{n} konfliktů při slučování"
 
 #: filelists/dirtyfiles.py:82
 msgid "Resolve by Accepting “Theirs”"
-msgstr ""
+msgstr "Vyřešit přijetím „jejich“ verze"
 
 #: filelists/dirtyfiles.py:87
 msgid "Resolve by Keeping “Ours”"
-msgstr ""
+msgstr "Vyřešit zachováním „naší“ verze"
 
 #: filelists/dirtyfiles.py:99
 #, python-brace-format
 msgid "Stage Submodule"
 msgid_plural "Stage {n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Připravit submodul"
+msgstr[1] "Připravit {n} submoduly"
+msgstr[2] "Připravit {n} submodulů"
 
 #: filelists/dirtyfiles.py:103
 #, python-brace-format
 msgid "Discard Changes in Submodule"
 msgid_plural "Discard Changes in {n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Zahodit změny v submodulu"
+msgstr[1] "Zahodit změny v {n} submodulech"
+msgstr[2] "Zahodit změny v {n} submodulech"
 
 #: filelists/dirtyfiles.py:115
 msgid "Can’t stage this selection in bulk."
-msgstr ""
+msgstr "Tento výběr nelze připravit hromadně."
 
 #: filelists/filelist.py:150
 msgid "Find a file by path|Find file"
@@ -959,73 +992,79 @@ msgstr ""
 #, python-brace-format
 msgid "Open &Folder"
 msgid_plural "Open {n} &Folders"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Otevřít &složku"
+msgstr[1] "Otevřít {n} &složky"
+msgstr[2] "Otevřít {n} &složek"
 
 #: filelists/filelist.py:242
 #, python-brace-format
 msgid "&Copy Path"
 msgid_plural "&Copy {n} Paths"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Kopírovat cestu"
+msgstr[1] "&Kopírovat {n} cesty"
+msgstr[2] "&Kopírovat {n} cest"
 
 #: filelists/filelist.py:248 trtables.py:350
 msgid "Path display style"
-msgstr ""
+msgstr "Způsob zobrazení cest"
 
 #: filelists/filelist.py:264
 msgid "Stas&h Changes…"
-msgstr ""
+msgstr "Odložit z&měny…"
 
 #: filelists/filelist.py:271
 msgid "Revert Mode Change"
 msgid_plural "Revert Mode Changes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vrátit změnu režimu"
+msgstr[1] "Vrátit změny režimu"
+msgstr[2] "Vrátit změny režimu"
 
 #: filelists/filelist.py:284
 msgid "Revert Mode to Non-Executable"
-msgstr ""
+msgstr "Vrátit režim na nespustitelný"
 
 #: filelists/filelist.py:286
 msgid "Revert Mode to Executable"
-msgstr ""
+msgstr "Vrátit režim na spustitelný"
 
 #: filelists/filelist.py:298
 #, python-brace-format
 msgid "Open Diff in {0}"
-msgstr ""
+msgstr "Otevřít porovnání v aplikaci {0}"
 
 #: filelists/filelist.py:303
 msgid "E&xport Diff As Patch…"
 msgid_plural "E&xport Diffs As Patch…"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "E&xportovat porovnání jako záplatu…"
+msgstr[1] "E&xportovat porovnání jako záplatu…"
+msgstr[2] "E&xportovat porovnání jako záplatu…"
 
 #: filelists/filelist.py:312
 #, python-brace-format
 msgid "&Edit in {tool}"
-msgstr ""
+msgstr "&Upravit v aplikaci {tool}"
 
 #: filelists/filelist.py:317
 #, python-brace-format
 msgid "Edit &HEAD Version in {tool}"
 msgid_plural "Edit &HEAD Versions in {tool}"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Upravit verzi &HEAD v aplikaci {tool}"
+msgstr[1] "Upravit verze &HEAD v aplikaci {tool}"
+msgstr[2] "Upravit verze &HEAD v aplikaci {tool}"
 
 #: filelists/filelist.py:377
 msgid "Open in external editor"
-msgstr ""
+msgstr "Otevřít v externím editoru"
 
 #: filelists/filelist.py:381
 msgid "Open in external diff tool"
-msgstr ""
+msgstr "Otevřít v externím porovnávacím nástroji"
 
 #: filelists/filelist.py:382
 #, python-brace-format
 msgid "Really open <b>{n} files</b> in external diff tool?"
 msgstr ""
+"Opravdu chcete otevřít <b>{n} souborů</b> v externím porovnávacím nástroji?"
 
 #: filelists/filelist.py:387
 #, python-brace-format
@@ -1044,12 +1083,12 @@ msgstr ""
 
 #: filelists/filelist.py:421
 msgid "Open paths"
-msgstr ""
+msgstr "Otevřít cesty"
 
 #: filelists/filelist.py:422
 #, python-brace-format
 msgid "Really open <b>{n} folders</b>?"
-msgstr ""
+msgstr "Opravdu chcete otevřít <b>{n} složek</b>?"
 
 #: filelists/filelist.py:543
 msgid "This file appears to have been modified by another application. Try refreshing the window."
@@ -1057,108 +1096,115 @@ msgstr ""
 
 #: filelists/filelist.py:617
 msgid "Open HEAD version of file"
-msgstr ""
+msgstr "Otevřít verzi souboru z HEAD"
 
 #: filelists/filelistmodel.py:72
 msgid "old name"
-msgstr ""
+msgstr "starý název"
 
 #: filelists/filelistmodel.py:73
 msgid "new name"
-msgstr ""
+msgstr "nový název"
 
 #: filelists/filelistmodel.py:75
 msgid "name"
-msgstr ""
+msgstr "název"
 
 #: filelists/filelistmodel.py:85
 msgid "status"
-msgstr ""
+msgstr "stav"
 
 #: filelists/filelistmodel.py:89
 msgid "similarity"
-msgstr ""
+msgstr "podobnost"
 
 #: filelists/filelistmodel.py:94 filelists/filelistmodel.py:96
 msgid "file mode"
-msgstr ""
+msgstr "režim souboru"
 
 #: filelists/filelistmodel.py:101 filelists/filelistmodel.py:103
 msgid "size"
-msgstr ""
+msgstr "velikost"
 
 #: filelists/filelistmodel.py:103 filelists/filelistmodel.py:116
 #: filelists/filelistmodel.py:117
 msgid "(not computed)"
-msgstr ""
+msgstr "(nevypočteno)"
 
 #: filelists/filelistmodel.py:112
 msgid "modified"
-msgstr ""
+msgstr "změněno"
 
 #: filelists/filelistmodel.py:118
 msgid "blob hash"
-msgstr ""
+msgstr "otisk blobu"
 
 #: filelists/filelistmodel.py:118
 msgid "commit hash"
-msgstr ""
+msgstr "otisk commitu"
 
 #: filelists/filelistmodel.py:123
 msgid "Currently viewing diff of staged changes in this file; it also has <u>unstaged</u> changes."
 msgstr ""
+"Právě se zobrazuje porovnání připravených změn tohoto souboru; soubor "
+"obsahuje také <u>nepřipravené</u> změny."
 
 #: filelists/filelistmodel.py:126
 msgid "Currently viewing diff of unstaged changes in this file; it also has <u>staged</u> changes."
 msgstr ""
+"Právě se zobrazuje porovnání nepřipravených změn tohoto souboru; soubor "
+"obsahuje také <u>připravené</u> změny."
 
 #: filelists/stagedfiles.py:36
 #, python-brace-format
 msgid "&Unstage File"
 msgid_plural "&Unstage {n} Files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Zrušit přípravu souboru"
+msgstr[1] "&Zrušit přípravu {n} souborů"
+msgstr[2] "&Zrušit přípravu {n} souborů"
 
 #: filelists/stagedfiles.py:60
 #, python-brace-format
 msgid "Unstage Submodule"
 msgid_plural "Unstage {n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Zrušit přípravu submodulu"
+msgstr[1] "Zrušit přípravu {n} submodulů"
+msgstr[2] "Zrušit přípravu {n} submodulů"
 
 #: filelists/stagedfiles.py:71
 msgid "Can’t unstage this selection in bulk."
-msgstr ""
+msgstr "Přípravu tohoto výběru nelze zrušit hromadně."
 
 #: forms/aboutdialog.py:68
 #, python-brace-format
 msgid "Version {0}"
-msgstr ""
+msgstr "Verze {0}"
 
 #: forms/aboutdialog.py:80
 #, python-brace-format
 msgid "If {app} helps you get work done, please consider [making a small donation]."
-msgstr ""
+msgstr "Pokud vám {app} pomáhá při práci, zvažte [drobný příspěvek]."
 
 #: forms/aboutdialog.py:82
 msgid "Thank you for your support!"
-msgstr ""
+msgstr "Děkujeme za podporu!"
 
 #: forms/aboutdialog.py:90
 msgid "Powered by:"
-msgstr ""
+msgstr "Využívá:"
 
 #: forms/aboutdialog.py:100
 msgid "(not available)"
-msgstr ""
+msgstr "(není k dispozici)"
 
 #: forms/aboutdialog.py:109
 msgid "Brought to your native language by:"
-msgstr ""
+msgstr "Do vašeho jazyka přeložili:"
 
 #: forms/aboutdialog.py:119
 msgid "Special thanks to Marc-Alexandre Espiaut for beta testing."
 msgstr ""
+"Zvláštní poděkování patří Marc-Alexandru Espiautovi za testování beta verze."
 
 #: forms/aboutdialog.py:121
 #, python-brace-format
@@ -1171,129 +1217,130 @@ msgstr ""
 
 #: forms/banner.py:50
 msgid "Dismiss"
-msgstr ""
+msgstr "Zavřít"
 
 #: forms/checkoutcommitdialog.py:35
 #, python-brace-format
 msgid "Check out commit {0}"
-msgstr ""
+msgstr "Přepnout na commit {0}"
 
 #: forms/checkoutcommitdialog.py:38
 msgid "Move &detached HEAD here"
-msgstr ""
+msgstr "Přesunout sem o&dpojený HEAD"
 
 #: forms/checkoutcommitdialog.py:40
 #, python-brace-format
 msgid "&Reset the tip of branch {0} here…"
-msgstr ""
+msgstr "&Resetovat sem špičku větve {0}…"
 
 #: forms/checkoutcommitdialog.py:41 graphview/graphview.py:141
 #: sidebar/sidebar.py:211 sidebar/sidebar.py:307
 #, python-brace-format
 msgid "&Merge into {0}…"
-msgstr ""
+msgstr "&Sloučit do {0}…"
 
 #: forms/checkoutcommitdialog.py:43
 msgid "Detach HEAD"
-msgstr ""
+msgstr "Odpojit HEAD"
 
 #: forms/checkoutcommitdialog.py:44
 msgid "Switch Branch"
-msgstr ""
+msgstr "Přepnout větev"
 
 #: forms/checkoutcommitdialog.py:45
 #, python-brace-format
 msgid "Reset {0}…"
-msgstr ""
+msgstr "Resetovat {0}…"
 
 #: forms/checkoutcommitdialog.py:46
 msgid "Merge…"
-msgstr ""
+msgstr "Sloučit…"
 
 #: forms/checkoutcommitdialog.py:47
 msgid "Create Branch…"
-msgstr ""
+msgstr "Vytvořit větev…"
 
 #: forms/checkoutcommitdialog.py:68
 #, python-brace-format
 msgctxt "checkout: current branch name"
 msgid "{0} (already checked out)"
-msgstr ""
+msgstr "{0} (již přepnuto)"
 
 #: forms/checkoutcommitdialog.py:70
 msgctxt "checkout: no branches available"
 msgid "(none available here)"
-msgstr ""
+msgstr "(zde není žádná k dispozici)"
 
 #: forms/clonedialog.py:64
 msgid "Reset default clone location"
-msgstr ""
+msgstr "Resetovat výchozí umístění pro klonování"
 
 #: forms/clonedialog.py:72
 msgid "C&lone"
-msgstr ""
+msgstr "K&lonovat"
 
 #: forms/clonedialog.py:79
 #, python-brace-format
 msgid "Hit {0} when ready."
-msgstr ""
+msgstr "Až budete připraveni, stiskněte {0}."
 
 #: forms/clonedialog.py:112 forms/ignorepatterndialog.py:53
 msgid "Please fill in this field."
-msgstr ""
+msgstr "Vyplňte toto pole."
 
 #: forms/clonedialog.py:119
 msgid "Please enter an absolute path."
-msgstr ""
+msgstr "Zadejte absolutní cestu."
 
 #: forms/clonedialog.py:121
 msgid "There’s already a file at this path."
-msgstr ""
+msgstr "Na této cestě už existuje soubor."
 
 #: forms/clonedialog.py:125
 msgid "This directory isn’t empty."
-msgstr ""
+msgstr "Tento adresář není prázdný."
 
 #: forms/clonedialog.py:159
 msgid "Set current location as default clone location"
-msgstr ""
+msgstr "Nastavit aktuální umístění jako výchozí pro klonování"
 
 #: forms/clonedialog.py:166
 #, python-brace-format
 msgid "{0} is the default clone location"
-msgstr ""
+msgstr "{0} je výchozí umístění pro klonování"
 
 #: forms/clonedialog.py:169
 #, python-brace-format
 msgid "Set {0} as default clone location"
-msgstr ""
+msgstr "Nastavit {0} jako výchozí umístění pro klonování"
 
 #: forms/clonedialog.py:185
 msgid "Clear history"
-msgstr ""
+msgstr "Vymazat historii"
 
 #: forms/clonedialog.py:209
 msgid "&Shallow clone"
-msgstr ""
+msgstr "&Mělký klon"
 
 #: forms/clonedialog.py:215
 #, python-brace-format
 msgid "&Shallow clone: Fetch up to {n} commit per branch"
 msgid_plural "&Shallow clone: Fetch up to {n} commits per branch"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Mělký klon: načíst nejvýše {n} commit z každé větve"
+msgstr[1] "&Mělký klon: načíst nejvýše {n} commity z každé větve"
+msgstr[2] "&Mělký klon: načíst nejvýše {n} commitů z každé větve"
 
 #: forms/clonedialog.py:253
 msgid "Clone repository into"
-msgstr ""
+msgstr "Naklonovat repozitář do"
 
 #: forms/clonedialog.py:262
 msgid "Clone here"
-msgstr ""
+msgstr "Klonovat sem"
 
 #: forms/clonedialog.py:296 tasks/nettasks.py:359
 msgid "Contacting remote host…"
-msgstr ""
+msgstr "Navazování spojení se vzdáleným hostitelem…"
 
 #: forms/clonedialog.py:345
 msgid "Cloning…"
@@ -1306,36 +1353,36 @@ msgstr ""
 
 #: forms/commitdialog.py:49
 msgid "Amend commit message"
-msgstr ""
+msgstr "Upravit zprávu commitu"
 
 #: forms/commitdialog.py:50
 msgid "A&mend"
-msgstr ""
+msgstr "U&pravit"
 
 #: forms/commitdialog.py:51
 #, python-brace-format
 msgid "Amend Commit {0}"
-msgstr ""
+msgstr "Upravit commit {0}"
 
 #: forms/commitdialog.py:53
 msgid "Enter commit summary"
-msgstr ""
+msgstr "Zadejte shrnutí commitu"
 
 #: forms/commitdialog.py:54
 msgid "Co&mmit"
-msgstr ""
+msgstr "Vytvořit co&mmit"
 
 #: forms/commitdialog.py:59
 msgid "This commit will conclude the merge."
-msgstr ""
+msgstr "Tento commit dokončí sloučení."
 
 #: forms/commitdialog.py:61
 msgid "This commit will conclude the cherry-pick."
-msgstr ""
+msgstr "Tento commit dokončí cherry-pick."
 
 #: forms/commitdialog.py:63
 msgid "This commit will conclude the revert."
-msgstr ""
+msgstr "Tento commit dokončí vracení."
 
 #: forms/commitdialog.py:65
 #, python-brace-format
@@ -1345,6 +1392,8 @@ msgstr ""
 #: forms/commitdialog.py:67
 msgid "<b>Detached HEAD</b> – You are not in any branch! You should create a branch to keep track of your commit."
 msgstr ""
+"<b>Odpojený HEAD</b> – Nejste v žádné větvi! Abyste commit neztratili, měli "
+"byste vytvořit větev."
 
 #: forms/commitdialog.py:70
 msgid "You are creating an empty commit (no staged changes)."
@@ -1353,240 +1402,252 @@ msgstr ""
 #: forms/commitdialog.py:138 forms/registersubmoduledialog.py:68
 #: forms/remotedialog.py:35 trtables.py:117
 msgid "Cannot be empty."
-msgstr ""
+msgstr "Nesmí být prázdné."
 
 #: forms/commitdialog.py:181
 msgid "Authored by:"
-msgstr ""
+msgstr "Autor:"
 
 #: forms/commitdialog.py:184 forms/commitdialog.py:189
 msgid "(overridden manually)"
-msgstr ""
+msgstr "(ručně přepsáno)"
 
 #: forms/commitdialog.py:186
 msgid "Committed by:"
-msgstr ""
+msgstr "Autor zápisu:"
 
 #: forms/conflictview.py:229
 #, python-brace-format
 msgid "Waiting for you to finish merging this file in {0} (PID {1})…"
-msgstr ""
+msgstr "Čeká se, až dokončíte sloučení tohoto souboru v aplikaci {0} (PID {1})…"
 
 #: forms/conflictview.py:262
 msgid "This file has received changes from both <i>our</i> branch and <i>their</i> branch."
-msgstr ""
+msgstr "Tento soubor byl změněn jak v <i>naší</i>, tak v <i>jejich</i> větvi."
 
 #: forms/conflictview.py:264 forms/conflictview.py:296
 #: forms/conflictview.py:311 forms/conflictview.py:331
 msgid "Keep OURS"
-msgstr ""
+msgstr "Ponechat NAŠI verzi"
 
 #: forms/conflictview.py:265 forms/conflictview.py:321
 #: forms/conflictview.py:332
 msgid "Accept THEIRS"
-msgstr ""
+msgstr "Přijmout JEJICH verzi"
 
 #: forms/conflictview.py:267 forms/conflictview.py:283
 #: forms/conflictview.py:334
 msgid "Resolve the conflict by <b>rejecting incoming changes</b>."
-msgstr ""
+msgstr "Vyřešit konflikt <b>odmítnutím příchozích změn</b>."
 
 #: forms/conflictview.py:268 forms/conflictview.py:335
 msgid "The file will remain unchanged from its state in HEAD."
-msgstr ""
+msgstr "Soubor zůstane beze změny oproti stavu v HEAD."
 
 #: forms/conflictview.py:270 forms/conflictview.py:286
 #: forms/conflictview.py:337
 msgid "Resolve the conflict by <b>accepting incoming changes</b>."
-msgstr ""
+msgstr "Vyřešit konflikt <b>přijetím příchozích změn</b>."
 
 #: forms/conflictview.py:271 forms/conflictview.py:338
 msgid "The file will be <b>replaced</b> with the incoming version."
-msgstr ""
+msgstr "Soubor bude <b>nahrazen</b> příchozí verzí."
 
 #: forms/conflictview.py:278
 msgid "This file was deleted from <i>our</i> branch, but <i>their</i> branch kept it and made changes to it."
 msgstr ""
+"Tento soubor byl z <i>naší</i> větve odstraněn, ale <i>jejich</i> větev jej "
+"ponechala a změnila."
 
 #: forms/conflictview.py:280
 msgid "Keep OUR deletion"
-msgstr ""
+msgstr "Ponechat NAŠE odstranění"
 
 #: forms/conflictview.py:281
 msgid "Accept THEIR version"
-msgstr ""
+msgstr "Přijmout JEJICH verzi"
 
 #: forms/conflictview.py:284
 msgid "The file won’t be added back to your branch."
-msgstr ""
+msgstr "Soubor nebude znovu přidán do vaší větve."
 
 #: forms/conflictview.py:287
 msgid "The file will be restored to your branch with the incoming changes."
-msgstr ""
+msgstr "Soubor bude s příchozími změnami obnoven do vaší větve."
 
 #: forms/conflictview.py:294
 msgid "We’ve made changes to this file in <i>our</i> branch, but <i>their</i> branch has deleted it."
 msgstr ""
+"V <i>naší</i> větvi jsme tento soubor změnili, ale <i>jejich</i> větev jej "
+"odstranila."
 
 #: forms/conflictview.py:297
 msgid "Accept deletion"
-msgstr ""
+msgstr "Přijmout odstranění"
 
 #: forms/conflictview.py:299
 msgid "Resolve the conflict by <b>rejecting the incoming deletion</b>."
-msgstr ""
+msgstr "Vyřešit konflikt <b>odmítnutím příchozího odstranění</b>."
 
 #: forms/conflictview.py:300
 msgid "Our version of the file will be kept intact."
-msgstr ""
+msgstr "Naše verze souboru zůstane beze změny."
 
 #: forms/conflictview.py:302
 msgid "Resolve the conflict by <b>accepting the incoming deletion</b>."
-msgstr ""
+msgstr "Vyřešit konflikt <b>přijetím příchozího odstranění</b>."
 
 #: forms/conflictview.py:303
 msgid "The file will be deleted."
-msgstr ""
+msgstr "Soubor bude odstraněn."
 
 #: forms/conflictview.py:310 forms/conflictview.py:319
 msgid "No common ancestor."
-msgstr ""
+msgstr "Žádný společný předek."
 
 #: forms/conflictview.py:312
 msgid "Delete it"
-msgstr ""
+msgstr "Odstranit"
 
 #: forms/conflictview.py:320
 msgid "Don’t add"
-msgstr ""
+msgstr "Nepřidávat"
 
 #: forms/conflictview.py:328
 msgid "This file has been created in both <i>our</i> branch and <i>their</i> branch, independently from each other. There is no common ancestor."
 msgstr ""
+"Tento soubor byl nezávisle vytvořen v <i>naší</i> i <i>jejich</i> větvi. "
+"Nemá žádného společného předka."
 
 #: forms/conflictview.py:345
 msgid "The file was deleted from <i>our</i> branch, and <i>their</i> branch has deleted it too."
 msgstr ""
+"Soubor byl odstraněn z <i>naší</i> větve a odstranila jej také <i>jejich</i> "
+"větev."
 
 #: forms/contextheader.py:35
 msgid "Maximize"
-msgstr ""
+msgstr "Maximalizovat"
 
 #: forms/contextheader.py:37
 msgid "Maximize the diff area and hide the commit graph"
-msgstr ""
+msgstr "Maximalizovat oblast porovnání a skrýt graf commitů"
 
 #: forms/contextheader.py:81
 msgctxt "noun"
 msgid "Commit"
-msgstr ""
+msgstr "Commit"
 
 #: forms/contextheader.py:81
 msgctxt "noun"
 msgid "Stash"
-msgstr ""
+msgstr "Odložené změny"
 
 #: forms/contextheader.py:85
 msgid "Info"
-msgstr ""
+msgstr "Informace"
 
 #: forms/contextheader.py:86
 msgid "Show details about this commit"
-msgstr ""
+msgstr "Zobrazit podrobnosti o tomto commitu"
 
 #: forms/contextheader.py:87
 msgid "Show details about this stash"
-msgstr ""
+msgstr "Zobrazit podrobnosti o těchto odložených změnách"
 
 #: forms/contextheader.py:90 tasks/indextasks.py:141
 msgid "Delete"
-msgstr ""
+msgstr "Odstranit"
 
 #: forms/contextheader.py:91
 msgid "Delete this stash"
-msgstr ""
+msgstr "Odstranit tyto odložené změny"
 
 #: forms/contextheader.py:93 tasks/indextasks.py:407 tasks/indextasks.py:481
 msgid "Apply"
-msgstr ""
+msgstr "Použít"
 
 #: forms/contextheader.py:94
 msgid "Apply this stash"
-msgstr ""
+msgstr "Použít tyto odložené změny"
 
 #: forms/contextheader.py:97 graphview/commitlogdelegate.py:570
 msgid "Working Directory"
-msgstr ""
+msgstr "Pracovní adresář"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally"
-msgstr ""
+msgstr "O&dstranit místně"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally && Remotely"
-msgstr ""
+msgstr "O&dstranit místně && vzdáleně"
 
 #: forms/deletetagdialog.py:47
 #, python-brace-format
 msgid "Delete tag {0}"
-msgstr ""
+msgstr "Odstranit značku {0}"
 
 #: forms/deletetagdialog.py:48
 #, python-brace-format
 msgid "Tagged commit: {0}"
-msgstr ""
+msgstr "Označený commit: {0}"
 
 #: forms/identitydialog.py:44
 msgid "This information will be embedded in the commits and tags that you create on this machine."
 msgstr ""
+"Tyto údaje budou vloženy do commitů a značek, které na tomto počítači "
+"vytvoříte."
 
 #: forms/identitydialog.py:46
 msgid "Before editing this repository, please set up your identity for Git."
-msgstr ""
+msgstr "Než začnete tento repozitář upravovat, nastavte svou identitu pro Git."
 
 #: forms/ignorepatterndialog.py:40
 #, python-brace-format
 msgid "Based off: {0}"
-msgstr ""
+msgstr "Vychází z: {0}"
 
 #: forms/ignorepatterndialog.py:72
 msgid "This pattern doesn’t match the file that you selected."
-msgstr ""
+msgstr "Tento vzor neodpovídá vybranému souboru."
 
 #: forms/ignorepatterndialog.py:79
 msgid "Just this specific path"
-msgstr ""
+msgstr "Pouze tato konkrétní cesta"
 
 #: forms/ignorepatterndialog.py:85
 msgid "Everything in this directory"
-msgstr ""
+msgstr "Vše v tomto adresáři"
 
 #: forms/ignorepatterndialog.py:90
 #, python-brace-format
 msgid "All {0} files in this directory tree"
-msgstr ""
+msgstr "Všechny soubory {0} v tomto adresářovém stromu"
 
 #: forms/ignorepatterndialog.py:91
 #, python-brace-format
 msgid "Any {0} file"
-msgstr ""
+msgstr "Libovolný soubor {0}"
 
 #: forms/ignorepatterndialog.py:93
 msgid "Any file with this exact name"
-msgstr ""
+msgstr "Libovolný soubor přesně s tímto názvem"
 
 #: forms/ignorepatterndialog.py:100
 msgid "Share pattern with other contributors"
-msgstr ""
+msgstr "Sdílet vzor s ostatními přispěvateli"
 
 #: forms/ignorepatterndialog.py:101
 msgid "Keep pattern private on this machine"
-msgstr ""
+msgstr "Ponechat vzor soukromý na tomto počítači"
 
 #: forms/keyfilepickercheckbox.py:20
 #, python-brace-format
 msgid "{app} normally uses public/private keys in {path} to authenticate you with remote servers."
 msgstr ""
+"{app} vás ke vzdáleným serverům obvykle ověřuje pomocí veřejných a "
+"soukromých klíčů v {path}."
 
 #: forms/keyfilepickercheckbox.py:22
 msgid "Tick this box if you want to access this remote with a custom key."
@@ -1594,141 +1655,141 @@ msgstr ""
 
 #: forms/keyfilepickercheckbox.py:29
 msgid "Select public key file for this remote"
-msgstr ""
+msgstr "Vybrat soubor s veřejným klíčem pro tento vzdálený repozitář"
 
 #: forms/keyfilepickercheckbox.py:30
 msgid "Public key file"
-msgstr ""
+msgstr "Soubor s veřejným klíčem"
 
 #: forms/keyfilepickercheckbox.py:40
 msgid "File not found."
-msgstr ""
+msgstr "Soubor nebyl nalezen."
 
 #: forms/keyfilepickercheckbox.py:45
 msgid "Accompanying private key not found."
-msgstr ""
+msgstr "Příslušný soukromý klíč nebyl nalezen."
 
 #: forms/keyfilepickercheckbox.py:49
 msgid "Accompanying public key not found."
-msgstr ""
+msgstr "Příslušný veřejný klíč nebyl nalezen."
 
 #: forms/maintoolbar.py:32 trtables.py:354
 msgid "Show toolbar"
-msgstr ""
+msgstr "Zobrazit panel nástrojů"
 
 #: forms/maintoolbar.py:51 trtables.py:465
 msgid "Terminal"
-msgstr ""
+msgstr "Terminál"
 
 #: forms/maintoolbar.py:53
 msgid "Open a terminal in the repo"
-msgstr ""
+msgstr "Otevřít terminál v repozitáři"
 
 #: forms/maintoolbar.py:57
 msgid "Open…"
-msgstr ""
+msgstr "Otevřít…"
 
 #: forms/maintoolbar.py:59 mainwindow.py:213
 msgid "Open a Git repo on your machine"
-msgstr ""
+msgstr "Otevřít repozitář Git v počítači"
 
 #: forms/maintoolbar.py:63
 msgid "Settings"
-msgstr ""
+msgstr "Nastavení"
 
 #: forms/maintoolbar.py:65 mainwindow.py:230
 #, python-brace-format
 msgid "Configure {app}"
-msgstr ""
+msgstr "Nastavit aplikaci {app}"
 
 #: forms/maintoolbar.py:84
 msgid "Reveal"
-msgstr ""
+msgstr "Odkrýt"
 
 #: forms/maintoolbar.py:86
 msgid "Open repo folder in file manager"
-msgstr ""
+msgstr "Otevřít složku repozitáře ve správci souborů"
 
 #: forms/maintoolbar.py:145
 msgid "Text Position"
-msgstr ""
+msgstr "Umístění textu"
 
 #: forms/maintoolbar.py:147 trtables.py:222
 msgid "Icons Only"
-msgstr ""
+msgstr "Pouze ikony"
 
 #: forms/maintoolbar.py:148
 msgid "Text Only"
-msgstr ""
+msgstr "Pouze text"
 
 #: forms/maintoolbar.py:149
 msgid "Text Alongside Icons"
-msgstr ""
+msgstr "Text vedle ikon"
 
 #: forms/maintoolbar.py:150
 msgid "Text Under Icons"
-msgstr ""
+msgstr "Text pod ikonami"
 
 #: forms/maintoolbar.py:155
 msgid "Icon Size"
-msgstr ""
+msgstr "Velikost ikon"
 
 #: forms/maintoolbar.py:157
 msgid "Small"
-msgstr ""
+msgstr "Malé"
 
 #: forms/maintoolbar.py:158
 msgid "Medium"
-msgstr ""
+msgstr "Střední"
 
 #: forms/maintoolbar.py:159
 msgid "Large"
-msgstr ""
+msgstr "Velké"
 
 #: forms/maintoolbar.py:160
 msgid "Huge"
-msgstr ""
+msgstr "Obrovské"
 
 #: forms/newbranchdialog.py:31 forms/newtagdialog.py:41
 msgid "&Create"
-msgstr ""
+msgstr "&Vytvořit"
 
 #: forms/newbranchdialog.py:48
 msgid "(blocked by conflicts)"
-msgstr ""
+msgstr "(blokováno konflikty)"
 
 #: forms/newbranchdialog.py:51 tasks/branchtasks.py:76
 msgid "This name is already taken by another local branch."
-msgstr ""
+msgstr "Tento název už používá jiná místní větev."
 
 #: forms/newbranchdialog.py:57
 msgid "New branch"
-msgstr ""
+msgstr "Nová větev"
 
 #: forms/newbranchdialog.py:58
 msgid "Commit at tip:"
-msgstr ""
+msgstr "Commit na špičce:"
 
 #: forms/newtagdialog.py:17 sidebar/sidebar.py:979
 msgid "No Remotes"
-msgstr ""
+msgstr "Žádné vzdálené repozitáře"
 
 #: forms/newtagdialog.py:19
 msgid "All Remotes"
-msgstr ""
+msgstr "Všechny vzdálené repozitáře"
 
 #: forms/newtagdialog.py:41
 msgid "&Create && Push"
-msgstr ""
+msgstr "&Vytvořit && odeslat"
 
 #: forms/newtagdialog.py:46
 msgid "This name is already taken by another tag."
-msgstr ""
+msgstr "Tento název už používá jiná značka."
 
 #: forms/newtagdialog.py:61
 #, python-brace-format
 msgid "New tag on commit {0}"
-msgstr ""
+msgstr "Nová značka na commitu {0}"
 
 #: forms/passphrasedialog.py:20
 msgid "Passphrase-protected key file"
@@ -1744,21 +1805,21 @@ msgstr ""
 
 #: forms/passphrasedialog.py:36 forms/passphrasedialog.py:50
 msgid "Reveal passphrase"
-msgstr ""
+msgstr "Zobrazit přístupovou frázi"
 
 #: forms/passphrasedialog.py:50
 msgid "Hide passphrase"
-msgstr ""
+msgstr "Skrýt přístupovou frázi"
 
 #: forms/prefsdialog.py:56
 #, python-brace-format
 msgid "{app} Settings"
-msgstr ""
+msgstr "Nastavení aplikace {app}"
 
 #: forms/prefsdialog.py:224
 #, python-brace-format
 msgid "{0} Handy Reference"
-msgstr ""
+msgstr "Praktická nápověda k {0}"
 
 #: forms/prefsdialog.py:309
 msgid "Image"
@@ -1771,16 +1832,16 @@ msgstr ""
 #: forms/prefsdialog.py:349
 msgctxt "system default language setting"
 msgid "System default"
-msgstr ""
+msgstr "Výchozí nastavení systému"
 
 #: forms/prefsdialog.py:398
 msgctxt "hint user to leave the field blank"
 msgid "leave blank"
-msgstr ""
+msgstr "ponechte prázdné"
 
 #: forms/prefsdialog.py:404
 msgid "Leave blank for system default."
-msgstr ""
+msgstr "Pro výchozí nastavení systému ponechte prázdné."
 
 #: forms/prefsdialog.py:432
 #, python-brace-format
@@ -1789,47 +1850,50 @@ msgid ""
 "# You can then launch them from the {menu} menu.\n"
 "# Click {button} below for more information."
 msgstr ""
+"# Zde zadejte vlastní terminálové příkazy.\n"
+"# Poté je můžete spouštět z nabídky {menu}.\n"
+"# Další informace zobrazíte kliknutím na tlačítko {button} níže."
 
 #: forms/prefsdialog.py:435 mainwindow.py:353 trtables.py:501
 msgid "&Commands"
-msgstr ""
+msgstr "&Příkazy"
 
 #: forms/prefsdialog.py:436
 msgid "Handy Reference"
-msgstr ""
+msgstr "Praktická nápověda"
 
 #: forms/prefsdialog.py:500
 msgctxt "system default theme setting"
 msgid "System default"
-msgstr ""
+msgstr "Výchozí nastavení systému"
 
 #: forms/prefsdialog.py:550
 #, python-brace-format
 msgid "This feature requires {0}."
-msgstr ""
+msgstr "Tato funkce vyžaduje {0}."
 
 #: forms/prefsdialog.py:554
 #, python-brace-format
 msgctxt "syntax highlighting"
 msgid "Automatic ({name})"
-msgstr ""
+msgstr "Automatické ({name})"
 
 #: forms/prefsdialog.py:555
 msgctxt "syntax highlighting"
 msgid "Off"
-msgstr ""
+msgstr "Vypnuto"
 
 #: forms/prefsdialog.py:590
 msgid "Red and green"
-msgstr ""
+msgstr "Červená a zelená"
 
 #: forms/prefsdialog.py:591
 msgid "Colorblind-friendly"
-msgstr ""
+msgstr "Vhodné pro barvoslepé"
 
 #: forms/protocolbutton.py:19
 msgid "Change URL protocol"
-msgstr ""
+msgstr "Změnit protokol URL"
 
 #: forms/pushdialog.py:34
 #, python-brace-format
@@ -1843,99 +1907,99 @@ msgstr ""
 #: forms/pushdialog.py:85
 #, python-brace-format
 msgid "{0} will track {1}."
-msgstr ""
+msgstr "{0} bude sledovat {1}."
 
 #: forms/pushdialog.py:87
 #, python-brace-format
 msgid "{0} currently does not track any remote branch."
-msgstr ""
+msgstr "{0} nyní nesleduje žádnou vzdálenou větev."
 
 #: forms/pushdialog.py:89
 #, python-brace-format
 msgid "{0} already tracks remote branch {1}."
-msgstr ""
+msgstr "{0} už sleduje vzdálenou větev {1}."
 
 #: forms/pushdialog.py:91
 #, python-brace-format
 msgid "{0} will track {1} instead of {2}."
-msgstr ""
+msgstr "{0} bude namísto {2} sledovat {1}."
 
 #: forms/pushdialog.py:93
 #, python-brace-format
 msgid "{0} currently tracks {1}."
-msgstr ""
+msgstr "{0} nyní sleduje {1}."
 
 #: forms/pushdialog.py:200
 msgid "[tracked]"
-msgstr ""
+msgstr "[sledována]"
 
 #: forms/pushdialog.py:207
 #, python-brace-format
 msgid "New remote branch on {0}"
-msgstr ""
+msgstr "Nová vzdálená větev v {0}"
 
 #: forms/pushdialog.py:225 forms/pushdialog.py:266
 msgid "&Push"
-msgstr ""
+msgstr "&Odeslat"
 
 #: forms/pushdialog.py:260
 msgid "Force &push"
-msgstr ""
+msgstr "Vynutit &odeslání"
 
 #: forms/pushdialog.py:262
 msgid "Force push: Destructive action!"
-msgstr ""
+msgstr "Vynucené odeslání: destruktivní akce!"
 
 #: forms/pushdialog.py:264
 msgid "&Push new branch"
-msgstr ""
+msgstr "&Odeslat novou větev"
 
 #: forms/pushdialog.py:280 tasks/nettasks.py:102
 msgid "This name is already taken by another branch on this remote."
-msgstr ""
+msgstr "Tento název už používá jiná větev v tomto vzdáleném repozitáři."
 
 #: forms/registersubmoduledialog.py:36
 msgid "Reset to default name"
-msgstr ""
+msgstr "Obnovit výchozí název"
 
 #: forms/registersubmoduledialog.py:42 forms/registersubmoduledialog.py:43
 #: tasks/taskbook.py:33
 msgid "Absorb submodule"
-msgstr ""
+msgstr "Převzít submodul"
 
 #: forms/registersubmoduledialog.py:46 forms/registersubmoduledialog.py:47
 #: tasks/taskbook.py:84
 msgid "Register submodule"
-msgstr ""
+msgstr "Zaregistrovat submodul"
 
 #: forms/registersubmoduledialog.py:70
 msgid "This name is already taken by another submodule."
-msgstr ""
+msgstr "Tento název už používá jiný submodul."
 
 #: forms/remotedialog.py:34
 msgid "This name is already taken by another remote."
-msgstr ""
+msgstr "Tento název už používá jiný vzdálený repozitář."
 
 #: forms/remotedialog.py:44
 #, python-brace-format
 msgid "Edit remote {0}"
-msgstr ""
+msgstr "Upravit vzdálený repozitář {0}"
 
 #: forms/remotedialog.py:45 tasks/taskbook.py:51
 msgid "Edit remote"
-msgstr ""
+msgstr "Upravit vzdálený repozitář"
 
 #: forms/remotedialog.py:46
 msgid "Save"
-msgstr ""
+msgstr "Uložit"
 
 #: forms/remotedialog.py:52 forms/remotedialog.py:53 tasks/taskbook.py:75
 msgid "Add remote"
-msgstr ""
+msgstr "Přidat vzdálený repozitář"
 
 #: forms/remotedialog.py:54
 msgid "Add"
-msgstr ""
+msgstr "Přidat"
 
 #: forms/remotelinkdialog.py:18
 msgid "Remote operation"
@@ -1952,43 +2016,43 @@ msgstr ""
 #: forms/reposettingsdialog.py:43
 msgctxt "RepoSettingsDialog"
 msgid "from global config"
-msgstr ""
+msgstr "z globální konfigurace"
 
 #: forms/reposettingsdialog.py:45
 msgctxt "RepoSettingsDialog"
 msgid "global git identity not configured"
-msgstr ""
+msgstr "globální identita Git není nastavena"
 
 #: forms/repostub.py:74
 msgid "Aborting. Just a moment…"
-msgstr ""
+msgstr "Přerušování. Okamžik strpení…"
 
 #: forms/repostub.py:91
 #, python-brace-format
 msgid "Opening {0}…"
-msgstr ""
+msgstr "Otevírání {0}…"
 
 #: forms/repostub.py:102
 msgid "Try to reload"
-msgstr ""
+msgstr "Zkusit načíst znovu"
 
 #: forms/repostub.py:109
 msgid "Loading interrupted. Just a moment…"
-msgstr ""
+msgstr "Načítání přerušeno. Okamžik strpení…"
 
 #: forms/resetheaddialog.py:27
 msgid "Hard reset: Destructive action!"
-msgstr ""
+msgstr "Tvrdý reset: destruktivní akce!"
 
 #: forms/resetheaddialog.py:77
 #, python-brace-format
 msgid "Reset {0} to {1}"
-msgstr ""
+msgstr "Resetovat {0} na {1}"
 
 #: forms/resetheaddialog.py:81
 #, python-brace-format
 msgid "Commit {0}:"
-msgstr ""
+msgstr "Commit {0}:"
 
 #: forms/searchbar.py:225
 #, python-brace-format
@@ -1997,130 +2061,134 @@ msgstr ""
 
 #: forms/stashdialog.py:58
 msgid "Stash && Keep Changes"
-msgstr ""
+msgstr "Odložit && ponechat změny"
 
 #: forms/stashdialog.py:58
 msgid "Stash && Reset Changes"
-msgstr ""
+msgstr "Odložit && resetovat změny"
 
 #: forms/stashdialog.py:60
 msgid "&Include these files in the stash, then reset them to their unmodified state:"
 msgstr ""
+"&Zahrnout tyto soubory do odložených změn a poté je resetovat do nezměněného "
+"stavu:"
 
 #: forms/stashdialog.py:61
 msgid "&Include these files in the stash:"
-msgstr ""
+msgstr "&Zahrnout tyto soubory do odložených změn:"
 
 #: forms/ui_aboutdialog.py:158
 #, python-brace-format
 msgctxt "AboutDialog"
 msgid "About {0}"
-msgstr ""
+msgstr "O aplikaci {0}"
 
 #: forms/ui_aboutdialog.py:159
 msgctxt "AboutDialog"
 msgid "About"
-msgstr ""
+msgstr "O aplikaci"
 
 #: forms/ui_aboutdialog.py:160
 msgctxt "AboutDialog"
 msgid "Components"
-msgstr ""
+msgstr "Součásti"
 
 #: forms/ui_aboutdialog.py:161
 msgctxt "AboutDialog"
 msgid "Acknowledgments"
-msgstr ""
+msgstr "Poděkování"
 
 #: forms/ui_aboutdialog.py:162
 msgctxt "AboutDialog"
 msgid "License"
-msgstr ""
+msgstr "Licence"
 
 #: forms/ui_checkoutcommitdialog.py:94
 msgctxt "CheckoutCommitDialog"
 msgid "Check out commit"
-msgstr ""
+msgstr "Přepnout na commit"
 
 #: forms/ui_checkoutcommitdialog.py:95
 msgctxt "CheckoutCommitDialog"
 msgid "How do you want to check out this commit?"
-msgstr ""
+msgstr "Jak se chcete na tento commit přepnout?"
 
 #: forms/ui_checkoutcommitdialog.py:96
 msgctxt "CheckoutCommitDialog"
 msgid "Switch to &branch:"
-msgstr ""
+msgstr "Přepnout na &větev:"
 
 #: forms/ui_checkoutcommitdialog.py:97
 msgctxt "CheckoutCommitDialog"
 msgid "List of branches that point to this commit."
-msgstr ""
+msgstr "Seznam větví, které ukazují na tento commit."
 
 #: forms/ui_checkoutcommitdialog.py:98
 msgctxt "CheckoutCommitDialog"
 msgid "Enter &detached HEAD here"
-msgstr ""
+msgstr "Přejít sem s o&dpojeným HEAD"
 
 #: forms/ui_checkoutcommitdialog.py:99
 msgctxt "CheckoutCommitDialog"
 msgid "&Reset HEAD here…"
-msgstr ""
+msgstr "&Resetovat sem HEAD…"
 
 #: forms/ui_checkoutcommitdialog.py:100
 msgctxt "CheckoutCommitDialog"
 msgid "&Merge into HEAD…"
-msgstr ""
+msgstr "&Sloučit do HEAD…"
 
 #: forms/ui_checkoutcommitdialog.py:101
 msgctxt "CheckoutCommitDialog"
 msgid "Start &new branch here…"
-msgstr ""
+msgstr "Zde vytvořit &novou větev…"
 
 #: forms/ui_checkoutcommitdialog.py:102
 msgctxt "CheckoutCommitDialog"
 msgid "After the checkout:"
-msgstr ""
+msgstr "Po přepnutí:"
 
 #: forms/ui_checkoutcommitdialog.py:103
 msgctxt "CheckoutCommitDialog"
 msgid "Update submodules recursively"
-msgstr ""
+msgstr "Rekurzivně aktualizovat submoduly"
 
 #: forms/ui_clonedialog.py:130
 msgctxt "CloneDialog"
 msgid "Clone repository"
-msgstr ""
+msgstr "Klonovat repozitář"
 
 #: forms/ui_clonedialog.py:131
 msgctxt "CloneDialog"
 msgid "Remote &URL:"
-msgstr ""
+msgstr "&URL vzdáleného repozitáře:"
 
 #: forms/ui_clonedialog.py:132
 msgctxt "CloneDialog"
 msgid "Clone in&to:"
-msgstr ""
+msgstr "Klonovat &do:"
 
 #: forms/ui_clonedialog.py:133
 msgctxt "CloneDialog"
 msgid "&Browse…"
-msgstr ""
+msgstr "&Procházet…"
 
 #: forms/ui_clonedialog.py:134
 msgctxt "CloneDialog"
 msgid "Options:"
-msgstr ""
+msgstr "Možnosti:"
 
 #: forms/ui_clonedialog.py:135
 msgctxt "CloneDialog"
 msgid "Initialize submodules recursively (if any)"
-msgstr ""
+msgstr "Rekurzivně inicializovat submoduly (pokud existují)"
 
 #: forms/ui_clonedialog.py:136
 msgctxt "CloneDialog"
 msgid "<p>Tick this to download just the latest commits, not the entire history of the repository."
 msgstr ""
+"<p>Zaškrtnutím stáhnete pouze nejnovější commity, nikoli celou historii "
+"repozitáře."
 
 #: forms/ui_clonedialog.py:137
 msgctxt "CloneDialog"
@@ -2135,22 +2203,24 @@ msgstr ""
 #: forms/ui_commitdialog.py:95
 msgctxt "CommitDialog"
 msgid "Commit"
-msgstr ""
+msgstr "Commit"
 
 #: forms/ui_commitdialog.py:96
 msgctxt "CommitDialog"
 msgid "Enter commit summary"
-msgstr ""
+msgstr "Zadejte shrnutí commitu"
 
 #: forms/ui_commitdialog.py:97
 msgctxt "CommitDialog"
 msgid "<p>Length of the summary. Convention is to stay under 50 characters and avoid going over 72. If that’s not enough, use the long-form description.</p>"
 msgstr ""
+"<p>Délka shrnutí. Podle zvyklostí by nemělo překročit 50 znaků a rozhodně ne "
+"72. Pokud to nestačí, použijte podrobný popis.</p>"
 
 #: forms/ui_commitdialog.py:98
 msgctxt "CommitDialog"
 msgid "Long-form description (optional)"
-msgstr ""
+msgstr "Podrobný popis (nepovinný)"
 
 #: forms/ui_commitdialog.py:99
 msgctxt "CommitDialog"
@@ -2160,119 +2230,124 @@ msgstr ""
 #: forms/ui_commitdialog.py:100
 msgctxt "CommitDialog"
 msgid "Preview"
-msgstr ""
+msgstr "Náhled"
 
 #: forms/ui_conflictview.py:228
 msgctxt "ConflictView"
 msgid "Merge conflict"
-msgstr ""
+msgstr "Konflikt při slučování"
 
 #: forms/ui_conflictview.py:229
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "Merge conflict on {0}"
-msgstr ""
+msgstr "Konflikt při slučování souboru {0}"
 
 #: forms/ui_conflictview.py:230
 msgctxt "ConflictView"
 msgid "OUR version"
-msgstr ""
+msgstr "NAŠE verze"
 
 #: forms/ui_conflictview.py:231
 msgctxt "ConflictView"
 msgid "or"
-msgstr ""
+msgstr "nebo"
 
 #: forms/ui_conflictview.py:232
 msgctxt "ConflictView"
 msgid "THEIR version"
-msgstr ""
+msgstr "JEJICH verze"
 
 #: forms/ui_conflictview.py:233
 msgctxt "ConflictView"
 msgid "Select another external merge tool in the Settings."
-msgstr ""
+msgstr "V nastavení vyberte jiný externí slučovací nástroj."
 
 #: forms/ui_conflictview.py:234
 msgctxt "ConflictView"
 msgid "Change merge tool…"
-msgstr ""
+msgstr "Změnit slučovací nástroj…"
 
 #: forms/ui_conflictview.py:235
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Open {tool} so you can merge both versions by hand. When you are done, save the file and quit {tool} to resolve the conflict."
 msgstr ""
+"<p>Otevřete nástroj {tool} a obě verze ručně slučte. Po dokončení soubor "
+"uložte a nástroj {tool} ukončete, čímž konflikt vyřešíte."
 
 #: forms/ui_conflictview.py:236
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "Merge both versions in {tool}"
-msgstr ""
+msgstr "Sloučit obě verze v nástroji {tool}"
 
 #: forms/ui_conflictview.py:237
 msgctxt "ConflictView"
 msgid "Abort"
-msgstr ""
+msgstr "Přerušit"
 
 #: forms/ui_conflictview.py:238
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Ignore the merge that you made in {tool} so that you can start over."
 msgstr ""
+"<p>Zahodit sloučení provedené v nástroji {tool}, abyste mohli začít znovu."
 
 #: forms/ui_conflictview.py:239
 msgctxt "ConflictView"
 msgid "Discard this merge"
-msgstr ""
+msgstr "Zahodit toto sloučení"
 
 #: forms/ui_conflictview.py:240
 msgctxt "ConflictView"
 msgid "It looks like you’ve finished merging this file."
-msgstr ""
+msgstr "Zdá se, že jste slučování tohoto souboru dokončili."
 
 #: forms/ui_conflictview.py:241
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Merge this file in {tool} again, starting where you left off."
 msgstr ""
+"<p>Znovu sloučit tento soubor v nástroji {tool} od místa, kde jste skončili."
 
 #: forms/ui_conflictview.py:242
 msgctxt "ConflictView"
 msgid "Merge again"
-msgstr ""
+msgstr "Sloučit znovu"
 
 #: forms/ui_conflictview.py:243
 #, python-brace-format
 msgctxt "ConflictView"
 msgid "<p>Resolve this conflict by accepting the merge that you’ve completed in {tool}."
 msgstr ""
+"<p>Vyřešit tento konflikt přijetím sloučení dokončeného v nástroji {tool}."
 
 #: forms/ui_conflictview.py:244
 msgctxt "ConflictView"
 msgid "Resolve the conflict with your merge"
-msgstr ""
+msgstr "Vyřešit konflikt vaším sloučením"
 
 #: forms/ui_conflictview.py:245
 msgctxt "ConflictView"
 msgid "Confirm deletion"
-msgstr ""
+msgstr "Potvrdit odstranění"
 
 #: forms/ui_deletetagdialog.py:50
 msgctxt "DeleteTagDialog"
 msgid "Delete tag"
-msgstr ""
+msgstr "Odstranit značku"
 
 #: forms/ui_deletetagdialog.py:51
 #, python-brace-format
 msgctxt "DeleteTagDialog"
 msgid "Really delete tag {0}?"
-msgstr ""
+msgstr "Opravdu chcete odstranit značku {0}?"
 
 #: forms/ui_deletetagdialog.py:52
 msgctxt "DeleteTagDialog"
 msgid "&Push deletion to:"
-msgstr ""
+msgstr "&Odeslat odstranění do:"
 
 #: forms/ui_donateprompt.py:90
 #, python-brace-format
@@ -2284,149 +2359,157 @@ msgid ""
 "\n"
 "-Iliyas"
 msgstr ""
+"Ahoj! Doufám, že se vám {app} líbí.\n"
+"\n"
+"Pokud vám {app} pomáhá při práci, zvažte prosím drobný příspěvek! Povzbudí "
+"mě to k dalšímu vývoji. Děkuji!\n"
+"\n"
+"–Iliyas"
 
 #: forms/ui_donateprompt.py:95
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Donate {amount}"
-msgstr ""
+msgstr "Přispět {amount}"
 
 #: forms/ui_donateprompt.py:96
 msgctxt "DonatePrompt"
 msgid "Never show this again"
-msgstr ""
+msgstr "Už nikdy nezobrazovat"
 
 #: forms/ui_donateprompt.py:97
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Remind me in {month}"
-msgstr ""
+msgstr "Připomenout za {month}"
 
 #: forms/ui_donateprompt.py:98
 msgctxt "DonatePrompt"
 msgid "THANK YOU!"
-msgstr ""
+msgstr "DĚKUJI!"
 
 #: forms/ui_identitydialog.py:63
 msgctxt "IdentityDialog"
 msgid "Set up your Git identity"
-msgstr ""
+msgstr "Nastavit identitu Git"
 
 #: forms/ui_identitydialog.py:64
 msgctxt "IdentityDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Jméno:"
 
 #: forms/ui_identitydialog.py:65
 msgctxt "IdentityDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&E-mail:"
 
 #: forms/ui_identitydialog.py:66
 msgctxt "IdentityDialog"
 msgid "Note: This will not apply to the current repository, because its configuration file defines a custom identity."
 msgstr ""
+"Poznámka: Na aktuální repozitář se toto nastavení nepoužije, protože jeho "
+"konfigurační soubor definuje vlastní identitu."
 
 #: forms/ui_identitydialog.py:67
 #, python-brace-format
 msgctxt "IdentityDialog"
 msgid "This information will be saved in {0}."
-msgstr ""
+msgstr "Tyto údaje budou uloženy do {0}."
 
 #: forms/ui_ignorepatterndialog.py:55
 msgctxt "IgnorePatternDialog"
 msgid "Ignore file name pattern"
-msgstr ""
+msgstr "Ignorovat vzor názvu souboru"
 
 #: forms/ui_ignorepatterndialog.py:56
 msgctxt "IgnorePatternDialog"
 msgid "&Pattern:"
-msgstr ""
+msgstr "&Vzor:"
 
 #: forms/ui_ignorepatterndialog.py:57
 msgctxt "IgnorePatternDialog"
 msgid "&Add to:"
-msgstr ""
+msgstr "&Přidat do:"
 
 #: forms/ui_newbranchdialog.py:81
 msgctxt "NewBranchDialog"
 msgid "New branch"
-msgstr ""
+msgstr "Nová větev"
 
 #: forms/ui_newbranchdialog.py:82
 msgctxt "NewBranchDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Název:"
 
 #: forms/ui_newbranchdialog.py:83
 msgctxt "NewBranchDialog"
 msgid "Options:"
-msgstr ""
+msgstr "Možnosti:"
 
 #: forms/ui_newbranchdialog.py:84
 msgctxt "NewBranchDialog"
 msgid "&Switch to branch after creating"
-msgstr ""
+msgstr "Po vytvoření se &přepnout na větev"
 
 #: forms/ui_newbranchdialog.py:85
 msgctxt "NewBranchDialog"
 msgid "&Track upstream branch:"
-msgstr ""
+msgstr "&Sledovat nadřazenou větev:"
 
 #: forms/ui_newbranchdialog.py:86
 msgctxt "NewBranchDialog"
 msgid "…then update submodules recursively"
-msgstr ""
+msgstr "…a poté rekurzivně aktualizovat submoduly"
 
 #: forms/ui_newtagdialog.py:60
 msgctxt "NewTagDialog"
 msgid "New tag"
-msgstr ""
+msgstr "Nová značka"
 
 #: forms/ui_newtagdialog.py:61
 msgctxt "NewTagDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Název:"
 
 #: forms/ui_newtagdialog.py:62
 msgctxt "NewTagDialog"
 msgid "Enter tag name"
-msgstr ""
+msgstr "Zadejte název značky"
 
 #: forms/ui_newtagdialog.py:63
 msgctxt "NewTagDialog"
 msgid "&Push to:"
-msgstr ""
+msgstr "&Odeslat do:"
 
 #: forms/ui_pushdialog.py:126
 msgctxt "PushDialog"
 msgid "Push branch"
-msgstr ""
+msgstr "Odeslat větev"
 
 #: forms/ui_pushdialog.py:127
 msgctxt "PushDialog"
 msgid "&Local branch:"
-msgstr ""
+msgstr "&Místní větev:"
 
 #: forms/ui_pushdialog.py:128
 msgctxt "PushDialog"
 msgid "Push &to:"
-msgstr ""
+msgstr "Odeslat &do:"
 
 #: forms/ui_pushdialog.py:129
 msgctxt "PushDialog"
 msgid "Branch name on remote"
-msgstr ""
+msgstr "Název větve ve vzdáleném repozitáři"
 
 #: forms/ui_pushdialog.py:130
 msgctxt "PushDialog"
 msgid "&Force push"
-msgstr ""
+msgstr "&Vynutit odeslání"
 
 #: forms/ui_pushdialog.py:131
 msgctxt "PushDialog"
 msgid "&Track this remote branch after pushing"
-msgstr ""
+msgstr "Po odeslání &sledovat tuto vzdálenou větev"
 
 #: forms/ui_pushdialog.py:132
 msgctxt "PushDialog"
@@ -2436,53 +2519,60 @@ msgstr ""
 #: forms/ui_registersubmoduledialog.py:96
 msgctxt "RegisterSubmoduleDialog"
 msgid "Register submodule"
-msgstr ""
+msgstr "Zaregistrovat submodul"
 
 #: forms/ui_registersubmoduledialog.py:97
 msgctxt "RegisterSubmoduleDialog"
 msgid "Workdir:"
-msgstr ""
+msgstr "Pracovní adresář:"
 
 #: forms/ui_registersubmoduledialog.py:98
 msgctxt "RegisterSubmoduleDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Název:"
 
 #: forms/ui_registersubmoduledialog.py:99
 msgctxt "RegisterSubmoduleDialog"
 msgid "&Remote:"
-msgstr ""
+msgstr "&Vzdálený repozitář:"
 
 #: forms/ui_registersubmoduledialog.py:100
 msgctxt "RegisterSubmoduleDialog"
 msgid "<p>This will be the default remote for this submodule. People who clone your repo will use this remote to download the submodule."
 msgstr ""
+"<p>Toto bude výchozí vzdálený repozitář submodulu. Lidé, kteří naklonují váš "
+"repozitář, z něj submodul stáhnou."
 
 #: forms/ui_registersubmoduledialog.py:101
 #, python-brace-format
 msgctxt "RegisterSubmoduleDialog"
 msgid "Once absorbed as a submodule, this copy of {sub} cannot be used independently from its superproject, {super}. This cannot be undone!"
 msgstr ""
+"Po převzetí jako submodulu nebude možné tuto kopii {sub} používat nezávisle "
+"na jejím superprojektu {super}. Tuto akci nelze vrátit zpět!"
 
 #: forms/ui_registersubmoduledialog.py:102
 msgctxt "RegisterSubmoduleDialog"
 msgid "<p>This name uniquely identifies your submodule in “.gitmodules”. It can be anything you like, but common practice is to simply name it after the submodule’s workdir."
 msgstr ""
+"<p>Tento název jednoznačně identifikuje submodul v souboru „.gitmodules“. "
+"Může být libovolný, ale obvykle se používá název pracovního adresáře "
+"submodulu."
 
 #: forms/ui_remotedialog.py:71
 msgctxt "RemoteDialog"
 msgid "Edit remote"
-msgstr ""
+msgstr "Upravit vzdálený repozitář"
 
 #: forms/ui_remotedialog.py:72
 msgctxt "RemoteDialog"
 msgid "&URL:"
-msgstr ""
+msgstr "&URL:"
 
 #: forms/ui_remotedialog.py:73
 msgctxt "RemoteDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Název:"
 
 #: forms/ui_remotedialog.py:74
 msgctxt "RemoteDialog"
@@ -2492,7 +2582,7 @@ msgstr ""
 #: forms/ui_remotedialog.py:75
 msgctxt "RemoteDialog"
 msgid "&Fetch remote branches after adding"
-msgstr ""
+msgstr "Po přidání &načíst vzdálené větve"
 
 #: forms/ui_remotelinkdialog.py:58
 msgctxt "RemoteLinkDialog"
@@ -2503,58 +2593,61 @@ msgstr ""
 #, python-brace-format
 msgctxt "RepoSettingsDialog"
 msgid "Repo Settings for {repo}"
-msgstr ""
+msgstr "Nastavení repozitáře {repo}"
 
 #: forms/ui_reposettingsdialog.py:66
 msgctxt "RepoSettingsDialog"
 msgid "Repo Nic&kname:"
-msgstr ""
+msgstr "Přezdív&ka repozitáře:"
 
 #: forms/ui_reposettingsdialog.py:67
 #, python-brace-format
 msgctxt "RepoSettingsDialog"
 msgid "This nickname will appear within {app} in tab names, menus, etc. It does not change the actual name of the repo’s directory. Leave blank to clear the nickname."
 msgstr ""
+"Tato přezdívka se v aplikaci {app} zobrazí v názvech karet, nabídkách apod. "
+"Skutečný název adresáře repozitáře nezmění. Přezdívku odstraníte ponecháním "
+"pole prázdného."
 
 #: forms/ui_reposettingsdialog.py:68
 msgctxt "RepoSettingsDialog"
 msgid "No nickname"
-msgstr ""
+msgstr "Bez přezdívky"
 
 #: forms/ui_reposettingsdialog.py:69
 msgctxt "RepoSettingsDialog"
 msgid "Create commits under a custom &identity in this repo"
-msgstr ""
+msgstr "Vytvářet commity v tomto repozitáři pod vlastní &identitou"
 
 #: forms/ui_reposettingsdialog.py:70
 msgctxt "RepoSettingsDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Jméno:"
 
 #: forms/ui_reposettingsdialog.py:71
 msgctxt "RepoSettingsDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&E-mail:"
 
 #: forms/ui_repostub.py:96
 msgctxt "RepoStub"
 msgid "Ready to load this repository."
-msgstr ""
+msgstr "Repozitář je připraven k načtení."
 
 #: forms/ui_repostub.py:97
 msgctxt "RepoStub"
 msgid "Load"
-msgstr ""
+msgstr "Načíst"
 
 #: forms/ui_repostub.py:98
 msgctxt "RepoStub"
 msgid "Abort"
-msgstr ""
+msgstr "Přerušit"
 
 #: forms/ui_resetheaddialog.py:72
 msgctxt "ResetHeadDialog"
 msgid "Reset HEAD"
-msgstr ""
+msgstr "Resetovat HEAD"
 
 #: forms/ui_resetheaddialog.py:73
 #, python-brace-format
@@ -2563,6 +2656,8 @@ msgid ""
 "<b>Keep</b> all your files intact.\n"
 "<br><b>Stage</b> any differences between your files and {commit}."
 msgstr ""
+"<b>Ponechat</b> všechny soubory beze změny.\n"
+"<br><b>Připravit</b> všechny rozdíly mezi vašimi soubory a {commit}."
 
 #: forms/ui_resetheaddialog.py:75
 #, python-brace-format
@@ -2571,6 +2666,8 @@ msgid ""
 "<b>Keep</b> all your files intact.\n"
 "<br><b>Unstage</b> any differences between your files and {commit}."
 msgstr ""
+"<b>Ponechat</b> všechny soubory beze změny.\n"
+"<br><b>Zrušit přípravu</b> všech rozdílů mezi vašimi soubory a {commit}."
 
 #: forms/ui_resetheaddialog.py:77
 #, python-brace-format
@@ -2579,11 +2676,13 @@ msgid ""
 "<b>Wipe</b> all your changes.\n"
 "<br>End result identical to a fresh checkout of {commit}."
 msgstr ""
+"<b>Vymazat</b> všechny vaše změny.\n"
+"<br>Výsledek bude totožný s čerstvým přepnutím na {commit}."
 
 #: forms/ui_resetheaddialog.py:79
 msgctxt "ResetHeadDialog"
 msgid "&Reset submodules recursively"
-msgstr ""
+msgstr "&Rekurzivně resetovat submoduly"
 
 #: forms/ui_searchbar.py:46
 msgctxt "SearchBar"
@@ -2598,67 +2697,67 @@ msgstr ""
 #: forms/ui_searchbar.py:48
 msgctxt "SearchBar"
 msgid "Next Occurrence"
-msgstr ""
+msgstr "Další výskyt"
 
 #: forms/ui_searchbar.py:49
 msgctxt "SearchBar"
 msgid "Previous Occurrence"
-msgstr ""
+msgstr "Předchozí výskyt"
 
 #: forms/ui_searchbar.py:50
 msgctxt "SearchBar"
 msgid "Close Search Bar"
-msgstr ""
+msgstr "Zavřít panel hledání"
 
 #: forms/ui_searchbar.py:51
 msgctxt "SearchBar"
 msgid "Done"
-msgstr ""
+msgstr "Hotovo"
 
 #: forms/ui_signatureform.py:73
 msgctxt "SignatureForm"
 msgid "Signature"
-msgstr ""
+msgstr "Podpis"
 
 #: forms/ui_signatureform.py:74
 msgctxt "SignatureForm"
 msgid "&Override:"
-msgstr ""
+msgstr "&Přepsat:"
 
 #: forms/ui_signatureform.py:75
 msgctxt "SignatureForm"
 msgid "&Identity:"
-msgstr ""
+msgstr "&Identita:"
 
 #: forms/ui_signatureform.py:76 forms/ui_signatureform.py:77
 msgctxt "SignatureForm"
 msgid "Name"
-msgstr ""
+msgstr "Jméno"
 
 #: forms/ui_signatureform.py:78 forms/ui_signatureform.py:79
 msgctxt "SignatureForm"
 msgid "Email"
-msgstr ""
+msgstr "E-mail"
 
 #: forms/ui_signatureform.py:80
 msgctxt "SignatureForm"
 msgid "&Time:"
-msgstr ""
+msgstr "Ča&s:"
 
 #: forms/ui_signatureform.py:81
 msgctxt "SignatureForm"
 msgid "Offset from UTC"
-msgstr ""
+msgstr "Posun od UTC"
 
 #: forms/ui_signatureform.py:82
 msgctxt "SignatureForm"
 msgid "Set to current local time"
-msgstr ""
+msgstr "Nastavit aktuální místní čas"
 
 #: forms/ui_signatureform.py:83
 msgctxt "SignatureForm"
 msgid "Now"
-msgstr ""
+msgstr "Nyní"
 
 #: forms/ui_signatureform.py:84
 msgctxt "SignatureForm"
@@ -2683,120 +2782,127 @@ msgstr ""
 #: forms/ui_stashdialog.py:65
 msgctxt "StashDialog"
 msgid "New stash"
-msgstr ""
+msgstr "Nové odložené změny"
 
 #: forms/ui_stashdialog.py:66
 msgctxt "StashDialog"
 msgid "Optional stash message"
-msgstr ""
+msgstr "Nepovinná zpráva k odloženým změnám"
 
 #: forms/ui_stashdialog.py:67
 msgctxt "StashDialog"
 msgid "Normally, stashed changes are removed from the working directory. Tick this to leave the stashed changes intact instead."
 msgstr ""
+"Odložené změny se z pracovního adresáře obvykle odeberou. Zaškrtnutím je "
+"namísto toho ponecháte beze změny."
 
 #: forms/ui_stashdialog.py:68
 msgctxt "StashDialog"
 msgid "&Retain stashed changes in working directory"
-msgstr ""
+msgstr "&Ponechat odložené změny v pracovním adresáři"
 
 #: forms/ui_stashdialog.py:69
 msgctxt "StashDialog"
 msgid "Warning: Some of the files have both staged and unstaged changes. Those changes will be combined in the stash."
 msgstr ""
+"Varování: Některé soubory obsahují připravené i nepřipravené změny. V "
+"odložených změnách se tyto změny spojí."
 
 #: forms/ui_welcomewidget.py:68
 msgctxt "WelcomeWidget"
 msgid "Welcome"
-msgstr ""
+msgstr "Vítejte"
 
 #: forms/ui_welcomewidget.py:69
 msgctxt "WelcomeWidget"
 msgid "Clone remote repository"
-msgstr ""
+msgstr "Klonovat vzdálený repozitář"
 
 #: forms/ui_welcomewidget.py:70
 msgctxt "WelcomeWidget"
 msgid "New empty repository"
-msgstr ""
+msgstr "Nový prázdný repozitář"
 
 #: forms/ui_welcomewidget.py:71
 msgctxt "WelcomeWidget"
 msgid "Open local repository"
-msgstr ""
+msgstr "Otevřít místní repozitář"
 
 #: forms/ui_welcomewidget.py:72
 msgctxt "WelcomeWidget"
 msgid "Recent repositories"
-msgstr ""
+msgstr "Nedávné repozitáře"
 
 #: forms/ui_welcomewidget.py:73
 #, python-brace-format
 msgctxt "WelcomeWidget"
 msgid "Welcome to<br>{app}"
-msgstr ""
+msgstr "Vítejte v aplikaci<br>{app}"
 
 #: graphview/commitlogdelegate.py:208
 #, python-brace-format
 msgid "History truncated to {0} commits (including hidden branches)"
-msgstr ""
+msgstr "Historie zkrácena na {0} commitů (včetně skrytých větví)"
 
 #: graphview/commitlogdelegate.py:210
 #, python-brace-format
 msgid "History truncated to {0} commits"
-msgstr ""
+msgstr "Historie zkrácena na {0} commitů"
 
 #: graphview/commitlogdelegate.py:214 tasks/jumptasks.py:213
 msgid "Shallow clone – End of commit history"
-msgstr ""
+msgstr "Mělký klon – konec historie commitů"
 
 #: graphview/commitlogdelegate.py:435 repowidget.py:648
 #: sidebar/sidebarmodel.py:624 sidebar/sidebarmodel.py:627
 msgid "Detached HEAD"
-msgstr ""
+msgstr "Odpojený HEAD"
 
 #: graphview/commitlogdelegate.py:574
 msgid "(Clean)"
-msgstr ""
+msgstr "(Čistý)"
 
 #: graphview/commitlogdelegate.py:576
 #, python-brace-format
 msgid "({n} change)"
 msgid_plural "({n} changes)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "({n} změna)"
+msgstr[1] "({n} změny)"
+msgstr[2] "({n} změn)"
 
 #: graphview/commitlogdelegate.py:581
 msgid "Commit draft:"
-msgstr ""
+msgstr "Návrh commitu:"
 
 #: graphview/commitlogmodel.py:195
 msgctxt "CommitTooltip"
 msgid "(authored)"
-msgstr ""
+msgstr "(autorství)"
 
 #: graphview/commitlogmodel.py:196
 msgctxt "CommitTooltip"
 msgid "(committed)"
-msgstr ""
+msgstr "(zápis)"
 
 #: graphview/commitlogmodel.py:200
 #, python-brace-format
 msgctxt "CommitTooltip"
 msgid "Committed by {0}"
-msgstr ""
+msgstr "Zapsal {0}"
 
 #: graphview/graphview.py:42
 msgid "This commit isn’t shown in the graph because it’s part of a hidden branch."
-msgstr ""
+msgstr "Tento commit se v grafu nezobrazuje, protože je součástí skryté větve."
 
 #: graphview/graphview.py:44
 msgid "This commit isn’t shown in the graph because it isn’t part of the truncated commit history."
 msgstr ""
+"Tento commit se v grafu nezobrazuje, protože není součástí zkrácené historie "
+"commitů."
 
 #: graphview/graphview.py:46
 msgid "This commit isn’t shown in the graph."
-msgstr ""
+msgstr "Tento commit se v grafu nezobrazuje."
 
 #: graphview/graphview.py:71
 msgid "Find a commit by hash, message or author|Find commit"
@@ -2804,32 +2910,32 @@ msgstr ""
 
 #: graphview/graphview.py:114
 msgid "Clear Draft Message"
-msgstr ""
+msgstr "Vymazat návrh zprávy"
 
 #: graphview/graphview.py:127 tasks/jumptasks.py:223
 #, python-brace-format
 msgid "Load up to {0} commits"
-msgstr ""
+msgstr "Načíst nejvýše {0} commitů"
 
 #: graphview/graphview.py:129
 msgid "Load full commit history"
-msgstr ""
+msgstr "Načíst úplnou historii commitů"
 
 #: graphview/graphview.py:131
 msgid "Change threshold setting"
-msgstr ""
+msgstr "Změnit nastavení limitu"
 
 #: graphview/graphview.py:146
 msgid "&Check Out…"
-msgstr ""
+msgstr "&Přepnout na…"
 
 #: graphview/graphview.py:152 sidebar/sidebar.py:256 sidebar/sidebar.py:275
 msgid "New &Branch Here…"
-msgstr ""
+msgstr "Zde vytvořit novou &větev…"
 
 #: graphview/graphview.py:153
 msgid "&Tag This Commit…"
-msgstr ""
+msgstr "&Označit tento commit…"
 
 #: graphview/graphview.py:156
 msgid "&Reset HEAD to Here…"
@@ -2837,164 +2943,164 @@ msgstr ""
 
 #: graphview/graphview.py:158
 msgid "Cherry &Pick…"
-msgstr ""
+msgstr "Cherry-&pick…"
 
 #: graphview/graphview.py:159
 msgid "Re&vert…"
-msgstr ""
+msgstr "&Vrátit…"
 
 #: graphview/graphview.py:160
 msgid "E&xport As Patch…"
-msgstr ""
+msgstr "E&xportovat jako záplatu…"
 
 #: graphview/graphview.py:162
 msgid "Copy Commit &Hash"
-msgstr ""
+msgstr "Kopírovat &otisk commitu"
 
 #: graphview/graphview.py:163
 msgid "Copy Commit M&essage"
-msgstr ""
+msgstr "Kopírovat &zprávu commitu"
 
 #: graphview/graphview.py:164
 msgid "Get &Info…"
-msgstr ""
+msgstr "Zobrazit &informace…"
 
 #: mainwindow.py:184
 msgid "&File"
-msgstr ""
+msgstr "&Soubor"
 
 #: mainwindow.py:185
 msgid "&Edit"
-msgstr ""
+msgstr "Ú&pravy"
 
 #: mainwindow.py:186
 msgid "&View"
-msgstr ""
+msgstr "&Zobrazit"
 
 #: mainwindow.py:187
 msgid "&Repo"
-msgstr ""
+msgstr "&Repozitář"
 
 #: mainwindow.py:188
 msgid "&Help"
-msgstr ""
+msgstr "&Nápověda"
 
 #: mainwindow.py:201
 msgid "&New Repository…"
-msgstr ""
+msgstr "&Nový repozitář…"
 
 #: mainwindow.py:203
 msgid "Create an empty Git repo"
-msgstr ""
+msgstr "Vytvořit prázdný repozitář Git"
 
 #: mainwindow.py:205
 msgid "C&lone Repository…"
-msgstr ""
+msgstr "&Klonovat repozitář…"
 
 #: mainwindow.py:207
 msgid "Download a Git repo and open it"
-msgstr ""
+msgstr "Stáhnout a otevřít repozitář Git"
 
 #: mainwindow.py:211
 msgid "&Open Repository…"
-msgstr ""
+msgstr "&Otevřít repozitář…"
 
 #: mainwindow.py:215
 msgid "Open &Recent"
-msgstr ""
+msgstr "Otevřít ne&dávné"
 
 #: mainwindow.py:217
 msgid "List of recently opened Git repos"
-msgstr ""
+msgstr "Seznam nedávno otevřených repozitářů Git"
 
 #: mainwindow.py:227
 msgid "&Settings…"
-msgstr ""
+msgstr "&Nastavení…"
 
 #: mainwindow.py:237
 msgid "&Close Tab"
-msgstr ""
+msgstr "&Zavřít kartu"
 
 #: mainwindow.py:239
 msgid "Close current repository tab"
-msgstr ""
+msgstr "Zavřít aktuální kartu repozitáře"
 
 #: mainwindow.py:241
 msgid "&Quit"
-msgstr ""
+msgstr "&Ukončit"
 
 #: mainwindow.py:243
 #, python-brace-format
 msgid "Quit {app}"
-msgstr ""
+msgstr "Ukončit aplikaci {app}"
 
 #: mainwindow.py:252
 msgid "&Find…"
-msgstr ""
+msgstr "&Najít…"
 
 #: mainwindow.py:254
 msgid "Search for a piece of text in commit messages, the current diff, or the name of a file"
-msgstr ""
+msgstr "Hledat text ve zprávách commitů, aktuálním porovnání nebo názvu souboru"
 
 #: mainwindow.py:256
 msgid "Find Next"
-msgstr ""
+msgstr "Najít další"
 
 #: mainwindow.py:258
 msgid "Find next occurrence"
-msgstr ""
+msgstr "Najít další výskyt"
 
 #: mainwindow.py:260
 msgid "Find Previous"
-msgstr ""
+msgstr "Najít předchozí"
 
 #: mainwindow.py:262
 msgid "Find previous occurrence"
-msgstr ""
+msgstr "Najít předchozí výskyt"
 
 #: mainwindow.py:277 trtables.py:353
 msgid "Show status bar"
-msgstr ""
+msgstr "Zobrazovat stavový řádek"
 
 #: mainwindow.py:278 trtables.py:355
 msgid "Show menu bar"
-msgstr ""
+msgstr "Zobrazovat řádek nabídek"
 
 #: mainwindow.py:283
 msgid "Focus on Sidebar"
-msgstr ""
+msgstr "Zaměřit postranní panel"
 
 #: mainwindow.py:284
 msgid "Focus on Commit Log"
-msgstr ""
+msgstr "Zaměřit historii commitů"
 
 #: mainwindow.py:285
 msgid "Focus on File List"
-msgstr ""
+msgstr "Zaměřit seznam souborů"
 
 #: mainwindow.py:286
 msgid "Focus on Code View"
-msgstr ""
+msgstr "Zaměřit zobrazení kódu"
 
 #: mainwindow.py:288
 msgid "Blame File…"
-msgstr ""
+msgstr "Zobrazit autorství souboru…"
 
 #: mainwindow.py:289
 msgid "Next File"
-msgstr ""
+msgstr "Další soubor"
 
 #: mainwindow.py:290
 msgid "Previous File"
-msgstr ""
+msgstr "Předchozí soubor"
 
 #: mainwindow.py:292
 msgid "&Next Tab"
-msgstr ""
+msgstr "&Další karta"
 
 #: mainwindow.py:293
 msgid "&Previous Tab"
-msgstr ""
+msgstr "&Předchozí karta"
 
 #: mainwindow.py:300
 msgid "Navigation Log"
@@ -3002,254 +3108,271 @@ msgstr ""
 
 #: mainwindow.py:309
 msgid "&Refresh"
-msgstr ""
+msgstr "&Aktualizovat"
 
 #: mainwindow.py:313
 msgid "Check for changes in the repo (on the local filesystem only – will not fetch remotes)"
 msgstr ""
+"Vyhledat změny v repozitáři (pouze v místním systému souborů – nenačte "
+"vzdálené repozitáře)"
 
 #: mainwindow.py:317
 msgid "Reloa&d"
-msgstr ""
+msgstr "Znovu na&číst"
 
 #: mainwindow.py:320
 msgid "Reopen the repo from scratch"
-msgstr ""
+msgstr "Znovu otevřít repozitář od začátku"
 
 #: mainwindow.py:345
 msgid "Edit Commands…"
-msgstr ""
+msgstr "Upravit příkazy…"
 
 #: mainwindow.py:367
 #, python-brace-format
 msgid "&About {0}"
-msgstr ""
+msgstr "&O aplikaci {0}"
 
 #: mainwindow.py:371
 #, python-brace-format
 msgid "{0} User’s Guide"
-msgstr ""
+msgstr "Uživatelská příručka aplikace {0}"
 
 #: mainwindow.py:377
 msgid "Open Trash…"
-msgstr ""
+msgstr "Otevřít koš…"
 
 #: mainwindow.py:379
 msgid "Explore changes that you may have discarded by mistake"
-msgstr ""
+msgstr "Procházet změny, které jste mohli omylem zahodit"
 
 #: mainwindow.py:381
 msgid "Empty Trash…"
-msgstr ""
+msgstr "Vyprázdnit koš…"
 
 #: mainwindow.py:382
 msgid "Delete all discarded changes from the trash folder"
-msgstr ""
+msgstr "Odstranit z koše všechny zahozené změny"
 
 #: mainwindow.py:413
 msgid "Clear List"
-msgstr ""
+msgstr "Vymazat seznam"
 
 #: mainwindow.py:414
 msgid "Clear the list of recently opened repositories"
-msgstr ""
+msgstr "Vymazat seznam nedávno otevřených repozitářů"
 
 #: mainwindow.py:423
 msgid "Menu bar hidden"
-msgstr ""
+msgstr "Řádek nabídek skryt"
 
 #: mainwindow.py:424
 msgid "The menu bar is now hidden. Press the Alt key to toggle it."
-msgstr ""
+msgstr "Řádek nabídek je nyní skrytý. Zobrazíte jej klávesou Alt."
 
 #: mainwindow.py:501
 msgid "Close Tab"
-msgstr ""
+msgstr "Zavřít kartu"
 
 #: mainwindow.py:502
 msgid "Close Other Tabs"
-msgstr ""
+msgstr "Zavřít ostatní karty"
 
 #: mainwindow.py:503
 msgid "Unload Other Tabs"
-msgstr ""
+msgstr "Uvolnit ostatní karty"
 
 #: mainwindow.py:507
 msgid "Configure Tabs…"
-msgstr ""
+msgstr "Nastavit karty…"
 
 #: mainwindow.py:535 mainwindow.py:780
 msgid "Open repository"
-msgstr ""
+msgstr "Otevřít repozitář"
 
 #: mainwindow.py:536
 #, python-brace-format
 msgid "Couldn’t open the repository at {0}."
-msgstr ""
+msgstr "Repozitář v umístění {0} se nepodařilo otevřít."
 
 #: mainwindow.py:557
 msgid "There’s nothing at this path."
-msgstr ""
+msgstr "V této cestě nic není."
 
 #: mainwindow.py:563 tasks/loadtasks.py:73
 #, python-brace-format
 msgid "Sorry, {app} doesn’t support bare repositories."
-msgstr ""
+msgstr "Aplikace {app} bohužel nepodporuje holé repozitáře."
 
 #: mainwindow.py:732
 msgid "Open trash folder"
-msgstr ""
+msgstr "Otevřít složku koše"
 
 #: mainwindow.py:733
 #, python-brace-format
 msgid "There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet."
 msgstr ""
+"Složka koše neexistuje. Možná jste pomocí aplikace {0} zatím nezahodili "
+"žádnou změnu."
 
 #: mainwindow.py:742 mainwindow.py:757
 msgid "Clear trash folder"
-msgstr ""
+msgstr "Vyprázdnit složku koše"
 
 #: mainwindow.py:743
 msgid "There are no discarded changes to delete."
-msgstr ""
+msgstr "Nejsou zde žádné zahozené změny k odstranění."
 
 #: mainwindow.py:749
 #, python-brace-format
 msgid "Do you want to permanently delete <b>{n}</b> discarded patch?"
 msgid_plural "Do you want to permanently delete <b>{n}</b> discarded patches?"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Chcete trvale odstranit <b>{n}</b> zahozenou záplatu?"
+msgstr[1] "Chcete trvale odstranit <b>{n}</b> zahozené záplaty?"
+msgstr[2] "Chcete trvale odstranit <b>{n}</b> zahozených záplat?"
 
 #: mainwindow.py:751
 #, python-brace-format
 msgid "This will free up {0} on disk."
-msgstr ""
+msgstr "Tím se na disku uvolní {0}."
 
 #: mainwindow.py:752 tasks/branchtasks.py:184 tasks/branchtasks.py:220
 #: tasks/indextasks.py:164 tasks/indextasks.py:240 tasks/indextasks.py:278
 #: tasks/nettasks.py:77 tasks/submoduletasks.py:96
 msgid "This cannot be undone!"
-msgstr ""
+msgstr "Tuto akci nelze vrátit zpět!"
 
 #: mainwindow.py:760
 msgid "Delete permanently"
-msgstr ""
+msgstr "Trvale odstranit"
 
 #: mainwindow.py:842
 #, python-brace-format
 msgid "{n} background tab unloaded."
 msgid_plural "{n} background tabs unloaded."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Uvolněna {n} karta na pozadí."
+msgstr[1] "Uvolněny {n} karty na pozadí."
+msgstr[2] "Uvolněno {n} karet na pozadí."
 
 #: mainwindow.py:949
 #, python-brace-format
 msgid "The session couldn’t be restored fully because a repository failed to load:"
 msgid_plural "The session couldn’t be restored fully because {n} repositories failed to load:"
 msgstr[0] ""
+"Relaci se nepodařilo zcela obnovit, protože se nepodařilo načíst repozitář:"
 msgstr[1] ""
+"Relaci se nepodařilo zcela obnovit, protože se nepodařilo načíst {n} "
+"repozitáře:"
+msgstr[2] ""
+"Relaci se nepodařilo zcela obnovit, protože se nepodařilo načíst {n} "
+"repozitářů:"
 
 #: mainwindow.py:951
 msgid "Restore session"
-msgstr ""
+msgstr "Obnovit relaci"
 
 #: mainwindow.py:986
 #, python-brace-format
 msgid "{0} isn’t in a Git repo"
-msgstr ""
+msgstr "{0} není v repozitáři Git"
 
 #: mainwindow.py:1131 mainwindow.py:1135
 msgid "Apply Settings"
-msgstr ""
+msgstr "Použít nastavení"
 
 #: mainwindow.py:1132
 #, python-brace-format
 msgid "You may need to restart {app} for the new settings to take effect fully."
 msgstr ""
+"Aby se nová nastavení plně projevila, může být nutné aplikaci {app} "
+"restartovat."
 
 #: mainwindow.py:1136
 msgid "The new settings won’t take effect fully until you reload the current repositories."
 msgstr ""
+"Nová nastavení se plně projeví až po opětovném načtení aktuálních repozitářů."
 
 #: mainwindow.py:1139
 msgid "&Reload"
-msgstr ""
+msgstr "Znovu &načíst"
 
 #: mainwindow.py:1143
 msgid "&Not Now"
-msgstr ""
+msgstr "&Nyní ne"
 
 #: mainwindow.py:1204
 #, python-brace-format
 msgid "(Command) {0}"
-msgstr ""
+msgstr "(Příkaz) {0}"
 
 #: mainwindow.py:1217 mainwindow.py:1272 repowidget.py:479
 msgid "Open Superproject"
-msgstr ""
+msgstr "Otevřít superprojekt"
 
 #: mainwindow.py:1228
 #, python-brace-format
 msgid "Open Superproject {0}"
-msgstr ""
+msgstr "Otevřít superprojekt {0}"
 
 #: mainwindow.py:1235
 msgid "&Open Repo Folder"
-msgstr ""
+msgstr "&Otevřít složku repozitáře"
 
 #: mainwindow.py:1239
 msgid "Open this repo’s working directory in the system’s file manager"
-msgstr ""
+msgstr "Otevřít pracovní adresář tohoto repozitáře v systémovém správci souborů"
 
 #: mainwindow.py:1243
 msgid "Open &Terminal"
-msgstr ""
+msgstr "Otevřít &terminál"
 
 #: mainwindow.py:1247
 msgid "Open a terminal in the repo’s working directory"
-msgstr ""
+msgstr "Otevřít terminál v pracovním adresáři repozitáře"
 
 #: mainwindow.py:1251
 msgid "Cop&y Repo Path"
-msgstr ""
+msgstr "&Kopírovat cestu k repozitáři"
 
 #: mainwindow.py:1253
 msgid "Copy the absolute path to this repo’s working directory to the clipboard"
 msgstr ""
+"Zkopírovat absolutní cestu k pracovnímu adresáři tohoto repozitáře do "
+"schránky"
 
 #: mainwindow.py:1272 repowidget.py:479
 msgid "This repository does not have a superproject."
-msgstr ""
+msgstr "Tento repozitář nemá superprojekt."
 
 #: nav.py:69
 msgctxt "NavContext"
 msgid "Empty"
-msgstr ""
+msgstr "Prázdné"
 
 #: nav.py:70
 msgctxt "NavContext"
 msgid "Untracked"
-msgstr ""
+msgstr "Nesledované"
 
 #: nav.py:71
 msgctxt "NavContext"
 msgid "Unstaged"
-msgstr ""
+msgstr "Nepřipravené"
 
 #: nav.py:72
 msgctxt "NavContext"
 msgid "Staged"
-msgstr ""
+msgstr "Připravené"
 
 #: nav.py:73
 msgctxt "NavContext"
 msgid "Committed"
-msgstr ""
+msgstr "Potvrzené"
 
 #: nav.py:75
 msgctxt "NavContext"
 msgid "Unknown"
-msgstr ""
+msgstr "Neznámé"
 
 #: remotelink.py:92
 msgid "Remote operation interrupted by user."
@@ -3345,65 +3468,65 @@ msgstr ""
 #: remotelink.py:389
 #, python-brace-format
 msgid "{0} is already up to date with {1}."
-msgstr ""
+msgstr "{0} už je aktuální vůči {1}."
 
 #: remotelink.py:391
 #, python-brace-format
 msgid "{0} created: {1}."
-msgstr ""
+msgstr "{0} vytvořena: {1}."
 
 #: remotelink.py:393
 #, python-brace-format
 msgid "{0} deleted, was {1}."
-msgstr ""
+msgstr "{0} odstraněna, byla {1}."
 
 #: remotelink.py:395
 #, python-brace-format
 msgid "{0}: {1} → {2}."
-msgstr ""
+msgstr "{0}: {1} → {2}."
 
 #: remotelink.py:398
 msgid "No new commits."
-msgstr ""
+msgstr "Žádné nové commity."
 
 #: repowidget.py:429
 msgid "Only text diffs may be opened in a separate window."
-msgstr ""
+msgstr "V samostatném okně lze otevřít pouze textová porovnání."
 
 #: repowidget.py:458
 msgid "Please select a file before performing this action."
-msgstr ""
+msgstr "Před provedením této akce vyberte soubor."
 
 #: repowidget.py:506
 #, python-brace-format
 msgid "File {0} does not exist."
-msgstr ""
+msgstr "Soubor {0} neexistuje."
 
 #: repowidget.py:507
 msgid "Do you want to create it?"
-msgstr ""
+msgstr "Chcete jej vytvořit?"
 
 #: repowidget.py:508
 #, python-brace-format
 msgid "Create {0}"
-msgstr ""
+msgstr "Vytvořit {0}"
 
 #: repowidget.py:517
 msgid "Run Command"
-msgstr ""
+msgstr "Spustit příkaz"
 
 #: repowidget.py:523
 msgid "The prerequisites for your command are not met:"
-msgstr ""
+msgstr "Nejsou splněny předpoklady vašeho příkazu:"
 
 #: repowidget.py:535
 msgid "Do you want to run this command in a terminal?"
-msgstr ""
+msgstr "Chcete tento příkaz spustit v terminálu?"
 
 #: repowidget.py:537
 #, python-brace-format
 msgid "Do you want to run {0} in a terminal?"
-msgstr ""
+msgstr "Chcete spustit {0} v terminálu?"
 
 #: repowidget.py:573
 #, python-brace-format
@@ -3431,360 +3554,368 @@ msgstr[1] ""
 
 #: repowidget.py:645
 msgid "Unborn HEAD"
-msgstr ""
+msgstr "HEAD bez počátečního commitu"
 
 #: repowidget.py:678
 #, python-brace-format
 msgid "Merging {0}"
-msgstr ""
+msgstr "Slučování {0}"
 
 #: repowidget.py:683
 msgid "All conflicts fixed. Commit to conclude."
-msgstr ""
+msgstr "Všechny konflikty vyřešeny. Dokončete vytvořením commitu."
 
 #: repowidget.py:686 repowidget.py:696 repowidget.py:706
 msgid "Conflicts need fixing."
-msgstr ""
+msgstr "Je třeba vyřešit konflikty."
 
 #: repowidget.py:688 tasks/indextasks.py:562 tasks/taskbook.py:32
 msgid "Abort merge"
-msgstr ""
+msgstr "Přerušit sloučení"
 
 #: repowidget.py:693
 msgid "Commit to conclude the cherry-pick."
-msgstr ""
+msgstr "Dokončete cherry-pick vytvořením commitu."
 
 #: repowidget.py:698 tasks/indextasks.py:558
 msgid "Abort cherry-pick"
-msgstr ""
+msgstr "Přerušit cherry-pick"
 
 #: repowidget.py:703
 msgid "Commit to conclude the revert."
-msgstr ""
+msgstr "Dokončete vracení vytvořením commitu."
 
 #: repowidget.py:708 tasks/indextasks.py:566
 msgid "Abort revert"
-msgstr ""
+msgstr "Přerušit vracení"
 
 #: repowidget.py:713
 msgid "Conflicts"
-msgstr ""
+msgstr "Konflikty"
 
 #: repowidget.py:714
 msgid "Fix the conflicts among the uncommitted changes."
-msgstr ""
+msgstr "Vyřešte konflikty mezi nepotvrzenými změnami."
 
 #: repowidget.py:715 tasks/indextasks.py:570
 msgid "Reset index"
-msgstr ""
+msgstr "Resetovat index"
 
 #: repowidget.py:719
 msgid "Warning"
-msgstr ""
+msgstr "Varování"
 
 #: repowidget.py:721
 #, python-brace-format
 msgid "The repo is currently in state {state}, which {app} doesn’t support yet. Use <code>git</code> on the command line to continue."
 msgstr ""
+"Repozitář se právě nachází ve stavu {state}, který aplikace {app} zatím "
+"nepodporuje. Pokračujte pomocí příkazu <code>git</code> na příkazovém řádku."
 
 #: repowidget.py:768
 msgid "Repository folder went missing:"
-msgstr ""
+msgstr "Složka repozitáře zmizela:"
 
 #: repowidget.py:870
 msgid "&Local Config Files"
-msgstr ""
+msgstr "&Místní konfigurační soubory"
 
 #: settings.py:344
 msgid "External editor"
-msgstr ""
+msgstr "Externí editor"
 
 #: settings.py:349 trtables.py:451
 msgid "Diff tool"
-msgstr ""
+msgstr "Porovnávací nástroj"
 
 #: settings.py:354 trtables.py:457
 msgid "Merge tool"
-msgstr ""
+msgstr "Slučovací nástroj"
 
 #: sidebar/sidebar.py:170
 msgid "&New Branch…"
-msgstr ""
+msgstr "&Nová větev…"
 
 #: sidebar/sidebar.py:172 sidebar/sidebar.py:452
 msgid "Sort By"
-msgstr ""
+msgstr "Řadit podle"
 
 #: sidebar/sidebar.py:202
 #, python-brace-format
 msgid "&Switch to {0}…"
-msgstr ""
+msgstr "&Přepnout na {0}…"
 
 #: sidebar/sidebar.py:220
 #, python-brace-format
 msgid "&Fetch {0}"
-msgstr ""
+msgstr "&Načíst {0}"
 
 #: sidebar/sidebar.py:220
 msgid "Fetch"
-msgstr ""
+msgstr "Načíst"
 
 #: sidebar/sidebar.py:227
 #, python-brace-format
 msgid "Pu&ll from {0}…"
-msgstr ""
+msgstr "Stá&hnout z {0}…"
 
 #: sidebar/sidebar.py:227
 msgid "Pull…"
-msgstr ""
+msgstr "Stáhnout…"
 
 #: sidebar/sidebar.py:233
 #, python-brace-format
 msgid "Fast-Forward to {0}…"
-msgstr ""
+msgstr "Rychle posunout na {0}…"
 
 #: sidebar/sidebar.py:233
 msgid "Fast-Forward…"
-msgstr ""
+msgstr "Rychle posunout…"
 
 #: sidebar/sidebar.py:240
 #, python-brace-format
 msgid "&Push to {0}…"
-msgstr ""
+msgstr "&Odeslat do {0}…"
 
 #: sidebar/sidebar.py:240
 msgid "Push…"
-msgstr ""
+msgstr "Odeslat…"
 
 #: sidebar/sidebar.py:245
 msgid "&Upstream Branch"
-msgstr ""
+msgstr "&Nadřazená větev"
 
 #: sidebar/sidebar.py:250
 msgid "Re&name…"
-msgstr ""
+msgstr "Pře&jmenovat…"
 
 #: sidebar/sidebar.py:252
 msgid "&Delete…"
-msgstr ""
+msgstr "O&dstranit…"
 
 #: sidebar/sidebar.py:260 sidebar/sidebar.py:320 sidebar/sidebar.py:381
 #: sidebar/sidebar.py:411
 msgid "&Hide in Graph"
-msgstr ""
+msgstr "&Skrýt v grafu"
 
 #: sidebar/sidebar.py:263
 msgid "Hide this branch from the graph (effective if no other branches/tags point here)"
 msgstr ""
+"Skrýt tuto větev z grafu (projeví se, pokud sem neukazují jiné větve ani "
+"značky)"
 
 #: sidebar/sidebar.py:266 sidebar/sidebar.py:325 sidebar/sidebar.py:386
 #: sidebar/sidebar.py:416
 msgid "Hide &All But This"
-msgstr ""
+msgstr "Skrýt &vše kromě této položky"
 
 #: sidebar/sidebar.py:279
 msgid "(no current branch)"
-msgstr ""
+msgstr "(žádná aktuální větev)"
 
 #: sidebar/sidebar.py:292 sidebar/sidebar.py:354
 #, python-brace-format
 msgid "Visit Web Page on {0}"
-msgstr ""
+msgstr "Navštívit webovou stránku na {0}"
 
 #: sidebar/sidebar.py:301
 msgid "New Local &Branch Here…"
-msgstr ""
+msgstr "Zde vytvořit novou místní &větev…"
 
 #: sidebar/sidebar.py:303
 msgid "&Fetch New Commits"
-msgstr ""
+msgstr "&Načíst nové commity"
 
 #: sidebar/sidebar.py:341
 msgid "Collapse All Folders"
-msgstr ""
+msgstr "Sbalit všechny složky"
 
 #: sidebar/sidebar.py:345
 msgid "Expand All Folders"
-msgstr ""
+msgstr "Rozbalit všechny složky"
 
 #: sidebar/sidebar.py:374
 msgid "Copy Remote &URL"
-msgstr ""
+msgstr "Kopírovat &URL vzdáleného repozitáře"
 
 #: sidebar/sidebar.py:399
 msgid "Sort Remote Branches By"
-msgstr ""
+msgstr "Řadit vzdálené větve podle"
 
 #: sidebar/sidebar.py:405
 msgid "Re&name Folder…"
-msgstr ""
+msgstr "Pře&jmenovat složku…"
 
 #: sidebar/sidebar.py:406
 msgid "&Delete Folder…"
-msgstr ""
+msgstr "O&dstranit složku…"
 
 #: sidebar/sidebar.py:441
 msgid "Reveal &Parent Commit"
-msgstr ""
+msgstr "Odkrýt &rodičovský commit"
 
 #: sidebar/sidebar.py:449
 msgid "&New Tag on HEAD Commit…"
-msgstr ""
+msgstr "&Nová značka na commitu HEAD…"
 
 #: sidebar/sidebar.py:450
 msgid "&Push All Tags To"
-msgstr ""
+msgstr "&Odeslat všechny značky do"
 
 #: sidebar/sidebar.py:463
 msgid "&Check Out Tagged Commit…"
-msgstr ""
+msgstr "&Přepnout na označený commit…"
 
 #: sidebar/sidebar.py:464
 msgid "&Delete Tag…"
-msgstr ""
+msgstr "O&dstranit značku…"
 
 #: sidebar/sidebar.py:466
 msgid "Push To"
-msgstr ""
+msgstr "Odeslat do"
 
 #: sidebar/sidebar.py:481
 msgid "&Open Submodule in New Tab"
-msgstr ""
+msgstr "&Otevřít submodul na nové kartě"
 
 #: sidebar/sidebar.py:484
 msgid "Open Submodule &Folder"
-msgstr ""
+msgstr "Otevřít &složku submodulu"
 
 #: sidebar/sidebar.py:487
 msgid "Copy &Path"
-msgstr ""
+msgstr "Kopírovat &cestu"
 
 #: sidebar/sidebar.py:942
 msgid "Not tracking any upstream branch"
-msgstr ""
+msgstr "Nesleduje žádnou nadřazenou větev"
 
 #: sidebar/sidebar.py:942
 msgid "Stop tracking upstream branch"
-msgstr ""
+msgstr "Přestat sledovat nadřazenou větev"
 
 #: sidebar/sidebar.py:961
 msgid "No remotes."
-msgstr ""
+msgstr "Žádné vzdálené repozitáře."
 
 #: sidebar/sidebar.py:963
 msgid "No remote branches found. Try fetching the remotes."
 msgstr ""
+"Nebyly nalezeny žádné vzdálené větve. Zkuste načíst vzdálené repozitáře."
 
 #: sidebar/sidebar.py:974
 msgid "&All Remotes"
-msgstr ""
+msgstr "&Všechny vzdálené repozitáře"
 
 #: sidebar/sidebarmodel.py:452
 msgid "Submodule not initialized."
-msgstr ""
+msgstr "Submodul není inicializován."
 
 #: sidebar/sidebarmodel.py:598
 #, python-brace-format
 msgid "{0} (local branch)"
-msgstr ""
+msgstr "{0} (místní větev)"
 
 #: sidebar/sidebarmodel.py:602
 #, python-brace-format
 msgid "Upstream: {0}"
-msgstr ""
+msgstr "Nadřazená větev: {0}"
 
 #: sidebar/sidebarmodel.py:604
 msgid "(this is the checked-out branch)"
-msgstr ""
+msgstr "(právě přepnutá větev)"
 
 #: sidebar/sidebarmodel.py:614
 msgid "[unborn]"
-msgstr ""
+msgstr "[bez počátečního commitu]"
 
 #: sidebar/sidebarmodel.py:617
 msgid "Unborn HEAD: does not point to a commit yet."
-msgstr ""
+msgstr "HEAD bez počátečního commitu: zatím neukazuje na žádný commit."
 
 #: sidebar/sidebarmodel.py:618
 #, python-brace-format
 msgid "Local branch {0} will be created when you create the initial commit."
-msgstr ""
+msgstr "Místní větev {0} bude vytvořena při vytvoření počátečního commitu."
 
 #: sidebar/sidebarmodel.py:659
 #, python-brace-format
 msgid "{0} (remote-tracking branch)"
-msgstr ""
+msgstr "{0} (vzdáleně sledovaná větev)"
 
 #: sidebar/sidebarmodel.py:661
 #, python-brace-format
 msgid "Upstream for the checked-out branch ({0})"
-msgstr ""
+msgstr "Nadřazená větev právě přepnuté větve ({0})"
 
 #: sidebar/sidebarmodel.py:684
 #, python-brace-format
 msgid "{0} (remote branch folder)"
-msgstr ""
+msgstr "{0} (složka vzdálených větví)"
 
 #: sidebar/sidebarmodel.py:686
 #, python-brace-format
 msgid "{0} (tag folder)"
-msgstr ""
+msgstr "{0} (složka značek)"
 
 #: sidebar/sidebarmodel.py:688
 #, python-brace-format
 msgid "{0} (local branch folder)"
-msgstr ""
+msgstr "{0} (složka místních větví)"
 
 #: sidebar/sidebarmodel.py:706
 #, python-brace-format
 msgid "Tag {0}"
-msgstr ""
+msgstr "Značka {0}"
 
 #: sidebar/sidebarmodel.py:722
 msgid "date:"
-msgstr ""
+msgstr "datum:"
 
 #: sidebar/sidebarmodel.py:733
 #, python-brace-format
 msgid "{0} (submodule)"
-msgstr ""
+msgstr "{0} (submodul)"
 
 #: sidebar/sidebarmodel.py:734
 #, python-brace-format
 msgid "Workdir: {0}"
-msgstr ""
+msgstr "Pracovní adresář: {0}"
 
 #: sidebar/sidebarmodel.py:735
 msgid "[not set]"
-msgstr ""
+msgstr "[nenastaveno]"
 
 #: sidebar/sidebarmodel.py:736
 #, python-brace-format
 msgid "URL: {0}"
-msgstr ""
+msgstr "URL: {0}"
 
 #: sidebar/sidebarmodel.py:758 tasks/taskbook.py:67
 msgid "Go to Working Directory"
-msgstr ""
+msgstr "Přejít do pracovního adresáře"
 
 #: sidebar/sidebarmodel.py:761
 #, python-brace-format
 msgid "({n} uncommitted change)"
 msgid_plural "({n} uncommitted changes)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "({n} nepotvrzená změna)"
+msgstr[1] "({n} nepotvrzené změny)"
+msgstr[2] "({n} nepotvrzených změn)"
 
 #: sidebar/sidebarmodel.py:812
 msgid "Hiding everything but this (middle-click the eye to toggle)"
 msgstr ""
+"Vše kromě této položky je skryto (kliknutím prostředním tlačítkem na oko "
+"přepnete)"
 
 #: sidebar/sidebarmodel.py:814
 msgid "Hidden (click the eye to toggle)"
-msgstr ""
+msgstr "Skryto (kliknutím na oko přepnete)"
 
 #: sidebar/sidebarmodel.py:816
 msgid "Indirectly hidden"
-msgstr ""
+msgstr "Nepřímo skryto"
 
 #: tasks/blametasks.py:26
 #, python-brace-format
@@ -3794,7 +3925,7 @@ msgstr ""
 #: tasks/blametasks.py:38
 #, python-brace-format
 msgid "File {0} has no history in the repository."
-msgstr ""
+msgstr "Soubor {0} nemá v repozitáři žádnou historii."
 
 #: tasks/blametasks.py:96
 #, python-brace-format
@@ -3805,7 +3936,7 @@ msgstr[1] ""
 
 #: tasks/blametasks.py:110
 msgid "Please wait…"
-msgstr ""
+msgstr "Čekejte prosím…"
 
 #: tasks/blametasks.py:157
 #, python-brace-format
@@ -3822,25 +3953,25 @@ msgstr ""
 #: tasks/branchtasks.py:32
 #, python-brace-format
 msgid "Branch {0} is already checked out."
-msgstr ""
+msgstr "Na větev {0} už je přepnuto."
 
 #: tasks/branchtasks.py:36
 #, python-brace-format
 msgid "Do you want to switch to branch {0}?"
-msgstr ""
+msgstr "Chcete přepnout na větev {0}?"
 
 #: tasks/branchtasks.py:37
 msgid "Switch"
-msgstr ""
+msgstr "Přepnout"
 
 #: tasks/branchtasks.py:43 tasks/taskbook.py:98
 msgid "Update submodules recursively"
-msgstr ""
+msgstr "Rekurzivně aktualizovat submoduly"
 
 #: tasks/branchtasks.py:52 tasks/branchtasks.py:337 tasks/committasks.py:260
 #, python-brace-format
 msgid "You are in <b>Detached HEAD</b> mode at commit {0}."
-msgstr ""
+msgstr "Jste v režimu <b>odpojeného HEAD</b> na commitu {0}."
 
 #: tasks/branchtasks.py:53
 #, python-brace-format
@@ -3850,121 +3981,125 @@ msgstr ""
 #: tasks/branchtasks.py:61
 #, python-brace-format
 msgid "Switched to branch {0}."
-msgstr ""
+msgstr "Přepnuto na větev {0}."
 
 #: tasks/branchtasks.py:80 tasks/taskbook.py:86
 msgid "Rename local branch"
-msgstr ""
+msgstr "Přejmenovat místní větev"
 
 #: tasks/branchtasks.py:81 tasks/branchtasks.py:143 tasks/nettasks.py:107
 msgid "Enter new name:"
-msgstr ""
+msgstr "Zadejte nový název:"
 
 #: tasks/branchtasks.py:82
 #, python-brace-format
 msgid "Current name: {0}"
-msgstr ""
+msgstr "Aktuální název: {0}"
 
 #: tasks/branchtasks.py:85 tasks/branchtasks.py:147
 msgid "Rename"
-msgstr ""
+msgstr "Přejmenovat"
 
 #: tasks/branchtasks.py:100
 #, python-brace-format
 msgid "Branch {0} renamed to {1}."
-msgstr ""
+msgstr "Větev {0} byla přejmenována na {1}."
 
 #: tasks/branchtasks.py:128
 #, python-brace-format
 msgid "This name clashes with existing branch {0}."
-msgstr ""
+msgstr "Tento název koliduje s existující větví {0}."
 
 #: tasks/branchtasks.py:136
 #, python-brace-format
 msgid "Folder {name} contains {n} branch."
 msgid_plural "Folder {name} contains {n} branches."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Složka {name} obsahuje {n} větev."
+msgstr[1] "Složka {name} obsahuje {n} větve."
+msgstr[2] "Složka {name} obsahuje {n} větví."
 
 #: tasks/branchtasks.py:142
 msgid "Rename branch folder"
-msgstr ""
+msgstr "Přejmenovat složku větví"
 
 #: tasks/branchtasks.py:148
 msgid "Leave blank to move the branches to the root folder."
-msgstr ""
+msgstr "Chcete-li větve přesunout do kořenové složky, ponechte pole prázdné."
 
 #: tasks/branchtasks.py:168
 #, python-brace-format
 msgid "Branch folder {0} renamed to {1}."
-msgstr ""
+msgstr "Složka větví {0} byla přejmenována na {1}."
 
 #: tasks/branchtasks.py:170
 #, python-brace-format
 msgid "{n} branch affected."
 msgid_plural "{n} branches affected."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ovlivněna {n} větev."
+msgstr[1] "Ovlivněny {n} větve."
+msgstr[2] "Ovlivněno {n} větví."
 
 #: tasks/branchtasks.py:179
 #, python-brace-format
 msgid "Cannot delete {0} because it is the current branch."
-msgstr ""
+msgstr "Větev {0} nelze odstranit, protože je aktuální."
 
 #: tasks/branchtasks.py:180 tasks/branchtasks.py:211
 msgid "Before you try again, switch to another branch."
-msgstr ""
+msgstr "Před dalším pokusem přepněte na jinou větev."
 
 #: tasks/branchtasks.py:183
 #, python-brace-format
 msgid "Really delete local branch {0}?"
-msgstr ""
+msgstr "Opravdu chcete odstranit místní větev {0}?"
 
 #: tasks/branchtasks.py:188
 msgid "Delete branch"
-msgstr ""
+msgstr "Odstranit větev"
 
 #: tasks/branchtasks.py:196
 #, python-brace-format
 msgid "Branch {0} deleted (commit at tip was {1})."
-msgstr ""
+msgstr "Větev {0} byla odstraněna (commit na špičce byl {1})."
 
 #: tasks/branchtasks.py:210
 #, python-brace-format
 msgid "Cannot delete folder {0} because it contains the current branch {1}."
-msgstr ""
+msgstr "Složku {0} nelze odstranit, protože obsahuje aktuální větev {1}."
 
 #: tasks/branchtasks.py:218
 #, python-brace-format
 msgid "Really delete local branch folder {0}?"
-msgstr ""
+msgstr "Opravdu chcete odstranit složku místních větví {0}?"
 
 #: tasks/branchtasks.py:219
 #, python-brace-format
 msgid "<b>{n}</b> branch will be deleted."
 msgid_plural "<b>{n}</b> branches will be deleted."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Bude odstraněna <b>{n}</b> větev."
+msgstr[1] "Budou odstraněny <b>{n}</b> větve."
+msgstr[2] "Bude odstraněno <b>{n}</b> větví."
 
 #: tasks/branchtasks.py:223
 msgid "Delete branch folder"
-msgstr ""
+msgstr "Odstranit složku větví"
 
 #: tasks/branchtasks.py:226
 msgid "Delete folder"
-msgstr ""
+msgstr "Odstranit složku"
 
 #: tasks/branchtasks.py:235
 #, python-brace-format
 msgid "{n} branch deleted in folder {name}."
 msgid_plural "{n} branches deleted in folder {name}."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ve složce {name} byla odstraněna {n} větev."
+msgstr[1] "Ve složce {name} byly odstraněny {n} větve."
+msgstr[2] "Ve složce {name} bylo odstraněno {n} větví."
 
 #: tasks/branchtasks.py:320
 #, python-brace-format
 msgid "Branch {0} created on commit {1}."
-msgstr ""
+msgstr "Větev {0} byla vytvořena na commitu {1}."
 
 #: tasks/branchtasks.py:338
 msgid "You might lose track of this commit if you switch to the new branch."
@@ -3972,187 +4107,201 @@ msgstr ""
 
 #: tasks/branchtasks.py:339
 msgid "Don’t Switch"
-msgstr ""
+msgstr "Nepřepínat"
 
 #: tasks/branchtasks.py:339
 #, python-brace-format
 msgid "Switch to {0}"
-msgstr ""
+msgstr "Přepnout na {0}"
 
 #: tasks/branchtasks.py:396
 #, python-brace-format
 msgid "Branch {0} now tracks {1}."
-msgstr ""
+msgstr "Větev {0} nyní sleduje {1}."
 
 #: tasks/branchtasks.py:398
 #, python-brace-format
 msgid "Branch {0} now tracks no upstream."
-msgstr ""
+msgstr "Větev {0} nyní nesleduje žádnou nadřazenou větev."
 
 #: tasks/branchtasks.py:424
 #, python-brace-format
 msgid "Branch {0} was reset to {1} ({mode})."
-msgstr ""
+msgstr "Větev {0} byla resetována na {1} ({mode})."
 
 #: tasks/branchtasks.py:444
 #, python-brace-format
 msgid "Can’t fast-forward {0} because it isn’t tracking an upstream branch."
 msgstr ""
+"Větev {0} nelze rychle posunout, protože nesleduje žádnou nadřazenou větev."
 
 #: tasks/branchtasks.py:463
 msgid "No fast-forwarding necessary."
-msgstr ""
+msgstr "Rychlý posun není potřeba."
 
 #: tasks/branchtasks.py:465
 #, python-brace-format
 msgid "Your local branch {0} is ahead of {1}."
-msgstr ""
+msgstr "Vaše místní větev {0} je před {1}."
 
 #: tasks/branchtasks.py:467 tasks/nettasks.py:249
 #, python-brace-format
 msgid "Your local branch {0} is already up to date with {1}."
-msgstr ""
+msgstr "Vaše místní větev {0} už je aktuální vůči {1}."
 
 #: tasks/branchtasks.py:479
 #, python-brace-format
 msgid "Can’t fast-forward {0} to {1}."
-msgstr ""
+msgstr "Větev {0} nelze rychle posunout na {1}."
 
 #: tasks/branchtasks.py:480
 msgid "The branches are divergent."
-msgstr ""
+msgstr "Větve se rozcházejí."
 
 #: tasks/branchtasks.py:485
 #, python-brace-format
 msgid "Merge into {0}"
-msgstr ""
+msgstr "Sloučit do {0}"
 
 #: tasks/branchtasks.py:517
 msgid "Merging is not possible right now because you have unresolved conflicts."
-msgstr ""
+msgstr "Slučování nyní není možné, protože máte nevyřešené konflikty."
 
 #: tasks/branchtasks.py:518
 msgid "Fix the conflicts to proceed."
-msgstr ""
+msgstr "Chcete-li pokračovat, konflikty vyřešte."
 
 #: tasks/branchtasks.py:523
 msgid "Merging is not possible right now because you have staged changes."
-msgstr ""
+msgstr "Slučování nyní není možné, protože máte připravené změny."
 
 #: tasks/branchtasks.py:524
 msgid "Commit your changes or stash them to proceed."
-msgstr ""
+msgstr "Chcete-li pokračovat, vytvořte commit se změnami nebo je odložte."
 
 #: tasks/branchtasks.py:529
 msgid "No merge is necessary."
-msgstr ""
+msgstr "Sloučení není potřeba."
 
 #: tasks/branchtasks.py:530
 #, python-brace-format
 msgid "Your branch {0} is already up to date with {1}."
-msgstr ""
+msgstr "Vaše větev {0} už je aktuální vůči {1}."
 
 #: tasks/branchtasks.py:534
 msgid "Cannot merge into an unborn head."
-msgstr ""
+msgstr "Nelze sloučit do HEAD bez počátečního commitu."
 
 #: tasks/branchtasks.py:544
 msgid "Merging may cause conflicts"
-msgstr ""
+msgstr "Sloučení může způsobit konflikty"
 
 #: tasks/branchtasks.py:546
 #, python-brace-format
 msgid "Merging {0} into {1} may cause conflicts."
-msgstr ""
+msgstr "Sloučení {0} do {1} může způsobit konflikty."
 
 #: tasks/branchtasks.py:547
 msgid "You will need to fix the conflicts, if any. Then, commit the result to conclude the merge."
 msgstr ""
+"Případné konflikty budete muset vyřešit. Sloučení poté dokončíte vytvořením "
+"commitu s výsledkem."
 
 #: tasks/branchtasks.py:548
 msgid "Merge"
-msgstr ""
+msgstr "Sloučit"
 
 #: tasks/branchtasks.py:576
 #, python-brace-format
 msgid "Merging {0} into {1}."
-msgstr ""
+msgstr "Slučování {0} do {1}."
 
 #: tasks/branchtasks.py:580
 #, python-brace-format
 msgid "Branch {0} fast-forwarded to {1}."
-msgstr ""
+msgstr "Větev {0} byla rychle posunuta na {1}."
 
 #: tasks/branchtasks.py:583
 msgid "Fast-forwarding possible"
-msgstr ""
+msgstr "Je možný rychlý posun"
 
 #: tasks/branchtasks.py:584
 #, python-brace-format
 msgid "Your branch {0} can simply be fast-forwarded to {1}."
-msgstr ""
+msgstr "Vaši větev {0} lze jednoduše rychle posunout na {1}."
 
 #: tasks/branchtasks.py:587
 #, python-brace-format
 msgid "Automatic fast-forwarding is blocked by the {0} option in your Git config."
-msgstr ""
+msgstr "Automatický rychlý posun blokuje volba {0} v konfiguraci Gitu."
 
 #: tasks/branchtasks.py:591
 msgid "<b>Fast-forwarding</b> means that the tip of your branch will be moved to a more recent commit in a linear path, without the need to create a merge commit."
 msgstr ""
+"<b>Rychlý posun</b> znamená, že se špička větve lineárně přesune na novější "
+"commit, aniž by bylo nutné vytvořit slučovací commit."
 
 #: tasks/branchtasks.py:593
 #, python-brace-format
 msgid "In this case, {0} will be fast-forwarded to {1}."
-msgstr ""
+msgstr "V tomto případě bude {0} rychle posunuta na {1}."
 
 #: tasks/branchtasks.py:595
 msgid "Create Merge Commit"
-msgstr ""
+msgstr "Vytvořit slučovací commit"
 
 #: tasks/branchtasks.py:596
 msgid "Fast-Forward"
-msgstr ""
+msgstr "Rychle posunout"
 
 #: tasks/branchtasks.py:609 tasks/taskbook.py:82
 msgid "Recall lost commit"
-msgstr ""
+msgstr "Obnovit ztracený commit"
 
 #: tasks/branchtasks.py:610
 #, python-brace-format
 msgid "If you know the hash of a commit that isn’t part of any branches anymore, {app} will try to recall it for you."
 msgstr ""
+"Pokud znáte hash commitu, který už není součástí žádné větve, aplikace {app} "
+"se jej pokusí obnovit."
 
 #: tasks/branchtasks.py:612
 msgid "Recall"
-msgstr ""
+msgstr "Obnovit"
 
 #: tasks/committasks.py:42
 msgid "Do you want to create an empty commit anyway?"
-msgstr ""
+msgstr "Chcete přesto vytvořit prázdný commit?"
 
 #: tasks/committasks.py:42
 msgid "No files are staged for commit."
-msgstr ""
+msgstr "Pro commit nejsou připraveny žádné soubory."
 
 #: tasks/committasks.py:46
 #, python-brace-format
 msgid "Note: Your working directory contains {n} unstaged file. If you want to commit it, you should <b>stage</b> it first."
 msgid_plural "Note: Your working directory contains {n} unstaged files. If you want to commit them, you should <b>stage</b> them first."
 msgstr[0] ""
+"Poznámka: Pracovní adresář obsahuje {n} nepřipravený soubor. Chcete-li jej "
+"zahrnout do commitu, musíte jej nejprve <b>připravit</b>."
 msgstr[1] ""
+"Poznámka: Pracovní adresář obsahuje {n} nepřipravené soubory. Chcete-li je "
+"zahrnout do commitu, musíte je nejprve <b>připravit</b>."
+msgstr[2] ""
+"Poznámka: Pracovní adresář obsahuje {n} nepřipravených souborů. Chcete-li je "
+"zahrnout do commitu, musíte je nejprve <b>připravit</b>."
 
 #: tasks/committasks.py:53
 msgid "Create empty commit"
-msgstr ""
+msgstr "Vytvořit prázdný commit"
 
 #: tasks/committasks.py:54 tasks/jumptasks.py:325
 msgid "Empty commit"
-msgstr ""
+msgstr "Prázdný commit"
 
 #: tasks/committasks.py:57
 msgid "Proceed to Commit"
-msgstr ""
+msgstr "Pokračovat k vytvoření commitu"
 
 #: tasks/committasks.py:112
 #, python-brace-format
@@ -4161,59 +4310,61 @@ msgstr ""
 
 #: tasks/committasks.py:132
 msgid "Proceed to Amend Commit"
-msgstr ""
+msgstr "Pokračovat k úpravě commitu"
 
 #: tasks/committasks.py:173
 #, python-brace-format
 msgid "Commit {0} amended. New hash: {1}."
-msgstr ""
+msgstr "Commit {0} upraven. Nový otisk: {1}."
 
 #: tasks/committasks.py:261
 #, python-brace-format
 msgid "You might lose track of this commit if you carry on checking out another commit ({0})."
 msgstr ""
+"Pokud se nyní přepnete na jiný commit ({0}), můžete tento commit ztratit z "
+"dohledu."
 
 #: tasks/committasks.py:268
 #, python-brace-format
 msgid "Entered detached HEAD on {0}."
-msgstr ""
+msgstr "Přešli jste do odpojeného HEAD na {0}."
 
 #: tasks/committasks.py:300
 msgid "Proceed to New Tag"
-msgstr ""
+msgstr "Pokračovat k vytvoření nové značky"
 
 #: tasks/committasks.py:332
 #, python-brace-format
 msgid "Tag {0} created on commit {1}."
-msgstr ""
+msgstr "Značka {0} vytvořena na commitu {1}."
 
 #: tasks/committasks.py:387
 #, python-brace-format
 msgid "Do you want to revert commit {0}?"
-msgstr ""
+msgstr "Chcete vrátit commit {0}?"
 
 #: tasks/committasks.py:388
 msgid "You will have an opportunity to review the affected files in your working directory."
-msgstr ""
+msgstr "Ovlivněné soubory budete moci zkontrolovat v pracovním adresáři."
 
 #: tasks/committasks.py:409
 #, python-brace-format
 msgid "There’s nothing to revert from {0} that the current branch hasn’t already undone."
-msgstr ""
+msgstr "V {0} není nic k vrácení, co by už aktuální větev nevrátila."
 
 #: tasks/committasks.py:422
 #, python-brace-format
 msgid "Reverting {0} was successful. Do you want to commit the result now?"
-msgstr ""
+msgstr "Vrácení {0} bylo úspěšné. Chcete nyní výsledek zahrnout do commitu?"
 
 #: tasks/committasks.py:423 tasks/committasks.py:469
 msgid "Review changes"
-msgstr ""
+msgstr "Zkontrolovat změny"
 
 #: tasks/committasks.py:452
 #, python-brace-format
 msgid "There’s nothing to cherry-pick from {0} that the current branch doesn’t already have."
-msgstr ""
+msgstr "V {0} není pro cherry-pick nic, co by aktuální větev už neobsahovala."
 
 #: tasks/committasks.py:466
 #, python-brace-format
@@ -4238,126 +4389,144 @@ msgstr ""
 
 #: tasks/exporttasks.py:65
 msgid "Nothing to export. The patch is empty."
-msgstr ""
+msgstr "Není co exportovat. Záplata je prázdná."
 
 #: tasks/exporttasks.py:111
 #, python-brace-format
 msgctxt "patch file name, please keep it short"
 msgid "stashed on {commit}"
-msgstr ""
+msgstr "odloženo na {commit}"
 
 #: tasks/exporttasks.py:126
 #, python-brace-format
 msgctxt "patch file name, please keep it short"
 msgid "uncommitted changes on {commit}"
-msgstr ""
+msgstr "nepotvrzené změny na {commit}"
 
 #: tasks/indextasks.py:44
 #, python-brace-format
 msgid "You have selected an unresolved merge conflict."
 msgid_plural "You have selected {n} unresolved merge conflicts."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vybrali jste nevyřešený konflikt při slučování."
+msgstr[1] "Vybrali jste {n} nevyřešené konflikty při slučování."
+msgstr[2] "Vybrali jste {n} nevyřešených konfliktů při slučování."
 
 #: tasks/indextasks.py:47
 #, python-brace-format
 msgid "There is an unresolved merge conflict among your selection."
 msgid_plural "There are {n} unresolved merge conflicts among your selection."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ve výběru je nevyřešený konflikt při slučování."
+msgstr[1] "Ve výběru jsou {n} nevyřešené konflikty při slučování."
+msgstr[2] "Ve výběru je {n} nevyřešených konfliktů při slučování."
 
 #: tasks/indextasks.py:51
 msgctxt "please fix (the merge conflicts)"
 msgid "Please fix it before staging:"
 msgid_plural "Please fix them before staging:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Před přípravou konflikt vyřešte:"
+msgstr[1] "Před přípravou konflikty vyřešte:"
+msgstr[2] "Před přípravou konflikty vyřešte:"
 
 #: tasks/indextasks.py:53
 msgctxt "please fix (the merge conflicts)"
 msgid "Please fix it before discarding:"
 msgid_plural "Please fix them before discarding:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Před zahozením konflikt vyřešte:"
+msgstr[1] "Před zahozením konflikty vyřešte:"
+msgstr[2] "Před zahozením konflikty vyřešte:"
 
 #: tasks/indextasks.py:80
 #, python-brace-format
 msgid "File staged."
 msgid_plural "{n} files staged."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Soubor připraven."
+msgstr[1] "Připraveny {n} soubory."
+msgstr[2] "Připraveno {n} souborů."
 
 #: tasks/indextasks.py:90
 msgid "You’ve added another Git repo inside your current repo. It is STRONGLY RECOMMENDED to absorb it as a submodule before committing."
 msgstr ""
+"Do aktuálního repozitáře jste přidali jiný repozitář Git. Před vytvořením "
+"commitu DŮRAZNĚ DOPORUČUJEME převzít jej jako submodul."
 
 #: tasks/indextasks.py:95
 #, python-brace-format
 msgid "Don’t forget to remove the submodule from {0} to complete its deletion."
-msgstr ""
+msgstr "Odstranění submodulu dokončíte jeho odebráním ze souboru {0}."
 
 #: tasks/indextasks.py:98
 msgid "Uncommitted changes in the submodule can’t be staged from the parent repository."
-msgstr ""
+msgstr "Nepotvrzené změny v submodulu nelze připravit z nadřazeného repozitáře."
 
 #: tasks/indextasks.py:113
 #, python-brace-format
 msgid "An item requires your attention after staging:"
 msgid_plural "{n} items require your attention after staging:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Po přípravě vyžaduje vaši pozornost jedna položka:"
+msgstr[1] "Po přípravě vyžadují vaši pozornost {n} položky:"
+msgstr[2] "Po přípravě vyžaduje vaši pozornost {n} položek:"
 
 #: tasks/indextasks.py:122 tasks/taskbook.py:48
 msgid "Discard changes"
-msgstr ""
+msgstr "Zahodit změny"
 
 #: tasks/indextasks.py:139
 #, python-brace-format
 msgid "Really delete {0}?"
-msgstr ""
+msgstr "Opravdu chcete odstranit {0}?"
 
 #: tasks/indextasks.py:140
 msgid "Git isn’t tracking this file, so you may not be able to recover it from older commits."
 msgstr ""
+"Git tento soubor nesleduje, takže jej možná nebude možné obnovit ze starších "
+"commitů."
 
 #: tasks/indextasks.py:143
 #, python-brace-format
 msgid "Really discard changes in submodule {0}?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změny v submodulu {0}?"
 
 #: tasks/indextasks.py:145
 #, python-brace-format
 msgid "Really discard changes to {0}?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změny souboru {0}?"
 
 #: tasks/indextasks.py:150
 #, python-brace-format
 msgid "Really discard changes in {n} submodules?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změny v {n} submodulech?"
 
 #: tasks/indextasks.py:152
 #, python-brace-format
 msgid "Really discard changes to {nf} files and in {ns} submodules?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změny v {nf} souborech a {ns} submodulech?"
 
 #: tasks/indextasks.py:154
 #, python-brace-format
 msgid "Really discard changes to {n} files?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změny v {n} souborech?"
 
 #: tasks/indextasks.py:159
 #, python-brace-format
 msgid "Any uncommitted changes in the submodule will be <b>cleared</b> and the submodule’s HEAD will be reset."
 msgid_plural "Any uncommitted changes in {n} submodules will be <b>cleared</b> and the submodules’ HEAD will be reset."
 msgstr[0] ""
+"Všechny nepotvrzené změny v submodulu budou <b>vymazány</b> a jeho HEAD bude "
+"resetován."
 msgstr[1] ""
+"Všechny nepotvrzené změny v {n} submodulech budou <b>vymazány</b> a jejich "
+"HEAD bude resetován."
+msgstr[2] ""
+"Všechny nepotvrzené změny v {n} submodulech budou <b>vymazány</b> a jejich "
+"HEAD bude resetován."
 
 #: tasks/indextasks.py:195
 #, python-brace-format
 msgid "File discarded."
 msgid_plural "{n} files discarded."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Soubor zahozen."
+msgstr[1] "Zahozeny {n} soubory."
+msgstr[2] "Zahozeno {n} souborů."
 
 #: tasks/indextasks.py:204
 #, python-brace-format
@@ -4368,35 +4537,37 @@ msgstr ""
 #, python-brace-format
 msgid "File unstaged."
 msgid_plural "{n} files unstaged."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Příprava souboru zrušena."
+msgstr[1] "Příprava {n} souborů zrušena."
+msgstr[2] "Příprava {n} souborů zrušena."
 
 #: tasks/indextasks.py:237
 #, python-brace-format
 msgid "Really discard mode change in {0}?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změnu režimu souboru {0}?"
 
 #: tasks/indextasks.py:239
 #, python-brace-format
 msgid "Really discard mode changes in <b>{n} files</b>?"
-msgstr ""
+msgstr "Opravdu chcete zahodit změny režimu v <b>{n} souborech</b>?"
 
 #: tasks/indextasks.py:242 tasks/taskbook.py:49
 msgid "Discard mode changes"
-msgstr ""
+msgstr "Zahodit změny režimu"
 
 #: tasks/indextasks.py:268
 #, python-brace-format
 msgid "Can’t {verb} the selection because no red/green lines are selected."
 msgstr ""
+"Výběr nelze {verb}, protože nejsou vybrány žádné červené ani zelené řádky."
 
 #: tasks/indextasks.py:275
 msgid "Really discard this hunk?"
-msgstr ""
+msgstr "Opravdu chcete zahodit tento blok změn?"
 
 #: tasks/indextasks.py:277
 msgid "Really discard the selected lines?"
-msgstr ""
+msgstr "Opravdu chcete zahodit vybrané řádky?"
 
 #: tasks/indextasks.py:297
 msgid "There’s nothing to revert in the selection."
@@ -4414,17 +4585,18 @@ msgstr ""
 #, python-brace-format
 msgid "Conflict resolved."
 msgid_plural "{n} conflicts resolved."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Konflikt vyřešen."
+msgstr[1] "Vyřešeny {n} konflikty."
+msgstr[2] "Vyřešeno {n} konfliktů."
 
 #: tasks/indextasks.py:397
 #, python-brace-format
 msgid "Merge conflict resolved in {0}."
-msgstr ""
+msgstr "Konflikt při slučování v souboru {0} byl vyřešen."
 
 #: tasks/indextasks.py:403 tasks/taskbook.py:39
 msgid "Revert patch file"
-msgstr ""
+msgstr "Obráceně použít soubor se záplatou"
 
 #: tasks/indextasks.py:404 tasks/indextasks.py:481
 msgid "Revert"
@@ -4432,27 +4604,28 @@ msgstr ""
 
 #: tasks/indextasks.py:406 tasks/taskbook.py:37 tasks/taskbook.py:38
 msgid "Apply patch file"
-msgstr ""
+msgstr "Použít soubor se záplatou"
 
 #: tasks/indextasks.py:409
 msgid "Patch file"
-msgstr ""
+msgstr "Soubor se záplatou"
 
 #: tasks/indextasks.py:410
 msgid "All files"
-msgstr ""
+msgstr "Všechny soubory"
 
 #: tasks/indextasks.py:445
 #, python-brace-format
 msgid "Do you want to {verb} patch file {path}?"
-msgstr ""
+msgstr "Chcete {verb} soubor se záplatou {path}?"
 
 #: tasks/indextasks.py:447 tasks/indextasks.py:485
 #, python-brace-format
 msgid "<b>{n}</b> file will be modified in your working directory:"
 msgid_plural "<b>{n}</b> files will be modified in your working directory:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "V pracovním adresáři bude upraven <b>{n}</b> soubor:"
+msgstr[1] "V pracovním adresáři budou upraveny <b>{n}</b> soubory:"
+msgstr[2] "V pracovním adresáři bude upraveno <b>{n}</b> souborů:"
 
 #: tasks/indextasks.py:480
 msgid "Apply patch"
@@ -4470,174 +4643,187 @@ msgstr ""
 #: tasks/indextasks.py:500
 msgctxt "preposition slotted into '...BEFORE this commit'"
 msgid "before"
-msgstr ""
+msgstr "před tímto commitem"
 
 #: tasks/indextasks.py:504
 msgctxt "preposition slotted into '...AT this commit'"
 msgid "at"
-msgstr ""
+msgstr "v tomto commitu"
 
 #: tasks/indextasks.py:512
 #, python-brace-format
 msgid "Your working copy of {path} already matches the revision {preposition} this commit."
-msgstr ""
+msgstr "Pracovní kopie souboru {path} už odpovídá stavu {preposition}."
 
 #: tasks/indextasks.py:517
 msgid "recreated"
-msgstr ""
+msgstr "znovu vytvořen"
 
 #: tasks/indextasks.py:519
 msgid "deleted"
-msgstr ""
+msgstr "odstraněn"
 
 #: tasks/indextasks.py:521
 msgid "overwritten"
-msgstr ""
+msgstr "přepsán"
 
 #: tasks/indextasks.py:523
 #, python-brace-format
 msgid "Do you want to restore {path} as it was {preposition} this commit?"
-msgstr ""
+msgstr "Chcete obnovit soubor {path} do stavu {preposition}?"
 
 #: tasks/indextasks.py:525
 #, python-brace-format
 msgid "This file will be {processed} in your working directory."
-msgstr ""
+msgstr "Tento soubor bude v pracovním adresáři {processed}."
 
 #: tasks/indextasks.py:527
 msgid "Restore"
-msgstr ""
+msgstr "Obnovit"
 
 #: tasks/indextasks.py:540
 #, python-brace-format
 msgid "File {path} {processed}."
-msgstr ""
+msgstr "Soubor {path} byl {processed}."
 
 #: tasks/indextasks.py:554
 msgid "No abortable state is in progress."
-msgstr ""
+msgstr "Neprobíhá žádná operace, kterou lze přerušit."
 
 #: tasks/indextasks.py:557
 msgid "abort the ongoing cherry-pick"
-msgstr ""
+msgstr "přerušit probíhající cherry-pick"
 
 #: tasks/indextasks.py:559
 msgid "Cherry-pick aborted."
-msgstr ""
+msgstr "Cherry-pick přerušen."
 
 #: tasks/indextasks.py:561
 msgid "abort the ongoing merge"
-msgstr ""
+msgstr "přerušit probíhající sloučení"
 
 #: tasks/indextasks.py:563
 msgid "Merge aborted."
-msgstr ""
+msgstr "Sloučení přerušeno."
 
 #: tasks/indextasks.py:565
 msgid "abort the ongoing revert"
-msgstr ""
+msgstr "přerušit probíhající vracení"
 
 #: tasks/indextasks.py:567
 msgid "Revert aborted."
-msgstr ""
+msgstr "Vracení přerušeno."
 
 #: tasks/indextasks.py:569
 msgid "reset the index"
-msgstr ""
+msgstr "resetovat index"
 
 #: tasks/indextasks.py:571
 msgid "Index reset."
-msgstr ""
+msgstr "Index resetován."
 
 #: tasks/indextasks.py:577
 #, python-brace-format
 msgid "Cannot {verb} right now, because a file contains both staged and unstaged changes."
 msgid_plural "Cannot {verb} right now, because {n} files contain both staged and unstaged changes."
 msgstr[0] ""
+"Operaci {verb} nyní nelze provést, protože soubor obsahuje připravené i "
+"nepřipravené změny."
 msgstr[1] ""
+"Operaci {verb} nyní nelze provést, protože {n} soubory obsahují připravené i "
+"nepřipravené změny."
+msgstr[2] ""
+"Operaci {verb} nyní nelze provést, protože {n} souborů obsahuje připravené i "
+"nepřipravené změny."
 
 #: tasks/indextasks.py:580
 msgid "Please unstage the changes and try again."
-msgstr ""
+msgstr "Zrušte přípravu změn a zkuste to znovu."
 
 #: tasks/indextasks.py:583
 #, python-brace-format
 msgid "Do you want to {0}?"
-msgstr ""
+msgstr "Chcete {0}?"
 
 #: tasks/indextasks.py:586
 msgid "No files are affected."
-msgstr ""
+msgstr "Nejsou ovlivněny žádné soubory."
 
 #: tasks/indextasks.py:589
 msgid "All conflicts will be cleared and all <b>staged</b> changes will be lost."
 msgstr ""
+"Všechny konflikty budou vymazány a všechny <b>připravené</b> změny budou "
+"ztraceny."
 
 #: tasks/indextasks.py:591
 msgid "All <b>staged</b> changes will be lost."
-msgstr ""
+msgstr "Všechny <b>připravené</b> změny budou ztraceny."
 
 #: tasks/indextasks.py:592
 #, python-brace-format
 msgid "This file will be reset:"
 msgid_plural "{n} files will be reset:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Tento soubor bude resetován:"
+msgstr[1] "Tyto {n} soubory budou resetovány:"
+msgstr[2] "Těchto {n} souborů bude resetováno:"
 
 #: tasks/jumptasks.py:150
 #, python-brace-format
 msgid "Unstaged ({n})"
 msgid_plural "Unstaged ({n})"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Nepřipraveno ({n})"
+msgstr[1] "Nepřipraveno ({n})"
+msgstr[2] "Nepřipraveno ({n})"
 
 #: tasks/jumptasks.py:151
 #, python-brace-format
 msgid "Staged ({n})"
 msgid_plural "Staged ({n})"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Připraveno ({n})"
+msgstr[1] "Připraveno ({n})"
+msgstr[2] "Připraveno ({n})"
 
 #: tasks/jumptasks.py:152
 #, python-brace-format
 msgid "Commit {n} file"
 msgid_plural "Commit {n} files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Zahrnout {n} soubor do commitu"
+msgstr[1] "Zahrnout {n} soubory do commitu"
+msgstr[2] "Zahrnout {n} souborů do commitu"
 
 #: tasks/jumptasks.py:177
 msgid "The working directory is clean."
-msgstr ""
+msgstr "Pracovní adresář je čistý."
 
 #: tasks/jumptasks.py:178
 msgid "There aren’t any changes to commit."
-msgstr ""
+msgstr "Nejsou žádné změny k zahrnutí do commitu."
 
 #: tasks/jumptasks.py:211
 msgid "Shallow clone – End of available history."
-msgstr ""
+msgstr "Mělký klon – konec dostupné historie."
 
 #: tasks/jumptasks.py:212
 msgid "More commits may be available in a full clone."
-msgstr ""
+msgstr "V úplném klonu mohou být dostupné další commity."
 
 #: tasks/jumptasks.py:224
 msgid "[Load full commit history] (this may take a moment)"
-msgstr ""
+msgstr "[Načíst úplnou historii commitů] (může to chvíli trvat)"
 
 #: tasks/jumptasks.py:225
 #, python-brace-format
 msgid "[Change threshold setting] (currently: {0} commits)"
-msgstr ""
+msgstr "[Změnit nastavení limitu] (nyní: {0} commitů)"
 
 #: tasks/jumptasks.py:228
 #, python-brace-format
 msgid "History truncated to {0} commits."
-msgstr ""
+msgstr "Historie zkrácena na {0} commitů."
 
 #: tasks/jumptasks.py:229
 msgid "More commits may be available."
-msgstr ""
+msgstr "Mohou být dostupné další commity."
 
 #: tasks/jumptasks.py:231
 msgid "History truncated"
@@ -4646,23 +4832,24 @@ msgstr ""
 #: tasks/jumptasks.py:253
 #, python-brace-format
 msgid "Unknown reference {0}."
-msgstr ""
+msgstr "Neznámá reference {0}."
 
 #: tasks/jumptasks.py:318
 #, python-brace-format
 msgid "{n} change:|{n} ch.:"
 msgid_plural "{n} changes:|{n} ch.:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{n} změna:|{n} zm.:"
+msgstr[1] "{n} změny:|{n} zm.:"
+msgstr[2] "{n} změn:|{n} zm.:"
 
 #: tasks/jumptasks.py:327
 msgid "This commit is empty."
-msgstr ""
+msgstr "Tento commit je prázdný."
 
 #: tasks/jumptasks.py:328
 #, python-brace-format
 msgid "Commit {0} doesn’t affect any files."
-msgstr ""
+msgstr "Commit {0} neovlivňuje žádné soubory."
 
 #: tasks/jumptasks.py:334
 msgid "Rename detection was skipped to load this large commit faster."
@@ -4681,22 +4868,22 @@ msgstr ""
 
 #: tasks/loadtasks.py:45
 msgid "Loading repo"
-msgstr ""
+msgstr "Načítání repozitáře"
 
 #: tasks/loadtasks.py:124
 #, python-brace-format
 msgid "{0} commits…"
-msgstr ""
+msgstr "{0} commitů…"
 
 #: tasks/loadtasks.py:137
 #, python-brace-format
 msgid "{0} commits loaded (truncated log)."
-msgstr ""
+msgstr "Načteno {0} commitů (zkrácený protokol)."
 
 #: tasks/loadtasks.py:139
 #, python-brace-format
 msgid "{0} commits total."
-msgstr ""
+msgstr "Celkem {0} commitů."
 
 #: tasks/loadtasks.py:290
 msgid "Try to reload the file."
@@ -4723,94 +4910,102 @@ msgstr ""
 #, python-brace-format
 msgctxt "at (specific commit)"
 msgid "at {0}"
-msgstr ""
+msgstr "v {0}"
 
 #: tasks/misctasks.py:84
 #, python-brace-format
 msgid "Parent"
 msgid_plural "{n} Parents"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Rodič"
+msgstr[1] "{n} rodiče"
+msgstr[2] "{n} rodičů"
 
 #: tasks/misctasks.py:90
 msgid "You’re working in a shallow clone. This commit may actually have parents in the full history."
 msgstr ""
+"Pracujete v mělkém klonu. V úplné historii může mít tento commit rodiče."
 
 #: tasks/misctasks.py:95
 msgid "(same as author)"
-msgstr ""
+msgstr "(stejný jako autor)"
 
 #: tasks/misctasks.py:100
 msgid "Hash"
-msgstr ""
+msgstr "Otisk"
 
 #: tasks/misctasks.py:102
 msgid "Author"
-msgstr ""
+msgstr "Autor"
 
 #: tasks/misctasks.py:103
 msgid "Committer"
-msgstr ""
+msgstr "Autor zápisu"
 
 #: tasks/misctasks.py:119
 #, python-brace-format
 msgid "Commit info: {0}"
-msgstr ""
+msgstr "Informace o commitu: {0}"
 
 #: tasks/misctasks.py:198
 #, python-brace-format
 msgid "Added to {file}: {pattern}"
-msgstr ""
+msgstr "Přidáno do {file}: {pattern}"
 
 #: tasks/nettasks.py:61
 #, python-brace-format
 msgid "Can’t fetch new commits on {0} because this branch isn’t tracking an upstream branch."
 msgstr ""
+"Nové commity větve {0} nelze načíst, protože tato větev nesleduje žádnou "
+"nadřazenou větev."
 
 #: tasks/nettasks.py:75
 #, python-brace-format
 msgid "Really delete branch {0} from the remote repository?"
-msgstr ""
+msgstr "Opravdu chcete odstranit větev {0} ze vzdáleného repozitáře?"
 
 #: tasks/nettasks.py:76
 #, python-brace-format
 msgid "The remote branch will disappear for all users of remote {0}."
-msgstr ""
+msgstr "Vzdálená větev zmizí všem uživatelům vzdáleného repozitáře {0}."
 
 #: tasks/nettasks.py:78
 msgid "Delete on remote"
-msgstr ""
+msgstr "Odstranit ze vzdáleného repozitáře"
 
 #: tasks/nettasks.py:90
 #, python-brace-format
 msgid "Remote branch {0} deleted."
-msgstr ""
+msgstr "Vzdálená větev {0} odstraněna."
 
 #: tasks/nettasks.py:106
 #, python-brace-format
 msgid "Rename remote branch {0}"
-msgstr ""
+msgstr "Přejmenovat vzdálenou větev {0}"
 
 #: tasks/nettasks.py:107
 msgid "WARNING: This will rename the branch for all users of the remote!"
 msgstr ""
+"VAROVÁNÍ: Tímto větev přejmenujete všem uživatelům vzdáleného repozitáře!"
 
 #: tasks/nettasks.py:110
 msgid "Rename on remote"
-msgstr ""
+msgstr "Přejmenovat ve vzdáleném repozitáři"
 
 #: tasks/nettasks.py:134
 #, python-brace-format
 msgid "Remote branch {0} renamed to {1}."
-msgstr ""
+msgstr "Vzdálená větev {0} přejmenována na {1}."
 
 #: tasks/nettasks.py:143
 msgid "To fetch remote branches, you must first add a remote to your repo."
 msgstr ""
+"Chcete-li načíst vzdálené větve, musíte do repozitáře nejprve přidat "
+"vzdálený repozitář."
 
 #: tasks/nettasks.py:144 tasks/nettasks.py:330
 msgid "You can do so via <i>“Repo &rarr; Add Remote”</i>."
 msgstr ""
+"Můžete tak učinit přes <i>„Repozitář &rarr; Přidat vzdálený repozitář“</i>."
 
 #: tasks/nettasks.py:151
 #, python-brace-format
@@ -4824,7 +5019,7 @@ msgstr ""
 
 #: tasks/nettasks.py:176 tasks/nettasks.py:214
 msgid "Fetch complete."
-msgstr ""
+msgstr "Načítání dokončeno."
 
 #: tasks/nettasks.py:182
 #, python-brace-format
@@ -4841,22 +5036,24 @@ msgstr ""
 #: tasks/nettasks.py:214
 #, python-brace-format
 msgid "No new commits on {0}."
-msgstr ""
+msgstr "V {0} nejsou žádné nové commity."
 
 #: tasks/nettasks.py:225
 #, python-brace-format
 msgid "{0} has disappeared from the remote server."
-msgstr ""
+msgstr "{0} ze vzdáleného serveru zmizela."
 
 #: tasks/nettasks.py:235
 #, python-brace-format
 msgid "Can’t pull new commits into {0} because this branch isn’t tracking an upstream branch."
 msgstr ""
+"Nové commity nelze stáhnout do větve {0}, protože tato větev nesleduje "
+"žádnou nadřazenou větev."
 
 #: tasks/nettasks.py:248 tasks/taskbook.py:112
 msgctxt "toolbar"
 msgid "Pull"
-msgstr ""
+msgstr "Stáhnout"
 
 #: tasks/nettasks.py:290 tasks/nettasks.py:301
 #, python-brace-format
@@ -4868,138 +5065,149 @@ msgstr[1] ""
 #: tasks/nettasks.py:329
 msgid "To push a local branch to a remote, you must first add a remote to your repo."
 msgstr ""
+"Chcete-li odeslat místní větev do vzdáleného repozitáře, musíte do "
+"repozitáře nejprve přidat vzdálený repozitář."
 
 #: tasks/nettasks.py:338 tasks/repotask.py:595
 msgid "Please switch to a local branch before performing this action."
-msgstr ""
+msgstr "Před provedením této akce se přepněte na místní větev."
 
 #: tasks/nettasks.py:402
 msgid "Push complete."
-msgstr ""
+msgstr "Odesílání dokončeno."
 
 #: tasks/newrepotasks.py:23
 msgid "New repository"
-msgstr ""
+msgstr "Nový repozitář"
 
 #: tasks/newrepotasks.py:25
 msgid "&Create repo here"
-msgstr ""
+msgstr "&Vytvořit repozitář zde"
 
 #: tasks/newrepotasks.py:45
 #, python-brace-format
 msgid "Are you sure you want to initialize a Git repository in {0}? This directory isn’t empty."
 msgstr ""
+"Opravdu chcete inicializovat repozitář Git v {0}? Tento adresář není prázdný."
 
 #: tasks/newrepotasks.py:47
 msgid "Directory isn’t empty"
-msgstr ""
+msgstr "Adresář není prázdný"
 
 #: tasks/newrepotasks.py:62
 msgid "Repository already exists"
-msgstr ""
+msgstr "Repozitář už existuje"
 
 #: tasks/newrepotasks.py:63
 msgid "A repository already exists here:"
-msgstr ""
+msgstr "Zde už existuje repozitář:"
 
 #: tasks/newrepotasks.py:64
 msgid "&Open existing repo"
-msgstr ""
+msgstr "&Otevřít existující repozitář"
 
 #: tasks/newrepotasks.py:83
 #, python-brace-format
 msgid "An existing repository, {0}, was found in a parent folder of this location:"
 msgstr ""
+"V nadřazené složce tohoto umístění byl nalezen existující repozitář {0}:"
 
 #: tasks/newrepotasks.py:85
 #, python-brace-format
 msgid "Are you sure you want to create {0} within the existing repo?"
-msgstr ""
+msgstr "Opravdu chcete vytvořit {0} uvnitř existujícího repozitáře?"
 
 #: tasks/newrepotasks.py:87
 #, python-brace-format
 msgid "&Create {0}"
-msgstr ""
+msgstr "&Vytvořit {0}"
 
 #: tasks/newrepotasks.py:91
 msgid "Repository found in parent folder"
-msgstr ""
+msgstr "Repozitář nalezen v nadřazené složce"
 
 #: tasks/newrepotasks.py:93
 #, python-brace-format
 msgid "&Open {0}"
-msgstr ""
+msgstr "&Otevřít {0}"
 
 #: tasks/remotetasks.py:46
 #, python-brace-format
 msgid "Remote {0} added."
-msgstr ""
+msgstr "Vzdálený repozitář {0} přidán."
 
 #: tasks/remotetasks.py:90
 #, python-brace-format
 msgid "Really remove remote {0}?"
-msgstr ""
+msgstr "Opravdu chcete odebrat vzdálený repozitář {0}?"
 
 #: tasks/remotetasks.py:91
 msgid "This will merely detach the remote from your local repository. The remote server itself will not be affected."
 msgstr ""
+"Tímto pouze odpojíte vzdálený repozitář od místního repozitáře. Samotný "
+"vzdálený server nebude ovlivněn."
 
 #: tasks/remotetasks.py:93 tasks/taskbook.py:45
 msgid "Remove remote"
-msgstr ""
+msgstr "Odebrat vzdálený repozitář"
 
 #: tasks/remotetasks.py:100
 #, python-brace-format
 msgid "Remote {0} removed."
-msgstr ""
+msgstr "Vzdálený repozitář {0} odebrán."
 
 #: tasks/repotask.py:35
 #, python-brace-format
 msgid "Conflicting file"
 msgid_plural "{n} conflicting files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Konfliktní soubor"
+msgstr[1] "{n} konfliktní soubory"
+msgstr[2] "{n} konfliktních souborů"
 
 #: tasks/repotask.py:36
 #, python-brace-format
 msgctxt "operation conflicts with…"
 msgid "a file"
 msgid_plural "{n} files"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "jedním souborem"
+msgstr[1] "{n} soubory"
+msgstr[2] "{n} soubory"
 
 #: tasks/repotask.py:40
 #, python-brace-format
 msgid "Operation {op} conflicts with {files} in the working directory:"
-msgstr ""
+msgstr "Operace {op} je v konfliktu s {files} v pracovním adresáři:"
 
 #: tasks/repotask.py:42
 #, python-brace-format
 msgid "Operation {op} conflicts with {files} in the commit at HEAD:"
-msgstr ""
+msgstr "Operace {op} je v konfliktu s {files} v commitu na HEAD:"
 
 #: tasks/repotask.py:44
 #, python-brace-format
 msgid "Operation {op} has caused a conflict with {files} ({exc}):"
-msgstr ""
+msgstr "Operace {op} způsobila konflikt s {files} ({exc}):"
 
 #: tasks/repotask.py:52
 msgid "Before you try again, you should either commit, stash, or discard your changes."
 msgstr ""
+"Než to zkusíte znovu, zahrňte změny do commitu, odložte je nebo je zahoďte."
 
 #: tasks/repotask.py:62
 #, python-brace-format
 msgid "Operation {op} ran into an issue with {n} file."
 msgid_plural "Operation {op} ran into issues with {n} files."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Při operaci {op} nastal problém s {n} souborem."
+msgstr[1] "Při operaci {op} nastaly problémy s {n} soubory."
+msgstr[2] "Při operaci {op} nastaly problémy s {n} soubory."
 
 #: tasks/repotask.py:66
 #, python-brace-format
 msgid "({n} other file was successful.)"
 msgid_plural "({n} other files were successful.)"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "(U {n} dalšího souboru byla operace úspěšná.)"
+msgstr[1] "(U {n} dalších souborů byla operace úspěšná.)"
+msgstr[2] "(U {n} dalších souborů byla operace úspěšná.)"
 
 #: tasks/repotask.py:80
 #, python-brace-format
@@ -5009,47 +5217,47 @@ msgstr ""
 #: tasks/repotask.py:333 toolbox/messageboxes.py:299
 #, python-brace-format
 msgid "Operation failed: {0}."
-msgstr ""
+msgstr "Operace selhala: {0}."
 
 #: tasks/repotask.py:536
 msgid "Don’t ask me to confirm this again"
-msgstr ""
+msgstr "Příště potvrzení nevyžadovat"
 
 #: tasks/repotask.py:536
 msgid "Don’t show this again"
-msgstr ""
+msgstr "Příště nezobrazovat"
 
 #: tasks/repotask.py:585
 msgid "Fix merge conflicts before performing this action."
-msgstr ""
+msgstr "Před provedením této akce vyřešte konflikty při slučování."
 
 #: tasks/repotask.py:589
 msgid "There are no commits in this repository yet."
-msgstr ""
+msgstr "V tomto repozitáři zatím nejsou žádné commity."
 
 #: tasks/repotask.py:590
 msgid "Create the initial commit in this repository before performing this action."
-msgstr ""
+msgstr "Před provedením této akce vytvořte v repozitáři počáteční commit."
 
 #: tasks/repotask.py:594
 msgid "You are in “detached HEAD” state."
-msgstr ""
+msgstr "Nacházíte se ve stavu „odpojený HEAD“."
 
 #: tasks/repotask.py:599
 msgid "You are in the middle of a cherry-pick."
-msgstr ""
+msgstr "Právě probíhá cherry-pick."
 
 #: tasks/repotask.py:600
 msgid "Before performing this action, conclude the cherry-pick."
-msgstr ""
+msgstr "Před provedením této akce dokončete cherry-pick."
 
 #: tasks/repotask.py:604
 msgid "You have staged changes."
-msgstr ""
+msgstr "Máte připravené změny."
 
 #: tasks/repotask.py:605
 msgid "Before performing this action, commit your changes or stash them."
-msgstr ""
+msgstr "Před provedením této akce zahrňte změny do commitu nebo je odložte."
 
 #: tasks/repotask.py:722
 #, python-brace-format
@@ -5063,11 +5271,11 @@ msgstr ""
 #: tasks/repotask.py:801
 #, python-brace-format
 msgid "Busy: {0}…"
-msgstr ""
+msgstr "Probíhá: {0}…"
 
 #: tasks/stashtasks.py:49
 msgid "There are no uncommitted changes to stash."
-msgstr ""
+msgstr "Nejsou žádné nepotvrzené změny k odložení."
 
 #: tasks/stashtasks.py:57
 msgid "There are no uncommitted changes to stash (submodules cannot be stashed)."
@@ -5077,184 +5285,191 @@ msgstr ""
 #, python-brace-format
 msgid "File stashed."
 msgid_plural "{n} files stashed."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Soubor odložen."
+msgstr[1] "Odloženy {n} soubory."
+msgstr[2] "Odloženo {n} souborů."
 
 #: tasks/stashtasks.py:91
 #, python-brace-format
 msgid "Do you want to apply the changes stashed in {0} to your working directory?"
-msgstr ""
+msgstr "Chcete použít změny odložené v {0} ve svém pracovním adresáři?"
 
 #: tasks/stashtasks.py:100
 msgid "&Apply && Delete"
-msgstr ""
+msgstr "&Použít && odstranit"
 
 #: tasks/stashtasks.py:100
 msgid "&Apply && Keep"
-msgstr ""
+msgstr "&Použít && ponechat"
 
 #: tasks/stashtasks.py:102
 msgid "&Delete the stash if it applies cleanly"
-msgstr ""
+msgstr "Po bezkonfliktním použití odložené změny o&dstranit"
 
 #: tasks/stashtasks.py:118
 #, python-brace-format
 msgid "Stash {0} applied."
-msgstr ""
+msgstr "Odložené změny {0} použity."
 
 #: tasks/stashtasks.py:122
 #, python-brace-format
 msgid "Stash {0} applied, with conflicts."
-msgstr ""
+msgstr "Odložené změny {0} použity s konflikty."
 
 #: tasks/stashtasks.py:123
 #, python-brace-format
 msgid "Applying the stash {0} has caused merge conflicts because your files have diverged since they were stashed."
 msgstr ""
+"Použití odložených změn {0} způsobilo konflikty při slučování, protože se "
+"vaše soubory od doby odložení rozešly."
 
 #: tasks/stashtasks.py:126
 msgid "The stash wasn’t deleted in case you need to re-apply it later."
 msgstr ""
+"Odložené změny nebyly odstraněny pro případ, že je budete později potřebovat "
+"použít znovu."
 
 #: tasks/stashtasks.py:127
 msgid "Conflicts caused by stash application"
-msgstr ""
+msgstr "Konflikty způsobené použitím odložených změn"
 
 #: tasks/stashtasks.py:134
 #, python-brace-format
 msgid "Stash {0} applied and deleted."
-msgstr ""
+msgstr "Odložené změny {0} použity a odstraněny."
 
 #: tasks/stashtasks.py:142
 #, python-brace-format
 msgid "Really delete stash {0}?"
-msgstr ""
+msgstr "Opravdu chcete odstranit odložené změny {0}?"
 
 #: tasks/stashtasks.py:143 tasks/taskbook.py:50
 msgid "Delete stash"
-msgstr ""
+msgstr "Odstranit odložené změny"
 
 #: tasks/stashtasks.py:151
 #, python-brace-format
 msgid "Stash {0} deleted."
-msgstr ""
+msgstr "Odložené změny {0} odstraněny."
 
 #: tasks/submoduletasks.py:48
 #, python-brace-format
 msgid "{0} has no remotes."
-msgstr ""
+msgstr "{0} nemá žádné vzdálené repozitáře."
 
 #: tasks/submoduletasks.py:49
 #, python-brace-format
 msgid "Please open {0} and add a remote to it before absorbing it as a submodule."
 msgstr ""
+"Před převzetím {0} jako submodulu jej otevřete a přidejte do něj vzdálený "
+"repozitář."
 
 #: tasks/submoduletasks.py:66
 #, python-brace-format
 msgid "Settings will be saved in {0}"
-msgstr ""
+msgstr "Nastavení bude uloženo do {0}"
 
 #: tasks/submoduletasks.py:93
 #, python-brace-format
 msgid "Really remove submodule {0}?"
-msgstr ""
+msgstr "Opravdu chcete odebrat submodul {0}?"
 
 #: tasks/submoduletasks.py:94
 #, python-brace-format
 msgid "The submodule will be removed from {0} and its working copy will be deleted."
-msgstr ""
+msgstr "Submodul bude odebrán z {0} a jeho pracovní kopie bude odstraněna."
 
 #: tasks/submoduletasks.py:95
 msgid "Any changes in the submodule that haven’t been pushed will be lost."
-msgstr ""
+msgstr "Všechny změny v submodulu, které nebyly odeslány, budou ztraceny."
 
 #: tasks/taskbook.py:34
 msgid "Accept merge conflict resolution"
-msgstr ""
+msgstr "Přijmout vyřešení konfliktu při slučování"
 
 #: tasks/taskbook.py:35
 msgid "Amend last commit"
-msgstr ""
+msgstr "Upravit poslední commit"
 
 #: tasks/taskbook.py:36
 msgid "Apply selected text"
-msgstr ""
+msgstr "Použít vybraný text"
 
 #: tasks/taskbook.py:40
 msgid "Apply stash"
-msgstr ""
+msgstr "Použít odložené změny"
 
 #: tasks/taskbook.py:41
 msgid "Check out commit"
-msgstr ""
+msgstr "Přepnout na commit"
 
 #: tasks/taskbook.py:42
 msgid "Cherry-pick"
-msgstr ""
+msgstr "Cherry-pick"
 
 #: tasks/taskbook.py:43
 msgid "Delete local branch"
-msgstr ""
+msgstr "Odstranit místní větev"
 
 #: tasks/taskbook.py:44
 msgid "Delete local branch folder"
-msgstr ""
+msgstr "Odstranit složku místních větví"
 
 #: tasks/taskbook.py:46
 msgid "Delete branch on remote"
-msgstr ""
+msgstr "Odstranit větev ve vzdáleném repozitáři"
 
 #: tasks/taskbook.py:47
 msgid "Delete tag"
-msgstr ""
+msgstr "Odstranit značku"
 
 #: tasks/taskbook.py:52
 msgid "Edit upstream branch"
-msgstr ""
+msgstr "Upravit nadřazenou větev"
 
 #: tasks/taskbook.py:53
 msgid "Export commit as patch file"
-msgstr ""
+msgstr "Exportovat commit jako soubor se záplatou"
 
 #: tasks/taskbook.py:54
 msgid "Export patch file"
-msgstr ""
+msgstr "Exportovat soubor se záplatou"
 
 #: tasks/taskbook.py:55
 msgid "Export stash as patch file"
-msgstr ""
+msgstr "Exportovat odložené změny jako soubor se záplatou"
 
 #: tasks/taskbook.py:56
 msgid "Export changes as patch file"
-msgstr ""
+msgstr "Exportovat změny jako soubor se záplatou"
 
 #: tasks/taskbook.py:57
 msgid "Fast-forward branch"
-msgstr ""
+msgstr "Rychle posunout větev"
 
 #: tasks/taskbook.py:58
 msgid "Fetch remote branches"
-msgstr ""
+msgstr "Načíst vzdálené větve"
 
 #: tasks/taskbook.py:59
 msgid "Fetch remote branch"
-msgstr ""
+msgstr "Načíst vzdálenou větev"
 
 #: tasks/taskbook.py:60
 msgid "Get commit information"
-msgstr ""
+msgstr "Získat informace o commitu"
 
 #: tasks/taskbook.py:61
 msgid "Accept/reject incoming changes"
-msgstr ""
+msgstr "Přijmout nebo odmítnout příchozí změny"
 
 #: tasks/taskbook.py:62
 msgid "Navigate in repo"
-msgstr ""
+msgstr "Přejít v repozitáři"
 
 #: tasks/taskbook.py:66
 msgid "Go to HEAD commit"
-msgstr ""
+msgstr "Přejít na commit HEAD"
 
 #: tasks/taskbook.py:68
 msgid "Mark conflict solved"
@@ -5262,71 +5477,71 @@ msgstr ""
 
 #: tasks/taskbook.py:69
 msgid "Merge branch"
-msgstr ""
+msgstr "Sloučit větev"
 
 #: tasks/taskbook.py:70 tasks/taskbook.py:71 tasks/taskbook.py:72
 msgid "New local branch"
-msgstr ""
+msgstr "Nová místní větev"
 
 #: tasks/taskbook.py:73
 msgid "New commit"
-msgstr ""
+msgstr "Nový commit"
 
 #: tasks/taskbook.py:74
 msgid "Ignore a new file name pattern"
-msgstr ""
+msgstr "Ignorovat nový vzor názvů souborů"
 
 #: tasks/taskbook.py:76
 msgid "Stash changes"
-msgstr ""
+msgstr "Odložit změny"
 
 #: tasks/taskbook.py:77
 msgid "New tag"
-msgstr ""
+msgstr "Nová značka"
 
 #: tasks/taskbook.py:78
 msgid "Blame file"
-msgstr ""
+msgstr "Zobrazit autorství souboru"
 
 #: tasks/taskbook.py:79
 msgid "Pull remote branch"
-msgstr ""
+msgstr "Stáhnout vzdálenou větev"
 
 #: tasks/taskbook.py:80
 msgid "Push branch"
-msgstr ""
+msgstr "Odeslat větev"
 
 #: tasks/taskbook.py:81
 msgid "Push refspecs"
-msgstr ""
+msgstr "Odeslat refspecy"
 
 #: tasks/taskbook.py:83
 msgid "Refresh repo"
-msgstr ""
+msgstr "Aktualizovat repozitář"
 
 #: tasks/taskbook.py:85
 msgid "Remove submodule"
-msgstr ""
+msgstr "Odstranit submodul"
 
 #: tasks/taskbook.py:87
 msgid "Rename local branch folder"
-msgstr ""
+msgstr "Přejmenovat složku místních větví"
 
 #: tasks/taskbook.py:88
 msgid "Rename branch on remote"
-msgstr ""
+msgstr "Přejmenovat větev ve vzdáleném repozitáři"
 
 #: tasks/taskbook.py:89
 msgid "Reset HEAD"
-msgstr ""
+msgstr "Resetovat HEAD"
 
 #: tasks/taskbook.py:90
 msgid "Restore file revision"
-msgstr ""
+msgstr "Obnovit revizi souboru"
 
 #: tasks/taskbook.py:91
 msgid "Revert commit"
-msgstr ""
+msgstr "Vrátit commit"
 
 #: tasks/taskbook.py:92
 msgid "Revert selected text"
@@ -5334,84 +5549,86 @@ msgstr ""
 
 #: tasks/taskbook.py:93
 msgid "Git identity"
-msgstr ""
+msgstr "Identita pro Git"
 
 #: tasks/taskbook.py:94
 msgid "Repository settings"
-msgstr ""
+msgstr "Nastavení repozitáře"
 
 #: tasks/taskbook.py:95
 msgid "Stage files"
-msgstr ""
+msgstr "Připravit soubory"
 
 #: tasks/taskbook.py:96
 msgid "Switch to branch"
-msgstr ""
+msgstr "Přepnout na větev"
 
 #: tasks/taskbook.py:97
 msgid "Update submodule"
-msgstr ""
+msgstr "Aktualizovat submodul"
 
 #: tasks/taskbook.py:99
 msgid "Unstage files"
-msgstr ""
+msgstr "Zrušit přípravu souborů"
 
 #: tasks/taskbook.py:100
 msgid "Unstage mode changes"
-msgstr ""
+msgstr "Zrušit přípravu změn režimu"
 
 #: tasks/taskbook.py:104
 msgctxt "toolbar"
 msgid "Amend"
-msgstr ""
+msgstr "Upravit commit"
 
 #: tasks/taskbook.py:105
 msgctxt "toolbar"
 msgid "Fetch"
-msgstr ""
+msgstr "Načíst"
 
 #: tasks/taskbook.py:106
 msgctxt "toolbar"
 msgid "Back"
-msgstr ""
+msgstr "Zpět"
 
 #: tasks/taskbook.py:107
 msgctxt "toolbar"
 msgid "Forward"
-msgstr ""
+msgstr "Vpřed"
 
 #: tasks/taskbook.py:108
 msgctxt "toolbar"
 msgid "HEAD"
-msgstr ""
+msgstr "HEAD"
 
 #: tasks/taskbook.py:109
 msgctxt "toolbar"
 msgid "Workdir"
-msgstr ""
+msgstr "Pracovní adresář"
 
 #: tasks/taskbook.py:110
 msgctxt "toolbar"
 msgid "Branch"
-msgstr ""
+msgstr "Větev"
 
 #: tasks/taskbook.py:111
 msgctxt "toolbar"
 msgid "Stash"
-msgstr ""
+msgstr "Odložit"
 
 #: tasks/taskbook.py:113
 msgctxt "toolbar"
 msgid "Push"
-msgstr ""
+msgstr "Odeslat"
 
 #: tasks/taskbook.py:117
 msgid "Amend the last commit on the current branch with the staged changes in the working directory"
 msgstr ""
+"Upravit poslední commit v aktuální větvi připravenými změnami z pracovního "
+"adresáře"
 
 #: tasks/taskbook.py:118
 msgid "Apply a patch file to the working directory"
-msgstr ""
+msgstr "Použít soubor se záplatou na pracovní adresář"
 
 #: tasks/taskbook.py:119
 msgid "Apply a patch file to the working directory (reverse patch before applying)"
@@ -5419,485 +5636,493 @@ msgstr ""
 
 #: tasks/taskbook.py:120
 msgid "Restore backed up changes to the working directory"
-msgstr ""
+msgstr "Obnovit zálohované změny do pracovního adresáře"
 
 #: tasks/taskbook.py:121
 msgid "Bring the changes introduced by this commit to the current branch"
-msgstr ""
+msgstr "Přenést změny zavedené tímto commitem do aktuální větve"
 
 #: tasks/taskbook.py:122
 msgid "Delete this branch locally"
-msgstr ""
+msgstr "Odstranit tuto větev místně"
 
 #: tasks/taskbook.py:123
 msgid "Choose the remote branch to be tracked by this local branch"
-msgstr ""
+msgstr "Vybrat vzdálenou větev, kterou má tato místní větev sledovat"
 
 #: tasks/taskbook.py:124
 msgid "Create a patch file from this stash"
-msgstr ""
+msgstr "Vytvořit z těchto odložených změn soubor se záplatou"
 
 #: tasks/taskbook.py:125
 msgid "Advance this local branch to the tip of the remote-tracking branch"
-msgstr ""
+msgstr "Posunout tuto místní větev na špičku vzdáleně sledované větve"
 
 #: tasks/taskbook.py:126
 msgid "Get the latest commits on all remote branches"
-msgstr ""
+msgstr "Získat nejnovější commity ze všech vzdálených větví"
 
 #: tasks/taskbook.py:127
 msgid "Get the latest commits from the remote server"
-msgstr ""
+msgstr "Získat nejnovější commity ze vzdáleného serveru"
 
 #: tasks/taskbook.py:128
 msgid "Start a new branch from this commit"
-msgstr ""
+msgstr "Založit novou větev na tomto commitu"
 
 #: tasks/taskbook.py:129
 msgid "Start a new branch from the current HEAD"
-msgstr ""
+msgstr "Založit novou větev na aktuálním HEAD"
 
 #: tasks/taskbook.py:130
 msgid "Start a new branch from the tip of this branch"
-msgstr ""
+msgstr "Založit novou větev na špičce této větve"
 
 #: tasks/taskbook.py:131
 msgid "Create a commit of the staged changes in the working directory"
-msgstr ""
+msgstr "Vytvořit commit z připravených změn v pracovním adresáři"
 
 #: tasks/taskbook.py:132
 msgid "Add a remote server to this repo"
-msgstr ""
+msgstr "Přidat do tohoto repozitáře vzdálený server"
 
 #: tasks/taskbook.py:133
 msgid "Back up uncommitted changes and clean up the working directory"
-msgstr ""
+msgstr "Zálohovat nepotvrzené změny a vyčistit pracovní adresář"
 
 #: tasks/taskbook.py:134
 msgid "Tag this commit with a name"
-msgstr ""
+msgstr "Označit tento commit pojmenovanou značkou"
 
 #: tasks/taskbook.py:135
 msgid "Fetch the latest commits from the remote, then integrate them into your local branch"
 msgstr ""
+"Načíst nejnovější commity ze vzdáleného repozitáře a poté je začlenit do "
+"místní větve"
 
 #: tasks/taskbook.py:136
 msgid "Upload your commits on the current branch to the remote server"
-msgstr ""
+msgstr "Odeslat commity z aktuální větve na vzdálený server"
 
 #: tasks/taskbook.py:137
 msgid "Remove this submodule from .gitmodules and delete its working copy from this repo"
 msgstr ""
+"Odebrat tento submodul ze souboru .gitmodules a odstranit jeho pracovní "
+"kopii z repozitáře"
 
 #: tasks/taskbook.py:138
 msgid "Rename this branch locally"
-msgstr ""
+msgstr "Přejmenovat tuto větev místně"
 
 #: tasks/taskbook.py:139
 msgid "Make HEAD point to another commit"
-msgstr ""
+msgstr "Nastavit HEAD tak, aby ukazoval na jiný commit"
 
 #: tasks/taskbook.py:140
 msgid "Revert the changes introduced by this commit"
-msgstr ""
+msgstr "Vrátit změny zavedené tímto commitem"
 
 #: tasks/taskbook.py:141 tasks/taskbook.py:142
 msgid "Set up the identity under which you create commits"
-msgstr ""
+msgstr "Nastavit identitu používanou při vytváření commitů"
 
 #: tasks/taskbook.py:143
 msgid "Switch to this branch and update the working directory to match it"
-msgstr ""
+msgstr "Přepnout na tuto větev a upravit pracovní adresář tak, aby jí odpovídal"
 
 #: toolbox/fontpicker.py:32
 #, python-brace-format
 msgid "Hold {key} to show proportional fonts."
-msgstr ""
+msgstr "Přidržením klávesy {key} zobrazíte proporcionální písma."
 
 #: toolbox/fontpicker.py:40
 msgid "pt"
-msgstr ""
+msgstr "b"
 
 #: toolbox/fontpicker.py:51
 msgid "Reset to system default monospace font"
-msgstr ""
+msgstr "Obnovit výchozí neproporcionální písmo systému"
 
 #: toolbox/messageboxes.py:39
 msgid "No repository"
-msgstr ""
+msgstr "Žádný repozitář"
 
 #: toolbox/messageboxes.py:62
 msgid "Unhandled exception"
-msgstr ""
+msgstr "Neošetřená výjimka"
 
 #: toolbox/messageboxes.py:64
 msgid "An exception was raised."
-msgstr ""
+msgstr "Došlo k výjimce."
 
 #: toolbox/messageboxes.py:76
 msgid "(MESSAGE TRUNCATED)"
-msgstr ""
+msgstr "(ZPRÁVA ZKRÁCENA)"
 
 #: toolbox/messageboxes.py:79
 msgid "If you want to file a bug report, please click “Show Details” and copy the <b>entire</b> message."
 msgstr ""
+"Chcete-li nahlásit chybu, klikněte na „Zobrazit podrobnosti“ a zkopírujte <b>"
+"celou</b> zprávu."
 
 #: toolbox/messageboxes.py:103
 msgid "Quit application"
-msgstr ""
+msgstr "Ukončit aplikaci"
 
 #: toolbox/messageboxes.py:152
 #, python-brace-format
 msgid "Skip {n} more error"
 msgid_plural "Skip {n} more errors"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Přeskočit {n} další chybu"
+msgstr[1] "Přeskočit {n} další chyby"
+msgstr[2] "Přeskočit {n} dalších chyb"
 
 #: toolbox/messageboxes.py:278
 #, python-brace-format
 msgid "…and {0} more. Click “Show Details” to view all."
-msgstr ""
+msgstr "…a dalších {0}. Vše zobrazíte kliknutím na „Zobrazit podrobnosti“."
 
 #: toolbox/qfilepickercheckbox.py:26
 msgctxt "button to open a file browser to select a file"
 msgid "Select…"
-msgstr ""
+msgstr "Vybrat…"
 
 #: toolbox/qhintbutton.py:17
 msgid "Help"
-msgstr ""
+msgstr "Nápověda"
 
 #: toolbox/qtabwidget2.py:167
 msgid "List all tabs"
-msgstr ""
+msgstr "Vypsat všechny karty"
 
 #: toolbox/textutils.py:65
 #, python-brace-format
 msgid "“{0}”"
-msgstr ""
+msgstr "„{0}“"
 
 #: toolbox/textutils.py:125
 #, python-brace-format
 msgid "{0} copied to clipboard."
-msgstr ""
+msgstr "{0} zkopírováno do schránky."
 
 #: toolbox/textutils.py:127
 #, python-brace-format
 msgid "{n} lines copied to clipboard."
-msgstr ""
+msgstr "Do schránky zkopírováno řádků: {n}."
 
 #: toolbox/textutils.py:145
 #, python-brace-format
 msgid "…and {0} more"
-msgstr ""
+msgstr "…a dalších {0}"
 
 #: trtables.py:92
 msgid "Connection refused"
-msgstr ""
+msgstr "Připojení odmítnuto"
 
 #: trtables.py:93
 msgid "File not found"
-msgstr ""
+msgstr "Soubor nebyl nalezen"
 
 #: trtables.py:94
 msgid "Permission denied"
-msgstr ""
+msgstr "Přístup odepřen"
 
 #: trtables.py:95
 msgid "Git error"
-msgstr ""
+msgstr "Chyba Gitu"
 
 #: trtables.py:96
 msgid "Unsupported feature"
-msgstr ""
+msgstr "Nepodporovaná funkce"
 
 #: trtables.py:97
 msgid "Operation interrupted"
-msgstr ""
+msgstr "Operace přerušena"
 
 #: trtables.py:112
 msgid "Illegal name."
-msgstr ""
+msgstr "Nepovolený název."
 
 #: trtables.py:113
 msgid "Illegal suffix."
-msgstr ""
+msgstr "Nepovolená přípona."
 
 #: trtables.py:114
 msgid "Illegal prefix."
-msgstr ""
+msgstr "Nepovolená předpona."
 
 #: trtables.py:115
 msgid "Contains illegal character sequence."
-msgstr ""
+msgstr "Obsahuje nepovolenou posloupnost znaků."
 
 #: trtables.py:116
 msgid "Contains illegal character."
-msgstr ""
+msgstr "Obsahuje nepovolený znak."
 
 #: trtables.py:118
 msgid "This name is discouraged for compatibility with Windows."
-msgstr ""
+msgstr "Tento název se nedoporučuje kvůli kompatibilitě se systémem Windows."
 
 #: trtables.py:119
 msgid "This name is already taken."
-msgstr ""
+msgstr "Tento název se již používá."
 
 #: trtables.py:120
 msgid "This name is already taken by a folder."
-msgstr ""
+msgstr "Tento název již používá složka."
 
 #: trtables.py:121
 msgid "The folder in this path clashes with an existing ref that isn’t a folder."
 msgstr ""
+"Složka v této cestě koliduje s existující referencí, která není složkou."
 
 #: trtables.py:125
 msgctxt "FileMode"
 msgid "deleted"
-msgstr ""
+msgstr "odstraněno"
 
 #: trtables.py:126
 msgctxt "FileMode"
 msgid "regular file"
-msgstr ""
+msgstr "běžný soubor"
 
 #: trtables.py:127
 msgctxt "FileMode"
 msgid "executable file"
-msgstr ""
+msgstr "spustitelný soubor"
 
 #: trtables.py:128
 msgctxt "FileMode"
 msgid "symbolic link"
-msgstr ""
+msgstr "symbolický odkaz"
 
 #: trtables.py:129
 msgctxt "FileMode"
 msgid "subtree"
-msgstr ""
+msgstr "podstrom"
 
 #: trtables.py:130
 msgctxt "FileMode"
 msgid "subtree commit"
-msgstr ""
+msgstr "commit podstromu"
 
 #: trtables.py:134
 msgctxt "RepositoryState"
 msgid "None"
-msgstr ""
+msgstr "Žádný"
 
 #: trtables.py:135
 msgctxt "RepositoryState"
 msgid "Merging"
-msgstr ""
+msgstr "Probíhá slučování"
 
 #: trtables.py:136
 msgctxt "RepositoryState"
 msgid "Reverting"
-msgstr ""
+msgstr "Probíhá vracení"
 
 #: trtables.py:137
 msgctxt "RepositoryState"
 msgid "Reverting (sequence)"
-msgstr ""
+msgstr "Probíhá vracení (sekvence)"
 
 #: trtables.py:138
 msgctxt "RepositoryState"
 msgid "Cherry-picking"
-msgstr ""
+msgstr "Probíhá cherry-pick"
 
 #: trtables.py:139
 msgctxt "RepositoryState"
 msgid "Cherry-picking (sequence)"
-msgstr ""
+msgstr "Probíhá cherry-pick (sekvence)"
 
 #: trtables.py:140
 msgctxt "RepositoryState"
 msgid "Bisecting"
-msgstr ""
+msgstr "Probíhá bisekce"
 
 #: trtables.py:141
 msgctxt "RepositoryState"
 msgid "Rebasing"
-msgstr ""
+msgstr "Probíhá přeskládání"
 
 #: trtables.py:142
 msgctxt "RepositoryState"
 msgid "Rebasing (interactive)"
-msgstr ""
+msgstr "Probíhá interaktivní přeskládání"
 
 #: trtables.py:143
 msgctxt "RepositoryState"
 msgid "Rebasing (merging)"
-msgstr ""
+msgstr "Probíhá přeskládání (slučování)"
 
 #: trtables.py:149
 msgctxt "ConflictSides"
 msgid "modified by both sides"
-msgstr ""
+msgstr "upraveno na obou stranách"
 
 #: trtables.py:150
 msgctxt "ConflictSides"
 msgid "deleted by us"
-msgstr ""
+msgstr "odstraněno na naší straně"
 
 #: trtables.py:151
 msgctxt "ConflictSides"
 msgid "deleted by them"
-msgstr ""
+msgstr "odstraněno na jejich straně"
 
 #: trtables.py:152
 msgctxt "ConflictSides"
 msgid "deleted by both sides"
-msgstr ""
+msgstr "odstraněno na obou stranách"
 
 #: trtables.py:153
 msgctxt "ConflictSides"
 msgid "added by us"
-msgstr ""
+msgstr "přidáno na naší straně"
 
 #: trtables.py:154
 msgctxt "ConflictSides"
 msgid "added by them"
-msgstr ""
+msgstr "přidáno na jejich straně"
 
 #: trtables.py:155
 msgctxt "ConflictSides"
 msgid "added by both sides"
-msgstr ""
+msgstr "přidáno na obou stranách"
 
 #: trtables.py:159
 msgctxt "PatchPurpose"
 msgid "Stage"
-msgstr ""
+msgstr "Připravit"
 
 #: trtables.py:160
 msgctxt "PatchPurpose"
 msgid "Unstage"
-msgstr ""
+msgstr "Zrušit přípravu"
 
 #: trtables.py:161
 msgctxt "PatchPurpose"
 msgid "Discard"
-msgstr ""
+msgstr "Zahodit"
 
 #: trtables.py:162
 msgctxt "PatchPurpose"
 msgid "Stage lines"
-msgstr ""
+msgstr "Připravit řádky"
 
 #: trtables.py:163
 msgctxt "PatchPurpose"
 msgid "Unstage lines"
-msgstr ""
+msgstr "Zrušit přípravu řádků"
 
 #: trtables.py:164
 msgctxt "PatchPurpose"
 msgid "Discard lines"
-msgstr ""
+msgstr "Zahodit řádky"
 
 #: trtables.py:165
 msgctxt "PatchPurpose"
 msgid "Stage hunk"
-msgstr ""
+msgstr "Připravit blok změn"
 
 #: trtables.py:166
 msgctxt "PatchPurpose"
 msgid "Unstage hunk"
-msgstr ""
+msgstr "Zrušit přípravu bloku změn"
 
 #: trtables.py:167
 msgctxt "PatchPurpose"
 msgid "Discard hunk"
-msgstr ""
+msgstr "Zahodit blok změn"
 
 #: trtables.py:168
 msgctxt "PatchPurpose"
 msgid "Stage file"
-msgstr ""
+msgstr "Připravit soubor"
 
 #: trtables.py:169
 msgctxt "PatchPurpose"
 msgid "Unstage file"
-msgstr ""
+msgstr "Zrušit přípravu souboru"
 
 #: trtables.py:170
 msgctxt "PatchPurpose"
 msgid "Discard file"
-msgstr ""
+msgstr "Zahodit soubor"
 
 #: trtables.py:174
 msgctxt "SidebarModel"
 msgid "Working Directory|Workdir"
-msgstr ""
+msgstr "Pracovní adresář|Prac. adresář"
 
 #: trtables.py:175
 msgctxt "SidebarModel"
 msgid "Local Branches|Branches"
-msgstr ""
+msgstr "Místní větve|Větve"
 
 #: trtables.py:176
 msgctxt "SidebarModel"
 msgid "Stashes"
-msgstr ""
+msgstr "Odložené změny"
 
 #: trtables.py:177
 msgctxt "SidebarModel"
 msgid "Remotes"
-msgstr ""
+msgstr "Vzdálené repozitáře"
 
 #: trtables.py:178
 msgctxt "SidebarModel"
 msgid "Tags"
-msgstr ""
+msgstr "Značky"
 
 #: trtables.py:179 trtables.py:187
 msgctxt "SidebarModel"
 msgid "Submodules"
-msgstr ""
+msgstr "Submoduly"
 
 #: trtables.py:180
 msgctxt "SidebarModel"
 msgid "Local branch"
-msgstr ""
+msgstr "Místní větev"
 
 #: trtables.py:181
 msgctxt "SidebarModel"
 msgid "Detached HEAD"
-msgstr ""
+msgstr "Odpojený HEAD"
 
 #: trtables.py:182
 msgctxt "SidebarModel"
 msgid "Unborn HEAD"
-msgstr ""
+msgstr "HEAD bez počátečního commitu"
 
 #: trtables.py:183
 msgctxt "SidebarModel"
 msgid "Remote branch"
-msgstr ""
+msgstr "Vzdálená větev"
 
 #: trtables.py:184
 msgctxt "SidebarModel"
 msgid "Stash"
-msgstr ""
+msgstr "Odložené změny"
 
 #: trtables.py:185
 msgctxt "SidebarModel"
 msgid "Remote"
-msgstr ""
+msgstr "Vzdálený repozitář"
 
 #: trtables.py:186
 msgctxt "SidebarModel"
 msgid "Tag"
-msgstr ""
+msgstr "Značka"
 
 #: trtables.py:192
 msgid "Full paths"
-msgstr ""
+msgstr "Úplné cesty"
 
 #: trtables.py:193
 msgid "Abbreviate directories"
-msgstr ""
+msgstr "Zkracovat názvy adresářů"
 
 #: trtables.py:194
 msgid "Show filename only"
@@ -5905,301 +6130,301 @@ msgstr ""
 
 #: trtables.py:198
 msgid "Full name"
-msgstr ""
+msgstr "Celé jméno"
 
 #: trtables.py:199
 msgid "First name"
-msgstr ""
+msgstr "Křestní jméno"
 
 #: trtables.py:200
 msgid "Last name"
-msgstr ""
+msgstr "Příjmení"
 
 #: trtables.py:201
 msgid "Initials"
-msgstr ""
+msgstr "Iniciály"
 
 #: trtables.py:202
 msgid "Full email"
-msgstr ""
+msgstr "Úplná e-mailová adresa"
 
 #: trtables.py:203
 msgid "Abbreviated email"
-msgstr ""
+msgstr "Zkrácená e-mailová adresa"
 
 #: trtables.py:207
 msgctxt "row spacing"
 msgid "Cramped"
-msgstr ""
+msgstr "Stísněné"
 
 #: trtables.py:208
 msgctxt "row spacing"
 msgid "Tight"
-msgstr ""
+msgstr "Těsné"
 
 #: trtables.py:209
 msgctxt "row spacing"
 msgid "Relaxed"
-msgstr ""
+msgstr "Volné"
 
 #: trtables.py:210
 msgctxt "row spacing"
 msgid "Roomy"
-msgstr ""
+msgstr "Vzdušné"
 
 #: trtables.py:211
 msgctxt "row spacing"
 msgid "Spacious"
-msgstr ""
+msgstr "Prostorné"
 
 #: trtables.py:215
 msgctxt "Qt binding"
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Automaticky (doporučeno)"
 
 #: trtables.py:223
 msgid "Truncate long ref names"
-msgstr ""
+msgstr "Zkracovat dlouhé názvy referencí"
 
 #: trtables.py:224
 msgid "Show full ref names"
-msgstr ""
+msgstr "Zobrazovat úplné názvy referencí"
 
 #: trtables.py:228
 msgctxt "sort refs by date of latest commit, descending"
 msgid "Date, Newest First"
-msgstr ""
+msgstr "Datum, nejnovější první"
 
 #: trtables.py:229
 msgctxt "sort refs by date of latest commit, ascending"
 msgid "Date, Oldest First"
-msgstr ""
+msgstr "Datum, nejstarší první"
 
 #: trtables.py:230
 msgctxt "sort refs alphabetically, ascending"
 msgid "Name, A-Z"
-msgstr ""
+msgstr "Název, A–Z"
 
 #: trtables.py:231
 msgctxt "sort refs alphabetically, descending"
 msgid "Name, Z-A"
-msgstr ""
+msgstr "Název, Z–A"
 
 #: trtables.py:240 trtables.py:241
 msgctxt "FileStatus"
 msgid "added"
-msgstr ""
+msgstr "přidáno"
 
 #: trtables.py:242
 msgctxt "FileStatus"
 msgid "copied"
-msgstr ""
+msgstr "zkopírováno"
 
 #: trtables.py:243
 msgctxt "FileStatus"
 msgid "deleted"
-msgstr ""
+msgstr "odstraněno"
 
 #: trtables.py:244
 msgctxt "FileStatus"
 msgid "ignored"
-msgstr ""
+msgstr "ignorováno"
 
 #: trtables.py:245
 msgctxt "FileStatus"
 msgid "modified"
-msgstr ""
+msgstr "upraveno"
 
 #: trtables.py:246
 msgctxt "FileStatus"
 msgid "renamed"
-msgstr ""
+msgstr "přejmenováno"
 
 #: trtables.py:247
 msgctxt "FileStatus"
 msgid "file type changed"
-msgstr ""
+msgstr "změněn typ souboru"
 
 #: trtables.py:248
 msgctxt "FileStatus"
 msgid "merge conflict"
-msgstr ""
+msgstr "konflikt při slučování"
 
 #: trtables.py:249
 msgctxt "FileStatus"
 msgid "unreadable"
-msgstr ""
+msgstr "nelze přečíst"
 
 #: trtables.py:250
 msgctxt "FileStatus"
 msgid "untracked"
-msgstr ""
+msgstr "nesledováno"
 
 #: trtables.py:269
 msgctxt "PatchPurpose"
 msgid "Staged."
-msgstr ""
+msgstr "Připraveno."
 
 #: trtables.py:270
 msgctxt "PatchPurpose"
 msgid "Unstaged."
-msgstr ""
+msgstr "Příprava zrušena."
 
 #: trtables.py:271
 msgctxt "PatchPurpose"
 msgid "Discarded."
-msgstr ""
+msgstr "Zahozeno."
 
 #: trtables.py:272
 msgctxt "PatchPurpose"
 msgid "Lines staged."
-msgstr ""
+msgstr "Řádky připraveny."
 
 #: trtables.py:273
 msgctxt "PatchPurpose"
 msgid "Lines unstaged."
-msgstr ""
+msgstr "Příprava řádků zrušena."
 
 #: trtables.py:274
 msgctxt "PatchPurpose"
 msgid "Lines discarded."
-msgstr ""
+msgstr "Řádky zahozeny."
 
 #: trtables.py:275
 msgctxt "PatchPurpose"
 msgid "Hunk staged."
-msgstr ""
+msgstr "Blok změn připraven."
 
 #: trtables.py:276
 msgctxt "PatchPurpose"
 msgid "Hunk unstaged."
-msgstr ""
+msgstr "Příprava bloku změn zrušena."
 
 #: trtables.py:277
 msgctxt "PatchPurpose"
 msgid "Hunk discarded."
-msgstr ""
+msgstr "Blok změn zahozen."
 
 #: trtables.py:278
 msgctxt "PatchPurpose"
 msgid "File staged."
-msgstr ""
+msgstr "Soubor připraven."
 
 #: trtables.py:279
 msgctxt "PatchPurpose"
 msgid "File unstaged."
-msgstr ""
+msgstr "Příprava souboru zrušena."
 
 #: trtables.py:280
 msgctxt "PatchPurpose"
 msgid "File discarded."
-msgstr ""
+msgstr "Soubor zahozen."
 
 #: trtables.py:305
 msgctxt "date/time formats"
 msgid "Available formats:"
-msgstr ""
+msgstr "Dostupné formáty:"
 
 #: trtables.py:307 trtables.py:308
 msgid "year"
-msgstr ""
+msgstr "rok"
 
 #: trtables.py:310 trtables.py:311
 msgid "month"
-msgstr ""
+msgstr "měsíc"
 
 #: trtables.py:315 trtables.py:316
 msgid "day"
-msgstr ""
+msgstr "den"
 
 #: trtables.py:320 trtables.py:321
 msgid "hour"
-msgstr ""
+msgstr "hodina"
 
 #: trtables.py:322
 msgid "minute"
-msgstr ""
+msgstr "minuta"
 
 #: trtables.py:323
 msgid "second"
-msgstr ""
+msgstr "sekunda"
 
 #: trtables.py:335
 msgctxt "Prefs"
 msgid "General"
-msgstr ""
+msgstr "Obecné"
 
 #: trtables.py:336
 msgctxt "Prefs"
 msgid "Code"
-msgstr ""
+msgstr "Kód"
 
 #: trtables.py:337
 msgctxt "Prefs"
 msgid "Images"
-msgstr ""
+msgstr "Obrázky"
 
 #: trtables.py:338
 msgctxt "Prefs"
 msgid "Tabs"
-msgstr ""
+msgstr "Karty"
 
 #: trtables.py:339
 msgctxt "Prefs"
 msgid "Commit History"
-msgstr ""
+msgstr "Historie commitů"
 
 #: trtables.py:340
 msgctxt "Prefs"
 msgid "Trash"
-msgstr ""
+msgstr "Koš"
 
 #: trtables.py:341
 msgctxt "Prefs"
 msgid "External Tools"
-msgstr ""
+msgstr "Externí nástroje"
 
 #: trtables.py:342
 msgctxt "Prefs"
 msgid "Advanced"
-msgstr ""
+msgstr "Pokročilé"
 
 #: trtables.py:343
 msgctxt "Prefs"
 msgid "Custom Commands"
-msgstr ""
+msgstr "Vlastní příkazy"
 
 #: trtables.py:345
 msgid "Language"
-msgstr ""
+msgstr "Jazyk"
 
 #: trtables.py:346
 msgid "Qt style"
-msgstr ""
+msgstr "Styl Qt"
 
 #: trtables.py:347
 msgid "Shorten hashes to # characters"
-msgstr ""
+msgstr "Zkracovat hashe na # znaků"
 
 #: trtables.py:348
 msgid "Date/time format"
-msgstr ""
+msgstr "Formát data a času"
 
 #: trtables.py:351
 msgid "Author display style"
-msgstr ""
+msgstr "Způsob zobrazení autora"
 
 #: trtables.py:352
 msgid "Remember up to # recent repositories"
-msgstr ""
+msgstr "Pamatovat si až # nedávných repozitářů"
 
 #: trtables.py:356
 msgid "When the menu bar is hidden, press the Alt key to show it again."
-msgstr ""
+msgstr "Když je řádek nabídek skrytý, znovu jej zobrazíte klávesou Alt."
 
 #: trtables.py:357
 msgid "Restore all “don’t show this again” messages"
-msgstr ""
+msgstr "Obnovit všechna upozornění „příště nezobrazovat“"
 
 #: trtables.py:358
 msgid "Middle-click to stage/unstage a file or the selected lines"
@@ -6219,56 +6444,66 @@ msgstr ""
 
 #: trtables.py:364
 msgid "Allow third-party Pygments plugins"
-msgstr ""
+msgstr "Povolit zásuvné moduly Pygments třetích stran"
 
 #: trtables.py:365
 #, python-brace-format
 msgid "Let {app} load third-party Pygments plugins installed on your system. These plugins extend syntax highlighting with new languages and color schemes. <b>May incur significant slowdowns.</b>"
 msgstr ""
+"Povolit aplikaci {app} načítat zásuvné moduly Pygments třetích stran "
+"nainstalované ve vašem systému. Tyto moduly rozšiřují zvýrazňování syntaxe o "
+"nové jazyky a barevná schémata. <b>Mohou výrazně zpomalit aplikaci.</b>"
 
 #: trtables.py:368
 msgid "Sort branches && tags by"
-msgstr ""
+msgstr "Řadit větve && značky podle"
 
 #: trtables.py:370
 msgid "The default sorting mode for local branches, remote branches, and tags in the sidebar."
 msgstr ""
+"Výchozí způsob řazení místních větví, vzdálených větví a značek v postranním "
+"panelu."
 
 #: trtables.py:371
 msgid "You can fine-tune this setting in each repo by right-clicking Branches, Remotes, or Tags in the sidebar. (Note that changing the default setting here will clear per-repo tweaks.)"
 msgstr ""
+"Toto nastavení můžete pro každý repozitář upravit kliknutím pravým tlačítkem "
+"na Větve, Vzdálené repozitáře nebo Značky v postranním panelu. (Změna "
+"zdejšího výchozího nastavení zruší úpravy jednotlivých repozitářů.)"
 
 #: trtables.py:374
 msgid "Font"
-msgstr ""
+msgstr "Písmo"
 
 #: trtables.py:375
 msgid "One tab is # spaces"
-msgstr ""
+msgstr "Jeden tabulátor odpovídá # mezerám"
 
 #: trtables.py:376
 msgid "Show up to # context lines"
-msgstr ""
+msgstr "Zobrazit až # řádků kontextu"
 
 #: trtables.py:377
 msgid "Amount of unmodified lines to show around red or green lines in a diff."
 msgstr ""
+"Počet nezměněných řádků zobrazených kolem červených nebo zelených řádků v "
+"porovnání."
 
 #: trtables.py:378
 msgid "Load diffs up to # KB"
-msgstr ""
+msgstr "Načítat porovnání do # kB"
 
 #: trtables.py:379
 msgid "Load images up to # KB"
-msgstr ""
+msgstr "Načítat obrázky do # kB"
 
 #: trtables.py:380
 msgid "Syntax highlighting"
-msgstr ""
+msgstr "Zvýrazňování syntaxe"
 
 #: trtables.py:381
 msgid "Word wrap"
-msgstr ""
+msgstr "Zalamování řádků"
 
 #: trtables.py:382
 msgid "Display alien line endings (CRLF)"
@@ -6276,11 +6511,11 @@ msgstr ""
 
 #: trtables.py:383
 msgid "“-/+” colors"
-msgstr ""
+msgstr "Barvy „−/+“"
 
 #: trtables.py:384
 msgid "Background colors for deleted (-) and added (+) lines."
-msgstr ""
+msgstr "Barvy pozadí odstraněných (−) a přidaných (+) řádků."
 
 #: trtables.py:385
 msgid "Treat SVG files as"
@@ -6288,15 +6523,15 @@ msgstr ""
 
 #: trtables.py:387
 msgid "Show tab close button"
-msgstr ""
+msgstr "Zobrazovat tlačítko pro zavření karty"
 
 #: trtables.py:388
 msgid "Expand tabs to available width"
-msgstr ""
+msgstr "Roztáhnout karty na dostupnou šířku"
 
 #: trtables.py:389
 msgid "Auto-hide tabs if only one repo is open"
-msgstr ""
+msgstr "Automaticky skrýt karty, je-li otevřen jen jeden repozitář"
 
 #: trtables.py:390
 msgid "Double-click a tab to open repo folder"
@@ -6304,207 +6539,241 @@ msgstr ""
 
 #: trtables.py:392
 msgid "Sort commits"
-msgstr ""
+msgstr "Řazení commitů"
 
 #: trtables.py:393
 msgid "Chronologically"
-msgstr ""
+msgstr "Chronologicky"
 
 #: trtables.py:394
 msgid "Topologically"
-msgstr ""
+msgstr "Topologicky"
 
 #: trtables.py:396
 msgid "<b>Chronological mode</b> lets you stay on top of the latest activity in the repository. The most recent commits always show up at the top of the graph. However, the graph can get messy when multiple branches receive commits in the same timeframe."
 msgstr ""
+"<b>Chronologický režim</b> poskytuje přehled o nejnovější aktivitě v "
+"repozitáři. Nejnovější commity se vždy zobrazují v horní části grafu. Pokud "
+"však commity ve stejném období přibývají do více větví, graf může být "
+"nepřehledný."
 
 #: trtables.py:399
 msgid "<b>Topological mode</b> makes the graph easier to read. It attempts to present sequences of commits within a branch in a linear fashion. Since this is not a strictly chronological mode, you may have to do more scrolling to see the latest changes in various branches."
 msgstr ""
+"<b>Topologický režim</b> usnadňuje čtení grafu. Snaží se zobrazovat "
+"posloupnosti commitů v jednotlivých větvích lineárně. Protože nejde o přísně "
+"chronologický režim, může být k zobrazení nejnovějších změn v různých "
+"větvích potřeba více posouvání."
 
 #: trtables.py:403
 msgid "Row spacing"
-msgstr ""
+msgstr "Rozestupy řádků"
 
 #: trtables.py:404
 msgid "Avoid gaps between branches in the graph"
-msgstr ""
+msgstr "Omezit mezery mezi větvemi v grafu"
 
 #: trtables.py:405
 msgid "Mark author/committer signature differences"
-msgstr ""
+msgstr "Označovat rozdíly mezi údaji autora a autora zápisu"
 
 #: trtables.py:407
 msgid "The commit history displays information about a commit’s <b>author</b>—their name and the date at which they made the commit. But in some cases, a commit might have been revised by someone else than the original author—this person is called the <b>committer</b>."
 msgstr ""
+"Historie commitů zobrazuje údaje o <b>autorovi</b> commitu – jeho jméno a "
+"datum vytvoření commitu. Commit však někdy mohl upravit někdo jiný než "
+"původní autor; této osobě se říká <b>autor zápisu</b>."
 
 #: trtables.py:411
 msgid "If you tick this option, an asterisk (*) will appear after the author’s name and/or date if they differ from the committer’s for any given commit."
 msgstr ""
+"Pokud tuto možnost zaškrtnete, zobrazí se za jménem autora nebo datem "
+"hvězdička (*), jestliže se u daného commitu liší od údajů autora zápisu."
 
 #: trtables.py:413
 msgid "Note that you can always hover over the author’s name or date to obtain detailed information about the author and the committer."
 msgstr ""
+"Podrobné údaje o autorovi a autorovi zápisu můžete kdykoli zobrazit najetím "
+"na jméno nebo datum autora."
 
 #: trtables.py:416
 msgid "Load up to # commits in the history"
-msgstr ""
+msgstr "Načítat v historii až # commitů"
 
 #: trtables.py:417
 msgid "Set to 0 to always load the full commit history."
-msgstr ""
+msgstr "Nastavením hodnoty 0 se vždy načte celá historie commitů."
 
 #: trtables.py:418
 msgid "Draw rows using alternating background colors"
-msgstr ""
+msgstr "Střídat barvy pozadí řádků"
 
 #: trtables.py:419
 msgid "Ref indicators"
-msgstr ""
+msgstr "Indikátory referencí"
 
 #: trtables.py:420
 msgid "You can always hover over an indicator to display the full name of the ref."
-msgstr ""
+msgstr "Úplný název reference můžete kdykoli zobrazit najetím na indikátor."
 
 #: trtables.py:422
 msgid "The trash keeps up to # discarded patches"
-msgstr ""
+msgstr "Koš uchovává až # zahozených záplat"
 
 #: trtables.py:423
 msgid "Patches bigger than # KB won’t be salvaged"
-msgstr ""
+msgstr "Záplaty větší než # kB nebudou zachráněny"
 
 #: trtables.py:425
 #, python-brace-format
 msgid "When you discard changes from the working directory, {app} keeps a temporary copy in a hidden “trash” folder. This gives you a last resort to rescue changes that you have discarded by mistake. You can look around this trash folder via <i>“Help &rarr; Open Trash”</i>."
 msgstr ""
+"Když zahodíte změny z pracovního adresáře, aplikace {app} uloží jejich "
+"dočasnou kopii do skryté složky „koše“. Díky tomu můžete v krajním případě "
+"zachránit změny, které jste zahodili omylem. Obsah koše můžete procházet "
+"pomocí nabídky <i>„Nápověda &rarr; Otevřít koš“</i>."
 
 #: trtables.py:429
 msgid "Logging verbosity"
-msgstr ""
+msgstr "Podrobnost protokolování"
 
 #: trtables.py:430
 msgid "Auto-refresh when app regains focus"
-msgstr ""
+msgstr "Automaticky aktualizovat po návratu do aplikace"
 
 #: trtables.py:432
 #, python-brace-format
 msgid "When you return to {app} from another application, it automatically scans for changes in the working directory and local branches. This keeps the interface in sync with the state of your repo on disk."
 msgstr ""
+"Když se do aplikace {app} vrátíte z jiné aplikace, automaticky vyhledá změny "
+"v pracovním adresáři a místních větvích. Rozhraní tak zůstane "
+"synchronizované se stavem repozitáře na disku."
 
 #: trtables.py:435
 #, python-brace-format
 msgid "If you turn this off, you will need to hit {key} to perform this refresh manually."
 msgstr ""
+"Pokud tuto možnost vypnete, budete muset aktualizaci spouštět ručně klávesou "
+"{key}."
 
 #: trtables.py:437
 msgid "We strongly recommend to keep this setting enabled."
-msgstr ""
+msgstr "Důrazně doporučujeme ponechat toto nastavení zapnuté."
 
 #: trtables.py:438
 msgid "Animation effects in sidebar"
-msgstr ""
+msgstr "Animace v postranním panelu"
 
 #: trtables.py:439
 msgid "Smooth scrolling (where applicable)"
-msgstr ""
+msgstr "Plynulé posouvání (kde je podporováno)"
 
 #: trtables.py:440
 msgid "Preferred Qt binding"
-msgstr ""
+msgstr "Upřednostňovaná vazba Qt"
 
 #: trtables.py:442
 #, python-brace-format
 msgid "After restarting, {app} will use this Qt binding if available."
-msgstr ""
+msgstr "Po restartování použije aplikace {app} tuto vazbu Qt, bude-li dostupná."
 
 #: trtables.py:443
 msgid "You can also pass the name of a Qt binding via the “QT_API” environment variable."
 msgstr ""
+"Název vazby Qt lze také předat prostřednictvím proměnné prostředí „QT_API“."
 
 #: trtables.py:445
 msgid "Use condensed fonts"
-msgstr ""
+msgstr "Používat zúžená písma"
 
 #: trtables.py:447
 msgid "When a branch name or author name is too long to fit in its allotted space, condense the font before truncating the text."
 msgstr ""
+"Pokud se název větve nebo jméno autora nevejde do vyhrazeného prostoru, před "
+"zkrácením textu nejprve zúžit písmo."
 
 #: trtables.py:450
 msgid "Text editor"
-msgstr ""
+msgstr "Textový editor"
 
 #: trtables.py:453 trtables.py:459 trtables.py:467
 msgid "Argument placeholders:"
-msgstr ""
+msgstr "Zástupné symboly argumentů:"
 
 #: trtables.py:454
 msgid "Old / Left"
-msgstr ""
+msgstr "Starý / vlevo"
 
 #: trtables.py:455
 msgid "New / Right"
-msgstr ""
+msgstr "Nový / vpravo"
 
 #: trtables.py:460
 msgid "Ancestor / Base / Center"
-msgstr ""
+msgstr "Předek / základ / uprostřed"
 
 #: trtables.py:461
 msgid "Ours / Local / Left"
-msgstr ""
+msgstr "Naše / místní / vlevo"
 
 #: trtables.py:462
 msgid "Theirs / Remote / Right"
-msgstr ""
+msgstr "Jejich / vzdálené / vpravo"
 
 #: trtables.py:463
 msgid "Merged / Output / Result"
-msgstr ""
+msgstr "Sloučené / výstup / výsledek"
 
 #: trtables.py:468
 msgid "Command to execute after launching the terminal"
-msgstr ""
+msgstr "Příkaz spuštěný po otevření terminálu"
 
 #: trtables.py:469
 #, python-brace-format
 msgid "The {0} placeholder is mandatory. It is automatically substituted for a wrapper script that enters your working directory and optionally starts one of your Custom Commands."
 msgstr ""
+"Zástupný symbol {0} je povinný. Automaticky jej nahradí pomocný skript, "
+"který přejde do vašeho pracovního adresáře a volitelně spustí některý z "
+"vlastních příkazů."
 
 #: trtables.py:475
 msgid "Ask for confirmation before running any command"
-msgstr ""
+msgstr "Před spuštěním každého příkazu žádat o potvrzení"
 
 #: trtables.py:477
 #, python-brace-format
 msgid "If you untick this, you can still force a prompt to appear for specific commands by prepending them with {0}. For example: {1}"
 msgstr ""
+"Pokud zaškrtnutí zrušíte, můžete si potvrzení u konkrétních příkazů přesto "
+"vynutit přidáním {0} na začátek. Příklad: {1}"
 
 #: trtables.py:499
 #, python-brace-format
 msgid "Feel free to copy the sample below and paste it into the text box. Then, click OK, and explore {menu} in the menu bar."
 msgstr ""
+"Níže uvedený příklad můžete zkopírovat a vložit do textového pole. Poté "
+"klikněte na OK a prozkoumejte nabídku {menu} na řádku nabídek."
 
 #: trtables.py:504
 msgid "&Interactive Rebase"
-msgstr ""
+msgstr "&Interaktivní přeskládání"
 
 #: trtables.py:505
 msgid "&Continue Rebase"
-msgstr ""
+msgstr "&Pokračovat v přeskládání"
 
 #: trtables.py:506
 msgid "&Abort Rebase"
-msgstr ""
+msgstr "Pře&rušit přeskládání"
 
 #: trtables.py:507
 msgid "Diff Commit With &HEAD"
-msgstr ""
+msgstr "Porovnat commit s &HEAD"
 
 #: trtables.py:509
 msgid "You may use the following placeholders in your commands:"
-msgstr ""
+msgstr "V příkazech můžete používat následující zástupné symboly:"
 
 #: trtables.py:511
 msgid "For advanced usage tips, please visit [the user’s guide]."
-msgstr ""
+msgstr "Tipy pro pokročilé použití najdete v [uživatelské příručce]."
