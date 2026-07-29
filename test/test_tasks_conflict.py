@@ -318,9 +318,9 @@ def testMergeTool(tempDir, mainWindow):
     assert cv.ui.mergeButton.isVisible()
     cv.ui.mergeButton.click()
 
-    assert not cv.ui.mergeToolStatus.isVisible()
-    waitUntilTrue(cv.ui.mergeToolStatus.isVisible)
-    assert findTextInWidget(cv.ui.mergeToolStatus, r"didn.t complete")
+    assert not cv.ui.confirmMergeLabel.isVisible()
+    waitUntilTrue(cv.ui.confirmMergeLabel.isVisible)
+    assert findTextInWidget(cv.ui.confirmMergeLabel, r"file seems unchanged")
 
     scratchLines = readTextFile(scratchPath, unlink=True).strip().splitlines()
     assert "[MERGED]" in scratchLines[0]
@@ -510,13 +510,12 @@ def testDiscardMergeResolution(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir, "testrepoformerging")
 
+    # Initiate merge of branch-conflicts into master
+    runShellScript("git merge branch-conflicts || true", directory=wd)
+
     rw = mainWindow.openRepo(wd)
     cv = rw.conflictView
-    node = rw.sidebar.findNodeByRef("refs/heads/branch-conflicts")
 
-    # Initiate merge of branch-conflicts into master
-    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
-    acceptQMessageBox(rw, "branch-conflicts.+into.+master.+may cause conflicts")
     assert ".gitignore" in rw.repo.index.conflicts
     assert cv.isVisible()
 
@@ -538,3 +537,38 @@ def testDiscardMergeResolution(tempDir, mainWindow):
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged(".gitignore"))
     assert cv.ui.mergePage.isVisible()
     assert ".gitignore" in rw.repo.index.conflicts
+
+
+def testMergeToolDelayedWrite(tempDir, mainWindow):
+    detachTool = getTestDataPath("start-detach.py")
+    delayTool = getTestDataPath("delay-cmd.py")
+    mergeTool = getTestDataPath("merge-shim.py")
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    command = f'"{detachTool}" "{delayTool}" --delay 2 "{mergeTool}" "{scratchPath}" $M $L $R $B'
+    GFApplication.applyPrefs(externalMerge=command)
+
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    # Initiate merge of branch-conflicts into master
+    runShellScript("git merge branch-conflicts || true", directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+    cv = rw.conflictView
+
+    assert ".gitignore" in rw.repo.index.conflicts
+    assert cv.isVisible()
+    assert cv.ui.mergePage.isVisible()
+    assert findTextInWidget(cv.ui.mergeButton, "start-detach")
+    cv.ui.mergeButton.click()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
+    assert findTextInWidget(cv.ui.confirmMergeLabel, "unchanged.+was the merge successful")
+
+    def refreshUntilMerged():
+        rw.refreshRepo()
+        return findTextInWidget(cv.ui.confirmMergeLabel, "it looks like you.ve finished")
+
+    waitUntilTrue(refreshUntilMerged, interval=500)
+
+    assert cv.ui.confirmMergeButton.isVisible()
+    cv.ui.confirmMergeButton.click()
+    assert not rw.repo.any_conflicts

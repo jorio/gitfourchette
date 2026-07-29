@@ -164,14 +164,26 @@ class ConflictView(QWidget):
         assert conflict is not None, "don't call displayConflict with None"
 
         merge = MergeDriver.findOngoingMerge(conflict)
+        state = merge.state if merge else MergeDriver.State.Idle
 
         # Don't bother refreshing if we're showing the exact same conflict
         if (not forceRefresh
                 and conflict == self.currentConflict
                 and merge is self.currentMerge
-                and (merge.state if merge else MergeDriver.State.Idle) == self.currentMergeState):
+                and state == self.currentMergeState
+                and state != MergeDriver.State.Tentative
+        ):
             logger.debug("Don't need to refresh ConflictView")
             return
+
+        # If tentative, try to transition to Ready
+        if state == MergeDriver.State.Tentative:
+            assert merge is not None
+            if not merge.checkUnchanged():
+                state = MergeDriver.State.Ready
+                merge.state = state
+            else:
+                logger.debug(f"Unchanged: {merge.paths.scratch} {merge.paths.target}")
 
         self.invalidate()
 
@@ -188,10 +200,6 @@ class ConflictView(QWidget):
 
         sides = conflict.sides
         kit = self.getKit(sides)
-
-        isMergeBusy = merge and merge.state == MergeDriver.State.Busy
-        isMergeFailed = merge and merge.state == MergeDriver.State.Fail
-        isMergeReady = merge and merge.state == MergeDriver.State.Ready
 
         # Hide arrows if all we can do is pick ours/theirs.
         w: QWidget
@@ -218,8 +226,8 @@ class ConflictView(QWidget):
         self.ui.theirsIcon.setPixmap(iconTheirs)
 
         # Disable ours/theirs buttons while a merge process is running
-        self.ui.oursButton.setEnabled(not isMergeBusy)
-        self.ui.theirsButton.setEnabled(not isMergeBusy)
+        self.ui.oursButton.setEnabled(state != MergeDriver.State.Busy)
+        self.ui.theirsButton.setEnabled(state != MergeDriver.State.Busy)
 
         # Format placeholders
         displayPath = os.path.basename(self.currentConflict.ours.path)
@@ -231,19 +239,29 @@ class ConflictView(QWidget):
             formatWidgetTooltip(w, tool=tool)
 
         # Process debriefing
-        if isMergeFailed:
+        if state == MergeDriver.State.Fail:
             self.ui.mergeToolStatus.setText(f"<b style='color: {colors.red.name()}'>{escape(merge.debrief)}</b>")
         else:
             self.ui.mergeToolStatus.setText("")
 
         # Merge busy/ready
-        if isMergeBusy:
+        if state == MergeDriver.State.Busy:
+            assert merge is not None
             assert merge.process is not None
             progressMessage = _("Waiting for you to finish merging this file in {0} (PID {1})…",
                                 lquoe(merge.processName), merge.process.processId())
             self.ui.mergeInProgressLabel.setText(progressMessage)
             self.ui.stackedWidget.setCurrentWidget(self.ui.mergeInProgressPage)
-        elif isMergeReady:
+        elif state == MergeDriver.State.Tentative:
+            # Some merge tools like PyCharm may return 0 but postpone writing
+            # the actual file from a different process some time later.
+            confirmText = _("The file seems unchanged by {0}. Was the merge successful?", lquoe(merge.processName))
+            confirmText = f"<b style='color: {colors.red.name()}'>{escape(confirmText)}</b>"
+            self.ui.confirmMergeLabel.setText(confirmText)
+            self.ui.stackedWidget.setCurrentWidget(self.ui.mergeCompletePage)
+        elif state == MergeDriver.State.Ready:
+            confirmText = _p("ConflictView", "It looks like you’ve finished merging this file.")
+            self.ui.confirmMergeLabel.setText(confirmText)
             self.ui.stackedWidget.setCurrentWidget(self.ui.mergeCompletePage)
 
     def refreshPrefs(self):

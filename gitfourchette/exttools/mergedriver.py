@@ -28,7 +28,8 @@ class MergeDriver(QObject):
         Idle = 0
         Busy = 1
         Fail = 2
-        Ready = 3
+        Tentative = 3
+        Ready = 4
 
     @dataclasses.dataclass
     class MergeFiles:
@@ -106,16 +107,14 @@ class MergeDriver(QObject):
         self.flush()
 
     def onMergeProcessFinished(self, exitCode: int, exitStatus: QProcess.ExitStatus):
-        if (exitCode != 0
-                or exitStatus == QProcess.ExitStatus.CrashExit
-                or filecmp.cmp(self.paths.scratch, self.paths.target)):
+        if exitCode != 0 or exitStatus == QProcess.ExitStatus.CrashExit:
             informalPid = self.process.processId() if self.process else '???'
             logger.warning(f"Merge tool PID {informalPid} finished with code {exitCode}, {exitStatus}")
             self.state = MergeDriver.State.Fail
             self.debrief = _("{0} didn’t complete the merge.", tquo(self.processName))
             self.debrief += "\n" + _("Exit code: {0}.", exitCode)
         else:
-            self.state = MergeDriver.State.Ready
+            self.state = MergeDriver.State.Tentative
             self.debrief = ""
 
         self.flush()
@@ -125,6 +124,9 @@ class MergeDriver(QObject):
             self.process.deleteLater()
             self.process = None
         self.statusChange.emit()
+
+    def checkUnchanged(self):
+        return filecmp.cmp(self.paths.scratch, self.paths.target)
 
     def copyScratchToTarget(self):
         shutil.copyfile(self.paths.scratch, self.paths.target)
