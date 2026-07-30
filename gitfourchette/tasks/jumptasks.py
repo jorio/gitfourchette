@@ -491,10 +491,15 @@ class Jump(RepoTask):
 
         # Early out if the commit is empty
         if flv.isEmpty():
+            if locator.commitDiffAB():
+                a, b = locator.commitDiffAB()
+                message = _("No changes from {0} to {1}.", hquo(shortHash(a)), hquo(shortHash(b)))
+                details = _("The trees are identical at both commits.")
+            else:
+                message = _("This commit is empty.")
+                details = _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit)))
+            sde = SpecialDiffError(message, details)
             locator = locator.replace(path="")
-            sde = SpecialDiffError(
-                _("This commit is empty."),
-                _("Commit {0} doesn’t affect any files.", hquo(shortHash(locator.commit))))
             raise Jump.Result(locator, sde)
 
         # Try to resolve a fuzzy path

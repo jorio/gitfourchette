@@ -700,6 +700,31 @@ def testCompare2CommitsSwapAB(tempDir, mainWindow, method):
     assert findTextInWidget(rw.diffArea.diffHeader, r"ce112d.+6e1475")
 
 
+def testCompare2CommitsNoChanges(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    runShellScript("""
+        echo 'c2\nc2' > c/c2.txt
+        git add .
+        git commit -m 'restore c/c2.txt'
+    """, directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    oid1 = Oid(hex="932cd9212d0c00001fcd85e35581e213c25af673")
+    oid2 = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
+    row1 = rw.graphView.getFilterIndexForCommit(oid1).row()
+    row2 = rw.graphView.getFilterIndexForCommit(oid2).row()
+
+    # Compare 6e1475 to ce112d
+    qlvClickNthRow(rw.graphView, row1)
+    qlvClickNthRow(rw.graphView, row2, modifier=Qt.KeyboardModifier.ControlModifier)
+
+    assert qlvGetRowData(rw.committedFiles) == []
+    assert rw.specialDiffView.isVisible()
+    assert findTextInWidget(rw.specialDiffView, r"no changes from.+49322bb.+to.+932cd92")
+
+
 def testSelect3PlusCommits(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
