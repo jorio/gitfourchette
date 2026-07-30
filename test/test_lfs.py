@@ -354,3 +354,19 @@ def testLfsSaveRevisionMissingObjectFromCache(tempDir, mainWindow):
 
     # This should auto download the LFS object
     assert "int hello(void)" in readTextFile(f"{tempDir.name}/textfile@5d74f8e.c")
+
+
+@requiresLfs
+def testLfsRestoreRevisionToWorkdir(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "lfsrepo")
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+    assert "int hello(void)" not in readTextFile(f"{wd}/textfile.c")
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(Oid(hex="74ff36893e8e528c18cd59d9603b54f9a00210da"), "textfile.c"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "restore.+revision/before.+commit")
+    acceptQMessageBox(rw, "do you want to restore.+textfile.c")
+
+    # Make sure we've restored the actual contents, not the LFS pointer
+    assert "int hello(void)" in readTextFile(f"{wd}/textfile.c")

@@ -73,22 +73,36 @@ def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, resul
         ("42e4e7c", "before", "c/c1.txt", "[DEL]"),  # delete file
         ("c9ed7bf", "before", "c/c2-2.txt", "c2\nc2\n"),  # undo deletion
         ("c9ed7bf", "as of", "c/c2-2.txt", "[NOP]"),  # no-op
+        ("d2c634a", "as of", "[+x]master.txt", "now executable\n"),  # executable flag
+        ("d2c634a", "as of", "my_symlink", "a1\n"),
     ])
 def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result):
     wd = unpackRepo(tempDir)
+    runShellScript("""
+        echo 'different' > c/c1.txt
+        echo 'now executable' > master.txt
+        chmod +x master.txt
+        ln -s a/a1 my_symlink
+        git add .
+        git commit -m 'edit c1.txt, +x master.txt, add symlink'
 
-    with RepoContext(wd) as repo:
-        writeFile(f"{wd}/c/c1.txt", "different\n")
-        repo.index.add("c/c1.txt")
-        repo.create_commit_on_head("dummy", TEST_SIGNATURE, TEST_SIGNATURE)
+        chmod -x master.txt
+        ln -sf b/b1.txt my_symlink
+        git add .
+        git commit -m '-x master.txt, change symlink'
+    """, directory=wd)
 
     rw = mainWindow.openRepo(wd)
+
+    executable = path.startswith("[+x]")
+    path = path.removeprefix("[+x]")
+    pathObj = Path(f"{wd}/{path}")
 
     oid = rw.repo[commit].peel(Commit).id
     loc = NavLocator.inCommit(oid, path)
     rw.jump(loc, check=True)
 
-    # Make sure parent directories are recreated
+    # Make sure parent directories of c/c*.txt are recreated
     if result not in ["[NOP]", "[DEL]"]:
         shutil.rmtree(f"{wd}/c")
 
@@ -98,13 +112,17 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
         return
 
     acceptQMessageBox(rw, "restore")
-    if result == "[DEL]":
-        assert not Path(f"{wd}/{path}").exists()
-    else:
-        assert result.encode() == readFile(f"{wd}/{path}")
 
     # Make sure we've jumped to the file in the workdir
     assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
+
+    if result == "[DEL]":
+        assert not pathObj.exists()
+        return
+
+    assert result.encode() == readFile(f"{wd}/{path}")
+    mode = pathObj.stat().st_mode
+    assert bool(mode & 0o100) == executable
 
 
 def testRevertCommittedFile(tempDir, mainWindow):

@@ -520,10 +520,13 @@ class RestoreRevisionToWorkdir(RepoTask):
         if delete:
             pathObj.unlink()
         else:
-            data = diffFile.read(self.repo)
-            pathObj.parent.mkdir(parents=True, exist_ok=True)
-            pathObj.write_bytes(data)
-            pathObj.chmod(diffFile.mode)
+            assert diffFile.sourceCommit not in [None, NULL_OID]
+            yield from self.flowCallGit(
+                "restore",
+                "--progress",
+                f"--source={diffFile.sourceCommit}",
+                "--",
+                diffFile.path)
 
         self.epilog.status = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
         self.epilog.jumpTo = NavLocator.inUnstaged(diffFile.path)
