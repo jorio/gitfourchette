@@ -1205,3 +1205,30 @@ def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
             colorTokens.append(token)
 
     assert colorTokens == ["assignment", "=", "0x12345678", ";", "// comment"]
+
+
+def testDiffReevaluateSearchTermAcrossDocuments(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    searchBar = rw.diffView.searchBar
+
+    loc0 = NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b"), "c/c2-2.txt")
+    loc1 = NavLocator.inCommit(Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664"), "a/a1.txt")
+    loc2 = NavLocator.inCommit(Oid(hex="83834a7afdaa1a1260568567f6ad90020389f664"), "a/a2.txt")
+    loc3 = NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1")
+
+    rw.jump(loc0, check=True)
+    rw.diffView.viewport().setFocus()
+    QTest.keySequence(rw.diffView, "Ctrl+F")
+    assert searchBar.isVisible()
+    searchBar.lineEdit.setText("a1")
+    waitUntilTrue(searchBar.isRed)
+
+    rw.jump(loc1, check=True)
+    waitUntilTrue(lambda: not searchBar.isRed())
+
+    rw.jump(loc2, check=True)
+    waitUntilTrue(lambda: searchBar.isRed())
+
+    rw.jump(loc3, check=True)
+    waitUntilTrue(lambda: not searchBar.isRed())

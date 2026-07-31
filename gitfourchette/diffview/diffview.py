@@ -147,6 +147,7 @@ class DiffView(CodeView):
         newDoc.document.setParent(self)
         self.setDocument(newDoc.document)
         self.highlighter.setDiffDocument(newDoc)
+        self.searchBar.reevaluateSearchTerm()
 
         # now reset defaults that are lost when changing documents
         self.refreshPrefs(changeColorScheme=False)
