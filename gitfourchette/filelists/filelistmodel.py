@@ -157,6 +157,8 @@ class FileListModel(QAbstractListModel):
     fileRows: dict[str, int]
     highlightedCounterpartRow: int
 
+    repo: Repo
+
     navContext: NavContext
     """
     COMMITTED, STAGED or UNSTAGED.
@@ -170,15 +172,12 @@ class FileListModel(QAbstractListModel):
     Does not contain paths.
     """
 
-    def __init__(self, parent: QWidget, navContext: NavContext):
+    def __init__(self, parent: QWidget, repo: Repo, navContext: NavContext):
         super().__init__(parent)
+        self.repo = repo
         self.navContext = navContext
         self.navLocator = NavLocator.Empty
         self.clear()
-
-    @property
-    def repo(self) -> Repo:
-        return self.parent().repo
 
     @property
     def parentWidget(self) -> QWidget:
@@ -210,7 +209,7 @@ class FileListModel(QAbstractListModel):
     def rowCount(self, parent: QModelIndex = QModelIndex_default) -> int:
         return len(self.deltas)
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         row = index.row()
         try:
             delta = self.deltas[row]
@@ -271,7 +270,7 @@ class FileListModel(QAbstractListModel):
         elif role == Qt.ItemDataRole.SizeHintRole:
             return QSize(-1, self.parentWidget.fontMetrics().height())
 
-        elif role == Qt.ItemDataRole.FontRole:
+        elif role == Qt.ItemDataRole.FontRole:  # noqa: SIM102
             if row == self.highlightedCounterpartRow:
                 font = self.parentWidget.font()
                 font.setUnderline(True)

@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import suppress
 from typing import Literal
 
@@ -35,7 +35,9 @@ class FileListDelegate(QStyledItemDelegate):
     """
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
-        widget: FileList = option.widget
+        widget = option.widget
+        assert isinstance(widget, FileList)
+
         isActive = bool(option.state & QStyle.StateFlag.State_Active)
         isSelected = bool(option.state & QStyle.StateFlag.State_Selected)
         colorGroup = QPalette.ColorGroup.Active if isActive else QPalette.ColorGroup.Inactive
@@ -144,7 +146,7 @@ class FileList(QListView):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.onContextMenuRequested)
 
-        flModel = FileListModel(self, navContext)
+        flModel = FileListModel(self, self.repoModel.repo, navContext)
         self.setModel(flModel)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
@@ -573,27 +575,23 @@ class FileList(QListView):
         elif action == FileListClick.DiffTool:
             self.wantOpenInDiffTool()
         elif action == FileListClick.Stage:
-            if self.navContext == NavContext.UNSTAGED:
-                self.stage()
-            elif self.navContext == NavContext.STAGED:
-                self.unstage()
-            else:
-                QApplication.beep()
+            self.wantStageOrUnstage()
         else:
             raise NotImplementedError(f"unknown special click action '{click}'")
 
-    def selectedDeltas(self) -> Generator[GitDelta, None, None]:
+    def selectedDeltas(self) -> Iterator[GitDelta]:
         for index in self.selectedIndexes():
             yield index.data(FileListModel.Role.Delta)
 
-    def selectedPaths(self) -> Generator[str, None, None]:
+    def selectedPaths(self) -> Iterator[str]:
         for index in self.selectedIndexes():
             yield index.data(FileListModel.Role.FilePath)
 
-    def earliestSelectedRow(self):
+    def earliestSelectedRow(self) -> int:
         try:
-            return list(self.selectedIndexes())[0].row()
-        except IndexError:
+            i = iter(self.selectedIndexes())
+            return next(i).row()
+        except StopIteration:
             return -1
 
     def savePatchAs(self):
@@ -655,6 +653,10 @@ class FileList(QListView):
             paths.add(delta.new.path)
         NewStash.invoke(self, list(paths))
 
+    def wantStageOrUnstage(self):
+        # To be overridden in DirtyFiles and StagedFiles
+        QApplication.beep()
+
     def openSubmoduleTabs(self):
         for delta in self.selectedDeltas():
             if delta.isSubtreeCommitPatch():
@@ -667,7 +669,7 @@ class FileList(QListView):
     def clearSelectionBackup(self):
         self._selectionBackup = []
 
-    def restoreSelectionBackup(self):
+    def restoreSelectionBackup(self) -> bool:
         if not self._selectionBackup:
             return False
 

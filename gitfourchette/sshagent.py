@@ -45,7 +45,7 @@ class SshAgent(QProcess):
 
         output = process.readAll().data().decode("utf-8", errors="replace")
 
-        pidMatch = re.search(r"Agent pid (.+);", output, re.I)
+        pidMatch = re.search(r"Agent pid (.+);", output, re.IGNORECASE)
         sockMatch = re.search(r"setenv SSH_AUTH_SOCK (.+);", output)
         if not sockMatch or not pidMatch:
             raise ValueError("didn't find SSH_AUTH_SOCK or agent PID")

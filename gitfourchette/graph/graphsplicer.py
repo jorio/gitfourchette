@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from itertools import zip_longest
+from collections.abc import Sequence
 
 from gitfourchette.graph.graph import (
     ArcJunction,
@@ -45,7 +46,12 @@ class GraphSplicer:
         self.requiredNewCommits = (newHeads - oldHeads)  # heads that appeared
         self.requiredOldCommits = (oldHeads - newHeads)  # heads that disappeared
 
-    def spliceNewCommit(self, newCommit: Oid, parentsOfNewCommit: list[Oid], keyframeInterval=KF_INTERVAL):
+    def spliceNewCommit(
+            self,
+            newCommit: Oid,
+            parentsOfNewCommit: Sequence[Oid],
+            keyframeInterval=KF_INTERVAL
+    ):
         assert not self.done
 
         # Generate arcs for new frame.
@@ -118,7 +124,7 @@ class GraphSplicer:
         self.equilibriumOldRow = equilibriumOldRow
         self.oldGraphRowOffset = rowShiftInOldGraph
 
-        logger.debug(f"Equilibrium: commit={str(self.oldPlayer.commit):.7} new={equilibriumNewRow} old={equilibriumOldRow}")
+        logger.debug(f"Equilibrium: commit={self.oldPlayer.commit!s:.7} new={equilibriumNewRow} old={equilibriumOldRow}")
 
         # We can bail now if nothing changed.
         if equilibriumOldRow == 0 and equilibriumNewRow == 0:

@@ -1,14 +1,18 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
+
 from gitfourchette import settings
 from gitfourchette.codeview.codegutter import CodeGutter
 from gitfourchette.qt import *
+
+if TYPE_CHECKING:
+    from gitfourchette.diffview.diffview import DiffView
 
 
 class DiffGutter(CodeGutter):
@@ -30,6 +34,9 @@ class DiffGutter(CodeGutter):
 
     def paintEvent(self, event: QPaintEvent):
         diffView = self.codeView
+        if TYPE_CHECKING:
+            assert isinstance(diffView, DiffView)
+
         painter = QPainter(self)
 
         # Set up colors

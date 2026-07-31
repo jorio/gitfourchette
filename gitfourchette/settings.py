@@ -10,7 +10,7 @@ import logging
 import os
 from collections.abc import Iterator
 from contextlib import suppress
-from typing import TypedDict
+from typing import TypedDict, ClassVar
 
 from gitfourchette import colors
 from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
@@ -36,6 +36,8 @@ SHORT_DATE_PRESETS = {
     "European 2": "dd.MM.yy HH:mm",
     "American": "M/d/yy h:mm ap",
 }
+
+SHORT_DATE_DEFAULT_PRESET = next(iter(SHORT_DATE_PRESETS.values()))
 
 
 class RefSort(enum.IntEnum):
@@ -134,7 +136,7 @@ class Prefs(PrefsFile):
     graphRowHeight              : GraphRowHeight        = GraphRowHeight.Relaxed
     refBoxMaxWidth              : GraphRefBoxWidth      = GraphRefBoxWidth.Standard
     authorDisplayStyle          : AuthorDisplayStyle    = AuthorDisplayStyle.FullName
-    shortTimeFormat             : str                   = list(SHORT_DATE_PRESETS.values())[0]
+    shortTimeFormat             : str                   = SHORT_DATE_DEFAULT_PRESET
     maxCommits                  : int                   = 10000
     authorDiffAsterisk          : bool                  = True
     verifyGpgOnTheFly           : bool                  = False
@@ -249,7 +251,7 @@ class Prefs(PrefsFile):
 
 
 class PrefEffects:
-    RebuildMenu = {
+    RebuildMenu: ClassVar = {
         "language",
         "commands",
         "confirmCommands",
@@ -257,7 +259,7 @@ class PrefEffects:
     }
     "Pref keys that trigger a rebuild of the main menu."
 
-    ReloadDiff = {
+    ReloadDiff: ClassVar = {
         "showStrayCRs",
         "colorblind",
         "largeFileThresholdKB",
@@ -271,14 +273,14 @@ class PrefEffects:
     }
     "Pref keys that trigger a reload of the current diff."
 
-    ReloadRepo = {
+    ReloadRepo: ClassVar = {
         "chronologicalOrder",
         "maxCommits",
         "refSort",
     }
     "Pref keys that fully take effect after a repo reload."
 
-    RestartApp = {
+    RestartApp: ClassVar = {
         "language",
         "forceQtApi",
         "pygmentsPlugins",
@@ -314,7 +316,7 @@ class History(PrefsFile):
         try:
             repo = self.repos[path]
         except KeyError:
-            repo: History.JsonRepo = {}
+            repo = History.JsonRepo()
             self.repos[path] = repo
         return repo
 

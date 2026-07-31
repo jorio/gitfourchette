@@ -7,6 +7,7 @@
 import logging
 import os
 from contextlib import suppress
+from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette import tasks
@@ -35,6 +36,9 @@ logger = logging.getLogger(__name__)
 
 
 class RepoWidget(QWidget):
+    sharedSplitterSizes: ClassVar[dict[str, list[int]]] = {}
+    "Shared reference among all RepoWidgets"
+
     nameChange = Signal()
     openRepo = Signal(str, NavLocator)
     openPrefs = Signal(str)
@@ -55,7 +59,6 @@ class RepoWidget(QWidget):
     navHistory: NavHistory
 
     splittersToSave: list[QSplitter]
-    sharedSplitterSizes: dict[str, list[int]]
     centralSplitSizesBackup: list[int]
 
     @property
@@ -100,7 +103,6 @@ class RepoWidget(QWidget):
         self.navLocator = NavLocator()
         self.navHistory = NavHistory()
 
-        self.sharedSplitterSizes = self.window().sharedSplitterSizes  # Shared reference in MainWindow
         self.centralSplitSizesBackup = []
 
         # ----------------------------------
@@ -355,10 +357,10 @@ class RepoWidget(QWidget):
             assert self.navLocator.isSimilarEnoughTo(locator), f"failed to jump to: {locator}"
 
     def navigateBack(self):
-        tasks.JumpBackOrForward.invoke(self, -1)
+        tasks.JumpBack.invoke(self)
 
     def navigateForward(self):
-        tasks.JumpBackOrForward.invoke(self, 1)
+        tasks.JumpForward.invoke(self)
 
     # -------------------------------------------------------------------------
 

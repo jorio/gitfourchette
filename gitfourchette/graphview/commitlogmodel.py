@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from gitfourchette.graph.graph import CommitTraits
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
@@ -70,7 +71,7 @@ class CommitLogModel(QAbstractListModel):
         self.repoModel = repoModel
         self._authorColumnX = -1
         self._toolTipZones = {}
-        self.commitDiffAB = None
+        self.commitDiffAB: tuple[Oid, Oid] | None = None
 
         if repoModel.truncatedHistory:
             self._extraRow = SpecialRow.TruncatedHistory
@@ -104,7 +105,7 @@ class CommitLogModel(QAbstractListModel):
             n += 1
         return n
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         row = index.row()
 
         if role == Qt.ItemDataRole.DisplayRole:
@@ -152,7 +153,10 @@ class CommitLogModel(QAbstractListModel):
             if commit is None or commit.id == UC_FAKEID:
                 return tip
 
-            x = self.parent().mapFromGlobal(QCursor.pos()).x()
+            parentWidget = self.parent()
+            assert isinstance(parentWidget, QWidget)
+            x = parentWidget.mapFromGlobal(QCursor.pos()).x()
+
             for zone in reversed(zones):
                 if not (zone.left <= x <= zone.right):
                     continue
@@ -194,7 +198,7 @@ class CommitLogModel(QAbstractListModel):
         return False
 
 
-def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
+def commitAuthorTooltip(commit: CommitTraits, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
     def formatTime(sig: Signature):
         return escape(signatureDateFormat(sig))
 
@@ -231,7 +235,7 @@ def commitAuthorTooltip(commit: Commit, gpgStatus: GpgStatus, gpgKeyInfo: str) -
     return markup
 
 
-def commitMessageTooltip(commit: Commit) -> str:
+def commitMessageTooltip(commit: CommitTraits) -> str:
     message = commit.message.rstrip()
     maxLength = max(len(line) for line in message.splitlines())
     message = escape(message)

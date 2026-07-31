@@ -14,7 +14,7 @@ from gitfourchette.trtables import TrTables
 
 
 class DiffButtons(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent: QWidget):
         super().__init__(parent)
 
         self.diffMethodActions: dict[WhitespaceMode, QAction] = {}

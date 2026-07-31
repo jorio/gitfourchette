@@ -11,13 +11,14 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
 
 class StagedFiles(FileList):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, navContext=NavContext.STAGED)
+    def __init__(self, repoModel: RepoModel, parent: QWidget):
+        super().__init__(repoModel, parent, NavContext.STAGED)
 
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
@@ -75,6 +76,9 @@ class StagedFiles(FileList):
 
         actions += super().contextMenuActions(deltas)
         return actions
+
+    def wantStageOrUnstage(self):
+        self.unstage()
 
     def unstage(self):
         deltas = list(self.selectedDeltas())

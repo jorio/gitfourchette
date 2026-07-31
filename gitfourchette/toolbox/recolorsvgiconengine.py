@@ -43,7 +43,7 @@ class RecolorSvgIconEngine(QIconEngine):
             cls.systemFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont).family()
             cls.initialized = True
 
-    def __init__(self, iconPath: str, colorTable: str = ""):
+    def __init__(self, iconPathStr: str, colorTable: str = ""):
         super().__init__()
 
         # Initialize color scheme
@@ -51,8 +51,8 @@ class RecolorSvgIconEngine(QIconEngine):
             RecolorSvgIconEngine.IconColors.refresh()
 
         # Read in SVG data
-        assert iconPath.endswith(".svg")
-        iconPath = Path(iconPath)
+        iconPath = Path(iconPathStr)
+        assert iconPath.name.endswith(".svg")
         svg = iconPath.read_text("utf-8").strip()
 
         # Inject system font
@@ -78,7 +78,7 @@ class RecolorSvgIconEngine(QIconEngine):
         self.svg = svg
         self.informalIconName = iconPath.name  # for debugging
         self.basePixmapKey = hash(svg)
-        self.renderers = {}
+        self.renderers: dict[QIcon.Mode, QSvgRenderer] = {}
         self.referenceSize = QSize(0, 0)
 
         self.initVariants()
@@ -92,7 +92,7 @@ class RecolorSvgIconEngine(QIconEngine):
             QIcon.Mode.Normal: self._recolor(IC.mainColor),
             QIcon.Mode.Disabled: self._recolor(IC.mainColor, opacity=.33),
             QIcon.Mode.Selected: self._recolor(IC.highlight),
-            QIcon.Mode.SelectedInactive: self._recolor(IC.foreground),
+            QIcon.Mode.SelectedInactive: self._recolor(IC.foreground),  # type: ignore[attr-defined]
         }
         self.referenceSize = self.renderers[QIcon.Mode.Normal].defaultSize()
 

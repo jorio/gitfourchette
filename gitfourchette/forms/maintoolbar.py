@@ -113,12 +113,14 @@ class MainToolBar(QToolBar):
         # Hide back/forward button text with ToolButtonTextBesideIcon
         if style != Qt.ToolButtonStyle.ToolButtonTextOnly:
             for navAction in (self.backAction, self.forwardAction):
-                navButton: QToolButton = self.widgetForAction(navAction)
+                navButton = self.widgetForAction(navAction)
+                assert isinstance(navButton, QToolButton)
                 navButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
 
         if style == Qt.ToolButtonStyle.ToolButtonTextBesideIcon:
             for navAction in (self.headAction, self.workdirAction, self.settingsAction):
-                navButton: QToolButton = self.widgetForAction(navAction)
+                navButton = self.widgetForAction(navAction)
+                assert isinstance(navButton, QToolButton)
                 navButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
 
     def onCustomContextMenuRequested(self, localPoint: QPoint):

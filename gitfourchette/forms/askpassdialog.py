@@ -31,7 +31,7 @@ _ClearTextPromptPatterns = [
 
 _UnknownHostPrompt = "Are you sure you want to continue connecting (yes/no/[fingerprint])?"
 
-_KeyFingerprintPattern = re.compile(r"key fingerprint is:? (.+?)\.?$", re.M)
+_KeyFingerprintPattern = re.compile(r"key fingerprint is:? (.+?)\.?$", re.MULTILINE)
 
 
 class AskpassPrompt(StrEnum):
@@ -58,7 +58,7 @@ class AskpassPrompt(StrEnum):
 
 
 class AskpassDialog(TextInputDialog):
-    promptKind: AskpassPrompt
+    promptKind: AskpassPrompt | str
 
     autoYesOnAcceptEmptyText: bool
     "Reply 'yes' if the dialog is accepted with an empty text input."
@@ -106,7 +106,7 @@ class AskpassDialog(TextInputDialog):
         promptLines = escape(prompt).splitlines()
         if self.unknownHostFingerprint:
             promptLines.append("<b>" + _("To continue connecting, do you trust this key?"))
-        htmlPrompt = paragraphs(promptLines)
+        htmlPrompt = paragraphs(*promptLines)
 
         super().__init__(
             parent, title, htmlPrompt, subtitle,

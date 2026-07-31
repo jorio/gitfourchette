@@ -231,7 +231,7 @@ def testToolbarCustomization(tempDir, mainWindow):
         assert tb.toolButtonStyle() == expectedStyle
 
     previousSize = -1
-    for sizeName in "small medium large huge".split():
+    for sizeName in ["small", "medium", "large", "huge"]:
         triggerContextMenuAction(tb, f"icon size/{sizeName}")
         currentSize = tb.iconSize().width()
         assert currentSize > previousSize

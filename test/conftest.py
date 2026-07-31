@@ -11,7 +11,7 @@ import logging
 import os
 import tempfile
 import warnings
-from collections.abc import Generator
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pygit2
@@ -146,7 +146,7 @@ def qapp_cls():
 
 
 @pytest.fixture
-def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
+def tempDir() -> Iterator[tempfile.TemporaryDirectory]:
     # When running as a Flatpak, we want to override the temp dir's location
     # to make it easier to send repository paths out of the sandbox.
     location = os.environ.get("GITFOURCHETTE_TEMPDIR", None)
@@ -157,7 +157,7 @@ def tempDir() -> Generator[tempfile.TemporaryDirectory, None, None]:
 
 
 @pytest.fixture
-def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
+def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     from gitfourchette import qt, trash, tasks
     from gitfourchette.appconsts import APP_TESTMODE
     from .util import waitUntilTrue
@@ -204,7 +204,7 @@ def mainWindow(request, qtbot: QtBot) -> Generator[MainWindow, None, None]:
     app.clipboard().setText(clipboardBackup)
 
     # Don't leak any modifier keys to the next test
-    for keyName in "Shift Control Alt Meta".split():
+    for keyName in ["Shift", "Control", "Alt", "Meta"]:
         qt.QTest.keyRelease(app.mainWindow, getattr(qt.Qt.Key, f"Key_{keyName}"))
     assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
 

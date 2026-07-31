@@ -11,8 +11,8 @@ from contextlib import suppress
 
 import pytest
 
-from collections.abc import Generator
-from typing import Literal
+from collections.abc import Iterator
+from typing import Literal, ClassVar
 
 from gitfourchette.blameview.blamemodel import Revision
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
@@ -28,7 +28,7 @@ from gitfourchette.repowidget import RepoWidget
 class BlameFixture:
     path = "hello.txt"
 
-    revs = {
+    revs: ClassVar = {
         "workdir": NULL_OID,  # Workdir changes
         "head": Oid(hex="2be5719152d4f82c7302b1c0932d8e5f0a4a0e98"),  # HEAD
         "french": Oid(hex="4ec4389a8068641da2d6578db0419484972284c8"),  # Say hello in French
@@ -38,7 +38,7 @@ class BlameFixture:
 
     unrelatedOid = Oid(hex="5470a671a80ac3789f1a6a8cefbcf43ce7af0563")
 
-    history = [
+    history: ClassVar = [
         revs["workdir"],
         revs["head"],
         revs["french"],
@@ -48,7 +48,7 @@ class BlameFixture:
 
 
 @pytest.fixture
-def blameWindow(tempDir, mainWindow) -> Generator[BlameWindow, None, None]:
+def blameWindow(tempDir, mainWindow) -> Iterator[BlameWindow]:
     wd = unpackRepo(tempDir, "testrepoformerging")
 
     # Edit file so we have some uncommitted changes

@@ -23,7 +23,10 @@ class BlameScrubber(QComboBox):
 
         # For performance, prevent Qt from looking at every item in the model during initialization
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        self.view().setUniformItemSizes(True)
+
+        view = self.view()
+        assert isinstance(view, QListView)
+        view.setUniformItemSizes(True)
 
         self.setItemDelegate(self.scrubberDelegate)
         self.setModel(self.scrubberModel)

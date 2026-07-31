@@ -77,8 +77,8 @@ def testLfsFileToolTip(tempDir, mainWindow):
 
     tip = qlvSummonToolTip(rw.committedFiles, 0)
     tip = stripHtml(tip)
-    assert re.search(r"size:.+79 bytes \(lfs\)", tip, re.I | re.S)
-    assert re.search(r"lfs object hash:.+4b8c427", tip, re.I | re.S)
+    assert re.search(r"size:.+79 bytes \(lfs\)", tip, re.IGNORECASE | re.DOTALL)
+    assert re.search(r"lfs object hash:.+4b8c427", tip, re.IGNORECASE | re.DOTALL)
 
 
 @requiresLfs
@@ -105,7 +105,7 @@ def testLfsAddImageInWorkdir(tempDir, mainWindow):
 
     tip = qlvSummonToolTip(rw.diffArea.stagedFiles, 0)
     tip = stripHtml(tip)
-    assert re.search(r"lfs object hash:.+" + sha[:7], tip, re.I | re.S)
+    assert re.search(r"lfs object hash:.+" + sha[:7], tip, re.IGNORECASE | re.DOTALL)
 
 
 @requiresLfs
@@ -130,7 +130,7 @@ def testLfsChangeImageInWorkdir(tempDir, mainWindow):
 
     tip = qlvSummonToolTip(rw.diffArea.stagedFiles, 0)
     tip = stripHtml(tip)
-    assert re.search(r"lfs object hash:.+4b8c427.+87e67da", tip, re.I | re.S)
+    assert re.search(r"lfs object hash:.+4b8c427.+87e67da", tip, re.IGNORECASE | re.DOTALL)
 
 
 @requiresLfs
@@ -146,7 +146,7 @@ def testLfsRemoveImageInWorkdir(tempDir, mainWindow):
 
     tip = qlvSummonToolTip(rw.diffArea.dirtyFiles, 0)
     tip = stripHtml(tip)
-    assert re.search(r"lfs object hash:.+4b8c427", tip, re.I | re.S)
+    assert re.search(r"lfs object hash:.+4b8c427", tip, re.IGNORECASE | re.DOTALL)
 
     rw.diffArea.stageButton.click()
     rw.jump(NavLocator.inStaged("image1.png"), check=True)

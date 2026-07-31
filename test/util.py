@@ -432,7 +432,7 @@ def findMenuAction(menu: QMenu | QMenuBar, pattern: str) -> QAction:
 
         for submenu, title in submenus:
             title = stripAccelerators(title)
-            if re.search(submenuPattern, title, re.I):
+            if re.search(submenuPattern, title, re.IGNORECASE):
                 menu = submenu
                 break
         else:
@@ -465,7 +465,7 @@ def triggerContextMenuAction(widget: QWidget, pattern: str):
 def qteFind(qte: QTextEdit | QPlainTextEdit, pattern: str, plainText=False):
     assert isinstance(qte, (QTextEdit, QPlainTextEdit))
     if plainText:
-        match = re.search(pattern, qte.toPlainText(), re.I | re.M | re.DOTALL)
+        match = re.search(pattern, qte.toPlainText(), re.IGNORECASE | re.MULTILINE | re.DOTALL)
         found = bool(match)
     else:
         # qte.find() starts searching at current cursor position, so reset cursor to top of document
@@ -651,7 +651,7 @@ def findQMessageBox(parent: QWidget, textPattern: str) -> QMessageBox:
         if not qmb.isVisibleTo(parent):  # skip zombie QMBs
             continue
         numBoxesFound += 1
-        haystack = "\n".join([qmb.windowTitle(), qmb.text(), qmb.informativeText()])
+        haystack = f"{qmb.windowTitle()}\n{qmb.text()}\n{qmb.informativeText()}"
         haystack = stripHtml(haystack)
         if re.search(textPattern, haystack, re.IGNORECASE | re.DOTALL):
             return qmb
@@ -745,7 +745,7 @@ def findTextInWidget(
         text = stripAccelerators(text)
     else:
         text = stripHtml(text)
-    return re.search(pattern, text, re.I | re.M | re.S)
+    return re.search(pattern, text, re.IGNORECASE | re.MULTILINE | re.DOTALL)
 
 
 def mouseSpecialClick(widget: QWidget, clickType: Literal["middle", "double"], pos: QPoint = QPoint_zero):
@@ -826,7 +826,7 @@ def summonToolTip(target: QWidget, localPoint=QPoint_zero):
 
 def dismissToolTip(pattern: str):
     assert QToolTip.isVisible()
-    assert re.search(pattern, QToolTip.text(), re.I)
+    assert re.search(pattern, QToolTip.text(), re.IGNORECASE)
     QToolTip.hideText()
     waitUntilTrue(lambda: not QToolTip.isVisible())
 

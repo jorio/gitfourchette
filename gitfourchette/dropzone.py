@@ -24,7 +24,7 @@ class DropAction(enum.IntEnum):
 
 
 class DropZone(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent: QWidget):
         super().__init__(parent)
         font: QFont = self.font()
         font.setPointSizeF(font.pointSizeF() * 2)

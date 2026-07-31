@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -22,12 +22,12 @@ def padx(x):
 class GraphDiagram:
     @staticmethod
     def parse(text: str):
-        sequence, heads = GraphDiagram.parseDefinition(text)
+        sequence, _heads = GraphDiagram.parseDefinition(text)
         return GraphBuildLoop().sendAll(sequence).graph
 
     @staticmethod
     def parseDefinition(text: str) -> tuple[list[MockCommit], set[Oid]]:
-        sequence = []
+        sequence: list[MockCommit] = []
         seen: set[Oid] = set()
         heads: set[Oid] = set()
         commitsById: dict[Oid, MockCommit] = {}
@@ -65,7 +65,8 @@ class GraphDiagram:
                 commitsById[oid] = mockCommit
 
         for mockCommit in sequence:
-            mockCommit.parents = [commitsById.get(p, None) for p in mockCommit.parent_ids]
+            mockParents = [commitsById.get(p) for p in mockCommit.parent_ids]
+            mockCommit.parents = mockParents  # type: ignore[attr-defined]
 
         return sequence, heads
 
@@ -130,7 +131,7 @@ class GraphDiagram:
         self.scanlines.pop()
         self.margins.pop()
 
-    def bake(self):
+    def bake(self) -> str:
         if self.margins:
             numMargins = max(len(rowMargins) for rowMargins in self.margins)
         else:
@@ -142,7 +143,8 @@ class GraphDiagram:
 
         text = ""
         for margins, scanline in zip(self.margins, self.scanlines, strict=True):
-            for mWidth, mText in zip_longest(reversed(marginWidths), reversed(margins), fillvalue=""):
+            for mWidth, mText in zip_longest(reversed(marginWidths), reversed(margins)):
+                mWidth, mText = mWidth or 0, mText or ""
                 text += mText.rjust(mWidth) + " "
             text += ''.join(scanline).rstrip()
             text += "\n"

@@ -138,7 +138,7 @@ def testSubmoduleDirty(tempDir, mainWindow, method):
 
 def testSubmoduleDeletedDiff(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    subWd, subAddId = reposcenario.submodule(wd)
+    _subWd, subAddId = reposcenario.submodule(wd)
     with RepoContext(wd) as repo:
         shutil.rmtree(f"{wd}/submodir")
         os.unlink(f"{wd}/.gitmodules")

@@ -52,7 +52,7 @@ def distillMode(realMode: int) -> FileMode:
         if stripped == (realMode & stripped):
             return gitMode
 
-    logging.warning(f"cannot map to git FileMode: 0o{realMode:o}")
+    _logger.warning(f"cannot map to git FileMode: 0o{realMode:o}")
     return FileMode.UNREADABLE
 
 
@@ -109,10 +109,9 @@ def parseGitStatus(stdout: str, workdir: str) -> Iterator[tuple[GitDelta | None,
 def _parseStatusLine(ident: str, *tokens: str) -> tuple[GitDelta | None, GitDelta | None]:
     if ident == "1":
         # Ordinary changed entries
-        tokens = list(tokens)
-        path = tokens.pop()
-        tokens.extend(("0", path, path))
-        return _parseStatus2(*tokens)
+        path = tokens[-1]
+        tweakedTokens = tokens[:-1] + ("0", path, path)
+        return _parseStatus2(*tweakedTokens)
     elif ident == "2":
         # Renamed or copied entries
         return _parseStatus2(*tokens)
@@ -247,7 +246,7 @@ def parseGitBlame(stdout: str):
             pass
 
 
-def parseAheadBehind(stdout: str):
+def parseAheadBehind(stdout: str) -> Iterator[tuple[str, tuple[int, int]]]:
     for pos, endPos in iterateLines(stdout):
         match = _aheadBehindPattern.match(stdout, pos, endPos)
         if not match:

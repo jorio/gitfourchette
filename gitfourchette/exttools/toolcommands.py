@@ -80,8 +80,8 @@ class ToolCommands:
 
         # Remove single quotes added around our placeholders by shlex.join()
         # (e.g. '$L' --> $L, '--output=$M' --> $M)
-        newCommand = re.sub(r" '(\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.I | re.A)
-        newCommand = re.sub(r" '(--?[a-z0-9\-_]+=\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.I | re.A)
+        newCommand = re.sub(r" '(\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.IGNORECASE)
+        newCommand = re.sub(r" '(--?[a-z0-9\-_]+=\$[0-9A-Z]+)'", r" \1", newCommand, flags=re.IGNORECASE)
 
         return newCommand
 
@@ -175,7 +175,7 @@ class ToolCommands:
     def filterQProcessEnvironment(cls, process: QProcess) -> dict[str, str]:
         processEnvironment = process.processEnvironment()
         env = {}
-        for key in processEnvironment.keys():
+        for key in processEnvironment.keys():  # noqa: SIM118
             value = processEnvironment.value(key)
             if value != INITIAL_ENVIRONMENT.get(key, None):
                 env[key] = value

@@ -1,35 +1,40 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
-try:
-    from pygments.lexer import Lexer
-    from pygments.token import Token
-except ImportError:  # pragma: no cover
-    # If Pygments isn't available, LexJob should never be instantiated!
-    pass
+import typing
 
+from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import benchmark
 from gitfourchette.toolbox.textutils import qstringLength
 
+if TYPE_CHECKING:
+    from pygments.lexer import Lexer
+    from pygments.token import _TokenType
+
+    LineTokenization: typing.TypeAlias = list[tuple[_TokenType, int]]
+    "Type alias for the tokens in a line + their UTF-16 lengths."
+
+_EmptyLineTokenization: LineTokenization = []
+
 
 class LexJob(QObject):
-    KeyType = str
+    KeyType: typing.TypeAlias = str | Oid
+
     ChunkSize = 5000  # tokens
     ScheduleInitialDelay = 0  # ms
     ScheduleInterval = 0  # ms
     MaxLowQualityLines = 100
     MaxLowQualityLineLength = 200
-    _EmptyTokenization = []
 
     pulse = Signal()
 
-    def __init__(self, lexer: Lexer, data: bytes, fileKey: KeyType):
+    def __init__(self, lexer: Lexer, data: bytes | str, fileKey: KeyType):
         # Don't bind the QObject to a parent to allow Python's refcounting to
         # purge evicted cache entries that are not currently in use by the UI.
         super().__init__(None)
@@ -39,13 +44,13 @@ class LexJob(QObject):
         assert data, "don't create a LexJob without some data"
 
         self.lexer = lexer
-        self.lqTokenMap = {}
-        self.hqTokenMap = {1: []}
+        self.lqTokenMap: dict[int, LineTokenization] = {}
+        self.hqTokenMap: dict[int, LineTokenization] = {1: []}
         self.fileKey = fileKey
         self.fileSize = len(data)
 
         self.currentLine = 1
-        self.lexGen = lexer.get_tokens(data)
+        self.lexGen = lexer.get_tokens(data)  # type: ignore[arg-type] # pygments stubs unaware that data can be bytes
 
         self.scheduler = QTimer(self)
         self.scheduler.setSingleShot(True)
@@ -58,7 +63,7 @@ class LexJob(QObject):
     def lexingComplete(self):
         return self.currentLine == 0
 
-    def tokens(self, lineNumber: int, fallbackText: str) -> list[tuple[Token, int]]:
+    def tokens(self, lineNumber: int, fallbackText: str) -> LineTokenization:
         if self.lexingComplete or self.currentLine > lineNumber:
             return self.hqTokenMap[lineNumber]
 
@@ -76,7 +81,7 @@ class LexJob(QObject):
             if (len(self.lqTokenMap) > LexJob.MaxLowQualityLines
                     or len(fallbackText) > LexJob.MaxLowQualityLineLength):
                 # To ease CPU load, skip long lines and stop LQ-lexing "below the fold".
-                lqTokens = LexJob._EmptyTokenization
+                lqTokens = _EmptyLineTokenization
             else:
                 # Perform low-quality lexing and cache the result.
                 lqTokens = [(t, qstringLength(v)) for _i, t, v in self.lexer.get_tokens_unprocessed(fallbackText)]

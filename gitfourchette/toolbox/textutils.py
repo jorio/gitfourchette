@@ -1,12 +1,12 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import re
 from collections.abc import Iterable, Callable, Container
-from html import escape as escape
+from html import escape
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
@@ -49,14 +49,9 @@ def escamp(text: str) -> str:
     return text.replace('&', '&&')
 
 
-def paragraphs(*args: str | list[str]) -> str:
+def paragraphs(*strings: str) -> str:
     """ Return a string of HTML "P" tags surrounding each argument. """
-
-    # If passed an actual list object, use that as the argument list.
-    if len(args) == 1 and isinstance(args[0], list):
-        args = args[0]
-
-    inner = "</p><p>".join(args)
+    inner = "</p><p>".join(strings)
     return f"<p>{inner}</p>"
 
 

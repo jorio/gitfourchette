@@ -117,7 +117,7 @@ class RepoStub(QWidget):
             self.ui.progressBar.setRange(0, 1000)
             self.ui.progressBar.setValue(int(progress * 1000))
 
-    def onChangeProgressInterruptable(self, abortable: True):
+    def onChangeProgressInterruptable(self, abortable: bool):
         self.ui.progressAbortButton.setEnabled(abortable and self.didAbort)
 
     def overridePendingLocator(self, locator: NavLocator):

@@ -125,9 +125,9 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
     node = rw.sidebar.findNodeByRef(f"refs/heads/{branchName}")
 
     toolTip = rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search(rf"{branchName}.+local branch", toolTip, re.I)
-    assert (branchName == "master") == bool(re.search(r"checked.out", toolTip, re.I))
-    assert re.search(rf"upstream.+{upstreamName}", toolTip, re.I)
+    assert re.search(rf"{branchName}.+local branch", toolTip, re.IGNORECASE)
+    assert (branchName == "master") == bool(re.search(r"checked.out", toolTip, re.IGNORECASE))
+    assert re.search(rf"upstream.+{upstreamName}", toolTip, re.IGNORECASE)
     assert not isCurrentBranch or isUpstreamBold()
 
     # Clear tracking reference
@@ -658,7 +658,7 @@ def testSwitchBranch(tempDir, mainWindow, method):
         node = rw.sidebar.findNodeByRef(rw.repo.head_branch_fullname)
         index = rw.sidebar.nodeToFilterIndex(node)
         tip = index.data(Qt.ItemDataRole.ToolTipRole)
-        assert re.search(r"(current|checked.out) branch", tip, re.I)
+        assert re.search(r"(current|checked.out) branch", tip, re.IGNORECASE)
         return tip
 
     # make sure initial branch state is correct
@@ -982,12 +982,12 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
         "c/c1.txt": FileStatus.INDEX_MODIFIED,
         "master.txt": FileStatus.INDEX_NEW,
     }
-    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
+    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.IGNORECASE)
 
     # Check prepared merge message
     rw.diffArea.commitButton.click()
     commitDialog: CommitDialog = findQDialog(rw, "commit")
-    assert re.match(r"merge.+master.+into.+no-parent", commitDialog.ui.summaryEditor.text(), re.I)
+    assert re.match(r"merge.+master.+into.+no-parent", commitDialog.ui.summaryEditor.text(), re.IGNORECASE)
     commitDialog.reject()
 
 
@@ -1003,8 +1003,8 @@ def testAbortMerge(tempDir, mainWindow):
     assert rw.mergeBanner.isVisible()
     assert rw.repo.state() == RepositoryState.MERGE
     assert rw.repo.status() == {"bye.txt": FileStatus.INDEX_NEW}
-    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
-    assert re.search(r"abort", rw.mergeBanner.buttons[-1].text(), re.I)
+    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.IGNORECASE)
+    assert re.search(r"abort", rw.mergeBanner.buttons[-1].text(), re.IGNORECASE)
     assert rw.repoModel.prefs.draftCommitMessage.startswith("Merge branch 'pep8-fixes'")
 
     # Abort the merge
@@ -1027,13 +1027,13 @@ def testMergeConcludedByCommit(tempDir, mainWindow):
     assert rw.mergeBanner.isVisibleTo(rw)
     assert rw.repo.state() == RepositoryState.MERGE
     assert rw.repo.status() == {"bye.txt": FileStatus.INDEX_NEW}
-    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
+    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.IGNORECASE)
 
     # Commit to conclude the merge
     rw.diffArea.commitButton.click()
     commitDialog: CommitDialog = rw.findChild(CommitDialog)
     assert commitDialog.ui.infoText.isVisible()
-    assert re.search(r"conclude the merge", commitDialog.ui.infoText.text(), re.I)
+    assert re.search(r"conclude the merge", commitDialog.ui.infoText.text(), re.IGNORECASE)
     commitDialog.ui.summaryEditor.setText("yup")
     commitDialog.accept()
     assert not rw.mergeBanner.isVisible()
@@ -1053,7 +1053,7 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     assert rw.mergeBanner.isVisible()
     assert rw.repo.state() == RepositoryState.MERGE
     assert rw.repo.status() == {".gitignore": FileStatus.CONFLICTED}
-    assert re.search(r"conflicts need fixing", rw.mergeBanner.label.text(), re.I)
+    assert re.search(r"conflicts need fixing", rw.mergeBanner.label.text(), re.IGNORECASE)
 
     # Shouldn't be able to commit
     rw.diffArea.commitButton.click()
@@ -1073,7 +1073,7 @@ def testMergeCausesConflicts(tempDir, mainWindow):
 
     conflictUI.oursButton.click()
     assert not rw.conflictView.isVisible()
-    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.I)
+    assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.IGNORECASE)
 
     rw.diffArea.commitButton.click()
     acceptQMessageBox(rw, "empty commit")
@@ -1125,7 +1125,7 @@ def testMergeNonTipCommit(tempDir, mainWindow):
 
     rw.diffArea.commitButton.click()
     findQDialog(rw, "commit").accept()
-    assert re.search("merge commit.+e97b4c", rw.repo.head_commit_message, re.I)
+    assert re.search("merge commit.+e97b4c", rw.repo.head_commit_message, re.IGNORECASE)
 
 
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])

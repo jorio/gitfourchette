@@ -228,7 +228,7 @@ class PushDialog(QDialog):
         repo = repoModel.repo
         self.repoModel = repoModel
         self.reservedRemoteBranchNames = repo.listall_remote_branches()
-        self.widgetsWereEnabled = []
+        self.widgetsWereEnabled: list[bool] = []
 
         self.ui = Ui_PushDialog()
         self.ui.setupUi(self)

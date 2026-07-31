@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2024 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import bisect
 import collections
+from collections.abc import Sequence
 
 from gitfourchette.graph.graph import Graph, Frame, Oid, Arc, ChainHandle, BatchRow, BATCHROW_UNDEF, ArcJunction
 
@@ -27,14 +28,14 @@ class GraphWeaver(Frame):
         return graph, weaver
 
     def __init__(self, startArcSentinel: Arc):
-        super().__init__(row=BATCHROW_UNDEF, commit="",
+        super().__init__(row=BATCHROW_UNDEF, commit=None,
                          solvedArcs=[], openArcs=[], lastArc=startArcSentinel)
         self.freeLanes = []
         self.parentLookup = collections.defaultdict(list)
         self.peakArcCount = 0
         self.batchNo = BatchRow.BatchManager.reserveNewBatch()
 
-    def newCommit(self, me: Oid, myParents: list[Oid]):
+    def newCommit(self, me: Oid, myParents: Sequence[Oid]):
         """Create arcs for a new commit row."""
 
         row = BatchRow(b=self.batchNo, y=self.row.y + 1)

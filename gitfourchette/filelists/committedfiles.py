@@ -15,13 +15,14 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import LoadPatchInNewWindow, RestoreRevisionToWorkdir
 from gitfourchette.toolbox import *
 
 
 class CommittedFiles(FileList):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, navContext=NavContext.COMMITTED)
+    def __init__(self, repoModel: RepoModel, parent: QWidget):
+        super().__init__(repoModel, parent, NavContext.COMMITTED)
 
     def contextMenuActions(self, deltas: list[GitDelta]) -> list[ActionDef]:
         actions = []

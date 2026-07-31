@@ -12,7 +12,7 @@ _stockIconCache: dict[int, QIcon] = {}
 _stockIconHtmlCache: dict[int, str] = {}
 
 # Override some icon IDs depending on desktop environment
-_overrideIconIds = {}
+_overrideIconIds: dict[str, str] = {}
 _overrideIconIdsReady = False
 
 _autoDarkVariants = {
@@ -31,7 +31,7 @@ _autoDarkVariants = {
 }
 
 
-def _iconOverrideTable():
+def _iconOverrideTable() -> dict[str, str]:
     overrides = {}
 
     assert QApplication.instance(), "need app instance for QIcon.themeName()"
@@ -50,7 +50,6 @@ def _iconOverrideTable():
 
 def stockIcon(iconId: str, colorTable="") -> QIcon:
     # Special cases
-    global _overrideIconIdsReady
     if not _overrideIconIdsReady:
         _overrideIconIds.clear()
         _overrideIconIds.update(_iconOverrideTable())
@@ -109,13 +108,14 @@ def stockIconImgTag(iconId: str, dpr: float = 0) -> str:
         app = QApplication.instance()
         try:
             # Use mainWindow's dpr
-            dpr = app.mainWindow.devicePixelRatio()
+            window: QMainWindow = app.mainWindow  # type: ignore[attr-defined]
+            dpr = window.devicePixelRatio()
         except AttributeError:
             # Too early, no window yet; fall back to highest dpr on the system.
             # Note: on Wayland, this may be higher than the actual dpr if
             # fractional scaling is enabled (e.g. this may return 2.0 if your
             # system is set up for 1.25 frac scaling)
-            dpr = app.devicePixelRatio()
+            dpr = app.devicePixelRatio()  # type: ignore[attr-defined]  # incomplete stubs
 
     key = hash(iconId) ^ hash(dpr)
 

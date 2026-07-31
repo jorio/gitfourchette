@@ -193,7 +193,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             author = commit.author
             committer = commit.committer
 
-            summaryText, contd = messageSummary(commit.message, ELISION)
+            summaryText, _contd = messageSummary(commit.message, ELISION)
             hashText = shortHash(oid)
             authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
             dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
@@ -365,7 +365,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         xMax = painter.clipBoundingRect().right()
 
         # Group refs in clusters (branches with same upstream)
-        clusters = {}
+        clusters: dict[str, list[str]] = {}
         nonLooseRefs = set()
         for refName in refs:
             # Skip refboxes for hidden refs
@@ -408,7 +408,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             if repoModel.singleRemote and len(localRefList) == 1:
                 assert upstreamRef.startswith(RefPrefix.REMOTES)
                 upstreamShorthand = upstreamRef.removeprefix(RefPrefix.REMOTES)
-                remoteName, remoteBranchName = split_remote_branch_shorthand(upstreamShorthand)
+                _remoteName, remoteBranchName = split_remote_branch_shorthand(upstreamShorthand)
                 _localBranchPrefix, localBranchName = RefPrefix.split(localRefList[0])
                 omitRemoteName = remoteBranchName == localBranchName
             else:
@@ -568,13 +568,21 @@ class CommitLogDelegate(QStyledItemDelegate):
             yt =  .5 + frameRect.top()
             yb = -.5 + frameRect.bottom()
             ym =  .5 + int((yt+yb)/2)
+
             if rClip:
-                painter.drawLine(QLineF(x, yt, x, yb))
+                # Simple divider
+                divider = [QLineF(x, yt, x, yb)]
             else:
-                painter.drawLines([QLineF(x, yt, x, ym-3),
-                                   QLineF(x, ym+3, x, yb),
-                                   QLineF(x-2, ym-1, x+2, ym-1),
-                                   QLineF(x-2, ym+1, x+2, ym+1)])
+                # "Equals" sign punches through divider
+                divider = [QLineF(x, yt, x, ym-3),
+                           QLineF(x, ym+3, x, yb),
+                           QLineF(x-2, ym-1, x+2, ym-1),
+                           QLineF(x-2, ym+1, x+2, ym+1)]
+
+            if PYSIDE6:
+                painter.drawLines(divider)  # type: ignore[call-overload] # skip PySide6 for type checking
+            else:
+                painter.drawLines(*divider)
 
         # Append tooltip
         refToolTip = CommitToolTipZone(rect.left(), boxRect.right(), "ref", refName)

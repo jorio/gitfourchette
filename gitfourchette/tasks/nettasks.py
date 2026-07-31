@@ -45,11 +45,10 @@ def formatUpdatedRefs(
         skipUpToDate=False,
 ) -> str:
     messages = []
-    for ref in updatedTips:
+    for ref, (flag, oldTip, newTip) in updatedTips.items():
         rp, rb = RefPrefix.split(ref)
         if not rp:  # no "refs/" prefix, e.g. FETCH_HEAD, etc.
             continue
-        flag, oldTip, newTip = updatedTips[ref]
         if flag == VanillaFetchStatusFlag.UpToDate:
             if skipUpToDate:
                 continue
@@ -260,7 +259,7 @@ class FetchRemoteBranch(RepoTask):
             return
 
         updatedRefs = driver.readFetchPorcelainUpdatedRefs()
-        flag, oldTarget, newTarget = updatedRefs[fullRemoteRef]
+        flag, _oldTarget, newTarget = updatedRefs[fullRemoteRef]
 
         self.epilog.status = formatUpdatedRefs(
             updatedRefs,

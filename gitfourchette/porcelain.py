@@ -31,6 +31,8 @@ from os.path import (
 )
 from pathlib import Path as _Path
 
+from pygit2 import settings as _pygit2settings
+
 from pygit2 import (
     Blob,
     Branch,
@@ -61,7 +63,6 @@ from pygit2 import (
 
     __version__ as PYGIT2_VERSION,
     LIBGIT2_VERSION,
-    settings as GitSettings,
 )
 
 from pygit2.enums import (
@@ -109,8 +110,8 @@ CORE_STASH_MESSAGE_PATTERN = _re.compile(r"^On (?:[^\s:]+|\(no branch\)): (.+)")
 WINDOWS_RESERVED_FILENAMES_PATTERN = _re.compile(r"(.*/)?(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)($|\.|/)", _re.IGNORECASE)
 DIFF_HEADER_PATTERN = _re.compile(r"^diff --git (\"?\w/[^\"]+\"?) (\"?\w/[^\"]+\"?)")
 
-SUBPROJECT_COMMIT_MINUS_PATTERN = _re.compile(r"^-Subproject commit (.+)$", _re.M)
-SUBPROJECT_COMMIT_PLUS_PATTERN = _re.compile(r"^\+Subproject commit (.+)$", _re.M)
+SUBPROJECT_COMMIT_MINUS_PATTERN = _re.compile(r"^-Subproject commit (.+)$", _re.MULTILINE)
+SUBPROJECT_COMMIT_PLUS_PATTERN = _re.compile(r"^\+Subproject commit (.+)$", _re.MULTILINE)
 
 FileStatus_INDEX_MASK = (
         FileStatus.INDEX_NEW
@@ -473,7 +474,7 @@ def parse_submodule_patch(text: str) -> tuple[Oid, Oid, bool]:
 
 class GitConfigHelper:
     # Rough equivalent of git_config_open_default (not available in pygit2 yet)
-    default_config_getters = [
+    default_config_getters: _typing.ClassVar = [
         (GitConfigLevel.GLOBAL, GitConfig.get_global_config),   # ~/.gitconfig
         (GitConfigLevel.XDG,    GitConfig.get_xdg_config),      # ~/.config/git/config
         (GitConfigLevel.SYSTEM, GitConfig.get_system_config),   # /etc/gitconfig
@@ -501,12 +502,10 @@ class GitConfigHelper:
         if not (GitConfigLevel.PROGRAMDATA <= level <= GitConfigLevel.GLOBAL):
             raise NotImplementedError(f"unsupported level {level}")
 
-        search_paths = GitSettings.search_path[level]
-
         # Several paths may be concatenated with GIT_PATH_LIST_SEPARATOR,
         # which git2/common.h defines as ":" (or ";" on Windows).
         # pygit2 doesn't expose this, but it appears to match os.pathsep.
-        search_paths = search_paths.split(_os.pathsep)
+        search_paths = _pygit2settings.search_path[level].split(_os.pathsep)
         search_paths = [path for path in search_paths if path]  # filter out any empty paths
 
         if not search_paths:
@@ -612,7 +611,8 @@ class GitConfigHelper:
         lines = [line for line in lines if line != evict]
 
         # Write result to disk.
-        timestamp = datetime.datetime.now().timestamp()
+        timestamp = datetime.datetime.now(datetime.timezone.utc).timestamp()
+
         temp_path = config_path + f".{timestamp}.new.tmp"
         backup_path = config_path + f".{timestamp}.old.tmp"
 
@@ -722,13 +722,13 @@ class Repo(_VanillaRepository):
     def head_branch_fullname(self) -> str:
         return self.head.name
 
-    def peel_commit(self, commit_id: Oid) -> Commit:
+    def peel_commit(self, commit_id: Oid | str) -> Commit:
         return self[commit_id].peel(Commit)
 
-    def peel_blob(self, blob_id: Oid) -> Blob:
+    def peel_blob(self, blob_id: Oid | str) -> Blob:
         return self[blob_id].peel(Blob)
 
-    def peel_tree(self, tree_id: Oid) -> Tree:
+    def peel_tree(self, tree_id: Oid | str) -> Tree:
         return self[tree_id].peel(Tree)
 
     def in_workdir(self, path: str) -> str:
@@ -745,7 +745,7 @@ class Repo(_VanillaRepository):
                 and (include_gitdir or not path_obj.is_relative_to(self.path)))
 
     @property
-    def commondir(self):
+    def commondir(self) -> str:
         """
         Return the absolute path to this worktree's $GIT_COMMON_DIR.
         If this Repo isn't a worktree, the return value resolves to the same
@@ -756,9 +756,9 @@ class Repo(_VanillaRepository):
             commondir = _Path(path, "commondir")
             if commondir.exists():
                 path = commondir.read_text().rstrip()
-                path = commondir.parent / path
-                path = path.resolve(strict=True)
-                path = str(path)
+                path_obj = commondir.parent / path
+                path_obj = path_obj.resolve(strict=True)
+                path = str(path_obj)
                 # For compatibility with Repository.path, tack a '/' to the end
                 assert not path.endswith(_os.sep)
                 path += _os.sep
@@ -1019,8 +1019,9 @@ class Repo(_VanillaRepository):
             # Get the ref name pointed to by HEAD, but DON'T use repo.head! It won't work if HEAD is unborn.
             # Both git and libgit2 store a default branch name in .git/HEAD when they init a repo,
             # so we should always have a ref name, even though it might not point to anything.
-            ref_to_update = self.lookup_reference("HEAD").target
-            assert isinstance(ref_to_update, str), "HEAD isn't a symbolic reference!"
+            target = self.lookup_reference("HEAD").target
+            assert isinstance(target, str), "HEAD isn't a symbolic reference!"
+            ref_to_update = target
 
         # Prep parent list
         if self.head_is_unborn:
@@ -1306,7 +1307,7 @@ class Repo(_VanillaRepository):
     def apply(self,
               patch_data_or_diff: bytes | str | Diff,
               location: ApplyLocation = ApplyLocation.WORKDIR
-              ) -> Diff:
+              ):
         if isinstance(patch_data_or_diff, bytes | str):
             diff = Diff.parse_diff(patch_data_or_diff)
         elif isinstance(patch_data_or_diff, Diff):
@@ -1315,7 +1316,6 @@ class Repo(_VanillaRepository):
             raise TypeError("patch_data_or_diff must be bytes, str, or Diff")
 
         super().apply(diff, location)
-        return diff
 
     def get_submodule_workdir(self, submo_key: str) -> str:
         submo = self.submodules[submo_key]
@@ -1353,7 +1353,7 @@ class Repo(_VanillaRepository):
                 rb = self.branches[target_shorthand]
 
         merge_analysis, merge_pref = self.merge_analysis(rb.target, RefPrefix.HEADS + local_branch_name)
-        _logger.debug(f"Merge analysis: {repr(merge_analysis)}. Merge preference: {repr(merge_pref)}.")
+        _logger.debug(f"Merge analysis: {merge_analysis!r}. Merge preference: {merge_pref!r}.")
 
         if merge_analysis & MergeAnalysis.UP_TO_DATE:
             # Local branch is up to date with remote branch, nothing to do.
@@ -1379,7 +1379,7 @@ class Repo(_VanillaRepository):
 
         else:
             # Unborn or something...
-            raise NotImplementedError(f"Cannot fast-forward with {repr(merge_analysis)}.")
+            raise NotImplementedError(f"Cannot fast-forward with {merge_analysis!r}.")
 
     def repo_name(self):
         return _basename(_normpath(self.workdir))
@@ -1543,9 +1543,11 @@ class Repo(_VanillaRepository):
 
     def listall_submodules_dict_at_head(self) -> dict[str, str]:
         try:
-            old_gitmodules = self.head_tree[".gitmodules"].data.decode("utf-8")
-        except KeyError:
+            gitmodules_blob: Blob = self.head_tree[".gitmodules"].peel(Blob)
+        except (KeyError,  # .gitmodules doesn't exist
+                ValueError):  # .gitmodules not Blob (probably Tree)
             return {}
+        old_gitmodules = gitmodules_blob.data.decode("utf-8")
         return self.listall_submodules_dict(config_text=old_gitmodules)
 
     def _get_cached_config(self, cache_key: str, path: str, strict: bool) -> _configparser.ConfigParser:

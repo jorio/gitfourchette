@@ -4,12 +4,14 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from typing import ClassVar
+
 from gitfourchette.qt import *
 from gitfourchette.toolbox import MultiShortcut, makeMultiShortcut
 
 
 class GlobalShortcuts:
-    NO_SHORTCUT: MultiShortcut = []
+    NO_SHORTCUT: ClassVar[MultiShortcut] = []
 
     find: MultiShortcut = NO_SHORTCUT
     findNext: MultiShortcut = NO_SHORTCUT
@@ -18,8 +20,8 @@ class GlobalShortcuts:
     openRepoFolder: MultiShortcut = NO_SHORTCUT
     openTerminal: MultiShortcut = NO_SHORTCUT
 
-    stageHotkeys = [Qt.Key.Key_Return, Qt.Key.Key_Enter]  # Return: main keys; Enter: on keypad
-    discardHotkeys = [Qt.Key.Key_Delete, Qt.Key.Key_Backspace]
+    stageHotkeys: ClassVar = [Qt.Key.Key_Return, Qt.Key.Key_Enter]  # Return: main keys; Enter: on keypad
+    discardHotkeys: ClassVar = [Qt.Key.Key_Delete, Qt.Key.Key_Backspace]
 
     _initialized = False
 

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 from contextlib import suppress
+from typing import ClassVar
 
 from gitfourchette.qt import *
 from gitfourchette.toolbox.qtutils import isDarkTheme
@@ -28,9 +29,9 @@ class PygmentsPresets:
 
 
 class ColorScheme:
-    fallbackScheme: ColorScheme = None
-    _cachedScheme: ColorScheme = None
-    _cachedPreviews: dict[str, str] = {}
+    fallbackScheme: ClassVar[ColorScheme] = None
+    _cachedScheme: ClassVar[ColorScheme] = None
+    _cachedPreviews: ClassVar[dict[str, str]] = {}
 
     name: str
     backgroundColor: QColor
@@ -162,8 +163,8 @@ class ColorScheme:
                     return QColor('#' + style.style_for_token(t)['color'])
             return QColor(Qt.GlobalColor.black)
 
-        primary = {}
-        secondary = {}
+        primary: dict[str, str] = {}
+        secondary: dict[str, str] = {}
 
         for styleName in sorted(allStyles):
             style = pygments.styles.get_style_by_name(styleName)

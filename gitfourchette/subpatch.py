@@ -218,7 +218,7 @@ def extractSubpatch(
         #   +hello                                -hallo
         #   \ No newline at end of file           +hello
         #   -hallo                                \ No newline at end of file
-        buffer = []
+        buffer: list[str] = []
 
         # Write selected lines within the hunk
         for ln in sliceRange:

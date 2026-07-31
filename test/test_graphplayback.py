@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -191,8 +191,8 @@ def testVisibleJunctionOnHiddenArc():
     """
     sequence, heads = GraphDiagram.parseDefinition("u:z a:e b-c:d,e d:z e-z")
 
-    heads = MockOid.encodeAll("u", "a", "b")
-    hideSeeds = MockOid.encodeAll("a")
+    heads = MockOid.encodeAll(["u", "a", "b"])
+    hideSeeds = MockOid.encodeAll(["a"])
 
     gbu = GraphBuildLoop(heads, hideSeeds=hideSeeds).sendAll(sequence)
     g = gbu.graph

@@ -1,10 +1,11 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
 import logging
+from typing import ClassVar
 
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.toolbox.gitutils import shortHash
@@ -20,8 +21,8 @@ class LexJobCache:
     (in the worst case scenario, there would be 1 token per source byte).
     """
 
-    cache: dict[LexJob.KeyType, LexJob] = {}
-    totalFileSize = 0
+    cache: ClassVar[dict[LexJob.KeyType, LexJob]] = {}
+    totalFileSize: ClassVar[int] = 0
 
     @classmethod
     def put(cls, job: LexJob):

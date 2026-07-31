@@ -7,12 +7,13 @@
 import enum
 import itertools
 import logging
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable, Iterator
 
 from gitfourchette import settings
 from gitfourchette.appconsts import *
 from gitfourchette.gitdriver import GitDelta
 from gitfourchette.graph import Graph, GraphSpliceLoop, MockCommit
+from gitfourchette.graph.graphbuilder import CommitTraits
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repoprefs import RepoPrefs
@@ -90,13 +91,13 @@ class CommitPathspecFilter(QObject):
         self.filterOnly = False
 
     def wantFilter(self) -> bool:
-        return self.needle and self.matchingIds is not None and self.filterOnly
+        return bool(self.needle) and self.matchingIds is not None and self.filterOnly
 
     def isReady(self) -> bool:
-        return self.needle and self.matchingIds is not None
+        return bool(self.needle) and self.matchingIds is not None
 
     def isQueryPending(self) -> bool:
-        return self.needle and self.matchingIds is None
+        return bool(self.needle) and self.matchingIds is None
 
 
 class RepoModel:
@@ -106,7 +107,7 @@ class RepoModel:
     """Walker used to generate the graph. Call initializeWalker before use.
     Keep it around to speed up ulterior refreshes."""
 
-    commitSequence: list[Commit]
+    commitSequence: list[CommitTraits]
     "Ordered list of commits."
 
     truncatedHistory: bool
@@ -135,6 +136,10 @@ class RepoModel:
     upstreams: dict[str, str]
     "Table of local branch names to upstream shorthand names."
 
+    aheadBehind: dict[str, tuple[int, int]]
+    """Table of local branch names to the number of commits the branch is
+    ahead/behind of its upstream."""
+
     superproject: str
     "Path of the superproject. Empty string if this isn't a submodule."
 
@@ -154,6 +159,7 @@ class RepoModel:
     commitPathspecFilter: CommitPathspecFilter
 
     gpgStatusCache: dict[Oid, tuple[GpgStatus, str]]
+    gpgVerifyQueue: set[Oid]
 
     workdirStale: bool
     "Flag indicating that the workdir should be refreshed before use."
@@ -163,9 +169,6 @@ class RepoModel:
 
     workdirUnstagedDeltas: list[GitDelta]
     workdirStagedDeltas: list[GitDelta]
-
-    numUncommittedChanges: int
-    "Number of unstaged+staged files. Negative means unknown count."
 
     headIsDetached: bool
     homeBranch: str
@@ -233,6 +236,7 @@ class RepoModel:
 
     @property
     def numUncommittedChanges(self) -> int:
+        """ Number of unstaged+staged files. Negative means unknown count. """
         if self.workdirStatusReady:
             return self.workdirNumChanges
         else:
@@ -281,7 +285,7 @@ class RepoModel:
             return headWasDetached != self.headIsDetached
 
         # Build reverse ref cache.
-        refsAt = {}
+        refsAt: dict[Oid, list[str]] = {}
         for k, v in refs.items():
             try:
                 refsAt[v].append(k)
@@ -575,7 +579,7 @@ class RepoModel:
 
         return seeds
 
-    def commitsMatchingRefPattern(self, refPattern: str) -> Generator[Oid, None, None]:
+    def commitsMatchingRefPattern(self, refPattern: str) -> Iterator[Oid]:
         if not refPattern.endswith("/"):
             # Explicit ref
             try:
@@ -588,7 +592,7 @@ class RepoModel:
                 if ref.startswith(refPattern):
                     yield oid
 
-    def getCachedGpgStatus(self, commit: Commit) -> tuple[GpgStatus, str]:
+    def getCachedGpgStatus(self, commit: CommitTraits) -> tuple[GpgStatus, str]:
         oid = commit.id
 
         try:

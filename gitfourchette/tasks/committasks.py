@@ -8,6 +8,8 @@ import logging
 from contextlib import suppress
 from pathlib import Path
 
+import pygit2
+
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
@@ -55,7 +57,7 @@ class NewCommit(RepoTask):
             yield from self.flowConfirm(
                 title=_("Create empty commit"),
                 verb=_("Empty commit"),
-                text=paragraphs(text))
+                text=paragraphs(*text))
 
         yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Commit"))
 
@@ -147,10 +149,10 @@ class NewCommit(RepoTask):
             amend=False,
             explicitGpgSign=False,
             explicitNoGpgSign=False,
-    ):
+    ) -> tuple[list[str], dict[str, str]]:
         # Git ignores GIT_AUTHOR_* when amending or concluding a cherrypick
         # unless we pass --reset-author.
-        resetAuthor = author and (amend or repositoryState == RepositoryState.CHERRYPICK)
+        resetAuthor = bool(author and (amend or repositoryState == RepositoryState.CHERRYPICK))
 
         args = [
             "-c", "core.abbrev=no",
@@ -164,7 +166,7 @@ class NewCommit(RepoTask):
             f"--message={message}"
         ]
 
-        env = {}
+        env: dict[str, str] = {}
 
         if author is not None:
             env |= signatureEnvironmentVariables(author, "AUTHOR")
@@ -241,7 +243,7 @@ class AmendCommit(RepoTask):
             explicitNoGpgSign=explicitNoGpgSign)
         driver = yield from self.flowCallGit(*args, env=env)
 
-        branchName, newHash = driver.readPostCommitInfo()
+        _branchName, newHash = driver.readPostCommitInfo()
         newOid = Oid(hex=newHash)
 
         # Trust this commit if we've just signed it
@@ -270,7 +272,7 @@ class SetUpGitIdentity(RepoTask):
         # Fall back to a sensible path if the identity comes from /etc/gitconfig or some other systemwide file
         if editLevel not in [GitConfigLevel.XDG, GitConfigLevel.GLOBAL]:
             # Favor XDG path if we can, otherwise use ~/.gitconfig
-            if FREEDESKTOP and GitSettings.search_path[GitConfigLevel.XDG]:
+            if FREEDESKTOP and pygit2.settings.search_path[GitConfigLevel.XDG]:
                 editLevel = GitConfigLevel.XDG
             else:
                 editLevel = GitConfigLevel.GLOBAL
@@ -311,7 +313,7 @@ class CheckoutCommit(RepoTask):
         refs = [r for r in refs if r.startswith((RefPrefix.HEADS, RefPrefix.REMOTES))]
 
         commitMessage = self.repo.get_commit_message(oid)
-        commitMessage, junk = messageSummary(commitMessage)
+        commitMessage, _junk = messageSummary(commitMessage)
         anySubmodules = bool(self.repo.listall_submodules_fast())
 
         dlg = CheckoutCommitDialog(

@@ -11,13 +11,14 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
 
 
 class DirtyFiles(FileList):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, navContext=NavContext.UNSTAGED)
+    def __init__(self, repoModel: RepoModel, parent: QWidget):
+        super().__init__(repoModel, parent, NavContext.UNSTAGED)
 
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
@@ -129,6 +130,9 @@ class DirtyFiles(FileList):
         actions += super().contextMenuActions(deltas)
         return actions
 
+    def wantStageOrUnstage(self):
+        self.stage()
+
     def stage(self):
         deltas = list(self.selectedDeltas())
         StageFiles.invoke(self, deltas)
@@ -147,7 +151,7 @@ class DirtyFiles(FileList):
         remove = []
 
         for path in self.selectedPaths():
-            ancestor, ours, theirs = conflicts[path]
+            _ancestor, ours, theirs = conflicts[path]
             keepEntry = ours if keepOurs else theirs
             if keepEntry is not None:
                 assert keepEntry.path == path

@@ -65,7 +65,8 @@ class ContextHeader(QFrame):
         if callback is not None:
             button.clicked.connect(callback)
 
-        layout: QHBoxLayout = self.layout()
+        layout = self.layout()
+        assert isinstance(layout, QBoxLayout)
         insertionIndex = layout.indexOf(self.spacerItem)
         if not stickToLabel:
             insertionIndex += 1

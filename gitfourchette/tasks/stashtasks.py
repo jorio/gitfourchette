@@ -41,6 +41,9 @@ _wtStatusTable = {
 Vanilla git unstaged file status to libgit2 worktree status flags
 """
 
+_statusZero = FileStatus.CURRENT
+assert _statusZero == 0
+
 
 def backupStash(repo: Repo, stashCommitId: Oid):
     try:
@@ -99,8 +102,8 @@ class NewStash(RepoTask):
                 ((ud, _wtStatusTable) for ud in unstagedDeltas)
         ):
             path = delta.new.path
-            bits = status.get(path, 0)
-            bits |= statusConversion.get(delta.status, 0)
+            bits = status.get(path, _statusZero)
+            bits |= statusConversion.get(delta.status, _statusZero)
             status[path] = bits
 
         # Ask user what to stash
@@ -199,14 +202,15 @@ class ApplyStash(RepoTask):
                          "because your files have diverged since they were stashed.", bquoe(stashMessage))]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
-            showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(message))
+            showWarning(self.parentWidget(), _("Conflicts caused by stash application"), paragraphs(*message))
 
         else:
             self.epilog.status = _("Stash {0} couldn’t be applied.", tquoe(stashMessage))
             message = [self.epilog.status]
             if deleteAfterApply:
                 message.append(_("The stash wasn’t deleted in case you need to re-apply it later."))
-            raise AbortTask(driver.htmlErrorText(paragraphs(message)), details=driver.formatCommandLine())
+            markup = driver.htmlErrorText(paragraphs(*message))
+            raise AbortTask(markup, details=driver.formatCommandLine())
 
 
 class DropStash(RepoTask):

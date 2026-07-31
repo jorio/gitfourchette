@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from contextlib import suppress
-from typing import Any
+from typing import Any, overload, ClassVar
 
 from gitfourchette import settings
 from gitfourchette.localization import *
@@ -50,7 +50,7 @@ class SidebarItem(enum.IntEnum):
 
 
 class SidebarLayout:
-    RootItems = [
+    RootItems: ClassVar = [
         SidebarItem.WorkdirHeader,
         SidebarItem.UncommittedChanges,
         SidebarItem.Spacer,
@@ -65,11 +65,11 @@ class SidebarLayout:
         SidebarItem.SubmodulesHeader,
     ]
 
-    ForceExpand = [
+    ForceExpand: ClassVar = [
         SidebarItem.WorkdirHeader
     ]
 
-    NonleafItems = sorted([
+    NonleafItems: ClassVar = sorted([
         SidebarItem.Root,
         SidebarItem.WorkdirHeader,
         SidebarItem.LocalBranchesHeader,
@@ -81,7 +81,7 @@ class SidebarLayout:
         SidebarItem.TagsHeader,
     ])
 
-    UnindentItems = {
+    UnindentItems: ClassVar = {
         SidebarItem.LocalBranch: -1,
         SidebarItem.UnbornHead: -1,
         SidebarItem.DetachedHead: -1,
@@ -93,7 +93,7 @@ class SidebarLayout:
         SidebarItem.RefFolder: -1,
     }
 
-    HideableItems = sorted([
+    HideableItems: ClassVar = sorted([
         SidebarItem.LocalBranch,
         SidebarItem.Remote,
         SidebarItem.RemoteBranch,
@@ -223,7 +223,10 @@ class SidebarModel(QAbstractItemModel):
 
     @property
     def _parentWidget(self) -> QWidget:
-        return QObject.parent(self)
+        parent = QObject.parent(self)
+        if APP_DEBUG or TYPE_CHECKING:
+            assert isinstance(parent, QWidget)
+        return parent
 
     @property
     def repo(self) -> Repo:
@@ -445,7 +448,7 @@ class SidebarModel(QAbstractItemModel):
         # Stashes
         # -----------------------------
         for i, stashCommitId in enumerate(repoModel.stashes):
-            message = repo[stashCommitId].message
+            message = repo[stashCommitId].peel(Commit).message
             message = strip_stash_message(message)
             refName = f"stash@{{{i}}}"
             node = SidebarNode(SidebarItem.Stash, str(stashCommitId))
@@ -547,8 +550,20 @@ class SidebarModel(QAbstractItemModel):
 
         return self.createIndexFromNode(node)
 
-    def parent(self, index: QModelIndex) -> QModelIndex:
+    # Type checking boilerplate
+    @overload
+    def parent(self, child: QModelIndex) -> QModelIndex: ...
+
+    # Type checking boilerplate
+    @overload
+    def parent(self) -> QObject | None: ...
+
+    def parent(self, child: QModelIndex | None = None) -> QModelIndex | QObject | None:
+        if child is None:
+            return super().parent()
+
         # Return the parent of the given index
+        index = child
 
         # No repo or root node: no parent
         if not index.isValid():
@@ -575,7 +590,7 @@ class SidebarModel(QAbstractItemModel):
     def columnCount(self, parent: QModelIndex = QModelIndex_default) -> int:
         return 1
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
 

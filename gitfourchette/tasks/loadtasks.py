@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
-from collections.abc import Generator
+from typing import TypeAlias
 
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
@@ -22,7 +22,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavFlags, NavContext
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import RepoTask, TaskEffects, FlowControlToken, AbortTask
+from gitfourchette.tasks.repotask import RepoTask, TaskEffects, AbortTask
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ RENAME_COUNT_THRESHOLD = 100
 
 LONG_LINE_THRESHOLD = 10_000
 
-TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
+TAbstractDiffDocument: TypeAlias = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
 
 
 class PrimeRepo(RepoTask):
@@ -55,7 +55,7 @@ class PrimeRepo(RepoTask):
         from gitfourchette.repomodel import RepoModel
         from gitfourchette.tasks import Jump
 
-        mainWindow: MainWindow = repoStub.window()
+        mainWindow = repoStub.window()
         assert isinstance(repoStub, RepoStub)
         assert isinstance(mainWindow, MainWindow)
 
@@ -117,7 +117,7 @@ class PrimeRepo(RepoTask):
             maxCommits = settings.prefs.maxCommits
         if maxCommits == 0:  # 0 means infinity
             maxCommits = 2**63  # ought to be enough
-        progressInterval = 1000 if maxCommits >= 10000 else 1000
+        progressInterval = 1000
 
         commitSequence = [repoModel.uncommittedChangesMockCommit()]
 
@@ -274,7 +274,7 @@ class LoadPatch(RepoTask):
             self,
             delta: GitDelta,
             locator: NavLocator,
-    ) -> Generator[FlowControlToken, None, TAbstractDiffDocument]:
+    ) -> RepoTask.Flow[TAbstractDiffDocument]:
         if delta.conflict is not None:
             return delta.conflict
 
@@ -416,7 +416,8 @@ class LoadPatch(RepoTask):
         elif file.hasDiskStat():
             # Blob SHA-1 not available, but we've got a stat
             # (E.g. unstaged modification to an LFS file)
-            key = file.diskStat
+            mtime, size = file.diskStat
+            key = f"disk:{mtime},{size}"
         else:
             raise NotImplementedError("need valid blob id or stat for lexing")
 

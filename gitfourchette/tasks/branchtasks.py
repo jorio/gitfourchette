@@ -294,7 +294,7 @@ class NewBranchFromCommit(RepoTask):
         forbiddenBranchNames = repo.listall_branches(BranchType.LOCAL)
 
         commitMessage = repo.get_commit_message(tip)
-        commitMessage, junk = messageSummary(commitMessage)
+        commitMessage, _junk = messageSummary(commitMessage)
 
         dlg = NewBranchDialog(
             initialName=localName,
@@ -461,12 +461,11 @@ class FastForwardBranch(RepoTask):
 
         yield from self.flowEnterUiThread()
         if upToDate:
-            lines = [_("No fast-forwarding necessary.")]
-            if ahead:
-                lines.append(_("Your local branch {0} is ahead of {1}."))
-            else:
-                lines.append(_("Your local branch {0} is already up to date with {1}."))
-            message = paragraphs(lines).format(bquo(localBranchName), bquo(remoteBranchName))
+            message = paragraphs(
+                _("No fast-forwarding necessary."),
+                _("Your local branch {0} is ahead of {1}.") if ahead else
+                _("Your local branch {0} is already up to date with {1}."))
+            message = message.format(bquo(localBranchName), bquo(remoteBranchName))
             self.epilog.status = stripHtml(message)
             yield from self.flowConfirm(text=message, canCancel=False, dontShowAgainKey="NoFastForwardingNecessary")
 
@@ -506,7 +505,7 @@ class FastForwardBranch(RepoTask):
             raise DivergentBranchesError(branch, upstream)
         else:
             # Unborn or something...
-            raise NotImplementedError(f"Cannot fast-forward with {repr(analysis)}.")
+            raise NotImplementedError(f"Cannot fast-forward with {analysis!r}.")
 
         self.epilog.effects |= TaskEffects.Refs
         if branch.is_checked_out():
@@ -549,7 +548,7 @@ class MergeBranch(RepoTask):
         wantMergeCommit = True
 
         yield from self.flowEnterUiThread()
-        logger.info(f"Merge analysis: {repr(analysis)} {repr(pref)}")
+        logger.info(f"Merge analysis: {analysis!r} {pref!r}")
 
         if anyConflicts:
             message = paragraphs(
@@ -588,7 +587,7 @@ class MergeBranch(RepoTask):
                                         dontShowAgainKey="MergeMayCauseConflicts")
 
         else:
-            raise NotImplementedError(f"Unsupported MergeAnalysis! ma={repr(analysis)} mp={repr(pref)}")
+            raise NotImplementedError(f"Unsupported MergeAnalysis! ma={analysis!r} mp={pref!r}")
 
         # -----------------------------------------------------------
         # Actually perform the fast-forward or the merge

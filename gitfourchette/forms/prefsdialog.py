@@ -35,7 +35,7 @@ LANGUAGE_NAMES = {
 }
 
 
-def _boxWidget(layoutType, *controls):
+def _boxWidget(layoutType: type[QVBoxLayout | QHBoxLayout], *controls) -> QWidget:
     w = QWidget()
     layout: QBoxLayout = layoutType(w)
     layout.setSpacing(0)
@@ -74,9 +74,6 @@ def localeCodeToLanguageName(code: str):
 class PrefsDialog(QDialog):
     lastCategory = 0
 
-    prefDiff: dict[str, Any]
-    "Delta to on-disk preferences."
-
     CategoryPrefix = "_category_"
     SpacerPrefix = "_spacer"
     LabelPrefix = "_label_"
@@ -91,8 +88,10 @@ class PrefsDialog(QDialog):
         self.setObjectName("PrefsDialog")
         self.setWindowTitle(_("{app} Settings", app=qAppName()))
 
-        self.prefDiff = {}
-        self.categoryKeys = []
+        self.prefDiff: dict[str, Any] = {}
+        "Delta to on-disk preferences."
+
+        self.categoryKeys: list[str] = []
 
         self.categoryList = QListWidget()
         self.categoryList.setWordWrap(True)
@@ -144,7 +143,7 @@ class PrefsDialog(QDialog):
 
         self.setModal(True)
 
-    def _fillControls(self, focusOn):
+    def _fillControls(self, focusOn: str):
         skipKeys = self.getHiddenSettingKeys()
         form: QFormLayout | None = None
 
@@ -157,6 +156,8 @@ class PrefsDialog(QDialog):
                     break
                 form = self._newCategoryForm(category)
                 continue
+
+            assert form is not None
 
             # Spacer
             if key.startswith(self.SpacerPrefix):
@@ -180,8 +181,11 @@ class PrefsDialog(QDialog):
                 continue
 
             # Add the control to the form layout, with a leading caption if any
-            control, formRowItems = self._newRow(key)
-            form.addRow(*formRowItems)
+            control, label, field = self._newRow(key)
+            if label is not None:
+                form.addRow(label, field)
+            else:
+                form.addRow(field)
 
             # If the current key matches the setting we want to focus on,
             # bring this tab to the foreground
@@ -214,7 +218,13 @@ class PrefsDialog(QDialog):
 
         return form
 
-    def _newRow(self, key: str) -> tuple[QWidget, list]:
+    def _newRow(self, key: str) -> tuple[QWidget, QLabel | None, QWidget | QLayout]:
+        """
+        Build the widgets representing the given setting.
+        Return tuple: main control widget, label (if any), field to be inserted
+        into the QFormLayout.
+        """
+
         # Get caption and suffix
         suffix = ""
         caption = TrTables.prefKey(key)
@@ -251,6 +261,7 @@ class PrefsDialog(QDialog):
 
         # Gather what to add to the form as a single item.
         # If we have more than a single widget to add to the form, lay them out in a row.
+        formField: QWidget | QLayout
         if len(rowWidgets) == 1:
             formField = control
         else:
@@ -264,7 +275,7 @@ class PrefsDialog(QDialog):
 
         # No caption, make field span entire row
         if not caption or isinstance(rowWidgets[0], QCheckBox):
-            return control, [formField]
+            return control, None, formField
 
         # There's a leading caption, so add it as the label in the row
         caption += _(":")
@@ -272,7 +283,7 @@ class PrefsDialog(QDialog):
         label.setBuddy(rowWidgets[0])
         if tip:
             label.setToolTip(tip)
-        return control, [label, formField]
+        return control, label, formField
 
     def setCategory(self, row: int):
         self.categoryList.setCurrentRow(row)
@@ -551,7 +562,8 @@ class PrefsDialog(QDialog):
         control.checkStateChanged.connect(lambda state, k=prefKey: self.assign(k, state == Qt.CheckState.Checked))
         return control
 
-    def enumControl(self, prefKey, prefValue, enumType, previewCallback=None):
+    def enumControl(self, prefKey, prefValue, enumType, previewCallback=None) -> QComboBox | QComboBoxWithPreview:
+        control: QComboBox | QComboBoxWithPreview
         if previewCallback:
             control = QComboBoxWithPreview(self)
         else:
@@ -567,7 +579,7 @@ class PrefsDialog(QDialog):
                 continue
 
             if previewCallback:
-                control.addItemWithPreview(name, data, previewCallback(enumMember))
+                control.addItemWithPreview(name, data, previewCallback(enumMember))  # type: ignore[attr-defined] # mypy not smart enough here
             else:
                 control.addItem(name, data)
             if prefValue == enumMember:
@@ -587,7 +599,7 @@ class PrefsDialog(QDialog):
         if not prefValue:
             control.setCurrentIndex(0)
         control.insertSeparator(1)
-        for availableStyle in QStyleFactory.keys():
+        for availableStyle in QStyleFactory.keys():  # noqa: SIM118
             control.addItem(availableStyle, userData=availableStyle)
             if prefValue == availableStyle:
                 control.setCurrentIndex(control.count() - 1)

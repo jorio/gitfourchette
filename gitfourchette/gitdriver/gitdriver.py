@@ -14,6 +14,7 @@ import shlex
 import signal
 from enum import StrEnum
 from pathlib import Path
+from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
@@ -46,14 +47,12 @@ class VanillaFetchStatusFlag(StrEnum):
 
 
 class GitDriver(QProcess):
-    _commandStem = ["/usr/bin/git"]
-
-    _cachedGitVersionValid = False
-    _cachedGitVersion = ""
-    _cachedGitVersionTuple = (0,)
-
-    _cachedLfsVersionValid = False
-    _cachedLfsVersion = ""
+    _commandStem            : ClassVar[list[str]] = ["/usr/bin/git"]
+    _cachedGitVersionValid  : ClassVar[bool] = False
+    _cachedGitVersion       : ClassVar[str] = ""
+    _cachedGitVersionTuple  : ClassVar[tuple[int, ...]] = (0,)
+    _cachedLfsVersionValid  : ClassVar[bool] = False
+    _cachedLfsVersion       : ClassVar[str] = ""
 
     progressMessage = Signal(str)
     progressFraction = Signal(int, int)
@@ -168,7 +167,7 @@ class GitDriver(QProcess):
 
         self.readyReadStandardError.connect(self._onReadyReadStandardError)
         self._stderrScrollback = io.BytesIO()
-        self._stdout = None
+        self._stdout: str | None = None
 
     def stdoutTable(self, pattern: str, linesep="\n", strict=True) -> list:
         stdout = self.stdoutScrollback()
@@ -205,7 +204,7 @@ class GitDriver(QProcess):
     @classmethod
     def reformatHintText(cls, stderr: str):
         previousTag = ""
-        parts = []
+        parts: list[str] = []
 
         for stderrLine in stderr.splitlines():
             try:
@@ -253,7 +252,7 @@ class GitDriver(QProcess):
         # [master (root-commit) 123abc]
         # [detached HEAD 123abc]
         stdout = self.stdoutScrollback()
-        match = re.match(r"^\[(.+)\s+([\da-f]+)]", stdout, re.I)
+        match = re.match(r"^\[(.+)\s+([\da-f]+)]", stdout, re.IGNORECASE)
         if not match:
             raise ValueError("couldn't parse post-commit stdout: " + stdout.splitlines()[0])
         branchName = match.group(1)

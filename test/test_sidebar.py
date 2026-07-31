@@ -55,7 +55,7 @@ def testSidebarWithDetachedHead(tempDir, mainWindow):
     assert headNode == rw.sidebar.findNodeByKind(SidebarItem.DetachedHead)
 
     toolTip = rw.sidebar.nodeToFilterIndex(headNode).data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search(r"detached head.+7f82283", toolTip, re.I)
+    assert re.search(r"detached head.+7f82283", toolTip, re.IGNORECASE)
 
     assert {'refs/heads/master', 'refs/heads/no-parent'
             } == {n.data for n in rw.sidebar.findNodesByKind(SidebarItem.LocalBranch)}
@@ -305,12 +305,12 @@ def testHideNestedRefFolders(tempDir, mainWindow, explicit, implicit, method):
         if not node.isLeafBranchKind():
             pass
         elif node.data == explicit:
-            assert re.search(r"hidden", tip, re.I)
+            assert re.search(r"hidden", tip, re.IGNORECASE)
             assert sm.isExplicitlyHidden(node)
         else:
             hidden = node.data in implicit
             assert hidden == sm.isImplicitlyHidden(node)
-            assert hidden ^ (not re.search(r"indirectly hidden", tip, re.I))
+            assert hidden ^ (not re.search(r"indirectly hidden", tip, re.IGNORECASE))
 
 
 @pytest.mark.parametrize("explicit,implicit", [
@@ -369,11 +369,11 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
             pass
         elif node.data == explicit:
             assert sm.isExplicitlyShown(node)
-            assert re.search(r"hiding everything but this", tip, re.I)
+            assert re.search(r"hiding everything but this", tip, re.IGNORECASE)
         else:
             hidden = node.data in hiddenRefs
             assert hidden == sm.isImplicitlyHidden(node)
-            assert hidden ^ (not re.search(r"indirectly hidden", tip, re.I))
+            assert hidden ^ (not re.search(r"indirectly hidden", tip, re.IGNORECASE))
 
     # Workdir row must always be visible
     uncommittedChangesIndex = rw.graphView.getFilterIndexForCommit(UC_FAKEID)
@@ -396,7 +396,7 @@ def testSidebarToolTips(tempDir, mainWindow):
         index = rw.sidebar.nodeToFilterIndex(node)
         tip = index.data(Qt.ItemDataRole.ToolTipRole)
         for pattern in patterns:
-            assert re.search(pattern, tip, re.I), f"pattern missing in tooltip: {tip}"
+            assert re.search(pattern, tip, re.IGNORECASE), f"pattern missing in tooltip: {tip}"
 
     test(SidebarItem.LocalBranch, "refs/heads/master",
          r"local branch", r"upstream.+origin/master", r"checked.out")
@@ -473,24 +473,24 @@ def testSidebarAheadBehind(tempDir, mainWindow):
 
     index = rw.sidebar.indexForRef("refs/heads/ahead17")
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search("17 commits ahead", tip, re.I)
-    assert not re.search("commits? behind", tip, re.I)
+    assert re.search("17 commits ahead", tip, re.IGNORECASE)
+    assert not re.search("commits? behind", tip, re.IGNORECASE)
 
     index = rw.sidebar.indexForRef("refs/heads/behind3")
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search("3 commits behind", tip, re.I)
-    assert not re.search("commits? ahead", tip, re.I)
+    assert re.search("3 commits behind", tip, re.IGNORECASE)
+    assert not re.search("commits? ahead", tip, re.IGNORECASE)
 
     index = rw.sidebar.indexForRef("refs/heads/ahead10-behind1")
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search("10 commits ahead", tip, re.I)
-    assert re.search("1 commit behind", tip, re.I)
+    assert re.search("10 commits ahead", tip, re.IGNORECASE)
+    assert re.search("1 commit behind", tip, re.IGNORECASE)
 
     index = rw.sidebar.indexForRef("refs/heads/no-parent")
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
-    assert not re.search("commits? ahead", tip, re.I)
-    assert not re.search("commit? behind", tip, re.I)
-    assert re.search("up-to-date with upstream", tip, re.I)
+    assert not re.search("commits? ahead", tip, re.IGNORECASE)
+    assert not re.search("commit? behind", tip, re.IGNORECASE)
+    assert re.search("up-to-date with upstream", tip, re.IGNORECASE)
 
 
 def testSidebarMissingUpstream(tempDir, mainWindow):
@@ -503,7 +503,7 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
 
     index = rw.sidebar.indexForRef("refs/heads/master")
     tip = index.data(Qt.ItemDataRole.ToolTipRole)
-    assert re.search(r"upstream missing \(origin/missing-upstream\)", tip, re.I)
+    assert re.search(r"upstream missing \(origin/missing-upstream\)", tip, re.IGNORECASE)
 
     node = rw.sidebar.findNodeByRef("refs/heads/master")
     menu = rw.sidebar.makeNodeMenu(node)

@@ -10,8 +10,9 @@ import os
 import re
 import textwrap
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import ClassVar
 
+from gitfourchette.appconsts import *
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 
@@ -31,12 +32,12 @@ def _tokenReferenceTable(table):
 
 
 class TrTables:
-    _enums                      : dict[type[Enum], dict[Enum, str]] = {}
-    _exceptionNames             : dict[str, str] = {}
-    _prefKeys                   : dict[str, str] = {}
-    _diffStatusChars            : dict[str, str] = {}
-    _shortFileModes             : dict[FileMode, str] = {}
-    _patchPurposesPastTense     : dict[PatchPurpose, str] = {}
+    _enums                  : ClassVar[dict[type[Enum], dict[Enum, str]]] = {}
+    _exceptionNames         : ClassVar[dict[str, str]] = {}
+    _prefKeys               : ClassVar[dict[str, str]] = {}
+    _diffStatusChars        : ClassVar[dict[str, str]] = {}
+    _shortFileModes         : ClassVar[dict[FileMode, str]] = {}
+    _patchPurposesPastTense : ClassVar[dict[PatchPurpose, str]] = {}
 
     @classmethod
     def init(cls):
@@ -391,12 +392,11 @@ class TrTables:
 
         sshAuthSock = os.environ.get("SSH_AUTH_SOCK", "")
         if sshAuthSock:
-            sshAuthSockHelp = paragraphs([
+            sshAuthSockHelp = paragraphs(
                 _("Note: Per {k}, your system is providing an ssh-agent ({v}). "
                   "It’s recommended to use this one."),
                 _("If your system’s agent isn’t saving any passphrases, "
-                  "make sure you’ve enabled {c} in your SSH configuration."),
-            ])
+                  "make sure you’ve enabled {c} in your SSH configuration."))
         else:
             sshAuthSockHelp = _("Note: Per {k}, no ssh-agent seems to be running on your system.")
         sshAuthSockHelp = "<blockquote>" + sshAuthSockHelp.format(

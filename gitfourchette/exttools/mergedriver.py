@@ -11,6 +11,7 @@ import filecmp
 import logging
 import os
 import shutil
+from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette.gitdriver import GitConflict
@@ -30,8 +31,8 @@ class MergeDriver(QObject):
         Fail = 2
         Ready = 3
 
-    _ongoingMerges: list[MergeDriver] = []
-    _mergeCounter: int = 0
+    _ongoingMerges: ClassVar[list[MergeDriver]] = []
+    _mergeCounter: ClassVar[int] = 0
 
     statusChange = Signal()
 

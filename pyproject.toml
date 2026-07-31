@@ -36,7 +36,15 @@ gitfourchette-askpass = "gitfourchette.forms.askpassdialog:main"
 gitfourchette-mount = "gitfourchette.mount.treemount:main"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-qt", "pytest-cov", "pytest-xdist", "ruff"]
+test = [
+    "pytest",
+    "pytest-qt",
+    "pytest-cov",
+    "pytest-xdist",
+    "ruff",
+    "mypy",
+    "types-Pygments",
+]
 pyqt6 = ["pyqt6"]
 # WARNING: PyQt5 support is deprecated and will be removed soon
 pyqt5 = ["pyqt5"]
@@ -140,18 +148,39 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Pin to ruff 0.15's ruleset (https://astral.sh/blog/ruff-v0.16.0)
-select = ["E4", "E7", "E9", "F"]
 extend-select = ['W', 'E', 'F', 'C', 'N9', 'B', 'U']
-# E501: line too long
-# F403: star imports
-# F405: star imports
-# C901: too complex
-# B028: no explicit stacklevel (warnings.warn)
-ignore = ['E501', 'F403', 'F405', 'C901', 'B028']
+ignore = [
+    'B028',
+    'BLE001',
+    'C901',
+    'E501',
+    'F403',
+    'F405',
+    'I001',
+    'PIE808',
+    'PLC0415',
+    'PLR1730',
+    'PYI025',
+    'SIM105',
+    'SIM108',
+    'SIM114',
+    'SIM300',
+]
 
 [tool.ruff.lint.per-file-ignores]
 # F401: unused import
 'gitfourchette/porcelain.py' = ['F401']
 'gitfourchette/qt.py' = ['F401']
 '**/__init__.py' = ['F401']
+
+#------------------------------------------------------------------------------
+# Type checking
+
+[tool.mypy]
+strict_optional = false
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+[[tool.mypy.overrides]]
+module = ["mfusepy", "psutil"]
+ignore_missing_imports = true

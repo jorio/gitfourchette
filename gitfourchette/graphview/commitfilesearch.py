@@ -6,7 +6,6 @@
 
 from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
 
-import typing
 from collections.abc import Iterable
 
 from gitfourchette.graphview.commitinfosearch import CommitInfoSearch
@@ -18,7 +17,7 @@ from gitfourchette.repomodel import CommitPathspecFilter, UC_FAKEID
 from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
 from gitfourchette.tasks import QueryCommitsTouchingPath, Jump
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from gitfourchette.graphview.graphview import GraphView
 
 

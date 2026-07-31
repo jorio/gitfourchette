@@ -9,7 +9,7 @@ from __future__ import annotations
 import difflib
 import re
 from bisect import bisect_left
-from collections.abc import Generator
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from gitfourchette import colors
@@ -233,7 +233,7 @@ class DiffDocument:
             # Start new hunk
             if firstChar == "@":
                 rawLine = patch[pos:endPos]
-                oldLine, _dummy, newLine, _dummy, _dummy = _parseHunkHeader(rawLine)
+                oldLine, _dummy1, newLine, _dummy2, _dummy3 = _parseHunkHeader(rawLine)
 
                 hunkID += 1
                 hunkLineNum = -1
@@ -294,7 +294,7 @@ class DiffDocument:
                 perfectClumpTally -= 1
                 minuses += 1
             else:
-                assert origin == " ", f"unknown origin: '{origin.encode('unicode_escape')}'"
+                assert origin == " ", f"unknown origin: {origin.encode('unicode_escape')!r}"
                 assert ld.newLineNo == newLine
                 assert ld.oldLineNo == oldLine
                 newLine += 1
@@ -440,7 +440,7 @@ class DiffDocument:
         assert not doppelgangerBlocksQueue, "should've consumed all doppelganger matching blocks!"
 
 
-def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Generator[tuple[int, int], None, None]:
+def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Iterator[tuple[int, int]]:
     px = 0
 
     for block in blockList:

@@ -466,7 +466,7 @@ class Sidebar(QTreeView):
             ]
 
         elif item == SidebarItem.TagsHeader:
-            refspecs = [ref for ref in self.sidebarModel.repoModel.refs.keys()
+            refspecs = [ref for ref in self.sidebarModel.repoModel.refs
                         if ref.startswith(RefPrefix.TAGS)]
 
             actions += [
@@ -688,7 +688,7 @@ class Sidebar(QTreeView):
             DeleteTag.invoke(self, data.removeprefix(RefPrefix.TAGS))
 
         elif item == SidebarItem.RefFolder:
-            prefix, name = RefPrefix.split(data)
+            prefix, _name = RefPrefix.split(data)
             if prefix == RefPrefix.HEADS:
                 DeleteBranchFolder.invoke(self, data)
             else:
@@ -786,7 +786,7 @@ class Sidebar(QTreeView):
 
     def mousePressEvent(self, event: QMouseEvent):
         pos = event.position().toPoint()
-        index, node, zone = self.resolveClick(pos)
+        index, _node, zone = self.resolveClick(pos)
 
         # Save click info for mouseReleaseEvent
         self.mousePressCache = (index.row(), zone)
@@ -836,7 +836,7 @@ class Sidebar(QTreeView):
         # NOT calling "super().mouseDoubleClickEvent(event)" on purpose.
 
         pos = event.position().toPoint()
-        index, node, zone = self.resolveClick(pos)
+        _index, node, zone = self.resolveClick(pos)
 
         # Let user collapse/expand/hide a single node in quick succession
         # without triggering a double click
