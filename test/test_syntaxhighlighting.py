@@ -32,7 +32,6 @@ def digestFormatRange(formatRange: QTextLayout.FormatRange):
     return (start, length, isStyled)
 
 
-@requiresPygments
 def testDeferredSyntaxHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -67,7 +66,6 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
     assert digestFormatRange(formatRange) == (0, len("hello multiline comment"), True)
 
 
-@requiresPygments
 def testLexJobCaching(tempDir, mainWindow):
     GFApplication.applyPrefs(largeFileThresholdKB=0)
 
@@ -112,7 +110,6 @@ def testLexJobCaching(tempDir, mainWindow):
     assert job is getNewLexJob()
 
 
-@requiresPygments
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
 def testEvictLexJobFromCache(tempDir, mainWindow):
     GFApplication.applyPrefs(largeFileThresholdKB=1_000_000)
@@ -164,7 +161,6 @@ def testEvictLexJobFromCache(tempDir, mainWindow):
 
 
 # Simple coverage test
-@requiresPygments
 def testSyntaxHighlightingNullOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -177,7 +173,6 @@ def testSyntaxHighlightingNullOid(tempDir, mainWindow):
 
 
 # Simple coverage test
-@requiresPygments
 def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -189,7 +184,6 @@ def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
     mainWindow.openRepo(wd)
 
 
-@requiresPygments
 def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
     # YAML has bespoke token types that aren't part of the standard Pygments token set,
     # e.g. Token.Literal.Scalar.Plain, Token.Punctuation.Indicator.
@@ -205,7 +199,6 @@ def testSyntaxHighlightingFillInFallbackTokenTypes(tempDir, mainWindow):
     assert numKnownTokens2 > numKnownTokens1
 
 
-@requiresPygments
 def testWhitespaceHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)

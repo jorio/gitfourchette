@@ -23,7 +23,6 @@ from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.porcelain import *
 from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
-from gitfourchette.syntax import syntaxHighlightingAvailable
 from . import *
 
 TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
@@ -55,10 +54,6 @@ requiresGpg = pytest.mark.skipif(
 requiresFuse = pytest.mark.skipif(
     os.environ.get("TESTFUSE", "") in {"0", ""},
     reason="Requires FUSE (test.py --with-fuse)")
-
-requiresPygments = pytest.mark.skipif(
-    not syntaxHighlightingAvailable,
-    reason="Requires Pygments")
 
 
 def pause(seconds: int = 3):

@@ -21,7 +21,7 @@ jobs:
       with: {python-version: '3.14', cache: 'pip'}
 
     - run: |
-        pip install -e .[pyqt6,pygments,test,mfusepy]
+        pip install -e .[pyqt6,test,mfusepy]
         pip install pytest-timeout
 
     - run: python3 test.py --with-network -v --timeout=30 -k "not testUserCommand"

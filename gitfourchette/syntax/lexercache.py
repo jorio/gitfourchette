@@ -12,13 +12,9 @@ import re
 from contextlib import suppress
 from typing import ClassVar
 
-try:
-    import pygments.lexers
-    from pygments.lexer import Lexer
-    from pygments import __version__ as pygmentsVersion
-    hasPygments = True
-except ImportError:  # pragma: no cover
-    hasPygments = False
+import pygments.lexers
+from pygments.lexer import Lexer
+from pygments import __version__ as pygmentsVersion
 
 from gitfourchette.toolbox.benchmark import benchmark
 
@@ -90,9 +86,6 @@ class LexerCache:
     @benchmark
     def getLexerFromPath(cls, path: str, allowPlugins: bool) -> Lexer | None:
         assert path
-
-        if not hasPygments:  # pragma: no cover
-            return None
 
         if not cls.lexerAliases:
             cls.warmUp(allowPlugins)

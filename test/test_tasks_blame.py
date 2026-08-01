@@ -361,7 +361,6 @@ def testBlameUnborn(tempDir, mainWindow):
     acceptQMessageBox(mainWindow, "no commits in this repository")
 
 
-@requiresPygments
 def testBlameSyntaxHighlighting(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

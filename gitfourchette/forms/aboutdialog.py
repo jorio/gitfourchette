@@ -9,12 +9,12 @@ from pathlib import Path
 from textwrap import dedent
 
 import pygit2
+import pygments
 
 from gitfourchette.forms.ui_aboutdialog import Ui_AboutDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.syntax import pygmentsVersion
 from gitfourchette.toolbox import *
 from gitfourchette import settings
 
@@ -112,7 +112,7 @@ class AboutDialog(QDialog):
             <li><b>{QT_BINDING}</b> {QT_BINDING_VERSION}{qtBindingSuffix}
             <li><b>Qt</b> {qVersion()}
             <li><b>mfusepy</b> {fuseInfo}
-            <li><b>Pygments</b> {pygmentsVersion or _('(not available)')}
+            <li><b>Pygments</b> {pygments.__version__}
             <li><b>Python</b> {'.'.join(str(i) for i in sys.version_info)}
             </ul>
         """))

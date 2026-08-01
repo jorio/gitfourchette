@@ -17,9 +17,8 @@ jobs:
       matrix:
         include:
         # Legacy config with no optional dependencies and ancient pygit2
-        # pytest 8.3.5 is the last version without a mandatory requirement for pygments
         - {name: '312-pyqt5-legacy', os: ubuntu-22.04, py: '3.12', qt: pyqt5, downgrade-git: true, skip-fuse: true,
-           piptweak: 'pip install pygit2==1.14.1 pytest==8.3.5 && pip uninstall -y pygments mfusepy' }
+           piptweak: 'pip install pygit2==1.14.1 pygments==2.12 && pip uninstall -y mfusepy' }
         # Semi-legacy configs
         - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
         - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, downgrade-git: true}
@@ -60,7 +59,7 @@ jobs:
 
     - name: Pip dependencies
       run: |
-        pip install -e .[${{ matrix.qt }},pygments,test,mfusepy]
+        pip install -e .[${{ matrix.qt }},test,mfusepy]
         ${{ matrix.piptweak }}
 
     - run: ruff check

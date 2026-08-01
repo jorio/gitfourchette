@@ -15,7 +15,7 @@ from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
-from gitfourchette.syntax import ColorScheme, PygmentsPresets, syntaxHighlightingAvailable
+from gitfourchette.syntax import ColorScheme, PygmentsPresets
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -510,9 +510,8 @@ class PrefsDialog(QDialog):
         control.setMinimumWidth(round(fontMetrics.horizontalAdvance("x" * 72)))
         control.setTabStopDistance(fontMetrics.horizontalAdvance(" " * 4))
 
-        if syntaxHighlightingAvailable:
-            highlighter = UserCommandSyntaxHighlighter(control)
-            highlighter.setDocument(control.document())
+        highlighter = UserCommandSyntaxHighlighter(control)
+        highlighter.setDocument(control.document())
 
         control.setPlaceholderText(_(
             "# Enter custom terminal commands here.\n"
@@ -642,11 +641,6 @@ class PrefsDialog(QDialog):
 
     @benchmark
     def syntaxHighlightingControl(self, prefKey, prefValue):
-        if not syntaxHighlightingAvailable:  # pragma: no cover
-            sorry = QLabel(_("This feature requires {0}.", "Pygments"))
-            sorry.setEnabled(False)
-            return sorry
-
         autoCaption = _p("syntax highlighting", "Automatic ({name})", name=PygmentsPresets.Dark if isDarkTheme() else PygmentsPresets.Light)
         offCaption = _p("syntax highlighting", "Off")
 

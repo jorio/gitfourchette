@@ -1161,7 +1161,6 @@ def testDiffExoticLineEndings(tempDir, mainWindow):
     assert expectedLines == reconstructedText[1:]
 
 
-@requiresPygments
 def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
     oldText = textwrap.dedent("""\
     void hello(void) {

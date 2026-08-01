@@ -18,7 +18,7 @@ from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
 from gitfourchette.qt import *
-from gitfourchette.syntax import syntaxHighlightingAvailable, PygmentsPresets, ColorScheme
+from gitfourchette.syntax import PygmentsPresets, ColorScheme
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL
 from gitfourchette.toolbox.gitutils import AuthorDisplayStyle
 from gitfourchette.toolbox.pathutils import PathDisplayStyle
@@ -227,7 +227,7 @@ class Prefs(PrefsFile):
         return monoFont
 
     def isSyntaxHighlightingEnabled(self):
-        return syntaxHighlightingAvailable and self.syntaxHighlighting != PygmentsPresets.Off
+        return self.syntaxHighlighting != PygmentsPresets.Off
 
     def syntaxHighlightingScheme(self):
         return ColorScheme.resolve(self.syntaxHighlighting)
