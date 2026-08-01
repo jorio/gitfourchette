@@ -137,11 +137,11 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
     else:
         triggerMenuAction(mainWindow.menuBar(), "repo/amend last commit")
 
-    commitDialog: CommitDialog = findQDialog(rw, "commit")
+    commitDialog = findQDialog(rw, "commit", t=CommitDialog)
     commitDialog.ui.summaryEditor.setText("TEST GPG-SIGNED COMMIT")
 
     signAction = commitDialog.ui.gpg.actions()[0]
-    assert findTextInWidget(signAction, r"enable sign")
+    assert findTextInWidget(signAction, r"enable gpg-signing")
     assert signAction.isEnabled()
     assert signAction.isChecked()
     keyDisplay = commitDialog.ui.gpg.actions()[1]
@@ -196,7 +196,7 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphra
     commitDialog.ui.summaryEditor.setText("TEST SSH-SIGNED COMMIT")
 
     signAction = commitDialog.ui.gpg.actions()[0]
-    assert findTextInWidget(signAction, r"enable sign")
+    assert findTextInWidget(signAction, r"enable gpg-signing")
     assert signAction.isEnabled()
     assert signAction.isChecked()
     keyDisplay = commitDialog.ui.gpg.actions()[1]

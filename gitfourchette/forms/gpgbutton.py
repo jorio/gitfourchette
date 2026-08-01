@@ -36,9 +36,9 @@ class GpgButton(QToolButton):
 
         toggleAction = QAction(self)
         if canSign:
-            toggleAction.setText(_("Enable &signing for this commit"))
+            toggleAction.setText(_("Enable &GPG-signing for this commit"))
         else:
-            toggleAction.setText(_("This commit will not be signed."))
+            toggleAction.setText(_("This commit will not be GPG-signed."))
         toggleAction.setEnabled(canSign)
         toggleAction.setCheckable(canSign)
         toggleAction.setChecked(self.willSign)
@@ -56,28 +56,28 @@ class GpgButton(QToolButton):
         lines = []
 
         if willSign:
-            lines.append(tagify(_("This commit [will be signed] with your key {yourkey} (configured in {keyconf})."), "<b>"))
+            lines.append(tagify(_("This commit [will be GPG-signed] with your key {yourkey} (configured in {keyconf})."), "<b>"))
         else:
-            lines.append(_("This commit will not be signed."))
+            lines.append(_("This commit will not be GPG-signed."))
 
         if willSign:
             pass
         elif key:
-            lines.append(_("Click this button to sign the commit with your key {yourkey} (configured in {keyconf})."))
+            lines.append(_("Click this button to GPG-sign the commit with your key {yourkey} (configured in {keyconf})."))
         else:
-            lines.append(_("Your signing key isn’t configured in {keyconf}."))
+            lines.append(_("Your GPG-signing key isn’t configured in {keyconf}."))
 
         if not key:
             pass
         elif flag:
-            lines.append(_("This repository is configured to sign commits automatically ({flagconf})."))
+            lines.append(_("This repository is configured to GPG-sign commits automatically ({flagconf})."))
         else:
-            lines.append(_("Tip: You can configure {flagconf} if you want to sign every commit."))
+            lines.append(_("Tip: You can configure {flagconf} if you want to GPG-sign every commit."))
 
         tip = "<html style='white-space: pre-wrap;'>" + paragraphs(*lines)
         tip = tip.format(flagconf="<i>commit.gpgSign</i>",
                          keyconf="<i>user.signingKey</i>",
-                         yourkey=escape(key))
+                         yourkey=hquo(key))
 
         if willSign:
             icon = stockIcon("gpg-key", f"gray={colors.olive.name()}")
