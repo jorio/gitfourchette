@@ -355,6 +355,8 @@ def formatTranslatorCredits(jsonReportPath: str):
     renameLanguages = {
         "Chinese (Simplified Han script)": "S. Chinese",
         "Chinese (Traditional Han script)": "T. Chinese",
+        "Portuguese (Brazil)": "Portuguese BR",
+        "Portuguese": "Portuguese PT",
     }
 
     def formatPerson(person):
