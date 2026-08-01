@@ -335,10 +335,9 @@ def compileMoFiles():
         ratio = round(100.0 * complete / (complete + missing1 + missing2))
         print(f"  {poPath.stem}: {ratio}% complete | {msgfmt.stderr.strip()}")
 
-        # Remove empty po/mo files
+        # Remove empty mo files
         if ratio <= 0:
             print(f"*** Removing empty translation '{poPath.name}'")
-            poPath.unlink()
             moPath.unlink()
             continue
 
