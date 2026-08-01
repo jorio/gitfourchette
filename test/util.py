@@ -14,7 +14,7 @@ import zipfile
 from collections.abc import Callable
 from os import PathLike
 from pathlib import Path
-from typing import TypeVar, Literal
+from typing import Literal
 
 import pygit2
 import pytest
@@ -59,10 +59,6 @@ requiresFuse = pytest.mark.skipif(
 requiresPygments = pytest.mark.skipif(
     not syntaxHighlightingAvailable,
     reason="Requires Pygments")
-
-_T = TypeVar("_T")
-_TInheritsQWidget = TypeVar("_TInheritsQWidget", bound=QWidget)
-_TInheritsQDialog = TypeVar("_TInheritsQDialog", bound=QDialog)
 
 
 def pause(seconds: int = 3):
@@ -536,10 +532,10 @@ def qcbSetIndex(qcb: QComboBox, pattern: str):
     return i
 
 
-def findWindow(
+def findWindow[T: QWidget](
         pattern: str,
-        t: type[_TInheritsQWidget] = QWidget
-) -> _TInheritsQWidget:
+        t: type[T] = QWidget
+) -> T:
     widget: QWidget
     for widget in QApplication.topLevelWidgets():
         if not widget.isEnabled() or widget.isHidden():
@@ -552,11 +548,11 @@ def findWindow(
     raise KeyError(f"did not find widget window matching \"{pattern}\"")
 
 
-def findQDialog(
+def findQDialog[T: QDialog](
         parent: QWidget,
         pattern: str,
-        t: type[_TInheritsQDialog] = QDialog
-) -> _TInheritsQDialog:
+        t: type[T] = QDialog
+) -> T:
     dlg: QDialog
     for dlg in parent.findChildren(t):
         if not dlg.isEnabled() or dlg.isHidden():
@@ -567,12 +563,12 @@ def findQDialog(
     raise KeyError(f"did not find qdialog matching \"{pattern}\"")
 
 
-def waitForQDialog(
+def waitForQDialog[T: QDialog](
         parent: QWidget,
         pattern: str,
         timeout: int = DEFAULT_TIMEOUT,
-        t: type[_TInheritsQDialog] = QDialog
-) -> _TInheritsQDialog:
+        t: type[T] = QDialog
+) -> T:
     def tryFind():
         try:
             return findQDialog(parent, pattern, t)
@@ -581,11 +577,11 @@ def waitForQDialog(
     return waitUntilTrue(tryFind, timeout=timeout)
 
 
-def waitUntilTrue(
-        callback: Callable[[], _T],
+def waitUntilTrue[T](
+        callback: Callable[[], T],
         timeout: int = DEFAULT_TIMEOUT,
         interval: int = 100,
-) -> _T:
+) -> T:
     assert timeout >= interval
     deadline = QDeadlineTimer(timeout)
     while not deadline.hasExpired():
@@ -718,11 +714,11 @@ def acceptQFileDialog(parent: QWidget, textPattern: str, path: str | PathLike, u
     return str(path)
 
 
-def findChildWithText(
+def findChildWithText[TInheritsQWidget: QWidget](
         parent: QWidget,
         pattern: str,
-        t: type[_TInheritsQWidget]
-) -> _TInheritsQWidget:
+        t: type[TInheritsQWidget]
+) -> TInheritsQWidget:
     for widget in parent.findChildren(t):
         if findTextInWidget(widget, pattern):
             return widget

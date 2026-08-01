@@ -404,7 +404,7 @@ def writeFreezeFile(qtApi: str):
     repo = pygit2.Repository(SRC_DIR)
     headCommit = repo.head.target
 
-    buildDate = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M")
+    buildDate = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M")
     freezeText = textwrap.dedent(f"""\
         # BEGIN_FREEZE_CONSTS
         ####################################

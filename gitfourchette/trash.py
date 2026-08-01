@@ -11,7 +11,7 @@ import shutil
 from pathlib import Path
 from tarfile import TarFile
 
-import gitfourchette.pycompat  # noqa: F401 - Path.walk & Path.exists(follow_symlinks=...) for Python 3.10, 3.11
+import gitfourchette.pycompat  # noqa: F401 - Path.is_file(follow_symlinks=...) for Python 3.12
 from gitfourchette import settings
 from gitfourchette.qt import *
 from gitfourchette.toolbox import withUniqueSuffix

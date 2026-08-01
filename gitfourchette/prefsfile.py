@@ -13,7 +13,6 @@ import typing
 from types import NoneType, UnionType, GenericAlias
 from typing import Any
 
-from gitfourchette import pycompat  # noqa: F401 - StrEnum for Python 3.10
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 

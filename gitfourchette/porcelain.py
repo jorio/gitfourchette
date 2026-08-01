@@ -611,7 +611,7 @@ class GitConfigHelper:
         lines = [line for line in lines if line != evict]
 
         # Write result to disk.
-        timestamp = datetime.datetime.now(datetime.timezone.utc).timestamp()
+        timestamp = datetime.datetime.now(datetime.UTC).timestamp()
 
         temp_path = config_path + f".{timestamp}.new.tmp"
         backup_path = config_path + f".{timestamp}.old.tmp"

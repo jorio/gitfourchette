@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 from collections.abc import Callable
-from typing import TypeAlias
 
 from gitfourchette.gitdriver import *
 from gitfourchette.porcelain import MultiFileError
@@ -15,7 +14,7 @@ from gitfourchette.toolbox import tagify
 
 
 class FileBatchTask(RepoTask):
-    UnitFunc: TypeAlias = Callable[[RepoTask, GitDelta], RepoTask.Flow[None]]
+    UnitFunc = Callable[[RepoTask, GitDelta], RepoTask.Flow[None]]
 
     def flow(
             self,

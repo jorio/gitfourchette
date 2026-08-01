@@ -6,8 +6,6 @@
 
 from __future__ import annotations
 
-import typing
-
 from gitfourchette.porcelain import Oid
 from gitfourchette.qt import *
 from gitfourchette.toolbox.benchmark import benchmark
@@ -17,14 +15,14 @@ if TYPE_CHECKING:
     from pygments.lexer import Lexer
     from pygments.token import _TokenType
 
-    LineTokenization: typing.TypeAlias = list[tuple[_TokenType, int]]
+    type LineTokenization = list[tuple[_TokenType, int]]
     "Type alias for the tokens in a line + their UTF-16 lengths."
 
 _EmptyLineTokenization: LineTokenization = []
 
 
 class LexJob(QObject):
-    KeyType: typing.TypeAlias = str | Oid
+    type KeyType = str | Oid
 
     ChunkSize = 5000  # tokens
     ScheduleInitialDelay = 0  # ms
