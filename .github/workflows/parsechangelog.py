@@ -16,7 +16,7 @@ def parseChangelog():
     versionLine = lines[bound1]
     notes = "\n".join(lines[bound1+1:bound2]).strip()
 
-    versionMatch = re.match(r"^## (\d(?:\.\d)+) \((20\d\d-\d\d-\d\d)\)", versionLine)
+    versionMatch = re.match(r"^## (\d+(?:\.\d+)+) \((20\d\d-\d\d-\d\d)\)", versionLine)
     version, versionDate = versionMatch.groups()
 
     # Make sure changelog date is close enough to now

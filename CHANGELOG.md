@@ -1,5 +1,39 @@
 # GitFourchette version history
 
+## 1.10.0 (2026-08-01)
+
+New features:
+
+- CommitDialog: Dedicated "signoff" button (git commit --signoff)
+- Open repo workdir in external editor (from Repo menu, or by right-clicking a repo tab) (#118)
+
+Quality of life improvements:
+
+- Askpass: Better UI when connecting to an unknown host (#128)
+- Specific "No changes" message when A/B diffing two commits with the same tree
+- Conflict resolution: Improved compatibility with merge tools that write the merged file from a different process after a delay (some popular IDEs)
+
+Bug fixes:
+
+- Fix stash deletion failing when trash is disabled (#122)
+- Cherrypick/Revert: Show meaningful error message if git exits with code 128, typically "local changes would be overwritten" (#130)
+- Flatpak: Fix ssh-agent sandboxed state after changing git executable from settings
+- Subpatch extraction: Don't spill over to first line in next hunk if selection ends on hunk header (was only an issue with context lines turned off)
+- FileList: Edit HEAD Version in Editor: Get file from HEAD, not index if it has staged changes
+- Restore Revision and Save Revision As were rewritten to use git restore/git cat-file, fixing issues with restoring symlinks
+- DiffView: Reevaluate search term when switching to a different diff document
+
+Security fixes:
+
+- Custom Commands that manipulate the selected object via tokens like &dollar;FILE or &dollar;REF now safely escape the object's name before substitution. In a hostile repo, this prevents malicious filenames or ref names from injecting tokens into a Custom Command that you run on them.
+
+Maintenance & packaging notes:
+
+- Bump minimum Python version to 3.12 (previously 3.10)
+- Make Pygments a mandatory dependency (previously optional)
+- Enforce type checking with mypy (#2)
+
+
 ## 1.9.1 (2026-07-14)
 
 Quality of life improvements:
