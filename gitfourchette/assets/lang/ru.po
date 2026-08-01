@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-01-19 04:01+0000\n"
-"Last-Translator: Konstantin Adamov <xrayadamo@gmail.com>\n"
+"PO-Revision-Date: 2026-07-27 21:01+0000\n"
+"Last-Translator: Abduloh Raupov <abdulohraupov@gmail.com>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/gitfourchette/"
 "gitfourchette/ru/>\n"
 "Language: ru\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 5.15.2\n"
+"X-Generator: Weblate 2026.8.dev0\n"
 
 #: application.py:90 forms/aboutdialog.py:54
 msgid "The comfortable Git UI for Linux."
@@ -111,11 +111,11 @@ msgstr "Просмотреть этот коммит в репозитории"
 
 #: blameview/blamewindow.py:56
 msgid "Shift+Click:"
-msgstr "Шифт+Нажатие:"
+msgstr "Shift+Click:"
 
 #: blameview/blamewindow.py:59
 msgid "Older"
-msgstr "Старее"
+msgstr "Более старое"
 
 #: blameview/blamewindow.py:61
 msgid "Go to next older revision"
@@ -127,7 +127,7 @@ msgstr "Перейти в конец"
 
 #: blameview/blamewindow.py:65
 msgid "Newer"
-msgstr "Никогда"
+msgstr "Более новые"
 
 #: blameview/blamewindow.py:67
 msgid "Go to next newer revision"
@@ -263,7 +263,7 @@ msgstr "Подготовить выбранные строки"
 
 #: diffview/diffview.py:70
 msgid "Unstage Selection"
-msgstr "Убрать выбранное из подготовленных"
+msgstr "Исключить выбранное"
 
 #: diffview/diffview.py:73
 msgid "Unstage selected lines"
@@ -271,97 +271,105 @@ msgstr "Убрать выбранные строки из подготовлен
 
 #: diffview/diffview.py:79
 msgid "Discard selected lines"
-msgstr ""
+msgstr "Отменить выбранные строки"
 
 #: diffview/diffview.py:246 diffview/diffview.py:258 diffview/diffview.py:281
 #: diffview/diffview.py:310
 msgid "Export Lines as Patch…"
-msgstr ""
+msgstr "Экспорт строк в виде патча…"
 
 #: diffview/diffview.py:247
 msgid "Revert Lines…"
-msgstr ""
+msgstr "Восстановить строки…"
 
 #: diffview/diffview.py:251
 #, python-brace-format
 msgid "Export Hunk {0} as Patch…"
-msgstr ""
+msgstr "Экспорт фрагмента {0} как патч…"
 
 #: diffview/diffview.py:252
 msgid "Revert Hunk…"
-msgstr ""
+msgstr "Восстановить фрагмент…"
 
 #: diffview/diffview.py:262 diffview/diffview.py:297 diffview/diffview.py:322
 msgid "Export Hunk as Patch…"
-msgstr ""
+msgstr "Экспорт фрагмента в виде патча…"
 
 #: diffview/diffview.py:269
 msgid "Stage Lines"
-msgstr ""
+msgstr "Подготовить строки"
 
 #: diffview/diffview.py:275
 msgid "Discard Lines…"
-msgstr ""
+msgstr "Отменить строки…"
 
 #: diffview/diffview.py:288
 #, python-brace-format
 msgid "Stage Hunk {0}"
-msgstr ""
+msgstr "Подготовить фрагмент {0}"
 
 #: diffview/diffview.py:293
 msgid "Discard Hunk…"
-msgstr ""
+msgstr "Отменить фрагмент…"
 
 #: diffview/diffview.py:304
 msgid "Unstage Lines"
-msgstr ""
+msgstr "Исключить строки"
 
 #: diffview/diffview.py:317
 #, python-brace-format
 msgid "Unstage Hunk {0}"
-msgstr ""
+msgstr "Исключить фрагмент {0}"
 
 #: diffview/diffview.py:395
 msgid "Export selected lines"
-msgstr ""
+msgstr "Экспорт выделенных строк"
 
 #: diffview/diffview.py:572 diffview/diffview.py:573
 msgid "or Middle-Click"
-msgstr ""
+msgstr "или Middle-Click"
 
 #: diffview/diffview.py:580
 #, python-brace-format
 msgid "Hit {sk} to stage {nl} line. Hit {dk} to discard it."
 msgid_plural "Hit {sk} to stage {nl} lines. Hit {dk} to discard them."
 msgstr[0] ""
+"Нажмите {sk}, чтобы подготовить {nl} строку. Нажмите {dk}, чтобы отменить "
+"изменения в ней."
 msgstr[1] ""
+"Нажмите {sk}, чтобы подготовить {nl} строки. Нажмите {dk}, чтобы отменить "
+"изменения в них."
+msgstr[2] ""
+"Нажмите {sk}, чтобы подготовить {nl} строк. Нажмите {dk}, чтобы отменить "
+"изменения в них."
 
 #: diffview/diffview.py:584
 #, python-brace-format
 msgid "Hit {uk} to unstage {nl} line."
 msgid_plural "Hit {uk} to unstage {nl} lines."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Нажмите {uk}, чтобы исключить {nl} строку."
+msgstr[1] "Нажмите {uk}, чтобы исключить {nl} строки."
+msgstr[2] "Нажмите {uk}, чтобы исключить {nl} строк."
 
 #: diffview/specialdiff.py:71
 msgid "File contents didn’t change."
-msgstr ""
+msgstr "Содержимое файла не изменилось."
 
 #: diffview/specialdiff.py:82
 msgid "Empty file was deleted."
-msgstr ""
+msgstr "Пустой файл был удалён."
 
 #: diffview/specialdiff.py:89
 msgid "New empty file."
-msgstr ""
+msgstr "Новый пустой файл."
 
 #: diffview/specialdiff.py:92
 msgid "Renamed:"
-msgstr ""
+msgstr "Переименован:"
 
 #: diffview/specialdiff.py:96
 msgid "Mode change:"
-msgstr ""
+msgstr "Изменение прав доступа:"
 
 #: diffview/specialdiff.py:100
 msgid "Canonical file contents unchanged."
@@ -375,15 +383,17 @@ msgstr ""
 #: diffview/specialdiff.py:105
 msgid "You can stage the file to dismiss this message; no changes will be recorded."
 msgstr ""
+"Вы можете подготовить файл, чтобы скрыть это сообщение; изменения не будут "
+"записаны."
 
 #: diffview/specialdiff.py:119
 #, python-brace-format
 msgid "[Configure diff preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Настроить лимит предпросмотра изменений] (текущее: {0})"
 
 #: diffview/specialdiff.py:122
 msgid "This diff is very large."
-msgstr ""
+msgstr "Эти изменения слишком велики."
 
 #: diffview/specialdiff.py:123
 #, python-brace-format
@@ -392,16 +402,16 @@ msgstr ""
 
 #: diffview/specialdiff.py:135
 msgid "[Load image anyway] (this may take a moment)"
-msgstr ""
+msgstr "[Всё равно загрузить изображение] (это может занять некоторое время)"
 
 #: diffview/specialdiff.py:136
 #, python-brace-format
 msgid "[Configure image preview limit] (currently: {0})"
-msgstr ""
+msgstr "[Настроить лимит предпросмотра изображений] (текущее: {0})"
 
 #: diffview/specialdiff.py:139
 msgid "This image is very large."
-msgstr ""
+msgstr "Это изображение слишком велико."
 
 #: diffview/specialdiff.py:140
 #, python-brace-format
@@ -410,110 +420,110 @@ msgstr ""
 
 #: diffview/specialdiff.py:148
 msgid "Old type:"
-msgstr ""
+msgstr "Старый тип:"
 
 #: diffview/specialdiff.py:149
 msgid "New type:"
-msgstr ""
+msgstr "Новый тип:"
 
 #: diffview/specialdiff.py:156
 msgid "This file’s type has changed."
-msgstr ""
+msgstr "Тип данного файла был изменён."
 
 #: diffview/specialdiff.py:175
 msgid "File appears to be binary."
-msgstr ""
+msgstr "Похоже, это бинарный файл."
 
 #: diffview/specialdiff.py:184
 msgid "This untracked subtree is the root of another Git repository."
-msgstr ""
+msgstr "Это неотслеживаемое поддерево является корнем другого репозитория Git."
 
 #: diffview/specialdiff.py:187 repowidget.py:504
 #, python-brace-format
 msgid "Open {0}"
-msgstr ""
+msgstr "Открыть {0}"
 
 #: diffview/specialdiff.py:190
 #, python-brace-format
 msgid "Absorb {0} as submodule"
-msgstr ""
+msgstr "Зарегистрировать {0} как подмодуль"
 
 #: diffview/specialdiff.py:191
 msgid "Recommended action:"
-msgstr ""
+msgstr "Рекомендованное действие:"
 
 #: diffview/specialdiff.py:210
 #, python-brace-format
 msgid "Subtree {0} was [removed.]"
-msgstr ""
+msgstr "Поддерево {0} было [удалено.]"
 
 #: diffview/specialdiff.py:211
 #, python-brace-format
 msgid "Submodule {0} was [removed.]"
-msgstr ""
+msgstr "Подмодуль {0} был [удалён.]"
 
 #: diffview/specialdiff.py:214
 #, python-brace-format
 msgid "Subtree {0} was [added.]"
-msgstr ""
+msgstr "Поддерево {0} было [добавлено.]"
 
 #: diffview/specialdiff.py:215
 #, python-brace-format
 msgid "Submodule {0} was [added.]"
-msgstr ""
+msgstr "Подмодуль {0} был [добавлен.]"
 
 #: diffview/specialdiff.py:218
 #, python-brace-format
 msgid "Subtree {0} was updated."
-msgstr ""
+msgstr "Поддерево {0} было обновлено."
 
 #: diffview/specialdiff.py:219
 #, python-brace-format
 msgid "Submodule {0} was updated."
-msgstr ""
+msgstr "Подмодуль {0} был обновлён."
 
 #: diffview/specialdiff.py:221
 #, python-brace-format
 msgid "Subtree {0} contains changes."
-msgstr ""
+msgstr "Поддерево {0} содержит изменения."
 
 #: diffview/specialdiff.py:222
 #, python-brace-format
 msgid "Submodule {0} contains changes."
-msgstr ""
+msgstr "Подмодуль {0} содержит изменения."
 
 #: diffview/specialdiff.py:230
 msgid "Open submodule"
-msgstr ""
+msgstr "Открыть подмодуль"
 
 #: diffview/specialdiff.py:230
 msgid "Open subtree"
-msgstr ""
+msgstr "Открыть поддерево"
 
 #: diffview/specialdiff.py:232
 #, python-brace-format
 msgid "(path: {0})"
-msgstr ""
+msgstr "(путь: {0})"
 
 #: diffview/specialdiff.py:267 diffview/specialdiffview.py:104
 msgid "Old:"
-msgstr ""
+msgstr "Старый:"
 
 #: diffview/specialdiff.py:268 diffview/specialdiffview.py:105
 msgid "New:"
-msgstr ""
+msgstr "Новый:"
 
 #: diffview/specialdiff.py:274
 msgid "The subtree’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "<b>HEAD </b> поддерева переместился на иной коммит."
 
 #: diffview/specialdiff.py:275
 msgid "The submodule’s <b>HEAD</b> has moved to another commit."
-msgstr ""
+msgstr "<b>HEAD </b> подмодуля переместился на иной коммит."
 
 #: diffview/specialdiff.py:277
 msgid "You can stage this update:"
-msgstr ""
+msgstr "Вы можете подготовить это обновление:"
 
 #: diffview/specialdiff.py:285
 #, python-brace-format
@@ -622,7 +632,7 @@ msgstr ""
 #: exttools/mergedriver.py:138
 #, python-brace-format
 msgid "Exit code: {0}."
-msgstr ""
+msgstr "Код выхода: {0}."
 
 #: exttools/toolcommands.py:104
 #, python-brace-format
@@ -674,7 +684,7 @@ msgstr ""
 
 #: exttools/toolprocess.py:76
 msgid "Edit Command…"
-msgstr ""
+msgstr "Изменить команду…"
 
 #: exttools/toolprocess.py:81
 #, python-brace-format
@@ -797,8 +807,9 @@ msgstr ""
 #, python-brace-format
 msgid "&Open File in {0}"
 msgid_plural "&Open {n} Files in {0}"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Открыть файл в {0}"
+msgstr[1] "&Открыть {n} файла в {0}"
+msgstr[2] "&Открыть {n} файлов в {0}"
 
 #: filelists/committedfiles.py:66
 msgid "&Current Revision (Working Copy)"
@@ -813,16 +824,18 @@ msgstr ""
 #, python-brace-format
 msgid "Submodule"
 msgid_plural "{n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "подмодуль"
+msgstr[1] "{n} подмодуля"
+msgstr[2] "{n} подмодулей"
 
 #: filelists/committedfiles.py:89 filelists/dirtyfiles.py:107
 #: filelists/stagedfiles.py:65
 #, python-brace-format
 msgid "Open Submodule in New Tab"
 msgid_plural "Open {n} Submodules in New Tabs"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Открыть подмодуль в новой вкладке"
+msgstr[1] "Открыть {n} подмодуля в новых вкладках"
+msgstr[2] "Открыть {n} подмодулей в новых вкладках"
 
 #: filelists/committedfiles.py:95 filelists/dirtyfiles.py:115
 #: filelists/stagedfiles.py:71
@@ -866,7 +879,7 @@ msgstr ""
 
 #: filelists/committedfiles.py:186
 msgid "This file was deleted by the commit."
-msgstr ""
+msgstr "Данный файл был удалён коммитом."
 
 #: filelists/committedfiles.py:206
 #, python-brace-format
@@ -915,8 +928,9 @@ msgstr[1] ""
 #, python-brace-format
 msgid "&Discard Changes in File…"
 msgid_plural "&Discard Changes in {n} Files…"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Отменить изменения в файле…"
+msgstr[1] "&Отменить изменения в {n} файлах…"
+msgstr[2] "&Отменить изменения в {n} файлах…"
 
 #: filelists/dirtyfiles.py:77
 #, python-brace-format
@@ -937,15 +951,17 @@ msgstr ""
 #, python-brace-format
 msgid "Stage Submodule"
 msgid_plural "Stage {n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Подготовить подмодуль"
+msgstr[1] "Подготовить {n} подмодуля"
+msgstr[2] "Подготовить {n} подмодулей"
 
 #: filelists/dirtyfiles.py:103
 #, python-brace-format
 msgid "Discard Changes in Submodule"
 msgid_plural "Discard Changes in {n} Submodules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Отменить изменения в подмодуле"
+msgstr[1] "Отменить изменения в {n} подмодулях"
+msgstr[2] "Отменить изменения в {n} подмодулях"
 
 #: filelists/dirtyfiles.py:115
 msgid "Can’t stage this selection in bulk."
@@ -966,8 +982,9 @@ msgstr[1] ""
 #, python-brace-format
 msgid "&Copy Path"
 msgid_plural "&Copy {n} Paths"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "&Скопировать путь"
+msgstr[1] "&Скопировать {n} путя"
+msgstr[2] "&Скопировать {n} путей"
 
 #: filelists/filelist.py:248 trtables.py:350
 msgid "Path display style"
@@ -1016,7 +1033,7 @@ msgstr[1] ""
 
 #: filelists/filelist.py:377
 msgid "Open in external editor"
-msgstr ""
+msgstr "Открыть в доп. редакторе"
 
 #: filelists/filelist.py:381
 msgid "Open in external diff tool"
@@ -1044,12 +1061,12 @@ msgstr ""
 
 #: filelists/filelist.py:421
 msgid "Open paths"
-msgstr ""
+msgstr "Открыть пути"
 
 #: filelists/filelist.py:422
 #, python-brace-format
 msgid "Really open <b>{n} folders</b>?"
-msgstr ""
+msgstr "Действительно открыть <b>{n} папок</b>?"
 
 #: filelists/filelist.py:543
 msgid "This file appears to have been modified by another application. Try refreshing the window."
@@ -1057,27 +1074,27 @@ msgstr ""
 
 #: filelists/filelist.py:617
 msgid "Open HEAD version of file"
-msgstr ""
+msgstr "Открыть HEAD версию файла"
 
 #: filelists/filelistmodel.py:72
 msgid "old name"
-msgstr ""
+msgstr "старое имя"
 
 #: filelists/filelistmodel.py:73
 msgid "new name"
-msgstr ""
+msgstr "новое имя"
 
 #: filelists/filelistmodel.py:75
 msgid "name"
-msgstr ""
+msgstr "имя"
 
 #: filelists/filelistmodel.py:85
 msgid "status"
-msgstr ""
+msgstr "статус"
 
 #: filelists/filelistmodel.py:89
 msgid "similarity"
-msgstr ""
+msgstr "сходство"
 
 #: filelists/filelistmodel.py:94 filelists/filelistmodel.py:96
 msgid "file mode"
@@ -1085,7 +1102,7 @@ msgstr ""
 
 #: filelists/filelistmodel.py:101 filelists/filelistmodel.py:103
 msgid "size"
-msgstr ""
+msgstr "размер"
 
 #: filelists/filelistmodel.py:103 filelists/filelistmodel.py:116
 #: filelists/filelistmodel.py:117
@@ -1102,7 +1119,7 @@ msgstr ""
 
 #: filelists/filelistmodel.py:118
 msgid "commit hash"
-msgstr ""
+msgstr "хэш коммита"
 
 #: filelists/filelistmodel.py:123
 msgid "Currently viewing diff of staged changes in this file; it also has <u>unstaged</u> changes."
@@ -1133,7 +1150,7 @@ msgstr ""
 #: forms/aboutdialog.py:68
 #, python-brace-format
 msgid "Version {0}"
-msgstr ""
+msgstr "Версия {0}"
 
 #: forms/aboutdialog.py:80
 #, python-brace-format
@@ -1142,7 +1159,7 @@ msgstr ""
 
 #: forms/aboutdialog.py:82
 msgid "Thank you for your support!"
-msgstr ""
+msgstr "Спасибо за вашу поддержку!"
 
 #: forms/aboutdialog.py:90
 msgid "Powered by:"
@@ -1158,7 +1175,7 @@ msgstr ""
 
 #: forms/aboutdialog.py:119
 msgid "Special thanks to Marc-Alexandre Espiaut for beta testing."
-msgstr ""
+msgstr "Особая благодарность Марку Александру Эспио за бета тестирование."
 
 #: forms/aboutdialog.py:121
 #, python-brace-format
@@ -1171,7 +1188,7 @@ msgstr ""
 
 #: forms/banner.py:50
 msgid "Dismiss"
-msgstr ""
+msgstr "Отклонить"
 
 #: forms/checkoutcommitdialog.py:35
 #, python-brace-format
@@ -1212,7 +1229,7 @@ msgstr ""
 
 #: forms/checkoutcommitdialog.py:47
 msgid "Create Branch…"
-msgstr ""
+msgstr "Создать ветку…"
 
 #: forms/checkoutcommitdialog.py:68
 #, python-brace-format
@@ -1270,7 +1287,7 @@ msgstr ""
 
 #: forms/clonedialog.py:185
 msgid "Clear history"
-msgstr ""
+msgstr "Очистить историю"
 
 #: forms/clonedialog.py:209
 msgid "&Shallow clone"
@@ -1289,7 +1306,7 @@ msgstr ""
 
 #: forms/clonedialog.py:262
 msgid "Clone here"
-msgstr ""
+msgstr "Клонировать здесь"
 
 #: forms/clonedialog.py:296 tasks/nettasks.py:359
 msgid "Contacting remote host…"
@@ -1323,7 +1340,7 @@ msgstr ""
 
 #: forms/commitdialog.py:54
 msgid "Co&mmit"
-msgstr ""
+msgstr "Ко&ммит"
 
 #: forms/commitdialog.py:59
 msgid "This commit will conclude the merge."
@@ -1353,7 +1370,7 @@ msgstr ""
 #: forms/commitdialog.py:138 forms/registersubmoduledialog.py:68
 #: forms/remotedialog.py:35 trtables.py:117
 msgid "Cannot be empty."
-msgstr ""
+msgstr "Не может быть пустым."
 
 #: forms/commitdialog.py:181
 msgid "Authored by:"
@@ -1446,7 +1463,7 @@ msgstr ""
 
 #: forms/conflictview.py:303
 msgid "The file will be deleted."
-msgstr ""
+msgstr "Данный файл будет удалён."
 
 #: forms/conflictview.py:310 forms/conflictview.py:319
 msgid "No common ancestor."
@@ -1479,7 +1496,7 @@ msgstr ""
 #: forms/contextheader.py:81
 msgctxt "noun"
 msgid "Commit"
-msgstr ""
+msgstr "Коммит"
 
 #: forms/contextheader.py:81
 msgctxt "noun"
@@ -1488,11 +1505,11 @@ msgstr ""
 
 #: forms/contextheader.py:85
 msgid "Info"
-msgstr ""
+msgstr "Инфо"
 
 #: forms/contextheader.py:86
 msgid "Show details about this commit"
-msgstr ""
+msgstr "Показать детали о коммите"
 
 #: forms/contextheader.py:87
 msgid "Show details about this stash"
@@ -1500,7 +1517,7 @@ msgstr ""
 
 #: forms/contextheader.py:90 tasks/indextasks.py:141
 msgid "Delete"
-msgstr ""
+msgstr "Удалить"
 
 #: forms/contextheader.py:91
 msgid "Delete this stash"
@@ -1508,7 +1525,7 @@ msgstr ""
 
 #: forms/contextheader.py:93 tasks/indextasks.py:407 tasks/indextasks.py:481
 msgid "Apply"
-msgstr ""
+msgstr "Применить"
 
 #: forms/contextheader.py:94
 msgid "Apply this stash"
@@ -1516,11 +1533,11 @@ msgstr ""
 
 #: forms/contextheader.py:97 graphview/commitlogdelegate.py:570
 msgid "Working Directory"
-msgstr ""
+msgstr "Рабочая директория"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally"
-msgstr ""
+msgstr "&Удалить локально"
 
 #: forms/deletetagdialog.py:33
 msgid "&Delete Locally && Remotely"
@@ -1529,7 +1546,7 @@ msgstr ""
 #: forms/deletetagdialog.py:47
 #, python-brace-format
 msgid "Delete tag {0}"
-msgstr ""
+msgstr "Удалить тег {0}"
 
 #: forms/deletetagdialog.py:48
 #, python-brace-format
@@ -1559,7 +1576,7 @@ msgstr ""
 
 #: forms/ignorepatterndialog.py:85
 msgid "Everything in this directory"
-msgstr ""
+msgstr "Всё в данной директории"
 
 #: forms/ignorepatterndialog.py:90
 #, python-brace-format
@@ -1569,11 +1586,11 @@ msgstr ""
 #: forms/ignorepatterndialog.py:91
 #, python-brace-format
 msgid "Any {0} file"
-msgstr ""
+msgstr "Любой {0} файл"
 
 #: forms/ignorepatterndialog.py:93
 msgid "Any file with this exact name"
-msgstr ""
+msgstr "Любой файл с таким же именем"
 
 #: forms/ignorepatterndialog.py:100
 msgid "Share pattern with other contributors"
@@ -1602,7 +1619,7 @@ msgstr ""
 
 #: forms/keyfilepickercheckbox.py:40
 msgid "File not found."
-msgstr ""
+msgstr "Файл не найден."
 
 #: forms/keyfilepickercheckbox.py:45
 msgid "Accompanying private key not found."
@@ -1614,32 +1631,32 @@ msgstr ""
 
 #: forms/maintoolbar.py:32 trtables.py:354
 msgid "Show toolbar"
-msgstr ""
+msgstr "Показать панель инструментов"
 
 #: forms/maintoolbar.py:51 trtables.py:465
 msgid "Terminal"
-msgstr ""
+msgstr "Терминал"
 
 #: forms/maintoolbar.py:53
 msgid "Open a terminal in the repo"
-msgstr ""
+msgstr "Открыть терминал в репозитории"
 
 #: forms/maintoolbar.py:57
 msgid "Open…"
-msgstr ""
+msgstr "Открыть…"
 
 #: forms/maintoolbar.py:59 mainwindow.py:213
 msgid "Open a Git repo on your machine"
-msgstr ""
+msgstr "Открыть Git репозиторий на своём компьютере"
 
 #: forms/maintoolbar.py:63
 msgid "Settings"
-msgstr ""
+msgstr "Настройки"
 
 #: forms/maintoolbar.py:65 mainwindow.py:230
 #, python-brace-format
 msgid "Configure {app}"
-msgstr ""
+msgstr "Настроить {app}"
 
 #: forms/maintoolbar.py:84
 msgid "Reveal"
@@ -1647,7 +1664,7 @@ msgstr ""
 
 #: forms/maintoolbar.py:86
 msgid "Open repo folder in file manager"
-msgstr ""
+msgstr "Открыть папку репозитория в файловом менеджере"
 
 #: forms/maintoolbar.py:145
 msgid "Text Position"
@@ -1671,39 +1688,39 @@ msgstr ""
 
 #: forms/maintoolbar.py:155
 msgid "Icon Size"
-msgstr ""
+msgstr "Размер значков"
 
 #: forms/maintoolbar.py:157
 msgid "Small"
-msgstr ""
+msgstr "Маленький"
 
 #: forms/maintoolbar.py:158
 msgid "Medium"
-msgstr ""
+msgstr "Средний"
 
 #: forms/maintoolbar.py:159
 msgid "Large"
-msgstr ""
+msgstr "Большой"
 
 #: forms/maintoolbar.py:160
 msgid "Huge"
-msgstr ""
+msgstr "Огромный"
 
 #: forms/newbranchdialog.py:31 forms/newtagdialog.py:41
 msgid "&Create"
-msgstr ""
+msgstr "&Создать"
 
 #: forms/newbranchdialog.py:48
 msgid "(blocked by conflicts)"
-msgstr ""
+msgstr "(заблокирован из-за конфликтов)"
 
 #: forms/newbranchdialog.py:51 tasks/branchtasks.py:76
 msgid "This name is already taken by another local branch."
-msgstr ""
+msgstr "Это имя уже занято другой локальной веткой."
 
 #: forms/newbranchdialog.py:57
 msgid "New branch"
-msgstr ""
+msgstr "Новая ветка"
 
 #: forms/newbranchdialog.py:58
 msgid "Commit at tip:"
@@ -1719,11 +1736,11 @@ msgstr ""
 
 #: forms/newtagdialog.py:41
 msgid "&Create && Push"
-msgstr ""
+msgstr "&Создать &и отправить"
 
 #: forms/newtagdialog.py:46
 msgid "This name is already taken by another tag."
-msgstr ""
+msgstr "Данное имя уже взято другим тегом."
 
 #: forms/newtagdialog.py:61
 #, python-brace-format
@@ -1771,7 +1788,7 @@ msgstr ""
 #: forms/prefsdialog.py:349
 msgctxt "system default language setting"
 msgid "System default"
-msgstr ""
+msgstr "По умолчанию"
 
 #: forms/prefsdialog.py:398
 msgctxt "hint user to leave the field blank"
@@ -1829,7 +1846,7 @@ msgstr ""
 
 #: forms/protocolbutton.py:19
 msgid "Change URL protocol"
-msgstr ""
+msgstr "Изменить URL протокол"
 
 #: forms/pushdialog.py:34
 #, python-brace-format
@@ -1876,11 +1893,11 @@ msgstr ""
 
 #: forms/pushdialog.py:225 forms/pushdialog.py:266
 msgid "&Push"
-msgstr ""
+msgstr "&Отправить"
 
 #: forms/pushdialog.py:260
 msgid "Force &push"
-msgstr ""
+msgstr "Принудительно &отправить"
 
 #: forms/pushdialog.py:262
 msgid "Force push: Destructive action!"
@@ -1927,7 +1944,7 @@ msgstr ""
 
 #: forms/remotedialog.py:46
 msgid "Save"
-msgstr ""
+msgstr "Сохранить"
 
 #: forms/remotedialog.py:52 forms/remotedialog.py:53 tasks/taskbook.py:75
 msgid "Add remote"
@@ -1935,7 +1952,7 @@ msgstr ""
 
 #: forms/remotedialog.py:54
 msgid "Add"
-msgstr ""
+msgstr "Добавить"
 
 #: forms/remotelinkdialog.py:18
 msgid "Remote operation"
@@ -1970,7 +1987,7 @@ msgstr ""
 
 #: forms/repostub.py:102
 msgid "Try to reload"
-msgstr ""
+msgstr "Попробуйте перезагрузить"
 
 #: forms/repostub.py:109
 msgid "Loading interrupted. Just a moment…"
@@ -1988,7 +2005,7 @@ msgstr ""
 #: forms/resetheaddialog.py:81
 #, python-brace-format
 msgid "Commit {0}:"
-msgstr ""
+msgstr "Коммит {0}:"
 
 #: forms/searchbar.py:225
 #, python-brace-format
@@ -2020,12 +2037,12 @@ msgstr ""
 #: forms/ui_aboutdialog.py:159
 msgctxt "AboutDialog"
 msgid "About"
-msgstr ""
+msgstr "О"
 
 #: forms/ui_aboutdialog.py:160
 msgctxt "AboutDialog"
 msgid "Components"
-msgstr ""
+msgstr "Компоненты"
 
 #: forms/ui_aboutdialog.py:161
 msgctxt "AboutDialog"
@@ -2035,7 +2052,7 @@ msgstr ""
 #: forms/ui_aboutdialog.py:162
 msgctxt "AboutDialog"
 msgid "License"
-msgstr ""
+msgstr "Лицензия"
 
 #: forms/ui_checkoutcommitdialog.py:94
 msgctxt "CheckoutCommitDialog"
@@ -2090,7 +2107,7 @@ msgstr ""
 #: forms/ui_clonedialog.py:130
 msgctxt "CloneDialog"
 msgid "Clone repository"
-msgstr ""
+msgstr "Клонировать репозиторий"
 
 #: forms/ui_clonedialog.py:131
 msgctxt "CloneDialog"
@@ -2135,7 +2152,7 @@ msgstr ""
 #: forms/ui_commitdialog.py:95
 msgctxt "CommitDialog"
 msgid "Commit"
-msgstr ""
+msgstr "Коммит"
 
 #: forms/ui_commitdialog.py:96
 msgctxt "CommitDialog"
@@ -2181,7 +2198,7 @@ msgstr ""
 #: forms/ui_conflictview.py:231
 msgctxt "ConflictView"
 msgid "or"
-msgstr ""
+msgstr "или"
 
 #: forms/ui_conflictview.py:232
 msgctxt "ConflictView"
@@ -2256,18 +2273,18 @@ msgstr ""
 #: forms/ui_conflictview.py:245
 msgctxt "ConflictView"
 msgid "Confirm deletion"
-msgstr ""
+msgstr "Потвердить удаление"
 
 #: forms/ui_deletetagdialog.py:50
 msgctxt "DeleteTagDialog"
 msgid "Delete tag"
-msgstr ""
+msgstr "Удалить тег"
 
 #: forms/ui_deletetagdialog.py:51
 #, python-brace-format
 msgctxt "DeleteTagDialog"
 msgid "Really delete tag {0}?"
-msgstr ""
+msgstr "Действительно удалить тег {0}?"
 
 #: forms/ui_deletetagdialog.py:52
 msgctxt "DeleteTagDialog"
@@ -2289,23 +2306,23 @@ msgstr ""
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Donate {amount}"
-msgstr ""
+msgstr "Пожертвовать {amount}"
 
 #: forms/ui_donateprompt.py:96
 msgctxt "DonatePrompt"
 msgid "Never show this again"
-msgstr ""
+msgstr "Никогда не показывать снова"
 
 #: forms/ui_donateprompt.py:97
 #, python-brace-format
 msgctxt "DonatePrompt"
 msgid "Remind me in {month}"
-msgstr ""
+msgstr "Напомнить мне через {month}"
 
 #: forms/ui_donateprompt.py:98
 msgctxt "DonatePrompt"
 msgid "THANK YOU!"
-msgstr ""
+msgstr "СПАСИБО!"
 
 #: forms/ui_identitydialog.py:63
 msgctxt "IdentityDialog"
@@ -2315,12 +2332,12 @@ msgstr ""
 #: forms/ui_identitydialog.py:64
 msgctxt "IdentityDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_identitydialog.py:65
 msgctxt "IdentityDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&Электронная почта:"
 
 #: forms/ui_identitydialog.py:66
 msgctxt "IdentityDialog"
@@ -2351,22 +2368,22 @@ msgstr ""
 #: forms/ui_newbranchdialog.py:81
 msgctxt "NewBranchDialog"
 msgid "New branch"
-msgstr ""
+msgstr "Новая ветка"
 
 #: forms/ui_newbranchdialog.py:82
 msgctxt "NewBranchDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_newbranchdialog.py:83
 msgctxt "NewBranchDialog"
 msgid "Options:"
-msgstr ""
+msgstr "Параметры:"
 
 #: forms/ui_newbranchdialog.py:84
 msgctxt "NewBranchDialog"
 msgid "&Switch to branch after creating"
-msgstr ""
+msgstr "&Переключиться на ветку после создания"
 
 #: forms/ui_newbranchdialog.py:85
 msgctxt "NewBranchDialog"
@@ -2381,17 +2398,17 @@ msgstr ""
 #: forms/ui_newtagdialog.py:60
 msgctxt "NewTagDialog"
 msgid "New tag"
-msgstr ""
+msgstr "Новый тег"
 
 #: forms/ui_newtagdialog.py:61
 msgctxt "NewTagDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_newtagdialog.py:62
 msgctxt "NewTagDialog"
 msgid "Enter tag name"
-msgstr ""
+msgstr "Введите имя для тега"
 
 #: forms/ui_newtagdialog.py:63
 msgctxt "NewTagDialog"
@@ -2406,7 +2423,7 @@ msgstr ""
 #: forms/ui_pushdialog.py:127
 msgctxt "PushDialog"
 msgid "&Local branch:"
-msgstr ""
+msgstr "&Локальная ветка:"
 
 #: forms/ui_pushdialog.py:128
 msgctxt "PushDialog"
@@ -2446,7 +2463,7 @@ msgstr ""
 #: forms/ui_registersubmoduledialog.py:98
 msgctxt "RegisterSubmoduleDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_registersubmoduledialog.py:99
 msgctxt "RegisterSubmoduleDialog"
@@ -2477,12 +2494,12 @@ msgstr ""
 #: forms/ui_remotedialog.py:72
 msgctxt "RemoteDialog"
 msgid "&URL:"
-msgstr ""
+msgstr "&URL:"
 
 #: forms/ui_remotedialog.py:73
 msgctxt "RemoteDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_remotedialog.py:74
 msgctxt "RemoteDialog"
@@ -2529,12 +2546,12 @@ msgstr ""
 #: forms/ui_reposettingsdialog.py:70
 msgctxt "RepoSettingsDialog"
 msgid "&Name:"
-msgstr ""
+msgstr "&Имя:"
 
 #: forms/ui_reposettingsdialog.py:71
 msgctxt "RepoSettingsDialog"
 msgid "&Email:"
-msgstr ""
+msgstr "&Электронная почта:"
 
 #: forms/ui_repostub.py:96
 msgctxt "RepoStub"
@@ -2613,7 +2630,7 @@ msgstr ""
 #: forms/ui_searchbar.py:51
 msgctxt "SearchBar"
 msgid "Done"
-msgstr ""
+msgstr "Готово"
 
 #: forms/ui_signatureform.py:73
 msgctxt "SignatureForm"
@@ -2633,17 +2650,17 @@ msgstr ""
 #: forms/ui_signatureform.py:76 forms/ui_signatureform.py:77
 msgctxt "SignatureForm"
 msgid "Name"
-msgstr ""
+msgstr "Имя"
 
 #: forms/ui_signatureform.py:78 forms/ui_signatureform.py:79
 msgctxt "SignatureForm"
 msgid "Email"
-msgstr ""
+msgstr "Электронная почта"
 
 #: forms/ui_signatureform.py:80
 msgctxt "SignatureForm"
 msgid "&Time:"
-msgstr ""
+msgstr "&Время:"
 
 #: forms/ui_signatureform.py:81
 msgctxt "SignatureForm"
@@ -2658,7 +2675,7 @@ msgstr ""
 #: forms/ui_signatureform.py:83
 msgctxt "SignatureForm"
 msgid "Now"
-msgstr ""
+msgstr "Сейчас"
 
 #: forms/ui_signatureform.py:84
 msgctxt "SignatureForm"
@@ -2708,7 +2725,7 @@ msgstr ""
 #: forms/ui_welcomewidget.py:68
 msgctxt "WelcomeWidget"
 msgid "Welcome"
-msgstr ""
+msgstr "Добро пожаловать"
 
 #: forms/ui_welcomewidget.py:69
 msgctxt "WelcomeWidget"
@@ -2718,23 +2735,23 @@ msgstr ""
 #: forms/ui_welcomewidget.py:70
 msgctxt "WelcomeWidget"
 msgid "New empty repository"
-msgstr ""
+msgstr "Новый пустой репозиторий"
 
 #: forms/ui_welcomewidget.py:71
 msgctxt "WelcomeWidget"
 msgid "Open local repository"
-msgstr ""
+msgstr "Открыть локальный репозиторий"
 
 #: forms/ui_welcomewidget.py:72
 msgctxt "WelcomeWidget"
 msgid "Recent repositories"
-msgstr ""
+msgstr "Недавние репозитории"
 
 #: forms/ui_welcomewidget.py:73
 #, python-brace-format
 msgctxt "WelcomeWidget"
 msgid "Welcome to<br>{app}"
-msgstr ""
+msgstr "Добро пожаловать в<br>{app}"
 
 #: graphview/commitlogdelegate.py:208
 #, python-brace-format
@@ -2861,47 +2878,47 @@ msgstr ""
 
 #: mainwindow.py:184
 msgid "&File"
-msgstr ""
+msgstr "&Файл"
 
 #: mainwindow.py:185
 msgid "&Edit"
-msgstr ""
+msgstr "&Редактирование"
 
 #: mainwindow.py:186
 msgid "&View"
-msgstr ""
+msgstr "&Просмотр"
 
 #: mainwindow.py:187
 msgid "&Repo"
-msgstr ""
+msgstr "&Репо"
 
 #: mainwindow.py:188
 msgid "&Help"
-msgstr ""
+msgstr "&Помощь"
 
 #: mainwindow.py:201
 msgid "&New Repository…"
-msgstr ""
+msgstr "&Новый репозиторий…"
 
 #: mainwindow.py:203
 msgid "Create an empty Git repo"
-msgstr ""
+msgstr "Создать пустой Git репозиторий"
 
 #: mainwindow.py:205
 msgid "C&lone Repository…"
-msgstr ""
+msgstr "К&лонировать репозиторий…"
 
 #: mainwindow.py:207
 msgid "Download a Git repo and open it"
-msgstr ""
+msgstr "Загрузить Git репозиторий и открыть его"
 
 #: mainwindow.py:211
 msgid "&Open Repository…"
-msgstr ""
+msgstr "&Открыть репозиторий…"
 
 #: mainwindow.py:215
 msgid "Open &Recent"
-msgstr ""
+msgstr "Открыть &недавние"
 
 #: mainwindow.py:217
 msgid "List of recently opened Git repos"
@@ -2909,28 +2926,28 @@ msgstr ""
 
 #: mainwindow.py:227
 msgid "&Settings…"
-msgstr ""
+msgstr "&Настройки…"
 
 #: mainwindow.py:237
 msgid "&Close Tab"
-msgstr ""
+msgstr "&Закрыть вкладку"
 
 #: mainwindow.py:239
 msgid "Close current repository tab"
-msgstr ""
+msgstr "Закрыть вкладку текущего репозитория"
 
 #: mainwindow.py:241
 msgid "&Quit"
-msgstr ""
+msgstr "&Выйти"
 
 #: mainwindow.py:243
 #, python-brace-format
 msgid "Quit {app}"
-msgstr ""
+msgstr "Закрыть {app}"
 
 #: mainwindow.py:252
 msgid "&Find…"
-msgstr ""
+msgstr "&Найти…"
 
 #: mainwindow.py:254
 msgid "Search for a piece of text in commit messages, the current diff, or the name of a file"
