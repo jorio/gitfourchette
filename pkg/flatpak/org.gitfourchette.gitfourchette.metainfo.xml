@@ -2,7 +2,9 @@
 <component type="desktop">
   <id>org.gitfourchette.gitfourchette</id>
   <name>GitFourchette</name>
-  <developer_name>Iliyas Jorio</developer_name>
+  <developer id="io.jor">
+    <name>Iliyas Jorio</name>
+  </developer>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0</project_license>
 
@@ -33,7 +35,7 @@
   <url type="help">https://gitfourchette.org/guide</url>
   <url type="donation">https://ko-fi.com/jorio</url>
   <url type="vcs-browser">https://github.com/jorio/gitfourchette</url>
-  <url type="translate">https://github.com/jorio/gitfourchette-private/blob/master/gitfourchette/assets/lang/README.md</url>
+  <url type="translate">https://gitfourchette.org/localization</url>
 
   <content_rating type="oars-1.1" />
 
@@ -92,7 +94,7 @@
         </ul>
         <p>Security fixes:</p>
         <ul>
-        <li>Custom Commands that manipulate the selected object via tokens like &dollar;FILE or &dollar;REF now safely escape the object's name before substitution. In a hostile repo, this prevents malicious filenames or ref names from injecting tokens into a Custom Command that you run on them.</li>
+        <li>Custom Commands that manipulate the selected object via tokens like $FILE or $REF now safely escape the object's name before substitution. In a hostile repo, this prevents malicious filenames or ref names from injecting tokens into a Custom Command that you run on them.</li>
         </ul>
         <p>Maintenance &amp; packaging notes:</p>
         <ul>

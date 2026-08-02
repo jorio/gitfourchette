@@ -25,7 +25,7 @@ Bug fixes:
 
 Security fixes:
 
-- Custom Commands that manipulate the selected object via tokens like &dollar;FILE or &dollar;REF now safely escape the object's name before substitution. In a hostile repo, this prevents malicious filenames or ref names from injecting tokens into a Custom Command that you run on them.
+- Custom Commands that manipulate the selected object via tokens like $FILE or $REF now safely escape the object's name before substitution. In a hostile repo, this prevents malicious filenames or ref names from injecting tokens into a Custom Command that you run on them.
 
 Maintenance & packaging notes:
 
