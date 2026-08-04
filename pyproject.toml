@@ -177,9 +177,18 @@ ignore = [
 # Type checking
 
 [tool.mypy]
+files = [
+    "gitfourchette",
+    #"test",
+]
+show_column_numbers = true
+show_error_codes = true
+show_traceback = true
+local_partial_types = true
 strict_optional = false
 check_untyped_defs = true
 disallow_untyped_decorators = true
+warn_unreachable = true
 
 [[tool.mypy.overrides]]
 module = ["mfusepy", "psutil"]
