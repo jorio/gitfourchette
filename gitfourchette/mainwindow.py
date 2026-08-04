@@ -677,7 +677,7 @@ class MainWindow(QMainWindow):
         repoStub.setParent(None)  # tabs don't deparent the widget
         repoStub.deleteLater()
 
-    def replaceRepoWidgetWithStub(self, oldWidget: RepoWidget, stub: RepoStub) -> None:        # types: ^^^^^^^^^^^^^^
+    def replaceRepoWidgetWithStub(self, oldWidget: RepoWidget, stub: RepoStub) -> None:
         tabIndex = self.tabs.indexOf(oldWidget)
         assert tabIndex >= 0, "RepoWidget to replace isn't in tabs"
         self.tabs.swapWidget(tabIndex, stub)
