@@ -830,7 +830,7 @@ class Sidebar(QTreeView):
                     self.expand(index)
             event.accept()
         else:
-            warnings.warn(f"Unknown click zone {zone}")
+            warnings.warn(f"Unknown click zone {zone}")  # type: ignore[unreachable]
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         # NOT calling "super().mouseDoubleClickEvent(event)" on purpose.

@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
     showStatusBarAction: QAction
     showMenuBarAction: QAction
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.welcomeStack = QStackedWidget(self)
@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Event handlers
 
-    def onMouseSideButtonPressed(self, forward: bool):
+    def onMouseSideButtonPressed(self, forward: bool) -> None:
         if not self.isActiveWindow():
             return
         with suppress(NoRepoWidgetError):
@@ -147,17 +147,17 @@ class MainWindow(QMainWindow):
             else:
                 repoWidget.navigateBack()
 
-    def onFileDraggedToDockIcon(self, path: str):
+    def onFileDraggedToDockIcon(self, path: str) -> None:
         outcome = self.getDropOutcomeFromLocalFilePath(path)
         self.handleDrop(*outcome)
 
-    def keyReleaseEvent(self, event: QKeyEvent):
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Alt and self.autoHideMenuBar.enabled:
             self.autoHideMenuBar.toggle()
         else:
             super().keyReleaseEvent(event)
 
-    def dragEnterEvent(self, event: QDragEnterEvent):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         try:
             action, data = self.getDropOutcomeFromMimeData(event.mimeData())
             if action == DropAction.Deny and not data:
@@ -172,10 +172,10 @@ class MainWindow(QMainWindow):
             logger.exception("dragEnterEvent failed")
             event.setAccepted(False)
 
-    def dragLeaveEvent(self, event: QDragLeaveEvent):
+    def dragLeaveEvent(self, event: QDragLeaveEvent) -> None:
         self.dropZone.setVisible(False)
 
-    def dropEvent(self, event: QDropEvent):
+    def dropEvent(self, event: QDropEvent) -> None:
         self.dropZone.setVisible(False)
         action, data = self.getDropOutcomeFromMimeData(event.mimeData())
         event.setAccepted(True)  # keep dragged item from coming back to cursor on macOS
@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Menu bar
 
-    def fillGlobalMenuBar(self):
+    def fillGlobalMenuBar(self) -> None:
         menubar = self.globalMenuBar
         menuObjectNamePrefix = "MWMainMenu"
 
@@ -412,7 +412,7 @@ class MainWindow(QMainWindow):
                 tip=_("Delete all discarded changes from the trash folder")),
         )
 
-    def fillRecentMenu(self):
+    def fillRecentMenu(self) -> None:
         actions = []
         for path in settings.history.getRecentRepoPaths(settings.prefs.maxRecentRepos):
             caption = compactPath(path)
@@ -438,7 +438,7 @@ class MainWindow(QMainWindow):
                 tip=_("Clear the list of recently opened repositories"),
             ))
 
-    def onClearRecentMenu(self):
+    def onClearRecentMenu(self) -> None:
         settings.history.clearRepoHistory()
         settings.history.write()
         self.fillRecentMenu()
@@ -466,7 +466,7 @@ class MainWindow(QMainWindow):
                     return widget
         return None
 
-    def setWindowTitle(self, title: str):
+    def setWindowTitle(self, title: str) -> None:
         if APP_DEBUG:
             chain = ["DEBUG", str(os.getpid()), QT_BINDING]
             if APP_TESTMODE:
@@ -510,7 +510,7 @@ class MainWindow(QMainWindow):
         # Refresh the repo
         widget.refreshRepo()
 
-    def generateTabContextMenu(self, i: int):
+    def generateTabContextMenu(self, i: int) -> QMenu | None:
         if i < 0:  # Right mouse button released outside tabs
             return None
 
@@ -534,7 +534,7 @@ class MainWindow(QMainWindow):
 
         return menu
 
-    def onTabContextMenu(self, globalPoint: QPoint, i: int):
+    def onTabContextMenu(self, globalPoint: QPoint, i: int) -> None:
         if i < 0:  # Right mouse button released outside tabs
             return
 
@@ -542,13 +542,13 @@ class MainWindow(QMainWindow):
         menu.aboutToHide.connect(menu.deleteLater)
         menu.popup(globalPoint)
 
-    def onTabMiddleClicked(self, i: int):
+    def onTabMiddleClicked(self, i: int) -> None:
         self.onTabSpecialClick(i, "middle")
 
-    def onTabDoubleClicked(self, i: int):
+    def onTabDoubleClicked(self, i: int) -> None:
         self.onTabSpecialClick(i, "double")
 
-    def onTabSpecialClick(self, i: int, click: Literal["middle", "double"]):
+    def onTabSpecialClick(self, i: int, click: Literal["middle", "double"]) -> None:
         if i < 0:
             return
 
@@ -653,7 +653,7 @@ class MainWindow(QMainWindow):
 
         return stub
 
-    def installRepoWidget(self, rw: RepoWidget, tabIndex: int):
+    def installRepoWidget(self, rw: RepoWidget, tabIndex: int) -> None:
         repoStub = self.tabs.widget(tabIndex)
         assert tabIndex >= 0, "stub to replace isn't in tabs"
         assert isinstance(repoStub, RepoStub), "yanked widget isn't RepoStub"
@@ -677,7 +677,7 @@ class MainWindow(QMainWindow):
         repoStub.setParent(None)  # tabs don't deparent the widget
         repoStub.deleteLater()
 
-    def replaceRepoWidgetWithStub(self, oldWidget: RepoWidget, stub: RepoStub):
+    def replaceRepoWidgetWithStub(self, oldWidget: RepoWidget, stub: RepoStub) -> None:        # types: ^^^^^^^^^^^^^^
         tabIndex = self.tabs.indexOf(oldWidget)
         assert tabIndex >= 0, "RepoWidget to replace isn't in tabs"
         self.tabs.swapWidget(tabIndex, stub)
@@ -689,7 +689,7 @@ class MainWindow(QMainWindow):
 
     # -------------------------------------------------------------------------
 
-    def onRegainForeground(self):
+    def onRegainForeground(self) -> None:
         if QGuiApplication.applicationState() != Qt.ApplicationState.ApplicationActive:
             return
         if not settings.prefs.autoRefresh:
@@ -697,44 +697,44 @@ class MainWindow(QMainWindow):
         with suppress(NoRepoWidgetError):
             self.currentRepoWidget().refreshRepo()
 
-    def onRepoNameChanged(self):
+    def onRepoNameChanged(self) -> None:
         self.refreshAllTabTexts()
         self.fillRecentMenu()
 
-    def onRepoWindowTitleChanged(self, rw: RepoWidget):
+    def onRepoWindowTitleChanged(self, rw: RepoWidget) -> None:
         if rw.isVisible():
             self.setWindowTitle(rw.windowTitle())
 
-    def onRepoHistoryChanged(self, rw: RepoWidget):
+    def onRepoHistoryChanged(self, rw: RepoWidget) -> None:
         if rw.isVisible():
             self.mainToolBar.updateNavButtons(rw.navHistory.canGoBack(), rw.navHistory.canGoForward())
 
-    def onRepoRequestsAttention(self, rw: RepoWidget):
+    def onRepoRequestsAttention(self, rw: RepoWidget) -> None:
         i = self.tabs.indexOf(rw)
         self.tabs.requestAttention(i)
 
     # -------------------------------------------------------------------------
     # View menu
 
-    def toggleStatusBar(self):
+    def toggleStatusBar(self) -> None:
         GFApplication.applyPrefs(showStatusBar=not settings.prefs.showStatusBar)
 
-    def toggleMenuBar(self):
+    def toggleMenuBar(self) -> None:
         GFApplication.applyPrefs(showMenuBar=not settings.prefs.showMenuBar)
 
-    def selectUncommittedChanges(self):
+    def selectUncommittedChanges(self) -> None:
         self.currentRepoWidget().jump(NavLocator.inWorkdir())
 
-    def selectHead(self):
+    def selectHead(self) -> None:
         self.currentRepoWidget().jump(NavLocator.inRef("HEAD"))
 
-    def focusSidebar(self):
+    def focusSidebar(self) -> None:
         self.currentRepoWidget().sidebar.setFocus()
 
-    def focusGraph(self):
+    def focusGraph(self) -> None:
         self.currentRepoWidget().graphView.setFocus()
 
-    def focusFiles(self):
+    def focusFiles(self) -> None:
         rw = self.currentRepoWidget()
         context = rw.navLocator.context
         if context == NavContext.COMMITTED:
@@ -747,7 +747,7 @@ class MainWindow(QMainWindow):
             else:
                 fallback.setFocus()
 
-    def focusDiff(self):
+    def focusDiff(self) -> None:
         rw = self.currentRepoWidget()
         if rw.specialDiffView.isVisibleTo(rw):
             rw.specialDiffView.setFocus()
@@ -756,19 +756,19 @@ class MainWindow(QMainWindow):
         else:
             rw.diffView.setFocus()
 
-    def nextFile(self):
+    def nextFile(self) -> None:
         self.currentRepoWidget().diffArea.selectNextFile(True)
 
-    def previousFile(self):
+    def previousFile(self) -> None:
         self.currentRepoWidget().diffArea.selectNextFile(False)
 
-    def blameFile(self):
+    def blameFile(self) -> None:
         self.currentRepoWidget().blameFile()
 
     # -------------------------------------------------------------------------
     # Help menu
 
-    def openRescueFolder(self):
+    def openRescueFolder(self) -> None:
         trash = Trash.instance()
         if trash.exists():
             openFolder(str(trash.trashDir))
@@ -778,7 +778,7 @@ class MainWindow(QMainWindow):
                 _("Open trash folder"),
                 _("There’s no trash folder. Perhaps you haven’t discarded a change with {0} yet.", qAppName()))
 
-    def clearRescueFolder(self):
+    def clearRescueFolder(self) -> None:
         trash = Trash.instance()
         sizeOnDisk, patchCount = trash.size()
 
@@ -809,19 +809,19 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # File menu callbacks
 
-    def newRepo(self):
+    def newRepo(self) -> None:
         runner = RepoTaskRunner(self)
         runner.ready.connect(runner.deleteLater)
         NewRepo.invoke(runner, self.openRepo)
 
-    def cloneDialog(self, initialUrl: str = ""):
+    def cloneDialog(self, initialUrl: str = "") -> None:
         dlg = CloneDialog(initialUrl, self)
         dlg.cloneSuccessful.connect(lambda path: self.openRepo(path, exactMatch=True))
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
 
-    def openDialog(self):
+    def openDialog(self) -> None:
         qfd = PersistentFileDialog.openDirectory(self, "NewRepo", _("Open repository"))
         qfd.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
         qfd.fileSelected.connect(lambda path: self.openRepo(path, exactMatch=False))
@@ -830,14 +830,14 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Tab management
 
-    def closeCurrentTab(self):
+    def closeCurrentTab(self) -> None:
         if self.tabs.count() == 0:  # don't attempt to close if no tabs are open
             QApplication.beep()
             return
 
         self.closeTab(self.tabs.currentIndex())
 
-    def closeTab(self, index: int, finalTab: bool = True):
+    def closeTab(self, index: int, finalTab: bool = True) -> None:
         widget = self.tabs.widget(index)
 
         # Remove the tab BEFORE cleaning up the widget
@@ -854,7 +854,7 @@ class MainWindow(QMainWindow):
             self.saveSession()
             gc.collect()
 
-    def closeOtherTabs(self, index: int):
+    def closeOtherTabs(self, index: int) -> None:
         # First, set this tab as active so an active tab that gets closed doesn't trigger other tabs to load.
         self.tabs.setCurrentIndex(index)
 
@@ -865,7 +865,7 @@ class MainWindow(QMainWindow):
             if i != index:
                 self.closeTab(i, i == final)
 
-    def unloadOtherTabs(self, index: int = -1):
+    def unloadOtherTabs(self, index: int = -1) -> None:
         if index < 0:
             index = self.tabs.currentIndex()
 
@@ -888,7 +888,7 @@ class MainWindow(QMainWindow):
         self.statusBar2.showMessage(_n("{n} background tab unloaded.", "{n} background tabs unloaded.", numUnloaded))
         gc.collect()
 
-    def closeAllTabs(self):
+    def closeAllTabs(self) -> None:
         start = self.tabs.count() - 1
         with QSignalBlockerContext(self.tabs):  # Don't let awaken unloaded tabs
             for i in range(start, -1, -1):  # Close tabs in reverse order
@@ -896,12 +896,12 @@ class MainWindow(QMainWindow):
 
         self.onTabCurrentWidgetChanged()
 
-    def reloadAllTabs(self):
+    def reloadAllTabs(self) -> None:
         self.unloadOtherTabs()
         rw = self.currentRepoWidget()
         rw.replaceWithStub()
 
-    def refreshAllTabTexts(self):
+    def refreshAllTabTexts(self) -> None:
         widgets = list(self.tabs.widgets())
         baseTitles = [widget.getTitle() for widget in widgets]
         newTitles = baseTitles[:]
@@ -933,7 +933,7 @@ class MainWindow(QMainWindow):
             index += 1
         return self._openRepo(path, tabIndex=index, exactMatch=True, locator=locator)
 
-    def nextTab(self):
+    def nextTab(self) -> None:
         if self.tabs.count() == 0:
             QApplication.beep()
             return
@@ -942,7 +942,7 @@ class MainWindow(QMainWindow):
         index %= self.tabs.count()
         self.tabs.setCurrentIndex(index)
 
-    def previousTab(self):
+    def previousTab(self) -> None:
         if self.tabs.count() == 0:
             QApplication.beep()
             return
@@ -954,7 +954,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Session management
 
-    def restoreSession(self, session: settings.Session, sloppyPaths: list[str] | None = None):
+    def restoreSession(self, session: settings.Session, sloppyPaths: list[str] | None = None) -> None:
         # Note: window geometry, despite being part of the session file, is
         # restored in application.py to avoid flashing a window with incorrect
         # dimensions on boot
@@ -1016,7 +1016,7 @@ class MainWindow(QMainWindow):
             self.tabs.setCurrentIndex(activeTab)
             self.onTabCurrentWidgetChanged()  # needed to trigger loading on tab #0
 
-    def _reportSessionErrors(self, errors: Sequence[tuple[str, BaseException]]):
+    def _reportSessionErrors(self, errors: Sequence[tuple[str, BaseException]]) -> None:
         numErrors = len(errors)
         text = _n("The session couldn’t be restored fully because a repository failed to load:",
                   "The session couldn’t be restored fully because {n} repositories failed to load:", numErrors)
@@ -1024,7 +1024,7 @@ class MainWindow(QMainWindow):
         addULToMessageBox(qmb, [f"<b>{compactPath(path)}</b><br>{exc}" for path, exc in errors])
         qmb.show()
 
-    def saveSession(self, writeNow=False):
+    def saveSession(self, writeNow=False) -> None:
         session = settings.Session()
         session.windowGeometry = self.saveGeometry().data()
         session.splitterSizes = RepoWidget.sharedSplitterSizes.copy()
@@ -1034,7 +1034,7 @@ class MainWindow(QMainWindow):
         if writeNow:
             session.write()
 
-    def closeEvent(self, event: QCloseEvent):
+    def closeEvent(self, event: QCloseEvent) -> None:
         if not GFApplication.instance().mountManager.checkOnClose(self, self.close):
             event.setAccepted(False)
             return
@@ -1096,7 +1096,7 @@ class MainWindow(QMainWindow):
 
         return DropAction.Deny, ""
 
-    def handleDrop(self, action: DropAction, data: str):
+    def handleDrop(self, action: DropAction, data: str) -> None:
         if action == DropAction.Deny:
             pass
         elif action == DropAction.Clone:
@@ -1112,19 +1112,19 @@ class MainWindow(QMainWindow):
         elif action == DropAction.Patch:
             tasks.ApplyPatchFile.invoke(self, data)
         else:
-            warnings.warn(f"Unsupported drag-and-drop outcome {action}")
+            warnings.warn(f"Unsupported drag-and-drop outcome {action}")  # type: ignore[unreachable]
 
     # -------------------------------------------------------------------------
     # Prefs
 
-    def refreshPrefs(self):
+    def refreshPrefs(self) -> None:
         self.statusBar2.setVisible(settings.prefs.showStatusBar)
         self.statusBar2.enableMemoryIndicator(APP_DEBUG)
         self.mainToolBar.setVisible(settings.prefs.showToolBar)
         self.showStatusBarAction.setChecked(settings.prefs.showStatusBar)
         self.showMenuBarAction.setChecked(settings.prefs.showMenuBar)
 
-    def onApplyPrefs(self, changedKeys: set[str]):
+    def onApplyPrefs(self, changedKeys: set[str]) -> None:
         if "showMenuBar" in changedKeys and not settings.prefs.showMenuBar:
             self.showMenuBarHiddenWarning()
 
@@ -1165,7 +1165,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Dispatch commands to detached windows
 
-    def dispatchCloseCommand(self):
+    def dispatchCloseCommand(self) -> None:
         if self.isActiveWindow():
             self.closeCurrentTab()
             return
@@ -1177,7 +1177,7 @@ class MainWindow(QMainWindow):
         except KeyError:
             QApplication.beep()
 
-    def dispatchSearchCommand(self, op: SearchBar.Op = SearchBar.Op.Start):
+    def dispatchSearchCommand(self, op: SearchBar.Op = SearchBar.Op.Start) -> None:
         if self.isActiveWindow() and self.currentRepoWidget():
             self.currentRepoWidget().dispatchSearchCommand(op)
             return
@@ -1192,7 +1192,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # User commands
 
-    def parseUserCommands(self):
+    def parseUserCommands(self) -> None:
         self.userCommands = list(UserCommand.parseCommandBlock(settings.prefs.commands))
 
     def contextualUserCommands(self, *placeholderTokens: UserCommand.Token) -> list[ActionDef]:
@@ -1216,7 +1216,7 @@ class MainWindow(QMainWindow):
     # Repository-less actions (actions that only need a path to the workdir;
     # full-blown RepoWidget not required)
 
-    def repolessActions(self, workdir: str | Callable[[], str]):
+    def repolessActions(self, workdir: str | Callable[[], str]) -> list[ActionDef]:
         superprojectLabel = _("Open Superproject")
         superprojectEnabled = True
         superproject = None
@@ -1284,7 +1284,7 @@ class MainWindow(QMainWindow):
 
         ToolProcess.startTextEditor(self, workdir)
 
-    def repolessSetNickname(self, workdir: str):
+    def repolessSetNickname(self, workdir: str) -> None:
         defaultName = Path(workdir).name
         oldNickname = settings.history.getRepoNickname(workdir, strict=True)
 
@@ -1306,7 +1306,7 @@ class MainWindow(QMainWindow):
         tid.textAccepted.connect(lambda nick: self._repolessSetNicknameImpl(workdir, nick))
         tid.show()
 
-    def _repolessSetNicknameImpl(self, workdir: str, nick: str):
+    def _repolessSetNicknameImpl(self, workdir: str, nick: str) -> None:
         settings.history.setRepoNickname(workdir, nick)
         settings.history.setDirty()
         tabWidget = self.tabWidgetForWorkdirPath(workdir)
@@ -1317,11 +1317,11 @@ class MainWindow(QMainWindow):
             # RepoStub
             self.onRepoNameChanged()
 
-    def repolessCopyPath(self, workdir: str):
+    def repolessCopyPath(self, workdir: str) -> None:
         QApplication.clipboard().setText(workdir)
         self.statusBar2.showMessage(clipboardStatusMessage(workdir))
 
-    def repolessOpenSuperproject(self, workdir: str, superproject: str | None = None):
+    def repolessOpenSuperproject(self, workdir: str, superproject: str | None = None) -> None:
         if superproject is None:
             superproject = settings.history.getRepoSuperproject(workdir)
 

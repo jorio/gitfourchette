@@ -136,7 +136,7 @@ class PrefsFile:
                 return False
 
         if not isinstance(jsonObject, dict):
-            logger.warning(f"{prefsPath}: not a JSON dict")
+            logger.warning(f"{prefsPath}: not a JSON dict")  # type: ignore[unreachable]
             return False
 
         # Pop file version before decoding user fields
@@ -181,7 +181,7 @@ class PrefsFile:
         return o
 
     @staticmethod
-    def decode(o: Any, dstType: type) -> Any:
+    def decode(o: Any, dstType: type | UnionType | GenericAlias) -> Any:
         """ Convert a value coming from a JSON blob to a target type """
         construct: typing.Callable[[Any], Any] | None = None
 
@@ -190,10 +190,12 @@ class PrefsFile:
             union = typing.get_args(dstType)
             assert len(union) == 2
             dstType = next(t for t in union if t is not NoneType)
+        assert type(dstType) is not UnionType
 
         # Extract generic class from GenericAlias, e.g. list[str] --> list
         if type(dstType) is GenericAlias:
             dstType = typing.get_origin(dstType)
+        assert not isinstance(dstType, GenericAlias)
 
         srcType: type
         if dstType is bytes:

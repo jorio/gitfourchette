@@ -420,7 +420,7 @@ def validate_signature_item(s: str):
         raise NameValidationError(NameValidationError.Rule.CANNOT_BE_EMPTY)
 
 
-def signatures_equalish(a: Signature, b: Signature):
+def signatures_equalish(a: Signature, b: Signature) -> bool:
     """
     Sometimes two signature objects differ only by the encoding field.
     """
@@ -429,7 +429,7 @@ def signatures_equalish(a: Signature, b: Signature):
         return True
 
     if not isinstance(a, Signature) or not isinstance(b, Signature):
-        return False
+        return False  # type: ignore[unreachable]
 
     if a._encoding == b._encoding:
         # If the encodings match and a != b, then the signatures are really different
