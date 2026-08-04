@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os.path
 import re
-from contextlib import suppress
 from typing import ClassVar
 
 import pygments.lexers
