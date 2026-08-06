@@ -510,9 +510,8 @@ class MainWindow(QMainWindow):
         # Refresh the repo
         widget.refreshRepo()
 
-    def generateTabContextMenu(self, i: int) -> QMenu | None:
-        if i < 0:  # Right mouse button released outside tabs
-            return None
+    def generateTabContextMenu(self, i: int) -> QMenu:
+        assert 0 <= i < self.tabs.count()
 
         widget: RepoWidget | RepoStub = self.tabs.widget(i)
         menu = QMenu(self)
