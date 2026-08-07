@@ -92,6 +92,9 @@
        <property name="text">
         <string>&amp;Browse…</string>
        </property>
+       <property name="popupMode">
+        <enum>QToolButton::ToolButtonPopupMode::MenuButtonPopup</enum>
+       </property>
        <property name="toolButtonStyle">
         <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
        </property>
