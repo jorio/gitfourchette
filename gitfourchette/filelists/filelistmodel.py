@@ -306,7 +306,7 @@ class FileListModel(QAbstractListModel):
             return next(d.new.path for d in self.deltas if d.new.matchPathspec(pattern))
 
         # Try old side (but return path from *new* side)
-        with suppress(StopIteration):
+        with suppress(StopIteration):  # type: ignore[unreachable]
             return next(d.new.path for d in self.deltas if d.old.matchPathspec(pattern))
 
         return ""

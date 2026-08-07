@@ -65,7 +65,7 @@ jobs:
     - run: ruff check
 
     - name: Run mypy (only PyQt6 + recent Python)
-      run: mypy gitfourchette
+      run: mypy
       if: ${{ matrix.qt == 'pyqt6' && matrix.py >= '3.13' }}
 
     - name: Unit tests

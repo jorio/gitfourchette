@@ -323,7 +323,7 @@ class GitDriver(QProcess):
             return ["--ignore-all-space"]
         if m == WhitespaceMode.IgnoreCrAtEol:
             return ["--ignore-cr-at-eol"]
-        return []
+        raise NotImplementedError(f"unsupported WhitespaceMode {m}")
 
     @classmethod
     def buildDiffCommand(
@@ -367,7 +367,7 @@ class GitDriver(QProcess):
             tokens.append(str(b))
 
         else:
-            assert delta is None
+            assert delta is None  # type: ignore[unreachable]
 
         return tokens
 

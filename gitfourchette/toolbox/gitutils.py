@@ -89,7 +89,7 @@ def abbreviatePerson(sig: Signature, style: AuthorDisplayStyle = AuthorDisplaySt
             else:
                 return emailParts[0]
 
-    return sig.email
+    return sig.email  # type: ignore[unreachable]
 
 
 def shortHash(oid: Oid | str) -> str:

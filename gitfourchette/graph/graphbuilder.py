@@ -276,7 +276,7 @@ class GraphSpliceLoop:
 
             # See if finished (not too often - expensive)
             if ((row & 0xFF) == 0) and trickle.done:
-                return row
+                return row  # type: ignore[unreachable]
 
     @property
     def hiddenCommits(self):

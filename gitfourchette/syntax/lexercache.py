@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os.path
 import re
-from contextlib import suppress
 from typing import ClassVar
 
 import pygments.lexers
@@ -105,8 +104,9 @@ class LexerCache:
             return None
 
         # Get existing lexer instance
-        with suppress(KeyError):
-            return cls.lexerInstances[alias]
+        instance = cls.lexerInstances.get(alias)
+        if instance is not None:
+            return instance
 
         # Instantiate new lexer.
         # Notes:
@@ -120,7 +120,7 @@ class LexerCache:
 
     @classmethod
     @benchmark
-    def warmUp(cls, allowPlugins: bool):
+    def warmUp(cls, allowPlugins: bool) -> None:
         """
         Cache lexerAliases (map of filename patterns to lexer names).
         Turn off plugins for a significant speedup.
@@ -169,7 +169,7 @@ class LexerCache:
         patternsToLexers = {}
         for lexerName, patternSet in lexers.items():
             if False:  # pragma: no cover - replace with 'if True' to debug missing disambiguations
-                overwrite = patternSet.intersection(patternsToLexers)
+                overwrite = patternSet.intersection(patternsToLexers)  # type: ignore[unreachable]
                 if overwrite:
                     logger.warning(f"Missing disambiguation: Lexer '{lexerName}' will take precedence over { { p: patternsToLexers[p] for p in overwrite } }")
 
