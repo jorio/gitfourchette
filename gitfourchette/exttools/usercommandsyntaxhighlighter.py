@@ -1,19 +1,15 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-from gitfourchette import colors
-from gitfourchette.qt import *
-from gitfourchette.exttools.usercommand import UserCommand
-from gitfourchette.toolbox.textutils import qstringLength
+from pygments.token import Token
 
-try:
-    from pygments.token import Token
-except ImportError:  # pragma: no cover
-    # If Pygments isn't available, UserCommandSyntaxHighlighter should never be instantiated!
-    pass
+from gitfourchette import colors
+from gitfourchette.exttools.usercommand import UserCommand
+from gitfourchette.qt import *
+from gitfourchette.toolbox.textutils import qstringLength
 
 
 class UserCommandSyntaxHighlighter(QSyntaxHighlighter):
