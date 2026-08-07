@@ -1,4 +1,5 @@
-<svg viewBox="0 0 16 16" fill="none" stroke="gray" stroke-width="1" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="5.5" />
-    <text x="8" y="12" font-weight="500" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle" fill="gray" stroke="none">?</text>
+<svg fill="none" stroke="gray" version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<ellipse cx="8.5" cy="8.5" rx="6" ry="6"/>
+<path d="m6.5 7c0-2 4-2 4 0 0 1.5-2 1-2 3"/>
+<rect x="7.833" y="11" width="1.333" height="1" fill="gray" stroke-width="0"/>
 </svg>

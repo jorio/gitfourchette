@@ -1,4 +1,5 @@
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
-<polygon points='8,1 0,15 16,15' stroke='#FFFFFF' stroke-width='1' fill='#F7C342' />
-<text x='8' y='13' font-weight='bold' font-size='10' font-family='sans-serif' text-anchor='middle' fill='white'>!</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="white">
+<path d="m8 .5-8 14h16z" fill="#f7c342" stroke="white" stroke-linejoin="round"/>
+<path d="m7 5h2l-.5 5h-1l-.5-5"/>
+<circle cx="8" cy="12" r="1"/>
 </svg>
