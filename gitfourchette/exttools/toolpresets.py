@@ -143,6 +143,7 @@ class ToolPresets:
             terminalScores |= {
                 "Ptyxis"        : 2 if GNOME else -2,  # Fedora default
                 "GNOME Terminal": 1 if GNOME else -1,
+                "Konsole"       : 1 if KDE else 0,
                 "xterm"         : -4 if WAYLAND else -3,
             }
 
