@@ -326,7 +326,23 @@ class ApplyPatch(RepoTask):
 
         self.repo.apply(subPatch, applyLocation)
 
-        self.epilog.status = TrTables.patchPurposePastTense(purpose)
+        self.epilog.status = ApplyPatch.patchPurposePastTense(purpose)
+
+    @staticmethod
+    def patchPurposePastTense(purpose: PatchPurpose):
+        pp = PatchPurpose
+        t = {
+            pp.Lines | pp.Stage: _p("PatchPurpose", "Lines staged."),
+            pp.Lines | pp.Unstage: _p("PatchPurpose", "Lines unstaged."),
+            pp.Lines | pp.Discard: _p("PatchPurpose", "Lines discarded."),
+            pp.Hunk | pp.Stage: _p("PatchPurpose", "Hunk staged."),
+            pp.Hunk | pp.Unstage: _p("PatchPurpose", "Hunk unstaged."),
+            pp.Hunk | pp.Discard: _p("PatchPurpose", "Hunk discarded."),
+            pp.File | pp.Stage: _n("File staged.", "{n} files staged.", 1),
+            pp.File | pp.Unstage: _n("File unstaged.", "{n} files unstaged.", 1),
+            pp.File | pp.Discard: _n("File discarded.", "{n} files discarded.", 1),
+        }
+        return t.get(purpose, "")
 
 
 class HardSolveConflicts(RepoTask):

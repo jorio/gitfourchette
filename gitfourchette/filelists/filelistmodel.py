@@ -23,19 +23,24 @@ logger = logging.getLogger(__name__)
 
 
 def deltaModeText(om: FileMode, nm: FileMode) -> str:
-    if om != 0 and nm != 0 and om != nm:
-        # Mode change
-        if nm == FileMode.BLOB_EXECUTABLE:
-            return "+x"
-        elif om == FileMode.BLOB_EXECUTABLE:
-            return "-x"
-        elif nm != FileMode.BLOB:
-            return TrTables.shortFileModes(nm)
-        else:
-            return ""
-    elif om == 0:
-        # New file
-        return TrTables.shortFileModes(nm)
+    if nm == FileMode.UNREADABLE or nm == om:  # Deleted or unchanged mode
+        return ""
+
+    if nm == FileMode.BLOB and om == FileMode.BLOB_EXECUTABLE:
+        return "-x"
+
+    if nm == FileMode.BLOB_EXECUTABLE:
+        return "+x"
+
+    if nm == FileMode.LINK:
+        return _("link")
+
+    if nm == FileMode.TREE:
+        return _("new subtree")
+
+    if nm == FileMode.COMMIT:
+        return _("commit in subtree")
+
     return ""
 
 
@@ -63,7 +68,7 @@ def fileTooltip(
         text += newLine(_("name"), escape(nf.path))
 
     # Status caption
-    statusCaption = TrTables.diffStatusChar(sc)
+    statusCaption = TrTables.fileStatus(sc)
     if sc not in '?U':  # show status char except for untracked and conflict
         statusCaption += f" ({sc})"
     if sc == 'U':  # conflict sides

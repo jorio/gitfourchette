@@ -144,9 +144,10 @@ class Sidebar(QTreeView):
             self.restoreSelectionBackup()
 
         submenu = []
-        for sortMode, caption in TrTables._enums[RefSort].items():
-            if not caption:  # Skip UseGlobalPref
+        for sortMode in RefSort:
+            if sortMode == RefSort.UseGlobalPref:
                 continue
+            caption = TrTables.enum(sortMode)
             action = ActionDef(
                 caption,
                 lambda m=sortMode: setSortMode(m),

@@ -495,7 +495,7 @@ class GFApplication(QApplication):
         self.installTranslators(settings.prefs.language)
 
         # Regenerate rosetta stones
-        TrTables.retranslate()
+        TrTables.retranslate(settings.prefs.language)
         TaskBook.retranslate()
 
     def applyQtStylePref(self, paletteOnly=False):

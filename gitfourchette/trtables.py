@@ -10,17 +10,36 @@ import os
 import re
 import textwrap
 from enum import Enum
-from typing import ClassVar
+from collections.abc import Callable
 
 from gitfourchette.appconsts import *
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 
-if TYPE_CHECKING:
-    from gitfourchette.toolbox.gitutils import PatchPurpose
-
+_tableAttr = "_cachedLocalizationTable"
+_tableCookieKey = "_TrTablesLanguageCheck"
+_tableCookieValue = ""
 
 _userCommandsGuideUrl = "https://gitfourchette.org/guide/commands"
+
+
+def _getTable[T: dict](initializer: Callable[[], T]) -> T:
+    # See if we've stashed a table in this initializer's attributes previously
+    table: T | None = getattr(initializer, _tableAttr, None)
+
+    # No table, or table cookie is stale?
+    if table is None or table[_tableCookieKey] != _tableCookieValue:
+        # Generate the table
+        table = initializer()
+
+        # Set fresh cookie
+        table[_tableCookieKey] = _tableCookieValue
+
+        # Stash the table inside the initializer
+        setattr(initializer, _tableAttr, table)
+
+    assert table is not None
+    return table
 
 
 def _tokenReferenceTable(table):
@@ -32,64 +51,57 @@ def _tokenReferenceTable(table):
 
 
 class TrTables:
-    _enums                  : ClassVar[dict[type[Enum], dict[Enum, str]]] = {}
-    _exceptionNames         : ClassVar[dict[str, str]] = {}
-    _prefKeys               : ClassVar[dict[str, str]] = {}
-    _diffStatusChars        : ClassVar[dict[str, str]] = {}
-    _shortFileModes         : ClassVar[dict[FileMode, str]] = {}
-    _patchPurposesPastTense : ClassVar[dict[PatchPurpose, str]] = {}
-
     @classmethod
-    def init(cls):
-        if not cls._exceptionNames:
-            cls.retranslate()
-
-    @classmethod
-    def retranslate(cls):
-        cls._enums = cls._init_enums()
-        cls._exceptionNames = cls._init_exceptionNames()
-        cls._prefKeys = cls._init_prefKeys()
-        cls._diffStatusChars = cls._init_diffStatusChars()
-        cls._shortFileModes = cls._init_shortFileModes()
-        cls._patchPurposesPastTense = cls._init_patchPurposesPastTense()
+    def retranslate(cls, newLanguageCode: str):
+        """Flush cached translations."""
+        # Bump table cookie value, forcing _getTable to regenerate all tables.
+        global _tableCookieValue
+        _tableCookieValue = newLanguageCode
 
     @classmethod
     def enum(cls, enumValue: Enum) -> str:
+        """Translate an enum value."""
+        table = _getTable(cls._enumTable)
         try:
-            return cls._enums[type(enumValue)][enumValue]
+            return table[type(enumValue)][enumValue]
         except KeyError:
             return enumValue.name
 
     @classmethod
-    def exceptionName(cls, exc: BaseException):
+    def exceptionName(cls, exc: BaseException) -> str:
+        """Translate an exception name."""
+        table = _getTable(cls._exceptionNameTable)
         name = type(exc).__name__
-        return cls._exceptionNames.get(name, name)
+        return table.get(name, name)
 
     @classmethod
-    def prefKey(cls, key: str):
-        return cls._prefKeys.get(key, str(key))
-
-    @classmethod
-    def prefKeyNoDefault(cls, key: str):
-        return cls._prefKeys.get(key, "")
-
-    @classmethod
-    def diffStatusChar(cls, c: str):
-        return cls._diffStatusChars.get(c, c)
-
-    @classmethod
-    def shortFileModes(cls, m: FileMode):
+    def prefKey(cls, key: str, default: str | None = None) -> str:
+        """Translate a PrefsFile field."""
+        table = _getTable(cls._prefKeyTable)
         try:
-            return cls._shortFileModes[m]
+            return table[key]
         except KeyError:
-            return f"{m:o}"
+            return str(key) if default is None else default
 
     @classmethod
-    def patchPurposePastTense(cls, purpose: PatchPurpose):
-        return cls._patchPurposesPastTense.get(purpose, "???")
+    def prefKeyNoDefault(cls, key: str) -> str:
+        """Translate a PrefsFile field (return empty string if no translation
+        available)."""
+        return cls.prefKey(key, "")
+
+    @classmethod
+    def fileStatus(cls, c: str) -> str:
+        """Translate a description of a git status character (A: 'added',
+        D: 'deleted', etc.)."""
+        table = _getTable(cls._fileStatusTable)
+        return table.get(c, c)
+
+    # -------------------------------------------------------------------------
+    # Table initializers
+    # -------------------------------------------------------------------------
 
     @staticmethod
-    def _init_exceptionNames():
+    def _exceptionNameTable():
         return {
             "ConnectionRefusedError": _("Connection refused"),
             "FileNotFoundError": _("File not found"),
@@ -100,7 +112,7 @@ class TrTables:
         }
 
     @staticmethod
-    def _init_enums():
+    def _enumTable() -> dict[type[Enum], dict[Enum, str]]:
         from gitfourchette.gitdriver import GitConflictSides
         from gitfourchette.nav import NavContext
         from gitfourchette.porcelain import FileMode, NameValidationError
@@ -136,7 +148,7 @@ class TrTables:
             },
 
             FileMode: {
-                0                       : _p("FileMode", "deleted"),
+                FileMode.UNREADABLE     : _p("FileMode", "deleted"),
                 FileMode.BLOB           : _p("FileMode", "regular file"),
                 FileMode.BLOB_EXECUTABLE: _p("FileMode", "executable file"),
                 FileMode.LINK           : _p("FileMode", "symbolic link"),
@@ -310,7 +322,7 @@ class TrTables:
         }
 
     @staticmethod
-    def _init_diffStatusChars():
+    def _fileStatusTable() -> dict[str, str]:
         # see git_diff_status_char (diff_print.c)
         return {
             "A": _p("FileStatus", "added"),
@@ -327,36 +339,7 @@ class TrTables:
         }
 
     @staticmethod
-    def _init_shortFileModes():
-        return {
-            0: "",
-            FileMode.BLOB: "",
-            FileMode.BLOB_EXECUTABLE: "+x",
-            FileMode.LINK: _("link"),
-            FileMode.TREE: _("new subtree"),
-            FileMode.COMMIT: _("commit in subtree"),
-        }
-
-    @staticmethod
-    def _init_patchPurposesPastTense():
-        from gitfourchette.toolbox.gitutils import PatchPurpose as pp
-        return {
-            pp.Stage                : _p("PatchPurpose", "Staged."),
-            pp.Unstage              : _p("PatchPurpose", "Unstaged."),
-            pp.Discard              : _p("PatchPurpose", "Discarded."),
-            pp.Lines | pp.Stage     : _p("PatchPurpose", "Lines staged."),
-            pp.Lines | pp.Unstage   : _p("PatchPurpose", "Lines unstaged."),
-            pp.Lines | pp.Discard   : _p("PatchPurpose", "Lines discarded."),
-            pp.Hunk | pp.Stage      : _p("PatchPurpose", "Hunk staged."),
-            pp.Hunk | pp.Unstage    : _p("PatchPurpose", "Hunk unstaged."),
-            pp.Hunk | pp.Discard    : _p("PatchPurpose", "Hunk discarded."),
-            pp.File | pp.Stage      : _p("PatchPurpose", "File staged."),
-            pp.File | pp.Unstage    : _p("PatchPurpose", "File unstaged."),
-            pp.File | pp.Discard    : _p("PatchPurpose", "File discarded."),
-        }
-
-    @staticmethod
-    def _timeFormatTable():
+    def _timeFormatGuide():
         from gitfourchette.qt import QLocale, QDateTime, QDate, QTime
 
         locale = QLocale()
@@ -402,7 +385,7 @@ class TrTables:
             + "</p>")
 
     @staticmethod
-    def _init_prefKeys():
+    def _prefKeyTable() -> dict[str, str]:
         from gitfourchette.toolbox.textutils import paragraphs, tquo, escape
         from gitfourchette.exttools.usercommand import UserCommand
         from gitfourchette.appconsts import APP_DISPLAY_NAME
@@ -436,7 +419,7 @@ class TrTables:
             "qtStyle": _("Qt style"),
             "shortHashChars": _("Shorten hashes to # characters"),
             "shortTimeFormat": _("Date/time format"),
-            "shortTimeFormat_help": TrTables._timeFormatTable(),
+            "shortTimeFormat_help": TrTables._timeFormatGuide(),
             "pathDisplayStyle": _("Path display style"),
             "authorDisplayStyle": _("Author display style"),
             "maxRecentRepos": _("Remember up to # recent repositories"),
