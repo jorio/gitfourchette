@@ -11,7 +11,7 @@ from typing import Any
 
 from gitfourchette import trtables
 from gitfourchette import settings
-from gitfourchette.gitdriver import GitDelta, GitDeltaSource
+from gitfourchette.gitdriver import GitDelta, GitDeltaSource, GitStatus
 from gitfourchette.gitdriver.lfspointer import LfsPointerState
 from gitfourchette.localization import *
 from gitfourchette.nav import NavContext, NavLocator
@@ -61,30 +61,31 @@ def fileTooltip(
         color = mutedToolTipColorHex()
         return f"<tr><td style='color:{color}; text-align: right;'>{heading}{colon} </td><td>{caption}</td>"
 
-    if sc == 'R':
+    if sc == GitStatus.Renamed:
         text += newLine(_("old name"), escape(of.path))
         text += newLine(_("new name"), escape(nf.path))
     else:
         text += newLine(_("name"), escape(nf.path))
 
     # Status caption
-    statusCaption = trtables.fileStatus(sc)
-    if sc not in '?U':  # show status char except for untracked and conflict
+    statusCaption = trtables.enum(sc)
+    # Show status char except for untracked and conflict
+    if sc not in [GitStatus.Untracked, GitStatus.Unmerged]:
         statusCaption += f" ({sc})"
-    if sc == 'U':  # conflict sides
+    if sc == GitStatus.Unmerged:  # conflict sides
         assert delta.conflict is not None
         postfix = trtables.enum(delta.conflict.sides)
         statusCaption += f" ({postfix})"
     text += newLine(_("status"), statusCaption)
 
     # Similarity + Old name
-    if sc == 'R':
+    if sc == GitStatus.Renamed:
         text += newLine(_("similarity"), f"{delta.similarity}%")
 
     # File Mode
-    if sc in 'DU':
+    if sc in [GitStatus.Deleted, GitStatus.Unmerged]:
         pass
-    elif sc in 'A?':
+    elif sc.isAddedOrUntracked:
         text += newLine(_("file mode"), trtables.enum(nf.mode))
     elif of.mode != nf.mode:
         text += newLine(_("file mode"), f"{trtables.enum(of.mode)} \u2192 {trtables.enum(nf.mode)}")
@@ -124,7 +125,7 @@ def fileTooltip(
         text += newLine(_("modified"), timeText)
 
     # Blob/Commit IDs
-    if sc == 'U' or nf.mode == FileMode.TREE:
+    if sc == GitStatus.Unmerged or nf.mode == FileMode.TREE:
         # Hide hashes for:
         # - unmerged conflicts
         # - untracked trees: those never have a valid ID
@@ -247,11 +248,7 @@ class FileListModel(QAbstractListModel):
             return text
 
         elif role == Qt.ItemDataRole.DecorationRole:
-            letter = delta.status
-            if letter == "?":  # untracked, fake A
-                letter = "A"
-            letter = letter.lower()
-            return stockIcon(f"status_{letter}")
+            return stockIcon(f"status_{delta.status.lower()}")
 
         elif role == FileListModel.Role.Decoration2:
             if settings.prefs.lfsAware:

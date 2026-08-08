@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from collections.abc import Iterator
 
-from gitfourchette.gitdriver.gitdelta import GitDelta
+from gitfourchette.gitdriver.gitdelta import GitDelta, GitStatus
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, GitDeltaSource, FileMode, HexHash0000, HexHashFFFF
 from gitfourchette.gitdriver.gitconflict import GitConflict, GitConflictSides
 
@@ -96,7 +96,9 @@ def parseGitStatus(stdout: str, workdir: str) -> Iterator[tuple[GitDelta | None,
         staged, unstaged = _parseStatusLine(ident, *match.groups())
 
         # Fill in file mode for untracked/ignored files.
-        if unstaged and unstaged.status in "?!" and unstaged.new.mode == FileMode.UNREADABLE:
+        if (unstaged
+                and unstaged.status in [GitStatus.Untracked, GitStatus.Ignored]
+                and unstaged.new.mode == FileMode.UNREADABLE):
             try:
                 stat = Path(workdir, unstaged.new.path).lstat()
                 unstaged.new.mode = distillMode(stat.st_mode)
@@ -118,10 +120,12 @@ def _parseStatusLine(ident: str, *tokens: str) -> tuple[GitDelta | None, GitDelt
     elif ident == "u":
         # Unmerged entries (conflict)
         return _parseStatusConflict(*tokens)
-    elif ident in "?!":
-        # ? - Untracked items
-        # ! - Ignored items
-        return _parseStatusUntracked(ident, *tokens)
+    elif ident == "?":
+        # Untracked
+        return _parseStatusUntracked(GitStatus.Untracked, *tokens)
+    elif ident == "!":
+        # Ignored
+        return _parseStatusUntracked(GitStatus.Ignored, *tokens)
     else:
         raise ValueError(f"unknown ident: {ident}")
 
@@ -148,10 +152,12 @@ def _parseStatus2(x, y, sub, mh, mi, mw, hh, hi, score, newPath, origPath):
     xDelta, yDelta = None, None
 
     if x != ".":  # STAGED
-        xDelta = GitDelta(status=x, old=fileHead, new=fileIndex, similarity=int(score))
+        xStatus = GitStatus(x)
+        xDelta = GitDelta(status=xStatus, old=fileHead, new=fileIndex, similarity=int(score))
 
     if y != ".":  # UNSTAGED
-        yDelta = GitDelta(status=y, old=fileIndex, new=fileWorktree, submoduleStatus=sub)
+        yStatus = GitStatus(y)
+        yDelta = GitDelta(status=yStatus, old=fileIndex, new=fileWorktree, submoduleStatus=sub)
 
     return xDelta, yDelta
 
@@ -166,12 +172,12 @@ def _parseStatusConflict(xy, sub, m1, m2, m3, mw, h1, h2, h3, path):
     stage3 = GitDeltaFile(path=path, id=h3, mode=parseMode(m3))
     conflict = GitConflict(sides, stage1, stage2, stage3)
 
-    yDelta = GitDelta(status="U", old=indexFile, new=worktreeFile,
+    yDelta = GitDelta(status=GitStatus.Unmerged, old=indexFile, new=worktreeFile,
                       conflict=conflict, submoduleStatus=sub)
     return None, yDelta
 
 
-def _parseStatusUntracked(ident: str, path: str):
+def _parseStatusUntracked(status: GitStatus, path: str):
     if path.endswith("/"):
         path = path.removesuffix("/")
         mode = FileMode.TREE
@@ -183,7 +189,7 @@ def _parseStatusUntracked(ident: str, path: str):
 
     worktreeFile = GitDeltaFile(path=path, id=HexHashFFFF, mode=mode, source=GitDeltaSource.Dirty)
 
-    yDelta = GitDelta(status=ident, old=indexFile, new=worktreeFile)
+    yDelta = GitDelta(status=status, old=indexFile, new=worktreeFile)
     return None, yDelta
 
 
@@ -211,7 +217,9 @@ def parseGitDiffRawZ(stdout: str):
         yield _parseShowLine(ms, md, hs, hd, status, score, path1, path2)
 
 
-def _parseShowLine(ms, md, hs, hd, status, score, path1, path2) -> GitDelta:
+def _parseShowLine(ms, md, hs, hd, statusChar, score, path1, path2) -> GitDelta:
+    status = GitStatus(statusChar)
+
     fileSrc = GitDeltaFile(
         path=path1,
         id=hs,

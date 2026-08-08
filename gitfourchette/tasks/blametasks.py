@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel, RevList, Revision
-from gitfourchette.gitdriver import argsIf, GitDriver
+from gitfourchette.gitdriver import argsIf, GitDriver, GitStatus
 from gitfourchette.gitdriver.parsers import parseGitBlame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -117,7 +117,8 @@ class OpenBlame(RepoTask):
                 assert not revision.parentIds, "existing revision already has parents!!!"
                 revision.parentIds = parentIds
             except KeyError:
-                revision = Revision(path, commitId, parentIds, status="M" if parentIds else "A")
+                status = GitStatus.Modified if parentIds else GitStatus.Added
+                revision = Revision(path, commitId, parentIds, status=status)
                 revList.push(revision)
 
                 # Tip commit (not referred to by another commit in the trace):
@@ -130,7 +131,7 @@ class OpenBlame(RepoTask):
         # Last revision has no parents - See if it's a rename
         if revision is not None and not revision.parentIds:
             delta = yield from self._refineWithDelta(revision)
-            if delta.status in "RC":
+            if delta.status in [GitStatus.Renamed, GitStatus.Copied]:
                 bottomPath = delta.old.path
 
         # TODO: If the top commit is 'R' we could expand its history upwards!
@@ -269,7 +270,7 @@ class BlameRevision(RepoTask):
         dummyLine0 = Revision.BlameLine(revision.commitId, 0)
         revision.blameLines.append(dummyLine0)
 
-        if revision.status == "D":
+        if revision.status == GitStatus.Deleted:
             return
 
         driver = yield from self.flowCallGit(

@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from gitfourchette.gitdriver import GitDelta, GitDriver
+from gitfourchette.gitdriver import GitDelta, GitStatus, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
@@ -94,7 +94,7 @@ class ExportWorkdirAsPatch(RepoTask):
             raise NotImplementedError("Export workdir requires fresh status")
 
         for delta in self.repoModel.workdirUnstagedDeltas:
-            if delta.status == "?":  # Scan for untracked files
+            if delta.status == GitStatus.Untracked:  # Scan for untracked files
                 tokens = GitDriver.buildDiffCommand(delta)
                 driver = yield from self.flowCallGit(*tokens, autoFail=False)
                 patches.append(driver.stdoutScrollback())
@@ -118,7 +118,7 @@ class ExportPatchCollection(RepoTask):
 
         for delta in deltas:
             # Get filename stem
-            file = delta.old if delta.status == "D" else delta.new
+            file = delta.old if delta.status == GitStatus.Deleted else delta.new
             name = Path(file.path).stem
             names.append(name)
 

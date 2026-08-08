@@ -288,7 +288,7 @@ class FileList(QListView):
         # Scan deltas for mode changes
         for delta in deltas:
             # Scan for Modified, Renamed, or Copied
-            if delta.status not in "MRC":
+            if delta.status not in [GitStatus.Modified, GitStatus.Renamed, GitStatus.Copied]:
                 continue
 
             # Skip if mode didn't change
@@ -340,7 +340,7 @@ class FileList(QListView):
             ActionDef(
                 _n("Edit &HEAD Version in {tool}", "Edit &HEAD Versions in {tool}", n=n, tool=settings.getExternalEditorName()),
                 self.openHeadRevision,
-                enabled=any(d.status not in "?A" for d in deltas),
+                enabled=any(not d.status.isAddedOrUntracked for d in deltas),
             ),
         ]
 
@@ -349,7 +349,7 @@ class FileList(QListView):
         if len(deltas) == 1:
             delta = deltas[0]
             assert self.navContext == NavContext.fromGitDeltaSource(delta.source)
-            isEnabled = (not delta.source.isWorkdir()) or (delta.status not in "?A")
+            isEnabled = (not delta.source.isWorkdir()) or (not delta.status.isAddedOrUntracked)
 
         return ActionDef(
             englishTitleCase(OpenBlame.name()) + "\u2026",
@@ -596,7 +596,7 @@ class FileList(QListView):
     def openHeadRevision(self):
         def run(task: RepoTask, delta: GitDelta):
             fakeHeadFile = GitDeltaFile(delta.old.path, HexHashFFFF, source=GitDeltaSource.Commit, sourceCommit=self.repo.head_commit_id)
-            fakeHeadDelta = GitDelta("M", new=fakeHeadFile)
+            fakeHeadDelta = GitDelta(GitStatus.Modified, new=fakeHeadFile)
             yield from task.flowSubtask(OpenRevisionInEditor, fakeHeadDelta, old=False)
 
         toolName = getExternalEditorName()

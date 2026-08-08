@@ -13,7 +13,6 @@ _stockIconHtmlCache: dict[int, str] = {}
 
 # Override some icon IDs depending on desktop environment
 _overrideIconIds: dict[str, str] = {}
-_overrideIconIdsReady = False
 
 _autoDarkVariants = {
     "achtung",
@@ -32,7 +31,9 @@ _autoDarkVariants = {
 
 
 def _iconOverrideTable() -> dict[str, str]:
-    overrides = {}
+    overrides = {
+        "status_?": "status_a",  # Use Added icon for Untracked
+    }
 
     assert QApplication.instance(), "need app instance for QIcon.themeName()"
     iconTheme = QIcon.themeName().casefold()
@@ -50,9 +51,9 @@ def _iconOverrideTable() -> dict[str, str]:
 
 def stockIcon(iconId: str, colorTable="") -> QIcon:
     # Special cases
-    if not _overrideIconIdsReady:
-        _overrideIconIds.clear()
+    if not _overrideIconIds:
         _overrideIconIds.update(_iconOverrideTable())
+        assert _overrideIconIds, "expecting overrides to contain at least one entry"
     iconId = _overrideIconIds.get(iconId, iconId)
 
     if RecolorSvgIconEngine.IconColors.preferDarkVariants and iconId in _autoDarkVariants:

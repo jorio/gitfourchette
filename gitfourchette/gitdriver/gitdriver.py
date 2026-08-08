@@ -18,7 +18,7 @@ from typing import ClassVar
 
 from gitfourchette import settings
 from gitfourchette.exttools.toolcommands import ToolCommands
-from gitfourchette.gitdriver.gitdelta import GitDelta
+from gitfourchette.gitdriver.gitdelta import GitDelta, GitStatus
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
@@ -351,7 +351,7 @@ class GitDriver(QProcess):
                 tokens += [str(compareA), str(compareB)]
 
             # Append paths
-            if delta.status == "?":  # untracked, compare to nothing
+            if delta.status == GitStatus.Untracked:  # untracked, compare to nothing
                 # --no-index is mandatory on Windows here
                 tokens += ["--no-index", "--", "/dev/null", delta.new.path]
             elif delta.old.path != delta.new.path:

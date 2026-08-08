@@ -6,7 +6,7 @@
 
 from .gitconflict import GitConflict
 from .gitconflict import GitConflictSides
-from .gitdelta import GitDelta
+from .gitdelta import GitDelta, GitStatus
 from .gitdeltafile import GitDeltaSource, GitDeltaFile
 from .gitdriver import GitDriver
 from .gitdriver import VanillaFetchStatusFlag

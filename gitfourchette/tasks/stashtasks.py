@@ -8,6 +8,7 @@ import itertools
 import logging
 
 from gitfourchette.forms.stashdialog import StashDialog
+from gitfourchette.gitdriver import GitStatus
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -19,23 +20,23 @@ from gitfourchette.trash import Trash
 logger = logging.getLogger(__name__)
 
 _indexStatusTable = {
-    "A": FileStatus.INDEX_NEW,
-    "D": FileStatus.INDEX_DELETED,
-    "M": FileStatus.INDEX_MODIFIED,
-    "R": FileStatus.INDEX_RENAMED,
-    "T": FileStatus.INDEX_TYPECHANGE,
+    GitStatus.Added: FileStatus.INDEX_NEW,
+    GitStatus.Deleted: FileStatus.INDEX_DELETED,
+    GitStatus.Modified: FileStatus.INDEX_MODIFIED,
+    GitStatus.Renamed: FileStatus.INDEX_RENAMED,
+    GitStatus.TypeChanged: FileStatus.INDEX_TYPECHANGE,
 }
 """
 Vanilla git staged file status to libgit2 index status flags
 """
 
 _wtStatusTable = {
-    "?": FileStatus.WT_NEW,
-    "A": FileStatus.WT_NEW,
-    "D": FileStatus.WT_DELETED,
-    "M": FileStatus.WT_MODIFIED,
-    "R": FileStatus.WT_RENAMED,
-    "T": FileStatus.WT_TYPECHANGE,
+    GitStatus.Untracked: FileStatus.WT_NEW,
+    GitStatus.Added: FileStatus.WT_NEW,
+    GitStatus.Deleted: FileStatus.WT_DELETED,
+    GitStatus.Modified: FileStatus.WT_MODIFIED,
+    GitStatus.Renamed: FileStatus.WT_RENAMED,
+    GitStatus.TypeChanged: FileStatus.WT_TYPECHANGE,
 }
 """
 Vanilla git unstaged file status to libgit2 worktree status flags

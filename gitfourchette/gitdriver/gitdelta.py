@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import enum
 
 from pygit2.enums import AttrCheck
 
@@ -14,9 +15,31 @@ from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState
 from gitfourchette.porcelain import Repo
 
 
+class GitStatus(enum.StrEnum):
+    """Status of a file in a GitDelta."""
+
+    # git: diff.h "diff-raw status letters"
+    Added = "A"
+    Copied = "C"
+    Deleted = "D"
+    Modified = "M"
+    Renamed = "R"
+    TypeChanged = "T"
+    Unmerged = "U"  # aka merge conflict
+    Unknown = "X"  # aka Unreadable in libgit2
+
+    # Additional statuses
+    Untracked = "?"
+    Ignored = "!"  # note: "I" in libgit2 (git_diff_status_char())
+
+    @property
+    def isAddedOrUntracked(self) -> bool:
+        return self in "?A"
+
+
 @dataclasses.dataclass
 class GitDelta:
-    status: str = ""
+    status: GitStatus = GitStatus.Unknown
     old: GitDeltaFile = dataclasses.field(default_factory=GitDeltaFile)
     new: GitDeltaFile = dataclasses.field(default_factory=GitDeltaFile)
     similarity: int = 0
@@ -24,6 +47,7 @@ class GitDelta:
     conflict: GitConflict | None = None  # Only in UNSTAGED contexts
 
     def __post_init__(self):
+        assert isinstance(self.status, GitStatus)
         assert self.old.source != GitDeltaSource.Dirty, "old source cannot be dirty"
 
         # Clear empty submodule status so it's falsy
@@ -54,7 +78,7 @@ class GitDelta:
         if old.lfs.state:
             # Already cached
             pass
-        elif self.status in "?A":
+        elif self.status.isAddedOrUntracked:
             # Untracked/unstaged: No pointer yet
             old.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:
@@ -72,7 +96,7 @@ class GitDelta:
         if new.lfs.state:
             # Already cached
             pass
-        elif self.status == "D":
+        elif self.status == GitStatus.Deleted:
             # Deletion: No pointer
             new.lfs = LfsPointer(LfsPointerState.NoPointer)
         else:

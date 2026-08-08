@@ -60,13 +60,6 @@ def prefKeyNoDefault(key: str) -> str:
     return prefKey(key, "")
 
 
-def fileStatus(c: str) -> str:
-    """Translate a description of a git status character (A: 'added',
-    D: 'deleted', etc.)."""
-    table = _getTable(_fileStatusTable)
-    return table.get(c, c)
-
-
 # -------------------------------------------------------------------------
 # Table caching
 # -------------------------------------------------------------------------
@@ -111,7 +104,7 @@ def _exceptionNameTable() -> dict[str, str]:
 
 
 def _enumTable() -> dict[type[Enum], dict[Enum, str]]:
-    from gitfourchette.gitdriver import GitConflictSides
+    from gitfourchette.gitdriver import GitConflictSides, GitStatus
     from gitfourchette.nav import NavContext
     from gitfourchette.porcelain import FileMode, NameValidationError, RepositoryState
     from gitfourchette.toolbox import toLengthVariants
@@ -168,6 +161,19 @@ def _enumTable() -> dict[type[Enum], dict[Enum, str]]:
         GitConflictSides.DeletedByUs: _p("ConflictSides", "deleted by us"),
         GitConflictSides.BothAdded: _p("ConflictSides", "added by both sides"),
         GitConflictSides.BothModified: _p("ConflictSides", "modified by both sides"),
+    }
+
+    table[GitStatus] = {
+        GitStatus.Added: _p("FileStatus", "added"),
+        GitStatus.Copied: _p("FileStatus", "copied"),
+        GitStatus.Deleted: _p("FileStatus", "deleted"),
+        GitStatus.Ignored: _p("FileStatus", "ignored"),
+        GitStatus.Modified: _p("FileStatus", "modified"),
+        GitStatus.Renamed: _p("FileStatus", "renamed"),
+        GitStatus.TypeChanged: _p("FileStatus", "file type changed"),
+        GitStatus.Unmerged: _p("FileStatus", "merge conflict"),
+        GitStatus.Unknown: _p("FileStatus", "unreadable"),
+        GitStatus.Untracked: _p("FileStatus", "untracked"),
     }
 
     table[GpgStatus] = {
@@ -320,23 +326,6 @@ def _enumTable() -> dict[type[Enum], dict[Enum, str]]:
     }
 
     return table
-
-
-def _fileStatusTable() -> dict[str, str]:
-    # see git_diff_status_char (diff_print.c)
-    return {
-        "A": _p("FileStatus", "added"),
-        "Z": _p("FileStatus", "added"),
-        "C": _p("FileStatus", "copied"),
-        "D": _p("FileStatus", "deleted"),
-        "I": _p("FileStatus", "ignored"),
-        "M": _p("FileStatus", "modified"),
-        "R": _p("FileStatus", "renamed"),
-        "T": _p("FileStatus", "file type changed"),
-        "U": _p("FileStatus", "merge conflict"),  # "updated but unmerged"
-        "X": _p("FileStatus", "unreadable"),
-        "?": _p("FileStatus", "untracked"),
-    }
 
 
 def _prefKeyTable() -> dict[str, str]:

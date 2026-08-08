@@ -7,7 +7,7 @@
 from collections.abc import Iterable
 
 from gitfourchette.diffview.diffdocument import LineData
-from gitfourchette.gitdriver import GitDelta
+from gitfourchette.gitdriver import GitDelta, GitStatus
 from gitfourchette.porcelain import FileMode
 
 QUOTE_PATH_ESCAPES = {
@@ -66,7 +66,7 @@ def getPatchPreamble(delta: GitDelta, reverse=False) -> list[str]:
     if not reverse:
         # Not reversing. Old/new sides are correct.
         pass
-    elif delta.status == "D":
+    elif delta.status == GitStatus.Deleted:
         # Reversing lines within a deleted file. Swap old/new sides.
         new, old = old, new
         assert old.isId0()  # 'old' side is now the deleted file

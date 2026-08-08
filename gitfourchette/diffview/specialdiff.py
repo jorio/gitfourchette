@@ -95,7 +95,7 @@ class SpecialDiffError:
             if delta.new.mode == FileMode.TREE:
                 return SpecialDiffError.treeDiff(repo, delta)
             else:
-                assert delta.status in "A?"  # added or untracked
+                assert delta.status.isAddedOrUntracked
                 message = _("New empty file.")
 
         if (newFileExists
@@ -271,8 +271,8 @@ class SpecialDiffError:
         stillExists = Path(absPath).is_dir()
         isAbsorbed = stillExists and Path(absPath, ".git").is_file()
 
-        isDel = delta.status == "D"
-        isAdd = delta.status in "A?"
+        isDel = delta.status == GitStatus.Deleted
+        isAdd = delta.status.isAddedOrUntracked
         oldId = delta.old.id
         newId = delta.new.id
         headDidMove = oldId != newId

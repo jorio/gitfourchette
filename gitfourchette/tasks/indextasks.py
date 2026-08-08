@@ -93,7 +93,7 @@ class StageFiles(_BaseStagingTask):
                 m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
 
             # Staging a submodule deletion, and the submodule is still in .gitmodules
-            elif (delta.status == "D"
+            elif (delta.status == GitStatus.Deleted
                   and delta.old.mode == FileMode.COMMIT
                   and delta.old.path in self.repo.listall_submodules_dict_at_head()):
                 m = _("Don’t forget to remove the submodule from {0} to complete its deletion.", tquo(DOT_GITMODULES))
@@ -140,7 +140,7 @@ class DiscardFiles(_BaseStagingTask):
         if len(deltas) == 1:
             delta = deltas[0]
             bpath = bquo(delta.new.path)
-            if delta.status == "?":  # untracked
+            if delta.status == GitStatus.Untracked:
                 really = _("Really delete {0}?", bpath)
                 really += " " + _("Git isn’t tracking this file, so you may not be able to recover it from older commits.")
                 verb = _("Delete")
@@ -181,9 +181,9 @@ class DiscardFiles(_BaseStagingTask):
                 except Trash.BackupSkipped as ex:
                     logger.warning(f"Backup skipped: {ex}")
 
-        tracked = [d.new.path for d in deltas if d.status != "?"]
-        untrackedFiles = [d.new.path for d in deltas if d.status == "?" and d.new.mode != FileMode.TREE]
-        untrackedTrees = [d.new.path for d in deltas if d.status == "?" and d.new.mode == FileMode.TREE]
+        tracked = [d.new.path for d in deltas if d.status != GitStatus.Untracked]
+        untrackedFiles = [d.new.path for d in deltas if d.status == GitStatus.Untracked and d.new.mode != FileMode.TREE]
+        untrackedTrees = [d.new.path for d in deltas if d.status == GitStatus.Untracked and d.new.mode == FileMode.TREE]
 
         # Discard untracked trees. They have already been backed up above,
         # but restore_files_from_index isn't capable of removing trees.
@@ -207,14 +207,14 @@ class DiscardFiles(_BaseStagingTask):
 
     def _backupDelta(self, delta: GitDelta):
         # Don't back up deletions
-        if delta.status == "D":
+        if delta.status == GitStatus.Deleted:
             return
 
         trash = Trash.instance()
         path = delta.new.path
         workdir = self.repo.workdir
 
-        if delta.status == "?":
+        if delta.status == GitStatus.Untracked:
             if delta.new.mode == FileMode.TREE:
                 # Untracked tree
                 trash.backupTree(workdir, path)
@@ -239,7 +239,7 @@ class UnstageFiles(_BaseStagingTask):
         paths = []
         for delta in deltas:
             paths.append(delta.new.path)
-            if delta.status == "R":
+            if delta.status == GitStatus.Renamed:
                 paths.append(delta.old.path)
 
         self.epilog.effects |= TaskEffects.Workdir
@@ -286,7 +286,7 @@ class UnstageModeChanges(_BaseStagingTask):
             of = delta.old
             nf = delta.new
             if (of.mode != nf.mode
-                    and delta.status not in "AD?"  # ADDED, DELETED, UNTRACKED
+                    and delta.status not in [GitStatus.Added, GitStatus.Deleted, GitStatus.Untracked]
                     and of.mode in [FileMode.BLOB, FileMode.BLOB_EXECUTABLE]):
                 index.add(IndexEntry(nf.path, Oid(hex=nf.id), of.mode))
         index.write()
@@ -563,11 +563,11 @@ class RestoreRevisionToWorkdir(RepoTask):
         if old:
             preposition = _p("preposition slotted into '...BEFORE this commit'", "before")
             diffFile = delta.old
-            delete = delta.status == "A"
+            delete = delta.status == GitStatus.Added
         else:
             preposition = _p("preposition slotted into '...AT this commit'", "at")
             diffFile = delta.new
-            delete = delta.status == "D"
+            delete = delta.status == GitStatus.Deleted
 
         path = self.repo.in_workdir(diffFile.path)
         pathObj = Path(path)
@@ -653,11 +653,11 @@ class SaveRevisionAs(RepoTask):
     def flow(self, delta: GitDelta, old: bool, saveIntoDir: str = "", prefix: str = ""):
         if old:
             diffFile = delta.old
-            if delta.status == "A":
+            if delta.status == GitStatus.Added:
                 raise AbortTask(_("This file didn’t exist before the commit."))
         else:
             diffFile = delta.new
-            if delta.status == "D":
+            if delta.status == GitStatus.Deleted:
                 raise AbortTask(_("This file was deleted by the commit."))
 
         outPath = yield from self.flowSubtask(SaveDeltaFileAs, diffFile, saveIntoDir, prefix)

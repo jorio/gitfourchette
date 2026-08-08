@@ -9,7 +9,7 @@ import logging
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitConflict, GitDriver
+from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.syntax.lexercache import LexerCache
@@ -282,7 +282,7 @@ class LoadPatch(RepoTask):
             return SpecialDiffError.noChange(self.repo, delta)
 
         # Special formatting for TYPECHANGE.
-        if delta.status == "T":  # TYPECHANGE
+        if delta.status == GitStatus.TypeChanged:
             return SpecialDiffError.typeChange(delta)
 
         # ---------------------------------------------------------------------
@@ -295,9 +295,9 @@ class LoadPatch(RepoTask):
             hasOldLfs = bool(delta.old.lfs)
             hasNewLfs = bool(delta.new.lfs)
 
-            if delta.status == "D":
+            if delta.status == GitStatus.Deleted:
                 loadLfs = hasOldLfs
-            elif delta.status in "?A":
+            elif delta.status.isAddedOrUntracked:
                 loadLfs = hasNewLfs
             else:
                 loadLfs = hasOldLfs and hasNewLfs

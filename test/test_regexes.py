@@ -6,7 +6,7 @@
 
 import pytest
 
-from gitfourchette.gitdriver import GitDeltaSource, GitConflict, GitConflictSides, GitDelta
+from gitfourchette.gitdriver import GitConflict, GitConflictSides, GitDelta, GitDeltaSource, GitStatus
 from gitfourchette.porcelain import FileMode, Signature
 from gitfourchette.toolbox import abbreviatePerson, AuthorDisplayStyle
 from gitfourchette.webhost import WebHost
@@ -180,14 +180,14 @@ def testGitStatusPatterns(tempDir):
 
     sd, ud = result_1_Mx
     assert sd == GitDelta(
-        "M",
+        GitStatus.Modified,
         GitDeltaFile("hello world", aaaa, FM.BLOB, S.Commit),
         GitDeltaFile("hello world", bbbb, FM.BLOB_EXECUTABLE, S.Index))
     assert ud is None
 
     sd, ud = result_2_Rx
     assert sd == GitDelta(
-        "R",
+        GitStatus.Renamed,
         GitDeltaFile("old name", aaaa, FM.BLOB, S.Commit),
         GitDeltaFile("new name", bbbb, FM.BLOB, S.Index),
         similarity=66)
@@ -195,18 +195,18 @@ def testGitStatusPatterns(tempDir):
 
     sd, ud = result_1_MD
     assert sd == GitDelta(
-        "M",
+        GitStatus.Modified,
         GitDeltaFile("foo", aaaa, FM.BLOB, S.Commit),
         GitDeltaFile("foo", bbbb, FM.BLOB, S.Index))
     assert ud == GitDelta(
-        "D",
+        GitStatus.Deleted,
         GitDeltaFile("foo", bbbb, FM.BLOB, S.Index),
         GitDeltaFile("foo", zzzz, FM.UNREADABLE, S.Dirty))
 
     sd, ud = result_1_xM_SxxU
     assert sd is None
     assert ud == GitDelta(
-        "M",
+        GitStatus.Modified,
         GitDeltaFile("submo1", aaaa, FM.COMMIT, S.Index),
         GitDeltaFile("submo1", ffff, FM.COMMIT, S.Dirty),
         submoduleStatus="S..U")
@@ -216,7 +216,7 @@ def testGitStatusPatterns(tempDir):
     sd, ud = result_1_xM_SCxx
     assert sd is None
     assert ud == GitDelta(
-        "M",
+        GitStatus.Modified,
         GitDeltaFile("submo2", aaaa, FM.COMMIT, S.Index),
         GitDeltaFile("submo2", ffff, FM.COMMIT, S.Dirty),
         submoduleStatus="SC..")
@@ -224,11 +224,11 @@ def testGitStatusPatterns(tempDir):
 
     sd, ud = result_1_MM_SxMx
     assert sd == GitDelta(
-        "M",
+        GitStatus.Modified,
         GitDeltaFile("submo3", aaaa, FM.COMMIT, S.Commit),
         GitDeltaFile("submo3", bbbb, FM.COMMIT, S.Index))
     assert ud == GitDelta(
-        "M",
+        GitStatus.Modified,
         GitDeltaFile("submo3", bbbb, FM.COMMIT, S.Index),
         GitDeltaFile("submo3", ffff, FM.COMMIT, S.Dirty),
         submoduleStatus="S.M.")
@@ -238,7 +238,7 @@ def testGitStatusPatterns(tempDir):
     sd, ud = result_conflict
     assert sd is None
     assert ud == GitDelta(
-        "U",
+        GitStatus.Unmerged,
         GitDeltaFile("added by both", zzzz, FM.UNREADABLE, S.Index),
         GitDeltaFile("added by both", ffff, FM.BLOB_EXECUTABLE, S.Dirty),
         conflict=GitConflict(
@@ -251,14 +251,14 @@ def testGitStatusPatterns(tempDir):
     sd, ud = result_untracked
     assert sd is None
     assert ud == GitDelta(
-        "?",
+        GitStatus.Untracked,
         GitDeltaFile("untracked file", zzzz, FM.UNREADABLE, S.Index),
         GitDeltaFile("untracked file", ffff, FM.UNREADABLE, S.Dirty))
 
     sd, ud = result_ignored
     assert sd is None
     assert ud == GitDelta(
-        "!",
+        GitStatus.Ignored,
         GitDeltaFile("ignored file", zzzz, FM.UNREADABLE, S.Index),
         GitDeltaFile("ignored file", ffff, FM.UNREADABLE, S.Dirty))
 

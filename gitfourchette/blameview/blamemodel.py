@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 import os
 
+from gitfourchette.gitdriver import GitStatus
 from gitfourchette.graph import Graph, GraphWeaver
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -75,7 +76,7 @@ class Revision:
     path: str
     commitId: Oid
     parentIds: list[Oid] = dataclasses.field(default_factory=list)
-    status: str = "M"
+    status: GitStatus = GitStatus.Modified
     blameLines: list[BlameLine] = dataclasses.field(default_factory=list)
     fullText: str | None = None
     binary: bool = False

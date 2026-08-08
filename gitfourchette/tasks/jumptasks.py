@@ -19,7 +19,7 @@ from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta
-from gitfourchette.gitdriver import GitConflict, GitDelta, GitDriver, argsIf
+from gitfourchette.gitdriver import GitConflict, GitDelta, GitStatus, GitDriver, argsIf
 from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
@@ -94,7 +94,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
         if not submoduleUpdated:
             continue
 
-        if delta.status == "D":
+        if delta.status == GitStatus.Deleted:
             assert delta.new.isId0()
             continue
 
