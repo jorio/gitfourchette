@@ -11,6 +11,7 @@ from collections.abc import Iterable
 from contextlib import suppress
 from typing import Any, overload, ClassVar
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -18,7 +19,6 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEREF
 from gitfourchette.repoprefs import RefSort
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -797,7 +797,7 @@ class SidebarModel(QAbstractItemModel):
 
         elif item == SidebarItem.UncommittedChanges:
             if displayRole:
-                changesText = TrTables.enum(SidebarItem.UncommittedChanges)
+                changesText = trtables.enum(SidebarItem.UncommittedChanges)
                 numUncommittedChanges = self.repoModel.numUncommittedChanges
                 if numUncommittedChanges >= 0:
                     ucSuffix = f" ({numUncommittedChanges})"
@@ -822,9 +822,9 @@ class SidebarModel(QAbstractItemModel):
                 if item == SidebarItem.WorkdirHeader:
                     return node.displayName
                 elif item == SidebarItem.LocalBranchesHeader:
-                    return TrTables.enum(item)
+                    return trtables.enum(item)
                 else:
-                    name = TrTables.enum(item)
+                    name = trtables.enum(item)
                     if node.getCollapseHash() in self.collapseCache:
                         name += f" ({len(node.children)})"
                     return name

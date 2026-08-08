@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from gitfourchette import trtables
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.exttools.usercommandsyntaxhighlighter import UserCommandSyntaxHighlighter
@@ -18,7 +19,6 @@ from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
 from gitfourchette.syntax import ColorScheme, PygmentsPresets
 from gitfourchette.themes import ThemeName, ThemeColors, ThemeAccent
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ class PrefsDialog(QDialog):
             # Label
             if key.startswith(self.LabelPrefix):
                 labelKey = key.removeprefix(self.LabelPrefix)
-                labelText = TrTables.prefKey(labelKey)
+                labelText = trtables.prefKey(labelKey)
                 label = QLabel(labelText)
                 label.setEnabled(False)
                 tweakWidgetFont(label, bold=True)
@@ -201,14 +201,14 @@ class PrefsDialog(QDialog):
         form = QFormLayout(formContainer)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
-        categoryName = TrTables.prefKey(category)
+        categoryName = trtables.prefKey(category)
         categoryIcon = stockIcon(f"prefs-{category.lower()}")
 
         self.categoryKeys.append(category)
         self.stackedWidget.addWidget(formContainer)
         self.categoryList.addItem(QListWidgetItem(categoryIcon, categoryName))
 
-        headerText = TrTables.prefKeyNoDefault(category + self.LocCategoryHeaderSuffix)
+        headerText = trtables.prefKeyNoDefault(category + self.LocCategoryHeaderSuffix)
         if headerText:
             headerText = headerText.format(app=qAppName())
             explainer = QLabel(headerText)
@@ -228,7 +228,7 @@ class PrefsDialog(QDialog):
 
         # Get caption and suffix
         suffix = ""
-        caption = TrTables.prefKey(key)
+        caption = trtables.prefKey(key)
         if "#" in caption:
             caption, suffix = caption.split("#")
             caption = caption.rstrip()
@@ -252,7 +252,7 @@ class PrefsDialog(QDialog):
             self.prependCheckBox(rowWidgets, "autoFetch", caption)
 
         # Any help text? Then make a help button for it & set tooltip text on the main control
-        tip = TrTables.prefKeyNoDefault(key + self.LocSettingHelpSuffix)
+        tip = trtables.prefKeyNoDefault(key + self.LocSettingHelpSuffix)
         if tip:
             tip = tip.format(app=qAppName())
             control.setToolTip(tip)
@@ -291,8 +291,8 @@ class PrefsDialog(QDialog):
 
     def onCategoryChanged(self, row: int):
         categoryKey = self.categoryKeys[row]
-        categoryName = TrTables.prefKey(categoryKey)
-        categoryGuide = TrTables.prefKeyNoDefault(f"{categoryKey}_GUIDE")
+        categoryName = trtables.prefKey(categoryKey)
+        categoryGuide = trtables.prefKeyNoDefault(f"{categoryKey}_guide")
 
         self.stackedWidget.setCurrentIndex(row)
         self.categoryLabel.setText(categoryName)
@@ -417,8 +417,8 @@ class PrefsDialog(QDialog):
         elif valueType is int:
             return self.intControl(key, value)
         elif valueType is bool:
-            trueText = TrTables.prefKeyNoDefault(key + "_true")
-            falseText = TrTables.prefKeyNoDefault(key + "_false")
+            trueText = trtables.prefKeyNoDefault(key + "_true")
+            falseText = trtables.prefKeyNoDefault(key + "_false")
             if trueText or falseText:
                 return self.boolComboBoxControl(key, value, trueName=trueText, falseName=falseText)
             else:
@@ -567,7 +567,7 @@ class PrefsDialog(QDialog):
             # PySide6 demotes StrEnum to str when stored with QComboBox.setItemData().
             # Wrap the value in a tuple to preserve the type. (PyQt5 & PyQt6 do the right thing here)
             data = (enumMember,)
-            name = TrTables.enum(enumMember)
+            name = trtables.enum(enumMember)
 
             if name == "":
                 continue
@@ -594,7 +594,7 @@ class PrefsDialog(QDialog):
         separator = ("", "")
         defaultStyle = (_p("system default theme setting", "System default"), "")
         nativeStyles = [(name, name) for name in QStyleFactory.keys()]  # noqa: SIM118
-        customStyles = [(TrTables.enum(theme), str(theme)) for theme in ThemeName]
+        customStyles = [(trtables.enum(theme), str(theme)) for theme in ThemeName]
         nativeStyles.sort()
         customStyles.sort()
 
@@ -646,7 +646,7 @@ class PrefsDialog(QDialog):
             for accent in ThemeAccent:
                 icon = stockIcon("theme-chip", f"white={theme.bg} black={theme.text} blue={accent}")
                 caption = _("Dark {color}") if "dark" in themePrefix else _( "Light {color}")
-                caption = caption.format(color=TrTables.enum(accent))
+                caption = caption.format(color=trtables.enum(accent))
                 value = themePrefix + "," + accent
                 picker.addItem(icon, caption, value)
                 if value == prefValue:

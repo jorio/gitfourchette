@@ -9,13 +9,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from gitfourchette import trtables
 from gitfourchette.graph.graph import CommitTraits
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, RepoModel, GpgStatus
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 
 @dataclass
@@ -228,9 +228,9 @@ def commitAuthorTooltip(commit: CommitTraits, gpgStatus: GpgStatus, gpgKeyInfo: 
     if gpgStatus == GpgStatus.Unsigned:
         pass
     elif gpgKeyInfo:
-        markup += f"<p>{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small></p>"
+        markup += f"<p>{gpgStatus.iconHtml()} {trtables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small></p>"
     else:
-        markup += f"<p>{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}</p>"
+        markup += f"<p>{gpgStatus.iconHtml()} {trtables.enum(gpgStatus)}</p>"
 
     return markup
 

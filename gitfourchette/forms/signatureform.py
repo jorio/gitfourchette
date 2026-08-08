@@ -4,11 +4,11 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import trtables
 from gitfourchette.forms.ui_signatureform import Ui_SignatureForm
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 
 class SignatureOverride(enum.IntEnum):
@@ -27,7 +27,7 @@ class SignatureForm(QWidget):
             validate_signature_item(item)
             return ""
         except NameValidationError as exc:
-            return TrTables.enum(exc.rule)
+            return trtables.enum(exc.rule)
 
     def __init__(self, parent):
         super().__init__(parent)

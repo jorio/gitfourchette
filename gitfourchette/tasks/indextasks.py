@@ -10,6 +10,7 @@ import shutil
 from itertools import chain
 from pathlib import Path
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.exttools.toolprocess import ToolProcess
@@ -21,7 +22,6 @@ from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -296,12 +296,12 @@ class ApplyPatch(RepoTask):
     def flow(self, delta: GitDelta, subPatch: str, purpose: PatchPurpose):
         if not subPatch:
             QApplication.beep()
-            verb = TrTables.enum(purpose & PatchPurpose.VerbMask).lower()
+            verb = trtables.enum(purpose & PatchPurpose.VerbMask).lower()
             message = _("Can’t {verb} the selection because no red/green lines are selected.", verb=verb)
             raise AbortTask(message, asStatusMessage=True)
 
         if purpose & PatchPurpose.Discard:
-            title = TrTables.enum(purpose)
+            title = trtables.enum(purpose)
             isHunk = purpose & PatchPurpose.Hunk
             text = paragraphs(
                 _("Really discard this hunk?") if isHunk else _("Really discard the selected lines?"),

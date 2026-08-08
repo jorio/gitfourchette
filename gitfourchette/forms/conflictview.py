@@ -9,18 +9,19 @@ import os
 from dataclasses import dataclass
 from typing import Literal
 
-from gitfourchette import settings, colors
+from gitfourchette import colors
+from gitfourchette import trtables
+from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.exttools.mergedriver import MergeDriver
+from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
 from gitfourchette.gitdriver import GitConflict, GitConflictSides
 from gitfourchette.localization import *
-from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution, OpenMergeTool
 from gitfourchette.toolbox import *
-from gitfourchette.exttools.toolprocess import ToolProcess
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +218,7 @@ class ConflictView(QWidget):
         self.ui.oursButton.setToolTip(kit.tipO)
         self.ui.theirsButton.setText(kit.captionT)
         self.ui.theirsButton.setToolTip(kit.tipT)
-        self.ui.explainer.setText(f"<b>{englishTitleCase(TrTables.enum(sides))}.</b> {kit.description}")
+        self.ui.explainer.setText(f"<b>{englishTitleCase(trtables.enum(sides))}.</b> {kit.description}")
 
         # Ours/theirs status icons
         iconOurs = stockIcon(kit.iconO).pixmap(QSize(16, 16), self.devicePixelRatio())

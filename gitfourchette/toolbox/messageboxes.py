@@ -65,8 +65,8 @@ def excMessageBox(
 
         if showExcSummary:
             try:
-                from gitfourchette.trtables import TrTables
-                summary = f"{TrTables.exceptionName(exc)}: {exc}"
+                from gitfourchette import trtables
+                summary = f"{trtables.exceptionName(exc)}: {exc}"
             except:  # noqa: E722
                 summaryLines = traceback.format_exception_only(exc.__class__, exc)
                 summary = ''.join(summaryLines).strip()

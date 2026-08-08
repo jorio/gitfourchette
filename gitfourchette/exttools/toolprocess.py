@@ -6,21 +6,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import logging
 import os
 import shlex
 from contextlib import suppress
+from pathlib import Path
 from signal import SIGINT
 
+from gitfourchette import trtables
 from gitfourchette.application import GFApplication
+from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.settings import prefs
 from gitfourchette.toolbox import *
-from gitfourchette.exttools.toolcommands import ToolCommands
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
     commandString = getattr(prefs, prefKey)
     programName = ToolPresets.getCommandName(commandString)
 
-    translatedPrefKey = TrTables.prefKey(prefKey)
+    translatedPrefKey = trtables.prefKey(prefKey)
 
     title = _("Failed to start {tool}", tool=translatedPrefKey)
 
@@ -94,7 +94,7 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
 
 
 def setUpToolCommand(parent: QWidget, prefKey: str):
-    translatedPrefKey = TrTables.prefKey(prefKey)
+    translatedPrefKey = trtables.prefKey(prefKey)
 
     title = translatedPrefKey
 

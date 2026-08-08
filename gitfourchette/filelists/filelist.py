@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterable, Iterator
 from contextlib import suppress
 from typing import Literal
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolprocess import ToolProcess
@@ -27,7 +28,6 @@ from gitfourchette.search.itemviewsearchprovider import ItemViewSearchProvider
 from gitfourchette.settings import FileListClick, getDiffToolName, getExternalEditorName
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 
 class FileListDelegate(QStyledItemDelegate):
@@ -238,7 +238,7 @@ class FileList(QListView):
 
         def pathDisplayStyleAction(pds: PathDisplayStyle):
             return ActionDef(
-                englishTitleCase(TrTables.enum(pds)),
+                englishTitleCase(trtables.enum(pds)),
                 lambda: GFApplication.applyPrefs(pathDisplayStyle=pds),
                 checkState=settings.prefs.pathDisplayStyle == pds)
 

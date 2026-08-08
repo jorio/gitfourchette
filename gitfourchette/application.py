@@ -489,13 +489,13 @@ class GFApplication(QApplication):
 
     def applyLanguagePref(self):
         from gitfourchette import settings
-        from gitfourchette.trtables import TrTables
+        from gitfourchette import trtables
         from gitfourchette.tasks.taskbook import TaskBook
 
         self.installTranslators(settings.prefs.language)
 
         # Regenerate rosetta stones
-        TrTables.retranslate(settings.prefs.language)
+        trtables.retranslate(settings.prefs.language)
         TaskBook.retranslate()
 
     def applyQtStylePref(self, paletteOnly=False):

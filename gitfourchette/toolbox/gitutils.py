@@ -8,9 +8,9 @@ import re
 from contextlib import suppress
 from typing import Literal
 
+from gitfourchette import trtables
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.trtables import TrTables
 
 INITIALS_PATTERN = re.compile(r"(?:^|[\s\-.'‘’\"“”])+([^\s\-.'‘’\"“”])[^\s\-.]*")
 FIRST_NAME_PATTERN = re.compile(r"(\S(\.?-|\.\s?|\s))*\S+")
@@ -104,7 +104,7 @@ def nameValidationMessage(name: str, reservedNames: list[str], nameTakenMessage:
         if exc.rule == NameValidationError.Rule.NAME_TAKEN_BY_REF and nameTakenMessage:
             return nameTakenMessage
         else:
-            return TrTables.enum(exc.rule)
+            return trtables.enum(exc.rule)
 
     return ""  # validation passed, no error
 

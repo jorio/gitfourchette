@@ -8,6 +8,7 @@ import warnings
 from collections.abc import Callable, Iterable
 from contextlib import suppress
 
+from gitfourchette import trtables
 from gitfourchette import porcelain
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
@@ -20,12 +21,11 @@ from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEREF
 from gitfourchette.repoprefs import RefSort
 from gitfourchette.sidebar.sidebardelegate import SidebarDelegate, SidebarClickZone
-from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem
 from gitfourchette.sidebar.sidebarfilter import SidebarFilter
+from gitfourchette.sidebar.sidebarmodel import SidebarModel, SidebarNode, SidebarItem
 from gitfourchette.sidebar.sidebarsearch import SidebarSearch
 from gitfourchette.tasks import *
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 from gitfourchette.webhost import WebHost
 
 INVALID_MOUSEPRESS = (-1, SidebarClickZone.Invalid)
@@ -147,7 +147,7 @@ class Sidebar(QTreeView):
         for sortMode in RefSort:
             if sortMode == RefSort.UseGlobalPref:
                 continue
-            caption = TrTables.enum(sortMode)
+            caption = trtables.enum(sortMode)
             action = ActionDef(
                 caption,
                 lambda m=sortMode: setSortMode(m),

@@ -4,13 +4,13 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.settings import WhitespaceMode
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 
 class DiffButtons(QWidget):
@@ -51,7 +51,7 @@ class DiffButtons(QWidget):
         actionGroup.setExclusive(True)
 
         for mode in WhitespaceMode:
-            label = escamp(TrTables.enum(mode))
+            label = escamp(trtables.enum(mode))
             iconName = f"diff-whitespace-{mode or 'strict'}"
             action = QAction(stockIcon(iconName), label, button)
             action.triggered.connect(lambda _dummy, m=mode: self.setWhitespaceMode(m))
@@ -113,7 +113,7 @@ class DiffButtons(QWidget):
         button = QToolButton(self)
         button.setCheckable(True)
         button.setIcon(stockIcon(icon))
-        button.setToolTip(TrTables.prefKey(prefKey))
+        button.setToolTip(trtables.prefKey(prefKey))
         button.toggled.connect(lambda checked: GFApplication.applyPrefs(**{prefKey: checked}))
         return button
 

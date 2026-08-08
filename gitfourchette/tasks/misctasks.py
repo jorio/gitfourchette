@@ -11,6 +11,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import ClassVar
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
@@ -24,7 +25,6 @@ from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
 from gitfourchette.tasks import TaskEffects
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -128,9 +128,9 @@ class GetCommitInfo(RepoTask):
         if gpgStatus == GpgStatus.Unsigned:
             gpgMarkup = tagify(_("(not signed)"), "<i>")
         elif gpgKeyInfo:
-            gpgMarkup = f"{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small>"
+            gpgMarkup = f"{gpgStatus.iconHtml()} {trtables.enum(gpgStatus)}<br><small>{escape(gpgKeyInfo)}</small>"
         else:
-            gpgMarkup = f"{gpgStatus.iconHtml()} {TrTables.enum(gpgStatus)}"
+            gpgMarkup = f"{gpgStatus.iconHtml()} {trtables.enum(gpgStatus)}"
 
         # Assemble table rows
         table = tableRow(_("Hash"), commit.id)
@@ -218,7 +218,7 @@ class VerifyGpgSignature(RepoTask):
         # Update gpg status cache
         self.repoModel.cacheGpgStatus(oid, status, keyInfo)
 
-        paras = [f"{stockIconImgTag(status.iconName())} {TrTables.enum(status)}"]
+        paras = [f"{stockIconImgTag(status.iconName())} {trtables.enum(status)}"]
 
         if status == GpgStatus.MissingKey:
             paras.append(_("Hint: Public key {0} isn’t in your GPG keyring. "

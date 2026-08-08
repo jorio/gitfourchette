@@ -10,6 +10,7 @@ import shlex
 from contextlib import suppress
 from typing import ClassVar
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.diffarea import DiffArea
@@ -31,8 +32,6 @@ from gitfourchette.tasks import RepoTaskRunner, TaskEffects, TaskBook
 from gitfourchette.tasks.misctasks import VerifyGpgQueue
 from gitfourchette.tasks.nettasks import AutoFetchRemotes
 from gitfourchette.toolbox import *
-from gitfourchette.toolbox.qtutils import reevaluateStyleSheet
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -601,7 +600,7 @@ class RepoWidget(QWidget):
 
         rstate = repo.state() if repo else RepositoryState.NONE
 
-        bannerTitle = TrTables.enum(rstate) if rstate != RepositoryState.NONE else ""
+        bannerTitle = trtables.enum(rstate) if rstate != RepositoryState.NONE else ""
         bannerText = ""
         bannerHeeded = False
         bannerAction = ""
@@ -660,7 +659,7 @@ class RepoWidget(QWidget):
             bannerText = _(
                 "The repo is currently in state {state}, which {app} doesn’t support yet. "
                 "Use <code>git</code> on the command line to continue.",
-                app=qAppName(), state=bquo(TrTables.enum(rstate)))
+                app=qAppName(), state=bquo(trtables.enum(rstate)))
 
         with DisableWidgetUpdatesContext(self.sideSplitter):
             if bannerText or bannerTitle:

@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from contextlib import suppress
 from typing import Any
 
+from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.gitdriver import GitDelta, GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsPointerState
@@ -17,7 +18,6 @@ from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import *
-from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +68,12 @@ def fileTooltip(
         text += newLine(_("name"), escape(nf.path))
 
     # Status caption
-    statusCaption = TrTables.fileStatus(sc)
+    statusCaption = trtables.fileStatus(sc)
     if sc not in '?U':  # show status char except for untracked and conflict
         statusCaption += f" ({sc})"
     if sc == 'U':  # conflict sides
         assert delta.conflict is not None
-        postfix = TrTables.enum(delta.conflict.sides)
+        postfix = trtables.enum(delta.conflict.sides)
         statusCaption += f" ({postfix})"
     text += newLine(_("status"), statusCaption)
 
@@ -85,9 +85,9 @@ def fileTooltip(
     if sc in 'DU':
         pass
     elif sc in 'A?':
-        text += newLine(_("file mode"), TrTables.enum(nf.mode))
+        text += newLine(_("file mode"), trtables.enum(nf.mode))
     elif of.mode != nf.mode:
-        text += newLine(_("file mode"), f"{TrTables.enum(of.mode)} \u2192 {TrTables.enum(nf.mode)}")
+        text += newLine(_("file mode"), f"{trtables.enum(of.mode)} \u2192 {trtables.enum(nf.mode)}")
 
     # Get mtime & size
     mTimeNS, size = -1, -1
