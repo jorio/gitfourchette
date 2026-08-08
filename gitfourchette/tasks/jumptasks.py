@@ -298,12 +298,19 @@ class Jump(RepoTask):
                 rw.dirtyFiles.setContents(repoModel.workdirUnstagedDeltas)
                 rw.stagedFiles.setContents(repoModel.workdirStagedDeltas)
 
+            # Invalidate ConflictView if its current conflict is gone
+            cc = rw.conflictView.currentConflict
+            if not any(cc == d.conflict for d in repoModel.workdirUnstagedDeltas):
+                rw.conflictView.invalidate()
+
+            # Update file counts in captions
             nDirty = rw.dirtyFiles.model().rowCount()
             nStaged = rw.stagedFiles.model().rowCount()
             rw.diffArea.dirtyHeader.setText(_n("Unstaged ({n})", "Unstaged ({n})", nDirty))
             rw.diffArea.stagedHeader.setText(_n("Staged ({n})", "Staged ({n})", nStaged))
             rw.diffArea.commitButton.setText(_n("Commit {n} file", "Commit {n} files", nStaged))
 
+            # Make Commit button bold if anything is staged
             commitButtonFont = rw.diffArea.commitButton.font()
             commitButtonBold = nStaged != 0
             if commitButtonFont.bold() != commitButtonBold:

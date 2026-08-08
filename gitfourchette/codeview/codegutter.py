@@ -40,10 +40,14 @@ class CodeGutter(QWidget):
         self.setFont(codeFont)
 
     def refreshMetrics(self):
-        raise NotImplementedError("override this")
+        if type(self) is not CodeGutter:  # pragma: no cover
+            raise NotImplementedError("CodeGutter subclasses must override this function")
 
     def calcWidth(self) -> int:
-        raise NotImplementedError("override this")
+        if type(self) is not CodeGutter:  # pragma: no cover
+            raise NotImplementedError("CodeGutter subclasses must override this function")
+
+        return 0
 
     def onParentUpdateRequest(self, rect: QRect, dy: int):
         if dy != 0:

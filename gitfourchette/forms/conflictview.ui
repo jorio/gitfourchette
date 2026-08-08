@@ -134,6 +134,19 @@
          </widget>
         </item>
         <item>
+         <widget class="QToolButton" name="oursPreviewButton">
+          <property name="toolTip">
+           <string>Preview</string>
+          </property>
+          <property name="text">
+           <string>Preview</string>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="spacer_4">
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
@@ -228,6 +241,19 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="theirsPreviewButton">
+          <property name="toolTip">
+           <string>Preview</string>
+          </property>
+          <property name="text">
+           <string>Preview</string>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
           </property>
          </widget>
         </item>

@@ -9,9 +9,11 @@ import os
 import shutil
 from itertools import chain
 from pathlib import Path
+from collections.abc import Callable
 
 from gitfourchette import trtables
 from gitfourchette import settings
+from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.gitdriver import *
@@ -439,6 +441,40 @@ class OpenMergeTool(RepoTask):
         mergeDriver._keepAroundMergeTempDir = mergeTempDir  # type: ignore[attr-defined]
 
         return mergeDriver
+
+
+class PreviewDeltaFile(RepoTask):
+    def flow(self, df: GitDeltaFile, prefix: str, registerCallback: Callable[[CodeWindow], None]):
+        # Don't load large files
+        maxFileSize = settings.prefs.largeFileThresholdKB * 1024
+        if maxFileSize != 0 and GitDeltaFile.SupportsFastSizeBallpark:
+            ballpark = df.sizeBallpark(self.repo)
+            if maxFileSize < ballpark:
+                locale = QLocale()
+                humanSize = locale.formattedDataSize(ballpark, 1)
+                message = _("This file is very large.") + f" ({humanSize})"
+                yield from self.flowConfirm(_p("ConflictView", "Preview"), message, verb=_("Show anyway"))
+
+        # Dump the file
+        path = yield from self.flowSubtask(SaveDeltaFileAs, df, saveIntoDir=qTempDir())
+        pathObj = Path(path)
+        text = pathObj.read_text("utf-8")
+        pathObj.unlink()
+
+        # Raise existing window, if any
+        try:
+            codeWindow = CodeWindow.findWindow(text)
+            codeWindow.activateWindow()
+            return
+        except KeyError:
+            pass
+
+        codeWindow = CodeWindow(text, df.path)
+        codeWindow.setWindowTitle(f"[{prefix}] {Path(df.path).name}")
+        codeWindow.show()
+        codeWindow.codeView.setFocus()
+
+        registerCallback(codeWindow)
 
 
 class AcceptMergeConflictResolution(RepoTask):

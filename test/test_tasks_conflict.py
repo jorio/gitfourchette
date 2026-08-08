@@ -4,13 +4,12 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import pytest
-
+from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.gitdriver import GitConflictSides
 from gitfourchette.nav import NavLocator
+from gitfourchette.porcelain import *
 from . import reposcenario
 from .util import *
-from gitfourchette.porcelain import *
 
 
 @pytest.mark.parametrize("viaContextMenu", [False, True])
@@ -571,3 +570,56 @@ def testMergeToolDelayedWrite(tempDir, mainWindow):
     assert cv.ui.confirmMergeButton.isVisible()
     cv.ui.confirmMergeButton.click()
     assert not rw.repo.any_conflicts
+
+
+def testConflictSidePreview(tempDir, mainWindow):
+    wd = f"{tempDir.name}/myrepo"
+    Path(wd).mkdir()
+
+    # Create a conflict on file.c
+    # (It's a C file to exercise syntax highlighting in CodeWindow)
+    shell("""
+        git init -b master .
+        git commit --allow-empty -m 'root commit'
+        git switch -c they-modified
+
+        echo 'int hello = 1;' > file.c
+        git add file.c
+        git commit -m 'add file.c'
+        echo 'int hello = 2;' > file.c
+        git commit -am 'modify file.c'
+
+        git switch master
+        git cherry-pick they-modified || true
+    """, directory=wd)
+
+    rw = mainWindow.openRepo(wd)
+    assert "file.c" in rw.repo.index.conflicts
+
+    cv = rw.conflictView
+    assert not cv.ui.oursPreviewButton.isEnabled()
+    assert cv.ui.theirsPreviewButton.isEnabled()
+    cv.ui.theirsPreviewButton.click()
+
+    window = findWindow("their.+file.c", t=CodeWindow)
+    waitUntilTrue(lambda: QApplication.activeWindow() is window)
+    assert window.codeView.toPlainText().strip() == 'int hello = 2;'
+
+    # Ensure that clicking the button again re-raises the existing window.
+    # Bring mainWindow back to the foreground first.
+    mainWindow.activateWindow()
+    waitUntilTrue(lambda: QApplication.activeWindow() is mainWindow)
+    # Change window title to force findWindow to fail below
+    window.setWindowTitle("YOINK!")
+    # Click the button - no new window must be created
+    cv.ui.theirsPreviewButton.click()
+    with pytest.raises(KeyError):
+        findWindow("their.+file.c", t=CodeWindow)
+    # Clicking the button should have raised the existing window
+    waitUntilTrue(lambda: QApplication.activeWindow() is window)
+
+    # When the conflict vanishes, so should the window
+    assert findWindow("YOINK", t=CodeWindow)
+    cv.ui.theirsButton.click()
+    with pytest.raises(KeyError):
+        findWindow("YOINK", t=CodeWindow)

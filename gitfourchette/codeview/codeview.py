@@ -345,7 +345,10 @@ class CodeView(QPlainTextEdit):
     # Context menu
 
     def contextMenuActions(self, clickedCursor: QTextCursor) -> list[ActionDef]:
-        raise NotImplementedError("subclasses of CodeView must override this!")
+        if type(self) is not CodeView:  # pragma: no cover
+            raise NotImplementedError("CodeView subclasses must override this function")
+
+        return []
 
     def onContextMenuRequested(self, point: QPoint):
         # Don't show the context menu if we're empty
@@ -494,3 +497,11 @@ class CodeView(QPlainTextEdit):
             raise KeyError("no detached code view")
         assert detachedCodeView.isDetachedWindow
         return detachedCodeView
+
+    def idealDetachedSize(self) -> QSize:
+        windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
+        windowWidth = (self.gutter.calcWidth()
+                       + self.fontMetrics().horizontalAdvance("M" * 81)
+                       + self.verticalScrollBar().width())
+        return QSize(windowWidth, windowHeight)
+

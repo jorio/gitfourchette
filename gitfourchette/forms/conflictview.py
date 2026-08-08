@@ -8,11 +8,13 @@ import logging
 import os
 from dataclasses import dataclass
 from typing import Literal
+from weakref import ReferenceType
 
 from gitfourchette import colors
 from gitfourchette import trtables
 from gitfourchette import settings
 from gitfourchette.application import GFApplication
+from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.forms.ui_conflictview import Ui_ConflictView
@@ -21,6 +23,7 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import RepoModel
 from gitfourchette.tasks import HardSolveConflicts, AcceptMergeConflictResolution, OpenMergeTool
+from gitfourchette.tasks.indextasks import PreviewDeltaFile
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
@@ -36,6 +39,8 @@ class ConflictViewKit:
     tipT: str = ""
     iconO: str = ""
     iconT: str = ""
+    previewO: bool = False
+    previewT: bool = False
 
 
 class ConflictView(QWidget):
@@ -45,6 +50,7 @@ class ConflictView(QWidget):
     currentConflict: GitConflict | None
     currentMerge: MergeDriver | None
     currentMergeState: MergeDriver.State
+    currentPreviewWindows: list[ReferenceType[QWidget]]
 
     def __init__(self, repoModel: RepoModel, parent=None):
         super().__init__(parent)
@@ -53,6 +59,7 @@ class ConflictView(QWidget):
         self.currentConflict = None
         self.currentMerge = None
         self.currentMergeState = MergeDriver.State.Idle
+        self.currentPreviewWindows = []
 
         self.ui = Ui_ConflictView()
         self.ui.setupUi(self)
@@ -62,6 +69,11 @@ class ConflictView(QWidget):
 
         tweakWidgetFont(self.ui.titleLabel, 130)
         tweakWidgetFont(self.ui.mergeToolButton, 88)
+
+        self.ui.oursPreviewButton.setIcon(stockIcon("view-visible"))
+        self.ui.theirsPreviewButton.setIcon(stockIcon("view-visible"))
+        self.ui.oursPreviewButton.clicked.connect(lambda: self.openPreview("ours"))
+        self.ui.theirsPreviewButton.clicked.connect(lambda: self.openPreview("theirs"))
 
         self.ui.mergeToolButton.clicked.connect(lambda: self.openPrefs.emit(ToolProcess.PrefKeyMergeTool))
         self.ui.oursButton.clicked.connect(lambda: self.execute("ours"))
@@ -148,6 +160,24 @@ class ConflictView(QWidget):
     def onMergeDriverResponse(self):
         self.refresh()
 
+    def openPreview(self, oursOrTheirs: Literal["ours", "theirs"]):
+        assert oursOrTheirs in ["ours", "theirs"]
+        assert self.currentConflict is not None
+
+        if oursOrTheirs == "ours":
+            df = self.currentConflict.ours
+            prefix = _p("ConflictView", "OUR version")
+        else:
+            df = self.currentConflict.theirs
+            prefix = _p("ConflictView", "THEIR version")
+
+        assert not df.isId0()
+        PreviewDeltaFile.invoke(self, df, prefix, self.registerPreviewWindow)
+
+    def registerPreviewWindow(self, preview: CodeWindow):
+        self.currentPreviewWindows.append(ReferenceType(preview))
+        self.destroyed.connect(preview.close)
+
     def invalidate(self):
         self.currentConflict = None
 
@@ -156,6 +186,12 @@ class ConflictView(QWidget):
             self.currentMerge = None
 
         self.currentMergeState = MergeDriver.State.Idle
+
+        while self.currentPreviewWindows:
+            previewWindowRef = self.currentPreviewWindows.pop()
+            previewWindow = previewWindowRef()
+            if previewWindow is not None:
+                previewWindow.close()
 
     def refresh(self):
         if self.currentConflict is not None:
@@ -219,6 +255,9 @@ class ConflictView(QWidget):
         self.ui.theirsButton.setText(kit.captionT)
         self.ui.theirsButton.setToolTip(kit.tipT)
         self.ui.explainer.setText(f"<b>{englishTitleCase(trtables.enum(sides))}.</b> {kit.description}")
+
+        self.ui.oursPreviewButton.setEnabled(kit.previewO)
+        self.ui.theirsPreviewButton.setEnabled(kit.previewT)
 
         # Ours/theirs status icons
         iconOurs = stockIcon(kit.iconO).pixmap(QSize(16, 16), self.devicePixelRatio())
@@ -303,6 +342,8 @@ class ConflictView(QWidget):
                     _("The file will be <b>replaced</b> with the incoming version.")),
                 iconO="status_m",
                 iconT="status_m",
+                previewO=True,
+                previewT=True,
             ),
 
             GitConflictSides.DeletedByUs: ConflictViewKit(
@@ -319,6 +360,7 @@ class ConflictView(QWidget):
                     _("The file will be restored to your branch with the incoming changes.")),
                 iconO="status_d",
                 iconT="status_m",
+                previewT=True,
             ),
 
             GitConflictSides.DeletedByThem: ConflictViewKit(
@@ -335,6 +377,7 @@ class ConflictView(QWidget):
                     _("The file will be deleted.")),
                 iconO="status_m",
                 iconT="status_d",
+                previewO=True,
             ),
 
             GitConflictSides.AddedByUs: ConflictViewKit(
@@ -344,6 +387,7 @@ class ConflictView(QWidget):
                 captionT=_("Delete it"),
                 iconO="status_a",
                 iconT="status_missing",
+                previewO=True,
             ),
 
             GitConflictSides.AddedByThem: ConflictViewKit(
@@ -353,6 +397,7 @@ class ConflictView(QWidget):
                 captionT=_("Accept THEIRS"),
                 iconO="status_missing",
                 iconT="status_a",
+                previewT=True,
             ),
 
             GitConflictSides.BothAdded: ConflictViewKit(
@@ -370,6 +415,8 @@ class ConflictView(QWidget):
                     _("The file will be <b>replaced</b> with the incoming version.")),
                 iconO="status_a",
                 iconT="status_a",
+                previewO=True,
+                previewT=True,
             ),
 
             GitConflictSides.BothDeleted: ConflictViewKit(
