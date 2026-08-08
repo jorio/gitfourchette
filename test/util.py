@@ -448,8 +448,8 @@ def triggerMenuAction(menu: QMenu | QMenuBar, pattern: str):
     action.trigger()
 
 
-def triggerContextMenuAction(widget: QWidget, pattern: str):
-    menu = summonContextMenu(widget)
+def triggerContextMenuAction(widget: QWidget, pattern: str, point: QPoint = QPoint_zero):
+    menu = summonContextMenu(widget, point)
     triggerMenuAction(menu, pattern)
     try:
         menu.close()

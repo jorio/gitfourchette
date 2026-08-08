@@ -235,7 +235,7 @@ def _parseShowLine(ms, md, hs, hd, statusChar, score, path1, path2) -> GitDelta:
     return GitDelta(status, fileSrc, fileDst, similarity=int(score) if score else 0)
 
 
-def parseGitBlame(stdout: str):
+def parseGitBlame(stdout: str) -> Iterator[tuple[str, int, str]]:
     # Transient data for current line
     commitId = ""
     originalLineNumber = -1

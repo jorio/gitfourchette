@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel, RevList, Revision
-from gitfourchette.gitdriver import argsIf, GitDriver, GitStatus
+from gitfourchette.diffview.diffdocument import LineData
+from gitfourchette.gitdriver import argsIf, GitDriver, GitStatus, GitDeltaSource, GitDelta
+from gitfourchette.gitdriver.gitdeltafile import HexHash0000
 from gitfourchette.gitdriver.parsers import parseGitBlame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -19,12 +21,15 @@ from gitfourchette.tasks import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
 
+if TYPE_CHECKING:
+    from gitfourchette.blameview.blamewindow import BlameWindow
+
 
 class OpenBlame(RepoTask):
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoUnborn
 
-    def flow(self, path: str, seed: Oid = NULL_OID):
+    def flow(self, path: str, seed: Oid = NULL_OID) -> RepoTask.Flow[BlameWindow]:
         from gitfourchette.blameview.blamewindow import BlameWindow
 
         upperBound = yield from self._findUpperBound(path, seed)
@@ -50,6 +55,8 @@ class OpenBlame(RepoTask):
         except KeyError:
             start = blameModel.currentRevision
         blameWindow.showRevision(start)
+
+        return blameWindow
 
     def _findUpperBound(self, path: str, seed: Oid) -> RepoTask.Flow[Oid]:
         if seed == NULL_OID:
@@ -186,6 +193,67 @@ class OpenBlame(RepoTask):
             node.path = delta.new.path
         node.status = delta.status
         return delta
+
+
+class OpenBlameToLine(RepoTask):
+    def prereqs(self) -> TaskPrereqs:
+        return TaskPrereqs.NoUnborn
+
+    def flow(self, delta: GitDelta, lineData: LineData):
+        if lineData.origin == "-":
+            file = delta.old
+            line = lineData.oldLineNo
+        else:
+            file = delta.new
+            line = lineData.newLineNo
+
+        # ----------------------------------------------------------------------
+        # Find out which commit introduced this line.
+        # We'll start the blame window to that commit.
+
+        if file.source == GitDeltaSource.Commit:
+            lineSeedRev = str(file.sourceCommit)
+        elif file.source == GitDeltaSource.Index and delta.source == GitDeltaSource.Dirty:
+            lineSeedRev = "HEAD"
+        else:
+            lineSeedRev = ""
+        assert lineSeedRev not in ["None", HexHash0000]
+
+        driver = yield from self.flowCallGit(
+            "blame",
+            "--porcelain",
+            f"-L{line},{line}",
+            *argsIf(bool(lineSeedRev), lineSeedRev),
+            "--",
+            file.path)
+
+        seedHash, line, _dummy = next(parseGitBlame(driver.stdoutScrollback()))
+        seedCommit = Oid(hex=seedHash)
+        # Note: Git can return 0000000 if the change originated in the workdir.
+        # We happen to interpret that as UC_FAKEID.
+
+        # ----------------------------------------------------------------------
+        # Perform the full blame
+
+        blameWindow: BlameWindow = yield from self.flowSubtask(OpenBlame, file.path, seedCommit)
+
+        # ----------------------------------------------------------------------
+        # Select the line
+
+        block = blameWindow.textEdit.document().findBlockByNumber(line - 1)
+        assert block.isValid()
+        cursor = QTextCursor(block)  # cursor positioned at block start
+        cursor.setPosition(block.position() + block.length() - 1, QTextCursor.MoveMode.KeepAnchor)
+        blameWindow.textEdit.setTextCursor(cursor)
+        blameWindow.textEdit.centerCursor()
+
+        # Check selection accuracy
+        if file.source.isWorkdir() and cursor.selectedText().rstrip() != lineData.text.rstrip():
+            sorry = paragraphs(
+                _("Couldn’t blame the exact line you selected, because "
+                  "the file contains both staged and unstaged changes."),
+                _("Try staging the entire file for more reliable results."))
+            showInformation(blameWindow, _("Blame Line"), sorry)
 
 
 class BlameRevision(RepoTask):
