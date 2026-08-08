@@ -461,18 +461,19 @@ class PreviewDeltaFile(RepoTask):
         text = pathObj.read_text("utf-8")
         pathObj.unlink()
 
-        # Raise existing window, if any
-        try:
-            codeWindow = CodeWindow.findWindow(text)
-            codeWindow.activateWindow()
-            return
-        except KeyError:
-            pass
+        ident = hash(text) ^ hash(df.path)
 
-        codeWindow = CodeWindow(text, df.path)
+        # Raise existing window, if any
+        if CodeWindow.activateExistingWindow(ident):
+            return
+
+        codeWindow = CodeWindow(uniqueIdentifier=ident)
+        codeWindow.setPlainText(text, df.path)
         codeWindow.setWindowTitle(f"[{prefix}] {Path(df.path).name}")
         codeWindow.show()
         codeWindow.codeView.setFocus()
+
+        self.rw.aboutToDelete.connect(codeWindow.close)
 
         registerCallback(codeWindow)
 

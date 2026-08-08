@@ -7,6 +7,7 @@
 import logging
 
 from gitfourchette import settings
+from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
@@ -435,6 +436,9 @@ class LoadPatch(RepoTask):
 
 class LoadPatchInNewWindow(RepoTask):
     def flow(self, delta: GitDelta, locator: NavLocator):
+        if CodeWindow.activateExistingWindow(locator):
+            return
+
         diffDocument = yield from self.flowSubtask(LoadPatch, delta, locator)
 
         if not isinstance(diffDocument, DiffDocument):
@@ -445,27 +449,15 @@ class LoadPatchInNewWindow(RepoTask):
         assert locator.context == NavContext.COMMITTED
         title = f"{locator.path} @ {shortHash(locator.commit)}"
 
-        diffWindow = QWidget(self.parentWidget())
+        diffWindow = CodeWindow(DiffView, locator)
         diffWindow.setObjectName("DetachedDiffWindow")
         diffWindow.setWindowTitle(title)
-        diffWindow.setWindowFlag(Qt.WindowType.Window, True)
-        diffWindow.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-
-        diff = DiffView(diffWindow)
-        diff.isDetachedWindow = True
-        diff.setFrameStyle(QFrame.Shape.NoFrame)
+        diff = diffWindow.codeView
+        assert isinstance(diff, DiffView)
         diff.replaceDocument(self.repo, delta, locator, diffDocument)
-
-        layout = QVBoxLayout(diffWindow)
-        layout.setContentsMargins(QMargins())
-        layout.setSpacing(0)
-        layout.addWidget(diff)
-        layout.addWidget(diff.searchBar)
-
-        diffWindow.resize(550, 700)
         diffWindow.show()
 
-        diff.setUpAsDetachedWindow()  # Required for detached windows
+        self.rw.aboutToDelete.connect(diffWindow.close)
 
 
 class DownloadLfsObjects(RepoTask):

@@ -48,6 +48,7 @@ class RepoWidget(QWidget):
     requestAttention = Signal()
     becameVisible = Signal()
     mustReplaceWithStub = Signal(RepoStub)
+    aboutToDelete = Signal()
 
     busyMessage = Signal(str)
     statusMessage = Signal(str)
@@ -387,6 +388,8 @@ class RepoWidget(QWidget):
 
         # Kill any ongoing task then block UI thread until the task dies cleanly
         self.taskRunner.prepareForDeletion()
+
+        self.aboutToDelete.emit()
 
         # Save sidebar collapse cache
         with NonCriticalOperation("Write repo prefs"):  # May raise OSError

@@ -596,6 +596,8 @@ def testConflictSidePreview(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     assert "file.c" in rw.repo.index.conflicts
 
+    assert not CodeWindow._liveWindows
+
     cv = rw.conflictView
     assert not cv.ui.oursPreviewButton.isEnabled()
     assert cv.ui.theirsPreviewButton.isEnabled()
@@ -623,3 +625,5 @@ def testConflictSidePreview(tempDir, mainWindow):
     cv.ui.theirsButton.click()
     with pytest.raises(KeyError):
         findWindow("YOINK", t=CodeWindow)
+
+    waitUntilTrue(lambda: not CodeWindow._liveWindows)

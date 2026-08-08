@@ -39,11 +39,6 @@ class OpenBlame(RepoTask):
         # Die in tandem with RepoWidget
         self.rw.destroyed.connect(blameWindow.close)
 
-        windowHeight = int(QApplication.primaryScreen().availableSize().height() * .8)
-        windowWidth = (blameWindow.textEdit.gutter.calcWidth()
-                       + blameWindow.textEdit.fontMetrics().horizontalAdvance("M" * 81)
-                       + blameWindow.textEdit.verticalScrollBar().width())
-        blameWindow.resize(windowWidth, windowHeight)
         blameWindow.show()
         blameWindow.activateWindow()  # bring to foreground after ProcessDialog
 

@@ -105,6 +105,8 @@ class BlameWindow(QWidget):
         self.busySpinner = BlameBusySpinner(self.textEdit)
         self.textEdit.sizeChanged.connect(self.busySpinner.reposition)
 
+        self.resize(self.textEdit.idealDetachedSize())
+
         app = GFApplication.instance()
         app.mouseSideButtonPressed.connect(self.onMouseSideButtonPressed)
 
