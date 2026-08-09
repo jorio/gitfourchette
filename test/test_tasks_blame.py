@@ -665,3 +665,43 @@ def testBlameMissingRevisions(blameWindow):
 
     menu = summonContextMenu(blameWindow.textEdit.viewport(), QPoint(4, 4))
     assert not findMenuAction(menu, f"blame file at.+{shortMissingId}").isEnabled()
+
+
+def testBlameDiscoverUpperBoundOnOtherBranch(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    shell("""
+        git switch i18n
+        echo 'tschuess' >> bye.txt
+        git commit -am 'Say bye in German'
+
+        git switch pep8-fixes
+        echo 'hasta luego' >> bye.txt
+        git commit -am 'Say bye in Spanish'
+
+        git switch master
+        echo 'tot ziens' > bye.txt
+        git add bye.txt
+        git commit -am 'Say bye in Dutch'
+    """, wd)
+
+    addByeTxtOnI18n = Oid(hex="5470a671a80ac3789f1a6a8cefbcf43ce7af0563")
+    addByeTxtOnPep8 = Oid(hex="03490f16b15a09913edb3a067a3dc67fbb8d41f1")
+
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(addByeTxtOnI18n, "bye.txt"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "blame")
+    blameWindow = findWindow("blame", BlameWindow)
+    messages = [rw.repo[s.commitId].peel(Commit).message.strip()
+                for s in blameWindow.model.revList.sequence]
+    assert messages == ["Say bye in German", "added bye.txt and new"]
+    blameWindow.close()
+
+    rw.jump(NavLocator.inCommit(addByeTxtOnPep8, "bye.txt"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "blame")
+    blameWindow = findWindow("blame", BlameWindow)
+    messages = [rw.repo[s.commitId].peel(Commit).message.strip()
+                for s in blameWindow.model.revList.sequence]
+    assert messages == ["Say bye in Spanish", "new file bye.txt"]
+    blameWindow.close()

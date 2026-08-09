@@ -27,7 +27,8 @@ class OpenBlame(RepoTask):
     def flow(self, path: str, seed: Oid = NULL_OID):
         from gitfourchette.blameview.blamewindow import BlameWindow
 
-        revList = yield from self._buildRevList(path)
+        upperBound = yield from self._findUpperBound(path, seed)
+        revList = yield from self._buildRevList(path, upperBound)
 
         blameModel = BlameModel(self.repoModel, revList)
 
@@ -50,11 +51,46 @@ class OpenBlame(RepoTask):
             start = blameModel.currentRevision
         blameWindow.showRevision(start)
 
-    def _buildRevList(self, path: str):
-        seedPath = path
+    def _findUpperBound(self, path: str, seed: Oid) -> RepoTask.Flow[Oid]:
+        if seed == NULL_OID:
+            return seed
 
+        # Favor current branch if it contains this commit
+        if path not in self.repo.head_tree:
+            useHead = False
+        else:
+            driver = yield from self.flowCallGit(
+                "merge-base",
+                "--is-ancestor",
+                str(seed),
+                "HEAD",
+                autoFail=False)
+            if driver.exitCode() not in [0, 1]:
+                raise AbortTask(driver.htmlErrorText(), details=driver.formatCommandLine())
+            useHead = driver.exitCode() == 0
+
+        if useHead:
+            newSeed = self.repo.head_commit_id
+        else:
+            # Fall back to most recent branch that contains this commit
+            driver = yield from self.flowCallGit(
+                "for-each-ref",
+                "--count=1",
+                f"--contains={seed}",
+                "--format=%(objectname)")
+            hashStr = driver.stdoutScrollback().strip()
+            newSeed = Oid(hex=hashStr)
+
+        if seed != newSeed:
+            tree = self.repo[newSeed].peel(Tree)
+            if path in tree:
+                seed = newSeed
+
+        return seed
+
+    def _buildRevList(self, path: str, upperBound: Oid) -> RepoTask.Flow[RevList]:
+        seedPath = path
         revList = RevList()
-        upperBound = NULL_OID
 
         while path:
             revision, path = yield from self._expandRevList(revList, path, upperBound)
@@ -62,7 +98,7 @@ class OpenBlame(RepoTask):
                 upperBound = revision.commitId
 
         if len(revList) == 0:
-            raise AbortTask(_("File {0} has no history in the repository.", hquoe(seedPath)))
+            raise AbortTask(_("File {0} has no history in the repository.", bquo(seedPath)))
 
         wdDelta = self.repoModel.findWorkdirDelta(seedPath)
         if wdDelta is not None:
@@ -72,7 +108,12 @@ class OpenBlame(RepoTask):
 
         return revList
 
-    def _expandRevList(self, revList: RevList, path: str, upperBound: Oid):
+    def _expandRevList(
+            self,
+            revList: RevList,
+            path: str,
+            upperBound: Oid
+    ) -> RepoTask.Flow[tuple[Revision | None, str]]:
         # Notes about some of the arguments:
         # --parents
         #       Enable parent rewriting so we can build a simplified graph
