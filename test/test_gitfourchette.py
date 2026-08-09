@@ -24,7 +24,6 @@ from gitfourchette.forms.donateprompt import DonatePrompt
 from gitfourchette.forms.processdialog import ProcessDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow, CommitLogModel
 from gitfourchette.mainwindow import MainWindow
 from gitfourchette.nav import NavLocator
@@ -838,12 +837,10 @@ def testConfigFileScrubbing(tempDir, mainWindow):
 
 def testHideSelectedBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        masterId = repo.branches.local['master'].target
-        detachedId = Oid(hex='ce112d052bcf42442aa8563f1e2b7a8aabbf4d17')
-        repo.checkout_commit(detachedId)
+    shell("git checkout ce112d0", wd)
 
     rw = mainWindow.openRepo(wd)
+    masterId = rw.repo.branches.local['master'].target
 
     # Select branch 'master'...
     rw.selectRef('refs/heads/master')
@@ -882,7 +879,7 @@ def testOpenWorktreeSubdirectoryOfBareRepo(tempDir, mainWindow):
     barePath = makeBareCopy(referenceWd, "", False)
 
     worktreePath = f"{barePath}/MyCoolWorktree"
-    GitDriver.runSync("worktree", "add", worktreePath,  directory=barePath, strict=True)
+    shell(f"git worktree add {worktreePath}", barePath)
     writeFile(f"{worktreePath}/hello.txt", "hello")
 
     rw = mainWindow.openRepo(worktreePath)

@@ -232,11 +232,10 @@ def testUserCommandTokenPrerequisitesNotMet(tempDir, mainWindow, commandsScratch
 
     wd = unpackRepo(tempDir, testRepoName)
 
-    with RepoContext(wd) as repo:
-        if scenario == "noupstream":
-            repo.edit_upstream_branch("master", "")
-        elif scenario == "detach":
-            repo.checkout_commit(locHead.commit)
+    if scenario == "noupstream":
+        shell("git branch --unset-upstream master", wd)
+    elif scenario == "detach":
+        shell(f"git checkout {locHead.commit}", wd)
 
     rw = mainWindow.openRepo(wd)
 

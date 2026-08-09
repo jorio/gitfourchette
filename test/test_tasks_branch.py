@@ -161,8 +161,7 @@ def testSetUpstreamBranch(tempDir, mainWindow, branchSettings: tuple[str, str]):
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testRenameBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("folder1/folder2/leaf")
+    shell("git branch folder1/folder2/leaf", wd)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
@@ -233,8 +232,7 @@ def testRenameBranch(tempDir, mainWindow, method):
 
 def testRenameBranchInFolder(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("folder1/folder2/leaf")
+    shell("git branch folder1/folder2/leaf", wd)
     rw = mainWindow.openRepo(wd)
 
     node = rw.sidebar.findNodeByRef("refs/heads/folder1/folder2/leaf")
@@ -255,8 +253,8 @@ def testRenameBranchInFolder(tempDir, mainWindow):
     assert nameEdit.text() == "folder1/folder2/feuille"
 
     dlg.accept()
-    assert "folder1/folder2/leaf" not in repo.branches.local
-    assert "folder1/folder2/feuille" in repo.branches.local
+    assert "folder1/folder2/leaf" not in rw.repo.branches.local
+    assert "folder1/folder2/feuille" in rw.repo.branches.local
 
 
 def testRenameBranchIdenticalName(tempDir, mainWindow):
@@ -300,12 +298,13 @@ def testRenameBranchKeepsUpstreamStable(tempDir, mainWindow):
 @pytest.mark.parametrize("newName", ["newfolder", "folder4", "", "folder1/folder2"])
 def testRenameBranchFolder(tempDir, mainWindow, method, newName):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("folder1/leaf")
-        repo.create_branch_on_head("folder1/folder2/leaf")
-        repo.create_branch_on_head("folder1/folder2/folder3/leaf")
-        repo.create_branch_on_head("folder1/folder2_donttouchthis/leaf")
-        repo.create_branch_on_head("folder4/wontclash")
+    shell("""
+        git branch folder1/leaf
+        git branch folder1/folder2/leaf
+        git branch folder1/folder2/folder3/leaf
+        git branch folder1/folder2_donttouchthis/leaf
+        git branch folder4/wontclash
+    """, wd)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
@@ -364,14 +363,10 @@ def testRenameBranchFolder(tempDir, mainWindow, method, newName):
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testDeleteBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        commit = repo['6e1475206e57110fcef4b92320436c1e9872a322']
-        repo.branches.create("somebranch", commit)
-        assert "somebranch" in repo.branches.local
+    shell("git branch somebranch 6e14752", wd)
 
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
-
     node = rw.sidebar.findNodeByRef("refs/heads/somebranch")
 
     if method == "sidebarmenu":
@@ -391,16 +386,16 @@ def testDeleteBranch(tempDir, mainWindow, method):
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testDeleteBranchFolder(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("folder1/leaf")
-        repo.create_branch_on_head("folder1/folder2/leaf")
-        repo.create_branch_on_head("folder1/folder2/folder3/leaf")
-        repo.create_branch_on_head("folder1/folder2_donttouchthis/leaf")
-        repo.create_branch_on_head("folder4/wontclash")
+    shell("""
+        git branch folder1/leaf
+        git branch folder1/folder2/leaf
+        git branch folder1/folder2/folder3/leaf
+        git branch folder1/folder2_donttouchthis/leaf
+        git branch folder4/wontclash
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
-
     node = rw.sidebar.findNode(lambda n: n.data == "refs/heads/folder1/folder2")
 
     if method == "sidebarmenu":
@@ -447,8 +442,7 @@ def testDeleteCurrentBranch(tempDir, mainWindow, method):
 
 def testDeleteBranchFolderContainingCurrentBranch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.rename_local_branch("master", "folder1/master")
+    shell("git branch -m master folder1/master", wd)
 
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
@@ -546,10 +540,7 @@ def testNewBranchFromCommit(tempDir, mainWindow, method):
 def testNewBranchFromDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     oid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
-
-    with RepoContext(wd) as repo:
-        repo.checkout_commit(oid)
-        assert repo.head_is_detached
+    shell(f"git checkout {oid}", wd)
 
     rw = mainWindow.openRepo(wd)
     localBranches = rw.repo.branches.local
@@ -629,8 +620,7 @@ def testNewBranchFromLocalBranch(tempDir, mainWindow, method):
 
 def testNewBranchFromLocalBranchInFolder(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("folder1/folder2/leaf")
+    shell("git branch folder1/folder2/leaf", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -812,10 +802,11 @@ def testSwitchBranchWorkdirConflicts(tempDir, mainWindow):
 def testRecallCommit(tempDir, mainWindow):
     lostId = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
-        repo.checkout_local_branch("no-parent")
-        repo.delete_local_branch("master")
+    shell("""
+        git remote remove origin
+        git switch no-parent
+        git branch -D master
+    """, wd)
     rw = mainWindow.openRepo(wd)
     assert "master" not in rw.repoModel.refs
     assert lostId not in rw.repoModel.refsAt
@@ -832,12 +823,13 @@ def testFastForwardCurrentBranch(tempDir, mainWindow):
     targetCommit = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        assert repo.branches["origin/master"].target == targetCommit
-        assert repo.branches["no-parent"].target != targetCommit
-        repo.checkout_local_branch("no-parent")
-        repo.edit_upstream_branch("no-parent", "origin/master")
+    shell("""
+        git switch no-parent
+        git branch no-parent -u origin/master
+    """, wd)
     rw = mainWindow.openRepo(wd)
+    assert rw.repo.branches["origin/master"].target == targetCommit
+    assert rw.repo.branches["no-parent"].target != targetCommit
 
     # This file doesn't exist on no-parent initally
     assert not os.path.exists(f"{wd}/a/a1")
@@ -859,13 +851,14 @@ def testFastForwardOtherBranch(tempDir, mainWindow):
     targetCommit = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        assert repo.branches["origin/master"].target == targetCommit
-        assert repo.branches["no-parent"].target != targetCommit
-        repo.checkout_local_branch("no-parent")
-        repo.create_branch_on_head("no-parent-ffwd")
-        repo.edit_upstream_branch("no-parent-ffwd", "origin/master")
+    shell("""
+        git switch no-parent
+        git branch no-parent-ffwd
+        git branch no-parent-ffwd -u origin/master
+    """, wd)
     rw = mainWindow.openRepo(wd)
+    assert rw.repo.branches["origin/master"].target == targetCommit
+    assert rw.repo.branches["no-parent"].target != targetCommit
 
     node = rw.sidebar.findNodeByRef("refs/heads/no-parent-ffwd")
     menu = rw.sidebar.makeNodeMenu(node)
@@ -898,9 +891,10 @@ def testFastForwardNotNecessary(tempDir, mainWindow, branch):
 
 def testFastForwardDivergent(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("no-parent")
-        repo.edit_upstream_branch("no-parent", "origin/first-merge")
+    shell("""
+        git switch no-parent
+        git branch no-parent -u origin/first-merge
+    """, wd)
     rw = mainWindow.openRepo(wd)
 
     node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
@@ -922,8 +916,7 @@ def testMergeUpToDate(tempDir, mainWindow):
 @pytest.mark.parametrize("method", ["sidebar", "checkout"])
 def testMergeFastForward(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch('no-parent')
+    shell("git switch no-parent", wd)
     rw = mainWindow.openRepo(wd)
 
     assert rw.repo.head.target != rw.repo.branches.local['master'].target
@@ -957,8 +950,7 @@ def testMergeFastForward(tempDir, mainWindow, method):
 
 def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch('no-parent')
+    shell("git switch no-parent", wd)
     rw = mainWindow.openRepo(wd)
 
     assert rw.repo.head.target != rw.repo.branches.local['master'].target
@@ -1107,10 +1099,11 @@ def testMergeDeniedDueToConflictingFileInWorktree(tempDir, mainWindow):
 def testMergeNonTipCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
 
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("ff-branch")
-        repo.create_commit_on_head("moving tip beyond e97b4cf", TEST_SIGNATURE, TEST_SIGNATURE)
-        repo.checkout_local_branch("master")
+    shell("""
+        git switch ff-branch
+        git commit --allow-empty -m 'moving tip beyond e97b4cf'
+        git switch master
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="e97b4cfd5db0fb4ebabf4f203979ca4e5d1c7c87"), "welcome.txt"), check=True)
@@ -1132,11 +1125,13 @@ def testMergeNonTipCommit(tempDir, mainWindow):
 def testMightLoseDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        repo.checkout_commit(repo.head_commit_id)
-        looseOid = repo.create_commit_on_head("lost commit", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("""
+        git switch --detach HEAD
+        git commit --allow-empty -m 'lost commit'
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
+    looseOid = rw.repo.head_commit_id
 
     assert rw.repo.head_is_detached
     assert looseOid in rw.repoModel.graph.commitRows
@@ -1167,11 +1162,13 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
 def testCreateBranchOnDetachedHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        repo.checkout_commit(repo.head_commit_id)
-        looseOid = repo.create_commit_on_head("lost commit", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("""
+        git switch --detach HEAD
+        git commit --allow-empty -m 'lost commit'
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
+    looseOid = rw.repo.head_commit_id
     assert rw.repo.head_is_detached
 
     rw.jump(NavLocator.inCommit(looseOid))

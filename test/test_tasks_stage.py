@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -117,12 +117,11 @@ def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow,
 @pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
 def testDiscardModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    path = f"{wd}/a/a1.txt"
-    assert not fileHasUserExecutableBit(path)
 
-    writeFile(path, "keep this!")
-    os.chmod(path, 0o777)
-    assert fileHasUserExecutableBit(path)
+    shell("""
+        echo 'keep this!' > a/a1.txt
+        chmod 777 a/a1.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert qlvGetRowData(rw.dirtyFiles) == ["[+x] a/a1.txt"]
@@ -130,21 +129,19 @@ def testDiscardModeChange(tempDir, mainWindow):
     triggerContextMenuAction(rw.dirtyFiles.viewport(), "revert mode")
     acceptQMessageBox(rw, "(restore|revert|discard) mode")
 
-    assert readFile(path).decode() == "keep this!"
-    assert not fileHasUserExecutableBit(path)
+    assert readTextFile(f"{wd}/a/a1.txt").strip() == "keep this!"
+    assert not fileHasUserExecutableBit(f"{wd}/a/a1.txt")
 
 
 @pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
 def testUnstageModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    path = f"{wd}/a/a1.txt"
-    assert not fileHasUserExecutableBit(path)
 
-    writeFile(path, "keep this!")
-    os.chmod(path, 0o777)
-    assert fileHasUserExecutableBit(path)
-    with RepoContext(wd, write_index=True) as repo:
-        repo.index.add_all()
+    shell("""
+        echo 'keep this!' > a/a1.txt
+        chmod 777 a/a1.txt
+        git add a/a1.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB_EXECUTABLE

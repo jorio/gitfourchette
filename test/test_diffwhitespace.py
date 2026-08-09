@@ -59,11 +59,11 @@ def whitespaceOnlyChangesDetected(rw):
 def testDiffWhitespaceModes(tempDir, mainWindow, textA, textB, ignoredWith):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        writeFile(f"{wd}/hello.txt", textA)
-        repo.index.add("hello.txt")
-        repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
-    writeFile(f"{wd}/hello.txt", textB)
+    shell(f"""
+        printf {shlex.quote(textA)} > hello.txt
+        git add hello.txt && git commit -m hello
+        printf {shlex.quote(textB)} > hello.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged("hello.txt"), check=True)

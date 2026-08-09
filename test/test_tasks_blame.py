@@ -16,7 +16,6 @@ from typing import Literal, ClassVar
 
 from gitfourchette.blameview.blamemodel import Revision
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel
 from .util import *
 
@@ -374,18 +373,19 @@ def testBlameSyntaxHighlighting(tempDir, mainWindow):
           - name: "goodbye"
           - scalar: 1234
         """)
-    oids = []
 
-    with RepoContext(wd) as repo:
-        for i, revision in enumerate([text1, text2], start=1):
-            writeFile(f"{wd}/SomeNewFile.yml", revision)
-            repo.index.add_all()
-            oid = repo.create_commit_on_head(f"syntaxtest{i}", TEST_SIGNATURE, TEST_SIGNATURE)
-            oids.append(oid)
+    shell(f"""
+        echo {shlex.quote(text1)} > SomeNewFile.yml
+        git add SomeNewFile.yml && git commit -m syntaxtest1
+        echo {shlex.quote(text2)} > SomeNewFile.yml
+        git add SomeNewFile.yml && git commit -m syntaxtest2
+    """, wd)
 
     # Open blame window on the commit that produced text1
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(oids[0], "SomeNewFile.yml"), check=True)
+    oid1 = rw.repo.head_commit.parent_ids[0]
+
+    rw.jump(NavLocator.inCommit(oid1, "SomeNewFile.yml"), check=True)
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
     blameWindow = findWindow("blame", BlameWindow)
     assert "syntaxtest1" in blameWindow.scrubber.currentText()
@@ -416,22 +416,23 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     ]
 
     wd = unpackRepo(tempDir)
-    oids = []
-    with RepoContext(wd) as repo:
-        for i, snapshot in enumerate(fileHistory):
-            writeFile(f"{wd}/hello.c", snapshot)
-            repo.index.add_all()
-            oid = repo.create_commit_on_head(f"revision {i}", TEST_SIGNATURE, TEST_SIGNATURE)
-            oids.append(oid)
+    shell(f"""
+        echo {shlex.quote(fileHistory[0].rstrip())} > hello.c && git add hello.c && git commit -m 'revision 0'
+        echo {shlex.quote(fileHistory[1].rstrip())} > hello.c && git commit -am 'revision 1'
+        echo {shlex.quote(fileHistory[2].rstrip())} > hello.c && git commit -am 'revision 2'
+        echo {shlex.quote(fileHistory[3].rstrip())} > hello.c && git commit -am 'revision 3'
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(oids[0], "hello.c"), check=True)
+    oid0 = rw.repo.head_commit.parents[0].parents[0].parent_ids[0]
+
+    rw.jump(NavLocator.inCommit(oid0, "hello.c"), check=True)
     triggerMenuAction(mainWindow.menuBar(), "view/blame")
 
     blameWindow = findWindow("blame", BlameWindow)
     assert blameWindow.textEdit.toPlainText() == fileHistory[0]
     assert blameWindow.scrubber.count() == len(fileHistory)
-    assert blameWindow.scrubber.currentText() == "revision 0"
+    assert blameWindow.scrubber.currentText() == "revision 0\n"
     vsb = blameWindow.textEdit.verticalScrollBar()
     assert vsb.isVisible()
     vsb.setValue(numPaddingLines)
@@ -439,19 +440,19 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
 
     # Go up 1 revision - Line numbers identical. Exact 'foo' line should be found.
     blameWindow.newerButton.click()
-    assert blameWindow.scrubber.currentText() == "revision 1"
+    assert blameWindow.scrubber.currentText() == "revision 1\n"
     assert blameWindow.textEdit.toPlainText() == fileHistory[1]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
 
     # Go up 1 revision - One new line was added above 'foo' line. Exact 'foo' line should still be found.
     blameWindow.newerButton.click()
-    assert blameWindow.scrubber.currentText() == "revision 2"
+    assert blameWindow.scrubber.currentText() == "revision 2\n"
     assert blameWindow.textEdit.toPlainText() == fileHistory[2]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int foo=1;"
 
     # Go up 1 revision - 'foo' line was deleted, so rely on raw line numbers.
     blameWindow.newerButton.click()
-    assert blameWindow.scrubber.currentText() == "revision 3"
+    assert blameWindow.scrubber.currentText() == "revision 3\n"
     assert blameWindow.textEdit.toPlainText() == fileHistory[3]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"
 
@@ -523,7 +524,6 @@ def testReevaluateBlameSearchTermAcrossRevisions(blameWindow, taskThread):
     # Go to "Say hello in French" via combobox
     qcbSetIndex(blameWindow.scrubber, "say hello in french")
     waitUntilTrue(lambda: not searchBar.isRed())
-
 
 
 # -----------------------------------------------------------------------------
@@ -610,7 +610,7 @@ def testBlameDeletedFileInWorkdir(tempDir, mainWindow):
 @pytest.mark.parametrize("method", ["menubar", "context"])
 def testBlameRenamedFileInWorkdir(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    GitDriver.runSync("mv", "master.txt", "renamed.txt", directory=wd, strict=True)
+    shell("git mv master.txt renamed.txt", wd)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inStaged("renamed.txt"), check=True)
@@ -640,8 +640,8 @@ def testBlameMissingRevisions(blameWindow):
     rw = blameWindow._unitTestRepoWidget
 
     # Create a fake commit
-    with RepoContext(rw.repo) as repo:
-        missingId = repo.create_commit_on_head("fake missing rev", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("git commit --allow-empty -m'fake missing rev'", rw.repo.workdir)
+    missingId = rw.repo.head_commit_id
     rw.refreshRepo()
 
     shortMissingId = str(missingId)[:7]

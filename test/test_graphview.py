@@ -4,11 +4,9 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import pygit2.enums
 import pytest
 
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavLocator
@@ -142,9 +140,10 @@ def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
     waitUntilTrue(filterState.isReady)
     assert oldHeadId in filterState.matchingIds
 
-    with RepoContext(wd) as repo:
-        newHeadId = repo.amend_commit_on_head("amending and still deleting the file we're looking for", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("git commit --amend -m 'amending, still deleting the file being searched for'", wd)
     rw.refreshRepo()
+    newHeadId = rw.repo.head_commit_id
+    assert oldHeadId != newHeadId
     assert oldHeadId not in filterState.matchingIds
     assert newHeadId in filterState.matchingIds
 
@@ -473,9 +472,11 @@ def testRefSortFavorsHeadBranch(tempDir, mainWindow):
     with RepoContext(wd) as repo:
         headCommit = repo.head_commit
         assert headCommit.id == masterId
-        repo.create_branch_on_head("master-2")
-        repo.checkout_local_branch("master-2")
-        amendedId = repo.amend_commit_on_head("should appear above master in graph", headCommit.author, headCommit.committer)
+        shell("""
+            git switch -c master-2
+            git commit --amend -m 'should appear above master in graph'
+        """, wd, authorSig=headCommit.author, committerSig=headCommit.committer)
+        amendedId = repo.branches.local["master-2"].target
         assert repo[amendedId].author.time == headCommit.author.time
         assert repo[amendedId].committer.time == headCommit.committer.time
 
@@ -485,13 +486,15 @@ def testRefSortFavorsHeadBranch(tempDir, mainWindow):
     assert amendedIndex.row() < masterIndex.row()
 
 
-@pytest.mark.skipif(WAYLAND and not OFFSCREEN, reason="wayland blocks cursor control (note: offscreen is fine)")
+# @pytest.mark.skipif(WAYLAND and not OFFSCREEN, reason="wayland blocks cursor control (note: offscreen is fine)")
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 def testCommitToolTip(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        repo.amend_commit_on_head("fairly verbose commit message that should be elided in a narrow window")
+    sig1 = TEST_SIGNATURE
+    sig2 = Signature(sig1.name, sig1.email, sig1.time + 3600, sig1.offset)
+
+    shell("git commit --amend -m 'fairly verbose commit message that should be elided in a narrow window'", wd)
 
     rw = mainWindow.openRepo(wd)
     row = 1
@@ -513,15 +516,18 @@ def testCommitToolTip(tempDir, mainWindow):
     assert "a.u.thor@example.com" in toolTip
 
     # Amend, committer and author are different
-    rw.repo.amend_commit_on_head("AMENDED 1", committer=TEST_SIGNATURE)
+    shell("git commit --amend -m 'AMENDED 1'", wd, authorSig=None)
     rw.refreshRepo()
     toolTip = qlvSummonToolTip(rw.graphView, row)
+    toolTip = stripHtml(toolTip)
+    assert re.search("^A U Thor", toolTip)
     assert re.search("Committed by.+Test Person", toolTip)
 
     # Amend, committer and author are the same person, but they use different times
     longMessage = "AMENDED 2\n\nand while we're here, let's cover the code path that wraps very long commit messages in tooltips, yadda yadda, filler filler"
-    signature2 = Signature(TEST_SIGNATURE.name, TEST_SIGNATURE.email, TEST_SIGNATURE.time + 3600, 0)
-    rw.repo.amend_commit_on_head(longMessage, committer=TEST_SIGNATURE, author=signature2)
+    shell(f"git commit --amend --reset-author -m {shlex.quote(longMessage)}",
+          directory=wd, authorSig=sig1, committerSig=sig2)
+
     rw.refreshRepo()
     toolTip = qlvSummonToolTip(rw.graphView, row)
     toolTip = stripHtml(toolTip)
@@ -533,19 +539,22 @@ def testCommitToolTip(tempDir, mainWindow):
 def testUnknownRefPrefix(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    # Write unsupported ref to a commit within the graph
-    visibleOid = Oid(hex="f73b95671f326616d66b2afb3bdfcdbbce110b44")
-    writeFile(f"{wd}/.git/refs/weird", str(visibleOid)+"\n")
+    shell("""
+        # Write unsupported ref to a commit within the graph
+        git rev-parse HEAD > .git/refs/weird
 
-    # Write unsupported ref to a commit outside the graph
-    # (Create new commit then reset master to previous HEAD)
-    with RepoContext(wd) as repo:
-        oldHead = repo.head_commit_id
-        writeFile(f"{wd}/toto.txt", "hello world\n")
-        repo.index.add("toto.txt")
-        ghostOid = repo.create_commit_on_head("this commit shouldnt appear")
-        writeFile(f"{wd}/.git/refs/ghost", str(ghostOid))
-        repo.reset(oldHead, pygit2.enums.ResetMode.HARD)
+        # Write unsupported ref to a commit outside the graph
+        # (Create new commit then reset master to previous HEAD)
+        git branch return-here
+        echo 'hello world' > toto.txt
+        git add toto.txt
+        git commit -m 'this commit should not appear'
+        git rev-parse HEAD > .git/refs/ghost
+        git reset --hard return-here
+    """, wd)
+
+    visibleOid = readOidFile(f"{wd}/.git/refs/weird")
+    ghostOid = readOidFile(f"{wd}/.git/refs/ghost")
 
     # Painting must not raise an exception
     # (either skip the unsupported ref or draw a refbox for it, but don't crash)
@@ -566,21 +575,20 @@ def testCommitAmendedOutsideAppVanishesFromGraph(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     assert rw.navLocator.context.isWorkdir()
 
-    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id))
-    assert rw.navLocator.commit == rw.repo.head_commit_id
+    oldHead = rw.repo.head_commit_id
+    rw.jump(NavLocator.inCommit(oldHead, "c/c2-2.txt"), check=True)
 
-    with RepoContext(rw.repo) as repo:
-        newHeadId = repo.amend_commit_on_head("blahblah", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("git commit --amend -m 'amended'", wd)
 
     rw.refreshRepo()
-    assert rw.navLocator.commit == newHeadId
+    newHead = rw.repo.head_commit_id
+    assert newHead != oldHead
+    assert newHead == rw.navLocator.commit
 
 
 def testRestoreHiddenBranchOnBoot(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("no-parent")
+    shell("git switch no-parent", wd)
     Path(f"{wd}/.git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/master"] }')
 
     rw = mainWindow.openRepo(wd)
@@ -595,39 +603,46 @@ def testRestoreHiddenBranchOnBoot(tempDir, mainWindow):
 
 def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
     wd = f"{tempDir.name}/hello"
-    pygit2.init_repository(wd)
+    Path(wd).mkdir()
 
-    with RepoContext(wd) as repo:
-        sig = TEST_SIGNATURE
+    def date(i):
+        return f"GIT_AUTHOR_DATE=2000-01-{i:02}T12:00:00+00:00 GIT_COMMITTER_DATE=2000-01-{i:02}T12:00+00:00"
 
-        def newCommit():
-            nonlocal sig
-            sig = Signature(sig.name, sig.email, sig.time + 60)
-            message = "hello from " + repo.head_branch_shorthand
-            return repo.create_commit_on_head(message, sig, sig)
+    shell(f"""
+        git init .
+        {date(1)} git commit --allow-empty -m 'root commit'
 
-        repo.create_commit_on_head("root commit", sig, sig)
-        repo.create_branch_on_head("donthide")
-        repo.checkout_local_branch("donthide")
-        newCommit()
-        donthideTip = newCommit()
-        repo.checkout_local_branch("master")
-        newCommit()
-        repo.create_branch_on_head("rebase")
-        newCommit()
-        repo.create_branch_on_head("hidethis")
-        newCommit()
-        hidethisTip = newCommit()
-        repo.checkout_local_branch("rebase")
-        newCommit()
-        newCommit()
-        newCommit()
-        rebaseTip = newCommit()
-        repo.checkout_local_branch("master")
-        repo.delete_local_branch("rebase")
+        git switch -c donthide
+        {date(2)} git commit --allow-empty -m 'hello from donthide'
+        {date(3)} git commit --allow-empty -m 'hello from donthide'
 
-    Path(f"{wd}/.git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/hidethis"] }')
+        git switch master
+        {date(4)} git commit --allow-empty -m 'hello from master'
+        git branch rebase
+
+        {date(5)} git commit --allow-empty -m 'hello from master - this will be hidden post-rebase'
+        git branch hidethis
+
+        {date(6)} git commit --allow-empty -m 'hello from master'
+
+        git switch rebase
+        {date(7)} git commit --allow-empty -m 'hello from rebase'
+        {date(8)} git commit --allow-empty -m 'hello from rebase'
+        {date(9)} git commit --allow-empty -m 'hello from rebase'
+        {date(10)} git commit --allow-empty -m 'hello from rebase'
+        git rev-parse HEAD > .git/rebaseTip
+
+        git switch master
+        git branch -D rebase
+    """, wd)
+
+    rebaseTip = readOidFile(f"{wd}/.git/rebaseTip")
+
+    Path(wd, f".git/{APP_SYSTEM_NAME}.json").write_text('{ "hidePatterns": ["refs/heads/hidethis"] }')
     rw = mainWindow.openRepo(wd)
+
+    donthideTip = rw.repo.branches.local["donthide"].target
+    hidethisTip = rw.repo.branches.local["hidethis"].target
 
     # Initially, the tip of hidethis is visible because it's part of master
     index = rw.graphView.getFilterIndexForCommit(hidethisTip)
@@ -703,11 +718,11 @@ def testCompare2CommitsSwapAB(tempDir, mainWindow, method):
 def testCompare2CommitsNoChanges(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    runShellScript("""
+    shell("""
         echo 'c2\nc2' > c/c2.txt
         git add .
         git commit -m 'restore c/c2.txt'
-    """, directory=wd)
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -774,7 +789,7 @@ def testRestoreCurrentIndexAfterGraphSplicing(tempDir, mainWindow):
     # Check out 'no-parent' before opening the repo.
     # This will create a dotted line past 'master' in the graph.
     wd = unpackRepo(tempDir)
-    GitDriver.runSync("checkout", "no-parent", directory=wd, strict=True)
+    shell("git checkout no-parent", wd)
     rw = mainWindow.openRepo(wd)
 
     # Select tip of 'master' branch
@@ -783,7 +798,7 @@ def testRestoreCurrentIndexAfterGraphSplicing(tempDir, mainWindow):
 
     # Check out 'master'. The top of the graph will be rebuilt,
     # and the selected commit must remain consistent.
-    GitDriver.runSync("checkout", "master", directory=wd, strict=True)
+    shell("git checkout master", wd)
     rw.refreshRepo()
     assert rw.graphView.currentCommitId == rw.repo.branches.local["master"].target
 
@@ -792,11 +807,8 @@ def testDontScrollToSameCommitOnRefresh(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     # Create enough commits to get scroll bars
-    bogusCommits = []
-    with RepoContext(wd) as repo:
-        for i in range(200):
-            oid = repo.create_commit_on_head(f"bogus {i}", TEST_SIGNATURE, TEST_SIGNATURE)
-            bogusCommits.append(oid)
+    commands = [f"git commit --allow-empty -m bogus{i}" for i in range(200)]
+    shell("\n".join(commands), wd)
 
     rw = mainWindow.openRepo(wd)
     vsb = rw.graphView.verticalScrollBar()
@@ -813,7 +825,7 @@ def testDontScrollToSameCommitOnRefresh(tempDir, mainWindow):
     assert vsb.sliderPosition() == 1000
 
     # Jump to top commit. This will scroll it into view.
-    rw.jump(NavLocator.inCommit(bogusCommits[-1]), check=True)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id), check=True)
     assert vsb.sliderPosition() < 1000
 
     # Scroll down, then refresh. The scroll bar's position shouldn't change.

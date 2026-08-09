@@ -6,7 +6,6 @@
 
 import pytest
 
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -27,7 +26,7 @@ def testExternalUnstage(tempDir, mainWindow):
     assert (qlvGetRowData(rw.dirtyFiles), qlvGetRowData(rw.stagedFiles)) == ([], ["master.txt"])
 
     # Unstage master.txt outside of GF
-    GitDriver.runSync("restore", "--staged", "master.txt", directory=wd, strict=True)
+    shell("git restore --staged master.txt", wd)
 
     rw.refreshRepo()
     assert (qlvGetRowData(rw.dirtyFiles), qlvGetRowData(rw.stagedFiles)) == (["master.txt"], [])
@@ -37,15 +36,13 @@ def testExternalUnstage(tempDir, mainWindow):
 @pytest.mark.parametrize("closeAndReopen", [True, False])
 def testHiddenBranchGotDeleted(tempDir, mainWindow, closeAndReopen, branchName, hidePattern):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo2:
-        repo2.create_branch_on_head(branchName)
+    shell(f"git branch {branchName}", wd)
 
     rw = mainWindow.openRepo(wd)
     rw.toggleHideRefPattern(hidePattern)
     rw.repoModel.prefs.write(force=True)
 
-    with RepoContext(wd) as repo2:
-        repo2.delete_local_branch(branchName)
+    shell(f"git branch -d {branchName}", wd)
 
     # Reopening or refreshing the repo must not crash after the branch is deleted
     if closeAndReopen:
@@ -152,8 +149,7 @@ def testExternalChangeWhileTaskIsBusyThenAborts(tempDir, mainWindow):
 
 def testLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.config["core.autocrlf"] = "input"
+    shell("git config core.autocrlf input", wd)
 
     writeFile(f"{wd}/hello.txt", "hello\r\ndos\r\n")
     rw = mainWindow.openRepo(wd)
@@ -166,6 +162,7 @@ def testLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
 
 def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
+    shell("git config core.autocrlf input", wd)
 
     # Convert these files to CRLF
     crlfFiles = ["a/a1.txt", "a/a2.txt", "b/b1.txt", "b/b2.txt"]
@@ -173,9 +170,6 @@ def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow
         contents = readFile(f"{wd}/{filePath}")
         contents = contents.replace(b'\n', b'\r\n')
         writeFile(f"{wd}/{filePath}", contents.decode('utf-8'))
-
-    with RepoContext(wd) as repo:
-        repo.config["core.autocrlf"] = "input"
 
     rw = mainWindow.openRepo(wd)
 

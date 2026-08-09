@@ -38,7 +38,7 @@ def testEmptyDiffEmptyFile(tempDir, mainWindow):
 @pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
 def testEmptyDiffWithModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    os.chmod(f"{wd}/a/a1", 0o755)
+    Path(wd, "a/a1").chmod(0o755)
     rw = mainWindow.openRepo(wd)
 
     qlvClickNthRow(rw.dirtyFiles, 0)
@@ -47,11 +47,7 @@ def testEmptyDiffWithModeChange(tempDir, mainWindow):
 
 def testEmptyDiffWithNameChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    os.rename(f"{wd}/master.txt", f"{wd}/mastiff.txt")
-    with RepoContext(wd) as repo:
-        repo.index.remove("master.txt")
-        repo.index.add("mastiff.txt")
-        repo.index.write()
+    shell("git mv master.txt mastiff.txt", wd)
     rw = mainWindow.openRepo(wd)
 
     qlvClickNthRow(rw.stagedFiles, 0)
@@ -60,7 +56,7 @@ def testEmptyDiffWithNameChange(tempDir, mainWindow):
 
 def testDiffDeletedFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    os.unlink(f"{wd}/master.txt")
+    Path(wd, "master.txt").unlink()
     rw = mainWindow.openRepo(wd)
 
     qlvClickNthRow(rw.dirtyFiles, 0)
@@ -178,12 +174,12 @@ def testPartialPatchFilenameWithSpecialCharacters(tempDir, mainWindow, filename)
 def testPartialPatchPreservesExecutableFileMode(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        os.chmod(F"{wd}/master.txt", 0o755)
-        repo.index.add_all(["master.txt"])
-        repo.create_commit_on_head("master.txt +x", TEST_SIGNATURE, TEST_SIGNATURE)
-
-    writeFile(F"{wd}/master.txt", "This file is +x now\nOn master\nOn master\nDon't stage this line\n")
+    shell("""
+        chmod 755 master.txt
+        git add master.txt
+        git commit -m 'master.txt +x'
+        echo "This file is +x now\nOn master\nOn master\nDon't stage this line\n" > master.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert rw.repo.status() == {"master.txt": FileStatus.WT_MODIFIED}
@@ -250,14 +246,14 @@ def testBackUpDiscardedHunkInTrash(tempDir, mainWindow):
 def testSubpatchNoEOL(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
+    shell("""
         # Commit a file WITHOUT a newline at end
-        writeFile(F"{wd}/master.txt", "hello")
-        repo.index.add_all(["master.txt"])
-        repo.create_commit_on_head("no newline at end of file", TEST_SIGNATURE, TEST_SIGNATURE)
+        printf 'hello' > master.txt
+        git commit -am 'no newline at end of file'
 
         # Add a newline to the file without committing
-        writeFile(F"{wd}/master.txt", "hello\n")
+        printf 'hello\n' > master.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert rw.repo.status() == {"master.txt": FileStatus.WT_MODIFIED}
@@ -292,11 +288,11 @@ def testSubpatchNoEOL(tempDir, mainWindow):
 def testSubpatchSelectUpToNextHunkHeader(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    runShellScript("""
+    shell("""
         echo '1\n2\n3\n4\n5\n6\n7\n8\n9' > master.txt
         git commit -a -m 'change 1'
         echo 'HEAD\n2\n3\n4\n5\n6\n7\n8\nTAIL' > master.txt
-    """, directory=wd)
+    """, wd)
 
     GFApplication.instance().applyPrefs(contextLines=0)
     rw = mainWindow.openRepo(wd)
@@ -460,8 +456,7 @@ def testDiffStrayLineEndings(tempDir, mainWindow):
     writeFile(f"{wd}/cr.txt", "ancient mac file\r")
 
     if WINDOWS:
-        with RepoContext(wd) as repo:
-            repo.config['core.autocrlf'] = False
+        shell("git config core.autocrlf false", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -488,9 +483,7 @@ def testDiffStrayLineEndings(tempDir, mainWindow):
 
 def testDiffBinaryWarning(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with open(f"{wd}/binary.whatever", "wb") as f:
-        f.write(b"\x00\x00\x00\x00")
+    Path(wd, "binary.whatever").write_bytes(b"\x00\x00\x00\x00")
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged(path="binary.whatever"), check=True)
@@ -682,11 +675,14 @@ def testDiffViewSelectionStableAfterRefresh(tempDir, mainWindow):
 def testDiffContextLinesSetting(tempDir, mainWindow, withDedicatedButton):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        writeFile(f"{wd}/context.txt", "\n".join(f"line {i}" for i in range(1, 50)))
-        repo.index.add("context.txt")
-        repo.create_commit_on_head("context", TEST_SIGNATURE, TEST_SIGNATURE)
-        writeFile(f"{wd}/context.txt", "\n".join(f"line {i}" if i != 25 else f"LINE {i}" for i in range(1, 50)))
+    rev1 = "\n".join(f"line {i}" for i in range(1, 50))
+    rev2 = rev1.replace("line 25", "LINE 25")
+    shell(f"""
+        echo {shlex.quote(rev1)} > context.txt
+        git add context.txt
+        git commit -m 'context'
+        echo {shlex.quote(rev2)} > context.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert NavLocator.inUnstaged("context.txt").isSimilarEnoughTo(rw.navLocator)
@@ -1044,17 +1040,18 @@ def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        def createCommit(text):
-            writeFile(f"{wd}/master.txt", text)
-            repo.index.add_all()
-            return repo.create_commit_on_head("test permissive revert")
-        createCommit(rev1)
-        commit2 = createCommit(rev2)
-        createCommit(rev3)
+    shell(f"""
+        echo {shlex.quote(rev1.rstrip())} > master.txt && git commit -am 'rev1'
+        echo {shlex.quote(rev2.rstrip())} > master.txt && git commit -am 'rev2'
+        echo {shlex.quote(rev3.rstrip())} > master.txt && git commit -am 'rev3'
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(commit2, "master.txt"), check=True)
+
+    commit2 = rw.repo.head_commit.parents[0]
+    assert commit2.message.strip() == "rev2"
+
+    rw.jump(NavLocator.inCommit(commit2.id, "master.txt"), check=True)
 
     qteSelectBlocks(rw.diffArea.diffView, 8, 9)
     assert rw.diffArea.diffView.textCursor().selectedText() == "6\u20296 Let's reverse this from rev2"
@@ -1089,11 +1086,12 @@ def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
 def testCharacterLevelDiffInUnicodeSurrogatePairs(tempDir, mainWindow, sampleText):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        writeFile(f"{wd}/surrogatepairs.py", f"{sampleText[0]}\n# bogus context\n")
-        repo.index.add_all()
-        repo.create_commit_on_head("TEST SURROGATE PAIRS", TEST_SIGNATURE, TEST_SIGNATURE)
-        writeFile(f"{wd}/surrogatepairs.py", f"{sampleText[1]}\n# bogus context\n")
+    shell(f"""
+        echo {shlex.quote(sampleText[0] + "\n# bogus context")} > surrogatepairs.py
+        git add surrogatepairs.py
+        git commit -m 'TEST SURROGATE PAIRS'
+        echo {shlex.quote(sampleText[1] + "\n# bogus context")} > surrogatepairs.py
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     document: QTextDocument = rw.diffView.document()
@@ -1176,11 +1174,14 @@ def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
     """)
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        for revision in oldText, newText:
-            writeFile(f"{wd}/hello.c", revision)
-            repo.index.add("hello.c")
-            repo.create_commit_on_head("hello", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell(f"""
+        echo {shlex.quote(oldText)} > hello.c
+        git add hello.c
+        git commit -m 'hello old'
+
+        echo {shlex.quote(newText)} > hello.c
+        git commit -am 'hello new'
+    """, wd)
 
     # Ignore whitespace for this diff.
     # Pick a scheme that applies non-default color to identifiers.

@@ -6,7 +6,6 @@
 
 from tarfile import TarFile
 
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.trash import Trash
 from .util import *
 
@@ -37,8 +36,8 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
 
     # Init subtrees
     # (with empty template so that hook sample files don't trip largeFileThreshold)
-    GitDriver.runSync("init", "--template=", "SmallTree", directory=wd, strict=True)
-    GitDriver.runSync("init", "--template=", "LargeTree", directory=wd, strict=True)
+    shell("git init --template= SmallTree", wd)
+    shell("git init --template= LargeTree", wd)
 
     Path(f"{wd}/a/a2.txt").unlink()
     writeFile(f"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")

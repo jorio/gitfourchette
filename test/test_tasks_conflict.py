@@ -28,7 +28,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     """
 
     wd = unpackRepo(tempDir)
-    runShellScript(scenario, directory=wd)
+    shell(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -92,7 +92,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     """
 
     wd = unpackRepo(tempDir)
-    runShellScript(scenario, directory=wd)
+    shell(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -154,7 +154,7 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
     """
 
     wd = unpackRepo(tempDir)
-    runShellScript(scenario, directory=wd)
+    shell(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -203,7 +203,7 @@ def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLab
     """
 
     wd = unpackRepo(tempDir)
-    runShellScript(scenario, directory=wd)
+    shell(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged("xxx/zzz"), check=True)
@@ -237,7 +237,7 @@ def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
     """
 
     wd = unpackRepo(tempDir)
-    runShellScript(scenario, directory=wd)
+    shell(scenario, directory=wd)
 
     rw = mainWindow.openRepo(wd)
     assert "a/a1.txt" in rw.repo.index.conflicts
@@ -267,7 +267,7 @@ def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")))
 
     # Cause a conflict outside the app
-    runShellScript("git cherry-pick ce112d052 || true", directory=wd)
+    shell("git cherry-pick ce112d052 || true", directory=wd)
 
     rw.refreshRepo()
     assert rw.mergeBanner.isVisible()
@@ -421,8 +421,7 @@ def testFake3WayMerge(tempDir, mainWindow):
     GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
 
     wd = unpackRepo(tempDir, "testrepoformerging")
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("i18n")
+    shell("git switch i18n", wd)
 
     rw = mainWindow.openRepo(wd)
     cv = rw.conflictView
@@ -511,7 +510,7 @@ def testDiscardMergeResolution(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
 
     # Initiate merge of branch-conflicts into master
-    runShellScript("git merge branch-conflicts || true", directory=wd)
+    shell("git merge branch-conflicts || true", directory=wd)
 
     rw = mainWindow.openRepo(wd)
     cv = rw.conflictView
@@ -550,7 +549,7 @@ def testMergeToolDelayedWrite(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
 
     # Initiate merge of branch-conflicts into master
-    runShellScript("git merge branch-conflicts || true", directory=wd)
+    shell("git merge branch-conflicts || true", directory=wd)
 
     rw = mainWindow.openRepo(wd)
     cv = rw.conflictView

@@ -7,7 +7,6 @@
 import re
 
 from gitfourchette.forms.commitdialog import CommitDialog
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -246,7 +245,7 @@ def testLfsConvertTextToLfsInCommit(tempDir, mainWindow):
 @requiresLfs
 def testLfsConvertTextToLfsInWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
-    GitDriver.runSync("reset", "--hard", "748c251", directory=wd, strict=True)
+    shell("git reset --hard 748c251", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -273,8 +272,7 @@ def testLfsConvertTextToLfsInWorkdir(tempDir, mainWindow):
 def testLfsObjectCacheMissing(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
 
-    GitDriver.runSync("reset", "--hard", "e17a94b1", directory=wd, strict=True)
-    shutil.rmtree(Path(wd, ".git", "lfs"))
+    shell("git reset --hard e17a94b && mv .git/lfs .git/lfs-is-gone", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -299,8 +297,7 @@ def testLfsDownloadMissingObjectsToCache(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
-    GitDriver.runSync("reset", "--hard", "e17a94b1", directory=wd, strict=True)
-    shutil.rmtree(Path(wd, ".git", "lfs"))
+    shell("git reset --hard e17a94b && mv .git/lfs .git/lfs-is-gone", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -343,8 +340,7 @@ def testLfsSaveRevisionMissingObjectFromCache(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "lfsrepo")
     makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
-    GitDriver.runSync("reset", "--hard", "e17a94b1", directory=wd, strict=True)
-    shutil.rmtree(Path(wd, ".git", "lfs"))
+    shell("git reset --hard e17a94b && mv .git/lfs .git/lfs-is-gone", wd)
 
     rw = mainWindow.openRepo(wd)
 

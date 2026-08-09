@@ -164,10 +164,11 @@ def testEvictLexJobFromCache(tempDir, mainWindow):
 def testSyntaxHighlightingNullOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd, write_index=True) as repo:
-        writeFile(f"{wd}/hello.py", SAMPLE_CODE)
-        repo.index.add_all()
-        os.unlink(f"{wd}/hello.py")
+    shell(f"""
+        echo {shlex.quote(SAMPLE_CODE)} > hello.py
+        git add hello.py
+        rm hello.py
+    """, wd)
 
     mainWindow.openRepo(wd)
 
@@ -176,10 +177,11 @@ def testSyntaxHighlightingNullOid(tempDir, mainWindow):
 def testSyntaxHighlightingEmptyOid(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd, write_index=True) as repo:
-        writeFile(f"{wd}/hello.py", "")
-        repo.index.add_all()
-        writeFile(f"{wd}/hello.py", SAMPLE_CODE)
+    shell(f"""
+        touch hello.py
+        git add hello.py
+        echo {shlex.quote(SAMPLE_CODE)} > hello.py
+    """, wd)
 
     mainWindow.openRepo(wd)
 

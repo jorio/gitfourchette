@@ -344,6 +344,10 @@ def readTextFile(path: str, unlink: bool = False):
     return data.decode("utf-8")
 
 
+def readOidFile(path: str) -> Oid:
+    return Oid(hex=readTextFile(path).strip())
+
+
 def waitForFile(path: str, timeout: int = DEFAULT_TIMEOUT):
     pathObj = Path(path)
     waitUntilTrue(lambda: pathObj.exists(), timeout=timeout)
@@ -822,14 +826,16 @@ def dismissToolTip(pattern: str):
     waitUntilTrue(lambda: not QToolTip.isVisible())
 
 
-def runShellScript(script: str, directory: str, sig=TEST_SIGNATURE):
+def shell(script: str, directory: str, authorSig=TEST_SIGNATURE, committerSig=TEST_SIGNATURE):
     from gitfourchette.toolbox.gitutils import signatureEnvironmentVariables
 
     env = {}
 
     # Sanitize author/committer
-    env.update(signatureEnvironmentVariables(sig, "AUTHOR"))
-    env.update(signatureEnvironmentVariables(sig, "COMMITTER"))
+    if authorSig is not None:
+        env.update(signatureEnvironmentVariables(authorSig, "AUTHOR"))
+    if committerSig is not None:
+        env.update(signatureEnvironmentVariables(committerSig, "COMMITTER"))
 
     # Make sure we're forwarding the correct git config directories
     assert os.environ.get("GIT_CONFIG_GLOBAL", ""), "fixture didn't set GIT_CONFIG_GLOBAL"

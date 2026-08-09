@@ -153,8 +153,7 @@ def testHttpsShallowClone(tempDir, mainWindow, taskThread):
 @requiresNetwork
 def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
+    shell("git remote remove origin", wd)
     mainWindow.openRepo(wd)
     rw = waitForRepoWidget(mainWindow)
     assert "origin/master" not in rw.repo.branches.remote

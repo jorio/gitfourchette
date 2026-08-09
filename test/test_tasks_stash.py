@@ -6,7 +6,6 @@
 
 from . import reposcenario
 from .util import *
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.filelists.filelistmodel import FileListModel
 from gitfourchette.forms.stashdialog import StashDialog
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -18,11 +17,12 @@ import pytest
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick", "menubar"])
 def testNewStash(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
-    writeFile(F"{wd}/b/b1.txt", "b1\nPENDING CHANGE (staged)\n")  # staged change
-    writeFile(F"{wd}/a/untracked.txt", "this file is untracked\n")  # untracked file
-    with RepoContext(wd, write_index=True) as repo:
-        repo.index.add("b/b1.txt")
+    shell("""
+        echo 'a1\nPENDING CHANGE' > a/a1.txt
+        echo 'b1\nPENDING CHANGE (staged)' > b/b1.txt
+        echo 'this file is untracked' > a/untracked.txt
+        git add b/b1.txt
+    """, wd)
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
     repo = rw.repo
@@ -75,17 +75,16 @@ def testNewStash(tempDir, mainWindow, method):
 @pytest.mark.parametrize("method", ["stashcommand", "filelist"])
 def testNewPartialStash(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
-    writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE 1\n")  # unstaged change
-    writeFile(F"{wd}/a/a2.txt", "a2\nPENDING CHANGE 2\n")  # unstaged change
-    writeFile(F"{wd}/b/b1.txt", "b1\nPENDING CHANGE (staged)\n")  # staged change
-    writeFile(F"{wd}/both.txt", "STAGED\n")  # staged & unstaged change
-    writeFile(F"{wd}/a/untracked1.txt", "this file is untracked 1\n")  # untracked file
-    writeFile(F"{wd}/a/untracked2.txt", "this file is untracked 2\n")  # untracked file
-    with RepoContext(wd, write_index=True) as repo:
-        repo.index.add("b/b1.txt")
-        repo.index.add("b/b2.txt")
-        repo.index.add("both.txt")
-    writeFile(F"{wd}/both.txt", "STAGED\nUNSTAGED\n")  # staged & unstaged change
+    shell("""
+        echo 'a1\nPENDING CHANGE 1' > a/a1.txt
+        echo 'a2\nPENDING CHANGE 2' > a/a2.txt
+        echo 'b1\nPENDING CHANGE (staged)' > b/b1.txt
+        echo 'STAGED' > both.txt
+        echo 'this file is untracked 1' > a/untracked1.txt
+        echo 'this file is untracked 2' > a/untracked2.txt
+        git add b/b1.txt b/b2.txt both.txt
+        echo 'STAGED\nUNSTAGED' > both.txt
+    """, wd)
     rw = mainWindow.openRepo(wd)
     repo = rw.repo
 
@@ -181,7 +180,8 @@ def testNewStashCantStashSubmoduleOrSubtree(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
     # Create untracked subtree
-    pygit2.init_repository(f"{wd}new_untracked_tree")
+    shell("git init new_untracked_tree", wd)
+    # pygit2.init_repository(f"{wd}new_untracked_tree")
 
     # Create tracked submodule + a pending change within
     submoAbsPath, _submoCommit = reposcenario.submodule(wd)
@@ -200,18 +200,19 @@ def testNewStashCantStashSubmoduleOrSubtree(tempDir, mainWindow):
 def testNewStashNoIgnoredFiles(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        writeFile(f"{wd}/.gitignore", "recipes/*\n"
-                                      "!recipes/drinks\n")
-        writeFile(f"{wd}/recipes/drinks/kombucha.txt", "ginger")
-        repo.index.add_all()
-        repo.create_commit_on_head("kombucha")
+    shell("""
+        mkdir -p recipes/drinks
+        echo 'recipes/*\n!recipes/drinks' > .gitignore
+        echo 'ginger' > recipes/drinks/kombucha.txt
+        git add .
+        git commit -m 'kombucha'
 
-    # Convoluted ignore scenario that fails if NewStash uses repo.status()
-    # instead of vanilla git status
-    writeFile(f"{wd}/master.txt", "unrelated change, stashing OK\n")
-    writeFile(f"{wd}/.git/info/exclude", "recipes\n")
-    writeFile(f"{wd}/recipes/drinks/DONT_SUGGEST_STASHING_THIS", "yikes!")
+        # Convoluted ignore scenario that fails if NewStash uses repo.status()
+        # instead of vanilla git status
+        echo 'unrelated change, stashing OK' > master.txt
+        echo 'recipes' > .git/info/exclude
+        echo 'yikes!' > recipes/drinks/DONT_SUGGEST_STASHING THIS
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert qlvGetRowData(rw.dirtyFiles) == ["master.txt"]
@@ -368,8 +369,7 @@ def testApplyStashWithConflicts(tempDir, mainWindow):
     acceptQMessageBox(rw, "your local changes to the following files would be overwritten")
 
     # Commit a1.txt
-    rw.repo.index.add_all()
-    rw.repo.create_commit_on_head("conflicting thing", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("git commit -am'conflicting thing'", wd)
     rw.refreshRepo()
 
     # Apply the stash again - this time it works but conflicts appear in the index
@@ -393,18 +393,22 @@ def testApplyStashWithConflicts(tempDir, mainWindow):
 def testApplyStashWithUnrelatedConflictsInIndex(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
+    shell("""
+       echo "unrelated change in index 1 - will wind up in stash's index parent commit" > master.txt
+       echo "UNSTASH THIS" > a/a1.txt
+       git add master.txt
+    """, wd)
+
+    # Must create this stash with libgit2 (vanilla git adds master.txt in the stash)
     with RepoContext(wd, write_index=True) as repo:
-        writeFile(f"{wd}/master.txt", "unrelated change in index 1 - will wind up in stash's index parent commit")
-        repo.index.add("master.txt")
-
-        writeFile(f"{wd}/a/a1.txt", "UNSTASH THIS")
         repo.create_stash("helloworld", paths=["a/a1.txt"])
-        GitDriver.runSync("checkout", "HEAD", "--", "a/a1.txt", directory=wd, strict=True)
 
-        assert set(repo.status().keys()) == {"master.txt"}
-        writeFile(f"{wd}/master.txt", "unrelated change in index 2 - conflicts with stash's index parent commit")
-        repo.index.add_all()
-        repo.create_commit_on_head("unrelated", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("""
+        git checkout HEAD -- a/a1.txt
+        echo "unrelated change in index 2 - conflicts with stash's index parent commit" > master.txt
+        git add .
+        git commit -m 'unrelated'
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     node = rw.sidebar.findNodeByRef("stash@{0}")
@@ -414,7 +418,7 @@ def testApplyStashWithUnrelatedConflictsInIndex(tempDir, mainWindow):
 
     # Make sure we've been able to apply the stash even though its index
     # conflicts with ours, i.e. don't pass "--index" to "git stash apply".
-    assert readTextFile(f"{wd}/a/a1.txt") == "UNSTASH THIS"
+    assert readTextFile(f"{wd}/a/a1.txt").rstrip() == "UNSTASH THIS"
 
 
 def testRevealStashParent(tempDir, mainWindow):

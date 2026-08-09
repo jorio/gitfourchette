@@ -13,7 +13,6 @@ from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -475,13 +474,10 @@ def testDetachHeadOnSameCommitAsCheckedOutBranch(tempDir, mainWindow):
 
 
 def testCommitOnDetachedHead(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-
     oid = Oid(hex='1203b03dc816ccbb67773f28b3c19318654b0bc8')
 
-    with RepoContext(wd) as repo:
-        repo.checkout_commit(oid)
-
+    wd = unpackRepo(tempDir)
+    shell(f"git checkout {oid}", wd)
     rw = mainWindow.openRepo(wd)
 
     assert rw.repo.head_is_detached
@@ -614,10 +610,9 @@ def testCherrypick(tempDir, mainWindow, worktree):
     if worktree:
         barePath = makeBareCopy(wd, "bareOrigin", preFetch=True)
         wd = f"{barePath}/MyCoolWorktree"
-        GitDriver.runSync("worktree", "add", wd, directory=barePath, strict=True)
+        shell(f"git worktree add {wd}", barePath)
 
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("no-parent")
+    shell("git switch no-parent", wd)
 
     oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
 
@@ -680,13 +675,10 @@ def testCherrypickWithConflicts(tempDir, mainWindow):
 
 
 def testCherrypickEditAuthor(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("no-parent")
-
     oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
 
+    wd = unpackRepo(tempDir)
+    shell("git switch no-parent", wd)
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(oid))
@@ -728,9 +720,7 @@ def testCherrypickGitError(tempDir, mainWindow):
     """Cherry-pick failing with an unexpected exit code must report Git's own
     error message instead of raising an opaque NotImplementedError."""
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("no-parent")
+    shell("git switch no-parent", wd)
 
     # Dirty a file that the cherry-pick would overwrite: git bails out with rc 128.
     writeFile(f"{wd}/a/a1.txt", "local uncommitted changes\n")
@@ -748,13 +738,10 @@ def testCherrypickGitError(tempDir, mainWindow):
 
 
 def testAbortCherrypick(tempDir, mainWindow):
-    wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.checkout_local_branch("no-parent")
-
     oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
 
+    wd = unpackRepo(tempDir)
+    shell("git switch no-parent", wd)
     rw = mainWindow.openRepo(wd)
 
     rw.jump(NavLocator.inCommit(oid))
@@ -785,8 +772,7 @@ def testNewTag(tempDir, mainWindow):
 
     # Nuke remotes for coverage of the no-remote code path.
     # (See also testPushTagOnCreate)
-    with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
+    shell("git remote remove origin", wd)
 
     rw = mainWindow.openRepo(wd)
     assert newTag not in rw.repo.listall_tags()
@@ -813,9 +799,10 @@ def testForceNewTag(tempDir, mainWindow):
 
     # Nuke remotes for coverage of the no-remote code path.
     # (See also testPushTagOnCreate)
-    with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
-        repo.create_reference(RefPrefix.TAGS + newTag, firstCommit)
+    shell(f"""
+        git remote remove origin
+        git tag {newTag} {firstCommit}
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     assert newTag in rw.repo.listall_tags()
@@ -853,8 +840,7 @@ def testDeleteTag(tempDir, mainWindow, method):
 
     # Nuke remotes for coverage of the no-remote code path.
     # (See also testPushDeleteTag)
-    with RepoContext(wd) as repo:
-        repo.remotes.delete("origin")
+    shell("git remote remove origin", wd)
 
     rw = mainWindow.openRepo(wd)
     assert tagToDelete in rw.repo.listall_tags()

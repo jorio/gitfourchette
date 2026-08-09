@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
+import shlex
 import shutil
 
 import pygit2
@@ -62,8 +63,8 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
         triggerContextMenuAction(rw.dirtyFiles.viewport(), r"open.+submodule.+in new tab")
 
     elif method == "stagedFileList":
-        GitDriver.runSync("reset", "--hard", "ac7e7e44", directory=submoAbsPath)
-        GitDriver.runSync("add", "submodir", directory=wd)
+        shell("git reset --hard ac7e7e44", submoAbsPath)
+        shell("git add submodir", wd)
         rw.refreshRepo()
 
         rw.jump(NavLocator.inStaged(path="submodir"), check=True)
@@ -83,7 +84,7 @@ def testOpenSubmoduleWithinApp(tempDir, mainWindow, method):
 def testSubmoduleHeadUpdate(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
     subWd, _dummy = reposcenario.submodule(wd)
-    GitDriver.runSync("checkout", "49322bb", directory=subWd, strict=True)
+    shell("git checkout 49322bb", subWd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -139,14 +140,15 @@ def testSubmoduleDirty(tempDir, mainWindow, method):
 def testSubmoduleDeletedDiff(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     _subWd, subAddId = reposcenario.submodule(wd)
-    with RepoContext(wd) as repo:
-        shutil.rmtree(f"{wd}/submodir")
-        os.unlink(f"{wd}/.gitmodules")
-        repo.index.remove(".gitmodules")
-        repo.index.remove("submodir")
-        subDelId = repo.create_commit_on_head("delete submo")
+
+    shell("""
+        git rm -r submodir
+        git rm -f .gitmodules
+        git commit -m 'delete submo'
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
+    subDelId = rw.repo.head_commit_id
 
     assert not rw.repo.listall_submodules_dict()
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
@@ -395,25 +397,31 @@ def testInitSubmoduleInFreshNonRecursiveClone(tempDir, mainWindow):
 @pytest.mark.parametrize("method", ["single", "recurse"])
 def testUpdateSubmoduleWithMissingIncomingCommit(tempDir, mainWindow, method):
     sm = "submosub"
+    wd = f"{tempDir.name}/submoroot"
 
     # Unpack full-blown repo (complete with submodule) as our upstream
     upstreamWd = unpackRepo(tempDir, "submoroot", renameTo="upstream")
     upstreamSub = f"{upstreamWd}/{sm}"
 
-    # Do a non-recursive clone (using the local filesystem as an upstream) and init the submodule
-    repo = pygit2.clone_repository(upstreamWd, f"{tempDir.name}/submoroot")
-    wd = repo.workdir
-    GitConfig(f"{wd}/.git/config")[f"submodule.{sm}.url"] = upstreamSub  # don't hit the network during update!
-    repo.submodules.update(init=True)
-    repo.free()
-    del repo
+    # Do a non-recursive clone (using the local filesystem as an upstream) and init the submodule.
+    # Update .git/config [submodule "submosub"] url: don't hit the network during update!
+    shell(f"""
+        git clone {shlex.quote(upstreamWd)} {shlex.quote(wd)}
+        cd {shlex.quote(wd)}
+        git config submodule.{shlex.quote(sm)}.url {shlex.quote(upstreamSub)}
+        git submodule update --init
+    """, tempDir.name)
 
     # Create new commit in UPSTREAM submo
-    with RepoContext(upstreamSub, write_index=True) as sub:
-        oldSubCommit = sub.head_commit_id
-        writeFile(f"{upstreamSub}/foo.txt", "bar baz")
-        sub.index.add("foo.txt")
-        newSubCommit = sub.create_commit_on_head("yet another new commit in submodule", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell("""
+        git rev-parse HEAD > oldSubCommit
+        echo 'bar baz' > foo.txt
+        git add foo.txt
+        git commit -m 'yet another new commit in submodule'
+        git rev-parse HEAD > newSubCommit
+    """, upstreamSub)
+    oldSubCommit = readOidFile(f"{upstreamSub}/oldSubCommit")
+    newSubCommit = readOidFile(f"{upstreamSub}/newSubCommit")
 
     # In the outer repo, create a commit that moves the submodule's HEAD to newSubCommit.
     # (i.e. simulate a scenario where the user does a non-recursive fetch of the root repo,
@@ -468,7 +476,7 @@ def testSwitchBranchAskRecurse(tempDir, mainWindow, method, recurse):
     wd = unpackRepo(tempDir, "submoroot")
 
     if recurse:  # TODO: Figure out why this specific test needs this
-        GitDriver.runSync("update-index", "--really-refresh", directory=f"{wd}/submosub")
+        shell("git -C ./submosub update-index --really-refresh", wd)
 
     rw = mainWindow.openRepo(wd)
     assert contentsHead == readFile(f"{wd}/submosub/subhello.txt")
@@ -520,7 +528,7 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
 
     # TODO: Figure out why this specific test needs this
-    GitDriver.runSync("update-index", "--really-refresh", directory=f"{wd}/submosub")
+    shell("git -C ./submosub update-index --really-refresh", wd)
 
     rw = mainWindow.openRepo(wd)
 

@@ -44,9 +44,7 @@ def testCurrentBranchCannotSwitchOrMerge(tempDir, mainWindow):
 
 def testSidebarWithDetachedHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.checkout_commit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"))
+    shell("git checkout 7f82283", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -131,10 +129,10 @@ def testSidebarCollapsedHeaderShowsChildCount(tempDir, mainWindow):
 
 def testSidebarCollapseExpandAllFolders(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("delish/drink/gazpacho")
-        repo.create_branch_on_head("delish/quiche")
+    shell("""
+        git branch delish/drink/gazpacho
+        git branch delish/quiche
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -199,10 +197,11 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
 
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        repo.create_tag("version2", Oid(hex='83834a7afdaa1a1260568567f6ad90020389f664'), ObjectType.COMMIT, TEST_SIGNATURE, "")
-        repo.create_tag("version10", Oid(hex='6e1475206e57110fcef4b92320436c1e9872a322'), ObjectType.COMMIT, TEST_SIGNATURE, "")
-        repo.create_tag("VERSION3", Oid(hex='49322bb17d3acc9146f98c97d078513228bbf3c0'), ObjectType.COMMIT, TEST_SIGNATURE, "")
+    shell("""
+        git tag version2 83834a7
+        git tag version10 6e14752
+        git tag VERSION3 49322bb
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -248,12 +247,13 @@ def testRefSortModes(tempDir, mainWindow, headerKind, leafKind):
 
 def testRefFolderSidebarDisplayNames(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("1/2A/3A")
-        repo.create_branch_on_head("1/2A/3B")
-        repo.create_branch_on_head("1/2B")
-        repo.create_branch_on_head("4/5/6/7A")
-        repo.create_branch_on_head("4/5/6/7B")
+    shell("""
+        git branch 1/2A/3A
+        git branch 1/2A/3B
+        git branch 1/2B
+        git branch 4/5/6/7A
+        git branch 4/5/6/7B
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -277,10 +277,11 @@ def testRefFolderSidebarDisplayNames(tempDir, mainWindow):
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarclick"])
 def testHideNestedRefFolders(tempDir, mainWindow, explicit, implicit, method):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("1/2A/3A")
-        repo.create_branch_on_head("1/2A/3B")
-        repo.create_branch_on_head("1/2B")
+    shell("""
+        git branch 1/2A/3A
+        git branch 1/2A/3B
+        git branch 1/2B
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -335,10 +336,11 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
     }
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("1/2A/3A")
-        repo.create_branch_on_head("1/2A/3B")
-        repo.create_branch_on_head("1/2B")
+    shell("""
+        git branch 1/2A/3A
+        git branch 1/2A/3B
+        git branch 1/2B
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -384,10 +386,12 @@ def testHideAllButThis(tempDir, mainWindow, explicit, implicit, method):
 def testSidebarToolTips(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    with RepoContext(wd) as repo:
-        repo.create_tag("folder/leaf", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "hello")
-        repo.create_branch_on_head("folder/leaf")
-        writeFile(f"{wd}/.git/refs/remotes/origin/folder/leaf", str(repo.head_commit_id) + "\n")
+    shell("""
+        git tag folder/leaf HEAD
+        git branch folder/leaf
+        mkdir -p .git/refs/remotes/origin/folder
+        git rev-parse HEAD > .git/refs/remotes/origin/folder/leaf
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -415,9 +419,7 @@ def testSidebarToolTips(tempDir, mainWindow):
 
 def testSidebarHeadIconAfterSwitchingBranchesPointingToSameCommit(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("other-master")
+    shell("git branch other-master", wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -438,9 +440,7 @@ def testSidebarHeadIconAfterSwitchingBranchesPointingToSameCommit(tempDir, mainW
 
 def testSidebarVisitRemoteWebPage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("other-master")
+    shell("git branch other-master", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -458,16 +458,14 @@ def testSidebarVisitRemoteWebPage(tempDir, mainWindow):
 
 def testSidebarAheadBehind(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        b = repo.create_branch_from_commit("ahead17", Oid(hex=("6e1475206e57110fcef4b92320436c1e9872a322")))
-        b.upstream = repo.branches.remote["origin/no-parent"]
-
-        b = repo.create_branch_from_commit("behind3", Oid(hex=("6e1475206e57110fcef4b92320436c1e9872a322")))
-        b.upstream = repo.branches.remote["origin/master"]
-
-        b = repo.create_branch_from_commit("ahead10-behind1", Oid(hex=("c070ad8c08840c8116da865b2d65593a6bb9cd2a")))
-        b.upstream = repo.branches.remote["origin/no-parent"]
+    shell("""
+        git branch ahead17 6e14752
+        git branch ahead17 -u origin/no-parent
+        git branch behind3 6e14752
+        git branch behind3 -u origin/master
+        git branch ahead10-behind1 c070ad8
+        git branch ahead10-behind1 -u origin/no-parent
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -495,9 +493,7 @@ def testSidebarAheadBehind(tempDir, mainWindow):
 
 def testSidebarMissingUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.config["branch.master.merge"] = "refs/heads/missing-upstream"
+    shell("git config branch.master.merge refs/heads/missing-upstream", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -516,10 +512,10 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
 
 def testSidebarFilterPersistsAcrossRefresh(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("feature/login")
-        repo.create_branch_on_head("bugfix/issue-123")
+    shell("""
+        git branch feature/login
+        git branch bugfix/issue-123
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -532,7 +528,7 @@ def testSidebarFilterPersistsAcrossRefresh(tempDir, mainWindow):
     assert not sb.indexForRef("refs/heads/bugfix/issue-123").isValid()
 
     # Modify the repo such that the sidebar model becomes stale, then refresh
-    rw.repo.create_branch_on_head("feature/logout")
+    shell("git branch feature/logout", wd)
     rw.refreshRepo()
 
     # Filter should still be applied
@@ -544,12 +540,12 @@ def testSidebarFilterPersistsAcrossRefresh(tempDir, mainWindow):
 
 def testSidebarFilter(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("feature/login")
-        repo.create_branch_on_head("feature/signup")
-        repo.create_branch_on_head("bugfix/issue-123")
-        repo.create_branch_on_head("hotfix/critical")
+    shell("""
+        git branch feature/login
+        git branch feature/signup
+        git branch bugfix/issue-123
+        git branch hotfix/critical
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -598,11 +594,11 @@ def testSidebarFilter(tempDir, mainWindow):
 
 def testSidebarFilterWithFolders(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("team/frontend/login")
-        repo.create_branch_on_head("team/frontend/signup")
-        repo.create_branch_on_head("team/backend/api")
+    shell("""
+        git branch team/frontend/login
+        git branch team/frontend/signup
+        git branch team/backend/api
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -622,11 +618,11 @@ def testSidebarFilterWithFolders(tempDir, mainWindow):
 
 def testSidebarFilterWithTags(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_tag("v1.0.0", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
-        repo.create_tag("v2.0.0", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
-        repo.create_tag("release-2024", repo.head_commit_id, ObjectType.COMMIT, TEST_SIGNATURE, "")
+    shell("""
+        git tag v1.0.0 HEAD
+        git tag v2.0.0 HEAD
+        git tag release-2024 HEAD
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -641,9 +637,7 @@ def testSidebarFilterWithTags(tempDir, mainWindow):
 
 def testSidebarFilterPreservesSelection(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("feature/test")
+    shell("git branch feature/test", wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar
@@ -666,11 +660,11 @@ def testSidebarFilterPreservesSelection(tempDir, mainWindow):
 
 def testSidebarFilterCollapseState(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-
-    with RepoContext(wd) as repo:
-        repo.create_branch_on_head("folder1/leaf")
-        repo.create_branch_on_head("folder2/leaf")
-        repo.create_branch_on_head("folder3/leaf")
+    shell("""
+        git branch folder1/leaf
+        git branch folder2/leaf
+        git branch folder3/leaf
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     sb = rw.sidebar

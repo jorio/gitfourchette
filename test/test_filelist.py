@@ -37,11 +37,11 @@ def testParentlessCommitFileList(tempDir, mainWindow):
     ])
 def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, result):
     wd = unpackRepo(tempDir)
-    runShellScript("""
+    shell("""
         chmod +x master.txt
         echo 'now executable' > master.txt
         git commit -am 'make master.txt executable'
-    """, directory=wd)
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -78,7 +78,7 @@ def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, resul
     ])
 def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result):
     wd = unpackRepo(tempDir)
-    runShellScript("""
+    shell("""
         echo 'different' > c/c1.txt
         echo 'now executable' > master.txt
         chmod +x master.txt
@@ -90,7 +90,7 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
         ln -sf b/b1.txt my_symlink
         git add .
         git commit -m '-x master.txt, change symlink'
-    """, directory=wd)
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -148,14 +148,11 @@ def testRevertDeletedFile(tempDir, mainWindow):
     contents = "a1\n"
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        Path(f"{wd}/{path}").unlink()
-        repo.index.add_all()
-        oid = repo.create_commit_on_head("test delete", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell(f"git rm {path} && git commit -m'test delete'", wd)
 
     rw = mainWindow.openRepo(wd)
-    assert not Path(f"{wd}/{path}").exists()
-    rw.jump(NavLocator.inCommit(oid, path), check=True)
+    assert not Path(wd, path).exists()
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, path), check=True)
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     acceptQMessageBox(rw, "revert.+patch")
     assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
@@ -168,15 +165,12 @@ def testRevertRenamedFile(tempDir, mainWindow):
     contents = "a1\n"
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        Path(f"{wd}/{path1}").rename(f"{wd}/{path2}")
-        repo.index.add_all()
-        oid = repo.create_commit_on_head("test rename", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell(f"git mv {path1} {path2} && git commit -m'test rename'", wd)
 
     rw = mainWindow.openRepo(wd)
-    assert not Path(f"{wd}/{path1}").exists()
-    assert Path(f"{wd}/{path2}").exists()
-    rw.jump(NavLocator.inCommit(oid, path2), check=True)
+    assert not Path(wd, path1).exists()
+    assert Path(wd, path2).exists()
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, path2), check=True)
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     acceptQMessageBox(rw, "revert.+patch")
     assert NavLocator.inUnstaged(path1).isSimilarEnoughTo(rw.navLocator)
@@ -188,14 +182,11 @@ def testRevertModeChangedFile(tempDir, mainWindow):
     path = "a/a1"
 
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        Path(f"{wd}/{path}").chmod(0o777)
-        repo.index.add_all()
-        oid = repo.create_commit_on_head("test chmod", TEST_SIGNATURE, TEST_SIGNATURE)
+    shell(f"chmod 777 {path} && git commit -am'test chmod'", wd)
 
     rw = mainWindow.openRepo(wd)
     assert fileHasUserExecutableBit(f"{wd}/{path}")
-    rw.jump(NavLocator.inCommit(oid, path), check=True)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, path), check=True)
     triggerContextMenuAction(rw.committedFiles.viewport(), "revert")
     acceptQMessageBox(rw, "revert.+patch")
     assert NavLocator.inUnstaged(path).isSimilarEnoughTo(rw.navLocator)
@@ -205,7 +196,7 @@ def testRevertModeChangedFile(tempDir, mainWindow):
 def testCannotRevertCommittedFileIfNowDeleted(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
-    assert not os.path.exists(f"{wd}/c/c2.txt")
+    assert not Path(wd, "c/c2.txt").exists()
 
     commitId = Oid(hex="1203b03dc816ccbb67773f28b3c19318654b0bc8")
     rw.jump(NavLocator.inCommit(commitId, "c/c2.txt"), check=True)
@@ -222,9 +213,7 @@ def testRefreshKeepsMultiFileSelection(tempDir, mainWindow, context):
     for i in range(N):
         writeFile(f"{wd}/UNSTAGED{i}", f"dirty{i}")
         writeFile(f"{wd}/STAGED{i}", f"staged{i}")
-    with RepoContext(wd) as repo:
-        repo.index.add_all([f"STAGED{i}" for i in range(N)])
-        repo.index.write()
+    shell("git add STAGED*", wd)
 
     rw = mainWindow.openRepo(wd)
     fl = rw.diffArea.fileListByContext(context)
@@ -339,14 +328,13 @@ def testSearchFileListElidedTerm(tempDir, mainWindow):
 
 def testSearchEmptyFileList(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    with RepoContext(wd) as repo:
-        oid = repo.create_commit_on_head("EMPTY COMMIT")
+    shell("git commit --allow-empty -m'EMPTY COMMIT'", wd)
 
     rw = mainWindow.openRepo(wd)
     fileList = rw.committedFiles
     searchBar = fileList.searchBar
 
-    rw.jump(NavLocator.inCommit(oid))
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id), check=True)
     assert fileList.isVisible()
     assert not qlvGetRowData(fileList)
     fileList.setFocus()
@@ -411,11 +399,11 @@ def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):
 
 def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    runShellScript("""
+    shell("""
         echo 'staged in workdir' > a/a1
         git add a/a1
         echo 'modified in workdir' > a/a1
-    """, directory=wd)
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
@@ -867,15 +855,13 @@ def testFileListNaturalSort(tempDir, mainWindow):
 
 def testUnstageRenamedFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/a.txt", "content")
 
-    with RepoContext(wd) as repo:
-        repo.index.add("a.txt")
-        repo.create_commit_on_head("initial", TEST_SIGNATURE, TEST_SIGNATURE)
-
-        os.rename(f"{wd}/a.txt", f"{wd}/b.txt")
-        repo.index.add_all()
-        repo.index.write()
+    shell("""
+        echo 'content' > a.txt
+        git add a.txt
+        git commit -m'initial'
+        git mv a.txt b.txt
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -892,10 +878,11 @@ def testUnstageRenamedFile(tempDir, mainWindow):
 
 def testCantStageMixedSelection(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
-    writeFile(f"{wd}/hello.txt", "content")
 
-    with RepoContext(f"{wd}/submosub") as submoRepo:
-        submoRepo.reset(Oid(hex="6c138ceb12d6fc505ebe9015dcc48a0616e1de23"), ResetMode.HARD)
+    shell("""
+        echo 'content' > hello.txt
+        git -C ./submosub reset --hard 6c138ce
+    """, wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -904,9 +891,7 @@ def testCantStageMixedSelection(tempDir, mainWindow):
     assert findMenuAction(menu, "can.t stage this selection in bulk")
     menu.close()
 
-    with RepoContext(wd, write_index=True) as repo:
-        repo.index.add("hello.txt")
-        repo.index.add("submosub")
+    shell("git add hello.txt submosub", wd)
     rw.refreshRepo()
 
     rw.stagedFiles.selectAll()
