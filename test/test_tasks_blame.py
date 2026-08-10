@@ -709,11 +709,30 @@ def testBlameDiscoverUpperBoundOnOtherBranch(tempDir, mainWindow):
 
 def testBlameLine(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "testrepoformerging")
+
+    # Blame a line on a non-checked-out branch to ensure the blame window
+    # presents the revlist from that other branch.
+    shell("""
+        git switch i18n
+        echo 'hejsan allihopa' >> hello.txt
+        git commit -am 'Say hello in Swedish'
+        git switch master
+    """, wd)
+
     rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inCommit(Oid(hex="2be5719152d4f82c7302b1c0932d8e5f0a4a0e98"), "hello.txt"), check=True)
-    bp = qteBlockPoint(rw.diffView, 1)
-    triggerContextMenuAction(rw.diffView.viewport(), "blame line.+hello world", bp)
+    oid = rw.repo.branches.local['i18n'].target
+
+    rw.jump(NavLocator.inCommit(oid, "hello.txt"), check=True)
+
+    # We'll blame a line that exists in both master and i18n, but we want to
+    # show the revlist from i18n.
+    bp = qteBlockPoint(rw.diffView, 2)
+    triggerContextMenuAction(rw.diffView.viewport(), "blame line.+hola mundo", bp)
 
     blameWindow = findWindow("blame", t=BlameWindow)
-    assert blameWindow.textEdit.textCursor().selectedText() == "hello world"
-    assert blameWindow.scrubber.currentText().strip() == "First commit"
+    assert blameWindow.textEdit.textCursor().selectedText() == "hola mundo"
+    assert blameWindow.scrubber.currentText().strip() == "Say hello in Spanish"
+
+    messages = [rw.repo[s.commitId].peel(Commit).message.strip()
+                for s in blameWindow.model.revList.sequence]
+    assert messages == ["Say hello in Swedish", "Say hello in French", "Say hello in Spanish", "First commit"]

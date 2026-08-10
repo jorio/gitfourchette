@@ -10,7 +10,6 @@ from gitfourchette import settings
 from gitfourchette.blameview.blamemodel import BlameModel, RevList, Revision
 from gitfourchette.diffview.diffdocument import LineData
 from gitfourchette.gitdriver import argsIf, GitDriver, GitStatus, GitDeltaSource, GitDelta
-from gitfourchette.gitdriver.gitdeltafile import HexHash0000
 from gitfourchette.gitdriver.parsers import parseGitBlame
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
@@ -29,7 +28,7 @@ class OpenBlame(RepoTask):
     def prereqs(self) -> TaskPrereqs:
         return TaskPrereqs.NoUnborn
 
-    def flow(self, path: str, seed: Oid = NULL_OID) -> RepoTask.Flow[BlameWindow]:
+    def flow(self, path: str, seed: Oid = NULL_OID, showAsync: bool = True) -> RepoTask.Flow[BlameWindow]:
         from gitfourchette.blameview.blamewindow import BlameWindow
 
         upperBound = yield from self._findUpperBound(path, seed)
@@ -45,16 +44,19 @@ class OpenBlame(RepoTask):
         # Die in tandem with RepoWidget
         self.rw.destroyed.connect(blameWindow.close)
 
-        blameWindow.show()
-        blameWindow.activateWindow()  # bring to foreground after ProcessDialog
-
         self.epilog.status = _n("{n} revision found.", "{n} revisions found.", n=len(revList))
 
-        try:
-            start = revList.revisionForCommit(seed)
-        except KeyError:
-            start = blameModel.currentRevision
-        blameWindow.showRevision(start)
+        if showAsync:
+            blameWindow.show()
+            blameWindow.activateWindow()  # bring to foreground after ProcessDialog
+
+            try:
+                start = revList.revisionForCommit(seed)
+            except KeyError:
+                start = blameModel.currentRevision
+
+            # Queue up another RepoTask to show the revision asynchronously
+            blameWindow.showRevision(start)
 
         return blameWindow
 
@@ -208,39 +210,53 @@ class OpenBlameToLine(RepoTask):
             line = lineData.newLineNo
 
         # ----------------------------------------------------------------------
-        # Find out which commit introduced this line.
-        # We'll start the blame window to that commit.
+        # Find out on which commit to seed the blame
 
         if file.source == GitDeltaSource.Commit:
-            lineSeedRev = str(file.sourceCommit)
+            seed = file.sourceCommit
         elif file.source == GitDeltaSource.Index and delta.source == GitDeltaSource.Dirty:
-            lineSeedRev = "HEAD"
+            seed = self.repo.head_commit_id
         else:
-            lineSeedRev = ""
-        assert lineSeedRev not in ["None", HexHash0000]
+            seed = NULL_OID
+
+        # ----------------------------------------------------------------------
+        # Find out which commit introduced this line
 
         driver = yield from self.flowCallGit(
             "blame",
             "--porcelain",
             f"-L{line},{line}",
-            *argsIf(bool(lineSeedRev), lineSeedRev),
+            *argsIf(seed != NULL_OID, str(seed)),
             "--",
             file.path)
 
-        seedHash, line, _dummy = next(parseGitBlame(driver.stdoutScrollback()))
-        seedCommit = Oid(hex=seedHash)
+        introducerHash, introducerLine, _dummy = next(parseGitBlame(driver.stdoutScrollback()))
+        introducerCommit = Oid(hex=introducerHash)
         # Note: Git can return 0000000 if the change originated in the workdir.
         # We happen to interpret that as UC_FAKEID.
 
         # ----------------------------------------------------------------------
-        # Perform the full blame
+        # Perform full blame (from seed)
 
-        blameWindow: BlameWindow = yield from self.flowSubtask(OpenBlame, file.path, seedCommit)
+        blameWindow: BlameWindow = yield from self.flowSubtask(OpenBlame, path=file.path, seed=seed, showAsync=False)
+
+        # ----------------------------------------------------------------------
+        # Zero in on the commit that introduced the line
+
+        try:
+            introducerRev = blameWindow.model.revList.revisionForCommit(introducerCommit)
+        except KeyError as ex:
+            raise AbortTask(f"{introducerCommit} missing from revlist") from ex
+        else:
+            yield from self.flowSubtask(BlameRevision, introducerRev, False, blameWindow)
+        finally:
+            blameWindow.show()
+            blameWindow.activateWindow()  # bring to foreground after ProcessDialog
 
         # ----------------------------------------------------------------------
         # Select the line
 
-        block = blameWindow.textEdit.document().findBlockByNumber(line - 1)
+        block = blameWindow.textEdit.document().findBlockByNumber(introducerLine - 1)
         assert block.isValid()
         cursor = QTextCursor(block)  # cursor positioned at block start
         cursor.setPosition(block.position() + block.length() - 1, QTextCursor.MoveMode.KeepAnchor)
@@ -266,10 +282,11 @@ class BlameRevision(RepoTask):
         # scrubber or nav buttons
         return isinstance(task, BlameRevision) or super().canKill(task)
 
-    def flow(self, revision: Revision, saveAndTransposePosition: bool):
+    def flow(self, revision: Revision, saveAndTransposePosition: bool, blameWindow: BlameWindow | None = None):
         from gitfourchette.blameview.blamewindow import BlameWindow
 
-        blameWindow = self.parentWidget()
+        if blameWindow is None:
+            blameWindow = self.parentWidget()  # type: ignore[assignment]
         assert isinstance(blameWindow, BlameWindow)
 
         blameModel = blameWindow.model
