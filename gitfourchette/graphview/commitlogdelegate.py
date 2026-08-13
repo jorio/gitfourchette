@@ -96,10 +96,17 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         self.mounts = GFApplication.instance().mountManager
 
+        self._transientToolTipZones: list[CommitToolTipZone] | None = None
+
     def prepareForDeletion(self):
         del self.repoModel
         del self.infoSearch
         del self.mounts
+
+    def newToolTipZone(self, zone: CommitToolTipZone):
+        if self._transientToolTipZones is None:
+            self._transientToolTipZones = []
+        self._transientToolTipZones.append(zone)
 
     def invalidateMetrics(self):
         self.mustRefreshMetrics = True
@@ -136,17 +143,18 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         try:
+            assert self._transientToolTipZones is None
             self._paint(painter, option, index, fillBackground)
         except Exception as exc:  # pragma: no cover
             painter.restore()
             painter.save()
             self._paintError(painter, option, index, exc)
+        finally:
+            self._transientToolTipZones = None
         painter.restore()
 
     def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
         assert index.isValid()
-
-        toolTips: list[CommitToolTipZone] = []
 
         isActive = bool(option.state & QStyle.StateFlag.State_Active)
         isSelected = bool(option.state & QStyle.StateFlag.State_Selected)
@@ -277,7 +285,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             rect.setRight(rightBound)
 
         # ------ Private
-        self.paintPrivate(painter, option, index, rect, oid, toolTips)
+        self.paintPrivate(painter, option, index, rect, oid)
 
         # ------ Message
         # use muted color for foreign commit messages if not selected
@@ -288,7 +296,7 @@ class CommitLogDelegate(QStyledItemDelegate):
         painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, elidedSummaryText)
 
         if len(elidedSummaryText) == 0 or elidedSummaryText.endswith(("…", ELISION)):
-            toolTips.append(CommitToolTipZone(rect.left(), rect.right(), "message"))
+            self.newToolTipZone(CommitToolTipZone(rect.left(), rect.right(), "message"))
 
         # ------ Highlight search term
         if searchTerm and commit and searchTerm in commit.message.lower():
@@ -327,7 +335,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, elide(dateText))
 
         if authorWidth != 0 or dateWidth != 0:
-            toolTips.append(CommitToolTipZone(leftBoundName, rightBound, "author"))
+            self.newToolTipZone(CommitToolTipZone(leftBoundName, rightBound, "author"))
 
         # ------ Pathspec match
         if (oid is not None
@@ -342,7 +350,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             needleRect.setRight(leftBoundName - bleed - XMARGIN)
             needleRect.setLeft(needleRect.right() - metrics.horizontalAdvance(needle))
 
-            toolTips.append(CommitToolTipZone(needleRect.left(), needleRect.right(), "pathspec"))
+            self.newToolTipZone(CommitToolTipZone(needleRect.left(), needleRect.right(), "pathspec"))
 
             SearchBar.highlightNeedle(painter, needleRect, needle, lBleed=bleed+iconWidth, rBleed=bleed)
 
@@ -357,9 +365,12 @@ class CommitLogDelegate(QStyledItemDelegate):
         model = index.model()
         with QSignalBlockerContext(model):
             model.setData(index, leftBoundName if authorWidth != 0 else -1, CommitLogModel.Role.AuthorColumnX)
-            model.setData(index, toolTips, CommitLogModel.Role.ToolTipZones)
+            model.setData(index, self._transientToolTipZones, CommitLogModel.Role.ToolTipZones)
 
-    def _paintRefboxes(self, painter: QPainter, rect: QRect, refs: list[str], toolTips: list[CommitToolTipZone]):
+        # Flush temp mouse zones
+        self._transientToolTipZones = None
+
+    def _paintRefboxes(self, painter: QPainter, rect: QRect, refs: list[str]):
         repoModel = self.repoModel
         homeBranch = RefPrefix.HEADS + repoModel.homeBranch
         xMax = painter.clipBoundingRect().right()
@@ -416,11 +427,10 @@ class CommitLogDelegate(QStyledItemDelegate):
 
             # Draw local branches
             for i, localRef in enumerate(localRefList):
-                self._paintRefbox(painter, rect, toolTips, localRef,
-                                  clipLeft=i != 0, clipRight=True, isHome=localRef == homeBranch)
+                self._paintRefbox(painter, rect, localRef, clipLeft=i != 0, clipRight=True, isHome=localRef == homeBranch)
 
             # Draw upstream at end of cluster
-            self._paintRefbox(painter, rect, toolTips, upstreamRef, clipLeft=True, forceOmitName=omitRemoteName)
+            self._paintRefbox(painter, rect, upstreamRef, clipLeft=True, forceOmitName=omitRemoteName)
 
             if rect.left() >= xMax:
                 return
@@ -437,7 +447,7 @@ class CommitLogDelegate(QStyledItemDelegate):
             if refName in nonLooseRefs:
                 continue
 
-            self._paintRefbox(painter, rect, toolTips, refName, isHome=refName == homeBranch)
+            self._paintRefbox(painter, rect, refName, isHome=refName == homeBranch)
 
             if rect.left() >= xMax:
                 return
@@ -446,12 +456,12 @@ class CommitLogDelegate(QStyledItemDelegate):
             self,
             painter: QPainter,
             rect: QRect,
-            toolTips: list[CommitToolTipZone],
             refName: str,
             isHome: bool = False,
             clipLeft: bool = False,
             clipRight: bool = False,
             forceOmitName: bool = False,
+            forceToolTip: str | None = "",
     ):
         if refName == 'HEAD' and not self.repoModel.headIsDetached:
             return
@@ -460,8 +470,6 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         if forceOmitName:
             text = ""
-        # elif refName == UC_FAKEREF:
-        #     text = _("Working Directory")
         elif not refboxDef.keepPrefix:
             text = refName.removeprefix(refboxDef.prefix)
         else:
@@ -585,8 +593,10 @@ class CommitLogDelegate(QStyledItemDelegate):
                 painter.drawLines(*divider)
 
         # Append tooltip
-        refToolTip = CommitToolTipZone(rect.left(), boxRect.right(), "ref", refName)
-        toolTips.append(refToolTip)
+        if forceToolTip is not None:
+            toolTipText = forceToolTip or refName
+            zone = CommitToolTipZone(rect.left(), boxRect.right(), "ref", toolTipText)
+            self.newToolTipZone(zone)
 
         # Advance caller rectangle
         rect.setLeft(round(clipBox.right()) + (6 if not rClip else 0))
@@ -654,7 +664,6 @@ class CommitLogDelegate(QStyledItemDelegate):
             index: QModelIndex,
             rect: QRect,
             oid: Oid | None,
-            toolTips: list[CommitToolTipZone]
     ):
         """
         Draw widget-specific information inbetween the commit hash and message.
@@ -667,25 +676,25 @@ class CommitLogDelegate(QStyledItemDelegate):
             paintGraphFrame(painter, graphRect, oid, self.repoModel.graph, self.repoModel.hiddenCommits)
             rect.setLeft(graphRect.right())
 
+        # ------ Begin refboxes
+        painter.save()
+        painter.setClipRect(rect)
+
         # ------ A/B icon
         abSide = index.data(CommitLogModel.Role.ComparisonSide)
         if abSide:
-            painter.save()
-            self._paintRefbox(painter, rect, toolTips, f"FAKEREF_COMPARE{abSide}")
-            toolTips[-1].data = _("{0} side in the current comparison between two commits", tquo(abSide))
-            painter.restore()
+            tt = _("{0} side in the current comparison between two commits", tquo(abSide))
+            self._paintRefbox(painter, rect, f"FAKEREF_COMPARE{abSide}", forceToolTip=tt)
 
         # ------ Mount icon
         if self.mounts.isMounted(oid):
-            painter.save()
-            self._paintRefbox(painter, rect, toolTips, "FAKEREF_FUSEMOUNT", forceOmitName=True)
-            toolTips[-1].data = _("This commit is currently mounted as a folder.")
-            painter.restore()
+            tt = _("This commit is currently mounted as a folder.")
+            self._paintRefbox(painter, rect, "FAKEREF_FUSEMOUNT", forceToolTip=tt)
 
-        # ------ Refboxes
+        # ------ Actual refs
         refsHere = self.repoModel.refsAt.get(oid, None)
         if refsHere:
-            painter.save()
-            painter.setClipRect(rect)
-            self._paintRefboxes(painter, rect, refsHere, toolTips)
-            painter.restore()
+            self._paintRefboxes(painter, rect, refsHere)
+
+        # ------ End refboxes
+        painter.restore()

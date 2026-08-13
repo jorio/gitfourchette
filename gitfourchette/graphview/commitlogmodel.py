@@ -185,13 +185,14 @@ class CommitLogModel(QAbstractListModel):
         elif role == CommitLogModel.Role.ToolTipZones:
             row = index.row()
 
-            # Bump row to end of keys
-            # (dicts keep key insertion order in Python 3.7+)
             self._toolTipZones.pop(row, None)
-            self._toolTipZones[row] = value
 
-            # Nuke old entries if the dict grew beyond the threshold
-            trimCacheDict(self._toolTipZones, CommitLogModel.ToolTipCacheSize)
+            if value:
+                # Bump row to end of keys (dicts keep key insertion order since Python 3.7)
+                self._toolTipZones[row] = value
+
+                # Nuke old entries if the dict grew beyond the threshold
+                trimCacheDict(self._toolTipZones, CommitLogModel.ToolTipCacheSize)
 
             return True
 
