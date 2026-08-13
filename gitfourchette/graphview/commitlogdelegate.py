@@ -25,8 +25,8 @@ from gitfourchette.toolbox import *
 @dataclass
 class RefBox:
     prefix: str
-    icon: str
-    color: QColor
+    icon: str = ""
+    color: QColor = None
     keepPrefix: bool = False
     iconWidth: int = 16
 
@@ -108,6 +108,9 @@ class CommitLogDelegate(QStyledItemDelegate):
             self._transientToolTipZones = []
         self._transientToolTipZones.append(zone)
 
+    # --------------------------------------------------------------------------
+    # Metrics
+
     def invalidateMetrics(self):
         self.mustRefreshMetrics = True
 
@@ -139,6 +142,15 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         self.authorMaxWidth = self.hashCharWidth * MAX_AUTHOR_CHARS.get(settings.prefs.authorDisplayStyle, 16)
 
+    # --------------------------------------------------------------------------
+    # Qt callbacks
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
+        mult = settings.prefs.graphRowHeight
+        r = super().sizeHint(option, index)
+        r.setHeight(option.fontMetrics.height() * mult // 100)
+        return r
+
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground=True):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -152,6 +164,9 @@ class CommitLogDelegate(QStyledItemDelegate):
         finally:
             self._transientToolTipZones = None
         painter.restore()
+
+    # --------------------------------------------------------------------------
+    # Paint implementation
 
     def _paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, fillBackground: bool):
         assert index.isValid()
@@ -172,193 +187,89 @@ class CommitLogDelegate(QStyledItemDelegate):
         # Get metrics of '0' before setting a custom font,
         # so that alignments are consistent in all commits regardless of bold or italic.
         self.refreshMetrics(option)
-        hcw = self.hashCharWidth
+
+        # Get the commit
+        # special: SpecialRow = index.data(CommitLogModel.Role.SpecialRow)
+        oid = index.data(CommitLogModel.Role.Oid)
+        if oid is not None and oid != UC_FAKEID:
+            commit = self.repoModel.repo.peel_commit(oid)
+        else:
+            commit = None
 
         # Set up rect
         rect = QRect(option.rect)
         rect.setLeft(rect.left() + XMARGIN)
         rect.setRight(rect.right() - XMARGIN)
+        fullWidth = rect.width()
 
         # Compute column bounds
         authorWidth = self.authorMaxWidth
         dateWidth = self.dateMaxWidth
-        if rect.width() < NARROW_WIDTH[0]:
+        if fullWidth < NARROW_WIDTH[0] or not oid:
             authorWidth = 0
             dateWidth = 0
-        elif rect.width() <= NARROW_WIDTH[1]:
+        elif fullWidth <= NARROW_WIDTH[1]:
             authorWidth = int(lerp(authorWidth/2, authorWidth, rect.width(), NARROW_WIDTH[0], NARROW_WIDTH[1]))
-        leftBoundHash = rect.left()
-        leftBoundSummary = leftBoundHash + hcw * settings.prefs.shortHashChars + XSPACING
-        leftBoundDate = rect.width() - dateWidth
+        leftBoundDate = rect.right() - dateWidth
         leftBoundName = leftBoundDate - authorWidth
         rightBound = rect.right()
+        tabBound = rect.right() - authorWidth - dateWidth
 
-        # Get the info we need about the commit
-        commit: Commit | None = index.data(CommitLogModel.Role.Commit)
-        gpgStatus = GpgStatus.Unsigned
-        if commit and commit.id != UC_FAKEID:
-            oid = commit.id
-            author = commit.author
-            committer = commit.committer
+        # Reserve rightmost column
+        rect.setRight(leftBoundName - XMARGIN)
 
-            summaryText, _contd = messageSummary(commit.message, ELISION)
-            hashText = shortHash(oid)
-            authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
-            dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
-            gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(commit)
-
-            if gpgStatus == GpgStatus.Pending and settings.prefs.verifyGpgOnTheFly:
-                self.requestSignatureVerification.emit(oid)
-
-            if settings.prefs.authorDiffAsterisk:
-                if author.email != committer.email:
-                    authorText += "*"
-                if author.time != committer.time:
-                    dateText += "*"
-
-            if self.infoSearch is not None:
-                searchTerm = self.infoSearch.term()
-                searchTermLooksLikeHash = self.infoSearch.likelyHash
-            else:
-                searchTerm = ""
-                searchTermLooksLikeHash = False
-        else:
-            commit = None
-            oid = None
-            hashText = "·" * settings.prefs.shortHashChars
-            authorText = ""
-            dateText = ""
-            searchTerm = ""
-            searchTermLooksLikeHash = False
-            painter.setFont(self.uncommittedFont)
-
-            specialRowKind: SpecialRow = index.data(CommitLogModel.Role.SpecialRow)
-
-            if specialRowKind == SpecialRow.UncommittedChanges:
-                oid = UC_FAKEID
-                summaryText = self.uncommittedChangesMessage()
-
-            elif specialRowKind == SpecialRow.TruncatedHistory:
-                if self.repoModel.hiddenCommits and self.repoModel.hiddenRefs:
-                    summaryText = _("History truncated to {0} commits (including hidden branches)")
-                else:
-                    summaryText = _("History truncated to {0} commits")
-                summaryText = summaryText.format(option.widget.locale().toString(self.repoModel.numRealCommits))
-
-            elif specialRowKind == SpecialRow.EndOfShallowHistory:
-                summaryText = _("Shallow clone – End of commit history")
-
-            else:  # pragma: no cover
-                summaryText = f"*** Unsupported special row {specialRowKind}"
-
+        # Set font
         if self.isBold(oid):
             painter.setFont(self.activeCommitFont)
+        elif not oid:
+            painter.setFont(self.uncommittedFont)
 
-        # Get metrics now so the message gets elided according to the custom font style
-        # that may have been just set for this commit.
-        metrics: QFontMetrics = painter.fontMetrics()
+        # ...Left-to-right zones...
 
-        def elide(text):
-            return metrics.elidedText(text, Qt.TextElideMode.ElideRight, rect.width())
-
-        # ------ Hash
-        charRect = QRect(leftBoundHash, rect.top(), hcw, rect.height())
+        # Hash
         painter.save()
         if not isSelected:  # use muted color for hash if not selected
             painter.setPen(palette.color(colorGroup, QPalette.ColorRole.PlaceholderText))
-        for hashChar in hashText:
-            painter.drawText(charRect, Qt.AlignmentFlag.AlignCenter, hashChar)
-            charRect.translate(hcw, 0)
+        self._paintHash(painter, rect, oid)
         painter.restore()
 
-        # ------ Highlight searched hash
-        if searchTerm and searchTermLooksLikeHash and oid is not None and str(oid).startswith(searchTerm):
-            x1 = 0
-            x2 = min(len(hashText), len(searchTerm)) * hcw
-            SearchBar.highlightNeedle(painter, rect, hashText, 0, len(searchTerm), x1, x2)
-
-        # ------ Set private/message area rect
-        rect.setLeft(leftBoundSummary)
-        if oid is not None and oid != UC_FAKEID:
-            rect.setRight(leftBoundName - XMARGIN)
-        else:
-            rect.setRight(rightBound)
-
-        # ------ Private
+        # Private
         self.paintPrivate(painter, option, index, rect, oid)
 
-        # ------ Message
-        # use muted color for foreign commit messages if not selected
+        # Use muted color from here on out for foreign commits (unless selected)
         if not isSelected and self.isDim(oid):
             painter.setPen(Qt.GlobalColor.gray)
 
-        elidedSummaryText = elide(summaryText)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, elidedSummaryText)
+        # Message
+        if commit is not None:
+            self._paintCommitMessage(painter, rect, commit)
+        else:
+            special: SpecialRow = index.data(CommitLogModel.Role.SpecialRow)
+            self._paintSpecialMessage(painter, rect, special)
 
-        if len(elidedSummaryText) == 0 or elidedSummaryText.endswith(("…", ELISION)):
-            self.newToolTipZone(CommitToolTipZone(rect.left(), rect.right(), "message"))
-
-        # ------ Highlight search term
-        if searchTerm and commit and searchTerm in commit.message.lower():
-            needlePos = summaryText.lower().find(searchTerm)
-            if needlePos < 0:
-                needlePos = len(summaryText) - ELISION_LENGTH
-                needleLen = ELISION_LENGTH
-            else:
-                needleLen = len(searchTerm)
-            SearchBar.highlightNeedle(painter, rect, summaryText, needlePos, needleLen)
-
-        # ------ Author
-        if authorWidth != 0:
-            rect.setLeft(leftBoundName)
-
-            # Draw seal for signed commits
-            if gpgStatus > GpgStatus.Pending or (settings.prefs.verifyGpgOnTheFly and gpgStatus >= GpgStatus.Pending):
-                rect.setRight(leftBoundName + 16)
-                icon = stockIcon(gpgStatus.iconName())
-                icon.paint(painter, rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                rect.setLeft(rect.right() + 4)
-
-            rect.setRight(leftBoundDate - XMARGIN)
-            FittedText.draw(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
-
-        # ------ Highlight searched author
-        if searchTerm and commit:
-            needlePos = authorText.lower().find(searchTerm)
-            if needlePos >= 0:
-                SearchBar.highlightNeedle(painter, rect, authorText, needlePos, len(searchTerm))
-
-        # ------ Date
-        if dateWidth != 0:
-            rect.setLeft(leftBoundDate)
-            rect.setRight(rightBound)
-            painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, elide(dateText))
-
-        if authorWidth != 0 or dateWidth != 0:
-            self.newToolTipZone(CommitToolTipZone(leftBoundName, rightBound, "author"))
-
-        # ------ Pathspec match
+        # Pathspec match
         if (oid is not None
                 and self.repoModel.commitPathspecFilter.isReady()
                 and oid in self.repoModel.commitPathspecFilter.matchingIds):
-            bleed, iconWidth = 8, 16
+            self._paintRefspecMatch(painter, rect, fullWidth // 8)
 
-            needle = self.repoModel.commitPathspecFilter.needle
-            needle = metrics.elidedText(needle, Qt.TextElideMode.ElideRight, option.rect.width()//8)
+        # ...Jump to rightmost column...
 
-            needleRect = QRect(rect)
-            needleRect.setRight(leftBoundName - bleed - XMARGIN)
-            needleRect.setLeft(needleRect.right() - metrics.horizontalAdvance(needle))
+        # Author
+        if authorWidth != 0 and commit:
+            rect.setLeft(tabBound)
+            rect.setRight(leftBoundDate - XMARGIN)
+            self._paintAuthor(painter, rect, commit)
 
-            self.newToolTipZone(CommitToolTipZone(needleRect.left(), needleRect.right(), "pathspec"))
+        # Date
+        if dateWidth != 0 and commit:
+            rect.setLeft(leftBoundDate)
+            rect.setRight(rightBound)
+            self._paintDate(painter, rect, commit)
 
-            SearchBar.highlightNeedle(painter, needleRect, needle, lBleed=bleed+iconWidth, rBleed=bleed)
-
-            needleRect.adjust(-iconWidth, 0, 0, 0)
-            needleRect.setWidth(iconWidth)
-            stockIcon("magnifying-glass", "gray=black").paint(painter, needleRect)
-
-        # ----------------
+        # Set author/date tooltip zone
+        if authorWidth != 0 or dateWidth != 0:
+            self.newToolTipZone(CommitToolTipZone(leftBoundName, rightBound, "author"))
 
         # Tooltip metrics
         # Block model signals to update it - otherwise QComboBox will constantly redraw itself
@@ -369,6 +280,133 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # Flush temp mouse zones
         self._transientToolTipZones = None
+
+    # --------------------------------------------------------------------------
+    # Paint blocks
+
+    def _paintHash(self, painter: QPainter, rect: QRect, oid: Oid | None):
+        hcw = self.hashCharWidth
+        hashText = shortHash(oid) if oid else ("·" * settings.prefs.shortHashChars)
+
+        charRect = QRect(rect)
+        charRect.setWidth(hcw)
+
+        for hashChar in hashText:
+            painter.drawText(charRect, Qt.AlignmentFlag.AlignCenter, hashChar)
+            charRect.translate(hcw, 0)
+
+        # Highlight searched hash
+        if (self.infoSearch is not None
+                and self.infoSearch.likelyHash
+                and (term := self.infoSearch.term())
+                and oid is not None
+                and str(oid).startswith(term)):
+            x1 = 0
+            x2 = min(len(hashText), len(term)) * hcw
+            SearchBar.highlightNeedle(painter, rect, hashText, 0, len(term), x1, x2)
+
+        rect.setLeft(charRect.right())
+
+    def _paintSpecialMessage(self, painter: QPainter, rect: QRect, special: SpecialRow):
+        if special == SpecialRow.UncommittedChanges:
+            text = self.uncommittedChangesMessage()
+        elif special == SpecialRow.EndOfShallowHistory:
+            text = _("Shallow clone – End of commit history")
+        elif special == SpecialRow.TruncatedHistory:
+            if self.repoModel.hiddenCommits and self.repoModel.hiddenRefs:
+                text = _("History truncated to {0} commits (including hidden branches)")
+            else:
+                text = _("History truncated to {0} commits")
+            text = text.format(QLocale().toString(self.repoModel.numRealCommits))
+        else:
+            raise NotImplementedError(f"*** Unsupported special row {special}")
+
+        text = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight, rect.width())
+        painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, text)
+
+    def _paintCommitMessage(self, painter: QPainter, rect: QRect, commit: Commit):
+        fullText = commit.message
+        text, _contd = messageSummary(fullText, ELISION)
+
+        text = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight, rect.width())
+        painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, text)
+
+        if len(text) == 0 or text.endswith(("…", ELISION)):
+            self.newToolTipZone(CommitToolTipZone(rect.left(), rect.right(), "message"))
+
+        # Highlight search term
+        if (text
+                and self.infoSearch is not None
+                and (searchTerm := self.infoSearch.term())
+                and searchTerm in fullText.lower()):
+            needlePos = text.lower().find(searchTerm)
+            if needlePos < 0:
+                needlePos = len(text) - ELISION_LENGTH
+                needleLen = ELISION_LENGTH
+            else:
+                needleLen = len(searchTerm)
+            SearchBar.highlightNeedle(painter, rect, text, needlePos, needleLen)
+
+    def _paintRefspecMatch(self, painter: QPainter, rect: QRect, maxWidth: int):
+        metrics = painter.fontMetrics()
+        bleed, iconWidth = 8, 16
+
+        needle = self.repoModel.commitPathspecFilter.needle
+        needle = metrics.elidedText(needle, Qt.TextElideMode.ElideRight, maxWidth)
+
+        needleRect = QRect(rect)
+        needleRect.setRight(rect.right() - bleed)
+        needleRect.setLeft(needleRect.right() - metrics.horizontalAdvance(needle))
+
+        self.newToolTipZone(CommitToolTipZone(needleRect.left(), needleRect.right(), "pathspec"))
+
+        SearchBar.highlightNeedle(painter, needleRect, needle, lBleed=bleed + iconWidth, rBleed=bleed)
+
+        needleRect.adjust(-iconWidth, 0, 0, 0)
+        needleRect.setWidth(iconWidth)
+        stockIcon("magnifying-glass", "gray=black").paint(painter, needleRect)
+
+    def _paintAuthor(self, painter: QPainter, rect: QRect, commit: Commit):
+        assert commit
+        author = commit.author
+        authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
+
+        if settings.prefs.authorDiffAsterisk and author.email != commit.committer.email:
+            authorText += "*"
+
+        gpgStatus, _gpgKeyInfo = self.repoModel.getCachedGpgStatus(commit)
+
+        if gpgStatus == GpgStatus.Pending and settings.prefs.verifyGpgOnTheFly:
+            self.requestSignatureVerification.emit(commit.id)
+
+        # Draw seal for signed commits
+        if gpgStatus > GpgStatus.Pending or (settings.prefs.verifyGpgOnTheFly and gpgStatus >= GpgStatus.Pending):
+            sealRect = QRect(rect)
+            sealRect.setRight(sealRect.left() + 16)
+            icon = stockIcon(gpgStatus.iconName())
+            icon.paint(painter, sealRect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            rect.setLeft(sealRect.right() + 4)
+
+        FittedText.draw(painter, rect, Qt.AlignmentFlag.AlignVCenter, authorText, minStretch=QFont.Stretch.ExtraCondensed)
+
+        # Highlight searched author
+        if self.infoSearch is not None and (searchTerm := self.infoSearch.term()):
+            needlePos = authorText.lower().find(searchTerm)
+            if needlePos >= 0:
+                SearchBar.highlightNeedle(painter, rect, authorText, needlePos, len(searchTerm))
+
+    def _paintDate(self, painter: QPainter, rect: QRect, commit: Commit):
+        author = commit.author
+        dateText = signatureDateFormat(author, settings.prefs.shortTimeFormat, localTime=True)
+
+        if settings.prefs.authorDiffAsterisk and author.time != commit.committer.time:
+            dateText += "*"
+
+        displayText = painter.fontMetrics().elidedText(dateText, Qt.TextElideMode.ElideRight, rect.width())
+        painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, displayText)
+
+    # --------------------------------------------------------------------------
+    # Refbox painting
 
     def _paintRefboxes(self, painter: QPainter, rect: QRect, refs: list[str]):
         repoModel = self.repoModel
@@ -468,21 +506,23 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         refboxDef = next(d for d in REFBOXES if refName.startswith(d.prefix))
 
+        penColor = painter.pen().color()
+
         if forceOmitName:
             text = ""
         elif not refboxDef.keepPrefix:
             text = refName.removeprefix(refboxDef.prefix)
         else:
             text = refName
-        color = refboxDef.color
-        bgColor = QColor(color)
+        color = refboxDef.color or penColor
+        bgColor = QColor(color)  # modify copy
         iconName = refboxDef.icon
 
         # Omit remote name if there's a single remote
         if refboxDef.prefix == RefPrefix.REMOTES and self.repoModel.singleRemote:
             text = text.split('/', 1)[-1]
 
-        dark = painter.pen().color().lightnessF() > .5
+        dark = penColor.lightnessF() > .5
         if dark:
             color = color.lighter(300)
             bgColor.setAlphaF(.5)
@@ -509,7 +549,18 @@ class CommitLogDelegate(QStyledItemDelegate):
         if iconName:
             lPadding -= 1
 
-        maxWidth = settings.prefs.refBoxMaxWidth
+        # Determine max width
+        maxWidth = int(settings.prefs.refBoxMaxWidth)
+        remainingWidth = rect.width()
+        if remainingWidth < 150:  # Super cramped
+            maxWidth = 0  # Draw icon only
+        maxWidth = min(remainingWidth, maxWidth)
+
+        # Text-only refbox: show text regardless of the user's preference
+        if not iconName and text:
+            maxWidth = max(maxWidth, remainingWidth)
+
+        # Draw text
         if text and maxWidth != 0:
             text, fittedFont, textWidth = FittedText.fit(
                 font, maxWidth, text, Qt.TextElideMode.ElideMiddle, limit=QFont.Stretch.Condensed)
@@ -601,7 +652,10 @@ class CommitLogDelegate(QStyledItemDelegate):
         # Advance caller rectangle
         rect.setLeft(round(clipBox.right()) + (6 if not rClip else 0))
 
-    def _paintError(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, exc: BaseException):  # pragma: no cover
+    # --------------------------------------------------------------------------
+    # Error painting
+
+    def _paintError(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, exc: Exception):  # pragma: no cover
         """Last-resort row drawing routine used if _paint raises an exception."""
 
         # We want this to fail in unit tests.
@@ -609,39 +663,35 @@ class CommitLogDelegate(QStyledItemDelegate):
             raise exc
 
         text = "?" * 7
-        with suppress(BaseException):
-            commit: Commit = index.data(CommitLogModel.Role.Commit)
-            text = str(commit.id)[:7]
-        with suppress(BaseException):
+        with suppress(Exception):
+            oid = index.data(CommitLogModel.Role.Oid)
+            text = str(oid)[:7]
+        with suppress(Exception):
             details = traceback.format_exception(exc.__class__, exc, exc.__traceback__)
-            text += " " + shortenTracebackPath(details[-2].splitlines(False)[0]) + ":: " + repr(exc)
+            text += " - " + shortenTracebackPath(details[-2].splitlines(False)[0]) + ":: " + repr(exc)
 
+        bg, fg = QColor(Qt.GlobalColor.white), QColor(Qt.GlobalColor.red)
         if option.state & QStyle.StateFlag.State_Selected:
-            bg, fg = QColor(Qt.GlobalColor.red), QColor(Qt.GlobalColor.white)
-        else:
-            bg, fg = option.palette.color(QPalette.ColorRole.Base), QColor(Qt.GlobalColor.red)
+            bg, fg = fg, bg
 
         painter.fillRect(option.rect, bg)
         painter.setPen(fg)
         painter.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.SmallestReadableFont))
         painter.drawText(option.rect, Qt.AlignmentFlag.AlignVCenter, text)
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
-        mult = settings.prefs.graphRowHeight
-        r = super().sizeHint(option, index)
-        r.setHeight(option.fontMetrics.height() * mult // 100)
-        return r
+    # --------------------------------------------------------------------------
+    # To override
 
     def isBold(self, oid: Oid) -> bool:
-        """ Can be overridden """
+        """Can be overridden"""
         return oid != NULL_OID and oid == self.repoModel.headCommitId
 
     def isDim(self, oid: Oid):
-        """ Can be overridden """
+        """Can be overridden"""
         return oid != NULL_OID and oid in self.repoModel.foreignCommits
 
     def uncommittedChangesMessage(self) -> str:
-        """ Can be overridden """
+        """Can be overridden"""
         summaryText = _("Working Directory") + " "
         # Append change count if available
         numChanges = self.repoModel.numUncommittedChanges
@@ -698,3 +748,4 @@ class CommitLogDelegate(QStyledItemDelegate):
 
         # ------ End refboxes
         painter.restore()
+

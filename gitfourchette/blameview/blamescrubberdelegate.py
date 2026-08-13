@@ -39,6 +39,7 @@ class BlameScrubberDelegate(CommitLogDelegate):
             rect: QRect,
             oid: Oid,
     ):
+        assert oid is not None
         revision = self.blameModel.revList.revisionForCommit(oid)
 
         # Graph frame

@@ -415,6 +415,9 @@ def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
     QTest.qWait(0)
 
     mainWindow.openRepo(wd)
+    # Make the window wide enough for the author column (won't attempt to verify
+    # signatures if author isn't visible) and tall enough to show many commits.
+    mainWindow.resize(1600, 1600)
     rw = waitForRepoWidget(mainWindow)
     rw.centralSplitter.setSizes([999, 1])
     gpgVerifyQueue = rw.repoModel.gpgVerifyQueue
