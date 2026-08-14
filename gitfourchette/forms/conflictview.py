@@ -230,10 +230,10 @@ class ConflictView(QWidget):
         # Reveal the page
         self.ui.stackedWidget.setCurrentWidget(page)
 
-        self.ui.oursButton.setText(strings.actionOurs)
-        self.ui.oursButton.setToolTip(strings.tipOurs)
-        self.ui.theirsButton.setText(strings.actionTheirs)
-        self.ui.theirsButton.setToolTip(strings.tipTheirs)
+        self.ui.oursButton.setText(strings.ours1 + "\u2026")
+        self.ui.oursButton.setToolTip(strings.ours2)
+        self.ui.theirsButton.setText(strings.theirs1 + "\u2026")
+        self.ui.theirsButton.setToolTip(strings.theirs2)
         self.ui.explainer.setText(f"<b>{strings.title}.</b> {strings.description}")
 
         self.ui.oursPreviewButton.setEnabled(sides.hasOurs())
@@ -312,10 +312,10 @@ class ConflictView(QWidget):
 @dataclass
 class GitConflictSidesLocalization:
     description: str
-    actionOurs: str = ""
-    actionTheirs: str = ""
-    tipOurs: str = ""
-    tipTheirs: str = ""
+    ours1: str
+    ours2: str
+    theirs1: str
+    theirs2: str
     title: str = "???"
 
     _cached: ClassVar[dict[GitConflictSides, GitConflictSidesLocalization]] = {}
@@ -337,71 +337,63 @@ class GitConflictSidesLocalization:
         table[GitConflictSides.BothModified] = GitConflictSidesLocalization(
             _("This file has received changes from both "
               "<i>our</i> branch and <i>their</i> branch."),
-            _("Keep OURS"),
-            _("Accept THEIRS"),
-            paragraphs(
-                _("Resolve the conflict by <b>rejecting incoming changes</b>."),
-                _("The file will remain unchanged from its state in HEAD.")),
-            paragraphs(
-                _("Resolve the conflict by <b>accepting incoming changes</b>."),
-                _("The file will be <b>replaced</b> with the incoming version.")),
+            _("Keep OUR version"),
+            _("Keep the file intact in our branch"),
+            _("Accept THEIR version"),
+            _("Replace the file in our branch with the incoming version"),
         )
 
         table[GitConflictSides.DeletedByUs] = GitConflictSidesLocalization(
             _("This file was deleted from <i>our</i> branch, "
               "but <i>their</i> branch kept it and made changes to it."),
             _("Keep OUR deletion"),
+            _("Don’t resurrect the file in our branch"),
             _("Accept THEIR version"),
-            paragraphs(
-                _("Resolve the conflict by <b>rejecting incoming changes</b>."),
-                _("The file won’t be added back to your branch.")),
-            paragraphs(
-                _("Resolve the conflict by <b>accepting incoming changes</b>."),
-                _("The file will be restored to your branch with the incoming changes.")),
+            _("Replace the file in our branch with the incoming version"),
         )
 
         table[GitConflictSides.DeletedByThem] = GitConflictSidesLocalization(
             _("We’ve made changes to this file in <i>our</i> branch, "
               "but <i>their</i> branch has deleted it."),
-            _("Keep OURS"),
-            _("Accept deletion"),
-            paragraphs(
-                _("Resolve the conflict by <b>rejecting the incoming deletion</b>."),
-                _("Our version of the file will be kept intact.")),
-            paragraphs(
-                _("Resolve the conflict by <b>accepting the incoming deletion</b>."),
-                _("The file will be deleted.")),
+            _("Keep OUR version"),
+            _("Keep the file intact in our branch"),
+            _("Accept THEIR deletion"),
+            _("Delete the file in our branch"),
         )
 
         table[GitConflictSides.AddedByUs] = GitConflictSidesLocalization(
             _("No common ancestor."),
-            _("Keep OURS"),
+            _("Keep OUR version"),
+            _("Keep the file intact in our branch"),
             _("Delete it"),
+            _("Delete the file in our branch"),
         )
 
         table[GitConflictSides.AddedByThem] = GitConflictSidesLocalization(
             _("No common ancestor."),
             _("Don’t add"),
-            _("Accept THEIRS"),
+            _("Don’t add anything to our branch"),
+            _("Accept THEIR version"),
+            _("Add the file to our branch"),
         )
 
         table[GitConflictSides.BothAdded] = GitConflictSidesLocalization(
             _("This file has been created in both <i>our</i> branch "
               "and <i>their</i> branch, independently from each other. "
               "There is no common ancestor."),
-            _("Keep OURS"),
-            _("Accept THEIRS"),
-            paragraphs(
-                _("Resolve the conflict by <b>rejecting incoming changes</b>."),
-                _("The file will remain unchanged from its state in HEAD.")),
-            paragraphs(
-                _("Resolve the conflict by <b>accepting incoming changes</b>."),
-                _("The file will be <b>replaced</b> with the incoming version.")),
+            _("Keep OUR version"),
+            _("Keep the file intact in our branch"),
+            _("Accept THEIR version"),
+            _("Replace the file in our branch with the incoming version"),
         )
 
         table[GitConflictSides.BothDeleted] = GitConflictSidesLocalization(
             _("The file was deleted from <i>our</i> branch, "
               "and <i>their</i> branch has deleted it too."),
+            _("Delete it"),
+            _("Don’t resurrect the file in our branch"),
+            _("Delete it"),
+            _("Don’t resurrect the file in our branch"),
         )
 
         # Fill in titles

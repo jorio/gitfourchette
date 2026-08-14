@@ -78,8 +78,8 @@ class DirtyFiles(FileList):
                     _n("Merge Conflict", "{n} Merge Conflicts", n),
                     kind=ActionDef.Kind.Section,
                 ),
-                ActionDef(_("Keep OURS"), lambda: self.hardSolve(True)),
-                ActionDef(_("Accept THEIRS"), lambda: self.hardSolve(False)),
+                ActionDef(_("Keep OUR version") + "\u2026", lambda: self.hardSolve(True)),
+                ActionDef(_("Accept THEIR version") + "\u2026", lambda: self.hardSolve(False)),
             ]
 
         elif onlySubmodules:

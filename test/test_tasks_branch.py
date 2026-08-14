@@ -1064,6 +1064,7 @@ def testMergeCausesConflicts(tempDir, mainWindow):
     assert conflictUI.mergeButton.isVisible()
 
     conflictUI.oursButton.click()
+    acceptQMessageBox(rw, "keep our")
     assert not rw.conflictView.isVisible()
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.IGNORECASE)
 

@@ -553,6 +553,7 @@ def testRevertCommitCausesConflicts(tempDir, mainWindow):
     assert findTextInWidget(rw.mergeBanner.label, "conflict")
 
     rw.conflictView.ui.theirsButton.click()
+    acceptQMessageBox(rw, "accept their")
     assert findTextInWidget(rw.mergeBanner.label, "conclude the revert")
     assert rw.repo.state() == RepositoryState.REVERT
 
@@ -661,6 +662,7 @@ def testCherrypickWithConflicts(tempDir, mainWindow):
     assert NavLocator.inUnstaged(".gitignore").isSimilarEnoughTo(rw.navLocator)
     assert rw.diffArea.conflictView.isVisible()
     rw.diffArea.conflictView.ui.theirsButton.click()
+    acceptQMessageBox(rw, "accept their")
 
     assert findTextInWidget(rw.mergeBanner.label, "cherry-picking.+commit to conclude")
 

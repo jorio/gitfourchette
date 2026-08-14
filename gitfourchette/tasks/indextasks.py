@@ -348,6 +348,9 @@ class ApplyPatch(RepoTask):
 
 class HardSolveConflicts(RepoTask):
     def flow(self, conflicts: list[GitConflict], keepOurs: bool):
+        # First ask for confirmation
+        yield from self._confirm(conflicts, keepOurs)
+
         # Sort files in 'keep' and 'nuke' buckets
         files = [c.ours if keepOurs else c.theirs for c in conflicts]
         keepPaths = [f.path for f in files if not f.isId0()]
@@ -384,6 +387,33 @@ class HardSolveConflicts(RepoTask):
                 break
 
         self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflicts))
+
+    def _confirm(self, conflicts: list[GitConflict], keepOurs: bool):
+        title = _n("Resolve conflict", "Resolve {n} conflicts", len(conflicts))
+        verb = _("Keep OUR version") if keepOurs else _("Accept THEIR version")
+        promptSuffix = ""
+
+        sidesSet = {c.sides for c in conflicts}
+        if len(sidesSet) == 1:
+            from gitfourchette.forms.conflictview import GitConflictSidesLocalization
+            strings = GitConflictSidesLocalization.getStrings(conflicts[0].sides)
+            a = _("Reject incoming changes") if keepOurs else _("Accept incoming changes")
+            b = strings.ours2 if keepOurs else strings.theirs2
+            promptSuffix = f"<p>\u2192 {a}.<br>\u2192 {b}."
+
+        if len(conflicts) == 1:
+            if keepOurs:
+                singlePath = hquoe(Path(conflicts[0].ours.path).name)
+            else:
+                singlePath = hquoe(Path(conflicts[0].theirs.path).name)
+            prompt = _("<b>{verb}</b> to resolve the conflict on {single}?",
+                       verb=verb, single=singlePath)
+        else:
+            prompt = _n("<b>{verb}</b> to resolve the conflict on {n} file?",
+                        "<b>{verb}</b> to resolve conflicts on {n} files?",
+                        n=len(conflicts), verb=verb)
+
+        yield from self.flowConfirm(title, text=prompt + promptSuffix, verb=verb)
 
 
 class OpenMergeTool(RepoTask):

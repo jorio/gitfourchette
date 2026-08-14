@@ -51,6 +51,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our")
 
+    acceptQMessageBox(rw, "keep our")
     assert not Path(wd, "a/a1.txt").exists()
 
     # -------------------------
@@ -68,6 +69,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "accept their")
 
+    acceptQMessageBox(rw, "accept their")
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_NEW}
@@ -114,6 +116,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
         rw.conflictView.ui.oursButton.click()
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our")
+    acceptQMessageBox(rw, "keep our")
 
     # -------------------------
     # Take their deletion of a2.txt
@@ -129,6 +132,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "accept their")
 
+    acceptQMessageBox(rw, "accept their")
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_DELETED}
@@ -172,6 +176,7 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our" if keepOurs else "accept their")
     else:
         solveButton.click()
+    acceptQMessageBox(rw, "keep our" if keepOurs else "accept their")
 
     assert symlinkPath.is_symlink()
     assert symlinkPath.resolve().samefile(Path(wd, "b" if keepOurs else "a"))
@@ -213,11 +218,13 @@ def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLab
 
     if not viaContextMenuLabel:
         solveButton.click()
+        acceptQMessageBox(rw, "keep our")
     else:
         # The context menu presents two options (accept theirs, keep ours)
         # because it doesn't have a special case for Deleted By Both.
         # Both options should yield the same outcome for Deleted By Both.
         triggerContextMenuAction(rw.dirtyFiles.viewport(), viaContextMenuLabel)
+        acceptQMessageBox(rw, viaContextMenuLabel)
 
     assert not Path(wd, "xxx/zzz").exists()
     assert "xxx/zzz" not in rw.repo.index.conflicts
@@ -622,6 +629,8 @@ def testConflictSidePreview(tempDir, mainWindow):
     # When the conflict vanishes, so should the window
     assert findWindow("YOINK", t=CodeWindow)
     cv.ui.theirsButton.click()
+    acceptQMessageBox(rw, "accept their")
+
     with pytest.raises(KeyError):
         findWindow("YOINK", t=CodeWindow)
 
