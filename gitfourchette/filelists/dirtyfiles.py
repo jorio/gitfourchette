@@ -78,16 +78,8 @@ class DirtyFiles(FileList):
                     _n("Merge Conflict", "{n} Merge Conflicts", n),
                     kind=ActionDef.Kind.Section,
                 ),
-
-                ActionDef(
-                    _("Keep OURS"),
-                    self.mergeKeepOurs,
-                ),
-
-                ActionDef(
-                    _("Accept THEIRS"),
-                    self.mergeTakeTheirs,
-                ),
+                ActionDef(_("Keep OURS"), lambda: self.hardSolve(True)),
+                ActionDef(_("Accept THEIRS"), lambda: self.hardSolve(False)),
             ]
 
         elif onlySubmodules:
@@ -145,33 +137,9 @@ class DirtyFiles(FileList):
         deltas = list(self.selectedDeltas())
         DiscardModeChanges.invoke(self, deltas)
 
-    def _mergeKeep(self, keepOurs: bool):
-        restore = []
-        remove = []
-
-        for delta in self.selectedDeltas():
-            conflict = delta.conflict
-            assert conflict is not None
-
-            keepEntry = conflict.ours if keepOurs else conflict.theirs
-            hasFile = not keepEntry.isId0()
-            assert hasFile == (conflict.sides.hasOurs() if keepOurs else conflict.sides.hasTheirs())
-
-            if hasFile:
-                restore.append(keepEntry.path)
-            else:
-                remove.append(keepEntry.path)
-
-        if keepOurs:
-            HardSolveConflicts.invoke(self, restore, [], remove)
-        else:
-            HardSolveConflicts.invoke(self, [], restore, remove)
-
-    def mergeKeepOurs(self):
-        self._mergeKeep(keepOurs=True)
-
-    def mergeTakeTheirs(self):
-        self._mergeKeep(keepOurs=False)
+    def hardSolve(self, keepOurs: bool):
+        conflicts = [delta.conflict for delta in self.selectedDeltas()]
+        HardSolveConflicts.invoke(self, conflicts, keepOurs)
 
     def ignoreSelection(self):
         selected = list(self.selectedPaths())

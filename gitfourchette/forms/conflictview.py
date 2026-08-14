@@ -89,57 +89,41 @@ class ConflictView(QWidget):
         S = GitConflictSides
 
         if conflict.sides in (S.DeletedByUs, S.AddedByThem):
-            # Theirs: take incoming change. Ours: keep deletion.
+            # Ours - Keep deletion
+            # Theirs - Take incoming changes
             assert conflict.theirs
             assert version in ["ours", "theirs"]
-            if version == "ours":
-                # Ours - Keep deletion
-                self.hardSolveRemove(conflict.theirs.path)
-            else:
-                # Theirs - Take incoming changes
-                self.hardSolveTakeTheirs(conflict.theirs.path)
 
         elif conflict.sides in (S.DeletedByThem, S.AddedByUs):
-            # Theirs: take incoming deletion. Ours: ignore deletion.
+            # Ours - Ignore deletion
+            # Theirs - Take incoming deletion
             assert conflict.ours
             assert version in ["ours", "theirs"]
-            if version == "ours":
-                # Ours - Ignore deletion
-                self.hardSolveKeepOurs(conflict.ours.path)
-            else:
-                # Theirs - Take incoming deletion
-                self.hardSolveRemove(conflict.ours.path)
 
         elif conflict.sides == S.BothDeleted:
             # Delete the file.
             assert conflict.ancestor
             assert version == "ancestor"
-            self.hardSolveRemove(conflict.ancestor.path)
+            # Hack: fall back to either side, doesn't matter
+            version = "ours"
+            assert conflict.ours.path == conflict.ancestor.path
+            assert not conflict.ours
 
         elif conflict.sides in (S.BothModified, S.BothAdded):
             # Pick a side to keep, or merge.
             assert conflict.ours
             assert conflict.theirs
             assert version in ["ours", "theirs", "merge", "remerge"]
-            if version == "ours":
-                self.hardSolveKeepOurs(conflict.ours.path)
-            elif version == "theirs":
-                self.hardSolveTakeTheirs(conflict.theirs.path)
-            else:
+            if version in ["merge", "remerge"]:
                 reopen = version == "remerge"
                 self.openMergeTool(conflict, reopen)
 
         else:
             raise NotImplementedError(f"unsupported conflict sides: {conflict.sides}")
 
-    def hardSolveKeepOurs(self, path: str):
-        HardSolveConflicts.invoke(self, [path], [], [])
-
-    def hardSolveTakeTheirs(self, path: str):
-        HardSolveConflicts.invoke(self, [], [path], [])
-
-    def hardSolveRemove(self, path: str):
-        HardSolveConflicts.invoke(self, [], [], [path])
+        if version in ["ours", "theirs"]:
+            keepOurs = version == "ours"
+            HardSolveConflicts.invoke(self, [self.currentConflict], keepOurs=keepOurs)
 
     def openMergeTool(self, conflict: GitConflict, reopenWorkInProgress=False):
         OpenMergeTool.invoke(self, conflict, reopenWorkInProgress)

@@ -7,7 +7,6 @@
 import logging
 import os
 import shutil
-from itertools import chain
 from pathlib import Path
 from collections.abc import Callable
 
@@ -348,39 +347,43 @@ class ApplyPatch(RepoTask):
 
 
 class HardSolveConflicts(RepoTask):
-    def flow(self, ours: list[str], theirs: list[str], remove: list[str]):
-        # Back up affected files
+    def flow(self, conflicts: list[GitConflict], keepOurs: bool):
+        # Sort files in 'keep' and 'nuke' buckets
+        files = [c.ours if keepOurs else c.theirs for c in conflicts]
+        keepPaths = [f.path for f in files if not f.isId0()]
+        nukePaths = [f.path for f in files if f.isId0()]
+
+        # Back up nuked files + THEIRS
         if Trash.enabled():
-            for path in chain(theirs, remove):
+            backupList = nukePaths[:]
+            if not keepOurs:
+                backupList += keepPaths
+
+            for path in backupList:
                 try:
                     Trash.instance().backupFile(self.repo.workdir, path)
                 except Trash.BackupSkipped as ex:
                     logger.warning(f"Backup skipped: {ex}")
 
-        # Restore desired sides
         self.epilog.effects |= TaskEffects.Workdir
 
-        if ours:
-            yield from self.flowCallGit("restore", "--progress", "--ours", "--", *ours)
-
-        if theirs:
-            yield from self.flowCallGit("restore", "--progress", "--theirs", "--", *theirs)
-
-        # Stage the files we kept to resolve the conflict
-        if ours or theirs:
-            yield from self.flowCallGit("add", "--force", "--", *chain(ours, theirs))
+        # Restore desired sides, then stage the files to resolve the conflict
+        if keepPaths:
+            sideArg = "--ours" if keepOurs else "--theirs"
+            yield from self.flowCallGit("restore", "--progress", sideArg, "--", *keepPaths)
+            yield from self.flowCallGit("add", "--force", "--", *keepPaths)
 
         # Stage deletions to resolve the conflict
-        if remove:
-            yield from self.flowCallGit("rm", "--", *remove)
+        if nukePaths:
+            yield from self.flowCallGit("rm", "--", *nukePaths)
 
         # Jump to any staged file after the task
-        for path in chain(ours, theirs):
+        for path in keepPaths:
             if Path(self.repo.in_workdir(path)).is_file():
                 self.epilog.jumpTo = NavLocator.inStaged(path)
                 break
 
-        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(ours) + len(theirs) + len(remove))
+        self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflicts))
 
 
 class OpenMergeTool(RepoTask):
