@@ -4,10 +4,12 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
+
 import logging
 import os
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, ClassVar
 from weakref import ReferenceType
 
 from gitfourchette import colors
@@ -27,20 +29,6 @@ from gitfourchette.tasks.indextasks import PreviewDeltaFile
 from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class ConflictViewKit:
-    page: QWidget
-    description: str = ""
-    captionO: str = ""
-    captionT: str = ""
-    tipO: str = ""
-    tipT: str = ""
-    iconO: str = ""
-    iconT: str = ""
-    previewO: bool = False
-    previewT: bool = False
 
 
 class ConflictView(QWidget):
@@ -232,42 +220,52 @@ class ConflictView(QWidget):
         else:
             self.currentMergeState = MergeDriver.State.Idle
 
+        sides = conflict.sides
+        strings = GitConflictSidesLocalization.getStrings(sides)
+
         # Reset all text in widgets we can replace placeholder tokens.
         self.ui.retranslateUi(self)
 
-        sides = conflict.sides
-        kit = self.getKit(sides)
+        # Determine page.
+        if sides.hasOurs() and sides.hasTheirs():
+            page = self.ui.mergePage
+        elif sides.hasOurs() or sides.hasTheirs():
+            page = self.ui.emptyPage
+        else:
+            page = self.ui.confirmDeletionPage
 
         # Hide arrows if all we can do is pick ours/theirs.
         w: QWidget
         for w in self.ui.oursArrow, self.ui.theirsArrow:
-            w.setVisible(kit.page is not self.ui.emptyPage)
+            w.setVisible(page is not self.ui.emptyPage)
 
         # Hide ours/theirs buttons if all we can do is confirm a deletion.
         for w in self.ui.oursButton, self.ui.theirsButton, self.ui.orLabel:
-            w.setVisible(kit.page is not self.ui.confirmDeletionPage)
+            w.setVisible(page is not self.ui.confirmDeletionPage)
 
         # Reveal the page
-        self.ui.stackedWidget.setCurrentWidget(kit.page)
+        self.ui.stackedWidget.setCurrentWidget(page)
 
-        self.ui.oursButton.setText(kit.captionO)
-        self.ui.oursButton.setToolTip(kit.tipO)
-        self.ui.theirsButton.setText(kit.captionT)
-        self.ui.theirsButton.setToolTip(kit.tipT)
-        self.ui.explainer.setText(f"<b>{englishTitleCase(trtables.enum(sides))}.</b> {kit.description}")
+        self.ui.oursButton.setText(strings.actionOurs)
+        self.ui.oursButton.setToolTip(strings.tipOurs)
+        self.ui.theirsButton.setText(strings.actionTheirs)
+        self.ui.theirsButton.setToolTip(strings.tipTheirs)
+        self.ui.explainer.setText(f"<b>{strings.title}.</b> {strings.description}")
 
-        self.ui.oursPreviewButton.setEnabled(kit.previewO)
-        self.ui.theirsPreviewButton.setEnabled(kit.previewT)
-
-        # Ours/theirs status icons
-        iconOurs = stockIcon(kit.iconO).pixmap(QSize(16, 16), self.devicePixelRatio())
-        iconTheirs = stockIcon(kit.iconT).pixmap(QSize(16, 16), self.devicePixelRatio())
-        self.ui.oursIcon.setPixmap(iconOurs)
-        self.ui.theirsIcon.setPixmap(iconTheirs)
+        self.ui.oursPreviewButton.setEnabled(sides.hasOurs())
+        self.ui.theirsPreviewButton.setEnabled(sides.hasTheirs())
 
         # Disable ours/theirs buttons while a merge process is running
         self.ui.oursButton.setEnabled(state != MergeDriver.State.Busy)
         self.ui.theirsButton.setEnabled(state != MergeDriver.State.Busy)
+
+        # Ours/theirs status icons
+        iconO = "m" if sides.hasOurs() else "missing" if sides == sides.AddedByThem else "d"
+        iconT = "m" if sides.hasTheirs() else "missing" if sides == sides.AddedByUs else "d"
+        for iconLetter, label in ((iconO, self.ui.oursIcon), (iconT, self.ui.theirsIcon)):
+            icon = stockIcon(f"status_{iconLetter}")
+            pixmap = icon.pixmap(QSize(16, 16), self.devicePixelRatio())
+            label.setPixmap(pixmap)
 
         # Format placeholders
         displayPath = os.path.basename(self.currentConflict.ours.path)
@@ -326,107 +324,104 @@ class ConflictView(QWidget):
         merge.deleteNow()
         self.refresh()
 
-    def getKit(self, sides: GitConflictSides) -> ConflictViewKit:
-        kitTable = {
-            GitConflictSides.BothModified: ConflictViewKit(
-                page=self.ui.mergePage,
-                description=_("This file has received changes from both <i>our</i> branch "
-                              "and <i>their</i> branch."),
-                captionO=_("Keep OURS"),
-                captionT=_("Accept THEIRS"),
-                tipO=paragraphs(
-                    _("Resolve the conflict by <b>rejecting incoming changes</b>."),
-                    _("The file will remain unchanged from its state in HEAD.")),
-                tipT=paragraphs(
-                    _("Resolve the conflict by <b>accepting incoming changes</b>."),
-                    _("The file will be <b>replaced</b> with the incoming version.")),
-                iconO="status_m",
-                iconT="status_m",
-                previewO=True,
-                previewT=True,
-            ),
 
-            GitConflictSides.DeletedByUs: ConflictViewKit(
-                page=self.ui.emptyPage,
-                description=_("This file was deleted from <i>our</i> branch, "
-                              "but <i>their</i> branch kept it and made changes to it."),
-                captionO=_("Keep OUR deletion"),
-                captionT=_("Accept THEIR version"),
-                tipO=paragraphs(
-                    _("Resolve the conflict by <b>rejecting incoming changes</b>."),
-                    _("The file won’t be added back to your branch.")),
-                tipT=paragraphs(
-                    _("Resolve the conflict by <b>accepting incoming changes</b>."),
-                    _("The file will be restored to your branch with the incoming changes.")),
-                iconO="status_d",
-                iconT="status_m",
-                previewT=True,
-            ),
+@dataclass
+class GitConflictSidesLocalization:
+    description: str
+    actionOurs: str = ""
+    actionTheirs: str = ""
+    tipOurs: str = ""
+    tipTheirs: str = ""
+    title: str = "???"
 
-            GitConflictSides.DeletedByThem: ConflictViewKit(
-                page=self.ui.emptyPage,
-                description=_("We’ve made changes to this file in <i>our</i> branch, "
-                              "but <i>their</i> branch has deleted it."),
-                captionO=_("Keep OURS"),
-                captionT=_("Accept deletion"),
-                tipO=paragraphs(
-                    _("Resolve the conflict by <b>rejecting the incoming deletion</b>."),
-                    _("Our version of the file will be kept intact.")),
-                tipT=paragraphs(
-                    _("Resolve the conflict by <b>accepting the incoming deletion</b>."),
-                    _("The file will be deleted.")),
-                iconO="status_m",
-                iconT="status_d",
-                previewO=True,
-            ),
+    _cached: ClassVar[dict[GitConflictSides, GitConflictSidesLocalization]] = {}
+    _cachedLanguage: ClassVar[str] = ""
 
-            GitConflictSides.AddedByUs: ConflictViewKit(
-                page=self.ui.emptyPage,
-                description=_("No common ancestor."),
-                captionO=_("Keep OURS"),
-                captionT=_("Delete it"),
-                iconO="status_a",
-                iconT="status_missing",
-                previewO=True,
-            ),
+    @classmethod
+    def getStrings(cls, sides: GitConflictSides) -> GitConflictSidesLocalization:
+        table = cls._cached
 
-            GitConflictSides.AddedByThem: ConflictViewKit(
-                page=self.ui.emptyPage,
-                description=_("No common ancestor."),
-                captionO=_("Don’t add"),
-                captionT=_("Accept THEIRS"),
-                iconO="status_missing",
-                iconT="status_a",
-                previewT=True,
-            ),
+        if cls._cachedLanguage != settings.prefs.language:
+            cls._cachedLanguage = settings.prefs.language
+            table.clear()
 
-            GitConflictSides.BothAdded: ConflictViewKit(
-                page=self.ui.mergePage,
-                description=_("This file has been created in both <i>our</i> branch "
-                              "and <i>their</i> branch, independently from each other. "
-                              "There is no common ancestor."),
-                captionO=_("Keep OURS"),
-                captionT=_("Accept THEIRS"),
-                tipO=paragraphs(
-                    _("Resolve the conflict by <b>rejecting incoming changes</b>."),
-                    _("The file will remain unchanged from its state in HEAD.")),
-                tipT=paragraphs(
-                    _("Resolve the conflict by <b>accepting incoming changes</b>."),
-                    _("The file will be <b>replaced</b> with the incoming version.")),
-                iconO="status_a",
-                iconT="status_a",
-                previewO=True,
-                previewT=True,
-            ),
+        try:
+            return table[sides]
+        except KeyError:
+            pass
 
-            GitConflictSides.BothDeleted: ConflictViewKit(
-                page=self.ui.confirmDeletionPage,
-                description=_("The file was deleted from <i>our</i> branch, "
-                              "and <i>their</i> branch has deleted it too."),
-                iconO="status_d",
-                iconT="status_d",
-            ),
-        }
+        table[GitConflictSides.BothModified] = GitConflictSidesLocalization(
+            _("This file has received changes from both "
+              "<i>our</i> branch and <i>their</i> branch."),
+            _("Keep OURS"),
+            _("Accept THEIRS"),
+            paragraphs(
+                _("Resolve the conflict by <b>rejecting incoming changes</b>."),
+                _("The file will remain unchanged from its state in HEAD.")),
+            paragraphs(
+                _("Resolve the conflict by <b>accepting incoming changes</b>."),
+                _("The file will be <b>replaced</b> with the incoming version.")),
+        )
 
-        return kitTable[sides]
+        table[GitConflictSides.DeletedByUs] = GitConflictSidesLocalization(
+            _("This file was deleted from <i>our</i> branch, "
+              "but <i>their</i> branch kept it and made changes to it."),
+            _("Keep OUR deletion"),
+            _("Accept THEIR version"),
+            paragraphs(
+                _("Resolve the conflict by <b>rejecting incoming changes</b>."),
+                _("The file won’t be added back to your branch.")),
+            paragraphs(
+                _("Resolve the conflict by <b>accepting incoming changes</b>."),
+                _("The file will be restored to your branch with the incoming changes.")),
+        )
 
+        table[GitConflictSides.DeletedByThem] = GitConflictSidesLocalization(
+            _("We’ve made changes to this file in <i>our</i> branch, "
+              "but <i>their</i> branch has deleted it."),
+            _("Keep OURS"),
+            _("Accept deletion"),
+            paragraphs(
+                _("Resolve the conflict by <b>rejecting the incoming deletion</b>."),
+                _("Our version of the file will be kept intact.")),
+            paragraphs(
+                _("Resolve the conflict by <b>accepting the incoming deletion</b>."),
+                _("The file will be deleted.")),
+        )
+
+        table[GitConflictSides.AddedByUs] = GitConflictSidesLocalization(
+            _("No common ancestor."),
+            _("Keep OURS"),
+            _("Delete it"),
+        )
+
+        table[GitConflictSides.AddedByThem] = GitConflictSidesLocalization(
+            _("No common ancestor."),
+            _("Don’t add"),
+            _("Accept THEIRS"),
+        )
+
+        table[GitConflictSides.BothAdded] = GitConflictSidesLocalization(
+            _("This file has been created in both <i>our</i> branch "
+              "and <i>their</i> branch, independently from each other. "
+              "There is no common ancestor."),
+            _("Keep OURS"),
+            _("Accept THEIRS"),
+            paragraphs(
+                _("Resolve the conflict by <b>rejecting incoming changes</b>."),
+                _("The file will remain unchanged from its state in HEAD.")),
+            paragraphs(
+                _("Resolve the conflict by <b>accepting incoming changes</b>."),
+                _("The file will be <b>replaced</b> with the incoming version.")),
+        )
+
+        table[GitConflictSides.BothDeleted] = GitConflictSidesLocalization(
+            _("The file was deleted from <i>our</i> branch, "
+              "and <i>their</i> branch has deleted it too."),
+        )
+
+        # Fill in titles
+        for k, v in table.items():
+            v.title = englishTitleCase(trtables.enum(k))
+
+        return table[sides]

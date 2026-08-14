@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -13,11 +13,17 @@ from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile
 class GitConflictSides(StrEnum):
     BothDeleted   = "DD"
     AddedByUs     = "AU"
-    DeletedByThem = "UD"
     AddedByThem   = "UA"
     DeletedByUs   = "DU"
+    DeletedByThem = "UD"
     BothAdded     = "AA"
     BothModified  = "UU"
+
+    def hasOurs(self) -> bool:
+        return self[0] != "D" and self != GitConflictSides.AddedByThem
+
+    def hasTheirs(self) -> bool:
+        return self[1] != "D" and self != GitConflictSides.AddedByUs
 
 
 @dataclasses.dataclass

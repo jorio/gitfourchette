@@ -627,3 +627,16 @@ def testConflictSidePreview(tempDir, mainWindow):
         findWindow("YOINK", t=CodeWindow)
 
     waitUntilTrue(lambda: not CodeWindow._liveWindows)
+
+
+def testConflictSidesHasOursHasTheirs():
+    def get(sides):
+        return sides.hasOurs(), sides.hasTheirs()
+
+    assert get(GitConflictSides.BothDeleted) == (False, False)
+    assert get(GitConflictSides.AddedByUs) == (True, False)
+    assert get(GitConflictSides.DeletedByThem) == (True, False)
+    assert get(GitConflictSides.AddedByThem) == (False, True)
+    assert get(GitConflictSides.DeletedByUs) == (False, True)
+    assert get(GitConflictSides.BothAdded) == (True, True)
+    assert get(GitConflictSides.BothModified) == (True, True)
