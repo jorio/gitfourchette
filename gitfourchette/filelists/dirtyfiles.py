@@ -146,18 +146,21 @@ class DirtyFiles(FileList):
         DiscardModeChanges.invoke(self, deltas)
 
     def _mergeKeep(self, keepOurs: bool):
-        conflicts = self.repo.index.conflicts
         restore = []
         remove = []
 
-        for path in self.selectedPaths():
-            _ancestor, ours, theirs = conflicts[path]
-            keepEntry = ours if keepOurs else theirs
-            if keepEntry is not None:
-                assert keepEntry.path == path
+        for delta in self.selectedDeltas():
+            conflict = delta.conflict
+            assert conflict is not None
+
+            keepEntry = conflict.ours if keepOurs else conflict.theirs
+            hasFile = not keepEntry.isId0()
+            assert hasFile == (conflict.sides.hasOurs() if keepOurs else conflict.sides.hasTheirs())
+
+            if hasFile:
                 restore.append(keepEntry.path)
             else:
-                remove.append(path)
+                remove.append(keepEntry.path)
 
         if keepOurs:
             HardSolveConflicts.invoke(self, restore, [], remove)
