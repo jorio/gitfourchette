@@ -49,7 +49,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.oursButton.click()
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+ours")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our")
 
     assert not Path(wd, "a/a1.txt").exists()
 
@@ -66,7 +66,7 @@ def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.theirsButton.click()
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+theirs")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "accept their")
 
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
@@ -113,7 +113,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.oursButton.click()
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+ours")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our")
 
     # -------------------------
     # Take their deletion of a2.txt
@@ -127,7 +127,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     if not viaContextMenu:
         rw.conflictView.ui.theirsButton.click()
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "resolve by.+theirs")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "accept their")
 
     assert not rw.repo.index.conflicts
     assert not rw.conflictView.isVisible()
@@ -169,8 +169,7 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
     assert solveButton.isVisible()
 
     if viaContextMenu:
-        label = "resolve by.+" + ("ours" if keepOurs else "theirs")
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), label)
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our" if keepOurs else "accept their")
     else:
         solveButton.click()
 
@@ -179,7 +178,7 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
     assert rw.repo.index.conflicts is None
 
 
-@pytest.mark.parametrize("viaContextMenuLabel", ["", "resolve by.+ours", "resolve by.+theirs"])
+@pytest.mark.parametrize("viaContextMenuLabel", ["", "keep our", "accept their"])
 def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLabel):
     scenario = """
         mkdir -p xxx

@@ -80,13 +80,13 @@ class DirtyFiles(FileList):
                 ),
 
                 ActionDef(
-                    _("Resolve by Accepting “Theirs”"),
-                    self.mergeTakeTheirs,
+                    _("Keep OURS"),
+                    self.mergeKeepOurs,
                 ),
 
                 ActionDef(
-                    _("Resolve by Keeping “Ours”"),
-                    self.mergeKeepOurs,
+                    _("Accept THEIRS"),
+                    self.mergeTakeTheirs,
                 ),
             ]
 
