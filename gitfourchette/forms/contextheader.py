@@ -43,9 +43,20 @@ class ContextHeader(QFrame):
         GFApplication.instance().restyle.connect(self.restyle)
 
     def restyle(self):
-        bg = mutedTextColorHex(self, .07)
-        fg = mutedTextColorHex(self, .8)
-        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}  ContextHeader QLabel {{ color: {fg}; }}")
+        from gitfourchette import themes
+
+        theme = themes.currentTheme()
+        if theme is not None:
+            bg = theme.bg
+            fg = theme.textDim
+            border = f"border-bottom: 1px solid {theme.borderSoft};"
+        else:
+            bg = mutedTextColorHex(self, .07)
+            fg = mutedTextColorHex(self, .8)
+            border = ""
+
+        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; {border} }}"
+                           f"ContextHeader QLabel {{ color: {fg}; }}")
 
     def addButton(
             self,

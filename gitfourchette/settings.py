@@ -19,6 +19,7 @@ from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
 from gitfourchette.qt import *
 from gitfourchette.syntax import PygmentsPresets, ColorScheme
+from gitfourchette.themes import AppTheme
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL
 from gitfourchette.toolbox.gitutils import AuthorDisplayStyle
 from gitfourchette.toolbox.pathutils import PathDisplayStyle
@@ -106,6 +107,9 @@ class Prefs(PrefsFile):
 
     _category_general           : int                   = 0
     language                    : str                   = ""
+    # Keep the desktop's look in unit tests so that pixel-precise tests
+    # aren't at the mercy of our own stylesheet's metrics.
+    appTheme                    : AppTheme              = AppTheme.System if APP_TESTMODE else AppTheme.Modern
     qtStyle                     : str                   = ""
     pathDisplayStyle            : PathDisplayStyle      = PathDisplayStyle.FullPaths
     refSort                     : RefSort               = RefSort.TimeDesc
@@ -437,6 +441,8 @@ history = History()
 
 def qtIsNativeMacosStyle():  # pragma: no cover
     if not MACOS:
+        return False
+    if prefs.appTheme.isModern:  # our own themes force the Fusion style
         return False
     return (not prefs.qtStyle) or (prefs.qtStyle.lower() == "macos")
 
