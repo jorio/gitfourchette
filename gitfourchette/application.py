@@ -40,9 +40,6 @@ class GFApplication(QApplication):
     qtbaseTranslator: QTranslator
     tempDir: QTemporaryDir
     platformDefaultStyleName: str
-    platformDefaultPalette: QPalette
-    restyling: bool = False
-    """Re-entrance guard for onRestyle()."""
 
     # Heavyweight state
     mainWindow: MainWindow | None
@@ -102,8 +99,15 @@ class GFApplication(QApplication):
             self.setWindowIcon(QIcon("assets:icons/gitfourchette.png"))
 
         # Get system default style & palette before applying further styling
-        self.platformDefaultStyleName = self.style().objectName()
-        self.platformDefaultPalette = QPalette(self.palette())
+        from gitfourchette.themes import AppTheme
+        if KDE or APP_TESTMODE:
+            # On KDE, be a good citizen and stick to system-provided theme
+            # (typically Breeze). In unit tests, keep defaults (Fusion) so that
+            # tests requiring pixel accuracy aren't affected by our stylesheets.
+            self.platformDefaultStyleName = self.style().objectName()
+        else:  # pragma: no cover
+            # On other platforms, default to a custom theme.
+            self.platformDefaultStyleName = AppTheme.Modern
 
         # Install translators for system language
         # (for command line parser to display localized text)
@@ -453,7 +457,6 @@ class GFApplication(QApplication):
 
         if "qtStyle" in prefDiff:
             self.applyQtStylePref(forceApplyDefault=True)
-            self.restyle.emit()
 
         if "language" in prefDiff:
             self.applyLanguagePref()
@@ -494,27 +497,28 @@ class GFApplication(QApplication):
 
     def applyQtStylePref(self, forceApplyDefault: bool):
         from gitfourchette import settings
-        from gitfourchette import themes
+        from gitfourchette.themes import ThemeColors
 
-        themeColors = themes.resolveTheme(settings.prefs.qtStyle, self.platformDefaultPalette)
+        effectiveStyle = settings.prefs.qtStyle
 
-        if themeColors is not None:
+        if not effectiveStyle and forceApplyDefault:
+            effectiveStyle = self.platformDefaultStyleName
+
+        # See if it's a custom theme
+        customTheme = ThemeColors.resolveTheme(effectiveStyle)
+        if customTheme:
             # Our themes are designed on top of Fusion. Native styles (Breeze,
             # Windows, macOS) ignore or mangle much of the stylesheet.
-            self.setStyle("Fusion")
-        elif settings.prefs.qtStyle:
-            self.setStyle(settings.prefs.qtStyle)
-        elif forceApplyDefault:
-            self.setStyle(self.platformDefaultStyleName)
-
-        # Note: setStyle() resets the palette, so this must come after it.
-        if themeColors is not None:
-            self.setPalette(themes.buildPalette(themeColors))
+            effectiveStyle = "Fusion"
+            palette = customTheme.buildPalette()
         else:
-            # Empty palette: let the style/desktop provide the colors again.
-            # (Don't restore platformDefaultPalette - it may be stale if the
-            # user has changed their system palette while the app is running.)
-            self.setPalette(QPalette())
+            # Reset default palette
+            palette = QPalette()
+        self.setPalette(palette)
+
+        # Set Qt style
+        if effectiveStyle:
+            self.setStyle(effectiveStyle)
 
         if MACOS:
             self.setAttribute(Qt.ApplicationAttribute.AA_DontShowIconsInMenus, settings.qtIsNativeMacosStyle())
@@ -616,38 +620,30 @@ class GFApplication(QApplication):
 
     def onRestyle(self):
         from gitfourchette import settings
-        from gitfourchette import themes
+        from gitfourchette.themes import ThemeColors
         from gitfourchette.toolbox.iconbank import clearStockIconCache
         from gitfourchette.toolbox.qtutils import isDarkTheme
         from gitfourchette.syntax.colorscheme import ColorScheme
 
-        # setStyleSheet() below may alter the main window's effective palette,
-        # which sends us right back here through the PaletteChange event filter.
-        # Bail out instead of recursing until the stack blows up.
-        if self.restyling:
-            return
-        self.restyling = True
+        # Force RecolorSvgIconEngine to re-render the icons
+        clearStockIconCache()
+        QPixmapCache.clear()
 
-        try:
-            # Force RecolorSvgIconEngine to re-render the icons
-            clearStockIconCache()
-            QPixmapCache.clear()
+        styleSheet = Path(QFile("assets:style.qss").fileName()).read_text()
+        if isDarkTheme():  # Append dark override
+            darkSupplement = Path(QFile("assets:style-dark.qss").fileName()).read_text()
+            styleSheet += darkSupplement
 
-            styleSheet = Path(QFile("assets:style.qss").fileName()).read_text()
-            if isDarkTheme():  # Append dark override
-                darkSupplement = Path(QFile("assets:style-dark.qss").fileName()).read_text()
-                styleSheet += darkSupplement
+        # Append our own theme, if any (its rules take precedence over the above)
+        themeColors = ThemeColors.resolveTheme(settings.prefs.qtStyle)
+        if themeColors is not None:
+            styleSheet += themeColors.buildStyleSheet()
 
-            # Append our own theme, if any (its rules take precedence over the above)
-            themeColors = themes.resolveTheme(settings.prefs.qtStyle, self.platformDefaultPalette)
-            if themeColors is not None:
-                styleSheet += themes.buildStyleSheet(themeColors)
-
+        # Set stylesheet if different
+        if styleSheet != self.styleSheet():
             self.setStyleSheet(styleSheet)
 
-            ColorScheme.refreshFallbackScheme()
-        finally:
-            self.restyling = False
+        ColorScheme.refreshFallbackScheme()
 
     # -------------------------------------------------------------------------
     # Utilities

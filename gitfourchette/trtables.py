@@ -213,7 +213,6 @@ class TrTables:
                 AppTheme.Modern                 : _p("app theme", "Modern (Follow System)"),
                 AppTheme.ModernDark             : _p("app theme", "Dark Modern"),
                 AppTheme.ModernLight            : _p("app theme", "Light Modern"),
-                AppTheme.System                 : _p("app theme", "System default"),
             },
 
             PathDisplayStyle: {

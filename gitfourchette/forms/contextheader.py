@@ -43,9 +43,9 @@ class ContextHeader(QFrame):
         GFApplication.instance().restyle.connect(self.restyle)
 
     def restyle(self):
-        from gitfourchette import themes
+        from gitfourchette.themes import ThemeColors
 
-        if themes.currentTheme() is not None:
+        if ThemeColors.currentTheme() is not None:
             # Our themes style ContextHeader in style-modern.qss. Clear any
             # widget stylesheet we may have set before the theme kicked in;
             # it would win over the application stylesheet.

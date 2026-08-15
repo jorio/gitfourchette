@@ -605,7 +605,8 @@ class PrefsDialog(QDialog):
             if prefValue == styleName:
                 control.setCurrentIndex(control.count() - 1)
 
-        addEntry(TrTables.enum(AppTheme.System), str(AppTheme.System))
+        defaultCaption = _p("system default theme setting", "System default")
+        addEntry(defaultCaption, "")
 
         control.insertSeparator(control.count())
         for theme in (AppTheme.Modern, AppTheme.ModernDark, AppTheme.ModernLight):
