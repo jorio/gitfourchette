@@ -165,30 +165,6 @@ MODERN_LIGHT = ThemeColors(
     danger            = "#d92b1f",
 )
 
-
-def systemPrefersDark(fallbackPalette: QPalette | None = None) -> bool:
-    """
-    Detect whether the desktop environment asks for a dark color scheme.
-
-    Falls back to sniffing a palette (typically the palette captured at boot,
-    before we've overwritten it with a theme of our own).
-    """
-
-    from gitfourchette.toolbox import isDarkTheme
-
-    # QStyleHints.colorScheme() and Qt.ColorScheme require Qt 6.5.
-    # Older bindings raise AttributeError here; drop the suppress along with
-    # support for Qt < 6.5.
-    with suppress(AttributeError):
-        scheme = QGuiApplication.styleHints().colorScheme()
-        if scheme == Qt.ColorScheme.Dark:
-            return True
-        if scheme == Qt.ColorScheme.Light:
-            return False
-
-    return isDarkTheme(fallbackPalette)
-
-
 def resolveTheme(styleName: str, fallbackPalette: QPalette | None = None) -> ThemeColors | None:
     """
     Return the color tokens for one of our themes.
@@ -197,12 +173,14 @@ def resolveTheme(styleName: str, fallbackPalette: QPalette | None = None) -> The
     it's empty (system default) - in that case we don't touch the palette.
     """
 
+    from gitfourchette.toolbox.qtutils import isDarkTheme
+
     if styleName == AppTheme.ModernDark:
         return MODERN_DARK
     if styleName == AppTheme.ModernLight:
         return MODERN_LIGHT
     if styleName == AppTheme.Modern:
-        return MODERN_DARK if systemPrefersDark(fallbackPalette) else MODERN_LIGHT
+        return MODERN_DARK if isDarkTheme(fallbackPalette) else MODERN_LIGHT
     return None
 
 
