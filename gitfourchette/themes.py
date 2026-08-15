@@ -165,6 +165,7 @@ MODERN_LIGHT = ThemeColors(
     danger            = "#d92b1f",
 )
 
+
 def resolveTheme(styleName: str, fallbackPalette: QPalette | None = None) -> ThemeColors | None:
     """
     Return the color tokens for one of our themes.
@@ -226,7 +227,8 @@ def buildPalette(colors: ThemeColors) -> QPalette:
     # GF uses the accent color in CodeRubberBand. Qt provides a blueish accent
     # color by default, but KDE lets the user set their own accent color, and
     # it'll come through unless we override it.
-    # (Role.Accent doesn't exist in old Qt versions.)
+    # Qt 6.6 introduces QPalette.ColorRole.Accent; older versions raise
+    # AttributeError here. Drop the suppress along with support for Qt < 6.6.
     with suppress(AttributeError):
         palette.setColor(Role.Accent, accent)
 
