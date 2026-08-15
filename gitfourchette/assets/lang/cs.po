@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-08-15 11:24+0000\n"
+"PO-Revision-Date: 2026-08-15 11:28+0000\n"
 "Last-Translator: Michal Várady <miko.vaji@gmail.com>\n"
 "Language-Team: Czech <https://hosted.weblate.org/projects/gitfourchette/gitfourchette/cs/>\n"
 "Language: cs\n"
@@ -1200,7 +1200,7 @@ msgstr "Zadat přihlašovací údaje SSH"
 #: forms/askpassdialog.py:97
 #, python-brace-format
 msgid "{app}’s ssh-agent will remember this credential until you quit the application."
-msgstr "Agent SSH aplikace {app} si tento přihlašovací údaj zapamatuje do ukončení aplikace."
+msgstr "Tento přihlašovací údaj si ssh-agent aplikace {app} zapamatuje až do ukončení aplikace."
 
 #: forms/askpassdialog.py:100
 #, python-brace-format
@@ -1209,7 +1209,7 @@ msgstr "V systému běží agent SSH. Tento přihlašovací údaj si zapamatuje,
 
 #: forms/askpassdialog.py:103
 msgid "This credential will not be remembered because ssh-agent isn’t running on your system."
-msgstr "Tento přihlašovací údaj se nezapamatuje, protože v systému neběží agent SSH."
+msgstr "Tento přihlašovací údaj se nezapamatuje, protože v systému neběží ssh-agent."
 
 #: forms/askpassdialog.py:108
 msgid "To continue connecting, do you trust this key?"
