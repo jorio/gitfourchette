@@ -62,8 +62,8 @@ class Ui_ResetHeadDialog(object):
         self.gridLayout.addWidget(self.recurseCheckBox, 3, 0, 1, 2)
 
         self.retranslateUi(ResetHeadDialog)
-        self.buttonBox.accepted.connect(ResetHeadDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(ResetHeadDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(ResetHeadDialog.accept)
+        self.buttonBox.rejected.connect(ResetHeadDialog.reject)
         ResetHeadDialog.setTabOrder(self.softButton, self.mixedButton)
         ResetHeadDialog.setTabOrder(self.mixedButton, self.hardButton)
 

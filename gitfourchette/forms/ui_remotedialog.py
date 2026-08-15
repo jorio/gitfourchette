@@ -57,8 +57,8 @@ class Ui_RemoteDialog(object):
         self.nameLabel.setBuddy(self.nameEdit)
 
         self.retranslateUi(RemoteDialog)
-        self.buttonBox.accepted.connect(RemoteDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(RemoteDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(RemoteDialog.accept)
+        self.buttonBox.rejected.connect(RemoteDialog.reject)
         RemoteDialog.setTabOrder(self.urlEdit, self.protocolButton)
         RemoteDialog.setTabOrder(self.protocolButton, self.nameEdit)
         RemoteDialog.setTabOrder(self.nameEdit, self.fetchAfterAddCheckBox)

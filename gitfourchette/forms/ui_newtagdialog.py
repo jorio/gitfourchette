@@ -54,9 +54,9 @@ class Ui_NewTagDialog(object):
         self.label.setBuddy(self.nameEdit)
 
         self.retranslateUi(NewTagDialog)
-        self.buttonBox.accepted.connect(NewTagDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(NewTagDialog.reject) # type: ignore
-        self.pushCheckBox.toggled['bool'].connect(self.remoteComboBox.setEnabled) # type: ignore
+        self.buttonBox.accepted.connect(NewTagDialog.accept)
+        self.buttonBox.rejected.connect(NewTagDialog.reject)
+        self.pushCheckBox.toggled['bool'].connect(self.remoteComboBox.setEnabled)
         NewTagDialog.setTabOrder(self.nameEdit, self.pushCheckBox)
         NewTagDialog.setTabOrder(self.pushCheckBox, self.remoteComboBox)
         NewTagDialog.setTabOrder(self.remoteComboBox, self.forceCheckBox)

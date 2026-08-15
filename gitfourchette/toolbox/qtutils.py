@@ -49,11 +49,11 @@ def showInFolder(path: str):  # pragma: no cover (platform-specific)
                     stringType = QMetaType.Type.QString.value
                 dbusArgs = QDBusArgument()
                 dbusArgs.beginArray(stringType)  # type: ignore[call-overload]  # inaccurate stubs?
-                dbusArgs.add(path)  # type: ignore[attr-defined] # incomplete stubs
+                dbusArgs.add(path)
                 dbusArgs.endArray()
             else:
                 # Thankfully, PySide6 is more pythonic here.
-                dbusArgs = [path]  # type: ignore # consider only PyQt6 for type checking
+                dbusArgs = [path]  # type: ignore[assignment]  # consider only PyQt6 for type checking
             iface.call("ShowItems", dbusArgs, "")
             iface.deleteLater()
             return

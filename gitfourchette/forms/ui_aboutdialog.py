@@ -151,7 +151,7 @@ class Ui_AboutDialog(object):
 
         self.retranslateUi(AboutDialog)
         self.tabWidget.setCurrentIndex(0)
-        self.buttonBox.accepted.connect(AboutDialog.close) # type: ignore
+        self.buttonBox.accepted.connect(AboutDialog.close)
 
     def retranslateUi(self, AboutDialog):
         AboutDialog.setWindowTitle(_p("AboutDialog", "About {0}"))

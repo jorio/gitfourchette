@@ -114,7 +114,7 @@ class Ui_PushDialog(object):
 
         self.retranslateUi(PushDialog)
         self.newRemoteBranchStackedWidget.setCurrentIndex(0)
-        self.buttonBox.rejected.connect(PushDialog.reject) # type: ignore
+        self.buttonBox.rejected.connect(PushDialog.reject)
         PushDialog.setTabOrder(self.localBranchEdit, self.remoteBranchEdit)
         PushDialog.setTabOrder(self.remoteBranchEdit, self.forcePushCheckBox)
         PushDialog.setTabOrder(self.forcePushCheckBox, self.newRemoteBranchNameEdit)

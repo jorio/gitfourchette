@@ -116,7 +116,7 @@ class Ui_CloneDialog(object):
         self.shallowCloneSuffix.setBuddy(self.shallowCloneDepthSpinBox)
 
         self.retranslateUi(CloneDialog)
-        self.buttonBox.rejected.connect(CloneDialog.reject) # type: ignore
+        self.buttonBox.rejected.connect(CloneDialog.reject)
         CloneDialog.setTabOrder(self.urlEdit, self.protocolButton)
         CloneDialog.setTabOrder(self.protocolButton, self.pathEdit)
         CloneDialog.setTabOrder(self.pathEdit, self.browseButton)

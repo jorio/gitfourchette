@@ -85,9 +85,9 @@ class Ui_CheckoutCommitDialog(object):
         self.verticalLayout.addWidget(self.buttonBox)
 
         self.retranslateUi(CheckoutCommitDialog)
-        self.buttonBox.rejected.connect(CheckoutCommitDialog.reject) # type: ignore
-        self.buttonBox.accepted.connect(CheckoutCommitDialog.accept) # type: ignore
-        self.switchRadioButton.toggled['bool'].connect(self.switchComboBox.setEnabled) # type: ignore
+        self.buttonBox.rejected.connect(CheckoutCommitDialog.reject)
+        self.buttonBox.accepted.connect(CheckoutCommitDialog.accept)
+        self.switchRadioButton.toggled['bool'].connect(self.switchComboBox.setEnabled)
         CheckoutCommitDialog.setTabOrder(self.switchRadioButton, self.switchComboBox)
         CheckoutCommitDialog.setTabOrder(self.switchComboBox, self.detachHeadRadioButton)
         CheckoutCommitDialog.setTabOrder(self.detachHeadRadioButton, self.resetHeadRadioButton)

@@ -54,8 +54,8 @@ class Ui_IdentityDialog(object):
         self.emailLabel.setBuddy(self.emailEdit)
 
         self.retranslateUi(IdentityDialog)
-        self.buttonBox.accepted.connect(IdentityDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(IdentityDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(IdentityDialog.accept)
+        self.buttonBox.rejected.connect(IdentityDialog.reject)
         IdentityDialog.setTabOrder(self.nameEdit, self.emailEdit)
 
     def retranslateUi(self, IdentityDialog):

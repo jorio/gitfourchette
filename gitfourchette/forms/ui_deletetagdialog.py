@@ -41,9 +41,9 @@ class Ui_DeleteTagDialog(object):
         self.verticalLayout.addWidget(self.buttonBox)
 
         self.retranslateUi(DeleteTagDialog)
-        self.buttonBox.accepted.connect(DeleteTagDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(DeleteTagDialog.reject) # type: ignore
-        self.pushCheckBox.toggled['bool'].connect(self.remoteComboBox.setEnabled) # type: ignore
+        self.buttonBox.accepted.connect(DeleteTagDialog.accept)
+        self.buttonBox.rejected.connect(DeleteTagDialog.reject)
+        self.pushCheckBox.toggled['bool'].connect(self.remoteComboBox.setEnabled)
 
     def retranslateUi(self, DeleteTagDialog):
         DeleteTagDialog.setWindowTitle(_p("DeleteTagDialog", "Delete tag"))

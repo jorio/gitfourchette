@@ -85,8 +85,8 @@ class Ui_RegisterSubmoduleDialog(object):
         self.remoteLabel.setBuddy(self.remoteComboBox)
 
         self.retranslateUi(RegisterSubmoduleDialog)
-        self.buttonBox.accepted.connect(RegisterSubmoduleDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(RegisterSubmoduleDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(RegisterSubmoduleDialog.accept)
+        self.buttonBox.rejected.connect(RegisterSubmoduleDialog.reject)
         RegisterSubmoduleDialog.setTabOrder(self.nameEdit, self.remoteComboBox)
         RegisterSubmoduleDialog.setTabOrder(self.remoteComboBox, self.nameHint)
         RegisterSubmoduleDialog.setTabOrder(self.nameHint, self.remoteHint)

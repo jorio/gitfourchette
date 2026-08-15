@@ -57,8 +57,8 @@ class Ui_StashDialog(object):
         self.willStashLabel.setBuddy(self.fileList)
 
         self.retranslateUi(StashDialog)
-        self.buttonBox.rejected.connect(StashDialog.reject) # type: ignore
-        self.buttonBox.accepted.connect(StashDialog.accept) # type: ignore
+        self.buttonBox.rejected.connect(StashDialog.reject)
+        self.buttonBox.accepted.connect(StashDialog.accept)
 
     def retranslateUi(self, StashDialog):
         StashDialog.setWindowTitle(_p("StashDialog", "New stash"))

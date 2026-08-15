@@ -46,8 +46,8 @@ class Ui_IgnorePatternDialog(object):
         self.label_2.setBuddy(self.fileEdit)
 
         self.retranslateUi(IgnorePatternDialog)
-        self.buttonBox.accepted.connect(IgnorePatternDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(IgnorePatternDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(IgnorePatternDialog.accept)
+        self.buttonBox.rejected.connect(IgnorePatternDialog.reject)
         IgnorePatternDialog.setTabOrder(self.patternEdit, self.fileEdit)
 
     def retranslateUi(self, IgnorePatternDialog):

@@ -193,6 +193,9 @@ def compileUi(uic: str, uiPath: Path, pyPath: Path, force=False, cleanupOutput=T
             # under pytest-cov. GitFourchette doesn't need this feature anyway:
             # https://riverbankcomputing.com/static/Docs/PyQt6/signals_slots.html#connecting-slots-by-name
             r"^\s+QMetaObject\.connectSlotsByName\(.+\)\n",
+
+            # mypy is smart enough for these now
+            r"\s+# type: ignore$",
         ]
 
         ignoreDiffs = ["# Created by: PyQt6 UI code generator"]

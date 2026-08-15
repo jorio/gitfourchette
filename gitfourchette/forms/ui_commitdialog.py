@@ -97,10 +97,10 @@ class Ui_CommitDialog(object):
         self.verticalLayout.addLayout(self.buttonLayout)
 
         self.retranslateUi(CommitDialog)
-        self.buttonBox.accepted.connect(CommitDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(CommitDialog.reject) # type: ignore
-        self.revealSignature.toggled['bool'].connect(self.signatureBox.setVisible) # type: ignore
-        self.revealSignature.toggled['bool'].connect(self.signatureBox.setEnabled) # type: ignore
+        self.buttonBox.accepted.connect(CommitDialog.accept)
+        self.buttonBox.rejected.connect(CommitDialog.reject)
+        self.revealSignature.toggled['bool'].connect(self.signatureBox.setVisible)
+        self.revealSignature.toggled['bool'].connect(self.signatureBox.setEnabled)
         CommitDialog.setTabOrder(self.summaryEditor, self.descriptionEditor)
 
     def retranslateUi(self, CommitDialog):

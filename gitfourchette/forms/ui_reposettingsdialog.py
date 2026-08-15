@@ -58,12 +58,12 @@ class Ui_RepoSettingsDialog(object):
         self.emailLabel.setBuddy(self.emailEdit)
 
         self.retranslateUi(RepoSettingsDialog)
-        self.buttonBox.accepted.connect(RepoSettingsDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(RepoSettingsDialog.reject) # type: ignore
-        self.localIdentityCheckBox.toggled['bool'].connect(self.nameLabel.setEnabled) # type: ignore
-        self.localIdentityCheckBox.toggled['bool'].connect(self.nameEdit.setEnabled) # type: ignore
-        self.localIdentityCheckBox.toggled['bool'].connect(self.emailLabel.setEnabled) # type: ignore
-        self.localIdentityCheckBox.toggled['bool'].connect(self.emailEdit.setEnabled) # type: ignore
+        self.buttonBox.accepted.connect(RepoSettingsDialog.accept)
+        self.buttonBox.rejected.connect(RepoSettingsDialog.reject)
+        self.localIdentityCheckBox.toggled['bool'].connect(self.nameLabel.setEnabled)
+        self.localIdentityCheckBox.toggled['bool'].connect(self.nameEdit.setEnabled)
+        self.localIdentityCheckBox.toggled['bool'].connect(self.emailLabel.setEnabled)
+        self.localIdentityCheckBox.toggled['bool'].connect(self.emailEdit.setEnabled)
 
     def retranslateUi(self, RepoSettingsDialog):
         RepoSettingsDialog.setWindowTitle(_p("RepoSettingsDialog", "Repo Settings for {repo}"))

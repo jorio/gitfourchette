@@ -49,8 +49,8 @@ class Ui_CommitInfoDialog(object):
         self.gridLayout.addWidget(self.detailsEdit, 3, 0, 1, 2)
 
         self.retranslateUi(CommitInfoDialog)
-        self.buttonBox.accepted.connect(CommitInfoDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(CommitInfoDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(CommitInfoDialog.accept)
+        self.buttonBox.rejected.connect(CommitInfoDialog.reject)
 
     def retranslateUi(self, CommitInfoDialog):
         pass
