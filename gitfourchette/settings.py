@@ -107,10 +107,12 @@ class Prefs(PrefsFile):
 
     _category_general           : int                   = 0
     language                    : str                   = ""
-    # Keep the desktop's look in unit tests so that pixel-precise tests
-    # aren't at the mercy of our own stylesheet's metrics.
-    appTheme                    : AppTheme              = AppTheme.System if APP_TESTMODE else AppTheme.Modern
-    qtStyle                     : str                   = ""
+    # Either one of our own themes (see AppTheme), or the name of a native Qt
+    # style, or "" for the system default.
+    # On KDE, be a good citizen and stick to the system-provided theme
+    # (typically Breeze). In unit tests, keep the desktop's look as well so that
+    # pixel-precise tests aren't at the mercy of our own stylesheet's metrics.
+    qtStyle                     : str                   = str(AppTheme.System if (KDE or APP_TESTMODE) else AppTheme.Modern)
     pathDisplayStyle            : PathDisplayStyle      = PathDisplayStyle.FullPaths
     refSort                     : RefSort               = RefSort.TimeDesc
     showToolBar                 : bool                  = True
@@ -442,7 +444,7 @@ history = History()
 def qtIsNativeMacosStyle():  # pragma: no cover
     if not MACOS:
         return False
-    if prefs.appTheme.isModern:  # our own themes force the Fusion style
+    if AppTheme.isOurs(prefs.qtStyle):  # our own themes force the Fusion style
         return False
     return (not prefs.qtStyle) or (prefs.qtStyle.lower() == "macos")
 

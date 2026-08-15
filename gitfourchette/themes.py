@@ -26,14 +26,21 @@ from gitfourchette.qt import *
 
 
 class AppTheme(enum.StrEnum):
+    """
+    Our built-in themes. These share the Prefs.qtStyle namespace with the
+    native Qt style names (Breeze, Fusion, Windows...), so their values must
+    not collide with anything QStyleFactory may return.
+    """
+
     System = ""
     Modern = "modern"
     ModernLight = "modern-light"
     ModernDark = "modern-dark"
 
-    @property
-    def isModern(self) -> bool:
-        return self != AppTheme.System
+    @classmethod
+    def isOurs(cls, styleName: str) -> bool:
+        """True if a Prefs.qtStyle value refers to one of our themes."""
+        return styleName in (cls.Modern, cls.ModernLight, cls.ModernDark)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -104,10 +111,10 @@ MODERN_DARK = ThemeColors(
     accent            = "#4a8cff",
     accentHover       = "#5f9bff",
     accentPressed     = "#3a79e6",
-    accentGhost       = "rgba(74, 140, 255, 40)",
+    accentGhost       = "#284a8cff",
     onAccent          = "#ffffff",
-    hover             = "rgba(255, 255, 255, 18)",
-    pressed           = "rgba(255, 255, 255, 32)",
+    hover             = "#12ffffff",
+    pressed           = "#20ffffff",
     selInactive       = "#343a44",
     tabSelected       = "#1b1e23",
     button            = "#2c3138",
@@ -115,8 +122,8 @@ MODERN_DARK = ThemeColors(
     buttonPressed     = "#262a31",
     input             = "#15181d",
     inputDisabled     = "#1e2127",
-    scrollHandle      = "rgba(255, 255, 255, 42)",
-    scrollHandleHover = "rgba(255, 255, 255, 78)",
+    scrollHandle      = "#2affffff",
+    scrollHandleHover = "#4effffff",
     tooltipBg         = "#2f343c",
     tooltipText       = "#e4e7ec",
     tooltipBorder     = "#3d434c",
@@ -139,10 +146,10 @@ MODERN_LIGHT = ThemeColors(
     accent            = "#2f6fed",
     accentHover       = "#4681f2",
     accentPressed     = "#255fd6",
-    accentGhost       = "rgba(47, 111, 237, 30)",
+    accentGhost       = "#1e2f6fed",
     onAccent          = "#ffffff",
-    hover             = "rgba(0, 0, 0, 16)",
-    pressed           = "rgba(0, 0, 0, 28)",
+    hover             = "#10000000",
+    pressed           = "#1c000000",
     selInactive       = "#dde1e8",
     tabSelected       = "#ffffff",
     button            = "#ffffff",
@@ -150,8 +157,8 @@ MODERN_LIGHT = ThemeColors(
     buttonPressed     = "#e9ecf1",
     input             = "#ffffff",
     inputDisabled     = "#f2f3f6",
-    scrollHandle      = "rgba(0, 0, 0, 56)",
-    scrollHandleHover = "rgba(0, 0, 0, 96)",
+    scrollHandle      = "#38000000",
+    scrollHandleHover = "#60000000",
     tooltipBg         = "#2f343c",
     tooltipText       = "#f0f2f5",
     tooltipBorder     = "#2f343c",
@@ -167,86 +174,89 @@ def systemPrefersDark(fallbackPalette: QPalette | None = None) -> bool:
     before we've overwritten it with a theme of our own).
     """
 
-    with suppress(AttributeError, NameError):
+    from gitfourchette.toolbox import isDarkTheme
+
+    # QStyleHints.colorScheme() and Qt.ColorScheme require Qt 6.5.
+    # Older bindings raise AttributeError here; drop the suppress along with
+    # support for Qt < 6.5.
+    with suppress(AttributeError):
         scheme = QGuiApplication.styleHints().colorScheme()
         if scheme == Qt.ColorScheme.Dark:
             return True
         if scheme == Qt.ColorScheme.Light:
             return False
 
-    palette = fallbackPalette if fallbackPalette is not None else QApplication.palette()
-    return palette.color(QPalette.ColorRole.Base).value() < palette.color(QPalette.ColorRole.Text).value()
+    return isDarkTheme(fallbackPalette)
 
 
-def resolveTheme(theme: AppTheme, fallbackPalette: QPalette | None = None) -> ThemeColors | None:
-    """Return the color tokens for a theme, or None to keep the system theme."""
+def resolveTheme(styleName: str, fallbackPalette: QPalette | None = None) -> ThemeColors | None:
+    """
+    Return the color tokens for one of our themes.
 
-    if theme == AppTheme.ModernDark:
+    Returns None if styleName isn't ours, i.e. it names a native Qt style or
+    it's empty (system default) - in that case we don't touch the palette.
+    """
+
+    if styleName == AppTheme.ModernDark:
         return MODERN_DARK
-    if theme == AppTheme.ModernLight:
+    if styleName == AppTheme.ModernLight:
         return MODERN_LIGHT
-    if theme == AppTheme.Modern:
+    if styleName == AppTheme.Modern:
         return MODERN_DARK if systemPrefersDark(fallbackPalette) else MODERN_LIGHT
     return None
 
 
-def _c(spec: str) -> QColor:
-    """Parse a theme token into a QColor ('#rrggbb' or 'rgba(r, g, b, a)')."""
-
-    spec = spec.strip()
-    if spec.startswith("rgba("):
-        r, g, b, a = (int(x) for x in spec[5:-1].split(","))
-        return QColor(r, g, b, a)
-    return QColor(spec)
-
-
-def _blend(over: QColor, under: QColor) -> QColor:
-    """Flatten a translucent color onto an opaque one (QPalette wants opaque)."""
-
-    a = over.alphaF()
-    return QColor(
-        round(over.red() * a + under.red() * (1 - a)),
-        round(over.green() * a + under.green() * (1 - a)),
-        round(over.blue() * a + under.blue() * (1 - a)))
-
-
 def buildPalette(colors: ThemeColors) -> QPalette:
+    from gitfourchette.toolbox import mixColors
+
     Role = QPalette.ColorRole
     Group = QPalette.ColorGroup
 
-    bg = _c(colors.bg)
-    surface = _c(colors.surface)
-    text = _c(colors.text)
-    textDim = _c(colors.textDim)
-    textFaint = _c(colors.textFaint)
-    accent = _c(colors.accent)
-    onAccent = _c(colors.onAccent)
-    button = _c(colors.button)
-    selInactive = _c(colors.selInactive)
+    bg = QColor(colors.bg)
+    surface = QColor(colors.surface)
+    text = QColor(colors.text)
+    textDim = QColor(colors.textDim)
+    textFaint = QColor(colors.textFaint)
+    accent = QColor(colors.accent)
+    onAccent = QColor(colors.onAccent)
+    button = QColor(colors.button)
+    selInactive = QColor(colors.selInactive)
+
+    # Flatten the translucent hover tint onto the background (QPalette wants opaque colors).
+    hover = QColor(colors.hover)
+    hoverOpaque = mixColors(bg, hover, ratio=hover.alphaF())
+    hoverOpaque.setAlphaF(1)
 
     palette = QPalette()
 
     palette.setColor(Role.Window, bg)
     palette.setColor(Role.WindowText, text)
     palette.setColor(Role.Base, surface)
-    palette.setColor(Role.AlternateBase, _c(colors.altRow))
+    palette.setColor(Role.AlternateBase, QColor(colors.altRow))
     palette.setColor(Role.Text, text)
     palette.setColor(Role.Button, button)
     palette.setColor(Role.ButtonText, text)
-    palette.setColor(Role.BrightText, _c(colors.danger))
+    palette.setColor(Role.BrightText, QColor(colors.danger))
     palette.setColor(Role.Highlight, accent)
     palette.setColor(Role.HighlightedText, onAccent)
-    palette.setColor(Role.ToolTipBase, _c(colors.tooltipBg))
-    palette.setColor(Role.ToolTipText, _c(colors.tooltipText))
+    palette.setColor(Role.ToolTipBase, QColor(colors.tooltipBg))
+    palette.setColor(Role.ToolTipText, QColor(colors.tooltipText))
     palette.setColor(Role.PlaceholderText, textFaint)
     palette.setColor(Role.Link, accent)
-    palette.setColor(Role.LinkVisited, _c(colors.accentPressed))
+    palette.setColor(Role.LinkVisited, QColor(colors.accentPressed))
+
+    # GF uses the accent color in CodeRubberBand. Qt provides a blueish accent
+    # color by default, but KDE lets the user set their own accent color, and
+    # it'll come through unless we override it.
+    # (Role.Accent doesn't exist in old Qt versions.)
+    with suppress(AttributeError):
+        palette.setColor(Role.Accent, accent)
 
     # 3D bevel roles: Fusion still uses these for frames, grooves and arrows.
-    palette.setColor(Role.Light, _blend(_c(colors.hover), bg))
-    palette.setColor(Role.Midlight, _c(colors.borderSoft))
-    palette.setColor(Role.Mid, _c(colors.border))
-    palette.setColor(Role.Dark, _c(colors.borderStrong))
+    palette.setColor(Role.Light, hoverOpaque)
+    palette.setColor(Role.Midlight, QColor(colors.borderSoft))
+    palette.setColor(Role.Mid, QColor(colors.border))
+    palette.setColor(Role.Dark, QColor(colors.borderStrong))
     palette.setColor(Role.Shadow, QColor(0, 0, 0, 90 if colors.dark else 40))
 
     # Unfocused windows get a muted selection instead of a screaming accent.
@@ -257,7 +267,7 @@ def buildPalette(colors: ThemeColors) -> QPalette:
         palette.setColor(Group.Disabled, role, textFaint)
     palette.setColor(Group.Disabled, Role.Highlight, selInactive)
     palette.setColor(Group.Disabled, Role.HighlightedText, textDim)
-    palette.setColor(Group.Disabled, Role.Base, _c(colors.inputDisabled))
+    palette.setColor(Group.Disabled, Role.Base, QColor(colors.inputDisabled))
     palette.setColor(Group.Disabled, Role.Link, textDim)
 
     return palette
@@ -267,10 +277,10 @@ def currentTheme() -> ThemeColors | None:
     """Color tokens of the theme in effect, or None if we defer to the desktop."""
 
     from gitfourchette import settings
+    from gitfourchette.application import GFApplication
 
-    app = QApplication.instance()
-    fallbackPalette = getattr(app, "platformDefaultPalette", None)
-    return resolveTheme(settings.prefs.appTheme, fallbackPalette)
+    fallbackPalette = GFApplication.instance().platformDefaultPalette
+    return resolveTheme(settings.prefs.qtStyle, fallbackPalette)
 
 
 def buildStyleSheet(colors: ThemeColors) -> str:

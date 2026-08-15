@@ -210,10 +210,10 @@ class TrTables:
             },
 
             AppTheme: {
-                AppTheme.Modern                 : _p("app theme", "Modern (follow system)"),
-                AppTheme.ModernLight            : _p("app theme", "Modern Light"),
-                AppTheme.ModernDark             : _p("app theme", "Modern Dark"),
-                AppTheme.System                 : _p("app theme", "Desktop environment"),
+                AppTheme.Modern                 : _p("app theme", "Modern (Follow System)"),
+                AppTheme.ModernDark             : _p("app theme", "Dark Modern"),
+                AppTheme.ModernLight            : _p("app theme", "Light Modern"),
+                AppTheme.System                 : _p("app theme", "System default"),
             },
 
             PathDisplayStyle: {
@@ -423,14 +423,12 @@ class TrTables:
             "userCommands": _p("Prefs", "Custom Commands"),
 
             "language": _("Language"),
-            "appTheme": _("Theme"),
-            "appTheme_help": paragraphs(
-                _("{app}’s built-in themes give the app a consistent look on any desktop.", app=APP_DISPLAY_NAME),
-                _("Pick <b>Desktop environment</b> if you’d rather have the app blend in "
-                  "with the rest of your system.")),
             "qtStyle": _("Qt style"),
-            "qtStyle_help": _("Leave this on “System default” unless you want to override the widget style "
-                              "that the theme picks for you."),
+            "qtStyle_help": paragraphs(
+                _("{app}’s built-in themes give the app a consistent look on any desktop.", app=APP_DISPLAY_NAME),
+                _("Pick <b>System default</b> if you’d rather have the app blend in "
+                  "with the rest of your system, or pick one of the Qt styles "
+                  "installed on this machine to override the widget style.")),
             "shortHashChars": _("Shorten hashes to # characters"),
             "shortTimeFormat": _("Date/time format"),
             "shortTimeFormat_help": TrTables._timeFormatTable(),

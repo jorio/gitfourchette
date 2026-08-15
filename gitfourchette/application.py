@@ -451,7 +451,7 @@ class GFApplication(QApplication):
 
         self.dispatchSimplePrefsToStandaloneClasses()
 
-        if "qtStyle" in prefDiff or "appTheme" in prefDiff:
+        if "qtStyle" in prefDiff:
             self.applyQtStylePref(forceApplyDefault=True)
             self.restyle.emit()
 
@@ -496,14 +496,14 @@ class GFApplication(QApplication):
         from gitfourchette import settings
         from gitfourchette import themes
 
-        themeColors = themes.resolveTheme(settings.prefs.appTheme, self.platformDefaultPalette)
+        themeColors = themes.resolveTheme(settings.prefs.qtStyle, self.platformDefaultPalette)
 
-        if settings.prefs.qtStyle:
-            self.setStyle(settings.prefs.qtStyle)
-        elif themeColors is not None:
+        if themeColors is not None:
             # Our themes are designed on top of Fusion. Native styles (Breeze,
             # Windows, macOS) ignore or mangle much of the stylesheet.
             self.setStyle("Fusion")
+        elif settings.prefs.qtStyle:
+            self.setStyle(settings.prefs.qtStyle)
         elif forceApplyDefault:
             self.setStyle(self.platformDefaultStyleName)
 
@@ -511,7 +511,10 @@ class GFApplication(QApplication):
         if themeColors is not None:
             self.setPalette(themes.buildPalette(themeColors))
         else:
-            self.setPalette(self.platformDefaultPalette)
+            # Empty palette: let the style/desktop provide the colors again.
+            # (Don't restore platformDefaultPalette - it may be stale if the
+            # user has changed their system palette while the app is running.)
+            self.setPalette(QPalette())
 
         if MACOS:
             self.setAttribute(Qt.ApplicationAttribute.AA_DontShowIconsInMenus, settings.qtIsNativeMacosStyle())
@@ -636,7 +639,7 @@ class GFApplication(QApplication):
                 styleSheet += darkSupplement
 
             # Append our own theme, if any (its rules take precedence over the above)
-            themeColors = themes.resolveTheme(settings.prefs.appTheme, self.platformDefaultPalette)
+            themeColors = themes.resolveTheme(settings.prefs.qtStyle, self.platformDefaultPalette)
             if themeColors is not None:
                 styleSheet += themes.buildStyleSheet(themeColors)
 

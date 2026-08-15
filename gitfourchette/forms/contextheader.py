@@ -45,17 +45,16 @@ class ContextHeader(QFrame):
     def restyle(self):
         from gitfourchette import themes
 
-        theme = themes.currentTheme()
-        if theme is not None:
-            bg = theme.bg
-            fg = theme.textDim
-            border = f"border-bottom: 1px solid {theme.borderSoft};"
-        else:
-            bg = mutedTextColorHex(self, .07)
-            fg = mutedTextColorHex(self, .8)
-            border = ""
+        if themes.currentTheme() is not None:
+            # Our themes style ContextHeader in style-modern.qss. Clear any
+            # widget stylesheet we may have set before the theme kicked in;
+            # it would win over the application stylesheet.
+            self.setStyleSheet("")
+            return
 
-        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; {border} }}"
+        bg = mutedTextColorHex(self, .07)
+        fg = mutedTextColorHex(self, .8)
+        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}"
                            f"ContextHeader QLabel {{ color: {fg}; }}")
 
     def addButton(

@@ -71,11 +71,12 @@ QMenuBar::item:pressed {
     color: ${onAccent};
 }
 
+/* No border-radius here: the popup window itself is rectangular, so rounded
+   corners would just expose the square backdrop behind them. */
 QMenu {
     background: ${elevated};
     color: ${text};
     border: 1px solid ${border};
-    border-radius: 8px;
     padding: 5px 4px;
 }
 
@@ -263,11 +264,13 @@ QLineEdit[readOnly="true"] {
 /* Note: don't restyle QComboBox::drop-down. As soon as that subcontrol has a
    rule of its own, Qt stops drawing the style's arrow and expects an image. */
 
+/* The popup is wrapped in a container frame drawn by the style. Don't add a
+   second (rounded) frame around the view, or the style's rectangular one
+   shows through beneath it. */
 QComboBox QAbstractItemView {
     background: ${elevated};
     color: ${text};
-    border: 1px solid ${border};
-    border-radius: 7px;
+    border: none;
     padding: 3px;
     selection-background-color: ${accent};
     selection-color: ${onAccent};
@@ -311,15 +314,9 @@ QTabBar::tab:disabled {
     color: ${textFaint};
 }
 
-QTabBar::close-button {
-    subcontrol-position: right;
-    border-radius: 4px;
-    margin: 1px;
-}
-
-QTabBar::close-button:hover {
-    background: ${pressed};
-}
+/* Note: don't restyle QTabBar::close-button. As soon as that subcontrol has a
+   drawable rule of its own, QStyleSheetStyle paints the rule instead of the
+   style's "x" glyph, leaving the button invisible (see PE_IndicatorTabClose). */
 
 QTabBar::scroller {
     width: 0px;
@@ -401,10 +398,10 @@ QAbstractItemView::item:selected:active {
     color: ${onAccent};
 }
 
-/* Rounded selection pills in the sidebar & file lists (Fork-style).
+/* Rounded selection pills in the sidebar & file lists.
    The commit graph keeps full-width selection bars so that the lane
    drawings aren't clipped by rounded corners. */
-Sidebar::item, FileList::item, DirtyFiles::item, StagedFiles::item, CommittedFiles::item {
+Sidebar::item, FileList::item {
     border-radius: 5px;
 }
 
@@ -412,23 +409,6 @@ Sidebar {
     background: ${sidebarBg};
     color: ${text};
     show-decoration-selected: 1;
-}
-
-QHeaderView {
-    background: ${bg};
-    border: none;
-}
-
-QHeaderView::section {
-    background: ${bg};
-    color: ${textDim};
-    border: none;
-    border-bottom: 1px solid ${borderSoft};
-    padding: 4px 8px;
-}
-
-QHeaderView::section:hover {
-    background: ${hover};
 }
 
 /* --------------------------------------------------------------------------
@@ -555,11 +535,18 @@ QToolBox::tab, QDockWidget::title {
  * ------------------------------------------------------------------------ */
 
 /* Code panes must stay flush - no rounded frame, no inner padding. */
-CodeView, DiffView, BlameTextEdit, SpecialDiffView {
+CodeView, SpecialDiffView {
     background: ${surface};
     border: none;
     border-radius: 0;
     padding: 0;
+}
+
+/* QToolButton's padding would squash the 16x16 icon into an ellipse. */
+QHintButton {
+    padding: 0px;
+    min-width: 16px;
+    min-height: 16px;
 }
 
 /* Panel titles above the file lists and the diff */
@@ -568,9 +555,21 @@ CodeView, DiffView, BlameTextEdit, SpecialDiffView {
     padding-left: 2px;
 }
 
-ContextHeader, Banner.diff {
+Banner.diff {
     border: none;
     padding: 3px 2px;
+}
+
+/* ContextHeader.restyle() leaves us alone while one of our themes is active. */
+ContextHeader {
+    background: ${bg};
+    border: none;
+    border-bottom: 1px solid ${borderSoft};
+    padding: 3px 2px;
+}
+
+ContextHeader QLabel {
+    color: ${textDim};
 }
 
 SearchBar QLineEdit {
