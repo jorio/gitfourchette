@@ -9,7 +9,7 @@
  * Window chrome
  * ------------------------------------------------------------------------ */
 
-QMainWindow, QDialog, #QTabWidget2, #QTW2StackedWidget {
+QMainWindow, QDialog {
     background: ${bg};
 }
 
@@ -23,18 +23,22 @@ QToolTip {
     background: ${tooltipBg};
     color: ${tooltipText};
     border: 1px solid ${tooltipBorder};
-    border-radius: ${menuBorderRadius};
-    padding: 4px 7px;
+    border-radius: ${menuRadius};
+    padding: 2px 4px;
 }
 
 QStatusBar {
     background: ${bg};
     color: ${textDim};
-    border-top: 1px solid ${borderSoft};
+    border-top: 1px solid ${border};
 }
 
 QStatusBar::item {
     border: none;
+}
+
+QStatusBar MemoryIndicator {  /* in debug mode only */
+    padding: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -53,7 +57,7 @@ QMenuBar::item {
     color: ${text};
     padding: 4px 9px;
     margin: 0px 1px;
-    border-radius: 6px;
+    border-radius: ${outerRadius};
 }
 
 QMenuBar::item:selected {
@@ -66,17 +70,21 @@ QMenuBar::item:pressed {
 }
 
 QMenu, QComboBox QAbstractItemView {
-    border-radius: ${menuBorderRadius};
-    background: ${elevated};
+    border-radius: ${menuRadius};
+    background: ${button};
     color: ${text};
     border: 1px solid ${border};
     padding: 5px 4px;
 }
 
+QComboBox QAbstractItemView {
+    border-radius: ${comboBoxMenuRadius};
+}
+
 QMenu::item {
     background: transparent;
-    padding: 5px 24px 5px 26px;
-    border-radius: 5px;
+    padding: 5px 24px 5px 8px;
+    border-radius: ${innerRadius};
     margin: 0px 2px;
 }
 
@@ -92,7 +100,7 @@ QMenu::item:disabled {
 
 QMenu::separator {
     height: 1px;
-    background: ${borderSoft};
+    background: ${border};
     margin: 5px 8px;
 }
 
@@ -115,10 +123,11 @@ QToolBar {
     border: none;
     padding: 4px 6px;
     spacing: 2px;
+    border-bottom: 1px solid ${border};
 }
 
-QToolBar#GFToolbar {
-    border-bottom: 1px solid ${borderSoft};
+QMainWindow QToolBar {
+    border-bottom: none;
 }
 
 QToolBar::separator {
@@ -132,20 +141,45 @@ QToolBar::separator {
  * Buttons
  * ------------------------------------------------------------------------ */
 
+QPushButton,
 QToolButton {
-    background: transparent;
+    background: ${button};
     color: ${text};
-    border: 1px solid transparent;
-    border-radius: 7px;
+    border: 1px solid ${border};
+    border-radius: ${outerRadius};
+}
+
+QToolButton {
     padding: 3px 7px;
 }
 
-QToolButton:hover, QToolButton:focus {
+QPushButton {
+    padding: 5px 14px;
+    min-width: 56px;
+}
+
+QPushButton:flat,
+QToolButton[autoRaise="true"] {
+    border-color: transparent;
+    background: transparent;
+}
+
+QPushButton:hover,
+QToolButton:hover,
+QToolButton:focus {
+    background: ${buttonHover};
+}
+
+QToolButton[autoRaise="true"]:hover {
     background: ${hover};
 }
 
-QToolButton:pressed, QToolButton:checked, QToolButton:on {
-    background: ${pressed};
+QPushButton:pressed {
+    padding-bottom: 3px;
+}
+
+QToolButton:pressed {
+    padding-bottom: 1px;
 }
 
 QToolButton:disabled {
@@ -166,56 +200,33 @@ QToolButton::menu-arrow {
     height: 8px;
 }
 
-QPushButton {
-    background: ${button};
-    color: ${text};
-    border: 1px solid ${border};
-    border-radius: 7px;
-    padding: 5px 14px;
-    min-width: 56px;
-}
-
-QPushButton:hover {
-    background: ${buttonHover};
-    border-color: ${borderStrong};
-}
-
-QPushButton:pressed {
-    background: ${buttonPressed};
-}
-
 QPushButton:default, QPushButton:focus {
     border-color: ${accent};
 }
 
 QPushButton:default {
-    background: ${accent};
-    color: ${onAccent};
+    background: ${defaultButton};
 }
 
 QPushButton:default:hover {
-    background: ${accentHover};
-    border-color: ${accentHover};
+    background: ${defaultButtonHover};
 }
 
-QPushButton:default:pressed {
-    background: ${accentPressed};
-    border-color: ${accentPressed};
+QPushButton:default:pressed,
+QPushButton:pressed,
+QToolButton:pressed {
+    background: ${buttonPressed};
+}
+
+QToolButton:checked,
+QToolButton:on {
+    background: ${hover};
 }
 
 QPushButton:disabled {
-    background: ${button};
+    background: ${inputDisabled};
     color: ${textFaint};
-    border-color: ${borderSoft};
-}
-
-QPushButton:flat {
-    background: transparent;
-    border-color: transparent;
-}
-
-QPushButton:flat:hover {
-    background: ${hover};
+    border-color: ${border};
 }
 
 QPushButton::menu-indicator {
@@ -228,18 +239,61 @@ QPushButton::menu-indicator {
  * Text entry & combo boxes
  * ------------------------------------------------------------------------ */
 
-QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit {
-    background: ${input};
+QLineEdit,
+QSpinBox,
+QDateTimeEdit,
+QComboBox,
+QTextEdit,
+QPlainTextEdit {
+    background: ${surface};
     color: ${text};
     border: 1px solid ${border};
-    border-radius: 7px;
-    padding: 3px 7px;
+    border-radius: ${outerRadius};
+    padding: 4px 6px;
     selection-background-color: ${accent};
     selection-color: ${onAccent};
 }
 
-QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
-QTextEdit:focus, QPlainTextEdit:focus, QComboBox:on {
+QComboBox {
+    padding-right: 1em;
+}
+
+QSpinBox::down-button, QSpinBox::up-button {
+    subcontrol-origin: padding;
+    width: 20px;
+    height: 100%;
+    border: 0px solid ${border};
+}
+
+QSpinBox::down-button {
+    subcontrol-position: left;
+    border-right-width: 1px;
+}
+
+QSpinBox::up-button {
+    subcontrol-position: right;
+    border-left-width: 1px;
+}
+
+QSpinBox::down-arrow {
+    image: url(assets:icons/qss-minus.svg);
+}
+
+QSpinBox::up-arrow {
+    image: url(assets:icons/qss-plus.svg);
+}
+
+QLineEdit:focus,
+QSpinBox:focus,
+QDateTimeEdit:focus,
+QComboBox:focus,
+QTextEdit:focus,
+QPlainTextEdit:focus,
+QComboBox:on,
+QComboBox::drop-down:focus,
+QComboBox::drop-down:on,
+QSpinBox::down-button:focus,
+QSpinBox::up-button:focus {
     border-color: ${accent};
 }
 
@@ -247,50 +301,53 @@ QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled,
 QComboBox:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {
     background: ${inputDisabled};
     color: ${textFaint};
-    border-color: ${borderSoft};
+    border-color: ${border};
 }
 
-QLineEdit[readOnly="true"] {
-    background: ${inputDisabled};
+QComboBox::drop-down,
+QDateTimeEdit::drop-down {
+    width: 16px;
+    border-left: 1px solid ${border};
 }
 
-/* Note: don't restyle QComboBox::drop-down. As soon as that subcontrol has a
-   rule of its own, Qt stops drawing the style's arrow and expects an image. */
-
-/* The popup is wrapped in a container frame drawn by the style. Don't add a
-   second (rounded) frame around the view, or the style's rectangular one
-   shows through beneath it. */
-QComboBox QAbstractItemView {
-    background: ${elevated};
-    color: ${text};
-    border: none;
-    padding: 3px;
-    selection-background-color: ${accent};
-    selection-color: ${onAccent};
+QComboBox::down-arrow,
+QDateTimeEdit::down-arrow {
+    image: url(assets:icons/qss-down.svg);
 }
 
 /* --------------------------------------------------------------------------
  * Tab bars
  * ------------------------------------------------------------------------ */
 
-QTabWidget::pane {
-    background: ${surface};
-    border: none;
-    border-top: 1px solid ${borderSoft};
-}
-
 QTabBar {
     background: transparent;
     qproperty-drawBase: 0;
+    border-bottom: 1px solid ${border};
 }
 
 QTabBar::tab {
-    background: transparent;
     color: ${textDim};
-    border: none;
-    border-radius: 7px;
-    padding: 5px 11px;
-    margin: 3px 2px;
+    margin-left: 1px;
+    margin-right: 1px;
+
+    padding: 6px 12px;
+    border-radius: ${outerRadius};
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-color: transparent;
+}
+
+QTabBar::tab:first {
+    border-top-left-radius: 0px;
+    border-left: none;
+}
+
+QTabBar::tab:last {
+    border-top-right-radius: 0px;
+    border-right: none;
 }
 
 QTabBar::tab:hover {
@@ -299,40 +356,9 @@ QTabBar::tab:hover {
 }
 
 QTabBar::tab:selected {
-    background: ${tabSelected};
-    color: ${text};
-}
-
-QTabBar::tab:disabled {
-    color: ${textFaint};
-}
-
-/* Note: don't restyle QTabBar::close-button. As soon as that subcontrol has a
-   drawable rule of its own, QStyleSheetStyle paints the rule instead of the
-   style's "x" glyph, leaving the button invisible (see PE_IndicatorTabClose). */
-
-QTabBar::scroller {
-    width: 0px;
-}
-
-/* Repo tab strip: browser-style tabs that sit on the window background and
-   merge into the content area beneath the selected one. */
-#QTabBar2 {
-    background: ${bg};
-}
-
-#QTabBar2::tab {
-    padding: 6px 12px;
-    margin: 4px 1px 0px 1px;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    border-bottom-left-radius: 0px;
-    border-bottom-right-radius: 0px;
-}
-
-#QTabBar2::tab:selected {
-    background: ${surface};
-    color: ${text};
+    border-color: ${border};
+    background-color: ${surface};
+    font-weight: bold;
 }
 
 /* --------------------------------------------------------------------------
@@ -340,23 +366,23 @@ QTabBar::scroller {
  * ------------------------------------------------------------------------ */
 
 QSplitter::handle {
-    background: ${bg};
-}
-
-QSplitter::handle:horizontal {
-    width: 5px;
-}
-
-QSplitter::handle:vertical {
-    height: 5px;
+    background: ${textFaint};
 }
 
 QSplitter::handle:hover, QSplitter::handle:pressed {
     background: ${accent};
 }
 
+QSplitter::handle:horizontal {
+    width: 1px;
+}
+
+QSplitter::handle:vertical {
+    height: 1px;
+}
+
 QFaintSeparator {
-    background: ${borderSoft};
+    background: ${border};
     border: none;
 }
 
@@ -364,17 +390,35 @@ QFaintSeparator {
  * Item views
  * ------------------------------------------------------------------------ */
 
-QTreeView, QListView, QTableView, QColumnView {
+QAbstractItemView {
     background: ${surface};
     color: ${text};
-    border: none;
-    outline: 0;
     alternate-background-color: ${altRow};
+    border: 1px solid ${border};
+    border-radius: ${outerRadius};
+}
+
+QAbstractItemView:focus, QAbstractItemView:focus {
+    border-color: ${accent};
+}
+
+QComboBox QAbstractItemView:focus {  /* kill accent border on QComboBox menu */
+    border-color: ${border};
+}
+
+RepoWidget Sidebar, RepoWidget FileList, RepoWidget GraphView {
+    border: none;
+    border-radius: 0;
+    outline: 0;
+}
+
+QAbstractItemView {
+    padding: 1px;
 }
 
 QAbstractItemView::item {
     color: ${text};
-    border: none;
+    border-radius: ${innerRadius};
 }
 
 QAbstractItemView::item:hover {
@@ -389,19 +433,6 @@ QAbstractItemView::item:selected {
 QAbstractItemView::item:selected:active {
     background: ${accent};
     color: ${onAccent};
-}
-
-/* Rounded selection pills in the sidebar & file lists.
-   The commit graph keeps full-width selection bars so that the lane
-   drawings aren't clipped by rounded corners. */
-Sidebar::item, FileList::item {
-    border-radius: 5px;
-}
-
-Sidebar {
-    background: ${sidebarBg};
-    color: ${text};
-    show-decoration-selected: 1;
 }
 
 /* --------------------------------------------------------------------------
@@ -422,22 +453,23 @@ QScrollBar:horizontal {
     border: none;
 }
 
-QScrollBar::handle:vertical {
+QScrollBar::handle {
     background: ${scrollHandle};
     border-radius: 3px;
+}
+
+QScrollBar::handle:vertical {
     min-height: 32px;
-    margin: 3px 3px 3px 4px;
+    margin: 1px 3px;
 }
 
 QScrollBar::handle:horizontal {
-    background: ${scrollHandle};
-    border-radius: 3px;
     min-width: 32px;
-    margin: 4px 3px 3px 3px;
+    margin: 3px 1px;
 }
 
 QScrollBar::handle:hover, QScrollBar::handle:pressed {
-    background: ${scrollHandleHover};
+    background: ${accent};
 }
 
 QScrollBar::add-line, QScrollBar::sub-line {
@@ -459,20 +491,14 @@ QScrollBar::add-page, QScrollBar::sub-page {
     background: transparent;
 }
 
-QScrollArea {
-    background: transparent;
-    border: none;
-}
-
 /* --------------------------------------------------------------------------
  * Misc controls
  * ------------------------------------------------------------------------ */
 
 QGroupBox {
-    border: 1px solid ${borderSoft};
-    border-radius: 8px;
-    margin-top: 10px;
-    padding: 8px 4px 4px 4px;
+    border: 1px solid ${border};
+    border-radius: ${outerRadius};
+    padding: 4px;
 }
 
 QGroupBox::title {
@@ -483,49 +509,46 @@ QGroupBox::title {
     color: ${textDim};
 }
 
-/* No fixed height here: some progress bars display their text. */
 QProgressBar {
-    background: ${input};
-    border: none;
-    border-radius: 5px;
+    background: ${surface};
+    border: 1px solid ${border};
+    border-radius: ${outerRadius};
     text-align: center;
     color: ${text};
 }
 
 QProgressBar::chunk {
     background: ${accent};
-    border-radius: 5px;
-}
-
-QSlider::groove:horizontal {
-    background: ${input};
-    height: 4px;
-    border-radius: 2px;
-}
-
-QSlider::sub-page:horizontal {
-    background: ${accent};
-    border-radius: 2px;
-}
-
-QSlider::handle:horizontal {
-    background: ${text};
-    width: 12px;
-    height: 12px;
-    margin: -5px 0;
-    border-radius: 6px;
-}
-
-QToolBox::tab, QDockWidget::title {
-    background: ${bg};
-    border: none;
-    border-radius: 6px;
-    padding: 4px;
+    border-radius: ${innerRadius};
+    margin: 1px;
 }
 
 /* --------------------------------------------------------------------------
  * GitFourchette-specific widgets
  * ------------------------------------------------------------------------ */
+
+GraphView::item, FileList::item {
+    border-radius: 0;
+}
+
+Sidebar::item { height: 1.25em; }
+FileList::item, StashDialog #fileList::item { height: 1.15em; }
+
+Sidebar {
+    background: palette(window);
+    color: ${text};
+    show-decoration-selected: 1;
+}
+
+Sidebar::item {
+    border-radius: ${innerRadius};
+    border-bottom-left-radius: 0px;
+    border-top-left-radius: 0px;
+}
+
+Sidebar::item:hover:!selected {
+    border-radius: 0px;  /* avoid "dented" effect */
+}
 
 /* Code panes must stay flush - no rounded frame, no inner padding. */
 CodeView, SpecialDiffView {
@@ -535,42 +558,28 @@ CodeView, SpecialDiffView {
     padding: 0;
 }
 
-/* QToolButton's padding would squash the 16x16 icon into an ellipse. */
-QHintButton {
-    padding: 0px;
-    min-width: 16px;
-    min-height: 16px;
+/* Don't shrink icons in small QToolButtons */
+QHintButton, ContextHeader QToolButton {
+    padding-top: 0px;
+    padding-bottom: 0px;
 }
 
-/* Panel titles above the file lists and the diff */
-#dirtyHeader, #stagedHeader, #committedHeader, #diffHeader {
-    color: ${textDim};
-    padding-left: 2px;
-}
-
-Banner.diff {
-    border: none;
-    padding: 3px 2px;
-}
-
-ContextHeader {
-    background: ${bg};
-    border: none;
-    border-bottom: 1px solid ${borderSoft};
-    padding: 3px 2px;
-}
-
-ContextHeader QLabel {
+DiffArea QLabel.panelTitle {
     color: ${textDim};
 }
 
 SearchBar QLineEdit {
     border: 1px solid ${border};
-    border-radius: 7px;
-    padding: 3px 7px;
+    border-radius: ${outerRadius};
+    padding: 3px 0px;
 }
 
 SearchBar[red="true"] QLineEdit {
     color: ${danger};
-    border: 1px solid ${danger};
+    border-color: ${danger};
 }
+
+/* Fusion quirk: QComboBox's list view always inherits QComboBox's top-padding.
+https://web.archive.org/web/qtcentre.org/threads/69272-QComboBox-padding-bug */
+${fusionOnly}QComboBox { combobox-popup: 0; }
+${fusionOnly}QComboBox QAbstractItemView::item { padding: 4px 2px; }

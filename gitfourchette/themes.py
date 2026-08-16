@@ -23,6 +23,7 @@ from pathlib import Path
 from string import Template
 
 from gitfourchette.qt import *
+from gitfourchette.toolbox import mixColors
 
 
 class AppTheme(enum.StrEnum):
@@ -44,50 +45,19 @@ class AppTheme(enum.StrEnum):
 
 @dataclasses.dataclass(frozen=True)
 class ThemeColors:
-    dark: bool
-
     bg: str
-    """Window chrome: toolbar, tab strip, menu bar, status bar."""
     surface: str
-    """Content background: item views, code panes."""
-    sidebarBg: str
-    elevated: str
-    """Popups: menus, combobox dropdowns."""
     altRow: str
-
     border: str
-    borderSoft: str
-    borderStrong: str
-
     text: str
-    textDim: str
-    textFaint: str
-
     accent: str
-    accentHover: str
-    accentPressed: str
-    accentGhost: str
     onAccent: str
-
     hover: str
-    pressed: str
     selInactive: str
-    tabSelected: str
-
     button: str
-    buttonHover: str
-    buttonPressed: str
-
-    input: str
-    inputDisabled: str
-
     scrollHandle: str
-    scrollHandleHover: str
-
     tooltipBg: str
     tooltipText: str
-    tooltipBorder: str
-
     danger: str
 
     @classmethod
@@ -129,39 +99,69 @@ class ThemeColors:
         hasBreeze = any(key.lower() == "breeze" for key in QStyleFactory.keys())  # noqa: SIM118
         return "breeze" if hasBreeze else "fusion"
 
+    def derivedColors(self):
+        accent = QColor(self.accent)
+        button = QColor(self.button)
+        text = QColor(self.text)
+        surface = QColor(self.surface)
+        bg = QColor(self.bg)
+        tooltipText = QColor(self.tooltipText)
+        tooltipBg = QColor(self.tooltipBg)
+
+        return {
+            "defaultButton"         : mixColors(button, accent, .25),
+            "defaultButtonHover"    : mixColors(button, accent, .33),
+            "buttonHover"           : mixColors(button, text, .04),
+            "buttonPressed"         : mixColors(button, accent, .66),
+            "tooltipBorder"         : mixColors(tooltipText, tooltipBg, .8),
+            "textDim"               : mixColors(text, surface, .4),
+            "textFaint"             : mixColors(text, surface, .7),
+            "inputDisabled"         : mixColors(bg, surface),
+        }
+
     def buildStyleSheet(self) -> str:
-        allowBorderRadius = self.bestStyleEngine() == "breeze"
+        engine = self.bestStyleEngine()
+
+        outerRadius = 7
+        innerRadius = round(outerRadius * .75)
+        menuRadius = outerRadius if (engine == "breeze") else 0
+
+        # Breeze draws menu/combobox menu shadows at hardcoded radius, which looks ugly if our radius is larger.
+        menuRadius = min(menuRadius, 7)
+        comboBoxMenuRadius = min(menuRadius, 7)
 
         templatePath = Path(QFile("assets:style-modern.qss").fileName())
         templateText = templatePath.read_text(encoding="utf-8")
         replacements = {f.name: getattr(self, f.name) for f in dataclasses.fields(self)}
-        replacements["menuBorderRadius"] = "0" if not allowBorderRadius else "6px"
 
-        return Template(templateText).substitute(replacements)
+        replacements["outerRadius"] = f"{outerRadius}px"
+        replacements["innerRadius"] = f"{innerRadius}px"
+        replacements["menuRadius"] = f"{menuRadius}px"
+        replacements["comboBoxMenuRadius"] = f"{comboBoxMenuRadius}px"
+        replacements["fusionOnly"] = "" if engine == "fusion" else "___IGNORE"
+
+        replacements.update({k: v.name() for k, v in self.derivedColors().items()})
+
+        qss = Template(templateText).substitute(replacements)
+        return qss
 
     def buildPalette(self) -> QPalette:
-        from gitfourchette.toolbox import mixColors
-
         Role = QPalette.ColorRole
         Group = QPalette.ColorGroup
+
+        derivedColors = self.derivedColors()
 
         bg = QColor(self.bg)
         surface = QColor(self.surface)
         text = QColor(self.text)
-        textDim = QColor(self.textDim)
-        textFaint = QColor(self.textFaint)
+        textDim = derivedColors["textDim"]
+        textFaint = derivedColors["textFaint"]
         accent = QColor(self.accent)
         onAccent = QColor(self.onAccent)
         button = QColor(self.button)
         selInactive = QColor(self.selInactive)
 
-        # Flatten the translucent hover tint onto the background (QPalette wants opaque colors).
-        hover = QColor(self.hover)
-        hoverOpaque = mixColors(bg, hover, ratio=hover.alphaF())
-        hoverOpaque.setAlphaF(1)
-
         palette = QPalette()
-
         palette.setColor(Role.Window, bg)
         palette.setColor(Role.WindowText, text)
         palette.setColor(Role.Base, surface)
@@ -176,16 +176,17 @@ class ThemeColors:
         palette.setColor(Role.ToolTipText, QColor(self.tooltipText))
         palette.setColor(Role.PlaceholderText, textFaint)
         palette.setColor(Role.Link, accent)
-        palette.setColor(Role.LinkVisited, QColor(self.accentPressed))
+        palette.setColor(Role.LinkVisited, accent)
         with suppress(AttributeError):  # Qt 6.6+
             palette.setColor(Role.Accent, accent)
 
-        # 3D bevel roles: Fusion still uses these for frames, grooves and arrows.
-        palette.setColor(Role.Light, hoverOpaque)
-        palette.setColor(Role.Midlight, QColor(self.borderSoft))
-        palette.setColor(Role.Mid, QColor(self.border))
-        palette.setColor(Role.Dark, QColor(self.borderStrong))
-        palette.setColor(Role.Shadow, QColor(0, 0, 0, 90 if self.dark else 40))
+        # Old-school 3D bevel/shadow colors: Derive them all from `button`.
+        # Practically unused in Breeze, very rarely in Fusion, mostly in Windows
+        palette.setColor(Role.Light, button.lighter(200))
+        palette.setColor(Role.Midlight, button.lighter(150))
+        palette.setColor(Role.Mid, button.darker(150))
+        palette.setColor(Role.Dark, button.darker(200))
+        palette.setColor(Role.Shadow, button.darker(20))
 
         palette.setColor(Group.Inactive, Role.Highlight, selInactive)
         palette.setColor(Group.Inactive, Role.HighlightedText, text)
@@ -194,78 +195,42 @@ class ThemeColors:
             palette.setColor(Group.Disabled, role, textFaint)
         palette.setColor(Group.Disabled, Role.Highlight, selInactive)
         palette.setColor(Group.Disabled, Role.HighlightedText, textDim)
-        palette.setColor(Group.Disabled, Role.Base, QColor(self.inputDisabled))
+        palette.setColor(Group.Disabled, Role.Base, derivedColors["inputDisabled"]),
         palette.setColor(Group.Disabled, Role.Link, textDim)
 
         return palette
 
 
 MODERN_DARK = ThemeColors(
-    dark              = True,
     bg                = "#23262c",
     surface           = "#1b1e23",
-    sidebarBg         = "#1f2228",
-    elevated          = "#2b2f36",
     altRow            = "#1f2228",
-    border            = "#343941",
-    borderSoft        = "#2b2f36",
-    borderStrong      = "#454b55",
+    border            = "#444b55",
     text              = "#d7dbe1",
-    textDim           = "#939aa6",
-    textFaint         = "#666d78",
     accent            = "#4a8cff",
-    accentHover       = "#5f9bff",
-    accentPressed     = "#3a79e6",
-    accentGhost       = "#284a8cff",
     onAccent          = "#ffffff",
     hover             = "#12ffffff",
-    pressed           = "#20ffffff",
     selInactive       = "#343a44",
-    tabSelected       = "#1b1e23",
     button            = "#2c3138",
-    buttonHover       = "#343a43",
-    buttonPressed     = "#262a31",
-    input             = "#15181d",
-    inputDisabled     = "#1e2127",
     scrollHandle      = "#2affffff",
-    scrollHandleHover = "#4effffff",
     tooltipBg         = "#2f343c",
     tooltipText       = "#e4e7ec",
-    tooltipBorder     = "#3d434c",
     danger            = "#ff6b60",
 )
 
 MODERN_LIGHT = ThemeColors(
-    dark              = False,
     bg                = "#eef0f3",
     surface           = "#ffffff",
-    sidebarBg         = "#f6f7f9",
-    elevated          = "#ffffff",
     altRow            = "#f7f8fa",
-    border            = "#d5d9e0",
-    borderSoft        = "#e4e7ec",
-    borderStrong      = "#bcc2cb",
+    border            = "#d2d6dd",
     text              = "#1f2329",
-    textDim           = "#6a727d",
-    textFaint         = "#a2a8b1",
     accent            = "#2f6fed",
-    accentHover       = "#4681f2",
-    accentPressed     = "#255fd6",
-    accentGhost       = "#1e2f6fed",
     onAccent          = "#ffffff",
     hover             = "#10000000",
-    pressed           = "#1c000000",
     selInactive       = "#dde1e8",
-    tabSelected       = "#ffffff",
     button            = "#ffffff",
-    buttonHover       = "#f4f6f8",
-    buttonPressed     = "#e9ecf1",
-    input             = "#ffffff",
-    inputDisabled     = "#f2f3f6",
     scrollHandle      = "#38000000",
-    scrollHandleHover = "#60000000",
     tooltipBg         = "#2f343c",
     tooltipText       = "#f0f2f5",
-    tooltipBorder     = "#2f343c",
     danger            = "#d92b1f",
 )
