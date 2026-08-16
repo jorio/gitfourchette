@@ -33,10 +33,14 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
+    <widget class="QLabel" name="mainTitle">
+     <property name="text">
       <string>How do you want to check out this commit?</string>
      </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="mainGroupBox">
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
@@ -131,10 +135,14 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="recurseSubmodulesGroupBox">
-     <property name="title">
+    <widget class="QLabel" name="recurseSubmodulesTitle">
+     <property name="text">
       <string>After the checkout:</string>
      </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="recurseSubmodulesGroupBox">
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <widget class="QCheckBox" name="recurseSubmodulesCheckBox">

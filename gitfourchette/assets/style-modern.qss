@@ -501,14 +501,6 @@ QGroupBox {
     padding: 4px;
 }
 
-QGroupBox::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    left: 9px;
-    padding: 0 4px;
-    color: ${textDim};
-}
-
 QProgressBar {
     background: ${surface};
     border: 1px solid ${border};
