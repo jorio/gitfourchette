@@ -99,7 +99,7 @@ class SearchBar(QWidget):
         self.ui.closeButton.setIcon(stockIcon("dialog-close"))
 
         self._providerChooserMenu = QMenu(self)
-        self._providerChooserMenu.addSection(_p("SearchBar", "Search scope"))
+        ActionDef.addSectionToQMenu(self._providerChooserMenu, _p("SearchBar", "Search scope"))
         self._providerChooserActionGroup = QActionGroup(self)
         self.ui.providerChooser.setMenu(self._providerChooserMenu)
         self.ui.providerChooser.setVisible(False)
