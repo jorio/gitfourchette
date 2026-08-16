@@ -119,10 +119,24 @@ class ThemeColors:
 
         return theme
 
+    @classmethod
+    def bestStyleEngine(cls) -> str:
+        """
+        Return the name of the Qt style engine upon which to base custom themes,
+        as a lowercase string. Favor "breeze", if available, for better-looking
+        menus (with drop shadows and rounded corners) that "fusion" cannot do.
+        """
+        hasBreeze = any(key.lower() == "breeze" for key in QStyleFactory.keys())  # noqa: SIM118
+        return "breeze" if hasBreeze else "fusion"
+
     def buildStyleSheet(self) -> str:
+        allowBorderRadius = self.bestStyleEngine() == "breeze"
+
         templatePath = Path(QFile("assets:style-modern.qss").fileName())
         templateText = templatePath.read_text(encoding="utf-8")
         replacements = {f.name: getattr(self, f.name) for f in dataclasses.fields(self)}
+        replacements["menuBorderRadius"] = "0" if not allowBorderRadius else "6px"
+
         return Template(templateText).substitute(replacements)
 
     def buildPalette(self) -> QPalette:

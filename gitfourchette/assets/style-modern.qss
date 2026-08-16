@@ -23,7 +23,7 @@ QToolTip {
     background: ${tooltipBg};
     color: ${tooltipText};
     border: 1px solid ${tooltipBorder};
-    border-radius: 6px;
+    border-radius: ${menuBorderRadius};
     padding: 4px 7px;
 }
 
@@ -65,9 +65,8 @@ QMenuBar::item:pressed {
     color: ${onAccent};
 }
 
-/* No border-radius here: the popup window itself is rectangular, so rounded
-   corners would just expose the square backdrop behind them. */
-QMenu {
+QMenu, QComboBox QAbstractItemView {
+    border-radius: ${menuBorderRadius};
     background: ${elevated};
     color: ${text};
     border: 1px solid ${border};

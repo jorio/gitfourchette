@@ -520,9 +520,7 @@ class GFApplication(QApplication):
         accent = self.platformStandardAccent
         customTheme = ThemeColors.resolveTheme(effectiveStyle, accent)
         if customTheme:
-            # Our themes are designed on top of Fusion. Native styles (Breeze,
-            # Windows, macOS) ignore or mangle much of the stylesheet.
-            effectiveStyle = "Fusion"
+            effectiveStyle = ThemeColors.bestStyleEngine()
             palette = customTheme.buildPalette()
         else:
             palette = QPalette()
