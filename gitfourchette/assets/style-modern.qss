@@ -1,14 +1,8 @@
 /* ---------------------------------------------------------------------------
  * "Modern" theme for GitFourchette.
  *
- * This is a template: color tokens are substituted by gitfourchette/themes.py
- * (see string.Template and ThemeColors).
- * It is appended to style.qss (and style-dark.qss), so its rules win over
- * those of the base stylesheet at equal specificity.
- *
- * Keep in mind that many colors come from the QPalette built in themes.py.
- * Only add rules here for things that a palette cannot express (metrics,
- * rounded corners, hover states, etc.)
+ * This is a template: placeholder tokens are substituted by themes.py.
+ * This stylesheet is appended to the base stylesheet.
  * ------------------------------------------------------------------------ */
 
 /* --------------------------------------------------------------------------
@@ -560,7 +554,6 @@ Banner.diff {
     padding: 3px 2px;
 }
 
-/* ContextHeader.restyle() leaves us alone while one of our themes is active. */
 ContextHeader {
     background: ${bg};
     border: none;

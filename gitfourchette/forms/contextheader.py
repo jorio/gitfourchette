@@ -7,7 +7,6 @@
 from collections.abc import Callable
 
 from gitfourchette import colors
-from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.qt import *
@@ -38,24 +37,6 @@ class ContextHeader(QFrame):
         self.maximizeButton.setIcon(stockIcon("maximize"))
         self.maximizeButton.setToolTip(_("Maximize the diff area and hide the commit graph"))
         self.maximizeButton.setCheckable(True)
-
-        self.restyle()
-        GFApplication.instance().restyle.connect(self.restyle)
-
-    def restyle(self):
-        from gitfourchette.themes import ThemeColors
-
-        if ThemeColors.currentTheme() is not None:
-            # Our themes style ContextHeader in style-modern.qss. Clear any
-            # widget stylesheet we may have set before the theme kicked in;
-            # it would win over the application stylesheet.
-            self.setStyleSheet("")
-            return
-
-        bg = mutedTextColorHex(self, .07)
-        fg = mutedTextColorHex(self, .8)
-        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}"
-                           f"ContextHeader QLabel {{ color: {fg}; }}")
 
     def addButton(
             self,

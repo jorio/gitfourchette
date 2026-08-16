@@ -91,15 +91,7 @@ class ThemeColors:
     danger: str
 
     @classmethod
-    def currentTheme(cls) -> ThemeColors | None:
-        """Color tokens of the theme in effect, or None if we defer to the desktop."""
-
-        from gitfourchette import settings
-
-        return cls.resolveTheme(settings.prefs.qtStyle)
-
-    @classmethod
-    def resolveTheme(cls, styleName: str) -> ThemeColors | None:
+    def resolveTheme(cls, styleName: str, standardAccent: QColor | None = None) -> ThemeColors | None:
         """
         Return the color tokens for one of our themes.
 
@@ -108,20 +100,24 @@ class ThemeColors:
         """
 
         if styleName == AppTheme.ModernDark:
-            return MODERN_DARK
-
-        if styleName == AppTheme.ModernLight:
-            return MODERN_LIGHT
-
-        if styleName == AppTheme.Modern:
+            dark = True
+        elif styleName == AppTheme.ModernLight:
+            dark = False
+        elif styleName == AppTheme.Modern:
             try:
                 appScheme = QGuiApplication.styleHints().colorScheme()
                 dark = appScheme == Qt.ColorScheme.Dark
             except AttributeError:  # Qt < 6.5
                 dark = False
-            return MODERN_DARK if dark else MODERN_LIGHT
+        else:
+            return None
 
-        return None
+        theme = MODERN_DARK if dark else MODERN_LIGHT
+        accent = standardAccent.name() if standardAccent else ""
+        if accent:
+            theme = dataclasses.replace(theme, accent=accent)
+
+        return theme
 
     def buildStyleSheet(self) -> str:
         templatePath = Path(QFile("assets:style-modern.qss").fileName())
