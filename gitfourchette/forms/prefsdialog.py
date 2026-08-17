@@ -16,7 +16,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
 from gitfourchette.syntax import ColorScheme, PygmentsPresets
-from gitfourchette.themes import AppTheme
+from gitfourchette.themes import ThemeName, ThemeColors, ThemeAccent
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -593,35 +593,73 @@ class PrefsDialog(QDialog):
         return control
 
     def qtStyleControl(self, prefKey, prefValue):
-        """
-        Single dropdown for the app's look: the system default, our built-in
-        themes, then the native Qt styles offered by this machine.
-        """
-
+        currentStyleName = prefValue.split(",", 1)[0]
         control = QComboBox(self)
+        variantPicker = self._customThemeVariantPickerControl(prefValue)
 
-        def addEntry(caption: str, styleName: str):
-            control.addItem(caption, userData=styleName)
-            if prefValue == styleName:
-                control.setCurrentIndex(control.count() - 1)
+        separator = ("", "")
+        defaultStyle = (_p("system default theme setting", "System default"), "")
+        nativeStyles = [(name, name) for name in QStyleFactory.keys()]  # noqa: SIM118
+        customStyles = [(TrTables.enum(theme), str(theme)) for theme in ThemeName]
+        nativeStyles.sort()
+        customStyles.sort()
 
-        defaultCaption = _p("system default theme setting", "System default")
-        addEntry(defaultCaption, "")
+        entries = [defaultStyle, *customStyles, separator, *nativeStyles]
+        for caption, styleName in entries:
+            if not caption and not styleName:
+                control.insertSeparator(control.count())
+            else:
+                control.addItem(caption, userData=styleName)
+                if styleName == currentStyleName:
+                    control.setCurrentIndex(control.count() - 1)
 
-        control.insertSeparator(control.count())
-        for theme in (AppTheme.Modern, AppTheme.ModernDark, AppTheme.ModernLight):
-            addEntry(TrTables.enum(theme), str(theme))
-
-        control.insertSeparator(control.count())
-        for availableStyle in QStyleFactory.keys():  # noqa: SIM118
-            addEntry(availableStyle, availableStyle)
-
-        def onPickStyle(index):
-            styleName = control.itemData(index, Qt.ItemDataRole.UserRole)
-            self.assign(prefKey, styleName)
+        def onPickStyle():
+            i = control.currentIndex()
+            newValue = control.itemData(i, Qt.ItemDataRole.UserRole)
+            if newValue in ThemeName:
+                variantPicker.setVisible(True)
+                accentIndex = variantPicker.currentIndex()
+                accentName = variantPicker.itemData(accentIndex)
+                newValue = accentName
+            else:
+                variantPicker.setVisible(False)
+            self.assign(prefKey, newValue)
 
         control.activated.connect(onPickStyle)
-        return control
+        variantPicker.activated.connect(onPickStyle)
+        variantPicker.setVisible(currentStyleName in ThemeName)
+
+        group = QWidget(self)
+        layout = QHBoxLayout(group)
+        layout.setContentsMargins(QMargins())
+        layout.addWidget(control)
+        layout.addWidget(variantPicker)
+        return group
+
+    def _customThemeVariantPickerControl(self, prefValue: str) -> QComboBox:
+        picker = QComboBox(self)
+        picker.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
+        picker.setIconSize(QSize(16, 16))
+        enforceComboBoxMaxVisibleItems(picker, 32)
+
+        picker.addItem(stockIcon("light-dark-toggle"), _("System colors"), str(ThemeName.BuiltIn))
+
+        for dark in [False, True]:
+            picker.insertSeparator(picker.count())
+
+            themePrefix = ThemeName.BuiltIn + "," + ("dark" if dark else "light")
+            theme = ThemeColors.resolveTheme(themePrefix)
+
+            for accent in ThemeAccent:
+                icon = stockIcon("theme-chip", f"white={theme.bg} black={theme.text} blue={accent}")
+                caption = _("Dark {color}") if "dark" in themePrefix else _( "Light {color}")
+                caption = caption.format(color=TrTables.enum(accent))
+                value = themePrefix + "," + accent
+                picker.addItem(icon, caption, value)
+                if value == prefValue:
+                    picker.setCurrentIndex(picker.count() - 1)
+
+        return picker
 
     def dateFormatControl(self, prefKey, prefValue, presets):
         currentDate = QDateTime.currentDateTime()

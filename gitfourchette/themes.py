@@ -5,8 +5,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Built-in "Modern" look: a flat, roomy theme that doesn't depend on the
-desktop environment's widget style.
+Built-in themes that (almost) don't depend on the desktop environment's style.
 
 A theme is a bunch of color tokens (ThemeColors). The tokens feed both a
 QPalette (for everything Qt draws natively, including custom item delegates)
@@ -26,21 +25,26 @@ from gitfourchette.qt import *
 from gitfourchette.toolbox import mixColors
 
 
-class AppTheme(enum.StrEnum):
+class ThemeName(enum.StrEnum):
     """
     Our built-in themes. These share the Prefs.qtStyle namespace with the
     native Qt style names (Breeze, Fusion, Windows...), so their values must
     not collide with anything QStyleFactory may return.
     """
+    BuiltIn = "gitfourchette-builtin"
 
-    Modern = "modern"
-    ModernLight = "modern-light"
-    ModernDark = "modern-dark"
 
-    @classmethod
-    def isOurs(cls, styleName: str) -> bool:
-        """True if a Prefs.qtStyle value refers to one of our themes."""
-        return styleName in (cls.Modern, cls.ModernLight, cls.ModernDark)
+class ThemeAccent(enum.StrEnum):
+    Blue = "#3daee9"
+    Cyan = "#00d3b8"
+    Green = "#3dd425"
+    Yellow = "#e8cb2d"
+    Orange = "#e9643a"
+    Red = "#e93d58"
+    Pink = "#e93a9a"
+    Gray = "#686b6f"
+    Indigo = "#926ee4"
+    Purple = "#b875dc"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -51,7 +55,6 @@ class ThemeColors:
     border: str
     text: str
     accent: str
-    onAccent: str
     hover: str
     selInactive: str
     button: str
@@ -63,27 +66,36 @@ class ThemeColors:
     @classmethod
     def resolveTheme(cls, styleName: str, standardAccent: QColor | None = None) -> ThemeColors | None:
         """
-        Return the color tokens for one of our themes.
+        Return the color tokens for one of our themes, or None if the input
+        couldn't be parsed (e.g. if the given name is for a native Qt style).
 
-        Returns None if styleName isn't ours, i.e. it names a native Qt style or
-        it's empty (system default) - in that case we don't touch the palette.
+        The input string must follow this format: "styleID,lightOrDark,#accentHex"
+        Example: "gitfourchette-builtin,dark,#ff00ff"
+
+        Omit lightOrDark and/or #accentHex to infer colors from system palette.
         """
 
-        if styleName == AppTheme.ModernDark:
-            dark = True
-        elif styleName == AppTheme.ModernLight:
-            dark = False
-        elif styleName == AppTheme.Modern:
-            try:
-                appScheme = QGuiApplication.styleHints().colorScheme()
-                dark = appScheme == Qt.ColorScheme.Dark
-            except AttributeError:  # Qt < 6.5
-                dark = False
-        else:
+        tokens = styleName.split(",")
+
+        if tokens.pop(0) != ThemeName.BuiltIn:
             return None
 
-        theme = MODERN_DARK if dark else MODERN_LIGHT
+        try:
+            appScheme = QGuiApplication.styleHints().colorScheme()
+            dark = appScheme == Qt.ColorScheme.Dark
+        except AttributeError:  # Qt < 6.5
+            dark = False
+
         accent = standardAccent.name() if standardAccent else ""
+
+        while tokens:
+            token = tokens.pop(0)
+            if token in ("light", "dark"):
+                dark = token == "dark"
+            elif token.startswith("#"):
+                accent = token
+
+        theme = MODERN_DARK if dark else MODERN_LIGHT
         if accent:
             theme = dataclasses.replace(theme, accent=accent)
 
@@ -108,6 +120,12 @@ class ThemeColors:
         tooltipText = QColor(self.tooltipText)
         tooltipBg = QColor(self.tooltipBg)
 
+        isDark = text.lightness() > surface.lightness()
+        if accent.lightnessF() > (.75 if isDark else .66):
+            onAccent = QColor("#000000")
+        else:
+            onAccent = QColor("#ffffff")
+
         return {
             "defaultButton"         : mixColors(button, accent, .25),
             "defaultButtonHover"    : mixColors(button, accent, .33),
@@ -117,6 +135,7 @@ class ThemeColors:
             "textDim"               : mixColors(text, surface, .4),
             "textFaint"             : mixColors(text, surface, .7),
             "inputDisabled"         : mixColors(bg, surface),
+            "onAccent"              : onAccent,
         }
 
     def buildStyleSheet(self) -> str:
@@ -157,7 +176,6 @@ class ThemeColors:
         textDim = derivedColors["textDim"]
         textFaint = derivedColors["textFaint"]
         accent = QColor(self.accent)
-        onAccent = QColor(self.onAccent)
         button = QColor(self.button)
         selInactive = QColor(self.selInactive)
 
@@ -171,7 +189,7 @@ class ThemeColors:
         palette.setColor(Role.ButtonText, text)
         palette.setColor(Role.BrightText, QColor(self.danger))
         palette.setColor(Role.Highlight, accent)
-        palette.setColor(Role.HighlightedText, onAccent)
+        palette.setColor(Role.HighlightedText, derivedColors["onAccent"])
         palette.setColor(Role.ToolTipBase, QColor(self.tooltipBg))
         palette.setColor(Role.ToolTipText, QColor(self.tooltipText))
         palette.setColor(Role.PlaceholderText, textFaint)
@@ -207,8 +225,7 @@ MODERN_DARK = ThemeColors(
     altRow            = "#1f2228",
     border            = "#444b55",
     text              = "#d7dbe1",
-    accent            = "#4a8cff",
-    onAccent          = "#ffffff",
+    accent            = ThemeAccent.Blue,
     hover             = "#12ffffff",
     selInactive       = "#343a44",
     button            = "#2c3138",
@@ -224,8 +241,7 @@ MODERN_LIGHT = ThemeColors(
     altRow            = "#f7f8fa",
     border            = "#d2d6dd",
     text              = "#1f2329",
-    accent            = "#2f6fed",
-    onAccent          = "#ffffff",
+    accent            = ThemeAccent.Blue,
     hover             = "#10000000",
     selInactive       = "#dde1e8",
     button            = "#ffffff",

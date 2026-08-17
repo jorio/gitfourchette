@@ -222,3 +222,28 @@ def testPrefsUserCommandsGuide(mainWindow):
     assert not guideButton.isChecked()
 
     dlg.reject()
+
+
+def testPrefsQtStyleVariantPicker(mainWindow):
+    accent1 = mainWindow.palette().highlight().color()
+
+    dlg = GFApplication.instance().openPrefsDialog("qtStyle")
+
+    group: QWidget = dlg.findChild(QWidget, "prefctl_qtStyle")
+    comboBoxes: list[QComboBox] = group.findChildren(QComboBox)
+
+    stylePicker = comboBoxes[0]
+    variantPicker = comboBoxes[1]
+
+    assert stylePicker.isVisible()
+    assert not variantPicker.isVisible()
+
+    qcbSetIndex(stylePicker, APP_DISPLAY_NAME)
+    assert variantPicker.isVisible()
+    assert variantPicker.currentText().lower() == "system colors"
+
+    qcbSetIndex(variantPicker, "dark pink")
+    dlg.accept()
+
+    accent2 = mainWindow.palette().highlight().color()
+    assert accent1 != accent2

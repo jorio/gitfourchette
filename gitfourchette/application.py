@@ -101,7 +101,7 @@ class GFApplication(QApplication):
             self.setWindowIcon(QIcon("assets:icons/gitfourchette.png"))
 
         # Get system default style & palette before applying further styling
-        from gitfourchette.themes import AppTheme
+        from gitfourchette.themes import ThemeName
         bootStyleName = self.style().objectName()
         self.platformStandardAccent = self.palette().accent().color()
         if APP_TESTMODE and OFFSCREEN:
@@ -114,7 +114,7 @@ class GFApplication(QApplication):
             self.platformDefaultStyleName = bootStyleName
         else:  # pragma: no cover
             # On other platforms, default to a custom theme.
-            self.platformDefaultStyleName = AppTheme.Modern
+            self.platformDefaultStyleName = ThemeName.BuiltIn
 
         # Install translators for system language
         # (for command line parser to display localized text)
