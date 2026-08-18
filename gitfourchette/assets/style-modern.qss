@@ -126,7 +126,7 @@ QToolBar {
     border-bottom: 1px solid ${border};
 }
 
-QMainWindow QToolBar {
+QToolBar[borderless] {
     border-bottom: none;
 }
 
