@@ -47,24 +47,93 @@ class ThemeAccent(enum.StrEnum):
     Purple = "#b875dc"
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class ThemeColors:
     bg: str
     surface: str
     altRow: str
     border: str
     text: str
-    accent: str
     hover: str
     selInactive: str
     button: str
     scrollHandle: str
     tooltipBg: str
     tooltipText: str
-    danger: str
+    danger: str = "red"
+
+    accent: str = ThemeAccent.Blue
+    outerRadius: int = 7
+    innerRadius: int = round(outerRadius * .75)
+
+    # All tokens below are inferred automatically. Do not define manually!
+    onAccent: str = "white"
+    defaultButton: str = "#f0f"
+    defaultButtonHover: str = "#f0f"
+    buttonHover: str = "#f0f"
+    buttonPressed: str = "#f0f"
+    tooltipBorder: str = "#f0f"
+    textDim: str = "#f0f"
+    textFaint: str = "#f0f"
+    inputDisabled: str = "#f0f"
+    light: str = "#f0f"
+    midlight: str = "#f0f"
+    mid: str = "#f0f"
+    dark: str = "#f0f"
+    shadow: str = "#f0f"
+
+    # Engine-specific rounded rects
+    menuRadius: int = outerRadius
+    comboBoxMenuRadius: int = outerRadius
+
+    # Engine-specific tokens. Meant to be prepended to a rule, e.g.:
+    #     ${fusionOnly}QLabel {color: red}  /* red text only in Fusion */
+    # The token is replaced with an empty string if the engine matches,
+    # otherwise it's replaced with garbage so that the rule is ignored.
+    fusionOnly: str = ""
+
+    def __post_init__(self):
+        """
+        Derive intermediate colors automatically.
+        """
+        def mix(a: str, b: str, r=.5):
+            return mixColors(QColor(a), QColor(b), r).name()
+
+        # Determine whether 'onAccent' should be white or black.
+        isDarkTheme = QColor(self.text).lightness() > QColor(self.surface).lightness()
+        accentLuminance = relativeLuminance(QColor(self.accent))
+        luminanceThreshold = .24 if isDarkTheme else .45
+
+        # Menus, combobox lists, tooltips cannot be rounded with Fusion.
+        # Breeze can round these, but draws menu shadows at a hardcoded radius,
+        # which looks ugly if our radius is larger.
+        engine = self.bestStyleEngine()
+        maxMenuRadius = 7 if engine == "breeze" else 0
+
+        self.defaultButton      = mix(self.button, self.accent, .25)
+        self.defaultButtonHover = mix(self.button, self.accent, .33)
+        self.buttonHover        = mix(self.button, self.text, .04)
+        self.buttonPressed      = mix(self.button, self.accent, .66)
+        self.tooltipBorder      = mix(self.tooltipText, self.tooltipBg, .8)
+        self.textDim            = mix(self.text, self.surface, .4)
+        self.textFaint          = mix(self.text, self.surface, .7)
+        self.inputDisabled      = mix(self.bg, self.surface, .5)
+        self.onAccent           = "white" if accentLuminance < luminanceThreshold else "black"
+
+        self.fusionOnly         = "" if engine == "fusion" else "___IGNORE"
+        self.menuRadius         = min(maxMenuRadius, self.outerRadius)
+        self.comboBoxMenuRadius = min(maxMenuRadius, self.outerRadius)
+
+        # Old-school 3D bevel/shadow colors. Derive from button.
+        # Practically unused in Breeze, very rarely in Fusion, mostly in Windows.
+        self.light              = QColor(self.button).lighter(200).name()
+        self.midlight           = QColor(self.button).lighter(150).name()
+        self.mid                = QColor(self.button).darker(150).name()
+        self.dark               = QColor(self.button).darker(200).name()
+        self.shadow             = QColor(self.button).darker(20).name()
 
     @classmethod
-    def resolveTheme(cls, styleName: str, standardAccent: QColor | None = None) -> ThemeColors | None:
+    def resolveTheme(cls, styleName: str, accent: QColor | None = None) -> ThemeColors | None:
         """
         Return the color tokens for one of our themes, or None if the input
         couldn't be parsed (e.g. if the given name is for a native Qt style).
@@ -86,18 +155,16 @@ class ThemeColors:
         except AttributeError:  # Qt < 6.5
             dark = False
 
-        accent = standardAccent.name() if standardAccent else ""
-
         while tokens:
             token = tokens.pop(0)
             if token in ("light", "dark"):
                 dark = token == "dark"
             elif token.startswith("#"):
-                accent = token
+                accent = QColor(token)
 
         theme = MODERN_DARK if dark else MODERN_LIGHT
-        if accent:
-            theme = dataclasses.replace(theme, accent=accent)
+        if accent is not None:
+            theme = dataclasses.replace(theme, accent=accent.name())
 
         return theme
 
@@ -111,110 +178,65 @@ class ThemeColors:
         hasBreeze = any(key.lower() == "breeze" for key in QStyleFactory.keys())  # noqa: SIM118
         return "breeze" if hasBreeze else "fusion"
 
-    def derivedColors(self):
-        accent = QColor(self.accent)
-        button = QColor(self.button)
-        text = QColor(self.text)
-        surface = QColor(self.surface)
-        bg = QColor(self.bg)
-        tooltipText = QColor(self.tooltipText)
-        tooltipBg = QColor(self.tooltipBg)
-
-        # Determine whether 'onAccent' should be white or black.
-        isDarkTheme = text.lightness() > surface.lightness()
-        accentLuminance = relativeLuminance(accent)
-        luminanceThreshold = .24 if isDarkTheme else .45
-        onAccent = QColor("#fff" if accentLuminance < luminanceThreshold else "#000")
-
-        return {
-            "defaultButton"         : mixColors(button, accent, .25),
-            "defaultButtonHover"    : mixColors(button, accent, .33),
-            "buttonHover"           : mixColors(button, text, .04),
-            "buttonPressed"         : mixColors(button, accent, .66),
-            "tooltipBorder"         : mixColors(tooltipText, tooltipBg, .8),
-            "textDim"               : mixColors(text, surface, .4),
-            "textFaint"             : mixColors(text, surface, .7),
-            "inputDisabled"         : mixColors(bg, surface),
-            "onAccent"              : onAccent,
-        }
-
     def buildStyleSheet(self) -> str:
-        engine = self.bestStyleEngine()
-
-        outerRadius = 7
-        innerRadius = round(outerRadius * .75)
-        menuRadius = outerRadius if (engine == "breeze") else 0
-
-        # Breeze draws menu/combobox menu shadows at hardcoded radius, which looks ugly if our radius is larger.
-        menuRadius = min(menuRadius, 7)
-        comboBoxMenuRadius = min(menuRadius, 7)
-
         templatePath = Path(QFile("assets:style-modern.qss").fileName())
         templateText = templatePath.read_text(encoding="utf-8")
-        replacements = {f.name: getattr(self, f.name) for f in dataclasses.fields(self)}
-
-        replacements["outerRadius"] = f"{outerRadius}px"
-        replacements["innerRadius"] = f"{innerRadius}px"
-        replacements["menuRadius"] = f"{menuRadius}px"
-        replacements["comboBoxMenuRadius"] = f"{comboBoxMenuRadius}px"
-        replacements["fusionOnly"] = "" if engine == "fusion" else "___IGNORE"
-
-        replacements.update({k: v.name() for k, v in self.derivedColors().items()})
-
+        replacements = dataclasses.asdict(self)
         qss = Template(templateText).substitute(replacements)
         return qss
 
     def buildPalette(self) -> QPalette:
         Role = QPalette.ColorRole
-        Group = QPalette.ColorGroup
 
-        derivedColors = self.derivedColors()
+        normal = {
+            Role.Window: self.bg,
+            Role.WindowText: self.text,
+            Role.Base: self.surface,
+            Role.AlternateBase: self.altRow,
+            Role.Text: self.text,
+            Role.Button: self.button,
+            Role.ButtonText: self.text,
+            Role.BrightText: self.danger,
+            Role.Highlight: self.accent,
+            Role.HighlightedText: self.onAccent,
+            Role.ToolTipBase: self.tooltipBg,
+            Role.ToolTipText: self.tooltipText,
+            Role.PlaceholderText: self.textFaint,
+            Role.Link: self.accent,
+            Role.LinkVisited: self.accent,
+            Role.Light: self.light,
+            Role.Midlight: self.midlight,
+            Role.Mid: self.mid,
+            Role.Dark: self.dark,
+            Role.Shadow: self.shadow,
+        }
 
-        bg = QColor(self.bg)
-        surface = QColor(self.surface)
-        text = QColor(self.text)
-        textDim = derivedColors["textDim"]
-        textFaint = derivedColors["textFaint"]
-        accent = QColor(self.accent)
-        button = QColor(self.button)
-        selInactive = QColor(self.selInactive)
+        inactive = {
+            Role.Highlight: self.selInactive,
+            Role.HighlightedText: self.text,
+        }
+
+        disabled = {
+            Role.WindowText: self.textFaint,
+            Role.Text: self.textFaint,
+            Role.ButtonText: self.textFaint,
+            Role.Highlight: self.selInactive,
+            Role.HighlightedText: self.textDim,
+            Role.Base: self.inputDisabled,
+            Role.Link: self.textDim,
+        }
+
+        with suppress(AttributeError):  # Qt 6.6+
+            normal[Role.Accent] = self.accent
 
         palette = QPalette()
-        palette.setColor(Role.Window, bg)
-        palette.setColor(Role.WindowText, text)
-        palette.setColor(Role.Base, surface)
-        palette.setColor(Role.AlternateBase, QColor(self.altRow))
-        palette.setColor(Role.Text, text)
-        palette.setColor(Role.Button, button)
-        palette.setColor(Role.ButtonText, text)
-        palette.setColor(Role.BrightText, QColor(self.danger))
-        palette.setColor(Role.Highlight, accent)
-        palette.setColor(Role.HighlightedText, derivedColors["onAccent"])
-        palette.setColor(Role.ToolTipBase, QColor(self.tooltipBg))
-        palette.setColor(Role.ToolTipText, QColor(self.tooltipText))
-        palette.setColor(Role.PlaceholderText, textFaint)
-        palette.setColor(Role.Link, accent)
-        palette.setColor(Role.LinkVisited, accent)
-        with suppress(AttributeError):  # Qt 6.6+
-            palette.setColor(Role.Accent, accent)
 
-        # Old-school 3D bevel/shadow colors: Derive them all from `button`.
-        # Practically unused in Breeze, very rarely in Fusion, mostly in Windows
-        palette.setColor(Role.Light, button.lighter(200))
-        palette.setColor(Role.Midlight, button.lighter(150))
-        palette.setColor(Role.Mid, button.darker(150))
-        palette.setColor(Role.Dark, button.darker(200))
-        palette.setColor(Role.Shadow, button.darker(20))
-
-        palette.setColor(Group.Inactive, Role.Highlight, selInactive)
-        palette.setColor(Group.Inactive, Role.HighlightedText, text)
-
-        for role in (Role.WindowText, Role.Text, Role.ButtonText):
-            palette.setColor(Group.Disabled, role, textFaint)
-        palette.setColor(Group.Disabled, Role.Highlight, selInactive)
-        palette.setColor(Group.Disabled, Role.HighlightedText, textDim)
-        palette.setColor(Group.Disabled, Role.Base, derivedColors["inputDisabled"]),
-        palette.setColor(Group.Disabled, Role.Link, textDim)
+        for role, color in normal.items():
+            palette.setColor(role, QColor(color))
+        for role, color in inactive.items():
+            palette.setColor(QPalette.ColorGroup.Inactive, role, QColor(color))
+        for role, color in disabled.items():
+            palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(color))
 
         return palette
 
@@ -225,7 +247,6 @@ MODERN_DARK = ThemeColors(
     altRow            = "#1f2228",
     border            = "#444b55",
     text              = "#d7dbe1",
-    accent            = ThemeAccent.Blue,
     hover             = "#12ffffff",
     selInactive       = "#343a44",
     button            = "#2c3138",
@@ -241,7 +262,6 @@ MODERN_LIGHT = ThemeColors(
     altRow            = "#f7f8fa",
     border            = "#d2d6dd",
     text              = "#1f2329",
-    accent            = ThemeAccent.Blue,
     hover             = "#10000000",
     selInactive       = "#dde1e8",
     button            = "#ffffff",
