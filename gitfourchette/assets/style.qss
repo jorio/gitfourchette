@@ -12,21 +12,14 @@ Sidebar {
     color: palette(text);  /* improve contrast on Fedora/GNOME */
 }
 
-Banner.diff, ContextHeader {
-    padding: 2px;
-}
-
-Banner.merge {
-    padding: 8px;
-    background-color: #ffbb00;
-}
+Banner.diff, ContextHeader { padding: 2px; }
+Banner.merge { padding: 8px; background-color: #ffbb00; }
 Banner.merge QLabel { color: black; }
-
-Banner[heeded="true"] { background-color: #3d9970; }
-Banner[heeded="true"] QLabel { color: white; }
+Banner[heeded] { background-color: #3d9970; }
+Banner[heeded] QLabel { color: white; }
 
 SearchBar QLineEdit { border: 1px solid gray; border-radius: 5px; }
-SearchBar[red="true"] QLineEdit { color: red; border: 1px solid red; }
+SearchBar[red] QLineEdit { color: red; border: 1px solid red; }
 
 Banner.diff QToolButton, ContextHeader QToolButton { text-decoration: underline; }
 

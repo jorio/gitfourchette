@@ -169,6 +169,23 @@ def enforceComboBoxMaxVisibleItems(comboBox: QComboBox, maxItems=0):
     listView.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
 
+def reevaluateStyleSheet(widget: QWidget):
+    qss = widget.styleSheet()
+    if not qss:
+        qss = "/* dummy */"
+    widget.setStyleSheet(qss)
+
+
+def toggleQssProperty(widget: QWidget, name: str, value: bool):
+    if value == bool(widget.property(name)):
+        return
+
+    widget.setProperty(name, "true" if value else None)
+
+    # Reset stylesheet to percolate property change
+    reevaluateStyleSheet(widget)
+
+
 def isDarkTheme(palette: QPalette | None = None):
     if palette is None:
         palette = QApplication.palette()

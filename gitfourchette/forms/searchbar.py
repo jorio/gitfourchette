@@ -332,10 +332,7 @@ class SearchBar(QWidget):
         self.hideToolTip()
 
         red = status == SearchProvider.TermStatus.Bad
-        wasRed = self.isRed()
-        self.setProperty("red", "true" if red else "false")
-        if wasRed ^ red:  # trigger stylesheet refresh
-            self.setStyleSheet("* {}")
+        toggleQssProperty(self, "red", red)
 
         loupeIcon = "magnifying-glass-wait" if status == SearchProvider.TermStatus.Loading else "magnifying-glass"
         self.loupe.setIcon(stockIcon(loupeIcon))

@@ -566,7 +566,7 @@ SearchBar QLineEdit {
     padding: 3px 0px;
 }
 
-SearchBar[red="true"] QLineEdit {
+SearchBar[red] QLineEdit {
     color: ${danger};
     border-color: ${danger};
 }
