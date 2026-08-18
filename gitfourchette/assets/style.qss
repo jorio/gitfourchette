@@ -1,3 +1,12 @@
+/* GitFourchette base stylesheet - Should be applied regardless of Qt style */
+
+Sidebar::item { height: 1.2em; }
+FileList::item, StashDialog #fileList::item { height: 1em; }
+
+/* Rein in Breeze's penchant for tall controls */
+QComboBox QAbstractItemView::item { height: 1.15em; }
+QAbstractSpinBox { max-height: 1.2em; }
+
 Sidebar {
     background: palette(window);
     color: palette(text);  /* improve contrast on Fedora/GNOME */

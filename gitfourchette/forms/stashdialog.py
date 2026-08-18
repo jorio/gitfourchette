@@ -71,7 +71,6 @@ class StashDialog(QDialog):
                 prefix = "\u26a0 "
 
             listItem = QListWidgetItem(prefix + filePath, self.ui.fileList)
-            listItem.setSizeHint(QSize(100, 16))
             listItem.setData(Qt.ItemDataRole.UserRole, filePath)
             if not preTicked or filePath in preTicked:
                 listItem.setCheckState(Qt.CheckState.Checked)

@@ -455,8 +455,6 @@ class PrefsDialog(QDialog):
 
         control.setCurrentIndex(control.findData(prefValue))
         control.activated.connect(lambda index: self.assign(prefKey, control.currentData(Qt.ItemDataRole.UserRole)))
-
-        control.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
         control.setMaxVisibleItems(20)
 
         return control
@@ -542,10 +540,6 @@ class PrefsDialog(QDialog):
         control.setAlignment(Qt.AlignmentFlag.AlignRight)
         control.setStepType(QSpinBox.StepType.AdaptiveDecimalStepType)
         control.valueChanged.connect(lambda v, k=prefKey: self.assign(k, v))
-
-        # Qt 6.8.2 inexplicably makes QSpinBoxes super tall with Breeze/Oxygen styles
-        control.setMaximumHeight(32)
-
         return control
 
     def boolComboBoxControl(self, prefKey: str, prefValue: bool, falseName: str, trueName: str) -> QComboBox:
@@ -638,7 +632,6 @@ class PrefsDialog(QDialog):
 
     def _customThemeVariantPickerControl(self, prefValue: str) -> QComboBox:
         picker = QComboBox(self)
-        picker.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
         picker.setIconSize(QSize(16, 16))
         enforceComboBoxMaxVisibleItems(picker, 32)
 
@@ -696,7 +689,6 @@ class PrefsDialog(QDialog):
         offCaption = _p("syntax highlighting", "Off")
 
         control = QComboBox(self)
-        control.setStyleSheet("QListView::item { max-height: 18px; }")  # Breeze-themed combobox gets unwieldy otherwise
         control.setIconSize(QSize(16, 16))  # Required if enforceComboBoxMaxVisibleItems kicks in
         control.addItem(stockIcon("light-dark-toggle"), autoCaption, userData=PygmentsPresets.Automatic)
         control.addItem(stockIcon("SP_BrowserStop"), offCaption, userData=PygmentsPresets.Off)

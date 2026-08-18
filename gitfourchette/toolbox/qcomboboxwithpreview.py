@@ -31,7 +31,7 @@ class QComboBoxWithPreview(QComboBox):
 
         fontMetrics = self.fontMetrics()
         self.captionWidth = max(self.captionWidth, fontMetrics.horizontalAdvance(caption) + 20)
-        self.previewWidth = max(self.previewWidth, fontMetrics.horizontalAdvance(preview) + 6)
+        self.previewWidth = max(self.previewWidth, fontMetrics.horizontalAdvance(preview) + 15)
 
         self.numPresets += 1
 

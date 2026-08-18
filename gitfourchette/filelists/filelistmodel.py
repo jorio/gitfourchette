@@ -267,9 +267,6 @@ class FileListModel(QAbstractListModel):
             isCounterpart = row == self.highlightedCounterpartRow
             return fileTooltip(self.repo, delta, isCounterpart)
 
-        elif role == Qt.ItemDataRole.SizeHintRole:
-            return QSize(-1, self.parentWidget.fontMetrics().height())
-
         elif role == Qt.ItemDataRole.FontRole:  # noqa: SIM102
             if row == self.highlightedCounterpartRow:
                 font = self.parentWidget.font()
