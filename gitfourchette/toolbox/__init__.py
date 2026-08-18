@@ -72,6 +72,7 @@ from .qtutils import (
     CallbackAccumulator,
     lerp,
     mixColors,
+    relativeLuminance,
     DocumentLinks,
     findParentWidget,
     setTabOrder,

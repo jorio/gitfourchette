@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import itertools
+import math
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -173,7 +174,7 @@ def isDarkTheme(palette: QPalette | None = None):
         palette = QApplication.palette()
     themeBG = palette.color(QPalette.ColorRole.Base)  # standard theme background color
     themeFG = palette.color(QPalette.ColorRole.Text)  # standard theme foreground color
-    return themeBG.value() < themeFG.value()
+    return themeBG.lightness() < themeFG.lightness()
 
 
 def mutedTextColorHex(w: QWidget, alpha=.5) -> str:
@@ -384,6 +385,17 @@ def mixColors(c1: QColor, c2: QColor, ratio=.5, rmin=0.0, rmax=1.0):
         lerp(c1.greenF(), c2.greenF(), ratio, rmin, rmax),
         lerp(c1.blueF(),  c2.blueF(),  ratio, rmin, rmax),
         lerp(c1.alphaF(), c2.alphaF(), ratio, rmin, rmax))
+
+
+def relativeLuminance(color: QColor) -> float:
+    """Relative luminance per WCAG 2.2"""
+    # https://www.w3.org/TR/WCAG21/relative-luminance.html
+    def srgbToLinear(x: float):
+        return x/12.92 if x <= .04045 else math.pow((x+.055)/ 1.055, 2.4)
+    r = .2126 * srgbToLinear(color.redF())
+    g = .7152 * srgbToLinear(color.greenF())
+    b = .0722 * srgbToLinear(color.blueF())
+    return r + g + b
 
 
 def findParentWidget(o: QObject) -> QWidget:

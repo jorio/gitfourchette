@@ -22,7 +22,7 @@ from pathlib import Path
 from string import Template
 
 from gitfourchette.qt import *
-from gitfourchette.toolbox import mixColors
+from gitfourchette.toolbox import mixColors, relativeLuminance
 
 
 class ThemeName(enum.StrEnum):
@@ -120,11 +120,11 @@ class ThemeColors:
         tooltipText = QColor(self.tooltipText)
         tooltipBg = QColor(self.tooltipBg)
 
-        isDark = text.lightness() > surface.lightness()
-        if accent.lightnessF() > (.75 if isDark else .66):
-            onAccent = QColor("#000000")
-        else:
-            onAccent = QColor("#ffffff")
+        # Determine whether 'onAccent' should be white or black.
+        isDarkTheme = text.lightness() > surface.lightness()
+        accentLuminance = relativeLuminance(accent)
+        luminanceThreshold = .24 if isDarkTheme else .45
+        onAccent = QColor("#fff" if accentLuminance < luminanceThreshold else "#000")
 
         return {
             "defaultButton"         : mixColors(button, accent, .25),
