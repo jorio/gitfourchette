@@ -11,7 +11,7 @@ from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox import stockIcon
-from gitfourchette.toolbox.qtutils import CallbackAccumulator
+from gitfourchette.toolbox.qtutils import CallbackAccumulator, reevaluateStyleSheet
 
 
 class QTabBar2(QTabBar):
@@ -283,6 +283,8 @@ class QTabWidget2(QWidget):
         return self.tabs.count()
 
     def refreshPrefs(self):
+        mustReevaluateStyleSheet = settings.prefs.expandingTabs != self.tabs.expanding()
+
         self.tabs.setExpanding(settings.prefs.expandingTabs)
         self.tabs.setAutoHide(settings.prefs.autoHideTabs)
         self.tabs.setTabsClosable(settings.prefs.tabCloseButton)
@@ -290,6 +292,9 @@ class QTabWidget2(QWidget):
         self.syncBarSize()
         self.onResize()
         self.updateOverflowDropdown()
+
+        if mustReevaluateStyleSheet:
+            reevaluateStyleSheet(self)
 
     def onCustomContextMenuRequested(self, localPoint: QPoint):
         globalPoint = self.tabs.mapToGlobal(localPoint)

@@ -359,12 +359,12 @@ QTabBar::tab {
     border-color: transparent;
 }
 
-QTabBar::tab:first {
+QTabWidget2 QTabBar[expanding="true"]::tab:first {
     border-top-left-radius: 0px;
     border-left: none;
 }
 
-QTabBar::tab:last {
+QTabWidget2 QTabBar[expanding="true"]::tab:last {
     border-top-right-radius: 0px;
     border-right: none;
 }
@@ -378,6 +378,18 @@ QTabBar::tab:selected {
     border-color: ${border};
     background-color: ${surface};
     font-weight: bold;
+}
+
+QTabBar::close-button {
+    margin-right: 3px;
+    border-radius: ${innerRadius};
+    padding: 3px;
+    image: url("assets:icons/qss-closetab.svg");
+}
+
+QTabBar::close-button:hover {
+    background: ${danger};
+    image: url("assets:icons/qss-closetab-hover.svg");
 }
 
 /* --------------------------------------------------------------------------
