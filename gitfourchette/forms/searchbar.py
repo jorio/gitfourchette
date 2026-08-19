@@ -99,7 +99,7 @@ class SearchBar(QWidget):
         self.ui.closeButton.setIcon(stockIcon("dialog-close"))
 
         self._providerChooserMenu = QMenu(self)
-        self._providerChooserMenu.addSection(_p("SearchBar", "Search scope"))
+        ActionDef.addSectionToQMenu(self._providerChooserMenu, _p("SearchBar", "Search scope"))
         self._providerChooserActionGroup = QActionGroup(self)
         self.ui.providerChooser.setMenu(self._providerChooserMenu)
         self.ui.providerChooser.setVisible(False)
@@ -332,10 +332,7 @@ class SearchBar(QWidget):
         self.hideToolTip()
 
         red = status == SearchProvider.TermStatus.Bad
-        wasRed = self.isRed()
-        self.setProperty("red", "true" if red else "false")
-        if wasRed ^ red:  # trigger stylesheet refresh
-            self.setStyleSheet("* {}")
+        toggleQssProperty(self, "red", red)
 
         loupeIcon = "magnifying-glass-wait" if status == SearchProvider.TermStatus.Loading else "magnifying-glass"
         self.loupe.setIcon(stockIcon(loupeIcon))

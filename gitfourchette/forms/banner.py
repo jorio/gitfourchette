@@ -85,8 +85,7 @@ class Banner(QFrame):
 
     def popUp(self, title: str, text: str, heeded=False, canDismiss=False, withIcon=False):
         self.clearButtons()
-        self.setProperty("heeded", str(heeded).lower())
-        self.setStyleSheet("* {}")  # reset stylesheet to percolate property change
+        toggleQssProperty(self, "heeded", heeded)
 
         smallPt = adjustedWidgetFontSize(self.label, FONT_POINT_PERCENT)
         markup = f"<style>sm {{ font-size: {smallPt}pt; }}</style>"

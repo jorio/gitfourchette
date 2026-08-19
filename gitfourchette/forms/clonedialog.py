@@ -91,9 +91,6 @@ class CloneDialog(QDialog):
         # Connect protocol button to URL editor
         self.ui.protocolButton.connectTo(self.ui.urlEdit.lineEdit())
 
-        # Qt 6.8.2 inexplicably makes QSpinBoxes super tall with Breeze/Oxygen styles
-        self.ui.shallowCloneDepthSpinBox.setMaximumHeight(32)
-
         validator = ValidatorMultiplexer(self)
         validator.setGatedWidgets(self.cloneButton)
         validator.connectInput(self.ui.urlEdit.lineEdit(), self.validateUrl)

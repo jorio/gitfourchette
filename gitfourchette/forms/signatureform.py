@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -45,9 +45,6 @@ class SignatureForm(QWidget):
         self.ui.timeEdit.timeChanged.connect(self.signatureChanged)
         self.ui.offsetEdit.currentIndexChanged.connect(self.signatureChanged)
         self.ui.nowButton.clicked.connect(self.setDateTimeNow)
-
-        # Qt 6.8.2 inexplicably makes QSpinBoxes super tall with Breeze/Oxygen styles
-        self.ui.timeEdit.setMaximumHeight(32)
 
     def setSignature(self, signature: Signature):
         qdt = signatureQDateTime(signature)

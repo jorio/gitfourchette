@@ -604,7 +604,6 @@ class SidebarModel(QAbstractItemModel):
 
         displayRole = role == Qt.ItemDataRole.DisplayRole
         toolTipRole = role == Qt.ItemDataRole.ToolTipRole
-        sizeHintRole = role == Qt.ItemDataRole.SizeHintRole
         fontRole = role == Qt.ItemDataRole.FontRole
         refRole = role == SidebarModel.Role.Ref
         iconKeyRole = role == SidebarModel.Role.IconKey
@@ -835,10 +834,6 @@ class SidebarModel(QAbstractItemModel):
                 font = self._parentWidget.font()
                 font.setWeight(QFont.Weight.DemiBold)
                 return font
-
-        # fallback
-        if sizeHintRole:
-            return QSize(-1, int(1.2 * self._parentWidget.fontMetrics().height()))
 
         return None
 

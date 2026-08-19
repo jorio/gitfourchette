@@ -1,33 +1,35 @@
+/* GitFourchette base stylesheet - Should be applied regardless of Qt style */
+
+Sidebar::item { height: 1.2em; }
+FileList::item, StashDialog #fileList::item { height: 1em; }
+
+/* Rein in Breeze's penchant for tall controls */
+QComboBox QAbstractItemView::item { height: 1.15em; }
+QAbstractSpinBox { max-height: 1.2em; }
+
 Sidebar {
     background: palette(window);
     color: palette(text);  /* improve contrast on Fedora/GNOME */
 }
 
-Banner.diff, ContextHeader {
-    padding: 2px;
-}
-
-Banner.merge {
-    padding: 8px;
-    background-color: #ffbb00;
-}
+Banner.diff, ContextHeader { padding: 2px; }
+Banner.merge { padding: 8px; background-color: #ffbb00; }
 Banner.merge QLabel { color: black; }
-
-Banner[heeded="true"] { background-color: #3d9970; }
-Banner[heeded="true"] QLabel { color: white; }
+Banner[heeded] { background-color: #3d9970; }
+Banner[heeded] QLabel { color: white; }
 
 SearchBar QLineEdit { border: 1px solid gray; border-radius: 5px; }
-SearchBar[red="true"] QLineEdit { color: red; border: 1px solid red; }
+SearchBar[red] QLineEdit { color: red; border: 1px solid red; }
 
 Banner.diff QToolButton, ContextHeader QToolButton { text-decoration: underline; }
 
-/* Don't move dark override to style-dark.qss because DiffView can be dark independently from Qt theme */
+/* Note: DiffView can be dark independently from Qt theme */
 DiffView[dark="false"] { selection-background-color: rgba(0, 0, 0, 20%); selection-color: black; }
 DiffView[dark="true"] { selection-background-color: rgba(255, 255, 255, 26%); }
-
-QFaintSeparator { border: none; background: rgba(0, 0, 0, 15%); }
 
 /* Remove QToolButton dropdown arrow in Fusion style */
 DiffButtons QToolButton::menu-indicator,
 SignoffButton::menu-indicator,
 GpgButton::menu-indicator { image: none; }
+
+QMenu QLabel.ActionDefSection { font-weight: bold; }

@@ -1,3 +1,0 @@
-/* Overrides for style.qss when a dark theme is active */
-
-QFaintSeparator { background: rgba(255, 255, 255, 15%); }

@@ -926,6 +926,10 @@ class MainWindow(QMainWindow):
         for i, title in enumerate(newTitles):
             self.tabs.setTabText(i, escamp(title))
 
+        # Toggle toolbar's borderless property (for custom theme)
+        borderlessToolBar = self.tabs.count() >= 2 or not self.tabs.tabs.autoHide()
+        toggleQssProperty(self.mainToolBar, "borderless", borderlessToolBar)
+
     def openRepoNextTo(self, rw, path: str, locator: NavLocator = NavLocator.Empty):
         index = self.tabs.indexOf(rw)
         if index >= 0:

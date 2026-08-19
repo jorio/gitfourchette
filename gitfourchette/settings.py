@@ -19,7 +19,6 @@ from gitfourchette.localization import *
 from gitfourchette.prefsfile import PrefsFile
 from gitfourchette.qt import *
 from gitfourchette.syntax import PygmentsPresets, ColorScheme
-from gitfourchette.themes import AppTheme
 from gitfourchette.toolbox.benchmark import BENCHMARK_LOGGING_LEVEL
 from gitfourchette.toolbox.gitutils import AuthorDisplayStyle
 from gitfourchette.toolbox.pathutils import PathDisplayStyle
@@ -107,12 +106,7 @@ class Prefs(PrefsFile):
 
     _category_general           : int                   = 0
     language                    : str                   = ""
-    # Either one of our own themes (see AppTheme), or the name of a native Qt
-    # style, or "" for the system default.
-    # On KDE, be a good citizen and stick to the system-provided theme
-    # (typically Breeze). In unit tests, keep the desktop's look as well so that
-    # pixel-precise tests aren't at the mercy of our own stylesheet's metrics.
-    qtStyle                     : str                   = str(AppTheme.System if (KDE or APP_TESTMODE) else AppTheme.Modern)
+    qtStyle                     : str                   = ""
     pathDisplayStyle            : PathDisplayStyle      = PathDisplayStyle.FullPaths
     refSort                     : RefSort               = RefSort.TimeDesc
     showToolBar                 : bool                  = True
@@ -444,9 +438,7 @@ history = History()
 def qtIsNativeMacosStyle():  # pragma: no cover
     if not MACOS:
         return False
-    if AppTheme.isOurs(prefs.qtStyle):  # our own themes force the Fusion style
-        return False
-    return (not prefs.qtStyle) or (prefs.qtStyle.lower() == "macos")
+    return prefs.qtStyle.lower() == "macos"
 
 
 def getExternalEditorName():

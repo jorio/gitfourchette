@@ -19,9 +19,6 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QGroupBox" name="infoBox">
-     <property name="title">
-      <string/>
-     </property>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
        <widget class="QLabel" name="infoIcon">
@@ -96,9 +93,6 @@
     <widget class="QGroupBox" name="signatureBox">
      <property name="enabled">
       <bool>true</bool>
-     </property>
-     <property name="title">
-      <string/>
      </property>
      <property name="flat">
       <bool>false</bool>

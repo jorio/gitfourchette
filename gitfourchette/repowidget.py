@@ -31,6 +31,7 @@ from gitfourchette.tasks import RepoTaskRunner, TaskEffects, TaskBook
 from gitfourchette.tasks.misctasks import VerifyGpgQueue
 from gitfourchette.tasks.nettasks import AutoFetchRemotes
 from gitfourchette.toolbox import *
+from gitfourchette.toolbox.qtutils import reevaluateStyleSheet
 from gitfourchette.trtables import TrTables
 
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ class RepoWidget(QWidget):
         self.setObjectName(f"{type(self).__name__}({repoModel.shortName})")
 
         # The stylesheet must be refreshed so that subsequent tweakFont calls can take effect.
-        self.setStyleSheet("* {}")
+        reevaluateStyleSheet(self)
 
         # Use RepoTaskRunner to schedule git operations to run on a separate thread.
         self.taskRunner = taskRunner

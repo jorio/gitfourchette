@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -76,6 +76,7 @@ class CheckoutCommitDialog(QDialog):
 
         if not anySubmodules:
             ui.recurseSubmodulesSpacer.setVisible(False)
+            ui.recurseSubmodulesTitle.setVisible(False)
             ui.recurseSubmodulesGroupBox.setVisible(False)
 
         for noRecurseRadio in [ui.createBranchRadioButton, ui.resetHeadRadioButton, ui.mergeRadioButton]:

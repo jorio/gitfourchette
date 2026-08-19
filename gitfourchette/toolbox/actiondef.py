@@ -123,7 +123,7 @@ class ActionDef:
             elif item.kind == ActionDef.Kind.Separator:
                 menu.addSeparator()
             elif item.kind == ActionDef.Kind.Section:
-                menu.addSection(item.caption)
+                ActionDef.addSectionToQMenu(menu, item.caption)
             elif item.submenu and not isinstance(item.submenu, QMenu):
                 submenu = item.makeSubmenu(parent=menu)
                 menu.addMenu(submenu)
@@ -177,6 +177,18 @@ class ActionDef:
         menu.setObjectName(f"{parent.objectName()}_ActionDefMenu" if parent else "ActionDefMenu")
         ActionDef.addToQMenu(menu, *actionDefs)
         return menu
+
+    @staticmethod
+    def addSectionToQMenu(menu: QMenu, text: str):
+        label = QLabel(text)
+        label.setProperty("class", "ActionDefSection")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        widgetAction = QWidgetAction(menu)
+        widgetAction.setDefaultWidget(label)
+        widgetAction.setEnabled(False)
+        menu.addAction(widgetAction)
+        menu.addSeparator()
+        return widgetAction
 
 
 ActionDef.SEPARATOR = ActionDef(kind=ActionDef.Kind.Separator)

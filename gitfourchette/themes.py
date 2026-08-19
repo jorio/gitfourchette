@@ -5,8 +5,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Built-in "Modern" look: a flat, roomy theme that doesn't depend on the
-desktop environment's widget style.
+Built-in themes that (almost) don't depend on the desktop environment's style.
 
 A theme is a bunch of color tokens (ThemeColors). The tokens feed both a
 QPalette (for everything Qt draws natively, including custom item delegates)
@@ -23,246 +22,251 @@ from pathlib import Path
 from string import Template
 
 from gitfourchette.qt import *
+from gitfourchette.toolbox import mixColors, relativeLuminance
 
 
-class AppTheme(enum.StrEnum):
+class ThemeName(enum.StrEnum):
     """
     Our built-in themes. These share the Prefs.qtStyle namespace with the
     native Qt style names (Breeze, Fusion, Windows...), so their values must
     not collide with anything QStyleFactory may return.
     """
-
-    System = ""
-    Modern = "modern"
-    ModernLight = "modern-light"
-    ModernDark = "modern-dark"
-
-    @classmethod
-    def isOurs(cls, styleName: str) -> bool:
-        """True if a Prefs.qtStyle value refers to one of our themes."""
-        return styleName in (cls.Modern, cls.ModernLight, cls.ModernDark)
+    BuiltIn = "gitfourchette-builtin"
 
 
-@dataclasses.dataclass(frozen=True)
+class ThemeAccent(enum.StrEnum):
+    Blue = "#3daee9"
+    Cyan = "#00d3b8"
+    Green = "#3dd425"
+    Yellow = "#e8cb2d"
+    Orange = "#e9643a"
+    Red = "#e93d58"
+    Pink = "#e93a9a"
+    Gray = "#686b6f"
+    Indigo = "#926ee4"
+    Purple = "#b875dc"
+
+
+@dataclasses.dataclass
 class ThemeColors:
-    dark: bool
-
     bg: str
-    """Window chrome: toolbar, tab strip, menu bar, status bar."""
     surface: str
-    """Content background: item views, code panes."""
-    sidebarBg: str
-    elevated: str
-    """Popups: menus, combobox dropdowns."""
     altRow: str
-
     border: str
-    borderSoft: str
-    borderStrong: str
-
     text: str
-    textDim: str
-    textFaint: str
-
-    accent: str
-    accentHover: str
-    accentPressed: str
-    accentGhost: str
-    onAccent: str
-
     hover: str
-    pressed: str
     selInactive: str
-    tabSelected: str
-
     button: str
-    buttonHover: str
-    buttonPressed: str
-
-    input: str
-    inputDisabled: str
-
     scrollHandle: str
-    scrollHandleHover: str
-
     tooltipBg: str
     tooltipText: str
-    tooltipBorder: str
+    danger: str = "red"
 
-    danger: str
+    accent: str = ThemeAccent.Blue
+    outerRadius: int = 7
+    innerRadius: int = round(outerRadius * .75)
 
-    def asDict(self) -> dict[str, str]:
-        return {f.name: getattr(self, f.name) for f in dataclasses.fields(self)}
+    # All tokens below are inferred automatically. Do not define manually!
+    onAccent: str = "white"
+    defaultButton: str = "#f0f"
+    defaultButtonHover: str = "#f0f"
+    buttonHover: str = "#f0f"
+    buttonPressed: str = "#f0f"
+    tooltipBorder: str = "#f0f"
+    textDim: str = "#f0f"
+    textFaint: str = "#f0f"
+    inputDisabled: str = "#f0f"
+    light: str = "#f0f"
+    midlight: str = "#f0f"
+    mid: str = "#f0f"
+    dark: str = "#f0f"
+    shadow: str = "#f0f"
+
+    # Engine-specific rounded rects
+    menuRadius: int = outerRadius
+    comboBoxMenuRadius: int = outerRadius
+
+    # Engine-specific tokens. Meant to be prepended to a rule, e.g.:
+    #     ${fusionOnly}QLabel {color: red}  /* red text only in Fusion */
+    # The token is replaced with an empty string if the engine matches,
+    # otherwise it's replaced with garbage so that the rule is ignored.
+    fusionOnly: str = ""
+
+    def __post_init__(self):
+        """
+        Derive intermediate colors automatically.
+        """
+        def mix(a: str, b: str, r=.5):
+            return mixColors(QColor(a), QColor(b), r).name()
+
+        # Determine whether 'onAccent' should be white or black.
+        isDarkTheme = QColor(self.text).lightness() > QColor(self.surface).lightness()
+        accentLuminance = relativeLuminance(QColor(self.accent))
+        luminanceThreshold = .24 if isDarkTheme else .45
+
+        # Menus, combobox lists, tooltips cannot be rounded with Fusion.
+        # Breeze can round these, but draws menu shadows at a hardcoded radius,
+        # which looks ugly if our radius is larger.
+        engine = self.bestStyleEngine()
+        maxMenuRadius = 7 if engine == "breeze" else 0
+
+        self.defaultButton      = mix(self.button, self.accent, .25)
+        self.defaultButtonHover = mix(self.button, self.accent, .33)
+        self.buttonHover        = mix(self.button, self.text, .04)
+        self.buttonPressed      = mix(self.button, self.accent, .66)
+        self.tooltipBorder      = mix(self.tooltipText, self.tooltipBg, .8)
+        self.textDim            = mix(self.text, self.surface, .4)
+        self.textFaint          = mix(self.text, self.surface, .7)
+        self.inputDisabled      = mix(self.bg, self.surface, .5)
+        self.onAccent           = "white" if accentLuminance < luminanceThreshold else "black"
+
+        self.fusionOnly         = "" if engine == "fusion" else "___IGNORE"
+        self.menuRadius         = min(maxMenuRadius, self.outerRadius)
+        self.comboBoxMenuRadius = min(maxMenuRadius, self.outerRadius)
+
+        # Old-school 3D bevel/shadow colors. Derive from button.
+        # Practically unused in Breeze, very rarely in Fusion, mostly in Windows.
+        self.light              = QColor(self.button).lighter(200).name()
+        self.midlight           = QColor(self.button).lighter(150).name()
+        self.mid                = QColor(self.button).darker(150).name()
+        self.dark               = QColor(self.button).darker(200).name()
+        self.shadow             = QColor(self.button).darker(20).name()
+
+    @classmethod
+    def resolveTheme(cls, styleName: str, accent: QColor | None = None) -> ThemeColors | None:
+        """
+        Return the color tokens for one of our themes, or None if the input
+        couldn't be parsed (e.g. if the given name is for a native Qt style).
+
+        The input string must follow this format: "styleID,lightOrDark,#accentHex"
+        Example: "gitfourchette-builtin,dark,#ff00ff"
+
+        Omit lightOrDark and/or #accentHex to infer colors from system palette.
+        """
+
+        tokens = styleName.split(",")
+
+        if tokens.pop(0) != ThemeName.BuiltIn:
+            return None
+
+        try:
+            appScheme = QGuiApplication.styleHints().colorScheme()
+            dark = appScheme == Qt.ColorScheme.Dark
+        except AttributeError:  # Qt < 6.5
+            dark = False
+
+        while tokens:
+            token = tokens.pop(0)
+            if token in ("light", "dark"):
+                dark = token == "dark"
+            elif token.startswith("#"):
+                accent = QColor(token)
+
+        theme = MODERN_DARK if dark else MODERN_LIGHT
+        if accent is not None:
+            theme = dataclasses.replace(theme, accent=accent.name())
+
+        return theme
+
+    @classmethod
+    def bestStyleEngine(cls) -> str:
+        """
+        Return the name of the Qt style engine upon which to base custom themes,
+        as a lowercase string. Favor "breeze", if available, for better-looking
+        menus (with drop shadows and rounded corners) that "fusion" cannot do.
+        """
+        hasBreeze = any(key.lower() == "breeze" for key in QStyleFactory.keys())  # noqa: SIM118
+        return "breeze" if hasBreeze else "fusion"
+
+    def buildStyleSheet(self) -> str:
+        templatePath = Path(QFile("assets:style-modern.qss").fileName())
+        templateText = templatePath.read_text(encoding="utf-8")
+        replacements = dataclasses.asdict(self)
+        qss = Template(templateText).substitute(replacements)
+        return qss
+
+    def buildPalette(self) -> QPalette:
+        Role = QPalette.ColorRole
+
+        normal = {
+            Role.Window: self.bg,
+            Role.WindowText: self.text,
+            Role.Base: self.surface,
+            Role.AlternateBase: self.altRow,
+            Role.Text: self.text,
+            Role.Button: self.button,
+            Role.ButtonText: self.text,
+            Role.BrightText: self.danger,
+            Role.Highlight: self.accent,
+            Role.HighlightedText: self.onAccent,
+            Role.ToolTipBase: self.tooltipBg,
+            Role.ToolTipText: self.tooltipText,
+            Role.PlaceholderText: self.textFaint,
+            Role.Link: self.accent,
+            Role.LinkVisited: self.accent,
+            Role.Light: self.light,
+            Role.Midlight: self.midlight,
+            Role.Mid: self.mid,
+            Role.Dark: self.dark,
+            Role.Shadow: self.shadow,
+        }
+
+        inactive = {
+            Role.Highlight: self.selInactive,
+            Role.HighlightedText: self.text,
+        }
+
+        disabled = {
+            Role.WindowText: self.textFaint,
+            Role.Text: self.textFaint,
+            Role.ButtonText: self.textFaint,
+            Role.Highlight: self.selInactive,
+            Role.HighlightedText: self.textDim,
+            Role.Base: self.inputDisabled,
+            Role.Link: self.textDim,
+        }
+
+        with suppress(AttributeError):  # Qt 6.6+
+            normal[Role.Accent] = self.accent
+
+        palette = QPalette()
+
+        for role, color in normal.items():
+            palette.setColor(role, QColor(color))
+        for role, color in inactive.items():
+            palette.setColor(QPalette.ColorGroup.Inactive, role, QColor(color))
+        for role, color in disabled.items():
+            palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(color))
+
+        return palette
 
 
 MODERN_DARK = ThemeColors(
-    dark              = True,
     bg                = "#23262c",
     surface           = "#1b1e23",
-    sidebarBg         = "#1f2228",
-    elevated          = "#2b2f36",
     altRow            = "#1f2228",
-    border            = "#343941",
-    borderSoft        = "#2b2f36",
-    borderStrong      = "#454b55",
+    border            = "#444b55",
     text              = "#d7dbe1",
-    textDim           = "#939aa6",
-    textFaint         = "#666d78",
-    accent            = "#4a8cff",
-    accentHover       = "#5f9bff",
-    accentPressed     = "#3a79e6",
-    accentGhost       = "#284a8cff",
-    onAccent          = "#ffffff",
     hover             = "#12ffffff",
-    pressed           = "#20ffffff",
     selInactive       = "#343a44",
-    tabSelected       = "#1b1e23",
     button            = "#2c3138",
-    buttonHover       = "#343a43",
-    buttonPressed     = "#262a31",
-    input             = "#15181d",
-    inputDisabled     = "#1e2127",
     scrollHandle      = "#2affffff",
-    scrollHandleHover = "#4effffff",
     tooltipBg         = "#2f343c",
     tooltipText       = "#e4e7ec",
-    tooltipBorder     = "#3d434c",
     danger            = "#ff6b60",
 )
 
 MODERN_LIGHT = ThemeColors(
-    dark              = False,
     bg                = "#eef0f3",
     surface           = "#ffffff",
-    sidebarBg         = "#f6f7f9",
-    elevated          = "#ffffff",
     altRow            = "#f7f8fa",
-    border            = "#d5d9e0",
-    borderSoft        = "#e4e7ec",
-    borderStrong      = "#bcc2cb",
+    border            = "#d2d6dd",
     text              = "#1f2329",
-    textDim           = "#6a727d",
-    textFaint         = "#a2a8b1",
-    accent            = "#2f6fed",
-    accentHover       = "#4681f2",
-    accentPressed     = "#255fd6",
-    accentGhost       = "#1e2f6fed",
-    onAccent          = "#ffffff",
     hover             = "#10000000",
-    pressed           = "#1c000000",
     selInactive       = "#dde1e8",
-    tabSelected       = "#ffffff",
     button            = "#ffffff",
-    buttonHover       = "#f4f6f8",
-    buttonPressed     = "#e9ecf1",
-    input             = "#ffffff",
-    inputDisabled     = "#f2f3f6",
     scrollHandle      = "#38000000",
-    scrollHandleHover = "#60000000",
     tooltipBg         = "#2f343c",
     tooltipText       = "#f0f2f5",
-    tooltipBorder     = "#2f343c",
     danger            = "#d92b1f",
 )
-
-
-def resolveTheme(styleName: str, fallbackPalette: QPalette | None = None) -> ThemeColors | None:
-    """
-    Return the color tokens for one of our themes.
-
-    Returns None if styleName isn't ours, i.e. it names a native Qt style or
-    it's empty (system default) - in that case we don't touch the palette.
-    """
-
-    from gitfourchette.toolbox.qtutils import isDarkTheme
-
-    if styleName == AppTheme.ModernDark:
-        return MODERN_DARK
-    if styleName == AppTheme.ModernLight:
-        return MODERN_LIGHT
-    if styleName == AppTheme.Modern:
-        return MODERN_DARK if isDarkTheme(fallbackPalette) else MODERN_LIGHT
-    return None
-
-
-def buildPalette(colors: ThemeColors) -> QPalette:
-    from gitfourchette.toolbox import mixColors
-
-    Role = QPalette.ColorRole
-    Group = QPalette.ColorGroup
-
-    bg = QColor(colors.bg)
-    surface = QColor(colors.surface)
-    text = QColor(colors.text)
-    textDim = QColor(colors.textDim)
-    textFaint = QColor(colors.textFaint)
-    accent = QColor(colors.accent)
-    onAccent = QColor(colors.onAccent)
-    button = QColor(colors.button)
-    selInactive = QColor(colors.selInactive)
-
-    # Flatten the translucent hover tint onto the background (QPalette wants opaque colors).
-    hover = QColor(colors.hover)
-    hoverOpaque = mixColors(bg, hover, ratio=hover.alphaF())
-    hoverOpaque.setAlphaF(1)
-
-    palette = QPalette()
-
-    palette.setColor(Role.Window, bg)
-    palette.setColor(Role.WindowText, text)
-    palette.setColor(Role.Base, surface)
-    palette.setColor(Role.AlternateBase, QColor(colors.altRow))
-    palette.setColor(Role.Text, text)
-    palette.setColor(Role.Button, button)
-    palette.setColor(Role.ButtonText, text)
-    palette.setColor(Role.BrightText, QColor(colors.danger))
-    palette.setColor(Role.Highlight, accent)
-    palette.setColor(Role.HighlightedText, onAccent)
-    palette.setColor(Role.ToolTipBase, QColor(colors.tooltipBg))
-    palette.setColor(Role.ToolTipText, QColor(colors.tooltipText))
-    palette.setColor(Role.PlaceholderText, textFaint)
-    palette.setColor(Role.Link, accent)
-    palette.setColor(Role.LinkVisited, QColor(colors.accentPressed))
-
-    # GF uses the accent color in CodeRubberBand. Qt provides a blueish accent
-    # color by default, but KDE lets the user set their own accent color, and
-    # it'll come through unless we override it.
-    # Qt 6.6 introduces QPalette.ColorRole.Accent; older versions raise
-    # AttributeError here. Drop the suppress along with support for Qt < 6.6.
-    with suppress(AttributeError):
-        palette.setColor(Role.Accent, accent)
-
-    # 3D bevel roles: Fusion still uses these for frames, grooves and arrows.
-    palette.setColor(Role.Light, hoverOpaque)
-    palette.setColor(Role.Midlight, QColor(colors.borderSoft))
-    palette.setColor(Role.Mid, QColor(colors.border))
-    palette.setColor(Role.Dark, QColor(colors.borderStrong))
-    palette.setColor(Role.Shadow, QColor(0, 0, 0, 90 if colors.dark else 40))
-
-    # Unfocused windows get a muted selection instead of a screaming accent.
-    palette.setColor(Group.Inactive, Role.Highlight, selInactive)
-    palette.setColor(Group.Inactive, Role.HighlightedText, text)
-
-    for role in (Role.WindowText, Role.Text, Role.ButtonText):
-        palette.setColor(Group.Disabled, role, textFaint)
-    palette.setColor(Group.Disabled, Role.Highlight, selInactive)
-    palette.setColor(Group.Disabled, Role.HighlightedText, textDim)
-    palette.setColor(Group.Disabled, Role.Base, QColor(colors.inputDisabled))
-    palette.setColor(Group.Disabled, Role.Link, textDim)
-
-    return palette
-
-
-def currentTheme() -> ThemeColors | None:
-    """Color tokens of the theme in effect, or None if we defer to the desktop."""
-
-    from gitfourchette import settings
-    from gitfourchette.application import GFApplication
-
-    fallbackPalette = GFApplication.instance().platformDefaultPalette
-    return resolveTheme(settings.prefs.qtStyle, fallbackPalette)
-
-
-def buildStyleSheet(colors: ThemeColors) -> str:
-    template = Path(QFile("assets:style-modern.qss").fileName()).read_text(encoding="utf-8")
-    return Template(template).substitute(colors.asDict())

@@ -97,7 +97,6 @@ class Ui_CloneDialog(object):
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.statusGroupBox.sizePolicy().hasHeightForWidth())
         self.statusGroupBox.setSizePolicy(sizePolicy)
-        self.statusGroupBox.setTitle("")
         self.statusGroupBox.setObjectName("statusGroupBox")
         self.verticalLayout = QVBoxLayout(self.statusGroupBox)
         self.verticalLayout.setObjectName("verticalLayout")

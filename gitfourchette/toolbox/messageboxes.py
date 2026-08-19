@@ -212,7 +212,6 @@ def asyncMessageBox(
 
     # macOS hacks to remove "modern" styling
     if MACOS:
-        qmb.setStyleSheet("QMessageBox QLabel { font-weight: normal; }")
         MakeNonNativeDialog(qmb)
 
     return qmb
