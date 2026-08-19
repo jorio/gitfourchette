@@ -187,20 +187,39 @@ QToolButton:disabled {
     color: ${textFaint};
 }
 
+QToolButton[popupMode="1"] { /* MenuButtonPopup */
+    padding-right: 20px; /* make way for the popup button */
+}
+
 QToolButton::menu-button {
-    background: transparent;
-    border: none;
-    border-top-right-radius: 7px;
-    border-bottom-right-radius: 7px;
-    width: 14px;
+    border-left: 1px solid ${border};  /* clear hint that menu-button is a separate click zone */
+    border-top-right-radius: ${outerRadius};
+    border-bottom-right-radius: ${outerRadius};
+    width: 20px;
+}
+
+/* Autoraise (e.g. toolbar): bring menu button a little closer to button text */
+QToolButton[autoRaise="true"][popupMode="1"] {
+    padding-right: 16px;
+}
+
+QToolButton[autoRaise="true"][popupMode="1"]::menu-button {
+    width: 18px;
+    border-color: transparent;
+}
+
+QToolButton[autoRaise="true"][popupMode="1"]::menu-button:hover {
+    border-left-width: 2px;
+    border-color: ${textFaint};
 }
 
 QToolButton::menu-arrow {
     width: 8px;
     height: 8px;
+    image: url('assets:icons/qss-down.svg');
 }
 
-QPushButton:default, QPushButton:focus {
+QPushButton:default, QPushButton:focus, QToolButton:focus {
     border-color: ${accent};
 }
 
@@ -306,7 +325,7 @@ QComboBox:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {
 
 QComboBox::drop-down,
 QDateTimeEdit::drop-down {
-    width: 16px;
+    width: 19px;
     border-left: 1px solid ${border};
 }
 
