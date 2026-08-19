@@ -530,7 +530,7 @@ class GFApplication(QApplication):
         # ----------------------------------------------------------------------
         # Build stylesheet
 
-        qss = Path(QFile("assets:style.qss").fileName()).read_text()
+        qss = Path(QFile("assets:style/base.qss").fileName()).read_text()
 
         # Palette-dependent styling
         windowColor = self.palette().color(QPalette.ColorRole.Window)

@@ -7,10 +7,7 @@
 """
 Built-in themes that (almost) don't depend on the desktop environment's style.
 
-A theme is a bunch of color tokens (ThemeColors). The tokens feed both a
-QPalette (for everything Qt draws natively, including custom item delegates)
-and assets/style-modern.qss (for metrics, rounded corners and hover states
-that a palette can't express).
+A theme is a bunch of color tokens that feed both a QPalette and theme.qss.
 """
 
 from __future__ import annotations
@@ -179,7 +176,7 @@ class ThemeColors:
         return "breeze" if hasBreeze else "fusion"
 
     def buildStyleSheet(self) -> str:
-        templatePath = Path(QFile("assets:style-modern.qss").fileName())
+        templatePath = Path(QFile("assets:style/theme.qss").fileName())
         templateText = templatePath.read_text(encoding="utf-8")
         replacements = dataclasses.asdict(self)
         qss = Template(templateText).substitute(replacements)
