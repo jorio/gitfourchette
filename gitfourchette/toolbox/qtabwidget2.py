@@ -53,6 +53,11 @@ class QTabBar2(QTabBar):
         hint = super().tabSizeHint(index)
 
         w = 32 + self.fontMetrics().horizontalAdvance(text)
+
+        if self.tabsClosable():
+            closeWidth = self.style().pixelMetric(QStyle.PixelMetric.PM_TabCloseIndicatorWidth)
+            w += 2 * closeWidth
+
         w = min(w, 250)
 
         hint.setWidth(w)
