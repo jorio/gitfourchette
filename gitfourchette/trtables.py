@@ -115,6 +115,7 @@ class TrTables:
             RefSort,
             TabBarClick,
         )
+        from gitfourchette.themes import AppTheme
         from gitfourchette.toolbox import PatchPurpose, PathDisplayStyle, AuthorDisplayStyle
         from gitfourchette.repomodel import GpgStatus
 
@@ -206,6 +207,13 @@ class TrTables:
                 SidebarItem.Tag                 : _p("SidebarModel", "Tag"),
                 SidebarItem.Submodule           : _p("SidebarModel", "Submodules"),
                 SidebarItem.Spacer              : "---",
+            },
+
+            AppTheme: {
+                AppTheme.Modern                 : _p("app theme", "Modern (Follow System)"),
+                AppTheme.ModernDark             : _p("app theme", "Dark Modern"),
+                AppTheme.ModernLight            : _p("app theme", "Light Modern"),
+                AppTheme.System                 : _p("app theme", "System default"),
             },
 
             PathDisplayStyle: {
@@ -416,6 +424,11 @@ class TrTables:
 
             "language": _("Language"),
             "qtStyle": _("Qt style"),
+            "qtStyle_help": paragraphs(
+                _("{app}’s built-in themes give the app a consistent look on any desktop.", app=APP_DISPLAY_NAME),
+                _("Pick <b>System default</b> if you’d rather have the app blend in "
+                  "with the rest of your system, or pick one of the Qt styles "
+                  "installed on this machine to override the widget style.")),
             "shortHashChars": _("Shorten hashes to # characters"),
             "shortTimeFormat": _("Date/time format"),
             "shortTimeFormat_help": TrTables._timeFormatTable(),

@@ -16,6 +16,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.settings import SHORT_DATE_PRESETS, prefs
 from gitfourchette.syntax import ColorScheme, PygmentsPresets
+from gitfourchette.themes import AppTheme
 from gitfourchette.toolbox import *
 from gitfourchette.trtables import TrTables
 
@@ -592,16 +593,27 @@ class PrefsDialog(QDialog):
         return control
 
     def qtStyleControl(self, prefKey, prefValue):
-        defaultCaption = _p("system default theme setting", "System default")
+        """
+        Single dropdown for the app's look: the system default, our built-in
+        themes, then the native Qt styles offered by this machine.
+        """
+
         control = QComboBox(self)
-        control.addItem(defaultCaption, userData="")
-        if not prefValue:
-            control.setCurrentIndex(0)
-        control.insertSeparator(1)
-        for availableStyle in QStyleFactory.keys():  # noqa: SIM118
-            control.addItem(availableStyle, userData=availableStyle)
-            if prefValue == availableStyle:
+
+        def addEntry(caption: str, styleName: str):
+            control.addItem(caption, userData=styleName)
+            if prefValue == styleName:
                 control.setCurrentIndex(control.count() - 1)
+
+        addEntry(TrTables.enum(AppTheme.System), str(AppTheme.System))
+
+        control.insertSeparator(control.count())
+        for theme in (AppTheme.Modern, AppTheme.ModernDark, AppTheme.ModernLight):
+            addEntry(TrTables.enum(theme), str(theme))
+
+        control.insertSeparator(control.count())
+        for availableStyle in QStyleFactory.keys():  # noqa: SIM118
+            addEntry(availableStyle, availableStyle)
 
         def onPickStyle(index):
             styleName = control.itemData(index, Qt.ItemDataRole.UserRole)

@@ -1,0 +1,584 @@
+/* ---------------------------------------------------------------------------
+ * "Modern" theme for GitFourchette.
+ *
+ * This is a template: color tokens are substituted by gitfourchette/themes.py
+ * (see string.Template and ThemeColors).
+ * It is appended to style.qss (and style-dark.qss), so its rules win over
+ * those of the base stylesheet at equal specificity.
+ *
+ * Keep in mind that many colors come from the QPalette built in themes.py.
+ * Only add rules here for things that a palette cannot express (metrics,
+ * rounded corners, hover states, etc.)
+ * ------------------------------------------------------------------------ */
+
+/* --------------------------------------------------------------------------
+ * Window chrome
+ * ------------------------------------------------------------------------ */
+
+QMainWindow, QDialog, #QTabWidget2, #QTW2StackedWidget {
+    background: ${bg};
+}
+
+QMainWindow::separator {
+    background: ${border};
+    width: 1px;
+    height: 1px;
+}
+
+QToolTip {
+    background: ${tooltipBg};
+    color: ${tooltipText};
+    border: 1px solid ${tooltipBorder};
+    border-radius: 6px;
+    padding: 4px 7px;
+}
+
+QStatusBar {
+    background: ${bg};
+    color: ${textDim};
+    border-top: 1px solid ${borderSoft};
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+/* --------------------------------------------------------------------------
+ * Menu bar & menus
+ * ------------------------------------------------------------------------ */
+
+QMenuBar {
+    background: ${bg};
+    color: ${text};
+    border: none;
+    padding: 2px 3px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    color: ${text};
+    padding: 4px 9px;
+    margin: 0px 1px;
+    border-radius: 6px;
+}
+
+QMenuBar::item:selected {
+    background: ${hover};
+}
+
+QMenuBar::item:pressed {
+    background: ${accent};
+    color: ${onAccent};
+}
+
+/* No border-radius here: the popup window itself is rectangular, so rounded
+   corners would just expose the square backdrop behind them. */
+QMenu {
+    background: ${elevated};
+    color: ${text};
+    border: 1px solid ${border};
+    padding: 5px 4px;
+}
+
+QMenu::item {
+    background: transparent;
+    padding: 5px 24px 5px 26px;
+    border-radius: 5px;
+    margin: 0px 2px;
+}
+
+QMenu::item:selected {
+    background: ${accent};
+    color: ${onAccent};
+}
+
+QMenu::item:disabled {
+    background: transparent;
+    color: ${textFaint};
+}
+
+QMenu::separator {
+    height: 1px;
+    background: ${borderSoft};
+    margin: 5px 8px;
+}
+
+QMenu::icon {
+    margin-left: 7px;
+}
+
+QMenu::indicator {
+    margin-left: 8px;
+    width: 13px;
+    height: 13px;
+}
+
+/* --------------------------------------------------------------------------
+ * Main toolbar
+ * ------------------------------------------------------------------------ */
+
+QToolBar {
+    background: ${bg};
+    border: none;
+    padding: 4px 6px;
+    spacing: 2px;
+}
+
+QToolBar#GFToolbar {
+    border-bottom: 1px solid ${borderSoft};
+}
+
+QToolBar::separator {
+    background: ${border};
+    width: 1px;
+    height: 1px;
+    margin: 5px 7px;
+}
+
+/* --------------------------------------------------------------------------
+ * Buttons
+ * ------------------------------------------------------------------------ */
+
+QToolButton {
+    background: transparent;
+    color: ${text};
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 3px 7px;
+}
+
+QToolButton:hover, QToolButton:focus {
+    background: ${hover};
+}
+
+QToolButton:pressed, QToolButton:checked, QToolButton:on {
+    background: ${pressed};
+}
+
+QToolButton:disabled {
+    background: transparent;
+    color: ${textFaint};
+}
+
+QToolButton::menu-button {
+    background: transparent;
+    border: none;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    width: 14px;
+}
+
+QToolButton::menu-arrow {
+    width: 8px;
+    height: 8px;
+}
+
+QPushButton {
+    background: ${button};
+    color: ${text};
+    border: 1px solid ${border};
+    border-radius: 7px;
+    padding: 5px 14px;
+    min-width: 56px;
+}
+
+QPushButton:hover {
+    background: ${buttonHover};
+    border-color: ${borderStrong};
+}
+
+QPushButton:pressed {
+    background: ${buttonPressed};
+}
+
+QPushButton:default, QPushButton:focus {
+    border-color: ${accent};
+}
+
+QPushButton:default {
+    background: ${accent};
+    color: ${onAccent};
+}
+
+QPushButton:default:hover {
+    background: ${accentHover};
+    border-color: ${accentHover};
+}
+
+QPushButton:default:pressed {
+    background: ${accentPressed};
+    border-color: ${accentPressed};
+}
+
+QPushButton:disabled {
+    background: ${button};
+    color: ${textFaint};
+    border-color: ${borderSoft};
+}
+
+QPushButton:flat {
+    background: transparent;
+    border-color: transparent;
+}
+
+QPushButton:flat:hover {
+    background: ${hover};
+}
+
+QPushButton::menu-indicator {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    right: 6px;
+}
+
+/* --------------------------------------------------------------------------
+ * Text entry & combo boxes
+ * ------------------------------------------------------------------------ */
+
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit {
+    background: ${input};
+    color: ${text};
+    border: 1px solid ${border};
+    border-radius: 7px;
+    padding: 3px 7px;
+    selection-background-color: ${accent};
+    selection-color: ${onAccent};
+}
+
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
+QTextEdit:focus, QPlainTextEdit:focus, QComboBox:on {
+    border-color: ${accent};
+}
+
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled,
+QComboBox:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {
+    background: ${inputDisabled};
+    color: ${textFaint};
+    border-color: ${borderSoft};
+}
+
+QLineEdit[readOnly="true"] {
+    background: ${inputDisabled};
+}
+
+/* Note: don't restyle QComboBox::drop-down. As soon as that subcontrol has a
+   rule of its own, Qt stops drawing the style's arrow and expects an image. */
+
+/* The popup is wrapped in a container frame drawn by the style. Don't add a
+   second (rounded) frame around the view, or the style's rectangular one
+   shows through beneath it. */
+QComboBox QAbstractItemView {
+    background: ${elevated};
+    color: ${text};
+    border: none;
+    padding: 3px;
+    selection-background-color: ${accent};
+    selection-color: ${onAccent};
+}
+
+/* --------------------------------------------------------------------------
+ * Tab bars
+ * ------------------------------------------------------------------------ */
+
+QTabWidget::pane {
+    background: ${surface};
+    border: none;
+    border-top: 1px solid ${borderSoft};
+}
+
+QTabBar {
+    background: transparent;
+    qproperty-drawBase: 0;
+}
+
+QTabBar::tab {
+    background: transparent;
+    color: ${textDim};
+    border: none;
+    border-radius: 7px;
+    padding: 5px 11px;
+    margin: 3px 2px;
+}
+
+QTabBar::tab:hover {
+    background: ${hover};
+    color: ${text};
+}
+
+QTabBar::tab:selected {
+    background: ${tabSelected};
+    color: ${text};
+}
+
+QTabBar::tab:disabled {
+    color: ${textFaint};
+}
+
+/* Note: don't restyle QTabBar::close-button. As soon as that subcontrol has a
+   drawable rule of its own, QStyleSheetStyle paints the rule instead of the
+   style's "x" glyph, leaving the button invisible (see PE_IndicatorTabClose). */
+
+QTabBar::scroller {
+    width: 0px;
+}
+
+/* Repo tab strip: browser-style tabs that sit on the window background and
+   merge into the content area beneath the selected one. */
+#QTabBar2 {
+    background: ${bg};
+}
+
+#QTabBar2::tab {
+    padding: 6px 12px;
+    margin: 4px 1px 0px 1px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+#QTabBar2::tab:selected {
+    background: ${surface};
+    color: ${text};
+}
+
+/* --------------------------------------------------------------------------
+ * Splitters
+ * ------------------------------------------------------------------------ */
+
+QSplitter::handle {
+    background: ${bg};
+}
+
+QSplitter::handle:horizontal {
+    width: 5px;
+}
+
+QSplitter::handle:vertical {
+    height: 5px;
+}
+
+QSplitter::handle:hover, QSplitter::handle:pressed {
+    background: ${accent};
+}
+
+QFaintSeparator {
+    background: ${borderSoft};
+    border: none;
+}
+
+/* --------------------------------------------------------------------------
+ * Item views
+ * ------------------------------------------------------------------------ */
+
+QTreeView, QListView, QTableView, QColumnView {
+    background: ${surface};
+    color: ${text};
+    border: none;
+    outline: 0;
+    alternate-background-color: ${altRow};
+}
+
+QAbstractItemView::item {
+    color: ${text};
+    border: none;
+}
+
+QAbstractItemView::item:hover {
+    background: ${hover};
+}
+
+QAbstractItemView::item:selected {
+    background: ${selInactive};
+    color: ${text};
+}
+
+QAbstractItemView::item:selected:active {
+    background: ${accent};
+    color: ${onAccent};
+}
+
+/* Rounded selection pills in the sidebar & file lists.
+   The commit graph keeps full-width selection bars so that the lane
+   drawings aren't clipped by rounded corners. */
+Sidebar::item, FileList::item {
+    border-radius: 5px;
+}
+
+Sidebar {
+    background: ${sidebarBg};
+    color: ${text};
+    show-decoration-selected: 1;
+}
+
+/* --------------------------------------------------------------------------
+ * Scroll bars
+ * ------------------------------------------------------------------------ */
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 12px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 12px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background: ${scrollHandle};
+    border-radius: 3px;
+    min-height: 32px;
+    margin: 3px 3px 3px 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background: ${scrollHandle};
+    border-radius: 3px;
+    min-width: 32px;
+    margin: 4px 3px 3px 3px;
+}
+
+QScrollBar::handle:hover, QScrollBar::handle:pressed {
+    background: ${scrollHandleHover};
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    background: transparent;
+    border: none;
+    width: 0;
+    height: 0;
+}
+
+QScrollBar::up-arrow, QScrollBar::down-arrow,
+QScrollBar::left-arrow, QScrollBar::right-arrow {
+    background: transparent;
+    image: none;
+    width: 0;
+    height: 0;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: transparent;
+}
+
+QScrollArea {
+    background: transparent;
+    border: none;
+}
+
+/* --------------------------------------------------------------------------
+ * Misc controls
+ * ------------------------------------------------------------------------ */
+
+QGroupBox {
+    border: 1px solid ${borderSoft};
+    border-radius: 8px;
+    margin-top: 10px;
+    padding: 8px 4px 4px 4px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 9px;
+    padding: 0 4px;
+    color: ${textDim};
+}
+
+/* No fixed height here: some progress bars display their text. */
+QProgressBar {
+    background: ${input};
+    border: none;
+    border-radius: 5px;
+    text-align: center;
+    color: ${text};
+}
+
+QProgressBar::chunk {
+    background: ${accent};
+    border-radius: 5px;
+}
+
+QSlider::groove:horizontal {
+    background: ${input};
+    height: 4px;
+    border-radius: 2px;
+}
+
+QSlider::sub-page:horizontal {
+    background: ${accent};
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: ${text};
+    width: 12px;
+    height: 12px;
+    margin: -5px 0;
+    border-radius: 6px;
+}
+
+QToolBox::tab, QDockWidget::title {
+    background: ${bg};
+    border: none;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+/* --------------------------------------------------------------------------
+ * GitFourchette-specific widgets
+ * ------------------------------------------------------------------------ */
+
+/* Code panes must stay flush - no rounded frame, no inner padding. */
+CodeView, SpecialDiffView {
+    background: ${surface};
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+/* QToolButton's padding would squash the 16x16 icon into an ellipse. */
+QHintButton {
+    padding: 0px;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* Panel titles above the file lists and the diff */
+#dirtyHeader, #stagedHeader, #committedHeader, #diffHeader {
+    color: ${textDim};
+    padding-left: 2px;
+}
+
+Banner.diff {
+    border: none;
+    padding: 3px 2px;
+}
+
+/* ContextHeader.restyle() leaves us alone while one of our themes is active. */
+ContextHeader {
+    background: ${bg};
+    border: none;
+    border-bottom: 1px solid ${borderSoft};
+    padding: 3px 2px;
+}
+
+ContextHeader QLabel {
+    color: ${textDim};
+}
+
+SearchBar QLineEdit {
+    border: 1px solid ${border};
+    border-radius: 7px;
+    padding: 3px 7px;
+}
+
+SearchBar[red="true"] QLineEdit {
+    color: ${danger};
+    border: 1px solid ${danger};
+}

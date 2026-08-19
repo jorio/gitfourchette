@@ -43,9 +43,19 @@ class ContextHeader(QFrame):
         GFApplication.instance().restyle.connect(self.restyle)
 
     def restyle(self):
+        from gitfourchette import themes
+
+        if themes.currentTheme() is not None:
+            # Our themes style ContextHeader in style-modern.qss. Clear any
+            # widget stylesheet we may have set before the theme kicked in;
+            # it would win over the application stylesheet.
+            self.setStyleSheet("")
+            return
+
         bg = mutedTextColorHex(self, .07)
         fg = mutedTextColorHex(self, .8)
-        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}  ContextHeader QLabel {{ color: {fg}; }}")
+        self.setStyleSheet(f"ContextHeader {{ background-color: {bg}; }}"
+                           f"ContextHeader QLabel {{ color: {fg}; }}")
 
     def addButton(
             self,
