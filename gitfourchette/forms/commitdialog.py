@@ -30,6 +30,7 @@ class CommitDialog(QDialog):
             emptyCommit: bool,
             gpgFlag: bool,
             gpgKey: str,
+            hooks: list[str],
             parent: QWidget):
         super().__init__(parent)
 
@@ -38,11 +39,11 @@ class CommitDialog(QDialog):
 
         self.ui = Ui_CommitDialog()
         self.ui.setupUi(self)
-
         self.ui.gpg.setup(gpgFlag, gpgKey)
+        self.ui.hookButton.setup(hooks)
 
-        self.ui.gpg.setAutoRaise(True)
-        self.ui.signoffButton.setAutoRaise(True)
+        for button in (self.ui.gpg, self.ui.signoffButton, self.ui.hookButton):
+            button.setAutoRaise(True)
 
         self.ui.signatureButton.setIcon(stockIcon("view-visible"))
 

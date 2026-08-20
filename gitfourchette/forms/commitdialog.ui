@@ -146,6 +146,13 @@
       </spacer>
      </item>
      <item>
+      <widget class="CommitHookButton" name="hookButton">
+       <property name="text">
+        <string notr="true">Hooks</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="SignoffButton" name="signoffButton">
        <property name="text">
         <string notr="true">SOB</string>
@@ -198,6 +205,12 @@
    <class>SignoffButton</class>
    <extends>QToolButton</extends>
    <header>gitfourchette.forms.signoffbutton</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CommitHookButton</class>
+   <extends>QToolButton</extends>
+   <header>gitfourchette.forms.commithookbutton</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

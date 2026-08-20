@@ -29,6 +29,7 @@ DiffView[dark="true"] { selection-background-color: rgba(255, 255, 255, 26%); }
 
 /* Remove QToolButton dropdown arrow in Fusion style */
 DiffButtons QToolButton::menu-indicator,
+CommitHookButton::menu-indicator,
 SignoffButton::menu-indicator,
 GpgButton::menu-indicator { image: none; }
 

@@ -76,6 +76,7 @@ class NewCommit(RepoTask):
             emptyCommit=emptyCommit,
             gpgFlag=gpgFlag,
             gpgKey=gpgKey,
+            hooks=self.preCommitHookNames(self.repo),
             parent=self.parentWidget())
 
         if uiPrefs.draftCommitSignatureOverride == SignatureOverride.Nothing:
@@ -98,6 +99,7 @@ class NewCommit(RepoTask):
         signatureIsOverridden = overriddenSignatureKind != SignatureOverride.Nothing
         explicitGpgSign = cd.ui.gpg.explicitSign()
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
+        explicitNoVerify = cd.ui.hookButton.explicitNoVerify()
         signoff = cd.ui.signoffButton.explicitSign()
 
         # Save commit message/signature as draft now,
@@ -119,6 +121,7 @@ class NewCommit(RepoTask):
             repositoryState=repositoryState,
             explicitGpgSign=explicitGpgSign,
             explicitNoGpgSign=explicitNoGpgSign,
+            explicitNoVerify=explicitNoVerify,
             signoff=signoff)
         driver = yield from self.flowCallGit(*args, env=env)
 
@@ -143,6 +146,11 @@ class NewCommit(RepoTask):
         return gpgFlag, gpgKey
 
     @staticmethod
+    def preCommitHookNames(repo: Repo) -> list[str]:
+        return [hook for hook in ("pre-commit", "commit-msg")
+                if Path(repo.in_gitdir("hooks/" + hook)).exists()]
+
+    @staticmethod
     def prepareGitCommand(
             message: str,
             author: Signature | None,
@@ -151,6 +159,7 @@ class NewCommit(RepoTask):
             amend=False,
             explicitGpgSign=False,
             explicitNoGpgSign=False,
+            explicitNoVerify=False,
             signoff=False,
     ):
         def signatureEnvironmentVariables(sig: Signature, infix: str) -> dict[str, str]:
@@ -169,6 +178,7 @@ class NewCommit(RepoTask):
             "commit",
             *argsIf(explicitGpgSign, "--gpg-sign"),
             *argsIf(explicitNoGpgSign, "--no-gpg-sign"),
+            *argsIf(explicitNoVerify, "--no-verify"),
             *argsIf(signoff, "--signoff"),
             *argsIf(amend, "--amend"),
             *argsIf(resetAuthor, "--reset-author"),
@@ -224,6 +234,7 @@ class AmendCommit(RepoTask):
             emptyCommit=emptyCommit,
             gpgFlag=gpgFlag,
             gpgKey=gpgKey,
+            hooks=NewCommit.preCommitHookNames(self.repo),
             parent=self.parentWidget())
 
         cd.setWindowModality(Qt.WindowModality.WindowModal)
@@ -244,6 +255,7 @@ class AmendCommit(RepoTask):
         committer = cd.getOverriddenCommitterSignature() or fallbackSignature
         explicitGpgSign = cd.ui.gpg.explicitSign()
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
+        explicitNoVerify = cd.ui.hookButton.explicitNoVerify()
         signoff = cd.ui.signoffButton.explicitSign()
 
         self.epilog.effects |= TaskEffects.Workdir | TaskEffects.Refs | TaskEffects.Head
@@ -253,6 +265,7 @@ class AmendCommit(RepoTask):
             amend=True,
             explicitGpgSign=explicitGpgSign,
             explicitNoGpgSign=explicitNoGpgSign,
+            explicitNoVerify=explicitNoVerify,
             signoff=signoff)
         driver = yield from self.flowCallGit(*args, env=env)
 

@@ -77,6 +77,10 @@ class Ui_CommitDialog(object):
         self.buttonLayout.addWidget(self.signatureButton)
         spacerItem = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.buttonLayout.addItem(spacerItem)
+        self.hookButton = CommitHookButton(parent=CommitDialog)
+        self.hookButton.setText("Hooks")
+        self.hookButton.setObjectName("hookButton")
+        self.buttonLayout.addWidget(self.hookButton)
         self.signoffButton = SignoffButton(parent=CommitDialog)
         self.signoffButton.setText("SOB")
         self.signoffButton.setObjectName("signoffButton")
@@ -110,6 +114,7 @@ class Ui_CommitDialog(object):
         self.descriptionEditor.setPlaceholderText(_p("CommitDialog", "Long-form description (optional)"))
         self.revealSignature.setText(_p("CommitDialog", "&Edit Author"))
         self.signatureButton.setText(_p("CommitDialog", "Preview"))
+from gitfourchette.forms.commithookbutton import CommitHookButton
 from gitfourchette.forms.gpgbutton import GpgButton
 from gitfourchette.forms.signatureform import SignatureForm
 from gitfourchette.forms.signoffbutton import SignoffButton

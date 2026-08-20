@@ -888,6 +888,41 @@ def testSignOffAddsSignedOffByLine(tempDir, mainWindow):
     assert "Signed-off-by:" in headCommit.message
 
 
+@pytest.mark.parametrize("hookName", [".git/hooks/pre-commit", ".git/hooks/commit-msg"])
+def testBypassCommitHooks(tempDir, mainWindow, hookName):
+    wd = unpackRepo(tempDir)
+
+    shell(f"""
+        echo "#!/usr/bin/env bash\necho 'hello from hook'\nexit 1" > {hookName}
+        chmod +x {hookName}
+        echo whatever >> master.txt
+        git add master.txt
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    # Attempt to create a commit, but don't bypass the hooks (enabled by default)
+    rw.diffArea.commitButton.click()
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    dialog.ui.summaryEditor.setText("bypass commit hooks")
+    assert dialog.ui.hookButton.isVisible()
+    assert re.search(r"hook.+will run", dialog.ui.hookButton.toolTip(), re.IGNORECASE)
+    dialog.accept()
+    acceptQMessageBox(rw, "git.+exited with code 1.+hello from hook")
+
+    # Create a commit, bypass the hooks
+    rw.diffArea.commitButton.click()
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert dialog.ui.hookButton.isVisible()
+    action = dialog.ui.hookButton.actions()[0]
+    action.trigger()
+    assert re.search(r"bypassing.+hook", dialog.ui.hookButton.toolTip(), re.IGNORECASE)
+    dialog.accept()
+
+    headCommit = rw.repo.head_commit
+    assert "bypass commit hooks" in headCommit.message
+
+
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick"])
 def testCheckoutTag(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
