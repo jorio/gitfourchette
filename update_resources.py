@@ -8,7 +8,6 @@
 import argparse
 import datetime
 import difflib
-import html
 import json
 import os
 import re
@@ -30,6 +29,22 @@ LANG_TEMPLATE = os.path.join(LANG_DIR, "gitfourchette.pot")
 
 FORCE = False
 LANG_FILTER = "*"
+
+WEBLATE_LANGUAGES = {
+    "Chinese (Simplified Han script)": "zh_Hans",
+    "Chinese (Traditional Han script)": "zh_Hant",
+    "Czech": "cs",
+    "French": "fr",
+    "German": "de",
+    "Italian": "it",
+    "Korean": "ko",
+    "Portuguese (Brazil)": "pt_BR",
+    "Portuguese": "pt",
+    "Russian": "ru",
+    "Spanish": "es",
+    "Turkish": "tr",
+    "Ukrainian": "uk",
+}
 
 
 def makeParser():
@@ -352,45 +367,23 @@ def compileMoFiles():
 
 def formatTranslatorCredits(jsonReportPath: str):
     blob = Path(jsonReportPath).read_bytes()
-    table = json.loads(blob)
+    originalTable = json.loads(blob)
 
-    renameLanguages = {
-        "Chinese (Simplified Han script)": "S. Chinese",
-        "Chinese (Traditional Han script)": "T. Chinese",
-        "Portuguese (Brazil)": "Portuguese BR",
-        "Portuguese": "Portuguese PT",
-    }
+    table = {}
+    contribs = {}
 
-    def formatPerson(person):
-        full = person["full_name"]
-        user = person["username"]
-        if full.casefold() == user.casefold():
-            return html.escape(full)
-        else:
-            return f"{full} ({user})"
-
-    tableRows = []
-
-    for entry in table:
+    for entry in originalTable:
         for language, people in entry.items():
-            if language == "French":  # I manage that one
+            languageCode = WEBLATE_LANGUAGES[language]
+            if languageCode == "fr":
                 continue
-            languageName = renameLanguages.get(language, language)
-            peopleList = "\n\t<br>".join(formatPerson(p) for p in people if p["username"] != "jorio")
-            totalContribs = sum(p["change_count"] for p in people)
-            row = ("<tr>\n"
-                   f"\t<td align=right>{languageName}: </td>\n"
-                   f"\t<td>{peopleList}</td>\n"
-                   "</tr>\n")
-            tableRows.append((totalContribs, row))
+            table[languageCode] = [p["full_name"] for p in people if p["username"] != "jorio"]
+            contribs[languageCode] = sum(p["change_count"] for p in people)
 
-    # Sort languages by total amount of contributions
-    tableRows.sort(reverse=True)
+    sortedKeys = sorted(table.keys(), key=lambda k: contribs[k], reverse=True)
+    table = {k: table[k] for k in sortedKeys}
 
-    allRows = ''.join(tr for _, tr in tableRows)
-    markup = f"<table>\n{allRows}</table>"
-
-    Path(LANG_DIR, "credits.html").write_text(markup)
+    Path(LANG_DIR, "credits.json").write_text(json.dumps(table, indent="\t") + "\n")
 
 
 def formatContributors():

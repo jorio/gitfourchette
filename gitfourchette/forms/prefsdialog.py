@@ -61,12 +61,22 @@ def makeshiftSpacer(height=1):
     return spacer
 
 
-def localeCodeToLanguageName(code: str):
+def availableLocaleCodes() -> list[str]:
+    """
+    Returns gettext-compatible locale codes for which we have translation files.
+    Note: English NOT included!
+    """
+    return [f.removesuffix(".mo") for f in QDir("assets:lang", "*.mo").entryList()]
+
+
+def localeCodeToLanguageName(code: str) -> str:
     try:
         name = LANGUAGE_NAMES[code]
     except KeyError:
         # Cache native language name
         name = QLocale(code).nativeLanguageName()
+        name = name or f"???{code}???"  # Fallback if language code not recognized by Qt
+        name = name[0].upper() + name[1:]  # Many languages don't capitalize their name
         LANGUAGE_NAMES[code] = name
 
     return name
@@ -439,8 +449,7 @@ class PrefsDialog(QDialog):
             localeRatios[code] = ratio
         localeRatios["en"] = "100"
 
-        langDir = QDir("assets:lang", "*.mo")
-        localeCodes = [f.removesuffix(".mo") for f in langDir.entryList()]
+        localeCodes = availableLocaleCodes()
         assert "en" not in localeCodes, "English shouldn't have an .mo file"
         localeCodes.append("en")
 
@@ -448,9 +457,7 @@ class PrefsDialog(QDialog):
         localeCodes.sort(key=lambda code: "0" if code == "en" else localeNames[code].casefold())
 
         for code in localeCodes:
-            name = localeNames[code]
-            name = name[0].upper() + name[1:]  # Many languages don't capitalize their name
-            name = f"{name} ({localeRatios.get(code, '--')}%)"
+            name = f"{localeNames[code]} ({localeRatios.get(code, '--')}%)"
             control.addItem(name, code)
 
         control.setCurrentIndex(control.findData(prefValue))

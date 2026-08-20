@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import json
 import sys
 from pathlib import Path
 from textwrap import dedent
@@ -11,6 +12,7 @@ from textwrap import dedent
 import pygit2
 import pygments
 
+from gitfourchette.forms.prefsdialog import availableLocaleCodes, localeCodeToLanguageName
 from gitfourchette.forms.ui_aboutdialog import Ui_AboutDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.localization import *
@@ -123,10 +125,16 @@ class AboutDialog(QDialog):
         contributorCreditsPath = Path(QFile("assets:/contributors.txt").fileName())
         contributorCredits = contributorCreditsPath.read_text("utf-8")
         contributorCredits = contributorCredits.removeprefix("Iliyas Jorio\n")
-        contributorCredits = f"<blockquote style='white-space: pre'>{contributorCredits}</blockquote>"
+        contributorCredits = f"<center style='white-space: pre'>{contributorCredits}</center>"
 
-        translatorCreditsPath = Path(QFile("assets:lang/credits.html").fileName())
-        translatorCredits = translatorCreditsPath.read_text("utf-8")
+        translatorCreditsPath = Path(QFile("assets:lang/credits.json").fileName())
+        translatorCredits = json.loads(translatorCreditsPath.read_text("utf-8"))
+        translatorFilter = availableLocaleCodes()
+        translatorMarkup = "<center><table>" + "".join(
+            f"<tr><th>{localeCodeToLanguageName(lang)}:</th><td>{'<br>'.join(people)}</td></tr>\n"
+            for lang, people in translatorCredits.items()
+            if lang in translatorFilter
+        ) + "</table></center>"
 
         ackText = [
             _("Additional contributions by:") + contributorCredits,
@@ -134,12 +142,15 @@ class AboutDialog(QDialog):
             linkify(_("Translations welcome!"), TRANSLATE_URL)
             + " "
             + _("Brought to your native language by:")
-            + translatorCredits,
+            + translatorMarkup,
 
             _("Special thanks to Marc-Alexandre Espiaut for beta testing."),
         ]
 
-        self.ui.ackBlurb.setText(paragraphs(*ackText))
+        ackMarkup = "<style>th { text-align: right; padding-right: 8px; color: gray; }</style>"
+        ackMarkup += paragraphs(*ackText)
+
+        self.ui.ackBlurb.setText(ackMarkup)
 
         # ---------------------------------------------------------------------
         # License page
