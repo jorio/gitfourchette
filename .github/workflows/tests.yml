@@ -8,6 +8,17 @@ on:
     paths-ignore: ['**.md', '**.po', '**.mo', '**.pot']
 
 jobs:
+  ruff-mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: 3.14, cache: 'pip'}
+      - run: pip install -e .[test,pyqt6]
+      - run: ruff check
+      - run: mypy
+        if: '!cancelled()'  # run mypy even if ruff failed above
+
   tests:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
@@ -28,8 +39,7 @@ jobs:
         - {name: '314-pyside6', os: ubuntu-latest, py: '3.14', qt: pyside6}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Qt dependencies
       if: ${{ runner.os == 'Linux' }}
@@ -51,28 +61,19 @@ jobs:
         which gpg
         gpg --version
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.py }}
         cache: 'pip'
 
-    - name: Pip dependencies
-      run: |
+    - run: |
         pip install -e .[${{ matrix.qt }},test,mfusepy]
         ${{ matrix.piptweak }}
 
-    - run: ruff check
-
-    - name: Run mypy (only PyQt6 + recent Python)
-      run: mypy
-      if: ${{ matrix.qt == 'pyqt6' && matrix.py >= '3.13' }}
-
-    - name: Unit tests
-      run: ./test.py -v --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
+    - run: ./test.py -v --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       if: ${{ matrix.coverage }}
       with:
         path: coverage_html_report
