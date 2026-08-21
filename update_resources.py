@@ -16,6 +16,7 @@ import subprocess
 import sys
 import textwrap
 from contextlib import suppress
+from gettext import GNUTranslations
 from pathlib import Path
 
 import pygit2
@@ -29,6 +30,9 @@ LANG_TEMPLATE = os.path.join(LANG_DIR, "gitfourchette.pot")
 
 FORCE = False
 LANG_FILTER = "*"
+
+# Language .mo files are not included if the .po file is below this completion percentage.
+LANG_MIN_PERCENT_COMPLETE = 5
 
 WEBLATE_LANGUAGES = {
     "Chinese (Simplified Han script)": "zh_Hans",
@@ -342,7 +346,13 @@ def compileMoFiles():
         return int(match.group(1)) if match else 0
 
     for poPath in listPoFiles():
-        moPath: Path = poPath.with_suffix(".mo")
+        moPath = poPath.with_suffix(".mo")
+        moBackupPath = moPath.with_suffix(".mo.bak")
+
+        oldCatalog: dict = {}
+        with suppress(FileNotFoundError), open(moPath, "rb") as fp:
+            oldCatalog = GNUTranslations(fp)._catalog
+            moPath.rename(moBackupPath)
 
         msgfmt = call("msgfmt", "--no-hash", "--statistics", "-o", str(moPath), str(poPath),
                       env={"LANGUAGE": "C"}, capture_output=True)
@@ -353,13 +363,26 @@ def compileMoFiles():
         ratio = round(100.0 * complete / (complete + missing1 + missing2))
         print(f"  {poPath.stem}: {ratio}% complete | {msgfmt.stderr.strip()}")
 
-        # Remove empty mo files
-        if ratio <= 0:
-            print(f"*** Removing empty translation '{poPath.name}'")
-            moPath.unlink()
-            continue
+        wipLanguages.append(f"{moPath.stem} {ratio}")
 
-        wipLanguages += [f"{moPath.stem} {ratio}"]
+        try:
+            # Remove nearly-empty mo files
+            if ratio <= LANG_MIN_PERCENT_COMPLETE:
+                print(f"*** Removing empty translation '{poPath.name}'")
+                moPath.unlink()
+                continue
+
+            # If none of the strings changed, keep old .mo file
+            if oldCatalog:
+                with open(moPath, "rb") as fp:
+                    newCatalog: dict = GNUTranslations(fp)._catalog
+
+                if all(oldCatalog.get(k, None) == newCatalog[k] for k in newCatalog):
+                    print(f"*** {poPath.name} unchanged, keeping old {moPath.name}")
+                    moPath.unlink()
+                    moBackupPath.rename(moPath)
+        finally:
+            moBackupPath.unlink(missing_ok=True)
 
     wipLanguages.sort()
     Path(LANG_DIR, "wip.txt").write_text("\n".join(wipLanguages) + "\n")

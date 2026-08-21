@@ -1,11 +1,13 @@
-cs 83
-es 36
+cs 98
+de 0
+es 35
 fr 100
-it 53
+it 52
+ko 98
 pt 1
 pt_BR 1
 ru 14
 tr 1
 uk 8
-zh_Hans 75
+zh_Hans 73
 zh_Hant 1
