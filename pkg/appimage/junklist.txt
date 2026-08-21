@@ -150,6 +150,7 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/plugins/tls/
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtconnectivity*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtdeclarative*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtlocation*
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt_help*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtmultimedia*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtserialport*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qtwebsockets*
@@ -162,12 +163,12 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_fa.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_fi.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_gd.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_gl.qm
+opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_lg.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_he.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_hr.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_hu.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ja.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ka.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_ko.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_lt.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_lv.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_nl.qm
@@ -179,5 +180,4 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_sk.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_sl.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_sv.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_tr.qm
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_uk.qm
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/translations/qt*_zh_TW.qm

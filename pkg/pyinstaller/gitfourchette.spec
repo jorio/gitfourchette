@@ -61,6 +61,15 @@ else:
 
 initialDatas = [(ROOT / 'gitfourchette/assets', 'assets')]
 
+# Cache suppoted languages (from *.mo files in gitfourchette/assets/lang)
+languageRemap = {  # Weblate language codes to Qt codes
+    "pt": "pt_PT",
+    "zh_Hans": "zh_CN",
+    "zh_Hant": "zh_TW",
+}
+supportedLanguages = {mo.stem for mo in (ROOT / 'gitfourchette/assets/lang').glob("*.mo")}
+supportedLanguages = {languageRemap.get(code, code) for code in supportedLanguages}
+
 # Contents/Resources/empty.lproj:
 # If macOS sees this file, AND the system's preferred language matches the language of
 # "Edit" and "Help" menu titles, we'll automagically get stuff like a search field
@@ -86,7 +95,12 @@ a = Analysis(
 def filterPath(p: Path):
     # Remove stock Qt localizations for unsupported languages to save a few megs
     if p.suffix == '.qm':
-        return re.match(r'^qt.*_(en|es|fr|it|zh_CN)$', p.stem)
+        match = re.match(r'^(qt.*)_([a-z][a-z](?:_[A-Z][A-Z])?)$', p.stem)
+        if not match:
+            return False
+        group = match.group(1)
+        language = match.group(2)
+        return group in ['qt', 'qtbase'] and language in supportedLanguages
 
     if p.suffix in ['.po', '.pot']:
         return False
@@ -154,13 +168,6 @@ if MACOS:
         info_plist={
             'NSReadableCopyright': f'\u00a9 {YEAR} Iliyas Jorio',
             'LSApplicationCategoryType': 'public.app-category.developer-tools',
-            'CFBundleDocumentTypes': [
-                {
-                    'CFBundleTypeName': 'folder',
-                    'CFBundleTypeRole': 'Editor',
-                    'LSItemContentTypes': ['public.folder', 'public.item'],
-                }
-            ]
         }
     )
     print(dir(app))
