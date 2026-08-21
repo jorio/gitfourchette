@@ -609,7 +609,7 @@ def testCommitLogFilterUpdatesAfterRebase(tempDir, mainWindow):
         return f"GIT_AUTHOR_DATE=2000-01-{i:02}T12:00:00+00:00 GIT_COMMITTER_DATE=2000-01-{i:02}T12:00+00:00"
 
     shell(f"""
-        git init .
+        git init -b master .
         {date(1)} git commit --allow-empty -m 'root commit'
 
         git switch -c donthide

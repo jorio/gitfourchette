@@ -95,6 +95,11 @@ def setUpTestGitConfig(path: str):
 
         # Prevent OpenSSH from looking at host user's key files
         "core.sshCommand": sshCommand,
+
+        # Prevent background maintenance from interfering with shutil.copy, etc.
+        "maintenance.auto": False,
+        "maintenance.autoDetach": False,
+        "gc.autoDetach": False,
     }
 
     if HAS_LFS:

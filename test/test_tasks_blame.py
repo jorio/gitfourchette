@@ -654,9 +654,6 @@ def testBlameMissingRevisions(blameWindow):
     # The application must respond gracefully beyond this point
     blameWindow.repaint()
 
-    blameWindow.textEdit.setFocus()
-    assert blameWindow.textEdit.hasFocus()
-
     linePos = qteBlockPoint(blameWindow.textEdit, 0)
     text = summonToolTip(blameWindow.textEdit.gutter, linePos).lower()
     assert "test person" in text

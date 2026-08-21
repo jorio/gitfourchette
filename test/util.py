@@ -281,6 +281,7 @@ def makeBareCopy(
         barePath = f"{path}/../{basename}-bare-{addAsRemote}.git"  # create bare repo besides real repo in temporary directory
     barePath = os.path.normpath(barePath)
 
+    assert not Path(path, ".git/objects/maintenance.lock").exists()
     shutil.copytree(F"{path}/.git", barePath)
 
     conf = GitConfig(F"{barePath}/config")
@@ -802,11 +803,10 @@ def summonToolTip(target: QWidget, localPoint=QPoint_zero):
     # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
     # but offscreen tests will still work fine.
     QCursor.setPos(target.mapToGlobal(localPoint))
-    QTest.qWait(0)
+    QTest.qWait(0)  # Note: on macOS/offscreen, this may cause the tooltip to appear immediately
 
     # QTest.mouseMove doesn't trigger the tooltip in offscreen tests,
     # so post a QHelpEvent instead.
-    assert not QToolTip.isVisible(), f"QToolTip still visible: {stripHtml(QToolTip.text())}"
     helpEvent = QHelpEvent(QEvent.Type.ToolTip, localPoint, target.mapToGlobal(localPoint))
     QApplication.instance().postEvent(target, helpEvent)
 
