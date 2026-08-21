@@ -296,6 +296,8 @@ class NewBranchFromCommit(RepoTask):
         commitMessage = repo.get_commit_message(tip)
         commitMessage, _junk = messageSummary(commitMessage)
 
+        showSubmoduleControls = bool(repo.listall_submodules_fast())
+
         dlg = NewBranchDialog(
             initialName=localName,
             target=tipHashText,
@@ -303,11 +305,8 @@ class NewBranchFromCommit(RepoTask):
             upstreams=upstreams,
             reservedNames=forbiddenBranchNames,
             allowSwitching=not self.repo.any_conflicts,
+            showSubmoduleControls=showSubmoduleControls,
             parent=self.parentWidget())
-
-        if not repo.listall_submodules_fast():
-            dlg.ui.recurseSubmodulesCheckBox.setChecked(False)
-            dlg.ui.recurseSubmodulesCheckBox.setVisible(False)
 
         if suggestUpstream:
             upstreamIndex = dlg.ui.upstreamComboBox.findText(suggestUpstream)
@@ -316,7 +315,6 @@ class NewBranchFromCommit(RepoTask):
                 dlg.ui.upstreamComboBox.setCurrentIndex(upstreamIndex)
 
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.setFixedHeight(dlg.sizeHint().height())
         dlg.show()
         yield from self.flowDialog(dlg)
         dlg.deleteLater()
@@ -414,11 +412,10 @@ class ResetHead(RepoTask):
         hasSubmodules = bool(submoduleDict)
 
         dlg = ResetHeadDialog(onto, branchName, commitMessage, hasSubmodules, parent=self.parentWidget())
-
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.resize(600, 128)
         yield from self.flowDialog(dlg)
+
         resetMode = dlg.activeMode
         recurseSubmodules = dlg.recurseSubmodules()
 

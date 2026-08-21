@@ -80,3 +80,5 @@ class ResetHeadDialog(QDialog):
         summary, _dummy = messageSummary(commitText)
         commitText = _("Commit {0}:", shortHash(oid)) + " " + tquo(summary)
         convertToBrandedDialog(self, subtitleText=commitText)
+
+        packDialog(self, lockHeight=True)

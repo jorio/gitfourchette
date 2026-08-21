@@ -118,6 +118,10 @@ class CommitDialog(QDialog):
         # Focus on summary editor before showing
         self.ui.summaryEditor.setFocus()
 
+        # Pack the layout
+        packDialog(self)
+        self.resize(self.width(), self.minimumSizeHint().height())
+
     def sanitizeLineBreaksInSummary(self, text: str):
         if '\n' not in text:
             return

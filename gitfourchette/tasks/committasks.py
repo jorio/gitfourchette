@@ -312,7 +312,6 @@ class SetUpGitIdentity(RepoTask):
             proceed = _("Proceed to {0}", englishTitleCase(okButtonText))
             dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText(proceed)
 
-        dlg.resize(512, 0)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         yield from self.flowDialog(dlg)
 
@@ -419,7 +418,6 @@ class NewTag(RepoTask):
                            remotes=self.repoModel.remotes,
                            parent=self.parentWidget())
 
-        dlg.setFixedHeight(dlg.sizeHint().height())
         yield from self.flowDialog(dlg)
 
         tagName = dlg.ui.nameEdit.text()
@@ -467,7 +465,6 @@ class DeleteTag(RepoTask):
             self.repoModel.remotes,
             parent=self.parentWidget())
 
-        dlg.setFixedHeight(dlg.sizeHint().height())
         yield from self.flowDialog(dlg)
 
         pushIt = dlg.ui.pushCheckBox.isChecked()

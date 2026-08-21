@@ -73,7 +73,6 @@ class EditRemote(RepoTask):
             parent=self.parentWidget())
 
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.setFixedHeight(dlg.sizeHint().height())
         dlg.show()
         yield from self.flowDialog(dlg)
 

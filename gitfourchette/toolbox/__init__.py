@@ -78,6 +78,7 @@ from .qtutils import (
     DocumentLinks,
     findParentWidget,
     setTabOrder,
+    packDialog,
     QModelIndex_default,
     QPoint_zero,
 )

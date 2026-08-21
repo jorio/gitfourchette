@@ -8,6 +8,7 @@ from gitfourchette.forms.ui_commitinfodialog import Ui_CommitInfoDialog
 from gitfourchette.localization import _
 from gitfourchette.qt import *
 from gitfourchette.toolbox.iconbank import stockIcon
+from gitfourchette.toolbox.qtutils import packDialog
 
 
 class CommitInfoDialog(QDialog):
@@ -53,8 +54,7 @@ class CommitInfoDialog(QDialog):
 
         # Pack the layout, then save the packed size
         self.setMinimumWidth(self._PreferredWidth)
-        self.layout().activate()  # force layout
-        self.adjustSize()
+        packDialog(self)
         self.packedSize = self.size()
 
         # Show details if any

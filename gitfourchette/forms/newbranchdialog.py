@@ -20,6 +20,7 @@ class NewBranchDialog(QDialog):
             upstreams: list[str],
             reservedNames: list[str],
             allowSwitching: bool,
+            showSubmoduleControls: bool,
             parent=None):
 
         super().__init__(parent)
@@ -48,6 +49,10 @@ class NewBranchDialog(QDialog):
             switchCheckBox.setText(switchCheckBox.text() + "\n" + _("(blocked by conflicts)"))
             self.ui.recurseSubmodulesCheckBox.setChecked(False)
 
+        if not showSubmoduleControls:
+            self.ui.recurseSubmodulesCheckBox.setChecked(False)
+            self.ui.recurseSubmodulesCheckBox.setVisible(False)
+
         nameTaken = _("This name is already taken by another local branch.")
         validator = ValidatorMultiplexer(self)
         validator.setGatedWidgets(self.acceptButton)
@@ -61,6 +66,8 @@ class NewBranchDialog(QDialog):
         self.ui.nameEdit.selectAll()
         self.ui.nameEdit.setValidator(ReplaceSpacesWithDashes())
         self.preSelectLeaf(self.ui.nameEdit)
+
+        packDialog(self, lockHeight=True)
 
     @property
     def acceptButton(self):

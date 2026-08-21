@@ -433,6 +433,17 @@ def setTabOrder(*args: QWidget):
         QWidget.setTabOrder(widget1, widget2)
 
 
+def packDialog(dialog: QDialog, widthHint=550, lockHeight=False):
+    dialog.layout().activate()
+    dialog.adjustSize()
+
+    if widthHint:
+        dialog.resize(max(widthHint, dialog.width()), dialog.height())
+
+    if lockHeight:
+        dialog.setFixedHeight(dialog.height())
+
+
 class DocumentLinks:
     """
     Bundle of ad-hoc links bound to callback functions.

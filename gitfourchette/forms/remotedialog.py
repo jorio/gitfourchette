@@ -71,7 +71,7 @@ class RemoteDialog(QDialog):
         self.ui.protocolButton.connectTo(self.ui.urlEdit)
 
         convertToBrandedDialog(self, title)
-        self.resize(max(self.width(), 600), self.height())
+        packDialog(self, lockHeight=True)
 
         # Run input callback
         validator.run(silenceEmptyWarnings=True)

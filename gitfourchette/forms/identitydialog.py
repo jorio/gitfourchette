@@ -46,6 +46,7 @@ class IdentityDialog(QDialog):
             subtitle = _("Before editing this repository, please set up your identity for Git.") + " " + subtitle
 
         convertToBrandedDialog(self, subtitleText=subtitle, multilineSubtitle=True)
+        packDialog(self, lockHeight=True)
 
     def identity(self) -> tuple[str, str]:
         name = self.ui.nameEdit.text()

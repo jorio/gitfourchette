@@ -71,7 +71,7 @@ class NewTagDialog(QDialog):
             _("New tag on commit {0}", tquo(target)),
             tquo(targetSubtitle))
 
-        self.resize(max(512, self.width()), self.height())
+        packDialog(self, lockHeight=True)
 
     def validateOK(self, name: str) -> str:
         nameTaken = _("This name is already taken by another tag.")
