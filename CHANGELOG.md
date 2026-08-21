@@ -1,5 +1,24 @@
 # GitFourchette version history
 
+## 1.11.0 (2026-08-21)
+
+New features:
+
+- **Blame specific line:** Right click any line in the diff, then select "Blame Line" to find out which commit introduced this specific line.
+- **Bypass pre-commit hooks** via dedicated button in CommitDialog (git commit --no-verify). The button is only shown if your repo uses pre-commit hooks.
+- **New platform-agnostic themes** (light & dark) provide a nicer default look on non-Qt environments. You can still use any Qt styles you have installed on your system.
+
+Quality of life improvements:
+
+- Conflicts: You can now preview the entire "Ours" or "Theirs" revision with one click (eye button in ConflictView)
+- Conflicts: Operations "Keep Ours" and "Accept Theirs" now ask for your confirmation and clearly explain what is going to happen
+- CloneDialog: "Default clone location" settings are easier to access from the Browse button
+
+Bug fixes:
+
+- Blame: More accurate revlist when blaming a file in a branch that has diverged from the current branch
+- Tab names were elided too aggressively with "tab close button" on and "expand tabs" off
+
 ## 1.10.0 (2026-08-01)
 
 New features:

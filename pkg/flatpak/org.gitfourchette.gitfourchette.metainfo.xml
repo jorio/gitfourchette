@@ -68,6 +68,28 @@
   </keywords>
 
   <releases>
+    <release version="1.11.0" date="2026-08-21" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.11.0</url>
+      <description>
+        <p>New features:</p>
+        <ul>
+        <li><em>Blame specific line:</em> Right click any line in the diff, then select "Blame Line" to find out which commit introduced this specific line.</li>
+        <li><em>Bypass pre-commit hooks</em> via dedicated button in CommitDialog (git commit --no-verify). The button is only shown if your repo uses pre-commit hooks.</li>
+        <li><em>New platform-agnostic themes</em> (light &amp; dark) provide a nicer default look on non-Qt environments. You can still use any Qt styles you have installed on your system.</li>
+        </ul>
+        <p>Quality of life improvements:</p>
+        <ul>
+        <li>Conflicts: You can now preview the entire "Ours" or "Theirs" revision with one click (eye button in ConflictView)</li>
+        <li>Conflicts: Operations "Keep Ours" and "Accept Theirs" now ask for your confirmation and clearly explain what is going to happen</li>
+        <li>CloneDialog: "Default clone location" settings are easier to access from the Browse button</li>
+        </ul>
+        <p>Bug fixes:</p>
+        <ul>
+        <li>Blame: More accurate revlist when blaming a file in a branch that has diverged from the current branch</li>
+        <li>Tab names were elided too aggressively with "tab close button" on and "expand tabs" off</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.10.0" date="2026-08-01" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.10.0</url>
       <description>
