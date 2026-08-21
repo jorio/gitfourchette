@@ -59,7 +59,7 @@ class NewCommit(RepoTask):
                 verb=_("Empty commit"),
                 text=paragraphs(*text))
 
-        yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Commit"))
+        yield from self.flowSubtask(SetUpGitIdentity, self.name())
 
         repositoryState = self.repo.state()
         fallbackSignature = self.repo.default_signature
@@ -215,7 +215,7 @@ class AmendCommit(RepoTask):
         # Jump to workdir
         yield from self.flowSubtask(Jump, NavLocator.inWorkdir())
 
-        yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to Amend Commit"))
+        yield from self.flowSubtask(SetUpGitIdentity, self.name())
 
         repositoryState = self.repo.state()
         headCommit = self.repo.head_commit
@@ -309,7 +309,8 @@ class SetUpGitIdentity(RepoTask):
                              self.repo.has_local_identity(), self.parentWidget())
 
         if okButtonText:
-            dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText(okButtonText)
+            proceed = _("Proceed to {0}", englishTitleCase(okButtonText))
+            dlg.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setText(proceed)
 
         dlg.resize(512, 0)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
@@ -404,7 +405,7 @@ class NewTag(RepoTask):
 
     def flow(self, oid: Oid = NULL_OID, annotation: str | None = None):
         if annotation is not None:
-            yield from self.flowSubtask(SetUpGitIdentity, _("Proceed to New Tag"))
+            yield from self.flowSubtask(SetUpGitIdentity, self.name())
 
         repo = self.repo
         if oid is None or oid == NULL_OID:

@@ -60,7 +60,7 @@ class CommitDialog(QDialog):
         else:
             prompt = _("Enter commit summary")
             buttonCaption = _("Co&mmit")
-            self.setWindowTitle(_p("verb", "Commit"))
+            self.setWindowTitle(englishTitleCase(_("New commit")))
 
         warning = ""
         if repositoryState == RepositoryState.MERGE:
