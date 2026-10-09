@@ -1241,3 +1241,261 @@ def testDiffReevaluateSearchTermAcrossDocuments(tempDir, mainWindow):
 
     rw.jump(loc3, check=True)
     waitUntilTrue(lambda: not searchBar.isRed())
+
+
+_contextMenuOriginal = "".join(f"L{i}\n" for i in range(1, 21))
+_contextMenuModified = _contextMenuOriginal.replace("L2\n", "L2 changed\n").replace("L18\n", "L18 changed\n")
+_contextMenuFirstHunkOnly = _contextMenuOriginal.replace("L2\n", "L2 changed\n")
+_contextMenuSecondHunkOnly = _contextMenuOriginal.replace("L18\n", "L18 changed\n")
+
+
+def _setUpContextMenuRepo(tempDir, stageAll: bool):
+    """
+    Commit a 20-line file, then modify lines 2 and 18 so that the diff
+    contains two hunks:
+        block 0:  @@ -1,5 +1,5 @@       block 7:  @@ -15,6 +15,6 @@
+        block 1:   L1                   block 8:   L15
+        block 2:  -L2                   block 9:   L16
+        block 3:  +L2 changed           block 10:  L17
+        block 4:   L3                   block 11: -L18
+        block 5:   L4                   block 12: +L18 changed
+        block 6:   L5                   block 13:  L19
+                                        block 14:  L20
+    """
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/ctx.txt", _contextMenuOriginal)
+    shell("""
+        git add ctx.txt
+        git commit -m 'add ctx.txt'
+    """, wd)
+    writeFile(f"{wd}/ctx.txt", _contextMenuModified)
+    if stageAll:
+        shell("git add ctx.txt", wd)
+    return wd
+
+
+def _readStagedContextMenuFile(rw) -> str:
+    rw.repo.index.read()
+    return rw.repo.peel_blob(rw.repo.index["ctx.txt"].id).data.decode("utf-8")
+
+
+def _summonDiffViewContextMenuOnBlock(dv: DiffView, block: int, select: bool):
+    if select:
+        qteSelectBlocks(dv, block, block + 1)
+        assert dv.textCursor().hasSelection()
+    else:
+        qteClickBlock(dv, block)
+        assert not dv.textCursor().hasSelection()
+    return summonContextMenu(dv.viewport(), qteBlockPoint(dv, block))
+
+
+def _triggerDiffViewContextMenuAction(menu: QMenu, pattern: str):
+    triggerMenuAction(menu, pattern)
+    try:
+        menu.close()
+    except RuntimeError:
+        pass
+
+
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+@pytest.mark.parametrize("action", ["stage", "discard", "export"])
+def testDiffViewContextMenuUnstagedLines(tempDir, mainWindow, action):
+    wd = _setUpContextMenuRepo(tempDir, stageAll=False)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("ctx.txt"), check=True)
+    dv = rw.diffView
+
+    menu = _summonDiffViewContextMenuOnBlock(dv, 2, select=True)
+    assert findMenuAction(menu, "stage lines").isEnabled()
+    assert findMenuAction(menu, "discard lines").isEnabled()
+    assert findMenuAction(menu, "blame line").isEnabled()
+
+    if action == "stage":
+        _triggerDiffViewContextMenuAction(menu, "stage lines")
+        assert rw.repo.status() == {"ctx.txt": FileStatus.INDEX_MODIFIED | FileStatus.WT_MODIFIED}
+        assert _readStagedContextMenuFile(rw) == _contextMenuFirstHunkOnly
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuModified
+
+    elif action == "discard":
+        _triggerDiffViewContextMenuAction(menu, "discard lines")
+        acceptQMessageBox(rw, "discard.+selected lines")
+        assert rw.repo.status() == {"ctx.txt": FileStatus.WT_MODIFIED}
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuSecondHunkOnly
+
+    elif action == "export":
+        _triggerDiffViewContextMenuAction(menu, "export lines as patch")
+        exportedPath = acceptQFileDialog(rw, "export", tempDir.name, useSuggestedName=True)
+        assert exportedPath.endswith("ctx.txt[partial].patch")
+        patchText = readTextFile(exportedPath)
+        assert patchText.endswith(
+            "--- a/ctx.txt\n"
+            "+++ b/ctx.txt\n"
+            "@@ -1,5 +1,5 @@\n"
+            " L1\n"
+            "-L2\n"
+            "+L2 changed\n"
+            " L3\n"
+            " L4\n"
+            " L5\n")
+        assert "L18" not in patchText
+        # Exporting must not touch the repo
+        assert rw.repo.status() == {"ctx.txt": FileStatus.WT_MODIFIED}
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuModified
+
+    else:
+        raise NotImplementedError(f"Unknown action {action}")
+
+
+@pytest.mark.parametrize("block", [7, 11])
+@pytest.mark.parametrize("action", ["stage", "discard", "export"])
+def testDiffViewContextMenuUnstagedHunk(tempDir, mainWindow, action, block):
+    wd = _setUpContextMenuRepo(tempDir, stageAll=False)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("ctx.txt"), check=True)
+    dv = rw.diffView
+
+    # Clicking on the hunk header or on a line within the hunk should both target the second hunk
+    menu = _summonDiffViewContextMenuOnBlock(dv, block, select=False)
+    assert findMenuAction(menu, r"stage hunk -15,6 \+15,6").isEnabled()
+    # Blame is only available on actual lines, not on the hunk header
+    assert findMenuAction(menu, "blame line").isEnabled() == (block != 7)
+
+    if action == "stage":
+        _triggerDiffViewContextMenuAction(menu, "stage hunk")
+        assert rw.repo.status() == {"ctx.txt": FileStatus.INDEX_MODIFIED | FileStatus.WT_MODIFIED}
+        assert _readStagedContextMenuFile(rw) == _contextMenuSecondHunkOnly
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuModified
+
+    elif action == "discard":
+        _triggerDiffViewContextMenuAction(menu, "discard hunk")
+        acceptQMessageBox(rw, "discard.+hunk")
+        assert rw.repo.status() == {"ctx.txt": FileStatus.WT_MODIFIED}
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuFirstHunkOnly
+
+    elif action == "export":
+        _triggerDiffViewContextMenuAction(menu, "export hunk as patch")
+        exportedPath = acceptQFileDialog(rw, "export", tempDir.name, useSuggestedName=True)
+        assert exportedPath.endswith("ctx.txt[partial].patch")
+        patchText = readTextFile(exportedPath)
+        assert patchText.endswith(
+            "--- a/ctx.txt\n"
+            "+++ b/ctx.txt\n"
+            "@@ -15,6 +15,6 @@ L14\n"
+            " L15\n"
+            " L16\n"
+            " L17\n"
+            "-L18\n"
+            "+L18 changed\n"
+            " L19\n"
+            " L20\n")
+        assert "L2 changed" not in patchText
+        assert rw.repo.status() == {"ctx.txt": FileStatus.WT_MODIFIED}
+
+    else:
+        raise NotImplementedError(f"Unknown action {action}")
+
+
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+@pytest.mark.parametrize("action", ["unstage", "export"])
+def testDiffViewContextMenuStagedLines(tempDir, mainWindow, action):
+    wd = _setUpContextMenuRepo(tempDir, stageAll=True)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inStaged("ctx.txt"), check=True)
+    dv = rw.diffView
+
+    menu = _summonDiffViewContextMenuOnBlock(dv, 2, select=True)
+    assert findMenuAction(menu, "unstage lines").isEnabled()
+    with pytest.raises(KeyError):
+        findMenuAction(menu, "^stage lines")
+    with pytest.raises(KeyError):
+        findMenuAction(menu, "discard")
+
+    if action == "unstage":
+        _triggerDiffViewContextMenuAction(menu, "unstage lines")
+        assert rw.repo.status() == {"ctx.txt": FileStatus.INDEX_MODIFIED | FileStatus.WT_MODIFIED}
+        assert _readStagedContextMenuFile(rw) == _contextMenuSecondHunkOnly
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuModified
+
+    elif action == "export":
+        _triggerDiffViewContextMenuAction(menu, "export lines as patch")
+        exportedPath = acceptQFileDialog(rw, "export", tempDir.name, useSuggestedName=True)
+        assert exportedPath.endswith("ctx.txt[partial].patch")
+        patchText = readTextFile(exportedPath)
+        assert patchText.endswith(
+            "@@ -1,5 +1,5 @@\n"
+            " L1\n"
+            "-L2\n"
+            "+L2 changed\n"
+            " L3\n"
+            " L4\n"
+            " L5\n")
+        assert "L18" not in patchText
+        assert rw.repo.status() == {"ctx.txt": FileStatus.INDEX_MODIFIED}
+
+    else:
+        raise NotImplementedError(f"Unknown action {action}")
+
+
+@pytest.mark.parametrize("action", ["unstage", "export"])
+def testDiffViewContextMenuStagedHunk(tempDir, mainWindow, action):
+    wd = _setUpContextMenuRepo(tempDir, stageAll=True)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inStaged("ctx.txt"), check=True)
+    dv = rw.diffView
+
+    menu = _summonDiffViewContextMenuOnBlock(dv, 12, select=False)
+    assert findMenuAction(menu, r"unstage hunk -15,6 \+15,6").isEnabled()
+    assert findMenuAction(menu, "blame line.+L18 changed").isEnabled()
+
+    if action == "unstage":
+        _triggerDiffViewContextMenuAction(menu, "unstage hunk")
+        assert rw.repo.status() == {"ctx.txt": FileStatus.INDEX_MODIFIED | FileStatus.WT_MODIFIED}
+        assert _readStagedContextMenuFile(rw) == _contextMenuFirstHunkOnly
+        assert readTextFile(f"{wd}/ctx.txt") == _contextMenuModified
+
+    elif action == "export":
+        _triggerDiffViewContextMenuAction(menu, "export hunk as patch")
+        exportedPath = acceptQFileDialog(rw, "export", tempDir.name, useSuggestedName=True)
+        assert exportedPath.endswith("ctx.txt[partial].patch")
+        patchText = readTextFile(exportedPath)
+        assert patchText.endswith(
+            "@@ -15,6 +15,6 @@ L14\n"
+            " L15\n"
+            " L16\n"
+            " L17\n"
+            "-L18\n"
+            "+L18 changed\n"
+            " L19\n"
+            " L20\n")
+        assert "L2 changed" not in patchText
+        assert rw.repo.status() == {"ctx.txt": FileStatus.INDEX_MODIFIED}
+
+    else:
+        raise NotImplementedError(f"Unknown action {action}")
+
+
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+def testDiffViewContextMenuExportContextLinesOnly(tempDir, mainWindow):
+    wd = _setUpContextMenuRepo(tempDir, stageAll=False)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("ctx.txt"), check=True)
+    dv = rw.diffView
+
+    # Select context lines only (L3, L4): there's nothing to export
+    menu = _summonDiffViewContextMenuOnBlock(dv, 4, select=True)
+    _triggerDiffViewContextMenuAction(menu, "export lines as patch")
+    QTest.qWait(0)
+    assert not any(isinstance(w, QFileDialog) and w.isVisible() for w in QApplication.topLevelWidgets())
+
+
+def testDiffViewContextMenuBlameBlankLine(tempDir, mainWindow):
+    wd = _setUpContextMenuRepo(tempDir, stageAll=False)
+    writeFile(f"{wd}/ctx.txt", _contextMenuOriginal.replace("L2\n", "\n"))
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("ctx.txt"), check=True)
+    dv = rw.diffView
+
+    # Block 3 is the blank line that replaced L2; blame preview should show its line number
+    menu = _summonDiffViewContextMenuOnBlock(dv, 3, select=False)
+    assert findMenuAction(menu, r"blame line \+2$").isEnabled()
+    menu.close()

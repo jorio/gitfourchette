@@ -832,3 +832,110 @@ def testDontScrollToSameCommitOnRefresh(tempDir, mainWindow):
     vsb.setSliderPosition(1000)
     rw.refreshRepo()
     assert vsb.sliderPosition() == 1000
+
+
+def _doubleClickGraphRow(graphView: GraphView, row: int,
+                         button=Qt.MouseButton.LeftButton,
+                         modifier=Qt.KeyboardModifier.NoModifier):
+    index = graphView.model().index(row, 0)
+    assert index.isValid()
+    graphView.scrollTo(index)
+    pos = graphView.visualRect(index).center()
+    # Select the row with a single click first (QTest.mouseDClick alone may not update the current index)
+    QTest.mouseClick(graphView.viewport(), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
+    assert graphView.currentIndex().row() == row
+    QTest.mouseDClick(graphView.viewport(), button, modifier, pos)
+
+
+def testDoubleClickUncommittedChangesRow(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")
+    rw = mainWindow.openRepo(wd)
+
+    qlvClickNthRow(rw.dirtyFiles, 0)
+    QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)
+    assert qlvGetRowData(rw.stagedFiles) == ["a/a1.txt"]
+
+    _doubleClickGraphRow(rw.graphView, 0)
+    assert rw.graphView.currentRowKind == SpecialRow.UncommittedChanges
+
+    dialog = findQDialog(rw, "commit")
+    dialog.reject()
+    assert rw.repo.head_commit_id == Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+
+
+def testDoubleClickTruncatedHistoryRow(tempDir, mainWindow):
+    GFApplication.applyPrefs(maxCommits=5)
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    assert rw.graphView.clFilter.rowCount() == 7  # 1 Workdir, 5 Commits, 1 Truncated
+
+    row = rw.graphView.getFilterIndexForLocator(NavLocator.inSpecial(SpecialRow.TruncatedHistory)).row()
+    _doubleClickGraphRow(rw.graphView, row)
+
+    rw = mainWindow.currentRepoWidget()
+    assert rw.graphView.clFilter.rowCount() > 7
+    assert rw.graphView.clModel._extraRow == SpecialRow.Invalid
+
+
+@pytest.mark.parametrize("accept", [False, True])
+def testDoubleClickCommitRow(tempDir, mainWindow, accept):
+    oid = Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6")
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    headBefore = rw.repo.head_commit_id
+
+    row = rw.graphView.getFilterIndexForCommit(oid).row()
+    _doubleClickGraphRow(rw.graphView, row)
+    assert rw.graphView.currentCommitId == oid
+
+    checkoutDialog = findQDialog(rw, "check.?out commit")
+    if accept:
+        checkoutDialog.ui.detachHeadRadioButton.setChecked(True)
+        checkoutDialog.accept()
+        assert rw.repo.head_is_detached
+        assert rw.repo.head_commit_id == oid
+    else:
+        checkoutDialog.reject()
+        assert not rw.repo.head_is_detached
+        assert rw.repo.head_commit_id == headBefore
+
+
+@pytest.mark.parametrize("kind", ["rightbutton", "modifier"])
+def testDoubleClickCommitRowIgnoredWithOtherButtonOrModifier(tempDir, mainWindow, kind):
+    oid = Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6")
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    row = rw.graphView.getFilterIndexForCommit(oid).row()
+
+    if kind == "rightbutton":
+        _doubleClickGraphRow(rw.graphView, row, button=Qt.MouseButton.RightButton)
+    elif kind == "modifier":
+        _doubleClickGraphRow(rw.graphView, row, modifier=Qt.KeyboardModifier.ShiftModifier)
+    else:
+        raise NotImplementedError(f"unknown kind {kind}")
+
+    QTest.qWait(0)
+    assert rw.graphView.currentCommitId == oid
+    assert not [d for d in rw.findChildren(QDialog) if d.isVisible()]
+    assert not rw.repo.head_is_detached
+
+
+def testDoubleClickGraphWithoutCurrentIndex(tempDir, mainWindow):
+    GFApplication.applyPrefs(maxCommits=2)  # Few rows so that there's some empty space below the last row
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    rw.graphView.setCurrentIndex(QModelIndex())
+    assert not rw.graphView.currentIndex().isValid()
+
+    # Double-click in the empty area below the last row
+    viewport = rw.graphView.viewport()
+    lastIndex = rw.graphView.model().index(rw.graphView.model().rowCount() - 1, 0)
+    assert rw.graphView.visualRect(lastIndex).bottom() < viewport.height() - 2
+    QTest.mouseDClick(viewport, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+                      QPoint(2, viewport.height() - 2))
+
+    QTest.qWait(0)
+    assert not rw.graphView.currentIndex().isValid()
+    assert not [d for d in rw.findChildren(QDialog) if d.isVisible()]

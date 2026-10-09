@@ -648,3 +648,31 @@ def testConflictSidesHasOursHasTheirs():
     assert get(GitConflictSides.DeletedByUs) == (False, True)
     assert get(GitConflictSides.BothAdded) == (True, True)
     assert get(GitConflictSides.BothModified) == (True, True)
+
+
+def testAbortMergeBlockedByFileWithStagedAndUnstagedChanges(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    rw = mainWindow.openRepo(wd)
+
+    # Initiate merge of pep8-fixes into master
+    node = rw.sidebar.findNodeByRef("refs/heads/pep8-fixes")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
+    acceptQMessageBox(rw, "pep8-fixes.+into.+master.+may cause conflicts")
+    assert rw.repo.state() == RepositoryState.MERGE
+    assert rw.repo.status() == {"bye.txt": FileStatus.INDEX_NEW}
+
+    # Give bye.txt some unstaged changes on top of its staged changes
+    writeFile(f"{wd}/bye.txt", "unstaged change\n")
+    rw.refreshRepo()
+    assert rw.repo.status() == {"bye.txt": FileStatus.INDEX_NEW | FileStatus.WT_MODIFIED}
+
+    # Attempt to abort the merge
+    assert re.search(r"abort", rw.mergeBanner.buttons[-1].text(), re.IGNORECASE)
+    rw.mergeBanner.buttons[-1].click()
+    acceptQMessageBox(rw, r"cannot abort the ongoing merge.+a file contains both staged and unstaged changes")
+
+    # Merge state must be untouched
+    assert rw.mergeBanner.isVisible()
+    assert rw.repo.state() == RepositoryState.MERGE
+    assert rw.repo.status() == {"bye.txt": FileStatus.INDEX_NEW | FileStatus.WT_MODIFIED}
+    assert readFile(f"{wd}/bye.txt").decode() == "unstaged change\n"

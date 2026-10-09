@@ -16,6 +16,7 @@ from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.toolbox.gitutils import formatTimeOffset
 from . import reposcenario
 from .util import *
 
@@ -248,6 +249,50 @@ def testAmendCommit(tempDir, mainWindow):
 
     assert findTextInWidget(mainWindow.statusBar2, rf"commit.+{id7(oldHeadCommit)}.+amended.+{id7(headCommit)}")
 
+
+
+@pytest.mark.parametrize("offset", [
+    83,  # +01:23: must be inserted somewhere in the middle of the combo box
+    -11 * 60 - 30,  # -11:30: must be inserted at the top of the combo box
+    14 * 60,  # +14:00: must be appended to the bottom of the combo box
+])
+def testAmendCommitWithUnusualTimeOffset(tempDir, mainWindow, offset):
+    oddSig = Signature("Odd Offset", "odd.offset@example.com", 1672600000, offset)
+
+    wd = unpackRepo(tempDir)
+    shell("git commit --allow-empty -m 'commit with unusual time offset'", wd, authorSig=oddSig)
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.head_commit.author.offset == offset
+
+    triggerMenuAction(rw.diffArea.commitButton.menu(), "amend")
+    dialog: CommitDialog = findQDialog(rw, "amend")
+    dialog.ui.revealSignature.setChecked(True)
+
+    # The unusual offset should have been inserted into the combo box, and selected
+    offsetEdit = dialog.ui.signature.ui.offsetEdit
+    assert offsetEdit.currentData() == offset
+    assert offsetEdit.currentText() == formatTimeOffset(offset)
+
+    # The unusual offset should be inserted in order
+    allOffsets = [offsetEdit.itemData(i) for i in range(offsetEdit.count())]
+    assert allOffsets.count(offset) == 1
+    i = offsetEdit.currentIndex()
+    assert i == 0 or allOffsets[i - 1] < offset
+    assert i == len(allOffsets) - 1 or allOffsets[i + 1] > offset
+
+    # Selecting the same offset again shouldn't insert a duplicate entry
+    dialog.ui.signature.setTimeOffset(offset)
+    assert offsetEdit.count() == len(allOffsets)
+
+    # Override the author's name and amend; the original time offset should be preserved
+    dialog.ui.signature.ui.nameEdit.setText("Someone Else")
+    dialog.accept()
+
+    headCommit = rw.repo.head_commit
+    assert headCommit.message.strip() == "commit with unusual time offset"
+    assert headCommit.author.name == "Someone Else"
+    assert headCommit.author.offset == offset
+    assert headCommit.author.time == oddSig.time
 
 def testAmendCommitDontBreakRefresh(tempDir, mainWindow):
     wd = unpackRepo(tempDir)

@@ -444,3 +444,42 @@ def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
     # Kill any progress dialogs before exiting the test
     rw.taskRunner.killCurrentTask()
     rw.taskRunner.joinKilledTask()
+
+
+def testVerifyGpgQueueGitFailsToStart(tempDir, mainWindow):
+    # This signature is bogus, but git won't even get a chance to verify it.
+    fakeSignature = textwrap.dedent("""\
+        -----BEGIN PGP SIGNATURE-----
+
+        iHUEABYKAB0WIQRt3y3h2XW8eXhfqYDVvsXSTWjCpAUCZzCPCwAKCRDVvsXSTWjC
+        -----END PGP SIGNATURE-----""")
+
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        commitString = repo.create_commit_string(
+            TEST_SIGNATURE, TEST_SIGNATURE, "FAKE PGP SIGNATURE",
+            repo.head_tree.id, [repo.head_commit_id])
+        oid = repo.create_commit_with_signature(commitString, fakeSignature)
+        repo.create_branch_from_commit("FakeSignature", oid)
+
+    mainWindow.resize(1024, 512)
+    rw = mainWindow.openRepo(wd)
+    gpgStatusCache = rw.repoModel.gpgStatusCache
+    gpgVerifyQueue = rw.repoModel.gpgVerifyQueue
+    waitUntilTrue(lambda: oid in gpgStatusCache)
+    assert gpgStatusCache[oid] == (GpgStatus.Pending, "")
+    assert not gpgVerifyQueue
+
+    # Make git impossible to start, then enable on-the-fly verification
+    GFApplication.applyPrefs(
+        gitPath=f"{tempDir.name}/supposedly-a-git-executable-but-it-doesnt-exist",
+        verifyGpgOnTheFly=True)
+    rw.graphView.viewport().update()
+
+    waitUntilTrue(lambda: gpgStatusCache[oid][0] == GpgStatus.ProcessError)
+    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    assert oid not in gpgVerifyQueue
+
+    # VerifyGpgQueue must not spam dialog boxes if git fails to start
+    with pytest.raises(KeyError):
+        findQMessageBox(rw, "couldn.t start git")

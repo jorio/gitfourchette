@@ -1160,6 +1160,79 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
     assert looseOid not in rw.repoModel.graph.commitRows
 
 
+
+def testSwitchAwayFromSafelyDetachedHead(tempDir, mainWindow):
+    # HEAD is detached on a commit that's still reachable from master,
+    # so switching away from it is safe.
+    wd = unpackRepo(tempDir)
+    shell("git switch --detach HEAD~1", wd)
+
+    rw = mainWindow.openRepo(wd)
+    detachedOid = rw.repo.head_commit_id
+    assert rw.repo.head_is_detached
+    assert rw.repoModel.refsAt[detachedOid] == ["HEAD"]
+    assert not rw.repoModel.dangerouslyDetachedHead()
+
+    node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to.+no-parent")
+
+    # No warning about losing track of the detached commit
+    with pytest.raises(KeyError):
+        findQMessageBox(rw, "lose track of this commit")
+    assert rw.repo.head_branch_shorthand == "no-parent"
+
+
+def testSwitchAwayFromDetachedHeadOnBranchTip(tempDir, mainWindow):
+    # HEAD is detached on the tip of a branch, so it's safe to switch away.
+    wd = unpackRepo(tempDir)
+    shell("git switch --detach master", wd)
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.head_is_detached
+    assert not rw.repoModel.dangerouslyDetachedHead()
+
+    node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to.+no-parent")
+
+    with pytest.raises(KeyError):
+        findQMessageBox(rw, "lose track of this commit")
+    assert rw.repo.head_branch_shorthand == "no-parent"
+
+
+@pytest.mark.parametrize("accept", [True, False])
+def testMightLoseDetachedHeadBeyondTruncatedHistory(tempDir, mainWindow, accept):
+    # Create a loose commit on a very old date so that it ends up below the
+    # truncation threshold of the commit history. Since the detached HEAD
+    # isn't in the graph, we can't tell if it's reachable from any branch,
+    # so GitFourchette should err on the side of caution and warn the user.
+    wd = unpackRepo(tempDir)
+    oldSig = Signature("Old Timer", "old@example.com", 100_000_000, 0)
+    shell("""
+        git switch --detach $(git rev-list --max-parents=0 master | tail -1)
+        git commit --allow-empty -m 'very old loose commit'
+    """, wd, authorSig=oldSig, committerSig=oldSig)
+
+    GFApplication.applyPrefs(maxCommits=5)
+    rw = mainWindow.openRepo(wd)
+    looseOid = rw.repo.head_commit_id
+    assert rw.repo.head_is_detached
+    assert looseOid not in rw.repoModel.graph.commitRows
+    assert rw.repoModel.dangerouslyDetachedHead()
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to.+master")
+
+    if accept:
+        acceptQMessageBox(rw, "lose track of this commit")
+        assert rw.repo.head_branch_shorthand == "master"
+    else:
+        rejectQMessageBox(rw, "lose track of this commit")
+        assert rw.repo.head_is_detached
+        assert rw.repo.head_commit_id == looseOid
+
 def testCreateBranchOnDetachedHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

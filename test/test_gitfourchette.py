@@ -1098,3 +1098,113 @@ def testSshAgentSandboxingMatchesGit(tempDir, mainWindow):
     app.applyPrefs(gitPath="/usr/bin/git")
     assert not settings.prefs.isGitSandboxed()
     assert not app.sshAgent.isSandboxed()
+
+
+@pytest.mark.parametrize("which", [".gitignore", "exclude"])
+def testOpenMissingLocalConfigFile(tempDir, mainWindow, which):
+    wd = unpackRepo(tempDir)
+    relPath = {".gitignore": ".gitignore", "exclude": ".git/info/exclude"}[which]
+    fullPath = os.path.join(wd, relPath)
+    with suppress(FileNotFoundError):
+        os.unlink(fullPath)
+
+    rw = mainWindow.openRepo(wd)
+    menuPath = "repo/local config files/" + re.escape(which)
+
+    with MockDesktopServicesContext() as services:
+        # Reject the prompt: the file must not be created
+        triggerMenuAction(mainWindow.menuBar(), menuPath)
+        rejectQMessageBox(rw, r"does not exist.+create it")
+        assert not os.path.exists(fullPath)
+        assert not services.urls
+
+        # Accept the prompt: the file must be created, then opened
+        triggerMenuAction(mainWindow.menuBar(), menuPath)
+        acceptQMessageBox(rw, r"does not exist.+create it")
+        assert os.path.isfile(fullPath)
+        assert os.path.getsize(fullPath) == 0
+        assert os.path.samefile(services.lastUrlAsLocalFile(), fullPath)
+
+
+@pytest.mark.parametrize("which", [".gitignore", "config", "exclude"])
+def testOpenExistingLocalConfigFile(tempDir, mainWindow, which):
+    wd = unpackRepo(tempDir)
+    relPath = {".gitignore": ".gitignore", "config": ".git/config", "exclude": ".git/info/exclude"}[which]
+    fullPath = os.path.join(wd, relPath)
+    if not os.path.exists(fullPath):
+        os.makedirs(os.path.dirname(fullPath), exist_ok=True)
+        writeFile(fullPath, "# hello\n")
+    originalContents = readFile(fullPath)
+
+    rw = mainWindow.openRepo(wd)
+    menuPath = "repo/local config files/" + re.escape(which)
+
+    # No external editor configured: fall back to QDesktopServices
+    with MockDesktopServicesContext() as services:
+        triggerMenuAction(mainWindow.menuBar(), menuPath)
+        assert os.path.samefile(services.lastUrlAsLocalFile(), fullPath)
+
+    # Existing file must be opened without prompting
+    with pytest.raises(KeyError):
+        findQMessageBox(rw, r"does not exist")
+
+    # With an external editor configured
+    editorPath = getTestDataPath("editor-shim.py")
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    GFApplication.applyPrefs(externalEditor=f'"{editorPath}" "{scratchPath}"')
+    triggerMenuAction(mainWindow.menuBar(), menuPath)
+    waitForFile(scratchPath)
+    editorArgs = readTextFile(scratchPath, unlink=True).splitlines()
+    assert os.path.samefile(editorArgs[-1], fullPath)
+
+    # File must be left intact
+    assert readFile(fullPath) == originalContents
+
+
+def testRepoWidgetCopyPathRevealAndTerminal(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    # Copy repo path from the Repo menu
+    triggerMenuAction(mainWindow.menuBar(), "repo/copy repo path")
+    assert os.path.samefile(QApplication.clipboard().text(), wd)
+
+    # Copy repo path straight from RepoWidget
+    QApplication.clipboard().setText("")
+    rw.copyRepoPath()
+    assert QApplication.clipboard().text() == rw.workdir
+    assert os.path.samefile(rw.workdir, wd)
+
+    # Reveal button in toolbar
+    with MockDesktopServicesContext() as services:
+        findChildWithText(mainWindow.mainToolBar, "reveal", QToolButton).click()
+        assert os.path.samefile(services.lastUrlAsLocalFile(), wd)
+
+    # Terminal button in toolbar
+    shimPath = getTestDataPath("editor-shim.py")
+    scratchPath = f"{tempDir.name}/terminal scratch file.txt"
+    GFApplication.applyPrefs(terminal=f'"{shimPath}" "{scratchPath}" "hello world" $COMMAND')
+    mainWindow.mainToolBar.terminalAction.trigger()
+    waitForFile(scratchPath)
+    terminalShimResult = readTextFile(scratchPath, unlink=True).splitlines()
+    assert terminalShimResult[0] == "hello world"
+    assert terminalShimResult[1].endswith(".sh")  # path to launcher script
+
+
+@pytest.mark.parametrize("method", ["menubar", "repowidget"])
+def testOpenSuperprojectWithoutSuperproject(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    assert not rw.superproject
+
+    if method == "menubar":
+        triggerMenuAction(mainWindow.menuBar(), "repo/open superproject")
+        acceptQMessageBox(mainWindow, "does not have a superproject")
+    elif method == "repowidget":
+        rw.openSuperproject()
+        acceptQMessageBox(rw, "does not have a superproject")
+    else:
+        raise NotImplementedError(f"unknown method {method}")
+
+    assert mainWindow.tabs.count() == 1
+    assert mainWindow.currentRepoWidget() is rw

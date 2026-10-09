@@ -733,3 +733,139 @@ def testBlameLine(tempDir, mainWindow):
     messages = [rw.repo[s.commitId].peel(Commit).message.strip()
                 for s in blameWindow.model.revList.sequence]
     assert messages == ["Say hello in Swedish", "Say hello in French", "Say hello in Spanish", "First commit"]
+
+
+def _diffBlockPoint(diffView, text: str) -> QPoint:
+    document = diffView.document()
+    blockNos = [i for i in range(document.blockCount()) if document.findBlockByNumber(i).text() == text]
+    assert len(blockNos) == 1, f"expecting exactly one block with text {text!r}"
+    return qteBlockPoint(diffView, blockNos[0])
+
+
+def testBlameDeletedLineInCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    writeFile(f"{wd}/hello.txt", "hello world\nbonjour le monde\n")
+    shell("git commit -am 'Delete Spanish'", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "hello.txt"), check=True)
+
+    # Blame the deleted line: should be blamed in the parent commit
+    bp = _diffBlockPoint(rw.diffView, "hola mundo")
+    triggerContextMenuAction(rw.diffView.viewport(), "blame line.+hola mundo", bp)
+
+    blameWindow = findWindow("blame", t=BlameWindow)
+    assert blameWindow.textEdit.textCursor().selectedText() == "hola mundo"
+    assert blameWindow.scrubber.currentText().strip() == "Say hello in Spanish"
+
+    messages = [rw.repo[s.commitId].peel(Commit).message.strip()
+                for s in blameWindow.model.revList.sequence]
+    assert messages == ["Delete Spanish", "Merge branch 'i18n'", "Say hello in French", "Say hello in Spanish", "First commit"]
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
+
+
+@pytest.mark.parametrize("context", ["unstaged", "staged"])
+@pytest.mark.parametrize("origin", ["-", "+"])
+def testBlameLineInWorkdir(tempDir, mainWindow, context, origin):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    if origin == "-":
+        # Delete the Spanish line
+        writeFile(f"{wd}/hello.txt", "hello world\nbonjour le monde\n")
+        lineText = "hola mundo"
+        expectedRevision = "Say hello in Spanish"
+    else:
+        # Add an Italian line
+        writeFile(f"{wd}/hello.txt", "hello world\nhola mundo\nciao mondo\nbonjour le monde\n")
+        lineText = "ciao mondo"
+        expectedRevision = "Uncommitted"
+
+    if context == "staged":
+        shell("git add hello.txt", wd)
+        locator = NavLocator.inStaged("hello.txt")
+    else:
+        locator = NavLocator.inUnstaged("hello.txt")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(locator, check=True)
+
+    bp = _diffBlockPoint(rw.diffView, lineText)
+    triggerContextMenuAction(rw.diffView.viewport(), f"blame line.+{lineText}", bp)
+
+    blameWindow = findWindow("blame", t=BlameWindow)
+    assert blameWindow.textEdit.textCursor().selectedText() == lineText
+    assert expectedRevision in blameWindow.scrubber.currentText()
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
+
+
+def testBlameDeletedLineInDirtyFileWithStagedChanges(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    # Stage a new line at the top, which shifts the line numbers in the index
+    writeFile(f"{wd}/hello.txt", "ciao mondo\nhello world\nhola mundo\nbonjour le monde\n")
+    shell("git add hello.txt", wd)
+
+    # Delete the Spanish line in the workdir
+    writeFile(f"{wd}/hello.txt", "ciao mondo\nhello world\nbonjour le monde\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("hello.txt"), check=True)
+
+    bp = _diffBlockPoint(rw.diffView, "hola mundo")
+    triggerContextMenuAction(rw.diffView.viewport(), "blame line.+hola mundo", bp)
+
+    # The blame is seeded on HEAD, but the line number comes from the index,
+    # so the line can't be blamed exactly
+    blameWindow = findWindow("blame", t=BlameWindow)
+    acceptQMessageBox(blameWindow, "couldn.t blame the exact line.+both staged and unstaged changes")
+    assert blameWindow.textEdit.textCursor().selectedText() != "hola mundo"
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)
+
+
+def testBlameLineIntroducedByCommitMissingFromRevList(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+
+    # Start a merge whose incoming line comes from a commit that isn't part of
+    # HEAD's history. The blame trace only follows HEAD's history, but
+    # 'git blame' also considers MERGE_HEAD when blaming the workdir.
+    shell("""
+        git switch -c side
+        echo 'side line' >> hello.txt
+        git commit -am 'Side change'
+        git switch master
+        printf 'master line\\n' | cat - hello.txt > hello.tmp
+        mv hello.tmp hello.txt
+        git commit -am 'Master change'
+        git merge --no-commit --no-ff side
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.state() == RepositoryState.MERGE
+    sideId = rw.repo.branches.local["side"].target
+    rw.jump(NavLocator.inStaged("hello.txt"), check=True)
+
+    bp = _diffBlockPoint(rw.diffView, "side line")
+    triggerContextMenuAction(rw.diffView.viewport(), "blame line.+side line", bp)
+
+    acceptQMessageBox(mainWindow, f"{sideId}.+missing from revlist")
+
+    # The blame window is still shown, although no revision was loaded into it
+    # (so it has no window title yet, and findWindow can't find it by title)
+    assert len(BlameWindow._currentBlameWindows) == 1
+    blameWindow = BlameWindow._currentBlameWindows[0]
+    assert blameWindow.isVisible()
+    with pytest.raises(KeyError):
+        blameWindow.model.revList.revisionForCommit(sideId)
+
+    blameWindow.close()
+    if QT5:  # Qt 5 needs a breather here to actually close window
+        QTest.qWait(0)

@@ -11,6 +11,7 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarModel
 from gitfourchette.toolbox import naturalSort
+from . import reposcenario
 from .util import *
 
 
@@ -716,3 +717,379 @@ def testSidebarFilterCollapseState(tempDir, mainWindow):
     # folder2 was originally collapsed, but it should now be expanded because
     # we selected it before closing the search bar.
     assert isExpanded("refs/heads/folder2/leaf")
+
+
+# -----------------------------------------------------------------------------
+# Enter/Rename/Delete actions on each node kind, and mouse click zones
+
+@pytest.fixture
+def beepCounter(monkeypatch):
+    beeps = []
+    monkeypatch.setattr(QApplication, "beep", lambda: beeps.append(True))
+    return beeps
+
+
+def _findSidebarNode(sb, kind: SidebarItem, data: str = ""):
+    if not data:
+        return sb.findNodeByKind(kind)
+    return sb.findNode(lambda n: n.kind == kind and n.data == data)
+
+
+def _enterSidebarNode(sb, node, method: str):
+    if method == "key":
+        sb.setFocus()
+        sb.selectNode(node)
+        QTest.keyPress(sb, Qt.Key.Key_Return)
+    elif method == "dclick":
+        rect = sb.visualRect(sb.nodeToFilterIndex(node))
+        QTest.mouseDClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=rect.topLeft())
+    else:
+        raise NotImplementedError(f"unknown method {method}")
+
+
+def _keyOnSidebarNode(sb, node, key: Qt.Key):
+    sb.setFocus()
+    if node is None:
+        sb.clearSelection()
+    else:
+        sb.selectNode(node)
+    QTest.keyPress(sb, key)
+
+
+def _sidebarClickPos(sb, node, zone: str) -> QPoint:
+    rect = sb.visualRect(sb.nodeToFilterIndex(node))
+    if zone == "select":
+        return rect.center()
+    elif zone == "expand":
+        return QPoint(rect.left() - sb.indentation() // 2, rect.center().y())
+    elif zone == "hide":
+        return QPoint(rect.right(), rect.center().y())
+    raise NotImplementedError(f"unknown zone {zone}")
+
+
+@pytest.mark.parametrize("method", ["key", "dclick"])
+def testSidebarEnterLocalBranchSwitches(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, sb.findNodeByRef("refs/heads/no-parent"), method)
+    acceptQMessageBox(rw, "switch to.+no-parent")
+    assert rw.repo.head_branch_shorthand == "no-parent"
+
+
+@pytest.mark.parametrize("method", ["key", "dclick"])
+def testSidebarEnterCurrentBranch(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, sb.findNodeByRef("refs/heads/master"), method)
+    acceptQMessageBox(rw, "already checked.out")
+    assert rw.repo.head_branch_shorthand == "master"
+
+
+@pytest.mark.parametrize("method", ["key", "dclick"])
+@pytest.mark.parametrize("kind,data,dialogPattern", [
+    (SidebarItem.Remote, "origin", "edit remote"),
+    (SidebarItem.RemotesHeader, "", "add remote"),
+    (SidebarItem.LocalBranchesHeader, "", "new branch"),
+    (SidebarItem.TagsHeader, "", "new tag"),
+    (SidebarItem.RemoteBranch, "refs/remotes/origin/first-merge", "new branch"),
+    (SidebarItem.Tag, "refs/tags/annotated_tag", "check.?out commit"),
+])
+def testSidebarEnterNodeOpensDialog(tempDir, mainWindow, method, kind, data, dialogPattern):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, _findSidebarNode(sb, kind, data), method)
+    dlg = findQDialog(rw, dialogPattern)
+
+    if kind == SidebarItem.RemoteBranch:
+        assert dlg.ui.nameEdit.text() == "first-merge"
+
+    dlg.reject()
+
+
+def testSidebarEnterDetachedHead(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("git checkout 7f82283", wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, sb.findNodeByKind(SidebarItem.DetachedHead), "key")
+    dlg = findQDialog(rw, "new branch")
+    dlg.ui.nameEdit.setText("rescued")
+    dlg.accept()
+
+    assert rw.repo.head_branch_shorthand == "rescued"
+    assert str(rw.repo.head_commit_id).startswith("7f82283")
+
+
+@pytest.mark.parametrize("method", ["key", "dclick"])
+def testSidebarEnterUncommittedChanges(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    # Nothing is staged, so NewCommit asks about creating an empty commit
+    _enterSidebarNode(sb, sb.findNodeByKind(SidebarItem.UncommittedChanges), method)
+    rejectQMessageBox(rw, "empty commit")
+
+
+def testSidebarEnterStashesHeaderWithoutChanges(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, sb.findNodeByKind(SidebarItem.StashesHeader), "key")
+    acceptQMessageBox(rw, "no.+changes to stash")
+
+
+@pytest.mark.parametrize("method", ["key", "dclick"])
+def testSidebarEnterStash(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    reposcenario.stashedChange(wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, sb.findNodeByKind(SidebarItem.Stash), method)
+    rejectQMessageBox(rw, "apply.+stash")
+    assert len(rw.repo.listall_stashes()) == 1
+
+
+def testSidebarEnterSubmodule(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    submoAbsPath, _submoCommit = reposcenario.submodule(wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _enterSidebarNode(sb, sb.findNodeByKind(SidebarItem.Submodule), "key")
+
+    if WINDOWS:
+        submoAbsPath = submoAbsPath.replace("\\", "/")
+    assert mainWindow.currentRepoWidget() is not rw
+    assert mainWindow.currentRepoWidget().repo.workdir == submoAbsPath + "/"
+
+
+@pytest.mark.parametrize("kind,data", [
+    (None, ""),
+    (SidebarItem.SubmodulesHeader, ""),
+    (SidebarItem.RefFolder, "refs/heads/folder"),
+    (SidebarItem.RefFolder, "refs/tags/folder"),
+])
+def testSidebarEnterUnsupportedNodeBeeps(tempDir, mainWindow, beepCounter, kind, data):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch folder/leaf
+        git tag folder/leaf
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    node = _findSidebarNode(sb, kind, data) if kind is not None else None
+    _keyOnSidebarNode(sb, node, Qt.Key.Key_Return)
+    assert len(beepCounter) == 1
+
+
+def testSidebarSpacerActionsAreNoOps(tempDir, mainWindow, beepCounter):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    spacer = sb.findNodesByKind(SidebarItem.Spacer)[0]
+    sb.wantEnterNode(spacer)
+    sb.wantRenameNode(spacer)
+    sb.wantDeleteNode(spacer)
+    assert not beepCounter
+
+    # Spacers can't be clicked
+    rect = sb.visualRect(sb.nodeToFilterIndex(spacer))
+    mouseSpecialClick(sb.viewport(), "double", rect.center())
+    assert not beepCounter
+
+
+@pytest.mark.parametrize("kind,data,dialogPattern", [
+    (SidebarItem.LocalBranch, "refs/heads/master", "rename.+branch"),
+    (SidebarItem.Remote, "origin", "edit remote"),
+    (SidebarItem.RefFolder, "refs/heads/folder", "rename.+folder"),
+])
+def testSidebarRenameNodeOpensDialog(tempDir, mainWindow, kind, data, dialogPattern):
+    wd = unpackRepo(tempDir)
+    shell("git branch folder/leaf", wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _keyOnSidebarNode(sb, _findSidebarNode(sb, kind, data), Qt.Key.Key_F2)
+    findQDialog(rw, dialogPattern).reject()
+
+
+def testSidebarRenameRemoteBranchWithF2(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _keyOnSidebarNode(sb, sb.findNodeByRef("refs/remotes/origin/first-merge"), Qt.Key.Key_F2)
+    dlg = findQDialog(rw, "rename remote branch")
+    assert dlg.lineEdit.text() == "first-merge"
+    dlg.reject()
+
+
+@pytest.mark.parametrize("kind,data", [
+    (None, ""),
+    (SidebarItem.Tag, "refs/tags/annotated_tag"),
+    (SidebarItem.Stash, ""),
+    (SidebarItem.UncommittedChanges, ""),
+    (SidebarItem.LocalBranchesHeader, ""),
+    (SidebarItem.RefFolder, "refs/tags/folder"),
+    (SidebarItem.RefFolder, "refs/remotes/origin/folder"),
+])
+def testSidebarRenameUnsupportedNodeBeeps(tempDir, mainWindow, beepCounter, kind, data):
+    wd = unpackRepo(tempDir)
+    reposcenario.stashedChange(wd)
+    shell("""
+        git tag folder/leaf
+        mkdir -p .git/refs/remotes/origin/folder
+        git rev-parse HEAD > .git/refs/remotes/origin/folder/leaf
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    node = _findSidebarNode(sb, kind, data) if kind is not None else None
+    _keyOnSidebarNode(sb, node, Qt.Key.Key_F2)
+    assert len(beepCounter) == 1
+
+
+@pytest.mark.parametrize("kind,data,prompt", [
+    (SidebarItem.LocalBranch, "refs/heads/no-parent", "really delete.+branch"),
+    (SidebarItem.Remote, "origin", "really remove remote"),
+    (SidebarItem.RemoteBranch, "refs/remotes/origin/first-merge", "really delete branch.+from the remote"),
+    (SidebarItem.RefFolder, "refs/heads/folder", "really delete.+branch folder"),
+    (SidebarItem.Stash, "", "really delete.+stash"),
+])
+def testSidebarDeleteNodePrompts(tempDir, mainWindow, kind, data, prompt):
+    wd = unpackRepo(tempDir)
+    reposcenario.stashedChange(wd)
+    shell("git branch folder/leaf", wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _keyOnSidebarNode(sb, _findSidebarNode(sb, kind, data), Qt.Key.Key_Delete)
+    rejectQMessageBox(rw, prompt)
+
+
+def testSidebarDeleteTagOpensDialog(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    _keyOnSidebarNode(sb, sb.findNodeByRef("refs/tags/annotated_tag"), Qt.Key.Key_Delete)
+    findQDialog(rw, "delete tag").reject()
+    assert "refs/tags/annotated_tag" in rw.repo.references
+
+
+@pytest.mark.parametrize("kind,data", [
+    (None, ""),
+    (SidebarItem.UncommittedChanges, ""),
+    (SidebarItem.TagsHeader, ""),
+    (SidebarItem.RefFolder, "refs/tags/folder"),
+])
+def testSidebarDeleteUnsupportedNodeBeeps(tempDir, mainWindow, beepCounter, kind, data):
+    wd = unpackRepo(tempDir)
+    shell("git tag folder/leaf", wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    node = _findSidebarNode(sb, kind, data) if kind is not None else None
+    _keyOnSidebarNode(sb, node, Qt.Key.Key_Delete)
+    assert len(beepCounter) == 1
+
+
+def testSidebarClickSelectZone(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    node = sb.findNodeByRef("refs/heads/no-parent")
+    QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=_sidebarClickPos(sb, node, "select"))
+    assert sb.selectedNode() is node
+    assert rw.graphView.currentCommitId == rw.repo.branches.local["no-parent"].target
+    assert not sb.sidebarModel.isExplicitlyHidden(node)
+
+
+def testSidebarMiddleClickSelectZoneDoesNothingSpecial(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    reposcenario.stashedChange(wd)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sm = sb.sidebarModel
+
+    for node in [sb.findNodeByRef("refs/heads/no-parent"), sb.findNodeByKind(SidebarItem.Stash)]:
+        mouseSpecialClick(sb.viewport(), "middle", _sidebarClickPos(sb, node, "select"))
+        assert not sm.isHideAllButThisMode()
+        assert not sm.isExplicitlyHidden(node)
+
+    # No prompts (e.g. drop stash) must have appeared
+    assert not [qmb for qmb in rw.findChildren(QMessageBox) if qmb.isVisibleTo(rw)]
+    assert len(rw.repo.listall_stashes()) == 1
+
+
+def testSidebarClickHideZoneRequiresSameRowOnRelease(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sm = sb.sidebarModel
+
+    master = sb.findNodeByRef("refs/heads/master")
+    noParent = sb.findNodeByRef("refs/heads/no-parent")
+
+    # Press on master's eye, release on no-parent's eye: neither must be hidden
+    QTest.mousePress(sb.viewport(), Qt.MouseButton.LeftButton, pos=_sidebarClickPos(sb, master, "hide"))
+    QTest.mouseRelease(sb.viewport(), Qt.MouseButton.LeftButton, pos=_sidebarClickPos(sb, noParent, "hide"))
+    assert not sm.isExplicitlyHidden(master)
+    assert not sm.isExplicitlyHidden(noParent)
+
+    # Press and release on the same eye: hides the branch
+    QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=_sidebarClickPos(sb, noParent, "hide"))
+    assert sm.isExplicitlyHidden(noParent)
+    assert not sm.isExplicitlyHidden(master)
+
+
+def testSidebarHideNodeWithoutPatternIsNoOp(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    emissions = []
+    sb.toggleHideRefPattern.connect(lambda *args: emissions.append(args))
+    sb.wantHideNode(sb.findNodeByKind(SidebarItem.TagsHeader))
+    assert not emissions
+
+
+def testSidebarClickExpandZone(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    sm = sb.sidebarModel
+
+    remoteNode = sb.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
+    remoteIndex = sb.nodeToFilterIndex(remoteNode)
+    remoteBranch = sb.findNodeByRef("refs/remotes/origin/master")
+    assert sb.isExpanded(remoteIndex)
+
+    pos = _sidebarClickPos(sb, remoteNode, "expand")
+    QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert not sb.isExpanded(remoteIndex)
+    assert not sm.isAncestryChainExpanded(remoteBranch)
+
+    QTest.mouseClick(sb.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert sb.isExpanded(remoteIndex)
+    assert sm.isAncestryChainExpanded(remoteBranch)
+
+    # Clicking the expand zone must not select the node
+    assert sb.selectedNode() is not remoteNode
+
+    # Double-clicking the expand zone must not "enter" the node (which would open the remote editor)
+    mouseSpecialClick(sb.viewport(), "double", pos)
+    assert not [dlg for dlg in rw.findChildren(QDialog) if dlg.isVisible()]
