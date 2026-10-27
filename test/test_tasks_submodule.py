@@ -542,3 +542,59 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     dlg.accept()
 
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
+
+
+def testOpenSubmoduleFolder(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    submoAbsPath, _dummy = reposcenario.submodule(wd)
+
+    rw = mainWindow.openRepo(wd)
+    submoNode = rw.sidebar.findNodeByKind(SidebarItem.Submodule)
+    assert "submoname" == submoNode.data
+
+    with MockDesktopServicesContext() as services:
+        menu = rw.sidebar.makeNodeMenu(submoNode)
+        triggerMenuAction(menu, r"open submodule folder")
+        assert os.path.samefile(services.lastUrlAsLocalFile(), submoAbsPath)
+
+    # Must not have opened a new tab
+    assert mainWindow.tabs.count() == 1
+    assert mainWindow.currentRepoWidget() is rw
+
+
+@pytest.mark.parametrize("method", ["menubar", "repowidget"])
+@pytest.mark.parametrize("superprojectAlreadyOpen", [True, False])
+def testOpenSuperprojectFromSubmodule(tempDir, mainWindow, method, superprojectAlreadyOpen):
+    wd = unpackRepo(tempDir)
+    submoAbsPath, _dummy = reposcenario.submodule(wd)
+
+    if superprojectAlreadyOpen:
+        superRW = mainWindow.openRepo(wd)
+        submoNode = superRW.sidebar.findNodeByKind(SidebarItem.Submodule)
+        menu = superRW.sidebar.makeNodeMenu(submoNode)
+        triggerMenuAction(menu, r"open submodule.+tab")
+        subRW = mainWindow.currentRepoWidget()
+        assert subRW is not superRW
+        assert mainWindow.tabs.count() == 2
+    else:
+        superRW = None
+        subRW = mainWindow.openRepo(submoAbsPath)
+        assert mainWindow.tabs.count() == 1
+
+    assert os.path.samefile(subRW.workdir, submoAbsPath)
+    assert os.path.samefile(subRW.superproject, wd)
+
+    if method == "menubar":
+        triggerMenuAction(mainWindow.menuBar(), "repo/open superproject")
+    elif method == "repowidget":
+        subRW.openSuperproject()
+    else:
+        raise NotImplementedError(f"unknown method {method}")
+
+    # The superproject must now be the current tab
+    assert mainWindow.tabs.count() == 2
+    currentRW = mainWindow.currentRepoWidget()
+    assert currentRW is not subRW
+    assert os.path.samefile(currentRW.workdir, wd)
+    if superprojectAlreadyOpen:
+        assert currentRW is superRW

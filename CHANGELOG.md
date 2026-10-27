@@ -1,5 +1,13 @@
 # GitFourchette version history
 
+## Unreleased
+
+Bug fixes:
+
+- Sidebar: Pressing F2 on a remote branch failed with an error instead of offering to rename it
+- A repo whose settings file contains a malformed signature could not be opened
+- Settings files containing values of the wrong type (e.g. text instead of a number) are no longer loaded as-is; the defaults are kept instead
+
 ## 1.11.0 (2026-08-21)
 
 New features:

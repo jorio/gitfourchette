@@ -112,3 +112,109 @@ def testTabSpecialClick(tempDir, mainWindow, click, action):
             raise NotImplementedError(f"unknown action {action}")
 
     assert tabBar.count() == (0 if action == "close" else 2)
+
+
+def testBackgroundTabRequestsAttention(tempDir, mainWindow):
+    from gitfourchette.tasks import SwitchBranch
+    from gitfourchette.toolbox.qtabwidget2 import QTabWidget2
+
+    wd0 = unpackRepo(tempDir, renameTo="repo0")
+    wd1 = unpackRepo(tempDir, renameTo="repo1")
+
+    rw0 = mainWindow.openRepo(wd0)
+    rw1 = mainWindow.openRepo(wd1)
+    assert isinstance(rw0, RepoWidget)
+    assert isinstance(rw1, RepoWidget)
+
+    tabWidget = mainWindow.tabs
+    tabBar = tabWidget.tabs
+    assert tabWidget.currentIndex() == 1
+    assert not rw0.isVisible()
+    assert tabBar.tabIcon(0).isNull()
+    assert not rw0.property(QTabWidget2.UrgentPropertyName)
+
+    # Start a task that needs a dialog in the background tab.
+    # The dialog can't be shown until the tab comes to the foreground,
+    # so the background tab should request the user's attention.
+    SwitchBranch.invoke(rw0, "no-parent")
+    assert rw0.taskRunner.isBusy()
+    assert rw0.property(QTabWidget2.UrgentPropertyName) == "true"
+    assert not tabBar.tabIcon(0).isNull()
+    assert tabBar.tabIcon(1).isNull()
+    assert not any(dlg.isVisible() for dlg in rw0.findChildren(QDialog))
+
+    # Requesting attention again for an urgent tab is a no-op
+    tabWidget.requestAttention(0)
+    assert rw0.property(QTabWidget2.UrgentPropertyName) == "true"
+
+    # The current tab can't request attention
+    tabWidget.requestAttention(1)
+    assert not rw1.property(QTabWidget2.UrgentPropertyName)
+    assert tabBar.tabIcon(1).isNull()
+
+    # Out-of-bounds index is ignored
+    tabWidget.requestAttention(2)
+
+    # Bring the background tab to the foreground: urgent flag should go away
+    # and the task should resume, showing its dialog.
+    tabWidget.setCurrentIndex(0)
+    assert not rw0.property(QTabWidget2.UrgentPropertyName)
+    assert tabBar.tabIcon(0).isNull()
+
+    rejectQMessageBox(rw0, "switch to.+no-parent")
+    waitUntilTrue(lambda: not rw0.taskRunner.isBusy())
+    assert rw0.repo.head_branch_shorthand == "master"
+
+
+def testUnloadOtherTabs(tempDir, mainWindow):
+    numRepos = 3
+    for i in range(numRepos):
+        wd = unpackRepo(tempDir, renameTo=f"repo{i}")
+        mainWindow.openRepo(wd)
+
+    tabWidget = mainWindow.tabs
+    tabBar = tabWidget.tabs
+    assert tabWidget.count() == numRepos
+    assert all(isinstance(w, RepoWidget) for w in tabWidget.widgets())
+    keptWidget = tabWidget.widget(1)
+    keptWorkdir = keptWidget.workdir
+
+    def getMenu(tabIndex: int) -> QMenu:
+        return summonContextMenu(tabBar, tabBar.tabRect(tabIndex).center())
+
+    menu = getMenu(1)
+    assert findMenuAction(menu, "unload other tabs").isEnabled()
+    triggerMenuAction(menu, "unload other tabs")
+    menu.close()
+
+    # The tab whose context menu we summoned should become current and remain loaded
+    assert tabWidget.count() == numRepos
+    assert tabWidget.currentIndex() == 1
+    assert tabWidget.widget(1) is keptWidget
+    assert isinstance(keptWidget, RepoWidget)
+    assert keptWidget.workdir == keptWorkdir
+
+    # The other tabs should be unloaded
+    for i in [0, 2]:
+        stub = tabWidget.widget(i)
+        assert isinstance(stub, RepoStub)
+        assert Path(stub.workdir).name == f"repo{i}"
+
+    assert findTextInWidget(mainWindow.statusBar2, "2 background tabs unloaded")
+
+    # There are no other loaded tabs now
+    menu = getMenu(1)
+    assert not findMenuAction(menu, "unload other tabs").isEnabled()
+    menu.close()
+
+    # Unloaded tabs shouldn't reload by themselves when they're brought to the foreground
+    tabWidget.setCurrentIndex(0)
+    QTest.qWait(1)
+    stub = tabWidget.widget(0)
+    assert isinstance(stub, RepoStub)
+    assert stub.ui.promptPage.isVisible()
+
+    # Load it back manually
+    stub.ui.promptLoadButton.click()
+    rw = waitForRepoWidget(mainWindow)
+    assert Path(rw.workdir).name == "repo0"

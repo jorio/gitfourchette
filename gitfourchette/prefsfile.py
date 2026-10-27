@@ -210,6 +210,11 @@ class PrefsFile:
         elif dstType is Signature:
             srcType = dict
             construct = PrefsFile.decodeSignature
+        elif dstType in (bool, int, str, list, dict):
+            # bool is a subclass of int, so reject True/False for int fields explicitly
+            if not isinstance(o, dstType) or (type(o) is bool and dstType is not bool):
+                raise ValueError("unexpected JSON field type")
+            srcType = dstType
         else:
             srcType = dstType
 
@@ -225,8 +230,11 @@ class PrefsFile:
 
     @staticmethod
     def decodeSignature(j: dict) -> Signature:
-        name = str(j["name"])
-        email = str(j["email"])
-        time = int(j["time"])
-        offset = int(j["offset"])
+        try:
+            name = str(j["name"])
+            email = str(j["email"])
+            time = int(j["time"])
+            offset = int(j["offset"])
+        except (KeyError, TypeError) as exc:
+            raise ValueError(f"invalid signature: {exc!r}") from exc
         return Signature(name, email, time, offset)
