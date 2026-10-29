@@ -7,7 +7,7 @@ it 49
 ko 92
 pt 1
 pt_BR 1
-ru 94
+ru 100
 tr 1
 uk 8
 zh_Hans 69
