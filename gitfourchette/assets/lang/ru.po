@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GitFourchette\n"
 "Report-Msgid-Bugs-To: https://github.com/jorio/gitfourchette/issues\n"
-"PO-Revision-Date: 2026-10-25 20:50+0000\n"
+"PO-Revision-Date: 2026-10-27 22:26+0000\n"
 "Last-Translator: Andrei Stepanov <adem@users.noreply.hosted.weblate.org>\n"
 "Language-Team: Russian <https://hosted.weblate.org/projects/gitfourchette/gitfourchette/ru/>\n"
 "Language: ru\n"
@@ -16,7 +16,7 @@ msgstr ""
 
 #: application.py:147
 msgid "Start a new instance instead of switching to an existing one."
-msgstr ""
+msgstr "Запустить новый экземпляр вместо переключения на существующий."
 
 #: application.py:150 forms/aboutdialog.py:51
 msgid "The comfortable Git UI for Linux."
@@ -233,7 +233,7 @@ msgstr "<нет новой строки в конце файла>"
 #: diffview/diffdocument.py:397
 #, python-brace-format
 msgid "<stray {0} in this line>"
-msgstr ""
+msgstr "<лишний {0} в этой строке>"
 
 #: diffview/diffview.py:67
 msgid "Stage Selection"
@@ -1211,12 +1211,11 @@ msgstr "Особая благодарность Марку Александру 
 
 #: forms/aboutdialog.py:162
 msgid "Donate"
-msgstr ""
+msgstr "Пожертвовать"
 
 #: forms/aboutdialog.py:169
-#, fuzzy
 msgid "User’s Guide"
-msgstr "Руководство пользователя {0}"
+msgstr "Руководство пользователя"
 
 #: forms/aboutdialog.py:188
 msgctxt "AboutDialog"
@@ -1226,12 +1225,12 @@ msgstr "О"
 #: forms/aboutdialog.py:189
 msgctxt "AboutDialog"
 msgid "Credits"
-msgstr ""
+msgstr "Благодарности"
 
 #: forms/aboutdialog.py:190
 msgctxt "AboutDialog"
 msgid "News"
-msgstr ""
+msgstr "Новости"
 
 #: forms/aboutdialog.py:191
 msgctxt "AboutDialog"
@@ -1296,26 +1295,25 @@ msgstr "Доверять"
 #: forms/askpassdialog.py:149
 #, python-brace-format
 msgid "(Tip: search for {0})"
-msgstr ""
+msgstr "(Совет: найдите {0})"
 
 #: forms/askpassdialog.py:152
 msgid "Check that the host’s key matches one you trust:"
 msgstr "Убедитесь, что ключ узла совпадает с тем, которому вы доверяете:"
 
 #: forms/askpassdialog.py:154
-#, fuzzy
 msgid "Get the host’s fingerprint from a <b>trusted</b> source. Don’t use the one shown in this dialog!"
-msgstr "Получите отпечаток узла из доверенного источника. (Не используйте тот, что показан в этом диалоге!)"
+msgstr "Получите отпечаток узла из <b>доверенного</b> источника. Не используйте тот, что показан в этом диалоге!"
 
 #: forms/askpassdialog.py:157
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Tick {0} and paste the trusted fingerprint. If it matches, you can safely trust this host."
-msgstr "Вставьте сюда доверенный отпечаток. Если он совпадёт с отпечатком узла, вы можете доверять этому узлу и продолжить."
+msgstr "Отметьте {0} и вставьте доверенный отпечаток. Если он совпадёт, вы можете безопасно доверять этому узлу."
 
 #: forms/askpassdialog.py:159 forms/askpassdialog.py:166
 #: forms/askpassdialog.py:205
 msgid "&Verify"
-msgstr ""
+msgstr "&Проверить"
 
 #: forms/askpassdialog.py:161
 msgid "This is safer than visually comparing fingerprints because it prevents “fuzzy fingerprint” attacks, where a malicious fingerprint is crafted to look like the real one."
@@ -1348,7 +1346,7 @@ msgstr "Отпечаток не совпадает."
 
 #: forms/askpassdialog.py:232
 msgid "You clicked the Cancel button."
-msgstr ""
+msgstr "Вы нажали кнопку «Отмена»."
 
 #: forms/banner.py:50 forms/whatsnewbutton.py:36
 msgid "Dismiss"
@@ -1515,9 +1513,8 @@ msgid "Committed by:"
 msgstr "Коммит выполнил:"
 
 #: forms/commitdialog.py:212
-#, fuzzy
 msgid "Inserting a new commit."
-msgstr "Нет новых коммитов."
+msgstr "Вставка нового коммита."
 
 #: forms/commitdialog.py:215
 msgid "This commit will conclude the merge."
@@ -1550,7 +1547,6 @@ msgid "Creating an empty commit (no staged changes)."
 msgstr "Создаётся пустой коммит (нет подготовленных изменений)."
 
 #: forms/commitdialog.py:231
-#, fuzzy
 msgid "Inserting an empty commit (no staged changes)."
 msgstr "Создаётся пустой коммит (нет подготовленных изменений)."
 
@@ -1602,12 +1598,12 @@ msgstr "ИХ версия"
 
 #: forms/conflictview.py:238
 msgid "(in the branch you’re rebasing onto)"
-msgstr ""
+msgstr "(в ветви, на которую выполняется перебазирование)"
 
 #: forms/conflictview.py:239
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "(in commit {0} being replayed from {1})"
-msgstr "Коммит {0} создан на {1}."
+msgstr "(в коммите {0}, воспроизводимом из {1})"
 
 #: forms/conflictview.py:283
 #, python-brace-format
@@ -2170,58 +2166,53 @@ msgid "Click {0} to run:"
 msgstr "Нажмите {0}, чтобы выполнить:"
 
 #: forms/rebasedialog.py:70
-#, fuzzy
 msgid "bottom to top"
-msgstr "Перейти в начало"
+msgstr "снизу вверх"
 
 #: forms/rebasedialog.py:70
-#, fuzzy
 msgid "top to bottom"
-msgstr "Перейти в конец"
+msgstr "сверху вниз"
 
 #: forms/rebasedialog.py:72
 #, python-brace-format
 msgid "Drag and drop lines to rearrange them. They will be executed {direction}."
-msgstr ""
+msgstr "Перетаскивайте строки, чтобы изменить их порядок. Они будут выполнены {direction}."
 
 #: forms/rebasedialog.py:74
 #, python-brace-format
 msgid "Right-click lines to change their operation. You can also select some lines then press the first letter of an operation (e.g. press {0} for {1})."
-msgstr ""
+msgstr "Щёлкните строки правой кнопкой мыши, чтобы изменить их операцию. Также можно выбрать несколько строк и нажать первую букву операции (например, нажмите {0} для {1})."
 
 #: forms/rebasedialog.py:77
 #, python-brace-format
 msgid "You can undo/redo with {undo} and {redo}."
-msgstr ""
+msgstr "Вы можете отменить/повторить с помощью {undo} и {redo}."
 
 #: forms/rebasedialog.py:106
-#, fuzzy
 msgctxt "RebaseDialog"
 msgid "Rebase"
-msgstr "Идёт перебазирование"
+msgstr "Перебазирование"
 
 #: forms/rebasedialog.py:107
 msgid "Really discard this rebase plan? It won’t be saved."
-msgstr ""
+msgstr "Действительно отменить этот план перебазирования? Он не будет сохранён."
 
 #: forms/rebasedialog.py:182
-#, fuzzy
 msgid "Separate author/committer dates"
-msgstr "Отмечать различия подписей автора и коммиттера"
+msgstr "Разделять даты автора и коммиттера"
 
 #: forms/rebasedialog.py:183
 msgid "Set committer date to author date"
-msgstr ""
+msgstr "Установить дату коммиттера равной дате автора"
 
 #: forms/rebasedialog.py:184
-#, fuzzy
 msgid "Set author date to current time"
-msgstr "Установить текущее местное время"
+msgstr "Установить дату автора равной текущему времени"
 
 #: forms/rebasedialog.py:217
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Please review commit {0} before proceeding."
-msgstr "Исправьте его перед отменой:"
+msgstr "Пожалуйста, проверьте коммит {0} перед продолжением."
 
 #: forms/registersubmoduledialog.py:36
 msgid "Reset to default name"
@@ -2749,10 +2740,9 @@ msgid "&Track this remote branch after pushing"
 msgstr "&Отслеживать эту удалённую ветвь после отправки"
 
 #: forms/ui_rebasedialog.py:49
-#, fuzzy
 msgctxt "RebaseDialog"
 msgid "&Options"
-msgstr "Параметры:"
+msgstr "&Параметры"
 
 #: forms/ui_registersubmoduledialog.py:95
 msgctxt "RegisterSubmoduleDialog"
@@ -3076,21 +3066,20 @@ msgstr "Добро пожаловать в<br>{app}"
 #: forms/whatsnewbutton.py:29
 #, python-brace-format
 msgid "{app} was updated to {version}"
-msgstr ""
+msgstr "{app} обновлён до версии {version}"
 
 #: forms/whatsnewbutton.py:32
-#, fuzzy
 msgid "Welcome back!"
-msgstr "Добро пожаловать"
+msgstr "С возвращением!"
 
 #: forms/whatsnewbutton.py:33 mainwindow.py:413
 #, python-brace-format
 msgid "What’s New in {version}"
-msgstr ""
+msgstr "Что нового в версии {version}"
 
 #: forms/whatsnewbutton.py:35
 msgid "Show this button after the next update"
-msgstr ""
+msgstr "Показывать эту кнопку после следующего обновления"
 
 #: gitdriver/gitdriver.py:472 tasks/nettasks.py:226
 #, python-brace-format
@@ -3162,49 +3151,46 @@ msgid "Commit draft:"
 msgstr "Черновик коммита:"
 
 #: graphview/commitlogdelegate.py:736
-#, fuzzy
 msgid "Rebase"
-msgstr "Идёт перебазирование"
+msgstr "Перебазирование"
 
 #: graphview/commitlogdelegate.py:747
 #, python-brace-format
 msgid "Rewrite of step {0}"
-msgstr ""
+msgstr "Перезапись шага {0}"
 
 #: graphview/commitlogdelegate.py:749
 #, python-brace-format
 msgid "Rewrite of steps {0}-{1}"
-msgstr ""
+msgstr "Перезапись шагов {0}-{1}"
 
 #: graphview/commitlogdelegate.py:754
-#, fuzzy
 msgid "Initiated onto this commit"
-msgstr "Создать новую ветвь от этого коммита"
+msgstr "Начат на этом коммите"
 
 #: graphview/commitlogdelegate.py:757
 #, python-brace-format
 msgid "Step {0} of {1}, stopped here"
-msgstr ""
+msgstr "Шаг {0} из {1}, остановлено здесь"
 
 #: graphview/commitlogdelegate.py:760
 #, python-brace-format
 msgid "Step {0} of {1}, not executed yet"
-msgstr ""
+msgstr "Шаг {0} из {1}, ещё не выполнен"
 
 #: graphview/commitlogdelegate.py:763
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Rewritten as {0}"
-msgstr "Удалить тег {0}"
+msgstr "Перезаписан как {0}"
 
 #: graphview/commitlogdelegate.py:767
-#, fuzzy
 msgid "Cherry-picked as-is"
-msgstr "Выбрать коммит"
+msgstr "Перенесён (cherry-pick) без изменений"
 
 #: graphview/commitlogdelegate.py:776
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "This commit will be melded into step {0}"
-msgstr "Эта информация будет сохранена в {0}."
+msgstr "Этот коммит будет объединён с шагом {0}"
 
 #: graphview/commitlogdelegate.py:826
 #, python-brace-format
@@ -3285,9 +3271,9 @@ msgid "&Tag This Commit…"
 msgstr "&Поставить тег на этот коммит…"
 
 #: graphview/graphview.py:475 sidebar/sidebar.py:248 sidebar/sidebar.py:356
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Rebase {0} &onto Here…"
-msgstr "&Сбросить {0} сюда…"
+msgstr "Перебазировать {0} &на этот коммит…"
 
 #: graphview/graphview.py:476 sidebar/sidebar.py:255 sidebar/sidebar.py:358
 #, python-brace-format
@@ -3329,7 +3315,7 @@ msgstr "Э&кспортировать сравнение A/B как патч…"
 #: ipc/singleinstancesocket.py:66
 #, python-brace-format
 msgid "Switching to running instance {pid}. Pass {switch} to start a new instance."
-msgstr ""
+msgstr "Переключение на запущенный экземпляр {pid}. Передайте {switch}, чтобы запустить новый экземпляр."
 
 #: mainwindow.py:218
 msgid "&File"
@@ -3771,64 +3757,59 @@ msgid "&Unmount && Quit"
 msgstr "&Размонтировать и выйти"
 
 #: rebase/rebasesequencedelegate.py:89
-#, fuzzy
 msgid "empty commit"
-msgstr "Пустой коммит"
+msgstr "пустой коммит"
 
 #: rebase/rebasesequencedelegate.py:102
 msgid "reworded"
-msgstr ""
+msgstr "сообщение изменено"
 
 #: rebase/rebasesequencedelegate.py:104
-#, fuzzy
 msgid "double-click to reword"
-msgstr "Двойной щелчок по вкладке"
+msgstr "двойной щелчок для изменения сообщения"
 
 #: rebase/rebasesequencedelegate.py:106
 #, python-brace-format
 msgid "double-click/{key} to reword"
-msgstr ""
+msgstr "двойной щелчок/{key} для изменения сообщения"
 
 #: rebase/rebasesequencedelegate.py:109
 #, python-brace-format
 msgid "can’t {0} the starting commit!"
-msgstr ""
+msgstr "невозможно {0} начальный коммит!"
 
 #: rebase/rebasesequencedelegate.py:202
 msgid "stop"
-msgstr ""
+msgstr "остановить"
 
 #: rebase/rebasesequencedelegate.py:204
 msgid "start"
-msgstr ""
+msgstr "начать"
 
 #: rebase/rebasesequencedelegate.py:210
-#, fuzzy
 msgid "rewrite"
-msgstr "перезаписан"
+msgstr "перезаписать"
 
 #: rebase/rebasesequencedelegate.py:346
-#, fuzzy
 msgid "Leave blank to reset original message"
-msgstr "Оставьте пустым, чтобы называть этот репозиторий {0}"
+msgstr "Оставьте пустым, чтобы восстановить исходное сообщение"
 
 #: rebase/rebasesequencemodel.py:142
-#, fuzzy
 msgid "The starting commit cannot be modified."
-msgstr "Выбранные элементы нельзя сравнить."
+msgstr "Начальный коммит нельзя изменить."
 
 #: rebase/rebasesequenceview.py:125
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Move {0}"
-msgstr "Слияние {0}"
+msgstr "Переместить {0}"
 
 #: rebase/rebasesequenceview.py:127
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Move {n} commit"
 msgid_plural "Move {n} commits"
-msgstr[0] "Нет новых коммитов."
-msgstr[1] "Нет новых коммитов."
-msgstr[2] "Нет новых коммитов."
+msgstr[0] "Переместить {n} коммит"
+msgstr[1] "Переместить {n} коммита"
+msgstr[2] "Переместить {n} коммитов"
 
 #: repowidget.py:439
 msgid "Please select a file before performing this action."
@@ -3926,36 +3907,33 @@ msgstr "Прервать отмену"
 
 #: repowidget.py:682
 msgid "Failed to collect information about the current rebase."
-msgstr ""
+msgstr "Не удалось собрать информацию о текущем перебазировании."
 
 #: repowidget.py:683 repowidget.py:743
 #, python-brace-format
 msgid "Use {0} on the command line to continue."
-msgstr ""
+msgstr "Используйте {0} в командной строке, чтобы продолжить."
 
 #: repowidget.py:696 tasks/rebasetasks.py:111
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Rebasing {0} onto {1}"
-msgstr "Слияние {0} в {1}."
+msgstr "Перебазирование {0} на {1}"
 
 #: repowidget.py:704
 #, python-brace-format
 msgid "Step {0} of {1}: Stopped at {commit}"
-msgstr ""
+msgstr "Шаг {0} из {1}: остановлено на {commit}"
 
 #: repowidget.py:715 tasks/taskbook.py:33
-#, fuzzy
 msgid "Abort rebase"
 msgstr "&Прервать перебазирование"
 
 #: repowidget.py:716 repowidget.py:722 repowidget.py:727 repowidget.py:731
 #: tasks/taskbook.py:45
-#, fuzzy
 msgid "Continue rebase"
 msgstr "&Продолжить перебазирование"
 
 #: repowidget.py:719
-#, fuzzy
 msgid "Fix conflicts to continue."
 msgstr "Исправьте конфликты, чтобы продолжить."
 
@@ -3966,25 +3944,25 @@ msgstr "Перейти в рабочий каталог"
 
 #: repowidget.py:724
 msgid "No conflicts. Stage or discard your changes to continue."
-msgstr ""
+msgstr "Конфликтов нет. Чтобы продолжить, подготовьте или отмените свои изменения."
 
 #: repowidget.py:729
 #, python-brace-format
 msgid "You are editing a rebase plan outside {app}. When you are done, you will be able to continue here."
-msgstr ""
+msgstr "Вы редактируете план перебазирования вне {app}. Когда закончите, вы сможете продолжить здесь."
 
 #: repowidget.py:733
 msgid "You can continue."
-msgstr ""
+msgstr "Вы можете продолжить."
 
 #: repowidget.py:739
 msgid "Warning"
 msgstr "Предупреждение"
 
 #: repowidget.py:741
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "The repo is currently in state {state}, which {app} doesn’t support yet."
-msgstr "Репозиторий сейчас находится в состоянии {state}, которое {app} пока не поддерживает. Продолжите работу с помощью <code>git</code> в командной строке."
+msgstr "Репозиторий сейчас находится в состоянии {state}, которое {app} пока не поддерживает."
 
 #: repowidget.py:784
 msgid "Repository folder went missing:"
@@ -5625,69 +5603,66 @@ msgstr "&Открыть {0}"
 
 #: tasks/rebasetasks.py:43
 msgid "Please conclude the current rebase before starting a new one."
-msgstr ""
+msgstr "Пожалуйста, завершите текущее перебазирование перед началом нового."
 
 #: tasks/rebasetasks.py:49
-#, fuzzy
 msgid "No rebase is necessary."
-msgstr "Слияние не требуется."
+msgstr "Перебазирование не требуется."
 
 #: tasks/rebasetasks.py:50
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{0} already points to {1}."
-msgstr "{0} уже синхронизирована с {1}."
+msgstr "{0} уже указывает на {1}."
 
 #: tasks/rebasetasks.py:134
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "There’s nothing to rebase. All commits from {0} are already in the other branch."
-msgstr "В {0} нет ничего, что текущая ветвь ещё не отменила."
+msgstr "Перебазировать нечего. Все коммиты из {0} уже присутствуют в другой ветви."
 
 #: tasks/rebasetasks.py:135
 #, python-brace-format
 msgid "If you continue, this will amount to resetting {0} to {1}."
-msgstr ""
+msgstr "Если вы продолжите, это будет равносильно сбросу {0} на {1}."
 
 #: tasks/rebasetasks.py:137
-#, fuzzy
 msgid "Continue"
-msgstr "&Продолжить перебазирование"
+msgstr "Продолжить"
 
 #: tasks/rebasetasks.py:209
 #, python-brace-format
 msgid "Do you want to abort the ongoing rebase of {0} onto {1}?"
-msgstr ""
+msgstr "Вы хотите прервать текущее перебазирование {0} на {1}?"
 
 #: tasks/rebasetasks.py:214
 #, python-brace-format
 msgid "Aborting will <b>clear all changes in the working directory</b>, and branch {0} will move back to {1}."
-msgstr ""
+msgstr "Прерывание <b>очистит все изменения в рабочем каталоге</b>, а ветвь {0} вернётся к {1}."
 
 #: tasks/rebasetasks.py:224
-#, fuzzy
 msgid "Rebase aborted."
-msgstr "Отмена прервана."
+msgstr "Перебазирование прервано."
 
 #: tasks/rebasetasks.py:253
 msgid "Cannot apply this rebase plan."
-msgstr ""
+msgstr "Невозможно применить этот план перебазирования."
 
 #: tasks/rebasetasks.py:254
 msgid "The repository isn’t on the same branch/commit as when you started rebasing."
-msgstr ""
+msgstr "Репозиторий находится не на той же ветви/коммите, что при начале перебазирования."
 
 #: tasks/rebasetasks.py:255
 #, python-brace-format
 msgid "The plan was made when branch {0} was checked out, and its head was at commit {1}."
-msgstr ""
+msgstr "План был составлен, когда была извлечена ветвь {0}, а её вершина находилась на коммите {1}."
 
 #: tasks/rebasetasks.py:291
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Finished rebasing {0} onto {1}."
-msgstr "Слияние {0} в {1}."
+msgstr "Перебазирование {0} на {1} завершено."
 
 #: tasks/rebasetasks.py:293
 msgid "Rebase stopped. Your input is needed to continue."
-msgstr ""
+msgstr "Перебазирование остановлено. Для продолжения требуется ваше участие."
 
 #: tasks/remotetasks.py:47
 #, python-brace-format
@@ -5779,9 +5754,8 @@ msgid "Before performing this action, commit your changes or stash them."
 msgstr "Перед выполнением этого действия закоммитьте или отложите изменения."
 
 #: tasks/repotask.py:777
-#, fuzzy
 msgid "Your working directory contains changes."
-msgstr "Рабочий каталог чист."
+msgstr "Рабочий каталог содержит изменения."
 
 #: tasks/repotask.py:1023 tasks/repotask.py:1039
 #, python-brace-format
@@ -5789,9 +5763,8 @@ msgid "Busy: {0}…"
 msgstr "Занято: {0}…"
 
 #: tasks/repotask.py:1210
-#, fuzzy
 msgid "Change Git executable…"
-msgstr "Сменить средство слияния…"
+msgstr "Сменить исполняемый файл Git…"
 
 #: tasks/repotask.py:1276
 #, python-brace-format
@@ -5983,9 +5956,8 @@ msgid "Edit upstream branch"
 msgstr "Изменить вышестоящую ветвь"
 
 #: tasks/taskbook.py:57
-#, fuzzy
 msgid "Execute rebase"
-msgstr "&Интерактивное перебазирование"
+msgstr "Выполнить перебазирование"
 
 #: tasks/taskbook.py:58
 msgid "Export commit as patch file"
@@ -6024,7 +5996,6 @@ msgid "Accept/reject incoming changes"
 msgstr "Принять/отклонить входящие изменения"
 
 #: tasks/taskbook.py:67
-#, fuzzy
 msgid "Interactive rebase"
 msgstr "&Интерактивное перебазирование"
 
@@ -6777,33 +6748,28 @@ msgid "Automatic (recommended)"
 msgstr "Автоматически (рекомендуется)"
 
 #: trtables.py:258
-#, fuzzy
 msgid "Use commit as-is"
-msgstr "хэш коммита"
+msgstr "Использовать коммит без изменений"
 
 #: trtables.py:259
-#, fuzzy
 msgid "Rewrite the commit’s message"
 msgstr "Исправить сообщение коммита"
 
 #: trtables.py:260
 msgid "Stop for amending the commit’s contents"
-msgstr ""
+msgstr "Остановиться для изменения содержимого коммита"
 
 #: trtables.py:261
-#, fuzzy
 msgid "Meld into older commit, combine messages"
-msgstr "Исправить сообщение коммита"
+msgstr "Объединить с более старым коммитом, объединив сообщения"
 
 #: trtables.py:262
-#, fuzzy
 msgid "Meld into older commit, discard message"
-msgstr "Исправить сообщение коммита"
+msgstr "Объединить с более старым коммитом, отбросив сообщение"
 
 #: trtables.py:263
-#, fuzzy
 msgid "Remove commit"
-msgstr "Отменить коммит"
+msgstr "Удалить коммит"
 
 #: trtables.py:267
 msgctxt "sort refs by date of latest commit, descending"
@@ -7016,7 +6982,7 @@ msgstr "Примечание: согласно {k}, в вашей системе
 
 #: trtables.py:360
 msgid "Note that the Flatpak’s built-in Git cannot call external programs. If you use Git hooks or credential helpers, you should use your host system’s Git."
-msgstr ""
+msgstr "Обратите внимание, что встроенный в Flatpak Git не может вызывать внешние программы. Если вы используете хуки Git или помощники учётных данных, следует использовать Git вашей хост-системы."
 
 #: trtables.py:364
 msgctxt "Prefs"
@@ -7246,14 +7212,13 @@ msgid "Note that you can always hover over the author’s name or date to obtain
 msgstr "Учтите, что всегда можно навести курсор на имя или дату автора, чтобы получить подробные сведения об авторе и коммиттере."
 
 #: trtables.py:447
-#, fuzzy
 msgid "Show commit hashes beside the graph"
-msgstr "Этот коммит не показан на графе."
+msgstr "Показывать хэши коммитов рядом с графом"
 
 #: trtables.py:448
 #, python-brace-format
 msgid "You can customize how many characters to show in {0}."
-msgstr ""
+msgstr "Вы можете настроить, сколько символов показывать в {0}."
 
 #: trtables.py:449
 msgid "Load up to # commits in the history"
