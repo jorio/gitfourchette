@@ -26,7 +26,14 @@ class SingleInstanceSocket(GFIpcServer):
     restoreSession = Signal(list)
 
     def __init__(self, parent):
-        super().__init__(parent, singleShot=False, socketPath=str(self.singleInstanceSocketPath()))
+        socketPath = self.singleInstanceSocketPath()
+
+        # On the very first run, the app config directory may not exist yet.
+        # QLocalServer doesn't create intermediate directories, so bind would
+        # fail with "Name error" if we didn't create it beforehand.
+        socketPath.parent.mkdir(parents=True, exist_ok=True)
+
+        super().__init__(parent, singleShot=False, socketPath=str(socketPath))
         self.clientConnected.connect(self._newConnection)
 
     @classmethod

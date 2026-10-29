@@ -954,3 +954,22 @@ def testRaiseExistingInstance(tempDir, mainWindow):
     socket.connectToServer(socketPath)
     waitUntilTrue(lambda: mainWindow.tabs.count() == 1)
     assert os.path.samefile(wd, mainWindow.currentRepoWidget().workdir)
+
+
+def testSingleInstanceSocketCreatesConfigDir(tempDir, mainWindow, monkeypatch):
+    from gitfourchette.ipc.singleinstancesocket import SingleInstanceSocket
+
+    # Simulate the very first run, where the app config directory doesn't exist yet
+    socketPath = Path(tempDir.name, "missing", "config", APP_SYSTEM_NAME, "instance.sock")
+    assert not socketPath.parent.exists()
+
+    monkeypatch.setattr(
+        SingleInstanceSocket, "singleInstanceSocketPath",
+        classmethod(lambda cls: socketPath))
+
+    server = SingleInstanceSocket(mainWindow)
+    try:
+        assert socketPath.is_socket()
+    finally:
+        server.close()
+        server.deleteLater()
