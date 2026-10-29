@@ -64,13 +64,21 @@ class LexJob(QObject):
 
     def tokens(self, lineNumber: int, fallbackText: str) -> LineTokenization:
         if self.lexingComplete or self.currentLine > lineNumber:
-            return self.hqTokenMap[lineNumber]
-
-        # Lex job hasn't reached this line yet.
-        # Schedule high-quality lexing up to this line.
-        if self.requestedLine < lineNumber:
-            self.requestedLine = lineNumber
-            self.start()  # Initiate chunking
+            try:
+                return self.hqTokenMap[lineNumber]
+            except KeyError:
+                # The requested line is beyond the end of the lexed text.
+                # This can happen if the text being highlighted doesn't have
+                # exactly the same number of lines as the file that was lexed
+                # (e.g. the file changed after it was diffed). Fall back to
+                # low-quality lexing for this line instead of crashing.
+                pass
+        else:
+            # Lex job hasn't reached this line yet.
+            # Schedule high-quality lexing up to this line.
+            if self.requestedLine < lineNumber:
+                self.requestedLine = lineNumber
+                self.start()  # Initiate chunking
 
         # Fall back to low-quality lexing on this line
         # to minimize flashing while the job is busy.

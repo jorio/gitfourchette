@@ -8,7 +8,7 @@ import pytest
 
 from .util import *
 
-from gitfourchette.syntax import LexJobCache, LexJob
+from gitfourchette.syntax import LexJobCache, LexJob, LexerCache
 from gitfourchette.nav import NavLocator
 
 SAMPLE_CODE = """\
@@ -108,6 +108,24 @@ def testLexJobCaching(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged("big.py"), check=True)
     assert rw.diffView.isVisible()
     assert job is getNewLexJob()
+
+
+def testLexJobOutOfBoundsLine(tempDir, mainWindow):
+    lexer = LexerCache.getLexerFromPath("hello.py", False)
+    assert lexer is not None
+
+    job = LexJob(lexer, "print('hello')\n", "out-of-bounds-line")
+    job.start()
+    while not job.lexingComplete:
+        QTest.qWait(0)
+
+    # A line within the lexed file is served from the high-quality token map.
+    assert job.tokens(1, "print('hello')")
+
+    # A line beyond the end of the lexed file must not raise KeyError.
+    # (This can happen if the displayed document and the lexed file don't
+    # have exactly the same number of lines.)
+    assert job.tokens(999, "print('hello')")
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
