@@ -1,5 +1,11 @@
 # GitFourchette version history
 
+## 1.12.1 (2026-10-29)
+
+Fix regression in 1.12.0 preventing the application to start if the configuration directory is missing.
+
+AppImage: Fix Wayland client-side decorations for systems lacking libOpenGL.so.0.
+
 ## 1.12.0 (2026-10-27)
 
 New features:

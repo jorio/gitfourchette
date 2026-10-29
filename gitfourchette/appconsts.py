@@ -13,7 +13,7 @@ def _envBool(key: str) -> bool:
     return _os.environ.get(key, "") not in ["", "0"]
 
 
-APP_VERSION = "1.12.0"
+APP_VERSION = "1.12.1"
 APP_SYSTEM_NAME = "gitfourchette"
 APP_DISPLAY_NAME = "GitFourchette"
 APP_URL_SCHEME = APP_SYSTEM_NAME

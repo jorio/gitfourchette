@@ -477,6 +477,9 @@ def syncFlatpakChangelog():
             continue
 
         if not soupLine.startswith("<h"):  # Insert non-title lines
+            if "AppImage" in soupLine:  # Strip AppImage-specific text
+                continue
+
             releases.insert(-2, (' ' * 6) + soupLine)
             continue
 

@@ -68,6 +68,12 @@
   </keywords>
 
   <releases>
+    <release version="1.12.1" date="2026-10-29" type="stable">
+      <url>https://github.com/jorio/gitfourchette/releases/tag/v1.12.1</url>
+      <description>
+        <p>Fix regression in 1.12.0 preventing the application to start if the configuration directory is missing.</p>
+      </description>
+    </release>
     <release version="1.12.0" date="2026-10-27" type="stable">
       <url>https://github.com/jorio/gitfourchette/releases/tag/v1.12.0</url>
       <description>
@@ -98,7 +104,6 @@
         <p>Maintenance &amp; packaging notes:</p>
         <ul>
         <li>The Flatpak distribution now defaults to the host system's Git (if available) instead of the built-in sandboxed Git. This eliminates common issues with the sandbox when your workflow needs Git to call external programs. You can still switch to sandboxed Git in Settings → Git Integration.</li>
-        <li>The AppImage distribution now bundles libxcb-cursor for improved X11 compatibility, and QAdwaitaDecorations for better-looking client-side decorations in Wayland (i.e. window shadows on GNOME).</li>
         <li>Continued from work started in v1.5.0, more operations were rewritten to be implemented with "standard" Git instead of libgit2 for improved compatibility (New Branch From Commit, Edit Upstream Branch, Recall Commit, Delete Branch, Rename Branch, Git Identity).</li>
         </ul>
       </description>
@@ -426,7 +431,6 @@
         <li>After pushing a branch that doesn't track an upstream, PushDialog will suggest the remote branch you used previously (instead of defaulting to the first one in the repo)</li>
         <li>Pulling will automatically fast-forward if possible without an extra confirmation step, unless your git config contains "pull.ff=false" (behavior aligned to vanilla git). If fast-forwarding isn't possible, you will still be prompted to merge.</li>
         <li>Push/fetch status text uses the 'tnum' OpenType feature to avoid transfer rate numbers jumping around if your system font has digits with uneven widths</li>
-        <li>AppImage distribution now compatible with fuse3</li>
         </ul>
         <p>Bug fixes:</p>
         <ul>
