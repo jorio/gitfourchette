@@ -973,3 +973,37 @@ def testSingleInstanceSocketCreatesConfigDir(tempDir, mainWindow, monkeypatch):
     finally:
         server.close()
         server.deleteLater()
+
+
+_moPaths = list(Path(getTestDataPath("../../gitfourchette/assets/lang")).glob("*.mo"))
+assert _moPaths, "no .mo files found!"
+@pytest.mark.parametrize("moPath", _moPaths, ids=[p.stem for p in _moPaths])
+def testLocalizationFormattingTokens(moPath: Path):
+    from gettext import GNUTranslations
+    from string import Formatter
+
+    with open(moPath, "rb") as fp:
+        translator = GNUTranslations(fp)
+
+    for catalogKey, moText in translator._catalog.items():
+        if isinstance(catalogKey, tuple):
+            # Extract ID of the singular/plural form (0-indexed)
+            # (CJK: 1 form, Romance/Germanic: 2 forms, Slavic: 3 forms)
+            enText, pluralForm = catalogKey
+        else:
+            # No plural form (-1)
+            enText, pluralForm = catalogKey, -1
+
+        enFormatter = Formatter().parse(enText)
+        moFormatter = Formatter().parse(moText)
+        enTokens = {name for _text, name, _spec, _conv in enFormatter if name is not None}
+        moTokens = {name for _text, name, _spec, _conv in moFormatter if name is not None}
+
+        # In strings with singular/plural forms, English may omit {n} as a stylistic choice.
+        # In such strings, it's up to the localization to use or omit {n}.
+        # (If English does use {n}, the localization must also do so.)
+        if pluralForm >= 0 and "n" not in enTokens:
+            enTokens.discard("n")  # ignore differences in the use of {n}
+            moTokens.discard("n")
+
+        assert enTokens == moTokens, f"Mismatched placeholders in localized string (plural={pluralForm}) {enText} /// {moText}"
