@@ -960,7 +960,7 @@ def testSingleInstanceSocketCreatesConfigDir(tempDir, mainWindow, monkeypatch):
     from gitfourchette.ipc.singleinstancesocket import SingleInstanceSocket
 
     # Simulate the very first run, where the app config directory doesn't exist yet
-    socketPath = Path(tempDir.name, "missing", "config", APP_SYSTEM_NAME, "instance.sock")
+    socketPath = Path(tempDir.name, "missingdir", "instance.sock")
     assert not socketPath.parent.exists()
 
     monkeypatch.setattr(
