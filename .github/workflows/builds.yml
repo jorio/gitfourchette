@@ -40,13 +40,15 @@ jobs:
       - name: Build QAdwaitaDecorations (for DEs like GNOME that expect client-side decorations)
         run: |
           echo QT_ROOT_DIR appears to be $QT_ROOT_DIR
-          sudo apt install libwayland-dev libvulkan-dev
+          sudo apt install libwayland-dev libvulkan-dev libopengl0
           git clone https://github.com/FedoraQt/QAdwaitaDecorations
           cd QAdwaitaDecorations
           git checkout 440d4b0
           cmake -S . -B build -DUSE_QT6=ON -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
           cmake --build build --parallel
           cmake --install build --prefix "$GITHUB_WORKSPACE/qt_extrastuff"
+          mkdir "$GITHUB_WORKSPACE/gl_fallback"
+          cp -a /usr/lib/`dpkg-architecture -qDEB_HOST_MULTIARCH`/libOpenGL.so.0* "$GITHUB_WORKSPACE/gl_fallback"
       - name: Build libxcb-cursor (AppImage catalog requirement)
         run: |
           sudo apt install autoconf xutils-dev libtool libxcb-render0-dev libxcb-render-util0-dev libxcb-image0-dev gperf
@@ -58,7 +60,7 @@ jobs:
           make DESTDIR="$GITHUB_WORKSPACE/qt_extrastuff" install
       - name: Build AppImage
         run: |
-          PYVER=$PYVER QT_API=$QT_API QT_EXTRASTUFF="$GITHUB_WORKSPACE/qt_extrastuff" ./pkg/appimage/build-appimage.sh
+          PYVER=$PYVER QT_API=$QT_API QT_EXTRASTUFF="$GITHUB_WORKSPACE/qt_extrastuff" GL_FALLBACK="$GITHUB_WORKSPACE/gl_fallback" ./pkg/appimage/build-appimage.sh
           echo "ARTIFACT_NAME=$(cd build && ls GitFourchette*.AppImage)" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v7
         with:

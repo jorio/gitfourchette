@@ -70,14 +70,12 @@ opt/python*/lib/python*/site-packages/PyQt?/lupdate/
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/qml/
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/qsci/
 opt/python*/lib/python*/site-packages/PyQt?/uic/
-opt/python*/lib/python*/site-packages/PyQt?/_QOpenGLFunctions*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtBluetooth*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtDesigner*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtHelp*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtLocation*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtMultimedia*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtNfc*.so
-opt/python*/lib/python*/site-packages/PyQt?/QtOpenGL*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtPdf*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtPositioning*.so
 opt/python*/lib/python*/site-packages/PyQt?/QtPrintSupport*.so
@@ -106,7 +104,6 @@ opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Labs*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Location*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Multimedia*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Nfc*
-opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?OpenGL*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Pdf*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?PrintSupport*
 opt/python*/lib/python*/site-packages/PyQt?/Qt?/lib/libQt?Positioning*

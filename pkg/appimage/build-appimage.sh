@@ -37,8 +37,12 @@ pushd GitFourchette-$ARCH
         cp -rv "$QT_EXTRASTUFF"/* "$QT_LIBS_DIR"/
         # Prevent Qt's built-in libadwaita.so from taking precedence over our libqadwaitadecorations.so
         rm -v "$QT_LIBS_DIR/plugins/wayland-decoration-client/libadwaita.so"
-    else
-        echo "Won't copy any extra Qt stuff (QT_EXTRASTUFF not set)"
+    fi
+
+    # Copy fallback OpenGL libs
+    if [ ! -z "$GL_FALLBACK" ]; then
+        echo "Copying extra stuff from $GL_FALLBACK"
+        cp -rv "$GL_FALLBACK" gl_fallback
     fi
 
     # Remove junk that we don't need
