@@ -6,11 +6,14 @@
 
 import logging
 
+import pygit2
+
 from gitfourchette import settings
 from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
-from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
+from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitDeltaSource, GitStatus, GitConflict, GitDriver
+from gitfourchette.gitdriver.gitdeltafile import HexHash0000
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.syntax.lexercache import LexerCache
@@ -31,6 +34,9 @@ RENAME_COUNT_THRESHOLD = 100
 """ Don't find_similar beyond this number of files in the main diff """
 
 LONG_LINE_THRESHOLD = 10_000
+
+MAX_PATCH_SNAPSHOT_ATTEMPTS = 5
+""" How many times to regenerate an unstaged patch when the workdir changes underneath it. """
 
 type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
 
@@ -259,7 +265,11 @@ class LoadPatch(RepoTask):
             # so don't update the id if we're diffing an unpacked LFS object.
             if not delta.old.lfs:
                 assert diff.oldHash == delta.old.id
-            if not delta.new.lfs and not delta.new.isIdValid():
+            # For unstaged files, always take the hash from the fresh patch:
+            # a GitDelta may be reused across Jumps without a new `git status`,
+            # so a hash filled in by a previous LoadPatch may be stale.
+            if not delta.new.lfs and (not delta.new.isIdValid()
+                                      or (delta.new.source == GitDeltaSource.Dirty and diff.newHash)):
                 delta.new.id = diff.newHash
 
             # Prime lexer
@@ -340,46 +350,74 @@ class LoadPatch(RepoTask):
         else:
             tokens = GitDriver.buildDiffCommand(delta, binary=False, forDisplay=True)
 
-        # Run diff command
-        driver = yield from self.flowCallGit(*tokens, autoFail=False)
-        patch = driver.stdoutScrollback()
+        # Run diff command. For unstaged files, the workdir may change between
+        # git reading the file for the patch and us reading it to prime the
+        # lexer. If that happens, regenerate the patch so that the DiffDocument
+        # and the LexJob always refer to the same contents.
+        attempt = 0
+        while True:
+            driver = yield from self.flowCallGit(*tokens, autoFail=False)
+            patch = driver.stdoutScrollback()
 
-        # Don't display large diffs (legacy pygit2 version)
-        # TODO: Remove this once we drop support for pygit2 <= 1.19.1
-        if not GitDeltaFile.SupportsFastSizeBallpark and 0 < maxFileSize < len(patch):  # pragma: no cover (old pygit2)
-            return SpecialDiffError.fileTooLarge(len(patch), maxFileSize, locator, image=False, legacy=True)
+            # Don't display large diffs (legacy pygit2 version)
+            # TODO: Remove this once we drop support for pygit2 <= 1.19.1
+            if not GitDeltaFile.SupportsFastSizeBallpark and 0 < maxFileSize < len(patch):  # pragma: no cover (old pygit2)
+                return SpecialDiffError.fileTooLarge(len(patch), maxFileSize, locator, image=False, legacy=True)
 
-        # Building the diff document on the background thread lets the user
-        # interrupt the task, e.g. if dragging the mouse across many commits.
-        yield from self.flowEnterWorkerThread()
+            # Building the diff document on the background thread lets the user
+            # interrupt the task, e.g. if dragging the mouse across many commits.
+            yield from self.flowEnterWorkerThread()
 
-        # Special case for unstaged files: Before loading the patch, update the
-        # GitDelta with fresh filesystem stats (st_mtime_ns). This allows
-        # bypassing LoadPatch in a future refresh of the UI if the file isn't
-        # modified. (We don't need to stat non-unstaged files because blob
-        # hashes are known in advance, so for those, we can simply compare the
-        # hashes stored in GitDelta to figure out if it's fresh.)
-        if locator.context == NavContext.UNSTAGED:
-            delta.new.diskStat = delta.new.stat(self.repo)
+            try:
+                diff = DiffDocument.fromPatch(patch, maxLineLength)
 
-        try:
-            diff = DiffDocument.fromPatch(patch, maxLineLength)
-            diff.document.moveToThread(QApplication.instance().thread())
-            return diff
-        except DiffDocument.BinaryError:
-            return SpecialDiffError.binaryDiff(self.repo, delta, locator)
-        except DiffDocument.NoChangeError:
-            stderr = driver.stderrScrollback()
-            return SpecialDiffError.noChange(self.repo, delta, stderr)
-        except DiffDocument.VeryLongLinesError:
-            loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
-            return SpecialDiffError(
-                _("This file contains very long lines."),
-                linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
-                "SP_MessageBoxWarning")
-        finally:
-            # Exit background thread
-            yield from self.flowEnterUiThread()
+                # Special case for unstaged files: cache the exact workdir
+                # contents that produced this patch. This lets us prime the
+                # lexer from the same snapshot as the DiffDocument, even if the
+                # file is modified again before the LexJob is created. It also
+                # records filesystem stats, allowing a future refresh of the UI
+                # to bypass LoadPatch if the file hasn't been modified since.
+                # (We don't need this for non-unstaged files because blob hashes
+                # are known in advance, so we can simply compare the hashes
+                # stored in GitDelta to figure out if it's fresh.)
+                if (locator.context == NavContext.UNSTAGED
+                        and delta.new.source == GitDeltaSource.Dirty
+                        and not delta.new.isId0()
+                        and diff.newHash not in ("", HexHash0000)):
+                    snapshot = delta.new.readWorkdirSnapshot(self.repo)
+                    if snapshot is None or str(pygit2.hash(snapshot[0])) != diff.newHash:
+                        attempt += 1
+                        if attempt < MAX_PATCH_SNAPSHOT_ATTEMPTS:
+                            logger.debug(f"Workdir changed while generating patch for {delta.new.path}; retrying")
+                            continue
+
+                        # The file is changing faster than we can keep up with.
+                        # Don't attach a LexJob for contents that don't match
+                        # the displayed patch, and clear the disk stat so that
+                        # the next refresh reloads the patch.
+                        logger.warning(f"Workdir changed while generating patch for {delta.new.path}; giving up")
+                        delta.new.forgetWorkdirSnapshot()
+                    else:
+                        delta.new.cacheWorkdirSnapshot(*snapshot)
+                elif locator.context == NavContext.UNSTAGED:
+                    delta.new.diskStat = delta.new.stat(self.repo)
+
+                diff.document.moveToThread(QApplication.instance().thread())
+                return diff
+            except DiffDocument.BinaryError:
+                return SpecialDiffError.binaryDiff(self.repo, delta, locator)
+            except DiffDocument.NoChangeError:
+                stderr = driver.stderrScrollback()
+                return SpecialDiffError.noChange(self.repo, delta, stderr)
+            except DiffDocument.VeryLongLinesError:
+                loadAnywayLoc = locator.withExtraFlags(NavFlags.AllowLargeFiles)
+                return SpecialDiffError(
+                    _("This file contains very long lines."),
+                    linkify(_("[Load diff anyway] (this may take a moment)"), loadAnywayLoc.url()),
+                    "SP_MessageBoxWarning")
+            finally:
+                # Exit background thread
+                yield from self.flowEnterUiThread()
 
     def _primeLexJobs(self, delta: GitDelta) -> tuple[LexJob | None, LexJob | None]:
         assert onAppThread()
@@ -404,6 +442,13 @@ class LoadPatch(RepoTask):
 
     def _primeSingleLexJob(self, lexer, file: GitDeltaFile):
         if file.isId0() or file.isEmptyBlob():
+            return None
+
+        # For unstaged files, we must have cached the exact contents that
+        # produced the displayed patch. If we don't (e.g. the file kept
+        # changing while we were loading it), don't create a LexJob from
+        # whatever happens to be in the workdir right now.
+        if file.source == GitDeltaSource.Dirty and not file.isDataValid():
             return None
 
         # Figure out a key to look up this file in the lex cache.

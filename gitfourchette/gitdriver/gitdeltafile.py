@@ -173,6 +173,55 @@ class GitDeltaFile:
             pass
         return diskStat
 
+    def readWorkdirSnapshot(self, repo: Repo) -> tuple[bytes, tuple[int, int]] | None:
+        """
+        Read this file's contents from the workdir, along with filesystem stats
+        that match the returned contents. Returns None if the file can't be
+        read, or if it changed while it was being read.
+        """
+
+        assert self.source == GitDeltaSource.Dirty
+
+        statBefore = self.stat(repo)
+        if statBefore == _NoDiskStat:
+            return None
+
+        try:
+            data = repo.apply_filters_to_workdir(self.path)
+        except OSError:
+            return None
+
+        # If the file changed while we were reading it, the data and the stats
+        # describe different states of the file. Don't hand out a mixed snapshot.
+        statAfter = self.stat(repo)
+        if statAfter != statBefore:
+            return None
+
+        return data, statAfter
+
+    def cacheWorkdirSnapshot(self, data: bytes, diskStat: tuple[int, int]):
+        """
+        Cache workdir contents along with the filesystem stats they were read
+        with. This makes sure that subsequent reads (e.g. to prime a LexJob)
+        return the same snapshot as the patch that was generated for it.
+        """
+
+        assert self.source == GitDeltaSource.Dirty
+        assert diskStat != _NoDiskStat
+        self._data = data
+        self.diskStat = diskStat
+
+    def forgetWorkdirSnapshot(self):
+        """
+        Forget this file's cached workdir contents and filesystem stats. This
+        is used when the workdir contents don't match the patch that was
+        generated for them.
+        """
+
+        if self.source == GitDeltaSource.Dirty:
+            self._data = None
+        self.diskStat = _NoDiskStat
+
     def sizeBallpark(self, repo: Repo) -> int:
         if self.isId0():
             return 0
