@@ -4,10 +4,12 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import pygit2
 import pytest
 
 from .util import *
 
+from gitfourchette.gitdriver import GitDeltaFile
 from gitfourchette.syntax import LexJobCache, LexJob, LexerCache
 from gitfourchette.nav import NavLocator
 
@@ -126,6 +128,85 @@ def testLexJobOutOfBoundsLine(tempDir, mainWindow):
     # (This can happen if the displayed document and the lexed file don't
     # have exactly the same number of lines.)
     assert job.tokens(999, "print('hello')")
+
+
+def testLexJobMatchesUnstagedDiffSnapshot(tempDir, mainWindow):
+    smallText = "hello = 0"
+    largeText = "\n".join(f"hello = {i}" for i in range(5000))
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    # Enter threaded mode (like non-test environment). The first refresh may
+    # generate a patch for the large file before the second write lands, which
+    # used to leave a LexJob keyed by the large blob's hash but containing the
+    # small file's contents.
+    with AsynchronousTaskContext(rw.taskRunner):
+        writeFile(f"{wd}/hello.py", largeText)
+        rw.refreshRepo()
+
+        writeFile(f"{wd}/hello.py", smallText)
+        rw.refreshRepo()
+
+    # Make sure we're displaying the final contents of the file.
+    rw.jump(NavLocator.inUnstaged("hello.py"), check=True)
+
+    diffDocument = rw.diffView.currentDiffDocument
+    newLexJob = rw.diffView.highlighter.newLexJob
+    assert newLexJob is not None
+    assert diffDocument.newHash == str(pygit2.hash(smallText.encode()))
+    assert newLexJob.fileKey == diffDocument.newHash
+    assert newLexJob.fileSize == len(smallText)
+
+    # The final contents are short, so the whole file should have been lexed
+    # long before any request for line 999 (which the old buggy snapshot would
+    # have tried to highlight).
+    assert "hello = 0" in rw.diffView.toPlainText()
+
+
+def testRegeneratePatchIfWorkdirChangesDuringLoad(tempDir, mainWindow, monkeypatch):
+    smallText = "hello = 0"
+    largeText = "\n".join(f"hello = {i}" for i in range(5000))
+    smallHash = str(pygit2.hash(smallText.encode()))
+
+    wd = unpackRepo(tempDir)
+    path = f"{wd}/hello.py"
+    writeFile(path, largeText)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("hello.py"), check=True)
+    assert rw.diffView.currentDiffDocument.newHash == str(pygit2.hash(largeText.encode()))
+
+    # Bump mtime without touching the contents, so that the next jump reloads
+    # the patch (which will still be generated from the large file).
+    stat = os.stat(path)
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+
+    # Simulate the file being modified after `git diff` has read it, but before
+    # LoadPatch reads it to prime the lexer.
+    originalRead = GitDeltaFile.readWorkdirSnapshot
+    snapshotCalls = []
+
+    def racingRead(self, repo):
+        if not snapshotCalls:
+            writeFile(path, smallText)
+        snapshotCalls.append(self.path)
+        return originalRead(self, repo)
+
+    monkeypatch.setattr(GitDeltaFile, "readWorkdirSnapshot", racingRead)
+    rw.jump(NavLocator.inUnstaged("hello.py"), check=True)
+
+    # The first patch (large file) must have been rejected and regenerated
+    assert len(snapshotCalls) == 2
+
+    # The displayed patch and the LexJob must both refer to the small file
+    diffDocument = rw.diffView.currentDiffDocument
+    newLexJob = rw.diffView.highlighter.newLexJob
+    assert diffDocument.newHash == smallHash
+    assert newLexJob is not None
+    assert newLexJob.fileKey == smallHash
+    assert newLexJob.fileSize == len(smallText)
+    assert "hello = 4999" not in rw.diffView.toPlainText()
 
 
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
