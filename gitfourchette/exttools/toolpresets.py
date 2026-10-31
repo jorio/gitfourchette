@@ -184,7 +184,7 @@ class ToolPresets:
 
         for key in sortedKeys:
             program = presets[key].split()[0]
-            if ToolCommands.which(program):
+            if ToolCommands.whichOnHost(program):
                 return key
 
         return fallback
@@ -241,8 +241,8 @@ class ToolPresets:
         return ""
 
     @classmethod
-    def defaultGit(cls, hostOnly=False) -> str:
-        defaultGit = ToolCommands.which("git")
+    def defaultGit(cls, hostOnly=False, fallback="/usr/bin/git") -> str:
+        defaultGit = ToolCommands.whichOnHost("git")
 
         # Flatpak: only use built-in Git if Git isn't installed on the host
         # (Except in test mode, where we enforce the built-in Git to make sure
@@ -253,7 +253,7 @@ class ToolPresets:
                 and not defaultGit):
             defaultGit = cls.flatpakBuiltInGit()
 
-        defaultGit = defaultGit or "/usr/bin/git"
+        defaultGit = defaultGit or fallback
         return shlex.quote(defaultGit)
 
 

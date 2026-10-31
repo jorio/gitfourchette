@@ -11,6 +11,7 @@ from contextlib import suppress
 from pytestqt.qtbot import QtBot
 
 from gitfourchette import settings
+from gitfourchette.exttools.toolpresets import ToolPresets
 from gitfourchette.forms.aboutdialog import AboutDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.prefsdialog import PrefsDialog
@@ -744,6 +745,16 @@ def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
     gitPathControl = prefsDialog.findChild(QWidget, "prefctl_gitPath")
     waitUntilTrue(gitPathControl.hasFocus)
     prefsDialog.close()
+
+
+@pytest.mark.skipif(not FLATPAK, reason="must run inside Flatpak environment")
+def testFlatpakFindsHostGit():
+    # Note: this test needs Git to be installed on the host.
+    defaultGit = ToolPresets.defaultGit(hostOnly=True, fallback="yikes_not_found")
+    assert not defaultGit.startswith("/app")
+    assert not defaultGit.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
+    assert Path(defaultGit).is_absolute()
+    assert Path(defaultGit).name == "git"
 
 
 @pytest.mark.notParallelizableOnWindows

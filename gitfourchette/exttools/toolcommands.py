@@ -25,8 +25,6 @@ _logger = logging.getLogger(__name__)
 
 _placeholderPattern = re.compile(r"\$[_a-zA-Z0-9]+")
 
-_whichPath = None
-
 _pythonpathCoreImports = ["gitfourchette", "pygit2", QT_BINDING]
 
 _tamperProofFiles: dict[Path, int] = {}
@@ -284,12 +282,14 @@ class ToolCommands:
         return process.readAll().data().decode(errors="replace")
 
     @classmethod
-    def which(cls, name: str):
-        global _whichPath
-        if FLATPAK and _whichPath is None:
-            # Cache host's $PATH
-            _whichPath = cls.runSync("sh", "-c", "echo $PATH").rstrip()
-        return shutil.which(name, path=_whichPath)
+    def whichOnHost(cls, name: str):
+        if FLATPAK:
+            # shutil.which() only looks inside the sandbox's filesystem, so it
+            # won't pick up anything from the host (passing the host's $PATH
+            # won't help). So, run 'which' on the host.
+            return cls.runSync("which", name, strict=False).rstrip()
+
+        return shutil.which(name)
 
     @classmethod
     def writeTamperProofScript(cls, path: Path, contents: str, mode: int = 0o500):
