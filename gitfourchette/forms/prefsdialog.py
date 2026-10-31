@@ -6,6 +6,7 @@
 
 import enum
 import logging
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -605,6 +606,11 @@ class PrefsDialog(QDialog):
         customStyles = [(trtables.enum(theme), str(theme)) for theme in ThemeName]
         nativeStyles.sort()
         customStyles.sort()
+
+        # KDE's new "Union" style breaks too much of our UI as of 10/2026
+        if not ALLOW_KDE_UNION:
+            with suppress(ValueError):
+                nativeStyles.remove(("Union", "Union"))
 
         entries = [defaultStyle, *customStyles, separator, *nativeStyles]
         for caption, styleName in entries:

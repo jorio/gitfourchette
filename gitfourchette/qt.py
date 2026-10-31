@@ -142,6 +142,9 @@ KDE = "KDE" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")
 OFFSCREEN = _os.environ.get("QT_QPA_PLATFORM", "").upper() == "OFFSCREEN"
 APPIMAGE = _os.environ.get("APPIMAGE", "")
 
+# KDE's new "Union" style breaks too much of our UI as of 10/2026
+ALLOW_KDE_UNION = False
+
 # Capture environment variables that were set on boot.
 # These values will not be forwarded explicitly to subprocess environments.
 INITIAL_ENVIRONMENT = _os.environ.copy()

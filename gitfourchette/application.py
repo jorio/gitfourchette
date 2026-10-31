@@ -130,6 +130,10 @@ class GFApplication(QApplication):
             # On other platforms, default to a custom theme.
             self.platformDefaultStyleName = ThemeName.BuiltIn
 
+        # KDE's new "Union" style breaks too much of our UI as of 10/2026
+        if not ALLOW_KDE_UNION and bootStyleName == "union":  # pragma: no cover
+            self.platformDefaultStyleName = ThemeName.BuiltIn
+
         # Install translators for system language
         # (for command line parser to display localized text)
         self.installTranslators()
