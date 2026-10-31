@@ -83,6 +83,7 @@ from .qtutils import (
     findParentWidget,
     setTabOrder,
     packDialog,
+    qCursorSupportsHighDPR,
     QModelIndex_default,
     QPoint_zero,
 )

@@ -30,9 +30,7 @@ class CodeGutter(QWidget):
         self.codeView = parent
         self.preferredWidth = 0  # filled in by refreshMetrics
 
-        cursorDpr = 4
-        if FREEDESKTOP and not qIsWayland():  # pragma: no cover
-            cursorDpr = 1  # Cursor DPR not supported on X11
+        cursorDpr = 4 if qCursorSupportsHighDPR(parent) else 1
         cursorPix = QPixmap(f"assets:icons/right_ptr@{cursorDpr}x")
         cursorPix.setDevicePixelRatio(cursorDpr)
         flippedCursor = QCursor(cursorPix, hotX=19, hotY=5)

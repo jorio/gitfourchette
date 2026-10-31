@@ -97,6 +97,25 @@ def isImageFormatSupported(filename: str):
     return ext in SupportedImageSuffixes
 
 
+def qCursorSupportsHighDPR(widget: QWidget) -> bool:
+    # Don't bother with hi-res cursors on low-DPI display
+    if widget.devicePixelRatio() <= 1.0:
+        return False
+
+    # macOS & Windows are fine
+    if not FREEDESKTOP:
+        return True
+
+    # X11 can't do it at all
+    if not qIsWayland():
+        return False
+
+    # As a precaution, disable hi-res cursors on Wayland for all non-KDE
+    # environments, for now. GNOME<=43 handles them poorly and we still have
+    # users on those old versions (see issue #143). TODO: Revisit in a few years
+    return KDE
+
+
 def setFontFeature(font: QFont, fourCC: str, value: int = 1):
     try:
         font.setFeature(QFont.Tag(fourCC), value)
