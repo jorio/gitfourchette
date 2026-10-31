@@ -224,9 +224,10 @@ def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, taskThread, ame
 
     # Look for signing information in GetCommitInfo dialog
     triggerMenuAction(mainWindow.menuBar(), "view/go to head")
+    waitUntilTrue(lambda: rw.navLocator.commit == commit.id)
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
 
-    commitInfoDialog = findQDialog(rw, "commit info", t=CommitInfoDialog)
+    commitInfoDialog = waitForQDialog(rw, "commit info", t=CommitInfoDialog)
     assert findTextInWidget(commitInfoDialog.summaryLabel, "signature:.+good signature; key trusted")
     commitInfoDialog.accept()
 

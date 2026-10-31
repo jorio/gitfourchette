@@ -13,6 +13,7 @@ from . import reposcenario
 
 def doStage(rw, method):
     if method == "key":
+        rw.dirtyFiles.setFocus()
         QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)
     elif method == "menu":
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "stage")
@@ -24,6 +25,7 @@ def doStage(rw, method):
 
 def doDiscard(rw, method):
     if method == "key":
+        rw.dirtyFiles.setFocus()
         QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Delete)
     elif method == "menu":
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "(discard|delete)")
@@ -35,6 +37,7 @@ def doDiscard(rw, method):
 
 def doUnstage(rw, method):
     if method == "key":
+        rw.stagedFiles.setFocus()
         QTest.keyPress(rw.stagedFiles, Qt.Key.Key_Delete)
     elif method == "menu":
         triggerContextMenuAction(rw.stagedFiles.viewport(), "unstage")

@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 import enum
 import logging
+import os
 import shlex
 from collections.abc import Generator
 from typing import Any, Literal, ClassVar
@@ -1073,7 +1074,8 @@ class RepoTaskRunner(QObject):
         assert not self._tokenQueue
 
         self._queueTokens = True
-        deadline = QDeadlineTimer(5_000)
+        deadlineMs = 20_000 if os.environ.get("CI", "") else 5_000
+        deadline = QDeadlineTimer(deadlineMs)
 
         while not self._tokenQueue:
             QApplication.processEvents()

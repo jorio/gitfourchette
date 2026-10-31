@@ -869,6 +869,10 @@ def summonToolTip(target: QWidget, localPoint=QPoint_zero):
         QToolTip.hideText()
         waitUntilTrue(lambda: not QToolTip.isVisible(), timeout=TOOLTIP_TIMEOUT)
 
+    # Help out macOS
+    target.activateWindow()
+    waitUntilTrue(lambda: target.window().isActiveWindow())
+
     # Move the cursor so that context-sensitive tooltips still work.
     # NOTE: DOES NOT WORK ON WAYLAND because they disallow moving the pointer,
     # but offscreen tests will still work fine.
