@@ -11,6 +11,7 @@ from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
+from gitfourchette.gitdriver.gitdeltafile import WorkdirHashMismatch
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.syntax.lexercache import LexerCache
@@ -263,7 +264,13 @@ class LoadPatch(RepoTask):
                 delta.new.id = diff.newHash
 
             # Prime lexer
-            diff.oldLexJob, diff.newLexJob = self._primeLexJobs(delta)
+            try:
+                diff.oldLexJob, diff.newLexJob = self._primeLexJobs(delta)
+            except WorkdirHashMismatch:
+                # Unstaged file was overwritten since we ran "git diff",
+                # so diff.newHash doesn't match what's on disk anymore.
+                diff.document.deleteLater()  # don't leak stale document
+                return SpecialDiffError.workdirHashMismatch(locator)
 
         return diff
 

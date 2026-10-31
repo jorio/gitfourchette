@@ -16,6 +16,7 @@ from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.gitdriver import *
+from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
@@ -230,8 +231,8 @@ class SpecialDiffError:
         details = ""
 
         if not lfsSide.lfs.isTentative():
-            blobSha256 = blobSide.blobSha256(repo)
-            if blobSha256 == lfsSide.lfs.id:
+            sha256 = blobSide.lfsSha256(repo)
+            if sha256 == lfsSide.lfs.id:
                 details = _("File contents remained identical during the conversion.")
             else:
                 icon = stockIconImgTag("achtung") + " "
@@ -415,3 +416,11 @@ class SpecialDiffError:
         specialDiff.longform = toRoomyUL(longformParts)
 
         return specialDiff
+
+    @staticmethod
+    def workdirHashMismatch(locator: NavLocator) -> SpecialDiffError:
+        title = _("This file was modified while we were reading it.")
+        reloadKey = QKeySequence.toString(GlobalShortcuts.refresh[0], format=QKeySequence.SequenceFormat.NativeText)
+        reloadLink = locator.withExtraFlags(NavFlags.ForceRecreateDocument).url()
+        reloadText = linkify(_("Try to reload"), reloadLink) + f" ({reloadKey})"
+        return SpecialDiffError(title, reloadText, icon="SP_MessageBoxWarning")

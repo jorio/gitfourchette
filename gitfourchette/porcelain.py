@@ -10,6 +10,7 @@ import configparser as _configparser
 import dataclasses as _dataclasses
 import datetime as _datetime
 import enum as _enum
+import hashlib
 import logging as _logging
 import os as _os
 import re as _re
@@ -136,6 +137,17 @@ class MultiFileError(Exception):
 
 class _UnchangedConfigFile(Exception):
     pass
+
+
+def fast_blob_sha1(data: bytes) -> Oid:
+    """
+    Drop-in replacement for pygit2.hash(). Can be much faster depending on how
+    libgit2 was built (in practice this implementation is never slower).
+    """
+    hasher = hashlib.sha1(f"blob {len(data)}\0".encode("ascii"))
+    hasher.update(data)
+    sha1 = hasher.digest()
+    return Oid(raw=sha1)
 
 
 def version_to_tuple(s: str) -> tuple[int, ...]:

@@ -127,6 +127,30 @@ def testPatchBecameInvalid(tempDir, mainWindow, scenario):
     assert newText.strip() in rw.diffView.toPlainText()
 
 
+def testUnstagedFileChangedBetweenGitDiffAndLexJob(tempDir, mainWindow):
+    smallText = "goedendag = 0"
+    largeText = "\n".join(f"hello = {i}" for i in range(25))
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    # Enter threaded mode (like non-test environment)
+    with AsynchronousTaskContext(rw.taskRunner):
+        writeFile(f"{wd}/hello.py", largeText)
+        rw.refreshRepo()
+
+        # As git diff picks up largeText and we're busy building a DiffDocument,
+        # overwrite the file with smallText. Then, we'll read in the new
+        # contents to create a LexJob. We should detect the mismatch between the
+        # hash reported by git diff and the data meant for LexJob.
+        writeFile(f"{wd}/hello.py", smallText)
+        waitUntilTrue(lambda: findTextInWidget(rw.specialDiffView, "file was modified while we were reading"))
+
+    qteClickLink(rw.specialDiffView, "try to reload")
+    assert rw.diffView.isVisible()
+    assert findTextInWidget(rw.diffView, "goedendag")
+
+
 def testExternalChangeWhileTaskIsBusyThenAborts(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

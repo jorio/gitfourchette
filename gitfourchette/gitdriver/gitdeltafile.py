@@ -14,7 +14,7 @@ from pathlib import Path
 from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern, LfsObjectCacheMissingError
-from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, id7, pygit2_version_at_least
+from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, fast_blob_sha1, id7, pygit2_version_at_least
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
@@ -42,6 +42,10 @@ class GitDeltaSource(enum.IntEnum):
 
     def isWorkdir(self) -> bool:
         return self == GitDeltaSource.Dirty or self == GitDeltaSource.Index
+
+
+class WorkdirHashMismatch(OSError):
+    pass
 
 
 @dataclasses.dataclass
@@ -143,8 +147,8 @@ class GitDeltaFile:
             assert self.lfs.size == len(self._data), "LFS object size mismatch"
 
         else:
+            # Get blob from Git ODB, or read unstaged file from workdir
             try:
-                # Load blob from standard git object database
                 if not self.isIdValid():  # unknown hash (FFFFFFF...)
                     raise KeyError()
 
@@ -152,13 +156,24 @@ class GitDeltaFile:
                 if 0 <= maxSize < self.sizeBallpark(repo):
                     raise OverflowError("blob size exceeds limit")
 
+                # Load blob from Git object database (KeyError if missing)
                 self._data = repo.peel_blob(self.id).data
 
             except KeyError:
-                # Blob ID isn't in the database. Typically, that means
-                # it's an unstaged file. Read it from the workdir.
+                # Blob ID isn't in the database.
+                # That's an unstaged file, so read it from the workdir.
                 assert self.source == GitDeltaSource.Dirty, f"expecting untracked/unstaged, got {self.source}"
-                self._data = repo.apply_filters_to_workdir(self.path)
+                data = repo.apply_filters_to_workdir(self.path)
+
+                # Hash the blob. If we're expecting a specific hash for this
+                # unstaged file, make sure it matches.
+                sha1 = str(fast_blob_sha1(data))
+                if self.isIdValid() and sha1 != self.id:
+                    raise WorkdirHashMismatch(f"Workdir hash mismatch: want {id7(self.id)}, got {id(sha1)}") from None
+
+                # Save data and fill in the hash
+                self._data = data
+                self.id = sha1
 
         assert self.isDataValid(), "data should be valid here"
         return self._data
@@ -253,7 +268,11 @@ class GitDeltaFile:
         # Invalidate data so that next read() uses LFS data
         self._data = None
 
-    def blobSha256(self, repo) -> str:
+    def lfsSha256(self, repo: Repo) -> str:
+        """
+        SHA-256 hash of the file for use with LFS. Important: this is NOT for
+        vanilla Git blobs, so this does NOT prepend 'blob <size><NUL>'.
+        """
         try:
             sha256 = _sha1ToSha256Equivalent[self.id]
         except KeyError:
