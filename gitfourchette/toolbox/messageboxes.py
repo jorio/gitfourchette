@@ -54,9 +54,8 @@ def excMessageBox(
                     break
 
         # bail out if we're not running on Qt's application thread
-        if not onAppThread():
-            sys.stderr.write("excMessageBox: not on application thread; bailing out\n")
-            return
+        if not onAppThread():  # pragma: no cover
+            raise RuntimeError("excMessageBox: not on application thread") from exc
 
         if not title:
             title = _("Unhandled exception")
@@ -64,12 +63,8 @@ def excMessageBox(
             message = _("An exception was raised.")
 
         if showExcSummary:
-            try:
-                from gitfourchette import trtables
-                summary = f"{trtables.exceptionName(exc)}: {exc}"
-            except:  # noqa: E722
-                summaryLines = traceback.format_exception_only(exc.__class__, exc)
-                summary = ''.join(summaryLines).strip()
+            from gitfourchette import trtables
+            summary = f"{trtables.exceptionName(exc)}: {exc}"
 
             if len(summary) > 500:
                 summary = summary[:500] + "... " + _("(MESSAGE TRUNCATED)")
@@ -100,7 +95,8 @@ def excMessageBox(
             quitButton = qmb.addButton(QMessageBox.StandardButton.Reset)  # Reset button is leftmost in KDE
             quitButton.setText(_("Quit application"))
 
-        dismissButton = qmb.addButton(QMessageBox.StandardButton.Ok)
+        dismissButton = qmb.button(QMessageBox.StandardButton.Ok)
+        assert isinstance(dismissButton, QPushButton)
         qmb.setDefaultButton(dismissButton)
         qmb.setEscapeButton(dismissButton)
 

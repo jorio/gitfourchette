@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os
+import sys
 
 import pytest
 
@@ -86,6 +87,39 @@ def testFileListFocusPolicy(tempDir, mainWindow):
     # GraphView -> TAB -> Skip over empty DirtyFiles -> StagedFiles
     QTest.keyClick(rw, Qt.Key.Key_Tab)
     assert rw.diffArea.stagedFiles.hasFocus()
+
+
+def testUncaughtExceptionHook(tempDir, mainWindow):
+    originalHook = sys.excepthook
+    reinjectHook = originalHook is not GFApplication.customExceptHook
+
+    if not reinjectHook:
+        warnings.warn("don't need to reinject our hook")
+
+    try:
+        # Reinject our excepthook, which was overridden by pytest-qt.
+        # This is safer than @pytest.mark.qt_no_exception_capture,
+        # because it can crash when running tests in parallel!
+        if reinjectHook:
+            GFApplication.instance().injectExceptHook()
+
+        def raiseOne():
+            raise ValueError("we hebben een serieus probleem" + ("!" * 500))
+
+        menu = QMenu("oops", mainWindow.menuBar())
+        menu.addAction("yikes", raiseOne)
+        mainWindow.menuBar().addMenu(menu)
+
+        triggerMenuAction(mainWindow.menuBar(), "repo/new commit")
+        qmb = findQMessageBox(mainWindow, "please open a repository before performing this action")
+        assert len(qmb.buttons()) == 1
+        qmb.buttons()[0].click()
+
+        triggerMenuAction(mainWindow.menuBar(), "oops/yikes")
+        acceptQMessageBox(mainWindow, "we hebben een serieus probleem")
+    finally:
+        if reinjectHook:
+            sys.excepthook = originalHook
 
 
 def testMainWindowMenuItems(tempDir, mainWindow):
