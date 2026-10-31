@@ -560,15 +560,33 @@ class GFApplication(QApplication):
         from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
         from gitfourchette.themes import ThemeColors
 
-        stylePref = settings.prefs.qtStyle or self.platformDefaultStyleName
+        # Work out Qt style engine + palette
+        for _styleEngineResolvePass in range(2):
+            stylePref = settings.prefs.qtStyle or self.platformDefaultStyleName
 
-        # See if it's a custom theme
-        if customTheme := ThemeColors.resolveTheme(stylePref, self.platformStandardAccent):
-            styleEngine = customTheme.bestStyleEngine()
-            palette = customTheme.buildPalette()
-        else:
+            # See if pref references a custom theme
+            if customTheme := ThemeColors.resolveTheme(stylePref, self.platformStandardAccent):
+                styleEngine = customTheme.bestStyleEngine()
+                palette = customTheme.buildPalette()
+                # For custom themes, proceed (assume Qt style engine is available)
+                break
+
+            # It's not a custom theme, so stylePref is either the name of a
+            # Qt style engine or the empty string (= default engine).
+
+            # If pref references a specific style engine, make sure we have it.
+            if (stylePref != ""
+                    and all(stylePref.lower() != name.lower() for name in QStyleFactory.keys())):  # noqa: SIM118
+                # We don't have this engine, so clear pref and try again
+                logger.warning(f"Missing Qt style engine '{stylePref}'")
+                settings.prefs.qtStyle = ""
+                settings.prefs.setDirty()
+                continue
+
+            # Proceed with given engine + standard palette
             styleEngine = stylePref
             palette = QPalette()
+            break
 
         # Set custom palette, or reset standard palette
         self.setPalette(palette)
@@ -599,7 +617,7 @@ class GFApplication(QApplication):
 
         # ----------------------------------------------------------------------
 
-        # Set Qt style
+        # Set Qt style (i.e. what we internally refer to as the style engine)
         if styleEngine and not paletteOnly:
             self.setStyle(styleEngine)
 
