@@ -961,3 +961,17 @@ class CallSpy:
 
     def __bool__(self):
         return self.completeCalls >= 1
+
+
+def injectFunctionPrefix(monkeypatch, obj, attr, prefix):
+    func = getattr(obj, attr)
+    calls = 0
+
+    def wrapped(*args, **kwargs):
+        nonlocal calls
+        assert calls == 0, "injected code called more than once"
+        calls += 1
+        prefix()
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(obj, attr, wrapped)

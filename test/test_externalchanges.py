@@ -6,6 +6,7 @@
 
 import pytest
 
+from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -127,24 +128,37 @@ def testPatchBecameInvalid(tempDir, mainWindow, scenario):
     assert newText.strip() in rw.diffView.toPlainText()
 
 
-def testUnstagedFileChangedBetweenGitDiffAndLexJob(tempDir, mainWindow):
+def testUnstagedFileChangedBetweenGitDiffAndLexJob(monkeypatch, tempDir, mainWindow):
     smallText = "goedendag = 0"
     largeText = "\n".join(f"hello = {i}" for i in range(25))
 
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    # Enter threaded mode (like non-test environment)
-    with AsynchronousTaskContext(rw.taskRunner):
-        writeFile(f"{wd}/hello.py", largeText)
+    # Race condition scenario:
+    # 1. RefreshRepo detects a change in hello.py and calls LoadPatch.
+    #    The GitDelta for hello.py doesn't contain a valid hash yet.
+    # 2. LoadPatch calls "git diff", which creates a patch with largeText.
+    #    The preamble in this patch contains the hash for largeText.
+    #    hello.py's GitDelta is filled in with this hash.
+    # 3. RACE: As LoadPatch prepares DiffDocument for rendering, an external
+    #    program overwrites hello.py with smallText.
+    # 4. LoadPatch primes the lexer, which needs to read the raw file from disk
+    #    (can't lex the patch itself). The file now contains smallText, so we
+    #    should detect that the hash in GitDelta is stale.
+
+    writeFile(f"{wd}/hello.py", largeText)
+
+    with monkeypatch.context() as m:
+        # To simulate this race condition deterministically, write smallText just
+        # before LoadPatch builds DiffDocument from git diff's output.
+        injectFunctionPrefix(m, DiffDocument, "fromPatch",
+                             lambda: writeFile(f"{wd}/hello.py", smallText))
+
+        # Trigger the scenario.
         rw.refreshRepo()
 
-        # As git diff picks up largeText and we're busy building a DiffDocument,
-        # overwrite the file with smallText. Then, we'll read in the new
-        # contents to create a LexJob. We should detect the mismatch between the
-        # hash reported by git diff and the data meant for LexJob.
-        writeFile(f"{wd}/hello.py", smallText)
-        waitUntilTrue(lambda: findTextInWidget(rw.specialDiffView, "file was modified while we were reading"))
+    assert findTextInWidget(rw.specialDiffView, "file was modified while we were reading")
 
     qteClickLink(rw.specialDiffView, "try to reload")
     assert rw.diffView.isVisible()
