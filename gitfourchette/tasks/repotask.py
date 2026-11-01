@@ -780,13 +780,6 @@ class RepoTask(QObject):
 
 
 class RepoTaskRunner(QObject):
-    ForceSerial = APP_NOTHREADS
-    """
-    Force tasks to run synchronously on the UI thread.
-    Useful for debugging.
-    Can be forced with command-line switch "--no-threads".
-    """
-
     ready = Signal()
     """
     Emitted after finishing a task (or a series of tasks) and no other tasks
@@ -821,6 +814,13 @@ class RepoTaskRunner(QObject):
     _queueTokens: bool
     _tokenQueue: list[FlowControlToken]
 
+    forceSerial: bool
+    """
+    Force tasks to run synchronously on the UI thread.
+    Useful for debugging.
+    Can be forced with command-line switch "--no-threads".
+    """
+
     def __init__(self, parent: QObject):
         super().__init__(parent)
         self.setObjectName("RepoTaskRunner")
@@ -830,6 +830,7 @@ class RepoTaskRunner(QObject):
         self._interruptCurrentTask = False
         self.repoModel = None
         self.pendingEpilog = TaskEpilog()
+        self.forceSerial = APP_NOTHREADS
 
         self._workerThread = FlowWorkerThread(self)
         self._workerThread.flow = None
@@ -1033,7 +1034,7 @@ class RepoTaskRunner(QObject):
                     process._repoTaskBroadcastYet = True  # type: ignore[attr-defined]
                     self.processStarted.emit(process, task.name())
 
-            if RepoTaskRunner.ForceSerial:  # In unit tests, block until process has completed
+            if self.forceSerial:  # In unit tests, block until process has completed
                 return self._waitForNextToken()
 
         elif tk == TK.ContinueOnWorkThread:
@@ -1046,7 +1047,7 @@ class RepoTaskRunner(QObject):
             self._workerThread.flow = flow
             self._workerThread.start()
 
-            if RepoTaskRunner.ForceSerial:  # In unit tests, block until threaded workload has completed
+            if self.forceSerial:  # In unit tests, block until threaded workload has completed
                 return self._waitForNextToken()
 
         elif tk == TK.InterruptedByException:
@@ -1065,7 +1066,7 @@ class RepoTaskRunner(QObject):
         Block caller until the next FlowControlToken is ready to be processed.
         Useful to wait for a process to complete, etc.
 
-        Used only in ForceSerial mode to ease the writing of unit tests in a
+        Used only in forceSerial mode to ease the writing of unit tests in a
         "sequential" style.
         """
 
@@ -1287,7 +1288,7 @@ class ProcessWrapper(QObject):
         assert self._didStart
 
         if QT5 and process.state() == QProcess.ProcessState.NotRunning:  # pragma: no cover
-            # Qt 5 may enter NotRunning immediately in ForceSerial mode
+            # Qt 5 may enter NotRunning immediately in forceSerial mode
             pass
         else:
             assert process.state() == QProcess.ProcessState.Running

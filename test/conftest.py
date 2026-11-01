@@ -163,13 +163,12 @@ def tempDir() -> Iterator[tempfile.TemporaryDirectory]:
 
 @pytest.fixture
 def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
-    from gitfourchette import qt, trash, tasks
+    from gitfourchette import qt, trash
     from gitfourchette.appconsts import APP_TESTMODE
     from .util import waitUntilTrue
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert APP_TESTMODE
-    assert tasks.RepoTaskRunner.ForceSerial
 
     failCount = request.session.testsfailed
 

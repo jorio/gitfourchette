@@ -251,15 +251,15 @@ def AsynchronousTaskContext(taskRunner: RepoTaskRunner, tearDown=True, tearDownT
     """
 
     assert not taskRunner.isBusy()
-    assert taskRunner.__class__.ForceSerial
-    taskRunner.__class__.ForceSerial = False
+    assert taskRunner.forceSerial
+    taskRunner.forceSerial = False
 
     assert not taskRunner.isBusy()
 
     try:
         yield
     finally:
-        taskRunner.__class__.ForceSerial = True
+        taskRunner.forceSerial = True
         if tearDown:
             waitUntilTrue(lambda: not taskRunner.isBusy(), timeout=tearDownTimeout)
 
