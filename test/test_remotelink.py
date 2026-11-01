@@ -29,24 +29,27 @@ def passphraseProtectedKey(tempDir):
 
 
 @requiresNetwork
-def testHttpsCloneRepo(tempDir, mainWindow, taskThread):
+def testHttpsCloneRepo(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
-    cloneDialog = waitForQDialog(mainWindow, "clone", t=CloneDialog)
+    cloneDialog = findQDialog(mainWindow, "clone", t=CloneDialog)
     cloneDialog.ui.urlEdit.setEditText("  https://github.com/libgit2/TestGitRepository  ")  # whitespace should be stripped
     cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
-    cloneDialog.cloneButton.click()
-    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
+
+    with AsynchronousTaskContext(cloneDialog.taskRunner, tearDown=False):
+        cloneDialog.cloneButton.click()
+        waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = waitForRepoWidget(mainWindow)
+
     assert "master" in rw.repo.branches.local
     assert "origin/master" in rw.repo.branches.remote
     assert "origin/no-parent" in rw.repo.branches.remote
 
 
 @requiresNetwork
-def testSshCloneRepo(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+def testSshCloneRepo(tempDir, mainWindow, passphraseProtectedKey):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
-    cloneDialog = waitForQDialog(mainWindow, "clone", t=CloneDialog)
+    cloneDialog = findQDialog(mainWindow, "clone", t=CloneDialog)
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
     cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
 
@@ -62,16 +65,17 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, passphraseProtectedKey):
     cloneDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
 
     # Clone
-    cloneDialog.cloneButton.click()
+    with AsynchronousTaskContext(cloneDialog.taskRunner, tearDown=False):
+        cloneDialog.cloneButton.click()
 
-    # Enter password
-    askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog, timeout=NET_TIMEOUT)
-    # Make sure we're prompted to enter the passphrase for the correct key
-    assert findTextInWidget(askpassDialog.promptLabel, "Enter passphrase for key.+HelloTestKey")
-    askpassDialog.lineEdit.setText("empty")
-    askpassDialog.accept()
+        # Enter password
+        askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog, timeout=NET_TIMEOUT)
+        # Make sure we're prompted to enter the passphrase for the correct key
+        assert findTextInWidget(askpassDialog.promptLabel, "Enter passphrase for key.+HelloTestKey")
+        askpassDialog.lineEdit.setText("empty")
+        askpassDialog.accept()
 
-    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
+        waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = waitForRepoWidget(mainWindow)
     assert "master" in rw.repo.branches.local
@@ -81,9 +85,9 @@ def testSshCloneRepo(tempDir, mainWindow, taskThread, passphraseProtectedKey):
 
 
 @requiresNetwork
-def testSshCloneRepoCancelAskpass(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+def testSshCloneRepoCancelAskpass(tempDir, mainWindow, passphraseProtectedKey):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
-    cloneDialog = waitForQDialog(mainWindow, "clone", t=CloneDialog)
+    cloneDialog = findQDialog(mainWindow, "clone", t=CloneDialog)
     cloneDialog.ui.urlEdit.setEditText("git@github.com:libgit2/TestGitRepository")
     cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
 
@@ -91,12 +95,12 @@ def testSshCloneRepoCancelAskpass(tempDir, mainWindow, taskThread, passphrasePro
     cloneDialog.ui.keyFilePicker.setPath(passphraseProtectedKey)
 
     # Attempt to clone but cancel askpass
-    cloneDialog.cloneButton.click()
-    askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog, timeout=NET_TIMEOUT)
-    askpassDialog.cancelButton.click()
+    with AsynchronousTaskContext(cloneDialog.taskRunner, tearDownTimeout=NET_TIMEOUT):
+        cloneDialog.cloneButton.click()
+        askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog, timeout=NET_TIMEOUT)
+        askpassDialog.cancelButton.click()
 
-    waitUntilTrue(lambda: not cloneDialog.taskRunner.isBusy(), timeout=NET_TIMEOUT)
-
+    assert not cloneDialog.taskRunner.isBusy()
     assert cloneDialog.ui.statusForm.ui.blurbLabel.isVisible()
     assert findTextInWidget(cloneDialog.ui.statusForm.ui.blurbLabel, "you clicked the cancel button")
 
@@ -104,14 +108,13 @@ def testSshCloneRepoCancelAskpass(tempDir, mainWindow, taskThread, passphrasePro
 
 
 @requiresNetwork
-def testHttpsShallowClone(tempDir, mainWindow, taskThread):
+def testHttpsShallowClone(tempDir, mainWindow):
     triggerMenuAction(mainWindow.menuBar(), "file/clone")
     cloneDialog = waitForQDialog(mainWindow, "clone", t=CloneDialog)
     cloneDialog.ui.urlEdit.setEditText("https://github.com/libgit2/TestGitRepository")
     cloneDialog.ui.pathEdit.setText(tempDir.name + "/cloned")
     cloneDialog.ui.shallowCloneCheckBox.setChecked(True)
     cloneDialog.cloneButton.click()
-    waitForSignal(cloneDialog.finished, timeout=NET_TIMEOUT)
 
     rw = waitForRepoWidget(mainWindow)
     assert "master" in rw.repo.branches.local
@@ -128,67 +131,66 @@ def testHttpsShallowClone(tempDir, mainWindow, taskThread):
 
 
 @requiresNetwork
-def testHttpsAddRemoteAndFetch(tempDir, mainWindow, taskThread):
+def testHttpsAddRemoteAndFetch(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shell("git remote remove origin", wd)
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
     assert "origin/master" not in rw.repo.branches.remote
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
-    remoteDialog = waitForQDialog(rw, "add remote", t=RemoteDialog)
-    remoteDialog.ui.urlEdit.setText("https://github.com/libgit2/TestGitRepository")
-    remoteDialog.ui.nameEdit.setText("origin")
-    remoteDialog.accept()
+    with AsynchronousTaskContext(rw.taskRunner, tearDownTimeout=NET_TIMEOUT):
+        triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
+        remoteDialog = waitForQDialog(rw, "add remote", t=RemoteDialog)
+        remoteDialog.ui.urlEdit.setText("https://github.com/libgit2/TestGitRepository")
+        remoteDialog.ui.nameEdit.setText("origin")
+        remoteDialog.accept()
 
-    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
     assert "origin/master" in rw.repo.branches.remote
 
 
 @requiresNetwork
 @pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
-def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, taskThread, passphraseProtectedKey):
+def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, passphraseProtectedKey):
     GFApplication.applyPrefs(ownSshAgent=True)
 
     wd = tempDir.name + "/emptyrepo"
     pygit2.init_repository(wd)
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
 
     # -------------------------------------------
     # Set passphrase-protected keyfile
 
     triggerMenuAction(mainWindow.menuBar(), "repo/settings")
-    repoSettings = waitForQDialog(rw, "repo settings", t=RepoSettingsDialog)
+    repoSettings = findQDialog(rw, "repo settings", t=RepoSettingsDialog)
     repoSettings.ui.keyFilePicker.setPath(passphraseProtectedKey)
     repoSettings.accept()
 
     # -------------------------------------------
     # Add remote
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
-    remoteDialog = waitForQDialog(rw, "add remote", t=RemoteDialog)
-    remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
-    remoteDialog.ui.nameEdit.setText("origin")
-    assert remoteDialog.ui.fetchAfterAddCheckBox.isChecked()
+    with AsynchronousTaskContext(rw.taskRunner, tearDownTimeout=NET_TIMEOUT):
+        triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
+        remoteDialog = waitForQDialog(rw, "add remote", t=RemoteDialog)
+        remoteDialog.ui.urlEdit.setText("ssh://git@github.com/pygit2/empty")
+        remoteDialog.ui.nameEdit.setText("origin")
+        assert remoteDialog.ui.fetchAfterAddCheckBox.isChecked()
 
-    # Accept "add remote", kicking off a fetch
-    remoteDialog.accept()
+        # Accept "add remote", kicking off a fetch
+        remoteDialog.accept()
 
-    askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog, timeout=NET_TIMEOUT)
-    assert findTextInWidget(askpassDialog.promptLabel, "Enter passphrase for key ")
-    askpassDialog.lineEdit.setText("empty")
-    askpassDialog.accept()
+        askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog, timeout=NET_TIMEOUT)
+        assert findTextInWidget(askpassDialog.promptLabel, "Enter passphrase for key ")
+        askpassDialog.lineEdit.setText("empty")
+        askpassDialog.accept()
 
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy(), timeout=NET_TIMEOUT)
+    assert not rw.taskRunner.isBusy()
     assert "origin/master" in rw.repo.branches.remote
 
     # -------------------------------------------
     # Fetch, shouldn't prompt for passphrase again thanks to built-in ssh-agent
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-    waitForSignal(rw.taskRunner.ready, timeout=NET_TIMEOUT)
+    with AsynchronousTaskContext(rw.taskRunner, tearDownTimeout=NET_TIMEOUT):
+        triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
 
-    # Make sure askpass isn't invoked again (ssh-agent should have remembered the credentials)
+    # Make sure askpass wasn't invoked again (ssh-agent should have remembered the credentials)
     with pytest.raises(KeyError):
         findQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog)

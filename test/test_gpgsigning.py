@@ -178,40 +178,40 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
 @requiresGpg
 @pytest.mark.parametrize("amend", [False, True], ids=["commit", "amend"])
 @pytest.mark.parametrize("passphrase", [False, True], ids=["simple", "passphrase"])
-def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, taskThread, amend, passphrase):
+def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphrase):
     wd = unpackRepo(tempDir)
 
     keyName = "simple" if not passphrase else "pygit2_empty"
     setUpForSshSigning(tempDir.name, wd, keyName)
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
 
-    if not amend:
-        rw.diffArea.commitButton.click()
-        waitForQMessageBox(rw, "empty commit").accept()
-    else:
-        triggerMenuAction(mainWindow.menuBar(), "repo/amend last commit")
+    with AsynchronousTaskContext(rw.taskRunner):
+        if not amend:
+            rw.diffArea.commitButton.click()
+            waitForQMessageBox(rw, "empty commit").accept()
+        else:
+            triggerMenuAction(mainWindow.menuBar(), "repo/amend last commit")
 
-    commitDialog = waitForQDialog(rw, "commit", t=CommitDialog)
-    commitDialog.ui.summaryEditor.setText("TEST SSH-SIGNED COMMIT")
+        commitDialog = waitForQDialog(rw, "commit", t=CommitDialog)
+        commitDialog.ui.summaryEditor.setText("TEST SSH-SIGNED COMMIT")
 
-    signAction = commitDialog.ui.gpg.actions()[0]
-    assert findTextInWidget(signAction, r"enable gpg-signing")
-    assert signAction.isEnabled()
-    assert signAction.isChecked()
-    keyDisplay = commitDialog.ui.gpg.actions()[1]
-    assert keyName in keyDisplay.text()
+        signAction = commitDialog.ui.gpg.actions()[0]
+        assert findTextInWidget(signAction, r"enable gpg-signing")
+        assert signAction.isEnabled()
+        assert signAction.isChecked()
+        keyDisplay = commitDialog.ui.gpg.actions()[1]
+        assert keyName in keyDisplay.text()
 
-    commitDialog.accept()
+        commitDialog.accept()
 
-    if passphrase:
-        askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog)
-        assert findTextInWidget(askpassDialog.promptLabel, r"Enter passphrase( for.+pygit2_empty)?")
-        askpassDialog.lineEdit.setText("empty")
-        askpassDialog.accept()
+        if passphrase:
+            askpassDialog = waitForQDialog(mainWindow, "enter ssh credentials", t=AskpassDialog)
+            assert findTextInWidget(askpassDialog.promptLabel, r"Enter passphrase( for.+pygit2_empty)?")
+            askpassDialog.lineEdit.setText("empty")
+            askpassDialog.accept()
 
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
     commit = rw.repo.head_commit
     assert commit.message.strip() == "TEST SSH-SIGNED COMMIT"
@@ -409,7 +409,7 @@ def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
 
 @requiresGpg
 @pytest.mark.notParallelizableOnWindows
-def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
+def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome):
     from gitfourchette.settings import GraphRowHeight
 
     wd = unpackRepo(tempDir)
@@ -417,35 +417,34 @@ def testInterruptGpgQueue(tempDir, mainWindow, tempGpgHome, taskThread):
 
     # Cram as many signed commits on the screen as possible
     GFApplication.applyPrefs(verifyGpgOnTheFly=True, graphRowHeight=GraphRowHeight.Cramped)
-    QTest.qWait(0)
 
-    mainWindow.openRepo(wd)
+    rw = mainWindow.openRepo(wd)
     # Make the window wide enough for the author column (won't attempt to verify
     # signatures if author isn't visible) and tall enough to show many commits.
     mainWindow.resize(1600, 1600)
-    rw = waitForRepoWidget(mainWindow)
     rw.centralSplitter.setSizes([999, 1])
     gpgVerifyQueue = rw.repoModel.gpgVerifyQueue
 
     # Wait for VerifyGpgQueue to kick in
     assert not rw.taskRunner.isBusy()
-    waitUntilTrue(rw.taskRunner.isBusy)
-    assert isinstance(rw.taskRunner.currentTask, VerifyGpgQueue)
+    with AsynchronousTaskContext(rw.taskRunner):
+        waitUntilTrue(rw.taskRunner.isBusy)
+        assert isinstance(rw.taskRunner.currentTask, VerifyGpgQueue)
 
-    # Start NewCommit.
-    # This should kill VerifyGpgQueue immediately.
-    rw.diffArea.commitButton.click()
-    qmb = waitForQMessageBox(rw, "create an empty commit anyway")
-    assert not isinstance(rw.taskRunner.currentTask, VerifyGpgQueue)
-    frozenQueue = gpgVerifyQueue.copy()
+        # Start NewCommit.
+        # This should kill VerifyGpgQueue immediately.
+        rw.diffArea.commitButton.click()
+        qmb = waitForQMessageBox(rw, "create an empty commit anyway")
+        assert not isinstance(rw.taskRunner.currentTask, VerifyGpgQueue)
+        frozenQueue = gpgVerifyQueue.copy()
 
-    # Stop NewCommit.
-    qmb.reject()
+        # Stop NewCommit.
+        qmb.reject()
 
-    # VerifyGpgQueue should be rescheduled.
-    waitUntilTrue(lambda: isinstance(rw.taskRunner.currentTask, VerifyGpgQueue))
-    waitUntilTrue(lambda: gpgVerifyQueue != frozenQueue)
+        # VerifyGpgQueue should be rescheduled.
+        waitUntilTrue(lambda: isinstance(rw.taskRunner.currentTask, VerifyGpgQueue))
+        waitUntilTrue(lambda: gpgVerifyQueue != frozenQueue)
 
-    # Kill any progress dialogs before exiting the test
-    rw.taskRunner.killCurrentTask()
-    rw.taskRunner.joinKilledTask()
+        # Kill any progress dialogs before exiting the test
+        rw.taskRunner.killCurrentTask()
+        rw.taskRunner.joinKilledTask()

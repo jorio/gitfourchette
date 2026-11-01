@@ -149,12 +149,12 @@ def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
     assert newHeadId in filterState.matchingIds
 
 
-def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
+def testCommitFileSearchInterrupted(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
     gv = rw.graphView
     searchBar = gv.searchBar
+    taskRunner = rw.taskRunner
 
     a1Locator = NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1")
 
@@ -173,34 +173,35 @@ def testCommitFileSearchInterrupted(tempDir, mainWindow, taskThread):
         assert isShowingBusySearchIcon()
         assert isinstance(rw.taskRunner.currentTask, QueryCommitsTouchingPath)
 
-    # Kick off a long search for c/c2-2.txt
-    kickOffLongSearch()
-    assert rw.navLocator.context.isWorkdir()  # did not jump yet
+    with AsynchronousTaskContext(taskRunner):
+        # Kick off a long search for c/c2-2.txt
+        kickOffLongSearch()
+        assert rw.navLocator.context.isWorkdir()  # did not jump yet
 
-    # Interrupt current query by initiating a new search and let it finish
-    searchBar.lineEdit.selectAll()
-    QTest.keyClicks(searchBar.lineEdit, "a/a1")
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert not isShowingBusySearchIcon()
-    assert a1Locator.isSimilarEnoughTo(rw.navLocator)
+        # Interrupt current query by initiating a new search and let it finish
+        searchBar.lineEdit.selectAll()
+        QTest.keyClicks(searchBar.lineEdit, "a/a1")
+        waitUntilTrue(lambda: not taskRunner.isBusy())
+        assert not isShowingBusySearchIcon()
+        assert a1Locator.isSimilarEnoughTo(rw.navLocator)
 
-    # Search for c/c2-2.txt again
-    kickOffLongSearch()
+        # Search for c/c2-2.txt again
+        kickOffLongSearch()
 
-    # Interrupt current query by clearing the text
-    searchBar.lineEdit.clear()
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert not isShowingBusySearchIcon()
-    assert a1Locator.isSimilarEnoughTo(rw.navLocator)
+        # Interrupt current query by clearing the text
+        searchBar.lineEdit.clear()
+        waitUntilTrue(lambda: not taskRunner.isBusy())
+        assert not isShowingBusySearchIcon()
+        assert a1Locator.isSimilarEnoughTo(rw.navLocator)
 
-    # Search for c/c2-2.txt again
-    kickOffLongSearch()
+        # Search for c/c2-2.txt again
+        kickOffLongSearch()
 
-    # Interrupt current query by clearing the text
-    searchBar.hideOrBeep()
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert not isShowingBusySearchIcon()
-    assert a1Locator.isSimilarEnoughTo(rw.navLocator)
+        # Interrupt current query by clearing the text
+        searchBar.hideOrBeep()
+        waitUntilTrue(lambda: not taskRunner.isBusy())
+        assert not isShowingBusySearchIcon()
+        assert a1Locator.isSimilarEnoughTo(rw.navLocator)
 
 
 def testCommitFileSearchReevaluatedOnWorkdirChange(tempDir, mainWindow):

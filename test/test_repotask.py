@@ -100,9 +100,7 @@ def testTaskQueueing(taskRunner):
     acceptQMessageBox(parentWidget, "HelloC")
 
 
-def testTaskQueueingAbortedByClosedParent(taskRunner, taskThread):
-    parentWidget: QWidget = taskRunner.parent()
-
+def testTaskQueueingAbortedByClosedParent(taskRunner):
     class HelloA(RepoTask):
         def flow(self):
             waitMillis = 3_000
@@ -118,21 +116,24 @@ def testTaskQueueingAbortedByClosedParent(taskRunner, taskThread):
         def flow(self):
             yield from self.flowConfirm("this should not appear B")
 
-    # Start HelloA, wait for background thread to start
-    assert not taskRunner._workerThread.isRunning()
-    HelloA.invoke(taskRunner)
-    waitUntilTrue(taskRunner._workerThread.isRunning)
+    with AsynchronousTaskContext(taskRunner):
+        parentWidget: QWidget = taskRunner.parent()
 
-    # Enqueue HelloB
-    HelloB.invoke(taskRunner)
+        # Start HelloA, wait for background thread to start
+        assert not taskRunner._workerThread.isRunning()
+        HelloA.invoke(taskRunner)
+        waitUntilTrue(taskRunner._workerThread.isRunning)
 
-    # While HelloA is still running and HelloB is pending, close the widget
-    parentWidget.close()
+        # Enqueue HelloB
+        HelloB.invoke(taskRunner)
 
-    # Wait for task runner to wind down
-    waitUntilTrue(lambda: not taskRunner.isBusy())
-    assert not parentWidget.isVisible()
+        # While HelloA is still running and HelloB is pending, close the widget
+        parentWidget.close()
 
-    # Make sure BOTH tasks were properly interrupted
-    with pytest.raises(KeyError):
-       acceptQMessageBox(parentWidget, "this should not appear")
+        # Wait for task runner to wind down
+        waitUntilTrue(lambda: not taskRunner.isBusy())
+        assert not parentWidget.isVisible()
+
+        # Make sure BOTH tasks were properly interrupted
+        with pytest.raises(KeyError):
+           acceptQMessageBox(parentWidget, "this should not appear")

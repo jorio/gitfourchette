@@ -458,51 +458,53 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
 
 
 @pytest.mark.notParallelizableOnWindows
-def testInterruptLongBlame(blameWindow, taskThread):
+def testInterruptLongBlame(blameWindow):
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
     assert "ciao" not in blameWindow.textEdit.toPlainText()
 
-    # Start loading blame for uncommitted changes, which will take a while
-    with DelayGitCommandContext():
-        qcbSetIndex(blameWindow.scrubber, "uncommitted")
+    with AsynchronousTaskContext(blameWindow.taskRunner):
+        # Start loading blame for uncommitted changes, which will take a while
+        with DelayGitCommandContext():
+            qcbSetIndex(blameWindow.scrubber, "uncommitted")
 
-    # Wait a bit, but don't let the task run to completion
-    QTest.qWait(500)
-    assert blameWindow.taskRunner.isBusy()
+        # Wait a bit, but don't let the task run to completion
+        QTest.qWait(500)
+        assert blameWindow.taskRunner.isBusy()
 
-    # Scrubber/nav buttons should be in sync with the commit we're attempting to display
-    assert "Uncommitted" in blameWindow.scrubber.currentText()
-    assert blameWindow.olderButton.isEnabled()
-    assert not blameWindow.newerButton.isEnabled()
+        # Scrubber/nav buttons should be in sync with the commit we're attempting to display
+        assert "Uncommitted" in blameWindow.scrubber.currentText()
+        assert blameWindow.olderButton.isEnabled()
+        assert not blameWindow.newerButton.isEnabled()
 
-    # The new text isn't loaded yet
-    assert "ciao mondo" not in blameWindow.textEdit.toPlainText()
-    assert blameWindow.busySpinner.isVisible()
+        # The new text isn't loaded yet
+        assert "ciao mondo" not in blameWindow.textEdit.toPlainText()
+        assert blameWindow.busySpinner.isVisible()
 
-    # Interrupt the task by jumping to another commit
-    qcbSetIndex(blameWindow.scrubber, "first commit")
-    waitUntilTrue(lambda: "hello world" == blameWindow.textEdit.toPlainText().strip())
-    assert not blameWindow.busySpinner.isVisible()
+        # Interrupt the task by jumping to another commit
+        qcbSetIndex(blameWindow.scrubber, "first commit")
+        waitUntilTrue(lambda: "hello world" == blameWindow.textEdit.toPlainText().strip())
+        assert not blameWindow.busySpinner.isVisible()
 
 
 @pytest.mark.notParallelizableOnWindows
-def testAbortLongBlame(blameWindow, taskThread):
+def testAbortLongBlame(blameWindow):
     assert "Say hello in Spanish" in blameWindow.scrubber.currentText()
     assert "ciao" not in blameWindow.textEdit.toPlainText()
 
-    # Start loading blame for uncommitted changes, which will take a while
-    with DelayGitCommandContext(delay=2):
-        qcbSetIndex(blameWindow.scrubber, "uncommitted")
+    with AsynchronousTaskContext(blameWindow.taskRunner):
+        # Start loading blame for uncommitted changes, which will take a while
+        with DelayGitCommandContext(delay=2):
+            qcbSetIndex(blameWindow.scrubber, "uncommitted")
 
-    # Wait a bit, but don't let the task run to completion
-    QTest.qWait(500)
-    assert blameWindow.taskRunner.isBusy()
+        # Wait a bit, but don't let the task run to completion
+        QTest.qWait(500)
+        assert blameWindow.taskRunner.isBusy()
 
-    blameWindow.close()
-    waitUntilTrue(lambda: not blameWindow.taskRunner.isBusy())
+        blameWindow.close()
+        waitUntilTrue(lambda: not blameWindow.taskRunner.isBusy())
 
 
-def testReevaluateBlameSearchTermAcrossRevisions(blameWindow, taskThread):
+def testReevaluateBlameSearchTermAcrossRevisions(blameWindow):
     searchBar = blameWindow.textEdit.searchBar
 
     QTest.keySequence(blameWindow, "Ctrl+F")

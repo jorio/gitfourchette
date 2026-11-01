@@ -444,7 +444,7 @@ class MainWindow(QMainWindow):
 
             openAction = ActionDef(
                 escamp(caption),
-                lambda p=path: self.openRepo(p, exactMatch=True),
+                lambda p=path: self.openRepoAsync(p, exactMatch=True),
                 tip=path)
             actions.append(openAction)
 
@@ -594,7 +594,7 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Repo loading
 
-    def openRepo(self, path: str, exactMatch=True) -> RepoWidget | RepoStub | None:
+    def openRepoAsync(self, path: str, exactMatch=True) -> RepoWidget | RepoStub | None:
         try:
             rw = self._openRepo(path, exactMatch=exactMatch)
         except BaseException as exc:
@@ -607,16 +607,17 @@ class MainWindow(QMainWindow):
             return None
 
         self.saveSession()
+        return rw
+
+    def openRepo(self, path: str, exactMatch=True) -> RepoWidget:
+        assert APP_TESTMODE, "this is a helper function meant for use in test mode only"
+        rw = self.openRepoAsync(path, exactMatch)
 
         # Return a concrete RepoWidget instead of a RepoStub if loading is already completed
         # (mostly for single-threaded unit tests that expect a deterministic chain of events).
-        if RepoTaskRunner.ForceSerial:
-            rw2 = self.tabWidgetForWorkdirPath(rw.workdir)
-            if isinstance(rw2, RepoWidget):
-                rw = rw2
-            else:
-                assert not APP_TESTMODE, "the RepoWidget isn't ready yet"
-
+        # if RepoTaskRunner.ForceSerial:
+        rw = self.tabWidgetForWorkdirPath(rw.workdir)
+        assert isinstance(rw, RepoWidget), "the RepoWidget isn't ready yet"
         return rw
 
     def _resolveWorkdir(self, path: str, exactMatch) -> tuple[str, RepoWidget | RepoStub | None]:
@@ -831,11 +832,11 @@ class MainWindow(QMainWindow):
     def newRepo(self) -> None:
         runner = RepoTaskRunner(self)
         runner.ready.connect(runner.deleteLater)
-        NewRepo.invoke(runner, self.openRepo)
+        NewRepo.invoke(runner, self.openRepoAsync)
 
     def cloneDialog(self, initialUrl: str = "") -> None:
         dlg = CloneDialog(initialUrl, self)
-        dlg.cloneSuccessful.connect(lambda path: self.openRepo(path, exactMatch=True))
+        dlg.cloneSuccessful.connect(lambda path: self.openRepoAsync(path, exactMatch=True))
         dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.show()
@@ -843,7 +844,7 @@ class MainWindow(QMainWindow):
     def openDialog(self) -> None:
         qfd = PersistentFileDialog.openDirectory(self, "NewRepo", _("Open repository"))
         qfd.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # don't leak dialog
-        qfd.fileSelected.connect(lambda path: self.openRepo(path, exactMatch=False))
+        qfd.fileSelected.connect(lambda path: self.openRepoAsync(path, exactMatch=False))
         qfd.show()
 
     # -------------------------------------------------------------------------
@@ -1137,7 +1138,7 @@ class MainWindow(QMainWindow):
             pathStr = path.as_posix()  # WINDOWS: Convert to forward slashes to match internal git representation
             rw.blameFile(pathStr)
         elif action == DropAction.Open:
-            self.openRepo(data, exactMatch=True)
+            self.openRepoAsync(data, exactMatch=True)
         elif action == DropAction.Patch:
             tasks.ApplyPatchFile.invoke(self, data)
         else:

@@ -869,52 +869,52 @@ def testForcePushWithLeaseRejected(tempDir, mainWindow):
 
 
 @pytest.mark.notParallelizableOnWindows
-def testAbortPushInProgress(tempDir, mainWindow, taskThread):
+def testAbortPushInProgress(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     makeBareCopy(wd, addAsRemote="remote2", preFetch=True, deleteOtherRemotes=True)
     shell("git commit --allow-empty -m'hello'", wd)
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
     oldOid = rw.repo.head_commit.parent_ids[0]
     newOid = rw.repo.head_commit_id
 
     assert rw.repo.branches.local["master"].target == newOid
     assert rw.repo.branches.remote["remote2/master"].target == oldOid
 
-    triggerMenuAction(mainWindow.menuBar(), "repo/push")
-    pushDialog = waitForQDialog(rw, "push.+branch", t=PushDialog)
-    statusLabel = pushDialog.ui.statusForm.ui.statusLabel
-    blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
-    okButton = pushDialog.okButton()
-    cancelButton = pushDialog.cancelButton()
+    with AsynchronousTaskContext(rw.taskRunner):
+        triggerMenuAction(mainWindow.menuBar(), "repo/push")
+        pushDialog = waitForQDialog(rw, "push.+branch", t=PushDialog)
+        statusLabel = pushDialog.ui.statusForm.ui.statusLabel
+        blurbLabel = pushDialog.ui.statusForm.ui.blurbLabel
+        okButton = pushDialog.okButton()
+        cancelButton = pushDialog.cancelButton()
 
-    with DelayGitCommandContext():
-        okButton.click()
-        assert not okButton.isEnabled()
-        assert statusLabel.isVisible()
+        with DelayGitCommandContext():
+            okButton.click()
+            assert not okButton.isEnabled()
+            assert statusLabel.isVisible()
 
-        # Wait for wrapper script to actually start
-        waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))
+            # Wait for wrapper script to actually start
+            waitUntilTrue(lambda: findTextInWidget(statusLabel, "delaying"))
 
-    # Send SIGTERM
-    cancelButton.click()
-    waitUntilTrue(okButton.isEnabled)
+        # Send SIGTERM
+        cancelButton.click()
+        waitUntilTrue(okButton.isEnabled)
 
-    failMessage = "git.+exited with.+SIGTERM"
-    assert findTextInWidget(blurbLabel, failMessage)
-    assert blurbLabel.isVisible()
+        failMessage = "git.+exited with.+SIGTERM"
+        assert findTextInWidget(blurbLabel, failMessage)
+        assert blurbLabel.isVisible()
 
-    # Click cancel button again to dismiss the dialog
-    cancelButton.click()
+        # Click cancel button again to dismiss the dialog
+        cancelButton.click()
 
-    assert rw.repo.branches.remote["remote2/master"].target == oldOid
-    shell("git fetch remote2", wd)
-    assert rw.repo.branches.remote["remote2/master"].target == oldOid
+        assert rw.repo.branches.remote["remote2/master"].target == oldOid
+        shell("git fetch remote2", wd)
+        assert rw.repo.branches.remote["remote2/master"].target == oldOid
 
 
 @pytest.mark.notParallelizableOnWindows
-def testAbortPullInProgress(tempDir, mainWindow, taskThread):
+def testAbortPullInProgress(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     bareCopy = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
 
@@ -927,30 +927,30 @@ def testAbortPullInProgress(tempDir, mainWindow, taskThread):
             bareRepo.head_tree.id,
             [bareRepo.head_commit_id])
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
     oldHead = rw.repo.head_commit_id
 
     assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
-    with DelayGitCommandContext():
-        triggerMenuAction(mainWindow.menuBar(), "repo/pull")
-        waitForSignal(rw.processDialog.becameVisible)
-        assert rw.processDialog.isVisible()
+    with AsynchronousTaskContext(rw.taskRunner):
+        with DelayGitCommandContext():
+            triggerMenuAction(mainWindow.menuBar(), "repo/pull")
+            waitForSignal(rw.processDialog.becameVisible)
+            assert rw.processDialog.isVisible()
 
-    assert rw.processDialog.abortButton.isEnabled()
-    assert findTextInWidget(rw.processDialog.abortButton, "abort")
+        assert rw.processDialog.abortButton.isEnabled()
+        assert findTextInWidget(rw.processDialog.abortButton, "abort")
 
-    rw.processDialog.abortButton.click()
-    assert findTextInWidget(rw.processDialog.abortButton, "SIGKILL")
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+        rw.processDialog.abortButton.click()
+        assert findTextInWidget(rw.processDialog.abortButton, "SIGKILL")
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
-    failMessage = "git.+exited with.+SIGTERM"
-    waitForQMessageBox(rw, failMessage).reject()
+        failMessage = "git.+exited with.+SIGTERM"
+        waitForQMessageBox(rw, failMessage).reject()
 
-    rw.refreshRepo()
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert rw.repo.branches.remote["localfs/master"].target == oldHead
+        rw.refreshRepo()
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+        assert rw.repo.branches.remote["localfs/master"].target == oldHead
 
 
 def testRemoteSkipFetchAll(tempDir, mainWindow):
@@ -997,38 +997,39 @@ def testRemoteSkipFetchAll(tempDir, mainWindow):
 
 
 @pytest.mark.parametrize("enabled", [True, False])
-def testAutoFetch(tempDir, mainWindow, enabled, taskThread):
+def testAutoFetch(tempDir, mainWindow, enabled):
     """Test that auto-fetch works when enabled and conditions are met."""
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
-
-    # Enable or disable auto-fetch.
-    GFApplication.applyPrefs(autoFetch=enabled, autoFetchMinutes=1)
 
     shell("""
         git branch new-remote-branch
         git branch -d no-parent
     """, barePath)
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
-    assert not rw.taskRunner.isBusy()
+    rw = mainWindow.openRepo(wd)
 
-    assert {"localfs/master", "localfs/no-parent"} == {
-        x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
+    with AsynchronousTaskContext(rw.taskRunner):
+        # Enable or disable auto-fetch.
+        GFApplication.applyPrefs(autoFetch=enabled, autoFetchMinutes=1)
 
-    # Manually trigger the auto-fetch timer timeout to simulate the timer firing.
-    with DelayGitCommandContext(delay=2):  # Keep busy for a while so we can check the status message.
-        rw.lastAutoFetchTime = 0
-        rw.onAutoFetchTimerTimeout()
+        assert not rw.taskRunner.isBusy()
 
-    # Check auto-fetch status message
-    if enabled:
-        waitUntilTrue(rw.taskRunner.isBusy)
-        waitUntilTrue(mainWindow.statusBar2.busyLabel.isVisible)
-        assert findTextInWidget(mainWindow.statusBar2.busyLabel, "busy: auto-fetch")
+        assert {"localfs/master", "localfs/no-parent"} == {
+            x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
 
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+        # Manually trigger the auto-fetch timer timeout to simulate the timer firing.
+        with DelayGitCommandContext(delay=2):  # Keep busy for a while so we can check the status message.
+            rw.lastAutoFetchTime = 0
+            rw.onAutoFetchTimerTimeout()
+
+        # Check auto-fetch status message
+        if enabled:
+            waitUntilTrue(rw.taskRunner.isBusy)
+            waitUntilTrue(mainWindow.statusBar2.busyLabel.isVisible)
+            assert findTextInWidget(mainWindow.statusBar2.busyLabel, "busy: auto-fetch")
+
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())
 
     branches = {x for x in rw.repo.branches.remote if x.startswith("localfs/") and x != "localfs/HEAD"}
     if enabled:
@@ -1059,66 +1060,65 @@ def testAutoFetchFailure(tempDir, mainWindow):
 
 
 @pytest.mark.notParallelizableOnWindows
-def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow, taskThread):
+def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow):
     from gitfourchette import settings
     gitCmd = settings.prefs.gitPath
-
-    # Enable auto-fetch
-    GFApplication.applyPrefs(autoFetch=True, autoFetchMinutes=1)
 
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     shell("git branch new-remote-branch", barePath)
 
-    # Open the repo and wait for it to settle
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
 
-    # Manually trigger the auto-fetch timer timeout to simulate the timer firing.
-    # Delay git to keep RepoTaskRunner busy for a few seconds.
-    with DelayGitCommandContext():
-        rw.lastAutoFetchTime = 0
-        rw.onAutoFetchTimerTimeout()
+    with AsynchronousTaskContext(rw.taskRunner):
+        # Enable auto-fetch
+        GFApplication.applyPrefs(autoFetch=True, autoFetchMinutes=1)
 
-    # Make sure we're auto-fetching right now
-    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)
+        # Manually trigger the auto-fetch timer timeout to simulate the timer firing.
+        # Delay git to keep RepoTaskRunner busy for a few seconds.
+        with DelayGitCommandContext():
+            rw.lastAutoFetchTime = 0
+            rw.onAutoFetchTimerTimeout()
 
-    # Don't delay git for the next task
-    GFApplication.applyPrefs(gitPath=gitCmd)
-    assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)  # just making sure a future version of applyPrefs doesn't kill the task...
+        # Make sure we're auto-fetching right now
+        assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)
 
-    # Perform a task - any task! - while auto-fetching is in progress.
-    # It shouldn't be blocked by an ongoing auto-fetch.
-    triggerMenuAction(mainWindow.menuBar(), "repo/new local branch")
-    newBranchDialog = waitForQDialog(rw, "new branch", t=NewBranchDialog)
-    newBranchDialog.ui.nameEdit.setText("not-blocked-by-auto-fetch")
-    newBranchDialog.accept()
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert "not-blocked-by-auto-fetch" in rw.repo.branches.local
-    assert "localfs/new-remote-branch" not in rw.repo.branches.remote
+        # Don't delay git for the next task
+        GFApplication.applyPrefs(gitPath=gitCmd)
+        assert isinstance(rw.taskRunner.currentTask, AutoFetchRemotes)  # just making sure a future version of applyPrefs doesn't kill the task...
+
+        # Perform a task - any task! - while auto-fetching is in progress.
+        # It shouldn't be blocked by an ongoing auto-fetch.
+        triggerMenuAction(mainWindow.menuBar(), "repo/new local branch")
+        newBranchDialog = waitForQDialog(rw, "new branch", t=NewBranchDialog)
+        newBranchDialog.ui.nameEdit.setText("not-blocked-by-auto-fetch")
+        newBranchDialog.accept()
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+        assert "not-blocked-by-auto-fetch" in rw.repo.branches.local
+        assert "localfs/new-remote-branch" not in rw.repo.branches.remote
 
 
 @pytest.mark.notParallelizableOnWindows
-def testTaskTerminationTerminatesProcess(tempDir, mainWindow, taskThread):
+def testTaskTerminationTerminatesProcess(tempDir, mainWindow):
     """Test that terminating a task also terminates its associated process."""
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
     shell("git branch new-remote-branch", barePath)
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
+    rw = mainWindow.openRepo(wd)
 
-    # Start a fetch task that will take a while due to the delay command
-    with DelayGitCommandContext(delay=30):
-        triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
-        assert rw.taskRunner.isBusy()
-    QTest.qWait(100)
-    assert rw.taskRunner.isBusy(), "task should still be running"
-    process = rw.taskRunner.currentTask.currentProcess
-    assert process.state() != QProcess.ProcessState.NotRunning, "process should be running"
+    with AsynchronousTaskContext(rw.taskRunner):
+        # Start a fetch task that will take a while due to the delay command
+        with DelayGitCommandContext(delay=30):
+            triggerMenuAction(mainWindow.menuBar(), "repo/fetch remote branches")
+            assert rw.taskRunner.isBusy()
+        QTest.qWait(100)
+        assert rw.taskRunner.isBusy(), "task should still be running"
+        process = rw.taskRunner.currentTask.currentProcess
+        assert process.state() != QProcess.ProcessState.NotRunning, "process should be running"
 
-    rw.taskRunner.killCurrentTask()
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
-    assert rw.taskRunner.currentTask is None, "task should be terminated"
+        rw.taskRunner.killCurrentTask()
+        waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+        assert rw.taskRunner.currentTask is None, "task should be terminated"
 
-    # Check that the branch was not fetched
-    assert "localfs/new-remote-branch" not in rw.repo.branches.remote
+        # Check that the branch was not fetched
+        assert "localfs/new-remote-branch" not in rw.repo.branches.remote

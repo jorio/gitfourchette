@@ -265,16 +265,6 @@ def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     assert not MergeDriver._ongoingMerges, "Unit test has leaked MergeDriver objects"
 
 
-@pytest.fixture
-def taskThread():
-    """ In this unit test, run RepoTasks in a separate thread """
-    from gitfourchette import tasks
-    assert tasks.RepoTaskRunner.ForceSerial
-    tasks.RepoTaskRunner.ForceSerial = False
-    yield
-    tasks.RepoTaskRunner.ForceSerial = True
-
-
 def pytest_runtest_setup(item: _pytest.nodes.Node):
     from gitfourchette.qt import WINDOWS
 

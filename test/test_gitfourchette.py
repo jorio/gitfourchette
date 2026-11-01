@@ -464,7 +464,7 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
 @pytest.mark.notParallelizableOnWindows
 @pytest.mark.parametrize("withGC", [True, False])
 @pytest.mark.skipif(WINDOWS, reason="TODO: teardown errors on Windows")
-def testCloseManyReposInQuickSuccession(tempDir, mainWindow, taskThread, withGC):
+def testCloseManyReposInQuickSuccession(tempDir, mainWindow, withGC):
     # Simulate user holding down Ctrl+W with a fast key repeat rate.
     # PrimeRepo should be interrupted without crashing!
     # TODO: For exhaustiveness we should make a large repo with tens of thousands of commits
@@ -717,12 +717,12 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 #  task runner, which is shared with RepoStub. This task runner will be needed
 #  again if the user tries to reload the repo from RepoStub.
 @pytest.mark.skipif(WINDOWS, reason="TODO: tricky teardown, see comment")
-def testFailedToStartGitProcess(tempDir, mainWindow, taskThread):
+def testFailedToStartGitProcess(tempDir, mainWindow):
     GFApplication.applyPrefs(gitPath="/tmp/supposedly-a-git-executable-but-it-doesnt-exist")
 
     wd = unpackRepo(tempDir)
 
-    repoStub = mainWindow.openRepo(wd)
+    repoStub = mainWindow.openRepoAsync(wd)
     assert isinstance(repoStub, RepoStub)
 
     waitUntilTrue(lambda: repoStub.ui.promptPage.isVisible())
@@ -759,48 +759,49 @@ def testFlatpakFindsHostGit():
 
 @pytest.mark.notParallelizableOnWindows
 @pytest.mark.parametrize("needSigkill", [False, True])
-def testGitProcessStuck(tempDir, mainWindow, taskThread, needSigkill):
+def testGitProcessStuck(tempDir, mainWindow, needSigkill):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "stage me")
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    rw = mainWindow.openRepo(wd)
+    assert not rw.taskRunner.isBusy()
 
-    with DelayGitCommandContext(block=needSigkill):
-        rw.diffArea.stageButton.click()
-        processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
+    with AsynchronousTaskContext(rw.taskRunner):
+        with DelayGitCommandContext(block=needSigkill):
+            rw.diffArea.stageButton.click()
+            processDialog = waitForQDialog(rw, "stage files", timeout=1000, t=ProcessDialog)
 
-    delayPattern = "delaying.+git.+for.+seconds"
-    if FLATPAK:
-        delayPattern = "delaying.+flatpak-spawn.+for.+seconds"
+        delayPattern = "delaying.+git.+for.+seconds"
+        if FLATPAK:
+            delayPattern = "delaying.+flatpak-spawn.+for.+seconds"
 
-    waitUntilTrue(lambda: findTextInWidget(processDialog.statusForm.ui.statusLabel, delayPattern))
-    assert findTextInWidget(processDialog.statusForm.ui.titleLabel, "git add")
+        waitUntilTrue(lambda: findTextInWidget(processDialog.statusForm.ui.statusLabel, delayPattern))
+        assert findTextInWidget(processDialog.statusForm.ui.titleLabel, "git add")
 
-    assert findTextInWidget(processDialog.abortButton, "abort")
-    processDialog.abortButton.click()
-
-    if needSigkill:
-        waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
+        assert findTextInWidget(processDialog.abortButton, "abort")
         processDialog.abortButton.click()
 
-    waitUntilTrue(processDialog.isHidden)
+        if needSigkill:
+            waitUntilTrue(lambda: findTextInWidget(processDialog.abortButton, "SIGKILL"), timeout=250)
+            processDialog.abortButton.click()
 
-    code = "SIGKILL" if needSigkill else "SIGTERM"
-    waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()
+        waitUntilTrue(processDialog.isHidden)
+
+        code = "SIGKILL" if needSigkill else "SIGTERM"
+        waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()
 
 
-def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow, taskThread):
+def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/file1.txt", "stage me...")
     writeFile(f"{wd}/file2.txt", "...then jump here")
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    rw = mainWindow.openRepo(wd)
 
-    with DelayGitCommandContext(delay=1):
+    with (
+        AsynchronousTaskContext(rw.taskRunner, tearDownTimeout=max(DEFAULT_TIMEOUT, 20_000)),
+        DelayGitCommandContext(delay=1),
+    ):
         # Stage file1.txt
         assert 2 == len(qlvGetRowData(rw.dirtyFiles))
         qlvClickNthRow(rw.dirtyFiles, 0)
@@ -815,22 +816,23 @@ def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow, taskTh
         assert 2 == len(qlvGetRowData(rw.dirtyFiles))
         qlvClickNthRow(rw.dirtyFiles, 1)
 
-        # Wait for dust to settle
-        waitUntilTrue(lambda: not rw.taskRunner.isBusy(), timeout=20_000)
+        # AsynchronousTaskContext exit will wait for dust to settle
 
-        assert 1 == len(qlvGetRowData(rw.dirtyFiles))
-        assert 1 == len(qlvGetRowData(rw.stagedFiles))
+    assert not rw.taskRunner.isBusy()
+    assert 1 == len(qlvGetRowData(rw.dirtyFiles))
+    assert 1 == len(qlvGetRowData(rw.stagedFiles))
 
 
-def testAccumulateTaskEffectBitsUntilRefreshAbortedManually(tempDir, mainWindow, taskThread):
+def testAccumulateTaskEffectBitsUntilRefreshAbortedManually(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/file1.txt", "stage me...")
 
-    mainWindow.openRepo(wd)
-    rw = waitForRepoWidget(mainWindow)
-    waitUntilTrue(lambda: not rw.taskRunner.isBusy())
+    rw = mainWindow.openRepo(wd)
 
-    with DelayGitCommandContext(delay=1):
+    with (
+        AsynchronousTaskContext(rw.taskRunner),
+        DelayGitCommandContext(delay=1),
+    ):
         # Stage file1.txt
         assert 1 == len(qlvGetRowData(rw.dirtyFiles))
         qlvClickNthRow(rw.dirtyFiles, 0)

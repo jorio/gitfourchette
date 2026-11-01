@@ -24,6 +24,7 @@ import pytest
 from gitfourchette.application import GFApplication
 from gitfourchette.exttools.toolcommands import ToolCommands
 from gitfourchette.porcelain import *
+from gitfourchette.tasks import RepoTaskRunner
 from gitfourchette.toolbox import QPoint_zero, stripAccelerators, stripHtml
 from . import *
 
@@ -230,16 +231,37 @@ class MockDesktopServicesContext(QObject):
 
 
 @contextmanager
-def AsynchronousTaskContext(taskRunner):
+def AsynchronousTaskContext(taskRunner: RepoTaskRunner, tearDown=True, tearDownTimeout=DEFAULT_TIMEOUT):
+    """
+    To make it easier to write unit tests, RepoTaskRunner runs synchronously in
+    the test environment by default. Everything happens on the UI thread, making
+    it easier to describe a deterministic chain of events in your tests.
+
+    In the real world, however, RepoTaskRunner runs asynchronously (unless you
+    start the application with --no-threads). Use this context manager if your
+    test needs events to occur while RepoTaskRunner is busy.
+
+    In this context, be careful to "wait" for conditions instead of assuming
+    they flip instantaneously. For example, `findQDialog` assumes the dialog is
+    available right now; in an async context, you should instead use
+    `waitForQDialog` if the dialog is triggered by an asynchronous task.
+
+    When the context manager exits, it waits for the task runner to finish any
+    ongoing tasks (unless you disable `tearDown`).
+    """
+
     assert not taskRunner.isBusy()
-    assert taskRunner.ForceSerial
+    assert taskRunner.__class__.ForceSerial
     taskRunner.__class__.ForceSerial = False
+
+    assert not taskRunner.isBusy()
 
     try:
         yield
     finally:
         taskRunner.__class__.ForceSerial = True
-        waitUntilTrue(lambda: not taskRunner.isBusy())
+        if tearDown:
+            waitUntilTrue(lambda: not taskRunner.isBusy(), timeout=tearDownTimeout)
 
 
 def clearSessionwideIdentity():
@@ -648,6 +670,7 @@ def waitUntilTrue[T](
         timeout: int = DEFAULT_TIMEOUT,
         interval: int = 100,
 ) -> T:
+    assert isinstance(callback, Callable), "did you forget passing a lambda or function?"
     assert timeout >= interval
     deadline = QDeadlineTimer(timeout)
     while not deadline.hasExpired():
