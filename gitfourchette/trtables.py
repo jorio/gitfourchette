@@ -381,6 +381,7 @@ def _prefKeyTable() -> dict[str, str]:
         "pathDisplayStyle": _("Path display style"),
         "authorDisplayStyle": _("Author display style"),
         "maxRecentRepos": _("Remember up to # recent repositories"),
+        "maxRecentCommitMessages": _("Offer up to # recent commit messages"),
         "showStatusBar": _("Show status bar"),
         "showToolBar": _("Show toolbar"),
         "showMenuBar": _("Show menu bar"),

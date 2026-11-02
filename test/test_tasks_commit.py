@@ -181,6 +181,159 @@ def testCommitMessageDraftWithInvalidSignatureSavedOnCancel(tempDir, mainWindow)
     dialog.accept()  # Go through with the commit this time
 
 
+def testReuseRecentCommitMessage(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        sig = repo.default_signature
+        head = repo.head_commit_id
+        for message in ["summary A\n\ndetails A\n", "R&D\n", "summary A\n\ndetails A\n"]:
+            head = repo.create_commit("HEAD", sig, sig, message, repo.head_tree.id, [head])
+        assert repo.recent_commit_messages(2) == ["summary A\n\ndetails A", "R&D"]
+
+    reposcenario.stagedNewEmptyFile(wd)
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.commitButton.click()
+    dialog: CommitDialog = findQDialog(rw, "commit")
+    QTest.keyClicks(dialog.ui.summaryEditor, "draft")
+    QTest.keyClicks(dialog.ui.descriptionEditor, "draft details")
+
+    assert dialog.recentMessagesAction.isVisible()
+    menu = dialog.recentMessagesMenu
+    captions = [action.text() for action in menu.actions()]
+    assert 1 < len(captions) <= 10
+    assert len(captions) == len(set(captions))  # duplicate message listed once
+    assert captions[:2] == ["summary A […]", "R&&D"]  # literal ampersand isn't a mnemonic
+
+    triggerMenuAction(menu, r"summary A")
+    assert dialog.ui.summaryEditor.text() == "summary A"
+    assert dialog.ui.descriptionEditor.toPlainText() == "details A"
+    assert dialog.ui.counterLabel.text() == str(len("summary A"))
+    assert dialog.acceptButton.isEnabled()
+
+    # A message without details clears the previous description
+    menu.actions()[1].trigger()
+    assert dialog.ui.summaryEditor.text() == "R&D"
+    assert dialog.ui.descriptionEditor.toPlainText() == ""
+
+    # Each Ctrl+Z restores both fields, one picked message at a time
+    QTest.keySequence(dialog.ui.summaryEditor, "Ctrl+Z")
+    assert dialog.ui.summaryEditor.text() == "summary A"
+    assert dialog.ui.descriptionEditor.toPlainText() == "details A"
+    QTest.keySequence(dialog.ui.summaryEditor, "Ctrl+Z")
+    assert dialog.ui.summaryEditor.text() == "draft"
+    assert dialog.ui.descriptionEditor.toPlainText() == "draft details"
+
+    # The user can still edit a reused message
+    triggerMenuAction(menu, r"summary A")
+    QTest.keyClicks(dialog.ui.summaryEditor, " edited")
+    assert dialog.ui.summaryEditor.text() == "summary A edited"
+
+    # When only the description changes, Ctrl+Z in the summary still undoes it
+    dialog.ui.summaryEditor.setText("R&D")
+    menu.actions()[1].trigger()
+    QTest.keySequence(dialog.ui.summaryEditor, "Ctrl+Z")
+    assert dialog.ui.summaryEditor.text() == "R&D"
+    assert dialog.ui.descriptionEditor.toPlainText() == "details A"
+
+    # The menu can be opened from the keyboard
+    dialog.activateWindow()  # shortcuts only fire in the active window
+    waitUntilTrue(dialog.isActiveWindow)
+    QTest.keyClick(dialog.ui.summaryEditor, Qt.Key.Key_Down, Qt.KeyboardModifier.AltModifier)
+    assert menu.isVisible()
+    menu.close()
+
+    dialog.reject()
+
+
+def testReusedMessageIsSeparateUndoStep(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        sig = repo.default_signature
+        repo.create_commit("HEAD", sig, sig, "summary A\n\ndetails A\n", repo.head_tree.id, [repo.head_commit_id])
+
+    reposcenario.stagedNewEmptyFile(wd)
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.commitButton.click()
+    dialog: CommitDialog = findQDialog(rw, "commit")
+    summary, description = dialog.ui.summaryEditor, dialog.ui.descriptionEditor
+
+    # Typing before and after picking a message, in either field, isn't undone along with the pick
+    QTest.keyClicks(summary, "draft")
+    QTest.keyClicks(description, "draft details")
+    dialog.recentMessagesMenu.actions()[0].trigger()
+    QTest.keyClicks(description, " edited")
+    QTest.keySequence(description, "Ctrl+Z")
+    assert description.toPlainText() == "details A"
+    QTest.keyClicks(summary, " edited")
+    QTest.keySequence(summary, "Ctrl+Z")
+    assert summary.text() == "summary A"
+    QTest.keySequence(summary, "Ctrl+Z")
+    assert summary.text() == "draft"
+    dialog.reject()
+
+
+@pytest.mark.parametrize("keys, linked", [
+    ([], True),
+    (["Tab"], True),  # moves focus to the description
+    (["Ctrl+C"], True),
+    (["Ctrl+A"], True),
+    (["x", "Backspace"], False),
+    (["Ctrl+A", "Ctrl+X", "Ctrl+V"], False),
+    (["Shift+Left", "A"], False),  # retypes the same selected character
+])
+def testUndoReusedMessageInBothFields(tempDir, mainWindow, keys, linked):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        sig = repo.default_signature
+        repo.create_commit("HEAD", sig, sig, "summary A\n\ndetails A\n", repo.head_tree.id, [repo.head_commit_id])
+
+    reposcenario.stagedNewEmptyFile(wd)
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.commitButton.click()
+    dialog: CommitDialog = findQDialog(rw, "commit")
+    QTest.keyClicks(dialog.ui.summaryEditor, "draft")
+    QTest.keyClicks(dialog.ui.descriptionEditor, "draft details")
+    dialog.recentMessagesMenu.actions()[0].trigger()
+    dialog.activateWindow()  # so that keys go to the focused field
+    waitUntilTrue(dialog.isActiveWindow)
+    assert QApplication.focusWidget() is dialog.ui.summaryEditor
+
+    for key in keys:
+        QTest.keySequence(QApplication.focusWidget(), key)
+    QTest.keySequence(QApplication.focusWidget(), "Ctrl+Z")
+
+    if linked:
+        assert dialog.ui.summaryEditor.text() == "draft"
+        assert dialog.ui.descriptionEditor.toPlainText() == "draft details"
+    else:
+        assert dialog.ui.descriptionEditor.toPlainText() == "details A"
+    dialog.reject()
+
+
+def testAmendDoesntOfferRecentCommitMessages(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    triggerMenuAction(mainWindow.menuBar(), "repo/amend")
+    dialog: CommitDialog = findQDialog(rw, "amend")
+    assert not dialog.recentMessagesAction.isVisible()
+    dialog.reject()
+
+
+@pytest.mark.parametrize("maxMessages", [0, 1])
+def testMaxRecentCommitMessagesPref(tempDir, mainWindow, maxMessages):
+    from gitfourchette import settings
+    settings.prefs.maxRecentCommitMessages = maxMessages
+
+    wd = unpackRepo(tempDir)
+    reposcenario.stagedNewEmptyFile(wd)
+    rw = mainWindow.openRepo(wd)
+    rw.diffArea.commitButton.click()
+    dialog: CommitDialog = findQDialog(rw, "commit")
+    assert dialog.recentMessagesAction.isVisible() == (maxMessages != 0)
+    assert len(dialog.recentMessagesMenu.actions()) == maxMessages
+    dialog.reject()
+
+
 def testPasteMultilineCommitMessage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
@@ -199,10 +352,9 @@ def testPasteMultilineCommitMessage(tempDir, mainWindow):
     assert dialog.ui.counterLabel.text() == str(len("aaasummary"))
     assert dialog.ui.descriptionEditor.toPlainText() == "details1\ndetails2"
 
-    # TODO: Ctrl+Zing in both fields isn't ideal
+    # One Ctrl+Z restores both fields
     QTest.keySequence(dialog.ui.summaryEditor, "Ctrl+Z")
     assert dialog.ui.summaryEditor.text() == "aaa"
-    QTest.keySequence(dialog.ui.descriptionEditor, "Ctrl+Z")
     assert dialog.ui.descriptionEditor.toPlainText() == "bbb"
 
     dialog.reject()

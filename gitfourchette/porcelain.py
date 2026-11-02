@@ -15,6 +15,7 @@ import re as _re
 import typing as _typing
 import warnings as _warnings
 from contextlib import suppress as _suppress
+from itertools import islice as _islice
 from pathlib import Path as _Path
 
 from pygit2 import settings as _pygit2settings
@@ -460,6 +461,22 @@ class Repo(_VanillaRepository):
     @property
     def head_commit_message(self) -> str:
         return self.head_commit.message
+
+    def recent_commit_messages(self, limit: int) -> list[str]:
+        """
+        Return up to `limit` distinct, stripped, non-blank messages of non-merge commits reachable
+        from HEAD, newest first. Only look at the latest 100 commits.
+        """
+        if limit <= 0 or self.head_is_unborn:
+            return []
+        messages: dict[str, None] = {}  # dict rather than set to preserve order
+        for commit in _islice(self.walk(self.head_commit_id), 100):
+            message = commit.message.strip()
+            if message and len(commit.parent_ids) <= 1:
+                messages[message] = None
+                if len(messages) >= limit:
+                    break
+        return list(messages)
 
     @property
     def head_branch_shorthand(self) -> str:

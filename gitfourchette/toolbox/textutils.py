@@ -33,15 +33,16 @@ def getElideMetrics() -> QFontMetrics:
 
 
 def messageSummary(body: str, elision=" [\u2026]") -> tuple[str, bool]:
-    messageContinued = False
-    message: str = body.strip()
-    newline = message.find('\n')
-    if newline > -1:
-        messageContinued = newline < len(message) - 1
-        message = message[:newline]
-        if messageContinued:
-            message += elision
-    return message, messageContinued
+    summary, details = splitMessage(body.strip())
+    if not details:
+        return summary, False
+    return summary + elision, True
+
+
+def splitMessage(message: str) -> tuple[str, str]:
+    """ Split a commit message into its summary (first line) and details (the rest), both stripped. """
+    summary, _sep, details = message.partition('\n')
+    return summary.strip(), details.strip()
 
 
 def escamp(text: str) -> str:

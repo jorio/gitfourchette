@@ -32,6 +32,7 @@ class CommitDialog(QDialog):
             gpgFlag: bool,
             gpgKey: str,
             hooks: list[str],
+            recentMessages: list[str],
             parent: QWidget):
         super().__init__(parent)
 
@@ -87,11 +88,17 @@ class CommitDialog(QDialog):
         self.ui.revealSignature.checkStateChanged.connect(lambda: self.validator.run())
         self.ui.revealSignature.checkStateChanged.connect(lambda: self.refreshSignaturePreview())
 
-        split = initialText.split('\n', 1)
-        if len(split) >= 1:
-            self.ui.summaryEditor.setText(split[0].strip())
-        if len(split) >= 2:
-            self.ui.descriptionEditor.setPlainText(split[1].strip())
+        # For each replaceMessage call: the editors it changed and the text they had afterwards,
+        # so that a single Ctrl+Z can undo the whole call
+        self.linkedUndos: list[tuple[list[QLineEdit | QPlainTextEdit], str, str]] = []
+        self.ui.summaryEditor.installEventFilter(self)
+        self.ui.descriptionEditor.installEventFilter(self)
+
+        self.setUpRecentMessages(recentMessages)
+
+        summary, details = splitMessage(initialText)
+        self.ui.summaryEditor.setText(summary)
+        self.ui.descriptionEditor.setPlainText(details)
 
         self.ui.revealSignature.setChecked(False)
         self.ui.signatureBox.setVisible(False)
@@ -107,6 +114,87 @@ class CommitDialog(QDialog):
         packDialog(self)
         self.resize(self.width(), self.minimumSizeHint().height())
 
+    def setUpRecentMessages(self, messages: list[str]):
+        editor = self.ui.summaryEditor
+
+        actions = []
+        for message in messages:
+            summary, _junk = messageSummary(message)
+            caption = elide(summary, Qt.TextElideMode.ElideRight, ems=50)
+            actions.append(ActionDef(escamp(caption), lambda m=message: self.useRecentMessage(m)))
+        self.recentMessagesMenu = ActionDef.makeQMenu(editor, actions)
+
+        # Pop up the menu ourselves: Qt 5 ignores a menu set on a QLineEdit action
+        action = editor.addAction(stockIcon("go-older", "#d1812f=gray"), QLineEdit.ActionPosition.TrailingPosition)
+        action.setText(_("Reuse a recent commit message"))
+        action.setShortcut(QKeySequence("Alt+Down"))  # Like a combo box; the icon can't take keyboard focus
+        action.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
+        action.setToolTip(appendShortcutToToolTipText(action.text(), action.shortcut()))
+        action.setVisible(bool(messages))
+        action.triggered.connect(lambda: self.recentMessagesMenu.popup(editor.mapToGlobal(editor.rect().bottomLeft())))
+        actionButton = next(b for b in editor.findChildren(QToolButton) if b.defaultAction() is action)
+        actionButton.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.recentMessagesAction = action
+
+    def useRecentMessage(self, message: str):
+        summary, details = splitMessage(message)
+        self.replaceMessage(summary, details)
+        self.ui.summaryEditor.setFocus()
+
+    def replaceMessage(self, summary: str, details: str):
+        if not self.isAtLinkedUndo():
+            self.linkedUndos.clear()
+
+        # This pushes the new text to each editor's undo stack
+        # (whereas setText clears the undo stack).
+        # Skip unchanged editors: they'd get an undo step that does nothing.
+        editedEditors: list[QLineEdit | QPlainTextEdit] = []
+        if summary != self.ui.summaryEditor.text():
+            self.ui.summaryEditor.selectAll()
+            self.ui.summaryEditor.insert(summary)  # Replacing the selection ends the undo step before it
+            # Keep typing after it out of the same undo step, like QLineEdit's own paste does.
+            # Moving the cursor is the public way to end an undo step.
+            self.ui.summaryEditor.home(False)
+            self.ui.summaryEditor.end(False)
+            editedEditors.append(self.ui.summaryEditor)
+        if details != self.ui.descriptionEditor.toPlainText():
+            self.ui.descriptionEditor.selectAll()
+            self.ui.descriptionEditor.insertPlainText(details)
+            editedEditors.append(self.ui.descriptionEditor)
+
+        if editedEditors:
+            self.linkedUndos.append((editedEditors, self.ui.summaryEditor.text(), self.ui.descriptionEditor.toPlainText()))
+            self.markLinkedUndo()
+
+    def markLinkedUndo(self):
+        # The "modified" flags compare each editor's undo position with this mark (neither editor reads them).
+        # Clearing the description's flag also stops QTextDocument from merging further typing into the last undo step.
+        self.ui.summaryEditor.setModified(False)
+        self.ui.descriptionEditor.document().setModified(False)
+
+    def isAtLinkedUndo(self) -> bool:
+        """ Whether neither editor's undo stack has moved since the last replaceMessage call. """
+        if not self.linkedUndos:
+            return False
+        _editors, summary, details = self.linkedUndos[-1]
+        # Also compare the text: after an undo, new edits in a QLineEdit can bring its undo position back to the mark.
+        return (not self.ui.summaryEditor.isModified()
+                and not self.ui.descriptionEditor.document().isModified()
+                and summary == self.ui.summaryEditor.text()
+                and details == self.ui.descriptionEditor.toPlainText())
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if (isinstance(event, QKeyEvent)
+                and event.type() == QEvent.Type.KeyPress
+                and event.matches(QKeySequence.StandardKey.Undo)
+                and self.isAtLinkedUndo()):
+            editors, _summary, _details = self.linkedUndos.pop()
+            for editor in editors:
+                editor.undo()
+            self.markLinkedUndo()  # We're now right after the previous replaceMessage call, if any
+            return True
+        return super().eventFilter(watched, event)
+
     def sanitizeLineBreaksInSummary(self, text: str):
         if '\n' not in text:
             return
@@ -119,13 +207,7 @@ class CommitDialog(QDialog):
         summary, details = text.split('\n', 1)
         summary = summary.rstrip()
         details = details.lstrip()
-
-        # This pushes the new text to the QLineEdit's undo stack
-        # (whereas setText clears the undo stack).
-        self.ui.summaryEditor.selectAll()
-        self.ui.summaryEditor.insert(summary)
-        self.ui.descriptionEditor.selectAll()
-        self.ui.descriptionEditor.insertPlainText(details)
+        self.replaceMessage(summary, details)
 
     def updateCounterLabel(self):
         text = self.ui.summaryEditor.text()
