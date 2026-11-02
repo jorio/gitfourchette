@@ -21,7 +21,7 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import Oid, Signature
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID, BEGIN_SSH_SIGNATURE, GpgStatus
-from gitfourchette.tasks import TaskEffects
+from gitfourchette.tasks.repotask import TaskEffects
 from gitfourchette.tasks.committasks import SetUpGitIdentity
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *

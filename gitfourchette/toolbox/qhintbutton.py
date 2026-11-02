@@ -6,7 +6,7 @@
 
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.toolbox import stockIcon
+from gitfourchette.toolbox.iconbank import stockIcon
 
 
 class QHintButton(QToolButton):
