@@ -82,6 +82,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      - if: ${{ runner.os == 'macOS' }}
+        run: cd pkg/pyinstaller && ./build-mac-icon.sh
       - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYVER }}" }
       - run: python --version
