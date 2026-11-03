@@ -135,6 +135,8 @@ WINDOWS = KERNEL == "winnt"
 FREEDESKTOP = not MACOS and not WINDOWS
 FLATPAK = FREEDESKTOP and _os.path.exists("/.flatpak-info")
 FLATPAK_ID = _os.environ.get("FLATPAK_ID", "")
+# The Flatpak sandbox points XDG_CONFIG_HOME to ~/.var/app/..., but Git users expect ~/.config
+FLATPAK_HOST_CONFIG_HOME = _os.path.expanduser("~/.config")
 PYINSTALLER_MEIPASS = getattr(_sys, "_MEIPASS", "") if getattr(_sys, "frozen", False) else ""
 XDG_RUNTIME_DIR = _os.environ.get("XDG_RUNTIME_DIR", "")
 GNOME = "GNOME" in _os.environ.get("XDG_CURRENT_DESKTOP", "").upper().split(":")  # e.g. "ubuntu:GNOME"
