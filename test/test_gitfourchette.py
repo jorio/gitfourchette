@@ -1055,3 +1055,24 @@ def testLocalizationFormattingTokens(moPath: Path):
             moTokens.discard("n")
 
         assert enTokens == moTokens, f"Mismatched placeholders in localized string (plural={pluralForm}) {enText} /// {moText}"
+
+
+@pytest.mark.parametrize("sandboxedGit", [True, False])
+def testFlatpakBuiltInGitEnvironment(mainWindow, monkeypatch, sandboxedGit):
+    from gitfourchette import settings
+    from gitfourchette.tasks import repotask
+
+    monkeypatch.setattr(repotask, "FLATPAK", True)
+    monkeypatch.setenv("XDG_CONFIG_HOME", "/sandbox/config")  # what Flatpak sets up
+    monkeypatch.delenv("GIT_ASKPASS", raising=False)
+    monkeypatch.setattr(settings.prefs, "gitPath", "flatpak:/app/bin/git" if sandboxedGit else "git")
+
+    env = repotask.RepoTask(mainWindow).createGitProcess("status").processEnvironment()
+
+    # Read ~/.config/git/config like pygit2 does
+    assert env.value("XDG_CONFIG_HOME") == (os.path.expanduser("~/.config") if sandboxedGit else "/sandbox/config")
+
+    # Our askpass takes precedence over core.askPass, which may name a host program
+    assert env.value("SSH_ASKPASS")
+    assert env.value("GIT_ASKPASS") == (env.value("SSH_ASKPASS") if sandboxedGit else "")
+

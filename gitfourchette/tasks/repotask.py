@@ -544,6 +544,11 @@ class RepoTask(QObject):
         if FLATPAK:
             env["TMPDIR"] = qTempDir()
 
+        # FLATPAK: Let the built-in git read ~/.config/git/config (GFApplication does the same for pygit2)
+        sandboxedGit = FLATPAK and settings.prefs.isGitSandboxed()
+        if sandboxedGit:
+            env["XDG_CONFIG_HOME"] = FLATPAK_HOST_CONFIG_HOME
+
         # SSH_ASKPASS
         askpassServer = None
         if settings.prefs.ownAskpass:
@@ -551,6 +556,9 @@ class RepoTask(QObject):
             assert askpassServer is not None
             env["SSH_ASKPASS"] = askpassServer.clientCommand(askpass=True)
             env["SSH_ASKPASS_REQUIRE"] = "force"
+            # FLATPAK: core.askPass may name a host program that can't run in the sandbox
+            if sandboxedGit:
+                env["GIT_ASKPASS"] = env["SSH_ASKPASS"]
 
         # Use internal ssh-agent
         if settings.prefs.ownSshAgent:
