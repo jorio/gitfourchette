@@ -758,6 +758,10 @@ def testIgnorePattern(tempDir, mainWindow, saveTo):
     qcbSetIndex(dlg.ui.fileEdit, saveTo)
     dlg.accept()
 
+    # Dialog must not leak
+    QTest.qWait(0)
+    assert rw.findChild(IgnorePatternDialog) is None
+
     # File must be gone
     assert relPath not in qlvGetRowData(rw.dirtyFiles)
     assert rw.navLocator.path != relPath
