@@ -61,8 +61,10 @@ def stockIcon(
     iconId = _overrideIconIds.get(iconId, iconId)
 
     if RecolorSvgIconEngine.IconColors.preferDarkVariants and iconId in _autoDarkVariants:
-        assert not colorTable
-        colorTable = "white=#000 black=#fff"
+        # Merge dark variant remapping into caller's color table (caller's entries take precedence)
+        callerKeys = {entry.split("=", 1)[0] for entry in colorTable.split()}
+        darkEntries = [entry for entry in ("white=#000", "black=#fff") if entry.split("=", 1)[0] not in callerKeys]
+        colorTable = " ".join([colorTable, *darkEntries]).strip()
 
     # Compute cache key
     key = hash((iconId, colorTable, flags))
