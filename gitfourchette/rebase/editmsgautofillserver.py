@@ -41,7 +41,7 @@ class EditmsgAutoFillServer(GFIpcServer):
 
         # If we stopped on a reword, dump the message
         if doneLast.op.isEditable() and doneLast.payload:
-            editmsgPath.write_text(doneLast.payload)
+            editmsgPath.write_text(doneLast.payload, "utf-8")
         else:
             logger.debug(f"confirming verbatim commit message: {doneLast}")
 
