@@ -685,6 +685,7 @@ def testRebaseDateOptions(tempDir, mainWindow):
 
     shell("git reset --hard starting-point", wd)
     rw.refreshRepo()
+    assert rw.repo.head_commit.message.strip() != "reworded head commit"
 
     rebaseDialog = _driveRebaseDialog(rw, onto, todo)
     menu = rebaseDialog.ui.optionsButton.menu()
@@ -693,9 +694,17 @@ def testRebaseDateOptions(tempDir, mainWindow):
     rebaseDialog.accept()
 
     head = rw.repo.head_commit
+    assert head.message.strip() == "reworded head commit"
     assert head.author.name == "A U Thor"
     assert head.committer.name == "Test Person"
-    assert head.committer.time == head.author.time
+
+    # With --reset-author-date, Git resets the author date to the current
+    # time as it replays the commit, then it reads the clock again as it
+    # records the new commit (committer date). These 2 timestamps are
+    # typically identical, but sometimes the commit may land a bit later.
+    # Committer date should never precede author date, though.
+    assert head.committer.time - head.author.time >= 0
+    assert head.committer.time - head.author.time <= 3
     assert head.committer.time - currentSecs <= 60
 
 
