@@ -394,13 +394,14 @@ class NewIgnorePattern(RepoTask):
         yield from self.flowDialog(dlg)
 
         pattern = dlg.pattern
+        relativeExcludePath = dlg.excludePath
+        dlg.deleteLater()
         if not pattern:
             raise AbortTask()
 
         yield from self.flowEnterWorkerThread()
         self.epilog.effects |= TaskEffects.Workdir
 
-        relativeExcludePath = dlg.excludePath
         excludePath = Path(self.repo.in_workdir(relativeExcludePath))
 
         # Read existing exclude text
