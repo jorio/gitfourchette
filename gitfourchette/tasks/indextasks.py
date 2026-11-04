@@ -7,6 +7,7 @@
 import logging
 import os
 import shutil
+import stat
 from pathlib import Path
 from collections.abc import Callable
 
@@ -25,6 +26,16 @@ from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
 
 logger = logging.getLogger(__name__)
+
+
+def _removeReadOnly(func, path, exc):
+    # Windows can't delete read-only files, such as the .pack/.idx files of a nested repo.
+    # Anywhere else, for other operations, or for a link (chmod would change its target),
+    # keep the original error.
+    if not WINDOWS or func not in (os.unlink, os.rmdir) or os.path.islink(path) or os.path.isjunction(path):
+        raise exc
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 
 class _BaseStagingTask(RepoTask):
@@ -191,7 +202,7 @@ class DiscardFiles(_BaseStagingTask):
         for untrackedTree in untrackedTrees:
             untrackedTreePath = self.repo.in_workdir(untrackedTree)
             assert os.path.isdir(untrackedTreePath)
-            shutil.rmtree(untrackedTreePath)
+            shutil.rmtree(untrackedTreePath, onexc=_removeReadOnly)
 
         if untrackedFiles:
             yield from self.flowCallGit("clean", "--force", "--", *untrackedFiles)
