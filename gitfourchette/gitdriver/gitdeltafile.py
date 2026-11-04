@@ -14,7 +14,7 @@ from pathlib import Path
 from pygit2.enums import AttrCheck
 
 from gitfourchette.gitdriver.lfspointer import LfsPointer, LfsPointerState, LfsPointerMagicBytes, LfsPointerPattern, LfsObjectCacheMissingError
-from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, fast_blob_sha1, id7, pygit2_version_at_least
+from gitfourchette.porcelain import FileMode, ObjectType, Repo, Oid, fast_blob_sha1, id7, pygit2_min_version
 
 HexHash0000 = "0" * 40
 HexHashFFFF = "f" * 40
@@ -99,7 +99,7 @@ class GitDeltaFile:
     Cached LFS object information extracted from the LFS pointer (if any).
     """
 
-    SupportsFastSizeBallpark = pygit2_version_at_least("1.19.2", False, "fast size ballpark")
+    SupportsFastSizeBallpark = pygit2_min_version("1.19.2", "fast size ballpark")
 
     def __post_init__(self):
         assert self.id.isnumeric() or self.id.islower()

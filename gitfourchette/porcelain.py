@@ -163,35 +163,18 @@ def version_to_tuple(s: str) -> tuple[int, ...]:
     return tuple(v)
 
 
-def _version_at_least(
-        package_name: str,
-        required_version_string: str,
-        current_version_string: str,
-        raise_error=True,
-        feature_name="This feature"
-):
-    required_version = version_to_tuple(required_version_string)
-    current_version = version_to_tuple(current_version_string)
+def pygit2_min_version(required_version: str, warning: str = "") -> bool:
+    req = version_to_tuple(required_version)
+    cur = version_to_tuple(PYGIT2_VERSION)
 
-    if tuple(current_version) >= tuple(required_version):
+    if cur >= req:
         return True
 
-    message = (f"{feature_name} requires {package_name} v{required_version_string} or later "
-               f"(you have v{current_version_string}).")
-    if raise_error:
-        raise NotImplementedError(message)
-    else:
-        _warnings.warn(message)
-        return False
+    if warning:
+        _warnings.warn(f"{warning} requires pygit2 v{required_version} "
+                       f"or later (you have v{PYGIT2_VERSION}).")
 
-
-def pygit2_version_at_least(required_version: str, raise_error=True, feature_name="This feature"):
-    return _version_at_least(
-        package_name="pygit2",
-        required_version_string=required_version,
-        current_version_string=PYGIT2_VERSION,
-        raise_error=raise_error,
-        feature_name=feature_name)
+    return False
 
 
 def id7(obj: str | Oid | GitObject, n=7):
@@ -1168,6 +1151,7 @@ class Repo(_VanillaRepository):
             # Apply filters in a buffer
             return filters.apply_to_file(self, path)
 
+
 class RepoContext:
     def __init__(self, repo_or_path: Repo | str | _Path, flags=RepositoryOpenFlag.DEFAULT, write_index=False):
         assert isinstance(repo_or_path, Repo | str | _Path)
@@ -1188,3 +1172,9 @@ class RepoContext:
         # repo.free() is necessary for correct test teardown on Windows
         self.repo.free()
         self.repo = None
+
+
+# Bypass pygit2 1.21's artificial restriction on RepositoryConfig.add_file
+if pygit2_min_version("1.21"):
+    from pygit2 import RepositoryConfig as _RepositoryConfig
+    _RepositoryConfig.add_file = GitConfig.add_file  # type: ignore[method-assign]
