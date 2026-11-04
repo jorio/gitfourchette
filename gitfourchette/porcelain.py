@@ -8,7 +8,6 @@ from __future__ import annotations as _annotations
 
 import configparser as _configparser
 import dataclasses as _dataclasses
-import datetime as _datetime
 import enum as _enum
 import hashlib
 import logging as _logging
@@ -417,88 +416,6 @@ class GitConfigHelper:
             path = GitConfigHelper.path_for_level(level, missing_dir_ok=True)
             _Path(path).parent.mkdir(parents=True, exist_ok=True)
             return GitConfig(path)
-
-    @staticmethod
-    def is_empty(config_path: str):
-        data = _Path(config_path).read_text("utf-8")
-        return not data or data.isspace()
-
-    @staticmethod
-    def delete_section(config_path: str, *section_key_tokens: str):
-        config = GitConfig(config_path)
-
-        assert len(section_key_tokens) == 2
-        section_key = ".".join(section_key_tokens)
-        section_prefix = section_key + "."
-
-        to_delete = [entry.name for entry in config if entry.name.startswith(section_prefix)]
-
-        for entry_name in to_delete:
-            del config[entry_name]
-
-        GitConfigHelper.scrub_empty_section(config_path, *section_key_tokens)
-
-        return bool(to_delete)
-
-    @staticmethod
-    def scrub_empty_section(config_path_str: str, *section_key_tokens: str):
-        """
-        libgit2 leaves behind empty sections in the config file after deleting
-        or renaming a remote or branch. Over time, this litters the config
-        file with empty entries, which slows down operations that parse the
-        config. So, use this function to nip that in the bud.
-        """
-
-        config_path = _Path(config_path_str)
-
-        num_tokens = len(section_key_tokens)
-        if num_tokens == 1:
-            section_key = section_key_tokens[0]
-        elif num_tokens == 2:
-            prefix, name = section_key_tokens
-            name = name.replace('"', r'\"')
-            section_key = f'{prefix} "{name}"'
-        else:
-            raise NotImplementedError("scrub_empty_section: Section key must be 1 or 2 tokens")
-
-        # strict=False: Don't raise DuplicateSectionError.
-        # If there are duplicate sections, their contents are merged.
-        ini = _configparser.ConfigParser(strict=False)
-        ini.read(config_path)
-
-        # Get section. Bail if it doesn't appear in the file.
-        try:
-            section = ini[section_key]
-            assert isinstance(section, _configparser.SectionProxy)
-        except KeyError:
-            _logger.debug(f"scrub_empty_section: Section [{section_key}] doesn't appear, no scrubbing needed")
-            return
-
-        # Bail if section isn't empty.
-        if len(section) != 0:
-            _logger.debug(f"scrub_empty_section: Section [{section_key}] isn't empty, won't scrub")
-            return
-
-        _logger.debug(f"scrub_empty_section: Scrubbing empty section [{section_key}]")
-
-        # We could call ini.remove_section(section_key) then write the ini back
-        # to disk, but this destroys the file's formatting. So, remove the
-        # offending lines surgically. There may be multiple lines to remove if
-        # the config file is fragmented (several remnants of empty sections).
-        lines = config_path.read_text("utf-8").splitlines(keepends=True)
-        evict = f"[{section_key}]"
-        lines = [line for line in lines if line.strip() != evict]
-
-        # Write result to disk.
-        timestamp = _datetime.datetime.now(_datetime.UTC).timestamp()
-
-        temp_path = config_path.with_suffix(f".{timestamp}.new.tmp")
-        backup_path = config_path.with_suffix(f".{timestamp}.old.tmp")
-
-        temp_path.write_text("".join(lines))
-        config_path.rename(backup_path)
-        temp_path.rename(config_path)
-        backup_path.unlink()
 
     @classmethod
     def get_default_value(cls, key: str | tuple) -> str:

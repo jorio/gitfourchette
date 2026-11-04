@@ -287,7 +287,7 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     assert qteFind(rw.specialDiffView, r"make sure to commit \.gitmodules")
 
     # Prompt submodule re-registration
-    GitConfigHelper.delete_section(f"{wd}/.gitmodules", "submodule", "newsubmo")
+    shell("git config --file .gitmodules --remove-section submodule.newsubmo", wd)
     rw.refreshRepo()
 
     # Register a submodule that has already been absorbed
@@ -308,7 +308,7 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     acceptQMessageBox(rw, r"remove.+from.+\.gitmodules")
 
     # Remove deleted submodules from .gitmodules and check new suggestion
-    GitConfigHelper.delete_section(f"{wd}/.gitmodules", "submodule", "submosub")
+    shell("git config --file .gitmodules --remove-section submodule.submosub", wd)
     rw.jump(NavLocator.inStaged("submosub"))
     assert qteFind(rw.specialDiffView, r"to complete the removal.+commit \.gitmodules")
 
