@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Copyright (C) 2025 Iliyas Jorio.
+# Copyright (C) 2026 Iliyas Jorio.
 # This file is part of GitFourchette, distributed under the GNU GPL v3.
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
@@ -25,7 +25,12 @@ def _dragAndDrop(target: MainWindow, payload: QMimeData, expectedHint: str,
     assert not dropZone.isVisible()
     assert not dropZone.message
 
-    dragEnterEvent = QDragEnterEvent(pos.toPoint(), Qt.DropAction.MoveAction, payload, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
+    dragEnterEvent = QDragEnterEvent(
+        pos if not QT5 else pos.toPoint(),
+        Qt.DropAction.MoveAction,
+        payload,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier)
     accepted = app.sendEvent(target, dragEnterEvent)
     assert accepted  # DragEnter is always accepted so that we show a pointer
     QTest.qWait(1)  # Give some time for drop zone paint event (for coverage)

@@ -463,8 +463,8 @@ def testRebaseSequenceDropIndicator(tempDir, mainWindow, monkeypatch):
     view: RebaseSequenceView = rebaseDialog.ui.sequence
     LMB = Qt.MouseButton.LeftButton
     MOD = Qt.KeyboardModifier.NoModifier
-    ps = qlvVisualRect(view, 4).center()
-    pd = qlvVisualRect(view, 0).center()
+    ps = QPointF(qlvVisualRect(view, 4).center())
+    pd = QPointF(qlvVisualRect(view, 0).center())
 
     qlvClickNthRow(view, 4)
     mime = view.model().mimeData(view.selectedIndexes())
