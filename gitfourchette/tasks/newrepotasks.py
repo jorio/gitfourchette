@@ -92,7 +92,7 @@ class NewRepo(RepoTask):
             displayParentName = parentWorkdir.name
             displayName = path.name
             displayPath = compactPath(path)
-            commonLength = len(os.path.commonprefix([displayPath, compactPath(parentWorkdir)]))
+            commonLength = len(os.path.commonpath([displayPath, compactPath(parentWorkdir)]))
             i1 = commonLength - len(displayParentName)
             i2 = commonLength
             dp1 = escape(displayPath[: i1])
