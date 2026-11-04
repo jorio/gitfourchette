@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
-        with: {python-version: 3.14, cache: 'pip'}
+        with: {python-version: 3.15, cache: 'pip'}
       - run: pip install 'pyqt6<6.12'  # QtGui.pyi from PyQt6 6.12 causes mypy errors as of 10/2026
       - run: pip install -e .[lint,pyqt6]
       - run: ruff check
@@ -34,10 +34,12 @@ jobs:
         # Semi-legacy configs
         - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
         - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, downgrade-git: true}
-        # Up-to-date configs
         - {name: '314-pyqt6', os: ubuntu-latest, py: '3.14', qt: pyqt6, coverage: true}
-        - {name: '314-pyqt6-mac', os: macos-latest, py: '3.14', qt: pyqt6, skip-fuse: true}
-        - {name: '314-pyside6', os: ubuntu-latest, py: '3.14', qt: pyside6}
+        # Up-to-date configs
+        - {name: '315-pyqt6', os: ubuntu-latest, py: '3.15', qt: pyqt6, coverage: true}
+        - {name: '315-pyside6', os: ubuntu-latest, py: '3.15', qt: pyside6}
+        # Use Intel Mac runner because ARM runners are scarce on GHA at the moment (11/2026)
+        - {name: '315-pyqt6-mac', os: macos-26-intel, py: '3.15', qt: pyqt6, skip-fuse: true}
 
     steps:
     - uses: actions/checkout@v7
