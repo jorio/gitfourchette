@@ -526,6 +526,10 @@ class AcceptMergeConflictResolution(RepoTask):
     def flow(self, mergeDriver: MergeDriver):
         self.epilog.effects |= TaskEffects.Workdir
         path = mergeDriver.conflict.ours.path
+
+        # The tool's output may leave out a resolution the user started by hand in the workdir
+        Trash.backupFiles(self.repo.workdir, [path])
+
         mergeDriver.copyScratchToTarget()
         mergeDriver.deleteNow()
         yield from self.flowCallGit("add", "--force", "--", path)
