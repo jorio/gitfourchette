@@ -22,7 +22,7 @@ from gitfourchette.gitdriver.gitdelta import GitDelta, GitStatus
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaSource
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
 from gitfourchette.gitdriver.parsers import parseGitStatus, parseGitDiffRawZ
-from gitfourchette.porcelain import version_to_tuple, Oid, EMPTYTREE_OID
+from gitfourchette.porcelain import versiontuple, Oid, EMPTYTREE_OID
 from gitfourchette.qt import *
 from gitfourchette.settings import WhitespaceMode
 
@@ -87,7 +87,7 @@ class GitDriver(QProcess):
 
         cls._cachedGitVersionValid = True
         cls._cachedGitVersion = text
-        cls._cachedGitVersionTuple = version_to_tuple(numberStr)
+        cls._cachedGitVersionTuple = versiontuple(numberStr)
 
     @classmethod
     def gitVersion(cls) -> str:

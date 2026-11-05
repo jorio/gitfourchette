@@ -60,6 +60,8 @@ from pygit2.enums import (
     SortMode,
 )
 
+from gitfourchette.versiontuple import versiontuple
+
 
 _logger = _logging.getLogger(__name__)
 
@@ -144,22 +146,9 @@ def fast_blob_sha1(data: bytes) -> Oid:
     return Oid(raw=sha1)
 
 
-def version_to_tuple(s: str) -> tuple[int, ...]:
-    v = []
-    for n in s.split("."):
-        try:
-            v.append(int(n))
-        except ValueError:
-            v.append(0)
-    # Trim trailing zeros to ease comparison
-    while v and v[-1] == 0:
-        v.pop()
-    return tuple(v)
-
-
 def pygit2_min_version(required_version: str, warning: str = "") -> bool:
-    req = version_to_tuple(required_version)
-    cur = version_to_tuple(PYGIT2_VERSION)
+    req = versiontuple(required_version)
+    cur = versiontuple(PYGIT2_VERSION)
 
     if cur >= req:
         return True

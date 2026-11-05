@@ -27,6 +27,7 @@ from collections import abc as _collections_abc
 from contextlib import suppress as _suppress
 
 from gitfourchette.appconsts import *
+from gitfourchette.versiontuple import versiontuple as _versiontuple
 
 _logger = _logging.getLogger(__name__)
 
@@ -115,6 +116,8 @@ for _tentative in _qtBindingOrder:
         break  # We've successfully imported a binding, stop looking at candidates
 else:
     _bail("No Qt binding found. Please install PyQt6 or PySide6.")
+
+QT_BINDING_VERSION_TUPLE = _versiontuple(QT_BINDING_VERSION)
 
 # -----------------------------------------------------------------------------
 # Tweak initial environment variables
@@ -262,6 +265,19 @@ def _QTextBlock_fragments(block: QTextBlock) -> _collections_abc.Iterator[QTextF
 
 QTextBlock.fragments = _QTextBlock_fragments  # type: ignore[attr-defined]
 
+# Qt 6.12 starts taking a QPointF in QDragEnterEvent/QDragMoveEvent
+if QT_BINDING_VERSION_TUPLE < (6, 12) and not TYPE_CHECKING:
+    _oldDragInit = QDragEnterEvent.__init__
+    def _newDragInit(self, point, *args, **kwargs):
+        p = point.toPoint() if isinstance(point, QPointF) else point
+        _oldDragInit(self, p, *args, **kwargs)
+    QDragEnterEvent.__init__ = _newDragInit  # type: ignore[method-assign]
+
+    _oldMoveInit = QDragEnterEvent.__init__
+    def _newMoveInit(self, point, *args, **kwargs):
+        p = point.toPoint() if isinstance(point, QPointF) else point
+        _oldMoveInit(self, p, *args, **kwargs)
+    QDragMoveEvent.__init__ = _newMoveInit  # type: ignore[method-assign]
 
 # -----------------------------------------------------------------------------
 # Verbose QObject destructors

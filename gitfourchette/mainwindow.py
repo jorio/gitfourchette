@@ -129,8 +129,8 @@ class MainWindow(QMainWindow):
         if WhatsNewButton.__name__ in settings.prefs.dontShowAgain:
             return
 
-        v1 = version_to_tuple(settings.history._fileVersion)
-        v2 = version_to_tuple(APP_VERSION)
+        v1 = versiontuple(settings.history._fileVersion)
+        v2 = versiontuple(APP_VERSION)
         if not v1 or v1 >= v2:
             return
 

@@ -26,7 +26,7 @@ def _dragAndDrop(target: MainWindow, payload: QMimeData, expectedHint: str,
     assert not dropZone.message
 
     dragEnterEvent = QDragEnterEvent(
-        pos if not QT5 else pos.toPoint(),
+        pos,
         Qt.DropAction.MoveAction,
         payload,
         Qt.MouseButton.LeftButton,
