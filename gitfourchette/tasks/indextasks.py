@@ -668,6 +668,12 @@ class RestoreRevisionToWorkdir(RepoTask):
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
 
+        # Back up the workdir copy if it has uncommitted changes
+        if existsNow and Trash.enabled():
+            driver = yield from self.flowCallGit("status", "--porcelain", "-z", "--ignored", "--untracked-files=all", "--", diffFile.path)
+            if driver.stdoutScrollback():
+                Trash.backupFiles(self.repo.workdir, [diffFile.path])
+
         self.epilog.effects |= TaskEffects.Workdir
 
         if delete:

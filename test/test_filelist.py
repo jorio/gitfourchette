@@ -12,6 +12,7 @@ from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.settings import FileListClick
+from gitfourchette.trash import Trash
 
 from .util import *
 from . import reposcenario
@@ -127,6 +128,59 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
     assert result.encode() == readFile(f"{wd}/{path}")
     mode = pathObj.stat().st_mode
     assert bool(mode & 0o100) == executable
+
+
+@pytest.mark.parametrize(
+    "commit,side,dirty,result",
+    [
+        ("bab66b4", "as of", True, "c1\nc1\n"),
+        ("bab66b4", "before", True, "c1\n"),
+        ("42e4e7c", "before", True, "[DEL]"),
+        ("bab66b4", "before", False, "c1\n"),
+    ])
+def testRestoreRevisionBacksUpUncommittedChanges(tempDir, mainWindow, commit, side, dirty, result):
+    wd = unpackRepo(tempDir)
+    if dirty:
+        writeFile(f"{wd}/c/c1.txt", "uncommitted change\n")
+
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo[commit].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
+
+    triggerContextMenuAction(rw.committedFiles.viewport(), f"restore/{side}.+commit")
+    acceptQMessageBox(rw, "restore")
+    if result == "[DEL]":
+        assert not os.path.exists(f"{wd}/c/c1.txt")
+    else:
+        assert readTextFile(f"{wd}/c/c1.txt") == result
+
+    # Only uncommitted changes go to the trash
+    trash = Trash.instance()
+    trash.refreshFiles()
+    if not dirty:
+        assert trash.trashFiles == []
+    else:
+        assert len(trash.trashFiles) == 1
+        assert trash.trashFiles[0].name.endswith("---c1.txt")
+        assert trash.trashFiles[0].read_text(encoding="utf-8") == "uncommitted change\n"
+
+
+def testRestoreRevisionBacksUpHiddenUntrackedFile(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("git config status.showUntrackedFiles no && git rm -q c/c1.txt && git commit -qm 'delete c1'", wd)
+    writeFile(f"{wd}/c/c1.txt", "untracked\n")
+
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo["bab66b4"].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "restore/as of.+commit")
+    acceptQMessageBox(rw, "restore")
+    assert readTextFile(f"{wd}/c/c1.txt") == "c1\nc1\n"
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "untracked\n"
 
 
 def testRevertCommittedFile(tempDir, mainWindow):
