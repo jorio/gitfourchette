@@ -31,7 +31,7 @@ class EditmsgAutoFillServer(GFIpcServer):
         self.clientConnected.connect(self.onClientConnected)
 
     def onClientConnected(self, handshake: GFIpcProtocol.Handshake, socket: QLocalSocket):
-        abortPayload = "Couldn't fill in the commit message"
+        abortPayload = ""  # success
 
         try:
             assert len(handshake.args) == 1
@@ -47,8 +47,9 @@ class EditmsgAutoFillServer(GFIpcServer):
                 editmsgPath.write_text(doneLast.payload, "utf-8")
             else:
                 logger.debug(f"confirming verbatim commit message: {doneLast}")
-
-            abortPayload = ""  # success
+        except Exception as ex:
+            # Switch to non-graceful abort
+            abortPayload = f"{self.__class__.__name__} failed: {ex.__class__.__name__}: {ex}"
         finally:
             # Always answer the client, otherwise 'git rebase' waits for it forever
             GFIpcProtocol.respondAndBail(socket, abort=abortPayload)

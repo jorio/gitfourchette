@@ -180,7 +180,7 @@ def testRebaseReword(tempDir, mainWindow):
     assert rw.repo.head_commit.parents[0].message.strip() == "rewording older commit"
 
 
-def testRebaseRewordEditorFailureDoesntHang(tempDir, mainWindow, qtbot, monkeypatch):
+def testRebaseRewordEditorFailureDoesntHang(tempDir, mainWindow, monkeypatch):
     # If filling in COMMIT_EDITMSG fails, git must get an answer and stop instead of waiting forever
     from gitfourchette.rebase import editmsgautofillserver
 
@@ -195,11 +195,8 @@ def testRebaseRewordEditorFailureDoesntHang(tempDir, mainWindow, qtbot, monkeypa
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    with qtbot.captureExceptions() as uncaughtExceptions:
-        _driveRebaseDialog(rw, onto, [_Todo(0, RebaseOp.Reword, "new message")]).accept()
-        acceptQMessageBox(rw, "fill in the commit message")
-
-    assert any("simulated failure" in str(e) for e in uncaughtExceptions)
+    _driveRebaseDialog(rw, onto, [_Todo(0, RebaseOp.Reword, "new message")]).accept()
+    acceptQMessageBox(rw, "EditmsgAutoFillServer failed: RuntimeError: simulated failure")
     assert rw.repo.state() == RepositoryState.REBASE_INTERACTIVE  # git stopped, the user can carry on
 
 
