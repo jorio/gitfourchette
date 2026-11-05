@@ -131,7 +131,6 @@ exclude_lines = [
     "if FLATPAK:",
     "if (PYSIDE6|PYQT5|QT5):",  # CI runs coverage with pyqt6
     "if not BRANCH_FOLDERS:",
-    "if not pygit2_version_at_least\\(",
 
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
