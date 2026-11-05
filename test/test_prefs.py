@@ -255,3 +255,14 @@ def testPrefsQtStyleVariantPicker(mainWindow):
 
     accent2 = mainWindow.palette().highlight().color()
     assert accent1 != accent2
+
+
+def testPrefsSyntaxHighlightingAutomaticFollowsTheme(colorTheme):
+    from gitfourchette.syntax.colorscheme import PygmentsPresets
+    expectedScheme = PygmentsPresets.Dark if colorTheme == "dark" else PygmentsPresets.Light
+
+    dlg = GFApplication.instance().openPrefsDialog("syntaxHighlighting")
+    comboBox: QComboBox = dlg.findChild(QComboBox, "prefctl_syntaxHighlighting")
+    assert comboBox.currentData() == PygmentsPresets.Automatic
+    assert expectedScheme in comboBox.currentText()
+    dlg.reject()

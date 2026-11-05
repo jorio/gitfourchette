@@ -633,7 +633,7 @@ def testBlameRenamedFileInWorkdir(tempDir, mainWindow, method):
         QTest.qWait(0)
 
 
-def testBlameMissingRevisions(blameWindow):
+def testBlameMissingRevisions(colorTheme, blameWindow):
     # A BlameLine may reference a commit that is missing from the revlist.
     # This may occur when blaming a workdir file during a merge in progress.
     # Arguably, the revlist building code should handle this case; but, until

@@ -43,7 +43,7 @@ def testCurrentBranchCannotSwitchOrMerge(tempDir, mainWindow):
     # assert not findMenuAction(menu, "rebase").isEnabled()
 
 
-def testSidebarWithDetachedHead(tempDir, mainWindow):
+def testSidebarWithDetachedHead(tempDir, mainWindow, colorTheme):
     wd = unpackRepo(tempDir)
     shell("git checkout 7f82283", wd)
 
