@@ -742,9 +742,6 @@ class MainWindow(QMainWindow):
     def toggleMenuBar(self) -> None:
         GFApplication.applyPrefs(showMenuBar=not settings.prefs.showMenuBar)
 
-    def selectUncommittedChanges(self) -> None:
-        self.currentRepoWidget().jump(NavLocator.inWorkdir())
-
     def selectHead(self) -> None:
         self.currentRepoWidget().jump(NavLocator.inRef("HEAD"))
 

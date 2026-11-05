@@ -40,7 +40,6 @@ class MergeDriver(QObject):
         target: str
 
     _ongoingMerges: ClassVar[list[MergeDriver]] = []
-    _mergeCounter: ClassVar[int] = 0
 
     statusChange = Signal()
 
@@ -66,7 +65,6 @@ class MergeDriver(QObject):
         assert conflict.theirs, "MergeDriver requires a 'theirs' side"
 
         # Keep track of this merge
-        MergeDriver._mergeCounter += 1
         MergeDriver._ongoingMerges.append(self)
         self.destroyed.connect(lambda: MergeDriver._forget(self))
 

@@ -32,7 +32,6 @@ class GraphSplicer:
         self.foundEquilibrium = False
         self.equilibriumNewRow = -1
         self.equilibriumOldRow = -1
-        self.oldGraphRowOffset = 0
 
         self.newGraph, self.weaver = GraphWeaver.newGraph()
 
@@ -122,7 +121,6 @@ class GraphSplicer:
         # Save rows for use by external code
         self.equilibriumNewRow = equilibriumNewRow
         self.equilibriumOldRow = equilibriumOldRow
-        self.oldGraphRowOffset = rowShiftInOldGraph
 
         logger.debug(f"Equilibrium: commit={self.oldPlayer.commit!s:.7} new={equilibriumNewRow} old={equilibriumOldRow}")
 
@@ -198,7 +196,6 @@ class GraphSplicer:
 
         self.equilibriumOldRow = int(self.oldPlayer.row)
         self.equilibriumNewRow = int(self.weaver.row)
-        self.oldGraphRowOffset = 0
 
         self.oldGraph.shallowCopyFrom(self.newGraph)
 

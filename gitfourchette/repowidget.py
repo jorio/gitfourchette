@@ -47,7 +47,6 @@ class RepoWidget(QWidget):
     nameChange = Signal()
     openRepo = Signal(str, NavLocator)
     openPrefs = Signal(str)
-    locatorChanged = Signal(NavLocator)
     historyChanged = Signal()
     requestAttention = Signal()
     becameVisible = Signal()
@@ -451,18 +450,6 @@ class RepoWidget(QWidget):
 
     def openRepoFolder(self):
         openFolder(self.workdir)
-
-    def openSuperproject(self):
-        superproject = self.superproject
-        if superproject:
-            self.openRepo.emit(superproject, NavLocator())
-        else:
-            showInformation(self, _("Open Superproject"), _("This repository does not have a superproject."))
-
-    def copyRepoPath(self):
-        text = self.workdir
-        QApplication.clipboard().setText(text)
-        self.statusMessage.emit(clipboardStatusMessage(text))
 
     def openGitignore(self):
         path = self.repo.in_workdir(".gitignore")

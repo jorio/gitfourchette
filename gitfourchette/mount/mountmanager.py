@@ -67,10 +67,6 @@ class MountManager(QObject):
         self.mountedCommits = {}
 
     @classmethod
-    def isFuseAvailable(cls):
-        return fuseImportError is None
-
-    @classmethod
     def requireFuse(cls):
         if fuseImportError is not None:
             raise fuseImportError

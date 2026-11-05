@@ -28,9 +28,6 @@ from gitfourchette.toolbox import *
 
 logger = logging.getLogger(__name__)
 
-RENAME_COUNT_THRESHOLD = 100
-""" Don't find_similar beyond this number of files in the main diff """
-
 LONG_LINE_THRESHOLD = 10_000
 
 type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError

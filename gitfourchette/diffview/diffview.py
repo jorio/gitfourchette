@@ -299,14 +299,6 @@ class DiffView(CodeView):
     # ---------------------------------------------
     # Patch
 
-    def findHunkIDAt(self, cursorPosition: int):
-        block = self.document().findBlock(cursorPosition)
-        blockNumber = block.blockNumber()
-        try:
-            return self.lineData[blockNumber].hunkPos.hunkID
-        except IndexError:
-            return -1
-
     def isSelectionActionable(self):
         start, end = self.getSelectedLineExtents()
         numAdds = 0

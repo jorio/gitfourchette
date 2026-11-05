@@ -7,7 +7,6 @@
 from __future__ import annotations as _annotations
 
 import configparser as _configparser
-import dataclasses as _dataclasses
 import enum as _enum
 import hashlib
 import logging as _logging
@@ -79,10 +78,6 @@ DOT_GITMODULES = ".gitmodules"
 
 CORE_STASH_MESSAGE_PATTERN = _re.compile(r"^On (?:[^\s:]+|\(no branch\)): (.+)")
 WINDOWS_RESERVED_FILENAMES_PATTERN = _re.compile(r"(.*/)?(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)($|\.|/)", _re.IGNORECASE)
-DIFF_HEADER_PATTERN = _re.compile(r"^diff --git (\"?\w/[^\"]+\"?) (\"?\w/[^\"]+\"?)")
-
-SUBPROJECT_COMMIT_MINUS_PATTERN = _re.compile(r"^-Subproject commit (.+)$", _re.MULTILINE)
-SUBPROJECT_COMMIT_PLUS_PATTERN = _re.compile(r"^\+Subproject commit (.+)$", _re.MULTILINE)
 
 
 class RefPrefix:
@@ -883,9 +878,6 @@ class Repo(_VanillaRepository):
             if not line.startswith('#'):
                 clean_message += line
         return clean_message.strip()
-
-    def set_message(self, message: str):
-        _Path(self.path, "MERGE_MSG").write_text(message, "utf-8")
 
     # -------------------------------------------------------------------------
     # Config parsers ("listall" APIs)
