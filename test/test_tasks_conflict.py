@@ -8,6 +8,7 @@ from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.gitdriver import GitConflictSides
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
+from gitfourchette.trash import Trash
 from . import reposcenario
 from .util import *
 
@@ -182,6 +183,32 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
     assert symlinkPath.is_symlink()
     assert symlinkPath.resolve().samefile(Path(wd, "b" if keepOurs else "a"))
     assert rw.repo.index.conflicts is None
+
+
+@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
+def testHardSolveConflictBacksUpWorkdirFile(tempDir, mainWindow, keepOurs):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    shell("git merge branch-conflicts || true", wd)
+    writeFile(f"{wd}/.gitignore", "partial resolution by hand\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
+
+    if keepOurs:
+        rw.conflictView.ui.oursButton.click()
+        acceptQMessageBox(rw, "keep our")
+    else:
+        rw.conflictView.ui.theirsButton.click()
+        acceptQMessageBox(rw, "accept their")
+
+    assert not rw.repo.index.conflicts
+    assert "partial resolution by hand" not in readTextFile(f"{wd}/.gitignore")
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].name.endswith("---.gitignore")
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "partial resolution by hand\n"
 
 
 @pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])

@@ -371,11 +371,9 @@ class HardSolveConflicts(RepoTask):
         keepPaths = [f.path for f in files if not f.isId0()]
         nukePaths = [f.path for f in files if f.isId0()]
 
-        # Back up nuked files + THEIRS
-        backupList = nukePaths[:]
-        if not keepOurs:
-            backupList += keepPaths
-        Trash.backupFiles(self.repo.workdir, backupList)
+        # Back up all affected files. Even when keeping OURS, the workdir copy
+        # may contain conflict markers or a partial resolution by the user.
+        Trash.backupFiles(self.repo.workdir, keepPaths + nukePaths)
 
         self.epilog.effects |= TaskEffects.Workdir
 
