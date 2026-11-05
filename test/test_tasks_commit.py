@@ -290,6 +290,22 @@ def testEmptyCommitRaisesWarning(tempDir, mainWindow):
     qmb.reject()
 
 
+def testCommitSeesChangesStagedOutsideApp(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    # Stage a change behind the app's back (e.g. from a terminal, with auto-refresh disabled)
+    writeFile(f"{wd}/a/a1.txt", "a1\nstaged outside the app\n")
+    shell("git add a/a1.txt", wd)
+
+    rw.diffArea.commitButton.click()
+    with pytest.raises(KeyError):  # there must be no "empty commit" prompt to reject
+        rejectQMessageBox(rw, "empty commit")
+    commitDialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert not commitDialog.ui.infoText.isVisible()
+    commitDialog.reject()
+
+
 def testCommitWithoutUserIdentity(tempDir, mainWindow):
     clearSessionwideIdentity()
 
