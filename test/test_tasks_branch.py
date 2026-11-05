@@ -1159,6 +1159,30 @@ def testMergeNonTipCommit(tempDir, mainWindow):
     assert re.search("merge commit.+e97b4c", rw.repo.head_commit_message, re.IGNORECASE)
 
 
+@pytest.mark.parametrize(["theirRef", "decoy"], [
+    ("refs/heads/side", "git tag side master"),
+    ("refs/remotes/origin/side", "git branch origin/side master"),
+])
+def testMergeRefWithAmbiguousShorthand(tempDir, mainWindow, theirRef, decoy):
+    wd = unpackRepo(tempDir)
+    shell(f"""
+        git switch -c side
+        git commit --allow-empty -m 'side tip'
+        git update-ref refs/remotes/origin/side side
+        git switch master
+        {decoy}
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    theirTip = rw.repo.references[theirRef].target
+    assert theirTip != rw.repo.head_commit_id
+
+    node = rw.sidebar.findNodeByRef(theirRef)
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
+    acceptQMessageBox(rw, "can .*fast.forward")
+    assert rw.repo.head_commit_id == theirTip
+
+
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
 def testMightLoseDetachedHead(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
