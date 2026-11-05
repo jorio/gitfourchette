@@ -31,19 +31,25 @@ class EditmsgAutoFillServer(GFIpcServer):
         self.clientConnected.connect(self.onClientConnected)
 
     def onClientConnected(self, handshake: GFIpcProtocol.Handshake, socket: QLocalSocket):
-        assert len(handshake.args) == 1
+        abortPayload = ""  # success
 
-        editmsgPath = Path(handshake.args[0])
-        assert editmsgPath.name == "COMMIT_EDITMSG"
+        try:
+            assert len(handshake.args) == 1
 
-        rebaseInfo = RebaseInfo.parse(str(editmsgPath.parent))
-        doneLast = rebaseInfo.doneSeq[-1]
+            editmsgPath = Path(handshake.args[0])
+            assert editmsgPath.name == "COMMIT_EDITMSG"
 
-        # If we stopped on a reword, dump the message
-        if doneLast.op.isEditable() and doneLast.payload:
-            editmsgPath.write_text(doneLast.payload)
-        else:
-            logger.debug(f"confirming verbatim commit message: {doneLast}")
+            rebaseInfo = RebaseInfo.parse(str(editmsgPath.parent))
+            doneLast = rebaseInfo.doneSeq[-1]
 
-        # Tell client to quit gracefully
-        GFIpcProtocol.respondAndBail(socket)
+            # If we stopped on a reword, dump the message
+            if doneLast.op.isEditable() and doneLast.payload:
+                editmsgPath.write_text(doneLast.payload, "utf-8")
+            else:
+                logger.debug(f"confirming verbatim commit message: {doneLast}")
+        except Exception as ex:
+            # Switch to non-graceful abort
+            abortPayload = f"{self.__class__.__name__} failed: {ex.__class__.__name__}: {ex}"
+        finally:
+            # Always answer the client, otherwise 'git rebase' waits for it forever
+            GFIpcProtocol.respondAndBail(socket, abort=abortPayload)

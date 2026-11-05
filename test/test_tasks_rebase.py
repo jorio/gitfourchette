@@ -168,7 +168,7 @@ def testRebaseReword(tempDir, mainWindow):
     onto = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
     todo = [
         _Todo(0, RebaseOp.Reword, "  rewording older commit  "),  # some extra whitespace
-        _Todo(1, RebaseOp.Reword, "rewording newer commit"),
+        _Todo(1, RebaseOp.Reword, "rewording newer commit: Café, привет, 你好, 🦊"),
     ]
 
     wd = unpackRepo(tempDir)
@@ -176,8 +176,28 @@ def testRebaseReword(tempDir, mainWindow):
     _driveRebaseDialog(rw, onto, todo).accept()
 
     assert rw.repo.state() == RepositoryState.NONE
-    assert rw.repo.head_commit.message.strip() == "rewording newer commit"
+    assert rw.repo.head_commit.message.strip() == "rewording newer commit: Café, привет, 你好, 🦊"
     assert rw.repo.head_commit.parents[0].message.strip() == "rewording older commit"
+
+
+def testRebaseRewordEditorFailureDoesntHang(tempDir, mainWindow, monkeypatch):
+    # If filling in COMMIT_EDITMSG fails, git must get an answer and stop instead of waiting forever
+    from gitfourchette.rebase import editmsgautofillserver
+
+    class BrokenRebaseInfo:
+        @staticmethod
+        def parse(_path):
+            raise RuntimeError("simulated failure")
+
+    monkeypatch.setattr(editmsgautofillserver, "RebaseInfo", BrokenRebaseInfo)
+
+    onto = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    _driveRebaseDialog(rw, onto, [_Todo(0, RebaseOp.Reword, "new message")]).accept()
+    acceptQMessageBox(rw, "EditmsgAutoFillServer failed: RuntimeError: simulated failure")
+    assert rw.repo.state() == RepositoryState.REBASE_INTERACTIVE  # git stopped, the user can carry on
 
 
 def testRebaseRewordDisplayMessage(tempDir, mainWindow):
