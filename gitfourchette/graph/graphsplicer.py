@@ -183,9 +183,6 @@ class GraphSplicer:
             self.oldGraph.ownBatches.extend(self.newGraph.ownBatches)  # Steal newGraph's batches
             self.newGraph.ownBatches = []  # Don't let newGraph nuke the batches in its __del__
 
-        # Invalidate volatile player, which may be referring to dead keyframes
-        self.oldGraph.volatilePlayer = None
-
     def onGraphDepleted(self):
         """Completion without equilibrium: no more commits in oldGraph"""
 
