@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
+from stat import S_ISDIR
 from tarfile import TarFile
 
 import gitfourchette.pycompat  # noqa: F401 - Path.is_file(follow_symlinks=...) for Python 3.12
@@ -129,11 +130,14 @@ class Trash:
 
         fullPath = Path(workdir, originalPath)
         try:
-            size = fullPath.lstat().st_size
+            st = fullPath.lstat()
         except OSError as ex:  # FileNotFoundError, NotADirectoryError
             raise Trash.BackupSkipped("file inaccessible") from ex
 
-        if self.hasFileSizeLimit() and size > self.fileSizeLimit():
+        if S_ISDIR(st.st_mode):  # e.g. submodule
+            raise Trash.BackupSkipped("not a file")
+
+        if self.hasFileSizeLimit() and st.st_size > self.fileSizeLimit():
             raise Trash.BackupSkipped("file too big")
 
         # Copy new file

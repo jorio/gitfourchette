@@ -184,6 +184,35 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
     assert rw.repo.index.conflicts is None
 
 
+@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
+def testHardSolveSubmoduleConflict(tempDir, mainWindow, keepOurs):
+    wd = unpackRepo(tempDir)
+    reposcenario.submodule(wd)
+    shell("""
+        git checkout -b THEIR-BRANCH
+        git -C submodir commit --allow-empty -m 'their submodule commit'
+        git commit -am 'their submodule bump'
+        git checkout master
+        git submodule update
+        git -C submodir commit --allow-empty -m 'our submodule commit'
+        git commit -am 'our submodule bump'
+        git merge THEIR-BRANCH || true
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("submodir"), check=True)
+    assert "submodir" in rw.repo.index.conflicts
+
+    if keepOurs:
+        rw.conflictView.ui.oursButton.click()
+        acceptQMessageBox(rw, "keep our")
+    else:
+        rw.conflictView.ui.theirsButton.click()
+        acceptQMessageBox(rw, "accept their")
+
+    assert not rw.repo.index.conflicts
+
+
 @pytest.mark.parametrize("viaContextMenuLabel", ["", "keep our", "accept their"])
 def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLabel):
     scenario = """
