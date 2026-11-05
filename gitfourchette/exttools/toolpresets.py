@@ -244,13 +244,10 @@ class ToolPresets:
     def defaultGit(cls, hostOnly=False, fallback="/usr/bin/git") -> str:
         defaultGit = ToolCommands.whichOnHost("git")
 
-        # Flatpak: only use built-in Git if Git isn't installed on the host
-        # (Except in test mode, where we enforce the built-in Git to make sure
-        # everything works with it)
-        if (FLATPAK
-                and not APP_TESTMODE
-                and not hostOnly
-                and not defaultGit):
+        # Flatpak: only use built-in Git if Git isn't installed on the host.
+        # Except in APP_TESTMODE, where we enforce the built-in Git to make sure
+        # the test suite is compatible with it.
+        if FLATPAK and not hostOnly and (APP_TESTMODE or not defaultGit):
             defaultGit = cls.flatpakBuiltInGit()
 
         defaultGit = defaultGit or fallback

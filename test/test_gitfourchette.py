@@ -749,8 +749,15 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
 
 
 @pytest.mark.skipif(not FLATPAK, reason="must run inside Flatpak environment")
-def testFlatpakFindsHostGit():
+def testFlatpakFindsGit():
     # Note: this test needs Git to be installed on the host.
+
+    # By default, IN TEST MODE ONLY, we use the Flatpak's built-in Git to make
+    # sure the test suite is compatible with it. The real-world Flatpak defaults
+    # to the host's Git if available.
+    defaultTestmodeGit = ToolPresets.defaultGit()
+    assert defaultTestmodeGit == "flatpak:/app/bin/git"
+
     defaultGit = ToolPresets.defaultGit(hostOnly=True, fallback="yikes_not_found")
     assert not defaultGit.startswith("/app")
     assert not defaultGit.startswith(ToolCommands.FlatpakSandboxedCommandPrefix)
