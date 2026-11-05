@@ -67,7 +67,7 @@ def testDiffDeletedFile(tempDir, mainWindow):
 
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 @pytest.mark.parametrize("method", ["key", "button", "mmbviewport", "mmbgutter"])
-def testDiffViewStageLines(tempDir, mainWindow, method):
+def testDiffViewStageLines(tempDir, mainWindow, colorTheme, method):
     GFApplication.applyPrefs(middleClickStageLines=True)
 
     wd = unpackRepo(tempDir)
