@@ -1257,6 +1257,7 @@ def testDiffTokenizationOnIndentedLineWithIgnoreAllSpace(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, "hello.c"), check=True)
     waitUntilTrue(lambda: rw.diffView.highlighter.newLexJob.lexingComplete)
+    QTest.qWait(0)  # Give highlighter time to use results of HQ lexing
 
     doc = rw.diffView.document()
     block = doc.findBlockByLineNumber(3)
