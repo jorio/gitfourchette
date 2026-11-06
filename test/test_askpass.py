@@ -4,6 +4,8 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import pytest
+
 from gitfourchette.forms.askpassdialog import AskpassDialog
 from gitfourchette.ipc.ipcprotocol import GFIpcProtocol
 from .util import *
@@ -33,6 +35,29 @@ def testAskpassDialogPassphrase(tempDir, mainWindow):
 
     dialog.accept()
     assert messages.pop() == GFIpcProtocol.Response(print="hello")
+
+
+@pytest.mark.parametrize("sandboxedGit", [False, True])
+@pytest.mark.parametrize("prompt", [
+    "Username for 'https://example.com': ",
+    "Password for 'https://alice@example.com': ",
+])
+def testAskpassDialogHttpsCredentials(tempDir, mainWindow, monkeypatch, prompt, sandboxedGit):
+    from gitfourchette import settings
+    monkeypatch.setattr(settings.prefs, "gitPath", "flatpak:/app/bin/git" if sandboxedGit else "git")
+
+    dialog = AskpassDialog(mainWindow, prompt=prompt)
+    dialog.show()  # just so we can see it in visual mode
+    labels = dialog.findChildren(QLabel)
+
+    assert "SSH" not in dialog.windowTitle()
+    assert not any(findTextInWidget(label, "ssh.agent") for label in labels)
+    assert sandboxedGit == any(findTextInWidget(label, "can.t run credential helpers") for label in labels)
+
+    isPassword = prompt.startswith("Password")
+    expectedEchoMode = QLineEdit.EchoMode.Password if isPassword else QLineEdit.EchoMode.Normal
+    assert dialog.lineEdit.echoMode() == expectedEchoMode
+    dialog.reject()
 
 
 def testAskpassDialogUsername(tempDir, mainWindow):
