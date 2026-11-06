@@ -48,7 +48,8 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow, colorTheme):
 
     # Color of a plain identifier ("args") in the current scheme (varies between light/dark themes)
     QTest.qWait(0)
-    nameColor = formatRangeAt(defLine, defLine.text().index("args")).format.foreground().color()
+    formatRange = formatRangeAt(defLine, defLine.text().index("args"))
+    nameColor = formatRange.format.foreground().color()
 
     # Check low-quality lexing of comment line (lexed as plain identifiers)
     formatRange = formatRangeAt(commentLine, 0)
