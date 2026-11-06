@@ -48,6 +48,18 @@ class RecolorSvgIconEngine(QIconEngine):
             cls.systemFont = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont).family()
             cls.initialized = True
 
+    @staticmethod
+    def unpackColorTable(colorTable: str) -> dict[str, str]:
+        """
+        Convert a color remapping string (e.g. "white=#000 black=#fff") to a
+        dict. In case of duplicate keys, the last key wins out.
+        """
+        hardcodedColors = {}
+        for entry in colorTable.split():
+            original, replacement = entry.split("=", 1)
+            hardcodedColors[original] = replacement
+        return hardcodedColors
+
     def __init__(self, iconPathStr: str, colorTable: str = "", flags: Flags = Flags.NoFlags):
         super().__init__()
 
@@ -63,19 +75,19 @@ class RecolorSvgIconEngine(QIconEngine):
         # Inject system font
         svg = svg.replace("sans-serif", RecolorSvgIconEngine.IconColors.systemFont)
 
-        # Replace colors in hardcoded color table
-        hardcodedColors = {}
-        for entry in colorTable.split():
-            original, replacement = entry.split("=", 1)
-            hardcodedColors[original] = replacement
+        # Inject hardcoded colors
+        hardcodedColors = RecolorSvgIconEngine.unpackColorTable(colorTable)
+        for original in hardcodedColors:
             svg = svg.replace(original, "{" + original + "}")
         svg = svg.format_map(hardcodedColors)
 
         # Inject format token for gray (unless colorTable overrides it)
+        # and leave it there for _recolor to pick up later
         if _Gray not in hardcodedColors:
             svg = svg.replace(_Gray, "{" + _Gray + "}")
 
         # Inject format token for surrounding tag (used for opacity)
+        # and leave it there for _recolor to pick up later
         beg = svg.index(">") + 1
         end = svg.rindex("</svg>")
         svg = svg[:beg] + "{prefix}" + svg[beg:end] + "{suffix}" + svg[end:]
