@@ -245,7 +245,7 @@ class GFApplication(QApplication):
         # In a Flatpak, pygit2's XDG search path resolves to "~/.var/app/org.gitfourchette.gitfourchette/config/git"
         # by default. Users are much more likely to expect "~/.config/git" instead.
         if FLATPAK:
-            userXdgGitDir = os.path.expanduser("~/.config/git")
+            userXdgGitDir = os.path.join(FLATPAK_HOST_CONFIG_HOME, "git")
             pygit2.settings.search_path[pygit2.enums.ConfigLevel.XDG] = userXdgGitDir
 
         # Load prefs file
