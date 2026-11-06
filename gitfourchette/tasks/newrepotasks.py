@@ -111,17 +111,16 @@ class NewRepo(RepoTask):
                 _("Are you sure you want to create {0} within the existing "
                   "repo?", hquoe(displayName)))
 
-            createButton = QPushButton(_("&Create {0}", lquoe(displayName)))
+            openText =_("&Open {0}", lquoe(displayParentName))
+            createText = _("&Create {0}", lquoe(displayName))
 
             result = yield from self.flowConfirm(
                 title=_("Repository found in parent folder"),
                 text=message,
-                verb=_("&Open {0}", lquoe(displayParentName)),
+                verb=openText,
                 buttonIcon="SP_DirOpenIcon",
-                actionButton=createButton)
+                actionButton=createText)
 
-            # OK button is Open; Create is the other one. (Cancel would have aborted early.)
-            # Also checking for Accepted so that unit tests can do qmb.accept().
-            wantOpen = result in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
+            wantOpen = result == openText
 
         return wantOpen

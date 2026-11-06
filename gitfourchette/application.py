@@ -441,8 +441,13 @@ class GFApplication(QApplication):
         # Look for a territory-specific file first, then fall back to a
         # generic language file (e.g. 'fr_CA' then 'fr').
         try:
+            # Qt compatibility caveats:
+            # - PyQt5 doesn't have languageToCode
+            # - PyQt6 does, but PyQt6<6.9 returns an empty string
             genericLanguageCode = QLocale.languageToCode(locale.language())
-        except AttributeError:  # pragma: no cover - Compatibility with Qt 5 and pre-Qt 6.3
+            if not genericLanguageCode:  # pragma: no cover - PyQt6<6.9
+                raise AttributeError("languageToCode returned empty string")
+        except AttributeError:  # pragma: no cover - Compatibility with Qt 5 and PyQt6<6.9.
             genericLanguageCode = languageCode.split("_")[0]
 
         for stem in languageCode, genericLanguageCode:

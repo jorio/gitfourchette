@@ -28,13 +28,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # Legacy config with no optional dependencies and ancient pygit2
+        # Legacy config with no optional dependencies, ancient pygit2 and pygments, and old Git
         - {name: '312-pyqt5-legacy', os: ubuntu-22.04, py: '3.12', qt: pyqt5, downgrade-git: true, skip-fuse: true,
-           piptweak: 'pip install pygit2==1.14.1 pygments==2.12 && pip uninstall -y mfusepy' }
+           pre-pip: 'pip install pygit2==1.14.1 pygments==2.12', post-pip: 'pip uninstall -y mfusepy'}
+        # Legacy config with old PyQt6 and non-cutting-edge Git
+        - {name: '312-pyqt6.5', os: ubuntu-24.04, py: '3.12', qt: pyqt6, downgrade-git: true,
+           pre-pip: 'pip install "pyqt6<6.6" "pyqt6-qt6<6.6" "pyqt6-sip<13.7" pytest-qt==4.3.1'}
         # Semi-legacy configs
-        - {name: '312-pyqt6', os: ubuntu-latest, py: '3.12', qt: pyqt6, downgrade-git: true}
         - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, downgrade-git: true}
-        - {name: '314-pyqt6', os: ubuntu-latest, py: '3.14', qt: pyqt6, coverage: true}
+        - {name: '314-pyqt6', os: ubuntu-latest, py: '3.14', qt: pyqt6}
         # Up-to-date configs
         - {name: '315-pyqt6', os: ubuntu-latest, py: '3.15', qt: pyqt6, coverage: true}
         - {name: '315-pyside6', os: ubuntu-latest, py: '3.15', qt: pyside6}
@@ -69,9 +71,12 @@ jobs:
         python-version: ${{ matrix.py }}
         cache: 'pip'
 
-    - run: |
+    - name: pip
+      run: |
+        ${{ matrix.pre-pip }}
         pip install -e .[${{ matrix.qt }},test,mfusepy]
-        ${{ matrix.piptweak }}
+        ${{ matrix.post-pip }}
+        pip list --local
 
     - run: ./test.py -v --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
 

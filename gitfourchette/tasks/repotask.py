@@ -658,14 +658,26 @@ class RepoTask(QObject):
             canCancel: bool = True,
             icon: MessageBoxIconName | Literal[""] = "",
             checkbox: QCheckBox | None = None,
-            actionButton: QPushButton | None = None,
-    ):
+            actionButton: str = "",
+    ) -> Flow[str]:
         """
         Ask the user to confirm the operation via a message box.
         Interrupts flow() if the user denies.
 
+        Returns the text of the button that was clicked (compare with
+        actionButton).
+
         This function is intended to be called by flow() with "yield from".
         """
+
+        # By default, if the QMB is accepted, return the text of the OK button.
+        result = verb
+
+        # Don't check qmb.result() after flowDialog, because it's an opaque
+        # value for custom buttons.
+        def setResult(value: str):
+            nonlocal result
+            result = value
 
         assert self._currentFlow is not None
         assert self._isRunningOnAppThread()  # we'll touch the UI
@@ -674,7 +686,7 @@ class RepoTask(QObject):
             from gitfourchette import settings
             if dontShowAgainKey in settings.prefs.dontShowAgain:
                 logger.debug(f"Skipping dontShowAgainMessage: {text}")
-                return
+                return result
 
         if not title:
             title = self.name()
@@ -715,7 +727,10 @@ class RepoTask(QObject):
             qmb.button(QMessageBox.StandardButton.Cancel).setText(cancelText)
 
         if actionButton:
-            qmb.addButton(actionButton, QMessageBox.ButtonRole.ApplyRole)
+            extraButton = QPushButton(actionButton, qmb)
+            extraButton.clicked.connect(lambda: setResult(actionButton))
+            qmb.addButton(extraButton, QMessageBox.ButtonRole.YesRole)
+            # WARNING: In PyQt6<=6.6, ApplyRole REJECTS the dialog!!! YesRole is fine.
 
         if helpText:
             hintButton = QHintButton(qmb, helpText)
@@ -729,7 +744,6 @@ class RepoTask(QObject):
             addULToMessageBox(qmb, detailList)
 
         yield from self.flowDialog(qmb)
-        result = qmb.result()
 
         if dontShowAgainKey and dontShowAgainCheckBox.isChecked():
             from gitfourchette import settings

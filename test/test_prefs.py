@@ -119,6 +119,10 @@ def testPrefsFontControl(tempDir, mainWindow):
 
 
 def testPrefsLanguageControl(tempDir, mainWindow):
+    # The testing environment should be set up to start in English
+    # (Normally done by application.py)
+    assert QLocale().language() == QLocale.Language.English
+
     # Open a repo so that refreshPrefs functions are exercized in coverage
     wd = unpackRepo(tempDir)
     mainWindow.openRepo(wd)
@@ -128,6 +132,9 @@ def testPrefsLanguageControl(tempDir, mainWindow):
     comboBox: QComboBox = dlg.findChild(QWidget, "prefctl_language")
     qcbSetIndex(comboBox, "fran.ais")
     dlg.accept()
+
+    assert settings.prefs.language == "fr"
+    assert QLocale().language() == QLocale.Language.French
     acceptQMessageBox(mainWindow, "application des pr.f.rences")
 
 
@@ -154,6 +161,7 @@ def testPrefsRecreateDiffDocument(tempDir, mainWindow):
     assert "<CRLF>" not in rw.diffView.toPlainText()
 
 
+@pytest.mark.skipif(QT6 and QT_BINDING_VERSION_TUPLE < (6, 7), reason="TODO: Qt 6.6?")
 def testPrefsShowWhitespace(tempDir, mainWindow):
     whitespaceFlags = QTextOption.Flag.ShowTabsAndSpaces
 

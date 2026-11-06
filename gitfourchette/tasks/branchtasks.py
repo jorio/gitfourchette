@@ -606,14 +606,12 @@ class MergeBranch(RepoTask):
               "recent commit in a linear path, without the need to create a merge commit."),
             _("In this case, {0} will be fast-forwarded to {1}.", bquo(myShorthand), bquo(shortHash(target))))
 
-        actionButton = QPushButton(_("Create Merge Commit"))
-        result = yield from self.flowConfirm(title=title, text=message, verb=_("Fast-Forward"),
-                                             actionButton=actionButton, helpText=hint)
+        ffText = _("Fast-Forward")
+        mergeText = _("Create Merge Commit")
+        result = yield from self.flowConfirm(title=title, text=message, verb=ffText,
+                                             actionButton=mergeText, helpText=hint)
 
-        # OK button is Fast-Forward; Merge is the other one. (Cancel would have aborted early.)
-        # Also checking for Accepted so that unit tests can do qmb.accept().
-        wantMergeCommit = result not in [QMessageBox.StandardButton.Ok, QDialog.DialogCode.Accepted]
-        return wantMergeCommit
+        return result == mergeText
 
     def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Workdir
