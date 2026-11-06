@@ -62,7 +62,11 @@ def stockIcon(
 
     if RecolorSvgIconEngine.IconColors.preferDarkVariants and iconId in _autoDarkVariants:
         # Merge dark variant remapping into caller's color table (caller's entries take precedence)
-        colorTable = f"white=#000 black=#fff {colorTable}".rstrip()
+        merged = {"white": "#000", "black": "#fff"}
+        for entry in colorTable.split():
+            original, replacement = entry.split("=", 1)
+            merged[original] = replacement
+        colorTable = " ".join(f"{original}={replacement}" for original, replacement in merged.items())
 
     # Compute cache key
     key = hash((iconId, colorTable, flags))
