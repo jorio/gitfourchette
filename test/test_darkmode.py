@@ -28,7 +28,7 @@ def iconColorTableSpy(monkeypatch) -> list[str]:
 
     class SpyEngine(RecolorSvgIconEngine):
         def __init__(self, iconPath, colorTable="", flags=RecolorSvgIconEngine.Flags.NoFlags):
-            colorTables.append(colorTable)
+            colorTables.append(RecolorSvgIconEngine.unpackColorTable(colorTable))
             super().__init__(iconPath, colorTable, flags)
 
     monkeypatch.setattr(iconbank, "RecolorSvgIconEngine", SpyEngine)
@@ -81,26 +81,29 @@ def testStockIconAutoDarkVariants(mainWindow, iconColorTableSpy):
         iconColorTableSpy.clear()
         stockIcon(iconId, colorTable)
         assert len(iconColorTableSpy) == 1
-        return set(iconColorTableSpy[0].split())
+        return iconColorTableSpy[0]
 
     # Light mode: color tables are passed through as-is
     GFApplication.applyPrefs(qtStyle=BUILTIN_LIGHT)
-    assert colorTableFor("status_a") == set()
-    assert colorTableFor("status_a", "gray=#123456") == {"gray=#123456"}
+    assert colorTableFor("status_a") == {}
+    assert colorTableFor("status_a", "gray=#123456") == {"gray": "#123456"}
+
+    # In case of duplicates, last entry wins out
+    assert colorTableFor("status_a", "white=#123 white=#abc white=#def") == {"white": "#def"}
 
     # Dark mode: icons with an automatic dark variant swap black & white
     GFApplication.applyPrefs(qtStyle=BUILTIN_DARK)
-    assert colorTableFor("status_a") == {"white=#000", "black=#fff"}
+    assert colorTableFor("status_a") == {"white": "#000", "black": "#fff"}
 
     # Icons without an automatic dark variant are left alone
-    assert colorTableFor("status_u") == set()
-    assert colorTableFor("git-branch", "gray=#123456") == {"gray=#123456"}
+    assert colorTableFor("status_u") == {}
+    assert colorTableFor("git-branch", "gray=#123456") == {"gray": "#123456"}
 
     # Caller's color table is merged with the dark variant remapping (regression test)
-    assert colorTableFor("status_a", "gray=#123456") == {"gray=#123456", "white=#000", "black=#fff"}
+    assert colorTableFor("status_a", "gray=#123456") == {"gray": "#123456", "white": "#000", "black": "#fff"}
 
     # Caller's entries take precedence over the dark variant remapping
-    assert colorTableFor("status_a", "white=#f00") == {"white=#f00", "black=#fff"}
+    assert colorTableFor("status_a", "white=#f00") == {"white": "#f00", "black": "#fff"}
 
 
 def testSidebarPaintsAutoDarkVariantIconWhenSelected(tempDir, mainWindow):
@@ -148,7 +151,7 @@ def testCommitBrowsingFollowsTheme(tempDir, mainWindow, colorTheme, iconColorTab
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
 
-    darkColorTable = "white=#000 black=#fff"
+    darkColorTable = {"white": "#000", "black": "#fff"}
     statusCommits = {
         "a": ("83834a7afdaa1a1260568567f6ad90020389f664", "a/a1.txt"),
         "m": ("7f822839a2fe9760f386cbbbcb3f92c5fe81def7", "b/b2.txt"),
