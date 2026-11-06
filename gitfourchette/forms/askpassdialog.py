@@ -8,6 +8,7 @@ import re
 from enum import StrEnum
 from pathlib import Path
 
+from gitfourchette import settings
 from gitfourchette.application import GFApplication
 from gitfourchette.ipc.ipcprotocol import GFIpcProtocol
 from gitfourchette.localization import *
@@ -27,6 +28,9 @@ _ClearTextPromptPatterns = [
 ]
 
 _UnknownHostPrompt = "Are you sure you want to continue connecting (yes/no/[fingerprint])?"
+
+# Git asks for HTTP(S) credentials through the askpass program too (SSH never says "for '")
+_HttpCredentialPattern = re.compile(r"^(Username|Password) for '")
 
 _KeyFingerprintPattern = re.compile(r"key fingerprint is:? (.+?)\.?$", re.MULTILINE)
 
@@ -88,6 +92,7 @@ class AskpassDialog(TextInputDialog):
                 prompt = prompt.removesuffix(_UnknownHostPrompt).strip()
 
         self.autoYesOnAcceptEmptyText = bool(self.unknownHostFingerprint)
+        httpCredential = promptKind == AskpassPrompt.Entry and bool(_HttpCredentialPattern.match(prompt))
 
         if promptKind == AskpassPrompt.Confirm:
             title = _("SSH is asking for your confirmation")
@@ -95,11 +100,19 @@ class AskpassDialog(TextInputDialog):
             title = _("Message from SSH")
         elif self.unknownHostFingerprint:
             title = _("Connecting to unknown SSH host")
+        elif httpCredential:
+            title = _("Enter Git credentials")
         else:
             title = _("Enter SSH credentials")
 
         subtitle = ""
-        if promptKind == AskpassPrompt.Entry and not clearText:
+        if httpCredential:
+            if settings.prefs.isGitSandboxed():
+                subtitle = _("{app}’s built-in Git can’t run credential helpers that need programs from your system, "
+                             "such as libsecret or gh. "
+                             "To use them, install Git on your system if it’s missing, then select it in Settings ({0}).",
+                             tquo(_p("Prefs", "Git Integration")), app=qAppName())
+        elif promptKind == AskpassPrompt.Entry and not clearText:
             ownAgent = GFApplication.instance().sshAgent
 
             if ownAgent and sshAgentPid == ownAgent.environment["SSH_AGENT_PID"]:
