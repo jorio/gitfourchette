@@ -419,13 +419,6 @@ class GitDriver(QProcess):
     def formatExitCode(self) -> str:
         code = self.exitCode()
 
-        if FLATPAK and code > 128 and self.program() == "flatpak-spawn":
-            # flatpak-spawn may shift SIG numbers by 128
-            # (for example: 143-128=15, a.k.a. SIGTERM)
-            codeForName = code - 128
-        else:
-            codeForName = code
-
         if WINDOWS:
             code32 = code & 0xFFFFFFFF
             if code32 == 0xC000013A:
@@ -434,6 +427,18 @@ class GitDriver(QProcess):
                 return f"SIGKILL equivalent (0x{code32:08X})"
             else:
                 return f"{code}"
+
+        if FLATPAK and code > 129 and self.program() == "flatpak-spawn":
+            # flatpak-spawn may shift SIG numbers by 128
+            # (for example: 143-128=15, a.k.a. SIGTERM).
+            # 129 is git's usage error (e.g. an option the host's git lacks), not SIGHUP.
+            codeForName = code - 128
+        elif self.exitStatus() == QProcess.ExitStatus.CrashExit:
+            # Qt reports the signal number as the exit code of a killed process
+            codeForName = code
+        else:
+            # A regular exit code, even if it matches a signal number (e.g. git's 1 isn't SIGHUP)
+            return f"{code}"
 
         try:
             s = signal.Signals(codeForName)

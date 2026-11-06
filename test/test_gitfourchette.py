@@ -19,6 +19,7 @@ from gitfourchette.forms.processdialog import ProcessDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
 from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.forms.textinputdialog import TextInputDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import SpecialRow, CommitLogModel
 from gitfourchette.ipc.ipcprotocol import GFIpcProtocol
 from gitfourchette.nav import NavLocator
@@ -789,6 +790,20 @@ def testGitProcessStuck(tempDir, mainWindow, needSigkill):
 
         code = "SIGKILL" if needSigkill else "SIGTERM"
         waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()
+
+
+def testGitExitCodeNotMistakenForSignal(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    # 'git grep' exits with code 1 when nothing matches; 1 is also SIGHUP's number
+    driver = GitDriver("grep", "--", "this text appears nowhere", parent=mainWindow)
+    driver.setWorkingDirectory(wd)
+    ToolCommands.wrapFlatpakCommand(driver)
+    driver.start()
+    assert driver.waitForFinished()
+
+    assert driver.exitCode() == 1
+    assert driver.formatExitCode() == "1"
 
 
 def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow):
