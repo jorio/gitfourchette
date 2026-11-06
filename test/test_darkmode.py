@@ -107,6 +107,7 @@ def testSidebarPaintsAutoDarkVariantIconWhenSelected(tempDir, mainWindow):
     """
     Regression test: painting a selected sidebar item whose icon has an
     automatic dark variant used to raise an AssertionError in dark mode.
+    Also covers painting a detached HEAD in dark mode.
     """
 
     sm = "submosub"
@@ -114,10 +115,9 @@ def testSidebarPaintsAutoDarkVariantIconWhenSelected(tempDir, mainWindow):
     # Non-recursive clone so that the submodule is uninitialized,
     # which gives it the "achtung" icon in the sidebar.
     upstreamWd = unpackRepo(tempDir, "submoroot", renameTo="upstream")
-    repo = pygit2.clone_repository(upstreamWd, f"{tempDir.name}/submoroot")
-    wd = repo.workdir
-    repo.free()
-    del repo
+    wd = f"{tempDir.name}/submoroot"
+    shell(f"git clone --no-recurse-submodules . {shlex.quote(wd)}", upstreamWd)
+    shell("git checkout --detach", wd)
 
     GFApplication.applyPrefs(qtStyle=BUILTIN_DARK)
     rw = mainWindow.openRepo(wd)
@@ -131,6 +131,49 @@ def testSidebarPaintsAutoDarkVariantIconWhenSelected(tempDir, mainWindow):
     rw.sidebar.selectNode(node)
     rw.sidebar.grab()
 
+    headNode = rw.sidebar.findNodeByRef("HEAD")
+    assert headNode.kind == SidebarItem.DetachedHead
+    rw.sidebar.selectNode(headNode)
+    rw.sidebar.grab()
+
+
+def testCommitBrowsingFollowsTheme(tempDir, mainWindow, colorTheme, iconColorTableSpy, monkeypatch):
+    from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
+    from gitfourchette.toolbox.iconbank import clearStockIconCache
+
+    # CommitLogDelegate.paint swallows exceptions and paints an error instead
+    paintSpy = CallSpy(monkeypatch, CommitLogDelegate, "_paint")
+    paintErrorSpy = CallSpy(monkeypatch, CommitLogDelegate, "_paintError")
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    darkColorTable = "white=#000 black=#fff"
+    statusCommits = {
+        "a": ("83834a7afdaa1a1260568567f6ad90020389f664", "a/a1.txt"),
+        "m": ("7f822839a2fe9760f386cbbbcb3f92c5fe81def7", "b/b2.txt"),
+        "r": ("ce112d052bcf42442aa8563f1e2b7a8aabbf4d17", "c/c2-2.txt"),
+        "d": ("c9ed7bf12c73de26422b7c5a44d74cfce5a8993b", "c/c2-2.txt"),
+    }
+
+    for status, (commitHash, path) in statusCommits.items():
+        clearStockIconCache()
+        iconColorTableSpy.clear()
+        rw.jump(NavLocator.inCommit(Oid(hex=commitHash), path), check=True)
+        assert rw.committedFiles.isVisible()
+
+        # Force a repaint of the file list and the diff gutter
+        rw.committedFiles.grab()
+        rw.diffView.gutter.grab()
+        assert (darkColorTable in iconColorTableSpy) == (colorTheme == "dark"), \
+            f"status_{status} icon doesn't follow {colorTheme} theme"
+
+        # Force a repaint of the graph (with the selected commit)
+        paintSpy.completeCalls = 0
+        rw.graphView.grab()
+        assert paintSpy.completeCalls >= 1
+        assert not paintErrorSpy
+
 
 def testCodeViewFollowsDarkTheme(tempDir, mainWindow):
     assert settings.prefs.syntaxHighlighting == PygmentsPresets.Automatic
@@ -143,10 +186,12 @@ def testCodeViewFollowsDarkTheme(tempDir, mainWindow):
 
     GFApplication.applyPrefs(qtStyle=BUILTIN_LIGHT)
     assert rw.diffView.property("dark") == "false"
+    assert rw.diffView.highlighter.scheme.name == "stata-light"
     assert not settings.prefs.syntaxHighlightingScheme().isDark()
 
     GFApplication.applyPrefs(qtStyle=BUILTIN_DARK)
     assert rw.diffView.property("dark") == "true"
+    assert rw.diffView.highlighter.scheme.name == "stata-dark"
     assert settings.prefs.syntaxHighlightingScheme().isDark()
 
     GFApplication.applyPrefs(qtStyle=BUILTIN_LIGHT)

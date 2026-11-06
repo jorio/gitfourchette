@@ -835,7 +835,7 @@ def testDontScrollToSameCommitOnRefresh(tempDir, mainWindow):
     assert vsb.sliderPosition() == 1000
 
 
-def testHideCommitHashes(tempDir, mainWindow, colorTheme, monkeypatch):
+def testHideCommitHashes(tempDir, mainWindow, monkeypatch):
     paintHashSpy = CallSpy(monkeypatch, CommitLogDelegate, "_paintHash")
 
     wd = unpackRepo(tempDir)

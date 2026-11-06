@@ -269,7 +269,8 @@ def colorTheme(request, mainWindow) -> str:
     """
     Run the test twice: once with the built-in light theme, and once with the
     built-in dark theme. List this fixture before any fixture that builds UI
-    so that the UI is created with the desired palette already in place.
+    (except mainWindow, which this fixture depends on because applyPrefs needs
+    it) so that the UI is created with the desired palette already in place.
     """
     from gitfourchette.themes import ThemeName
     from gitfourchette.toolbox import isDarkTheme
