@@ -5,7 +5,9 @@
 # -----------------------------------------------------------------------------
 
 from gitfourchette.qt import *
-from gitfourchette.toolbox import *
+from gitfourchette.toolbox.memoryindicator import MemoryIndicator
+from gitfourchette.toolbox.qbusyspinner import QBusySpinner
+from gitfourchette.toolbox.qelidedlabel import QElidedLabel
 
 
 class QStatusBar2(QStatusBar):
