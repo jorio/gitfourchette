@@ -32,7 +32,6 @@ class GraphSplicer:
         self.foundEquilibrium = False
         self.equilibriumNewRow = -1
         self.equilibriumOldRow = -1
-        self.oldGraphRowOffset = 0
 
         self.newGraph, self.weaver = GraphWeaver.newGraph()
 
@@ -122,7 +121,6 @@ class GraphSplicer:
         # Save rows for use by external code
         self.equilibriumNewRow = equilibriumNewRow
         self.equilibriumOldRow = equilibriumOldRow
-        self.oldGraphRowOffset = rowShiftInOldGraph
 
         logger.debug(f"Equilibrium: commit={self.oldPlayer.commit!s:.7} new={equilibriumNewRow} old={equilibriumOldRow}")
 
@@ -185,9 +183,6 @@ class GraphSplicer:
             self.oldGraph.ownBatches.extend(self.newGraph.ownBatches)  # Steal newGraph's batches
             self.newGraph.ownBatches = []  # Don't let newGraph nuke the batches in its __del__
 
-        # Invalidate volatile player, which may be referring to dead keyframes
-        self.oldGraph.volatilePlayer = None
-
     def onGraphDepleted(self):
         """Completion without equilibrium: no more commits in oldGraph"""
 
@@ -198,7 +193,6 @@ class GraphSplicer:
 
         self.equilibriumOldRow = int(self.oldPlayer.row)
         self.equilibriumNewRow = int(self.weaver.row)
-        self.oldGraphRowOffset = 0
 
         self.oldGraph.shallowCopyFrom(self.newGraph)
 

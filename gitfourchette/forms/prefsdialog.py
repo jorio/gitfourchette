@@ -38,22 +38,19 @@ LANGUAGE_NAMES = {
 }
 
 
-def _boxWidget(layoutType: type[QVBoxLayout | QHBoxLayout], *controls) -> QWidget:
+def boxWidget(
+        *controls: QWidget,
+        vertical: bool = False,
+        spacing: int = -1
+) -> QWidget:
     w = QWidget()
-    layout: QBoxLayout = layoutType(w)
-    layout.setSpacing(0)
+    layout = QVBoxLayout(w) if vertical else QHBoxLayout(w)
+    if spacing >= 0:
+        layout.setSpacing(spacing)
     layout.setContentsMargins(0, 0, 0, 0)
     for control in controls:
         layout.addWidget(control)
     return w
-
-
-def vBoxWidget(*controls):
-    return _boxWidget(QVBoxLayout, *controls)
-
-
-def hBoxWidget(*controls):
-    return _boxWidget(QHBoxLayout, *controls)
 
 
 def makeshiftSpacer(height=1):
@@ -637,12 +634,7 @@ class PrefsDialog(QDialog):
         variantPicker.activated.connect(onPickStyle)
         variantPicker.setVisible(currentStyleName in ThemeName)
 
-        group = QWidget(self)
-        layout = QHBoxLayout(group)
-        layout.setContentsMargins(QMargins())
-        layout.addWidget(control)
-        layout.addWidget(variantPicker)
-        return group
+        return boxWidget(control, variantPicker)
 
     def _customThemeVariantPickerControl(self, prefValue: str) -> QComboBox:
         picker = QComboBox(self)
@@ -695,7 +687,7 @@ class PrefsDialog(QDialog):
         control.setEditText(prefValue)
         control.editTextChanged.connect(onEditTextChanged)
 
-        return vBoxWidget(control, preview)
+        return boxWidget(control, preview, vertical=True, spacing=0)
 
     @benchmark
     def syntaxHighlightingControl(self, prefKey, prefValue):

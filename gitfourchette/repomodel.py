@@ -7,7 +7,7 @@
 import enum
 import itertools
 import logging
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 
 from gitfourchette import settings
 from gitfourchette.appconsts import *
@@ -605,19 +605,6 @@ class RepoModel:
                 seeds.add(oid)
 
         return seeds
-
-    def commitsMatchingRefPattern(self, refPattern: str) -> Iterator[Oid]:
-        if not refPattern.endswith("/"):
-            # Explicit ref
-            try:
-                yield self.refs[refPattern]
-            except KeyError:
-                pass
-        else:
-            # Wildcard
-            for ref, oid in self.refs.items():
-                if ref.startswith(refPattern):
-                    yield oid
 
     def getCachedGpgStatus(self, commit: CommitTraits) -> tuple[GpgStatus, str]:
         oid = commit.id

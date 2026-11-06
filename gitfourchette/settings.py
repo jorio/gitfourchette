@@ -354,12 +354,6 @@ class History(PrefsFile):
 
         return name
 
-    def removeRepo(self, path: str):
-        path = self.normalizeRepoPath(path)
-        self.repos.pop(path, None)
-        self.invalidateSequenceNumber()
-        self.setDirty()
-
     def clearRepoHistory(self):
         self.repos.clear()
         self.invalidateSequenceNumber()

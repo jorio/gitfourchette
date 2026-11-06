@@ -59,7 +59,6 @@ class ValidatorMultiplexer(QObject):
     def __init__(self, parent):
         super().__init__(parent)
         self.gatedWidgets = []
-        self.inverseGatedWidgets = []
         self.inputs = []
         self.toolTipDelay = QTimer(self)
         self.toolTipDelay.setSingleShot(True)

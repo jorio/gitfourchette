@@ -619,8 +619,6 @@ class Graph:
     commitRows: dict[Oid, BatchRow]
     ownBatches: list[int]
 
-    volatilePlayer: PlaybackState | None
-
     def __init__(self):
         self.keyframes = []
         self.keyframeRows = []
@@ -635,7 +633,6 @@ class Graph:
             junctions=[],
             nextArc=None)
         self.ownBatches = []
-        self.volatilePlayer = None
 
     def __del__(self):
         self.freeOwnBatches()
@@ -658,9 +655,6 @@ class Graph:
         self.ownBatches = source.ownBatches
 
         source.ownBatches = []
-
-        source.volatilePlayer = None
-        self.volatilePlayer = None
 
     def isEmpty(self):
         return self.startArc.nextArc is None
@@ -705,17 +699,14 @@ class Graph:
 
         return bestKeyframeID
 
-    def startPlayback(self, goalRow: int = 0, oneOff: bool = False) -> PlaybackState:
+    def startPlayback(self, goalRow: int = 0) -> PlaybackState:
         kfID = self.getBestKeyframeID(goalRow)
         if kfID >= 0:
             kf = self.keyframes[kfID]
         else:
             kf = self.initialKeyframe()
 
-        if oneOff and self.volatilePlayer and goalRow >= self.volatilePlayer.row >= kf.row:
-            player = self.volatilePlayer
-        else:
-            player = PlaybackState(kf)
+        player = PlaybackState(kf)
 
         # Position playback context on target row
         try:
@@ -735,9 +726,6 @@ class Graph:
             # Depleted - make sure we get StopIteration next time we call `next`.
             assert player.callingNextWillAdvanceFrame
             assert player.lastArc.nextArc is None
-
-        if oneOff:
-            self.volatilePlayer = player
 
         return player
 

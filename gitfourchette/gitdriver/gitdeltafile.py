@@ -291,6 +291,3 @@ class GitDeltaFile:
 
     def __repr__(self) -> str:
         return f"({self.path},{id7(self.id)},{self.mode:o})"
-
-
-GitDeltaFile_Empty = GitDeltaFile()

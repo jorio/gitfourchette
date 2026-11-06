@@ -60,7 +60,6 @@ from .qtutils import (
     tweakWidgetFont,
     formatWidgetText,
     formatWidgetTooltip,
-    itemViewVisibleRowRange,
     itemViewBestIndexOnSelectionChanged,
     assetsPath,
     isDarkTheme,
