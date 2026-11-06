@@ -364,7 +364,7 @@ def testReevaluateFileListSearchTermAcrossCommits(tempDir, mainWindow):
     searchBar = fileList.searchBar
 
     # Go to head commit and start a file search
-    mainWindow.selectHead()
+    rw.jump(NavLocator.inRef("HEAD"))
     assert fileList.isVisible()
     fileList.setFocus()
     QTest.keySequence(rw, QKeySequence.StandardKey.Find)
