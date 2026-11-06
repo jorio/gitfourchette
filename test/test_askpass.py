@@ -47,6 +47,7 @@ def testAskpassDialogHttpsCredentials(tempDir, mainWindow, monkeypatch, prompt, 
     monkeypatch.setattr(settings.prefs, "gitPath", "flatpak:/app/bin/git" if sandboxedGit else "git")
 
     dialog = AskpassDialog(mainWindow, prompt=prompt)
+    dialog.show()  # just so we can see it in visual mode
     labels = dialog.findChildren(QLabel)
 
     assert "SSH" not in dialog.windowTitle()

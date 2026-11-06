@@ -108,10 +108,11 @@ class AskpassDialog(TextInputDialog):
         subtitle = ""
         if httpCredential:
             if settings.prefs.isGitSandboxed():
-                subtitle = _("{app}’s built-in Git can’t run credential helpers that need programs from your system, "
-                             "such as libsecret or gh. "
-                             "To use them, install Git on your system if it’s missing, then select it in Settings ({0}).",
-                             tquo(_p("Prefs", "Git Integration")), app=qAppName())
+                subtitle = _("{app}’s built-in Git can’t run credential helpers that need programs "
+                             "from your system (like libsecret or gh). To use them, go to {where} "
+                             "and switch to your system’s Git.",
+                             app=qAppName(),
+                             where=tquo(f'{_("Settings")} \u2192 {_p("Prefs", "Git Integration")}'))
         elif promptKind == AskpassPrompt.Entry and not clearText:
             ownAgent = GFApplication.instance().sshAgent
 
