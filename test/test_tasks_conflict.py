@@ -138,6 +138,7 @@ def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
     assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_DELETED}
 
 
+@requiresSymlinks
 @pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
 @pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "context"])
 def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContextMenu):

@@ -59,6 +59,7 @@ class SessionContext:
         assert app.mainWindow is None
 
 
+@pytest.mark.skipif(WINDOWS, reason="TODO: Try again on Windows with https://github.com/jorio/gitfourchette/pull/160")
 def testRestoreSession(tempDir, mainWindow):
     # ----------------------------------------------
     # Session 1

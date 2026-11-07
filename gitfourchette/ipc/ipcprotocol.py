@@ -16,7 +16,7 @@ from gitfourchette.qt import *
 
 
 class GFIpcProtocol:
-    FastTimeout = 5000  # timeout for "instantaneous" client/server comms
+    FastTimeout = 5_000 if not CI_TESTMODE else 20_000  # timeout for "instantaneous" client/server comms
     UserTimeout = -1  # timeout when waiting for user input
     MaxPayloadSize = 4096
 
@@ -49,7 +49,6 @@ class GFIpcProtocol:
         cls.writeMessage(socket, response)
         socket.disconnectFromServer()
         socket.waitForDisconnected(GFIpcProtocol.FastTimeout)
-        socket.disconnectFromServer()
 
     @classmethod
     def readMessage(cls, socket: QLocalSocket, t: type[_THandshakeResponse]) -> _THandshakeResponse:

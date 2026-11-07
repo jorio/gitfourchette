@@ -35,7 +35,7 @@ HAS_GPG = bool(shutil.which("gpg"))
 HAS_FLATPAK = FREEDESKTOP and bool(shutil.which("flatpak"))
 
 # Mac CI can be very slow to start processes
-DEFAULT_TIMEOUT = 5_000 if not os.environ.get("CI", "") else 20_000
+DEFAULT_TIMEOUT = 5_000 if not CI_TESTMODE else 20_000
 TOOLTIP_TIMEOUT = 3_000
 
 requiresNetwork = pytest.mark.skipif(
@@ -57,6 +57,14 @@ requiresGpg = pytest.mark.skipif(
 requiresFuse = pytest.mark.skipif(
     os.environ.get("TESTFUSE", "") in {"0", ""},
     reason="Requires FUSE (test.py --with-fuse)")
+
+requiresSymlinks = pytest.mark.skipif(
+    WINDOWS,
+    reason="no symlinks on Windows")
+
+requiresFileModes = pytest.mark.skipif(
+    WINDOWS,
+    reason="no file modes on Windows")
 
 
 def pause(seconds: float = 1.0):
@@ -115,6 +123,9 @@ def pygit2OlderThan(version: str) -> bool:
 def getTestDataPath(name: str):
     dataDir = Path(__file__).resolve().parent / "data"
     path = dataDir / name
+
+    if not WINDOWS and path.suffix in [".sh", ".py"] and path.exists():
+        assert path.stat().st_mode & 0o100, f"file is not exectuable: {path}"
 
     # Windows isn't usually set up to run .py files directly, so wrap those in
     # a batch script. This isn't necessary on Linux/Mac as long as the scripts
@@ -380,14 +391,31 @@ def writeFile(path: str, text: str):
 def readFile(path: str, unlink: bool = False) -> bytes:
     pathObj = Path(path)
     data = pathObj.read_bytes()
-    if unlink:
+
+    if not unlink:
+        pass
+    elif not WINDOWS:
         pathObj.unlink()
+    else:
+        def tryUnlink():
+            try:
+                pathObj.unlink()
+                return True
+            except PermissionError as ex:  # typically still used by another process
+                warnings.warn(f"postponing unlink because: {ex}")
+                return False
+
+        waitUntilTrue(tryUnlink)
+
     return data
 
 
-def readTextFile(path: str, unlink: bool = False):
+def readTextFile(path: str, unlink: bool = False, convertCRLF: bool = True):
     data = readFile(path, unlink=unlink)
-    return data.decode("utf-8")
+    text = data.decode("utf-8")
+    if WINDOWS and convertCRLF:
+        text = text.replace("\r\n", "\n")
+    return text
 
 
 def readOidFile(path: str) -> Oid:
@@ -952,16 +980,19 @@ def shell(script: str, directory: str, authorSig=TEST_SIGNATURE, committerSig=TE
 
     scriptCommand = [scriptPath]
 
-    # On Windows, prepend with bash.exe
+    # On Windows, we can't execute the .sh directly, so prepend with bash.exe.
     if WINDOWS:
-        gitExe = shutil.which("git.exe")
-        if not gitExe:
-            raise FileNotFoundError("git.exe missing")
-        bashParent = Path(gitExe).resolve().parent.parent
-        if bashParent.name == "ucrt64":  # when pytest is called within git-bash itself
-            bashParent = bashParent.parent
-        bash = bashParent / "bin/bash.exe"
-        scriptCommand.insert(0, str(bash))
+        bash = os.environ.get("TESTWINDOWSBASH", "")
+
+        if not bash:
+            message = ("\n*** Can't find bash.exe. Please do one of the following:"
+                       "\n*** - run test.py under Git Bash,"
+                       "\n*** - or, use `test.py --bash=<path to bash.exe>`,"
+                       "\n*** - or, set the TESTWINDOWSBASH environment variable.")
+            warnings.warn(message)
+            pytest.exit(message, returncode=1)
+
+        scriptCommand = [bash, "-l"] + scriptCommand
 
     ToolCommands.runSync(*scriptCommand, directory=directory, strict=True)
 
@@ -997,3 +1028,9 @@ def injectFunctionPrefix(monkeypatch, obj, attr, prefix):
         return func(*args, **kwargs)
 
     monkeypatch.setattr(obj, attr, wrapped)
+
+
+def wrapUpWindowsProcessesBeforeTeardown():
+    # TODO: Figure out a cleaner way to do this
+    if WINDOWS:
+        QTest.qWait(DEFAULT_TIMEOUT)

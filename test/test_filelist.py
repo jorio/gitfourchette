@@ -36,6 +36,9 @@ def testParentlessCommitFileList(tempDir, mainWindow):
         ("f7c2153", "before", "master.txt", "master@c9ed7bf.txt", "On master\nOn master\n"),
     ])
 def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, result):
+    if WINDOWS and commit == "f7c2153":
+        pytest.skip("skipping file mode tests on Windows")
+
     wd = unpackRepo(tempDir)
     shell("""
         chmod +x master.txt
@@ -65,6 +68,7 @@ def testSaveFileRevision(tempDir, mainWindow, commit, side, path, outPath, resul
     assert bool(mode & 0o100) == executable
 
 
+@requiresFileModes
 @pytest.mark.parametrize(
     "commit,side,path,result",
     [
@@ -177,7 +181,7 @@ def testRevertRenamedFile(tempDir, mainWindow):
     assert readTextFile(f"{wd}/{path1}") == contents
 
 
-@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+@requiresFileModes
 def testRevertModeChangedFile(tempDir, mainWindow):
     path = "a/a1"
 
@@ -438,6 +442,8 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     revisionPath = getRevisionPath()
     assert readTextFile(revisionPath).strip() == "a1"
 
+    wrapUpWindowsProcessesBeforeTeardown()
+
 
 def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
@@ -453,6 +459,8 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     scratchText = readFile(scratchPath, unlink=True).decode("utf-8")
     assert "[OLD]b2@59706a1.txt" in scratchText
     assert "[NEW]b2@7f82283.txt" in scratchText
+
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 # Cover all FileList subclasses (unstaged, staged, committed)
@@ -718,6 +726,9 @@ def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
     else:
         raise NotImplementedError(f"unknown action {action}")
 
+    if action == FileListClick.DiffTool:
+        wrapUpWindowsProcessesBeforeTeardown()
+
 
 def testGrayOutStageButtonsAfterDiscardingOnlyFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
@@ -835,6 +846,8 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
     # despite errors on the other files
     waitForFile(scratchPath)
     assert "master.txt" in readTextFile(scratchPath)
+
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 def testFileListNaturalSort(tempDir, mainWindow):

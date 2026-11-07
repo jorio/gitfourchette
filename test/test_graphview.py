@@ -149,6 +149,7 @@ def testCommitFileSearchReevaluatedOnNewCommits(tempDir, mainWindow):
     assert newHeadId in filterState.matchingIds
 
 
+@pytest.mark.notParallelizableOnWindows
 def testCommitFileSearchInterrupted(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -809,7 +810,11 @@ def testDontScrollToSameCommitOnRefresh(tempDir, mainWindow):
 
     # Create enough commits to get scroll bars
     commands = [f"git commit --allow-empty -m bogus{i}" for i in range(200)]
-    shell("\n".join(commands), wd)
+    # Issue commands in smaller batches so slow Windows runners don't time out
+    batchSize = 50
+    for start in range(0, len(commands), batchSize):
+        batch = commands[start : start + batchSize]
+        shell("\n".join(batch), wd)
 
     rw = mainWindow.openRepo(wd)
     vsb = rw.graphView.verticalScrollBar()

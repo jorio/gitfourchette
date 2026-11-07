@@ -13,6 +13,7 @@ from gitfourchette.blameview.blamewindow import BlameWindow
 from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.diffview.diffview import DiffView
 from gitfourchette.nav import NavLocator
+from gitfourchette.qt import WINDOWS
 from gitfourchette.settings import WhitespaceMode
 from .util import *
 
@@ -37,7 +38,7 @@ def testEmptyDiffEmptyFile(tempDir, mainWindow):
     assert re.search(r"empty file", rw.specialDiffView.toPlainText(), re.IGNORECASE)
 
 
-@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+@requiresFileModes
 def testEmptyDiffWithModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     Path(wd, "a/a1").chmod(0o755)
@@ -172,7 +173,7 @@ def testPartialPatchFilenameWithSpecialCharacters(tempDir, mainWindow, filename)
     assert stagedBlob.data == b"line A\n"
 
 
-@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+@requiresFileModes
 def testPartialPatchPreservesExecutableFileMode(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -465,8 +466,8 @@ def testCopyFromDiffWithoutU2029(tempDir, mainWindow):
 
 def testDiffStrayLineEndings(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
-    writeFile(f"{wd}/crlf.txt", "hi\r\nhow you doin\r\nbye")
-    writeFile(f"{wd}/cr.txt", "ancient mac file\r")
+    Path(wd, "crlf.txt").write_bytes(b"hi\r\nhow you doin\r\nbye")
+    Path(wd, "cr.txt").write_bytes(b"ancient mac file\r")
 
     if WINDOWS:
         shell("git config core.autocrlf false", wd)
@@ -559,6 +560,7 @@ def testDiffLargeFilesWithVeryLongLines(tempDir, mainWindow):
     assert rw.diffView.toPlainText().rstrip() == f"@@ -0,0 +1,{numLines} @@\n{contents.rstrip()}"
 
 
+@pytest.mark.skipif(WINDOWS and pygit2OlderThan("1.21.1"), reason="https://github.com/libgit2/pygit2/issues/1507")
 def testDiffImage(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shutil.copyfile(getTestDataPath("image1.png"), f"{wd}/image.png")
@@ -645,7 +647,7 @@ def testDiffSvgImage(tempDir, mainWindow):
     assert re.search("16 . 16 pixels", rw.specialDiffView.toPlainText())
 
 
-@pytest.mark.skipif(WINDOWS, reason="symlinks are flaky on Windows")
+@requiresSymlinks
 def testDiffTypeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     Path(f"{wd}/a/a1").unlink()
@@ -1099,19 +1101,23 @@ def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
 def testCharacterLevelDiffInUnicodeSurrogatePairs(tempDir, mainWindow, sampleText):
     wd = unpackRepo(tempDir)
 
-    shell(f"""
-        echo {shlex.quote(sampleText[0] + "\n# bogus context")} > surrogatepairs.py
+    Path(wd, "a.bin").write_bytes(sampleText[0].encode("utf-8") + b"\n")
+    Path(wd, "b.bin").write_bytes(sampleText[1].encode("utf-8") + b"\n")
+
+    shell("""
+        cp a.bin surrogatepairs.py
         git add surrogatepairs.py
         git commit -m 'TEST SURROGATE PAIRS'
-        echo {shlex.quote(sampleText[1] + "\n# bogus context")} > surrogatepairs.py
+        cp b.bin surrogatepairs.py
     """, wd)
 
     rw = mainWindow.openRepo(wd)
-    document: QTextDocument = rw.diffView.document()
+    rw.jump(NavLocator.inUnstaged("surrogatepairs.py"), check=True)
 
     # Let syntax highlighting settle
+    waitUntilTrue(lambda: all(job.lexingComplete for job in rw.diffView.highlighter.lexJobs))
     QTest.qWait(0)
-    assert all(job.lexingComplete for job in rw.diffView.highlighter.lexJobs)
+    document: QTextDocument = rw.diffView.document()
 
     def reconstructLine(lineNumber: int):
         block = document.findBlockByNumber(lineNumber)
@@ -1164,7 +1170,7 @@ def testCodeViewExoticLineEndings(tempDir, mainWindow, where):
     text = "\n".join(lines) + "\n"
 
     if where == "diff":
-        writeFile(f"{wd}/exotic.c", text)
+        Path(wd, "exotic.c").write_bytes(text.encode("utf-8"))
         rw = mainWindow.openRepo(wd)
         view = rw.diffView
         startBlock = 1
@@ -1172,7 +1178,7 @@ def testCodeViewExoticLineEndings(tempDir, mainWindow, where):
         expectTrailingBlock = False
         closeWindow = False
     elif where == "blame":
-        writeFile(f"{wd}/exotic.c", text)
+        Path(wd, "exotic.c").write_bytes(text.encode("utf-8"))
         shell("git add exotic.c; git commit -m 'exotic'", wd)
         rw = mainWindow.openRepo(wd)
         rw.jump(NavLocator.inRef("HEAD", "exotic.c"))

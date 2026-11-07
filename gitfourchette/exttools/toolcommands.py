@@ -13,6 +13,7 @@ import shlex
 import shutil
 import sys
 import textwrap
+import warnings
 from collections.abc import Sequence
 from contextlib import suppress
 from pathlib import Path
@@ -452,6 +453,14 @@ class ToolCommands:
         process.terminate()
 
         if WINDOWS:
+            # Detect unit tests that aren't annotated with @pytest.mark.notParallelizableOnWindows
+            if APP_TESTMODE and os.environ.get("PYTEST_XDIST_WORKER", ""):
+                currentTest = os.environ.get("PYTEST_CURRENT_TEST", "???")
+                exitMessage = (f"!!! '{currentTest}' is trying to kill a subprocess, so it should "
+                               f"be annotated with @pytest.mark.notParellizableOnWindows !!!")
+                warnings.warn(exitMessage)
+                sys.modules["pytest"].exit(exitMessage, returncode=1)
+
             tokens, env = ToolCommands.spawnNewInstance(gitfourchette.exttools.win32ctrlc.__name__)
             tokens.append(str(process.processId()))
 

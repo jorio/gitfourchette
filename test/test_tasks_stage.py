@@ -117,7 +117,7 @@ def testDiscardFileModificationWithoutAffectingStagedChange(tempDir, mainWindow,
     assert rw.repo.status() == {"a/a1.txt": FileStatus.INDEX_MODIFIED}
 
 
-@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+@requiresFileModes
 def testDiscardModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -136,7 +136,7 @@ def testDiscardModeChange(tempDir, mainWindow):
     assert not fileHasUserExecutableBit(f"{wd}/a/a1.txt")
 
 
-@pytest.mark.skipif(WINDOWS, reason="file modes are flaky on Windows")
+@requiresFileModes
 def testUnstageModeChange(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
@@ -155,6 +155,7 @@ def testUnstageModeChange(tempDir, mainWindow):
     assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB
 
 
+@pytest.mark.skipif(WINDOWS, reason="TODO: Try again on Windows with https://github.com/jorio/gitfourchette/pull/160")
 def testDiscardUntrackedTree(tempDir, mainWindow):
     outerWd = unpackRepo(tempDir, renameTo="outer")
     innerWd = unpackRepo(tempDir, renameTo="inner")

@@ -237,7 +237,6 @@ class RepoModel:
         self.syncRebaseInfo()
 
     def __del__(self):
-        self.commitPathspecFilter.deleteLater()
         logger.debug("__del__ RepoModel")
 
     @property

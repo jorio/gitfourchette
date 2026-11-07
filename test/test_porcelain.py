@@ -10,9 +10,7 @@ Unit tests for gitfourchette.porcelain (Repo, listall_remote_branches, in_gitdir
 
 from pathlib import Path
 
-import pytest
-
-from .util import unpackRepo, RepoContext, WINDOWS
+from .util import *
 
 
 def testListallRemoteBranchesWithSymbolicRef(tempDir):
@@ -113,7 +111,7 @@ def testListallRemoteBranchesSkipsStaleRefsFromDeletedRemote(tempDir):
     assert "master" in result["origin"]
 
 
-@pytest.mark.skipif(WINDOWS, reason="symlinks are flaky on Windows")
+@requiresSymlinks
 def testInGitdirWithSymlinkedRepo(tempDir):
     """
     Repo.in_gitdir() must not raise ValueError when the repo path is a symlink.

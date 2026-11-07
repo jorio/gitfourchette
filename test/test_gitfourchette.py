@@ -155,13 +155,12 @@ def testNewRepoFromExistingSources(tempDir, mainWindow):
     assert "file was here before repo inited" in rw.diffView.toPlainText()
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows quirks")
 def testNewRepoAtExistingRepo(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     triggerMenuAction(mainWindow.menuBar(), "file/new repo")
     acceptQFileDialog(mainWindow, "new repo", wd)
     acceptQMessageBox(mainWindow, "already exists")
-    assert wd == mainWindow.currentRepoWidget().repo.workdir
+    assert Path(wd).samefile(mainWindow.currentRepoWidget().repo.workdir)
 
 
 def testNewNestedRepo(tempDir, mainWindow):
@@ -261,7 +260,8 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
 
 @pytest.mark.parametrize("dedicatedNicknameDialog", [True, False])
 def testRepoNickname(tempDir, mainWindow, dedicatedNicknameDialog):
-    wd = unpackRepo(tempDir)
+    # Use a short name to prevent elision in menus
+    wd = unpackRepo(tempDir, renameTo="mytest")
     rw = mainWindow.openRepo(wd)
 
     def nicknameUi() -> tuple[QDialog, QLineEdit]:
@@ -273,9 +273,9 @@ def testRepoNickname(tempDir, mainWindow, dedicatedNicknameDialog):
             dlg = bringUpRepoSettings(rw)
             return dlg, dlg.ui.nicknameEdit
 
-    assert "TestGitRepository" in mainWindow.windowTitle()
-    assert "TestGitRepository" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
-    assert findMenuAction(mainWindow.menuBar(), "file/recent/TestGitRepository")
+    assert "mytest" in mainWindow.windowTitle()
+    assert "mytest" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
+    assert findMenuAction(mainWindow.menuBar(), "file/recent/mytest")
 
     # Rename to "coolrepo"
     dlg, lineEdit = nicknameUi()
@@ -283,12 +283,12 @@ def testRepoNickname(tempDir, mainWindow, dedicatedNicknameDialog):
     lineEdit.setText("coolrepo")
     dlg.accept()
 
-    assert "TestGitRepository" not in mainWindow.windowTitle()
+    assert "mytest" not in mainWindow.windowTitle()
     assert "coolrepo" in mainWindow.windowTitle()
     assert "coolrepo" in mainWindow.tabs.tabs.tabText(mainWindow.tabs.currentIndex())
     assert "coolrepo" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
     recentAction = findMenuAction(mainWindow.menuBar(), "file/recent/coolrepo")
-    assert "TestGitRepository" in recentAction.text()
+    assert "mytest" in recentAction.text()
 
     # Reset to default name
     dlg, lineEdit = nicknameUi()
@@ -297,8 +297,8 @@ def testRepoNickname(tempDir, mainWindow, dedicatedNicknameDialog):
     lineEdit.clear()
     dlg.accept()
 
-    assert "TestGitRepository" in mainWindow.windowTitle()
-    assert "TestGitRepository" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
+    assert "mytest" in mainWindow.windowTitle()
+    assert "mytest" == rw.sidebar.findNodeByKind(SidebarItem.WorkdirHeader).displayName
 
 
 def testRepoNicknameBackgroundTab(tempDir, mainWindow):
@@ -685,6 +685,7 @@ def testOpenWorktreeSubdirectoryOfBareRepo(tempDir, mainWindow):
     barePath = makeBareCopy(referenceWd, "", False)
 
     worktreePath = f"{barePath}/MyCoolWorktree"
+    worktreePath = Path(worktreePath).as_posix()  # windows compat
     shell(f"git worktree add {worktreePath}", barePath)
     writeFile(f"{worktreePath}/hello.txt", "hello")
 
@@ -813,6 +814,7 @@ def testGitExitCodeNotMistakenForSignal(tempDir, mainWindow):
     assert driver.formatExitCode() == "1"
 
 
+@pytest.mark.notParallelizableOnWindows
 def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/file1.txt", "stage me...")
@@ -845,6 +847,7 @@ def testAccumulateTaskEffectBitsUntilRefreshComplete(tempDir, mainWindow):
     assert 1 == len(qlvGetRowData(rw.stagedFiles))
 
 
+@pytest.mark.notParallelizableOnWindows
 def testAccumulateTaskEffectBitsUntilRefreshAbortedManually(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/file1.txt", "stage me...")
@@ -950,6 +953,7 @@ def testWindowSizeUnaffectedByLongRepoNames(tempDir, mainWindow):
     assert mainWindow.size() == desiredSize
 
 
+@pytest.mark.skipif(WINDOWS and CI_TESTMODE, reason="can't start ssh-agent on GitHub Actions")
 def testSshAgentSandboxingMatchesGit(tempDir, mainWindow):
     app = GFApplication.instance()
     app.applyPrefs(ownSshAgent=True)
@@ -1004,7 +1008,13 @@ def testSingleInstanceSocketCreatesConfigDir(tempDir, mainWindow, monkeypatch):
 
     server = SingleInstanceSocket(mainWindow)
     try:
-        assert socketPath.is_socket()
+        assert server.isListening()
+
+        if WINDOWS:
+            # Sockets aren't actually files on Windows
+            assert not socketPath.exists()
+        else:
+            assert socketPath.is_socket()
     finally:
         server.close()
         server.deleteLater()

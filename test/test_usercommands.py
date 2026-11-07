@@ -24,8 +24,9 @@ def commandsScratchFile(tempDir, mainWindow):
 
     if not WINDOWS:
         terminalShim = "/bin/sh -c $COMMAND"
-    else:
-        terminalShim = "git-bash --no-needs-console --command=usr/bin/bash.exe -c $COMMAND"
+    else:  # pragma: no cover
+        bash = os.environ.get("TESTWINDOWSBASH", "TESTWINDOWSBASH_was_not_set")
+        terminalShim = shlex.quote(bash) + " -c $COMMAND"
 
     GFApplication.applyPrefs(
         terminal=terminalShim,
@@ -203,10 +204,12 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
 
     waitForFile(commandsScratchFile)
     output = readTextFile(commandsScratchFile).strip()
+
+    if WINDOWS and any(x in params.menuName for x in (" dir", " path")):
+        output = output.replace("\\", "/")
     assert re.search(params.output, output)
 
-    if WINDOWS:  # Let bash wrap up... TODO: Figure out a cleaner way
-        QTest.qWait(100)
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 @pytest.mark.parametrize(["scenario", "menuName", "error"], [
@@ -254,6 +257,8 @@ def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile)
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(r"hello world", output)
 
+    wrapUpWindowsProcessesBeforeTeardown()
+
 
 def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
     mainWindow.openRepo(unpackRepo(tempDir))
@@ -266,6 +271,8 @@ def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
         waitForFile(commandsScratchFile, TIMEOUT)
         output = readTextFile(commandsScratchFile, unlink=True).strip()
         assert re.search(name, output)
+
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 @pytest.mark.skipif(MACOS, reason="no menu accelerator keys on macOS")
@@ -286,6 +293,8 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
 
+    wrapUpWindowsProcessesBeforeTeardown()
+
 
 def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     wd = unpackRepo(tempDir)
@@ -298,6 +307,8 @@ def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     waitForFile(commandsScratchFile, TIMEOUT)
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
+
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 @pytest.mark.parametrize("hostileFileName", [
@@ -320,3 +331,5 @@ def testUserCommandHostileTokenSubstitution(tempDir, mainWindow, commandsScratch
     output = readTextFile(commandsScratchFile).strip()
     assert output == hostileFileName
     assert not Path(f"{wd}/gotcha").exists()
+
+    wrapUpWindowsProcessesBeforeTeardown()

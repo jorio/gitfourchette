@@ -15,6 +15,8 @@ def testTabOverflow(tempDir, mainWindow):
     tabWidget = mainWindow.tabs
     tabBar = mainWindow.tabs.tabs
 
+    mainWindow.resize(1024, 480)  # make sure we start with a somewhat wide window
+
     for i in range(numRepos):
         wd = unpackRepo(tempDir, renameTo=f"RepoCopy{i:04}")
         mainWindow.openRepo(wd)
@@ -87,6 +89,9 @@ def testTabSpecialClick(tempDir, mainWindow, click, action):
     assert tabBar.count() == 2
 
     for tabIndex in range(tabBar.count() - 1, -1, -1):
+        tabBar.setFocus()
+        waitUntilTrue(tabBar.hasFocus)
+
         tab = mainWindow.tabs.widget(tabIndex)
         pos = tabBar.tabRect(tabIndex).center()
         wd = tab.workdir
@@ -112,3 +117,6 @@ def testTabSpecialClick(tempDir, mainWindow, click, action):
             raise NotImplementedError(f"unknown action {action}")
 
     assert tabBar.count() == (0 if action == "close" else 2)
+
+    if action == TabBarClick.Terminal:
+        wrapUpWindowsProcessesBeforeTeardown()

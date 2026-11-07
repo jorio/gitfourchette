@@ -4,8 +4,6 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
-import pytest
-
 from .util import *
 
 from gitfourchette.syntax import LexJobCache, LexJob
@@ -115,7 +113,6 @@ def testLexJobCaching(tempDir, mainWindow):
     assert job is getNewLexJob()
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
 def testEvictLexJobFromCache(tempDir, mainWindow):
     GFApplication.applyPrefs(largeFileThresholdKB=1_000_000)
     assert not LexJobCache.cache

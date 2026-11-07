@@ -8,10 +8,18 @@
 import argparse
 import importlib.util
 import os
+import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+WINDOWS = sys.platform == "win32"
+
+
+def die(message: str):
+    print(message, file=sys.stderr)
+    sys.exit(1)
 
 
 def run():
@@ -27,8 +35,13 @@ def run():
     parser.add_argument("--with-network", action="store_true", help="run tests that require network access")
     parser.add_argument("--with-fuse", action="store_true", help="run tests that require FUSE")
     parser.add_argument("-g", "--live-logging", action="store_true", help="enable live logging (recommended with -1)")
+    if WINDOWS:
+        parser.add_argument("--bash", help="where to find bash.exe to run shell scripts")
+
     args, forwardArgs = parser.parse_known_args()
     extraArgs = []
+
+    hasXdist = bool(importlib.util.find_spec("xdist"))
 
     if args.visual:
         args.single = True
@@ -41,15 +54,26 @@ def run():
     if args.with_fuse:
         os.environ["TESTFUSE"] = "1"
 
+    if WINDOWS:
+        if not args.bash:  # Detect bash.exe
+            try:
+                bash = subprocess.run(["cygpath", "-aw", "/usr/bin/bash"], capture_output=True, text=True, check=True).stdout
+                args.bash = bash.strip()
+            except OSError:
+                die("*** Please run test.py under Git Bash, or pass `--bash=<path to bash.exe>`")
+        os.environ["TESTWINDOWSBASH"] = args.bash
+
     if args.single:
         pass
-    elif importlib.util.find_spec("xdist"):
+    elif hasXdist:
         extraArgs.extend(["-n", "auto"])
     else:
         print("*** NOTE: pytest-xdist is not installed. Tests will not be parallelized.")
 
     if args.live_logging:
         extraArgs.extend(["--log-cli-level=0"])
+        if not args.single and hasXdist:
+            die("*** Live logging won't work with parallel tests. Please pass -1 or drop -g.")
 
     if args.cov:
         extraArgs.extend(["--cov=gitfourchette", "--cov-report=term", "--cov-report=html"])

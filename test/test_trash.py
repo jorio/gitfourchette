@@ -20,7 +20,8 @@ def _fillTrashWithJunk(n):
         junkPath = Path(trash.trashDir, f"19991231T235900-test{i}.txt")
 
         # Alternate between bogus text files and bogus symlinks
-        if i % 2 == 0:
+        # (no symlinks on Windows)
+        if i % 2 == 0 or WINDOWS:
             junkPath.write_text(f"test{i}")
         else:
             junkPath.symlink_to(trash.trashDir)
@@ -150,6 +151,7 @@ def testOpenTrashFolder(mainWindow):
         assert Trash.instance().trashDir.samefile(openedPath)
 
 
+@requiresSymlinks
 def testTrashSymlinkNameConflicts(mainWindow, tempDir):
     wd = tempDir.name
     trash = Trash.instance()

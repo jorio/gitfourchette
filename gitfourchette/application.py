@@ -107,6 +107,12 @@ class GFApplication(QApplication):
         assetsSearchPath = str(assetsParentPath / "assets")
         QDir.addSearchPath("assets", assetsSearchPath)
 
+        # Windows offscreen test mode: Qt doesn't load any fonts, so all text
+        # shows up as placeholder glyphs in the UI, throwing off our assumptions
+        # of UI metrics in the tests. Load a font from the system to fix this.
+        if APP_TESTMODE and WINDOWS and OFFSCREEN:
+            QFontDatabase.addApplicationFont("c:/windows/fonts/segoeui.ttf")
+
         # Set app icon
         # - Except in macOS app bundles, which automatically use the embedded .icns file
         # - The file extension must be spelled out in some environments (e.g. Windows)

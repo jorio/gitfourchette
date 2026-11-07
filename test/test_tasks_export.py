@@ -13,7 +13,7 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Fix this on Windows")
+@pytest.mark.skipif(WINDOWS, reason="TODO: 'file contents did not change' in patched file on Windows")
 def testExportPatchFromWorkdir(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(f"{wd}/master.txt", "some changes\n")

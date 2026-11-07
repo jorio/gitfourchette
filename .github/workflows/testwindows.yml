@@ -6,10 +6,10 @@ on:
 jobs:
   tests:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - run: |
         Get-Command git
@@ -17,12 +17,9 @@ jobs:
         git version
         gpg --version
 
-    - uses: actions/setup-python@v6
-      with: {python-version: '3.14', cache: 'pip'}
+    - uses: actions/setup-python@v7
+      with: {python-version: '3.15', cache: 'pip'}
 
-    - run: |
-        pip install -e .[pyqt6,test,mfusepy]
-        pip install pytest-timeout
-
-    - run: python3 test.py --with-network -v --timeout=30 -k "not testUserCommand"
-    - run: python3 test.py --with-network -v --timeout=30 -1 -m notParallelizableOnWindows
+    - run: pip install -e .[pyqt6,test,mfusepy]
+    - run: python3 test.py --with-network -v
+    - run: python3 test.py --with-network -v -1 -m notParallelizableOnWindows

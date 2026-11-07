@@ -54,6 +54,11 @@ APP_VERBOSEDEL = _envBool("APP_VERBOSEDEL")
 Verbose QObject Python destructors (__del__).
 """
 
+CI_TESTMODE = APP_TESTMODE and bool(_os.environ.get("CI", ""))
+"""
+Testing on CI (allow longer timeouts).
+"""
+
 if APP_TESTMODE:
     APP_SYSTEM_NAME += "testmode"
     APP_DISPLAY_NAME += "TestMode"

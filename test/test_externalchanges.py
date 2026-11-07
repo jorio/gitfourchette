@@ -189,11 +189,11 @@ def testLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shell("git config core.autocrlf input", wd)
 
-    writeFile(f"{wd}/hello.txt", "hello\r\ndos\r\n")
+    Path(wd, "hello.txt").write_bytes(b"hello\r\ndos\r\n")
     rw = mainWindow.openRepo(wd)
     assert "hello\ndos" in rw.diffView.toPlainText()
 
-    writeFile(f"{wd}/hello.txt", "hello\ndos\n")
+    Path(wd, "hello.txt").write_bytes(b"hello\ndos\n")
     rw.refreshRepo()  # Must not fail (no failed assertions, etc)
     assert "hello\ndos" in rw.diffView.toPlainText()
 
@@ -207,7 +207,7 @@ def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow
     for filePath in crlfFiles:
         contents = readFile(f"{wd}/{filePath}")
         contents = contents.replace(b'\n', b'\r\n')
-        writeFile(f"{wd}/{filePath}", contents.decode('utf-8'))
+        Path(wd, filePath).write_bytes(contents)
 
     rw = mainWindow.openRepo(wd)
 

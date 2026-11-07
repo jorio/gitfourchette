@@ -7,7 +7,6 @@
 from __future__ import annotations  # TODO: Remove once we can drop support for Python <= 3.13
 
 import enum
-import logging
 
 from gitfourchette import colors
 from gitfourchette.forms.ui_searchbar import Ui_SearchBar
@@ -16,8 +15,6 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.search.searchprovider import SearchProvider
 from gitfourchette.toolbox import *
-
-logger = logging.getLogger(__name__)
 
 
 class SearchBar(QWidget):
@@ -299,8 +296,6 @@ class SearchBar(QWidget):
             # Freeze it when not in use
             with QSignalBlockerContext(oldProvider):
                 oldProvider.freeze(True)
-
-        logger.debug(f"Swapping provider to {provider.shortTitle()}")
 
         self.provider = provider
         self.ui.filterCheckBox.setVisible(provider.canFilter())

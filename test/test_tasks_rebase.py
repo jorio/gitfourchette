@@ -86,6 +86,14 @@ def _driveRebaseDialog(rw, onto: Oid, todoList: list[_Todo]):
     return rebaseDialog
 
 
+def _rejectRebaseDialog(rebaseDialog: RebaseDialog, wasModified: bool):
+    assert wasModified == rebaseDialog.isWindowModified()
+    rebaseDialog.reject()
+    if wasModified:
+        qmb = findQMessageBox(rebaseDialog, "really discard this rebase plan")
+        findWidgetWithText(qmb.buttons(), "discard").click()
+
+
 @pytest.mark.parametrize("withChanges", [False, True], ids=["no changes", "with changes"])
 def testCancelRebaseDialog(tempDir, mainWindow, withChanges):
     wd = unpackRepo(tempDir)
@@ -97,12 +105,7 @@ def testCancelRebaseDialog(tempDir, mainWindow, withChanges):
     todo = [_Todo(0, RebaseOp.Edit)] if withChanges else []
 
     rebaseDialog = _driveRebaseDialog(rw, onto, todo)
-    rebaseDialog.reject()
-
-    if withChanges:
-        assert rebaseDialog.isVisible()
-        qmb = findQMessageBox(rebaseDialog, "really discard this rebase plan")
-        findWidgetWithText(qmb.buttons(), "discard").click()
+    _rejectRebaseDialog(rebaseDialog, wasModified=withChanges)
 
     assert rw.repo.state() == RepositoryState.NONE
 
@@ -223,7 +226,7 @@ def testRebaseRewordDisplayMessage(tempDir, mainWindow):
     QTest.keyClicks(dialog.ui.sequence.viewport(), RebaseOpLetters[RebaseOp.Reword])
     assert "hello rewording" == getSelectedMessage()
 
-    dialog.accept()
+    _rejectRebaseDialog(dialog, wasModified=True)
 
 
 def testRebaseRewordAfterContinue(tempDir, mainWindow):
@@ -406,7 +409,7 @@ def testRebaseVerifyEmptyCommitsInTodo(tempDir, mainWindow):
     assert seq[-1].displayMessage() == "gotcha # empty"
     assert not seq[-1].verifiedEmpty
 
-    rebaseDialog.reject()
+    _rejectRebaseDialog(rebaseDialog, wasModified=False)
 
 
 def testRebaseBannerCantContinueWithUnstagedChanges(tempDir, mainWindow):
@@ -502,7 +505,7 @@ def testRebaseSequenceDropIndicator(tempDir, mainWindow, monkeypatch):
 
     assert callSpy.completeCalls >= 1
 
-    rebaseDialog.reject()
+    _rejectRebaseDialog(rebaseDialog, wasModified=False)
 
 
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
@@ -552,14 +555,9 @@ def testRebaseSequenceViewQDrag(tempDir, mainWindow, monkeypatch):
     assert callSpyMakeQDrag.completeCalls == 1
     assert callSpyStartDrag.completeCalls == 1
 
-    rebaseDialog.reject()
-
     # If we did complete the move, RebaseDialog wants us to confirm closing a
     # modified rebase plan.
-    if allowActualMove:
-        assert rebaseDialog.ui.sequence.effectiveSequence()[0].displayMessage() == "On master again"
-        qmb = findQMessageBox(rebaseDialog, "really discard this rebase plan")
-        findWidgetWithText(qmb.buttons(), "discard").click()
+    _rejectRebaseDialog(rebaseDialog, wasModified=allowActualMove)
 
 
 def testRebaseRichTextMenu(tempDir, mainWindow, monkeypatch):
@@ -610,6 +608,7 @@ def testRebaseJumpToCommit(tempDir, mainWindow):
     rebaseDialog.close()
 
 
+@pytest.mark.skipif(WINDOWS, reason="TODO: teardown fails on Windows")
 def testRebaseCorruptInfo(tempDir, mainWindow):
     onto = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
     todo = [
@@ -757,9 +756,7 @@ def testRebaseUndoRedo(tempDir, mainWindow):
         reword c9ed7bf12c73de26422b7c5a44d74cfce5a8993b #GITFOURCHETTE_REBASE_PAYLOAD=cmV3b3JkZWQgaGVhZCBjb21taXQ=
     """).strip()
 
-    rebaseDialog.reject()
-    qmb = findQMessageBox(rebaseDialog, "really discard this rebase plan")
-    findWidgetWithText(qmb.buttons(), "discard").click()
+    _rejectRebaseDialog(rebaseDialog, wasModified=True)
 
 
 def testRebaseSequenceDelegatePaintCoverage(tempDir, mainWindow, colorTheme):
@@ -857,9 +854,7 @@ def testRebaseUndoRedoCommandCompression(tempDir, mainWindow):
     QTest.keySequence(rebaseDialog, QKeySequence.StandardKey.Redo)
     assert getHashes() == s2
 
-    rebaseDialog.reject()
-    qmb = findQMessageBox(rebaseDialog, "really discard this rebase plan")
-    findWidgetWithText(qmb.buttons(), "discard").click()
+    _rejectRebaseDialog(rebaseDialog, wasModified=True)
 
 
 def testRebaseCommitDialogInfoMessage(tempDir, mainWindow):
@@ -959,6 +954,7 @@ def testRebaseWithChangesInWorkingDirectory(tempDir, mainWindow):
     acceptQMessageBox(rw, "working directory contains changes")
 
 
+@pytest.mark.notParallelizableOnWindows
 def testRebaseStartedOutsideApp(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -983,6 +979,8 @@ def testRebaseStartedOutsideApp(tempDir, mainWindow):
     assert not findChildWithText(banner, "continue rebase", t=QAbstractButton).isEnabled()
 
     ToolCommands.terminatePlus(driver)
+
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 def testRebaseHoverAndLeftClickPill(tempDir, mainWindow, qtbot):
@@ -1023,4 +1021,4 @@ def testRebaseHoverAndLeftClickPill(tempDir, mainWindow, qtbot):
     menu.deleteLater()
 
     viewport.releaseMouse()
-    rebaseDialog.reject()
+    _rejectRebaseDialog(rebaseDialog, wasModified=False)

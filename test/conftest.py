@@ -99,6 +99,7 @@ def setUpTestGitConfig(path: str):
         # Prevent background maintenance from interfering with shutil.copy, etc.
         "maintenance.auto": False,
         "maintenance.autoDetach": False,
+        "gc.auto": 0,
         "gc.autoDetach": False,
     }
 
@@ -201,6 +202,9 @@ def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     assert app.mainWindow is not None  # help out code analysis a bit
     waitUntilTrue(app.mainWindow.isActiveWindow)  # for non-offscreen tests
     yield app.mainWindow
+
+    if qt.WINDOWS:  # Give Windows a breather to wrap up
+        qt.QTest.qWait(0)
 
     assert app.mainWindow is not None, "mainWindow vanished after the test"
 

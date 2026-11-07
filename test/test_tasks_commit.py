@@ -609,7 +609,7 @@ def testCherrypick(tempDir, mainWindow, worktree):
 
     if worktree:
         barePath = makeBareCopy(wd, "bareOrigin", preFetch=True)
-        wd = f"{barePath}/MyCoolWorktree"
+        wd = Path(f"{barePath}/MyCoolWorktree").as_posix()  # windows compat
         shell(f"git worktree add {wd}", barePath)
 
     shell("git switch no-parent", wd)

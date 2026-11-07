@@ -59,10 +59,13 @@ def whitespaceOnlyChangesDetected(rw):
 def testDiffWhitespaceModes(tempDir, mainWindow, textA, textB, ignoredWith):
     wd = unpackRepo(tempDir)
 
-    shell(f"""
-        printf {shlex.quote(textA)} > hello.txt
+    Path(wd, "a.bin").write_bytes(textA.encode("utf-8"))
+    Path(wd, "b.bin").write_bytes(textB.encode("utf-8"))
+
+    shell("""
+        cp a.bin hello.txt
         git add hello.txt && git commit -m hello
-        printf {shlex.quote(textB)} > hello.txt
+        cp b.bin hello.txt
     """, wd)
 
     rw = mainWindow.openRepo(wd)

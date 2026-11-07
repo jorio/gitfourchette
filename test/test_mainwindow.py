@@ -238,7 +238,7 @@ def testTabBarActions(tempDir, mainWindow):
         )
         menu.close()
         menu = getMenu(tabIndex)  # reload menu, and verify editor changed + is working.
-        triggerMenuAction(menu, "open repo in editor-shim.py")
+        triggerMenuAction(menu, "open repo in editor-shim")
         waitForFile(scratchPath)
         editorShimResult = readTextFile(scratchPath, unlink=True).splitlines()
         assert editorShimResult[0] == "hello world"  # ensure editor opens
@@ -248,6 +248,8 @@ def testTabBarActions(tempDir, mainWindow):
         )  # revert to no external editor, for the next wd.
 
         menu.close()
+
+    wrapUpWindowsProcessesBeforeTeardown()
 
 
 def testToolbarCustomization(tempDir, mainWindow):
