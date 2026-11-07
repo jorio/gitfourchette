@@ -169,7 +169,7 @@ class GitDeltaFile:
                 # unstaged file, make sure it matches.
                 sha1 = str(fast_blob_sha1(data))
                 if self.isIdValid() and sha1 != self.id:
-                    raise WorkdirHashMismatch(f"Workdir hash mismatch: want {id7(self.id)}, got {id(sha1)}") from None
+                    raise WorkdirHashMismatch(f"Workdir hash mismatch: want {id7(self.id)}, got {id7(sha1)}") from None
 
                 # Save data and fill in the hash
                 self._data = data

@@ -9,6 +9,7 @@ from __future__ import annotations
 import gc
 import logging
 import os
+import shlex
 import sys
 from pathlib import Path
 from string import Template
@@ -537,10 +538,15 @@ class GFApplication(QApplication):
         from gitfourchette import settings
         from gitfourchette.gitdriver import GitDriver
         from gitfourchette.toolbox.fittedtext import FittedText
+        from gitfourchette.toolbox.messageboxes import NonCriticalOperation
 
         logging.root.setLevel(settings.prefs.verbosity.value)
         GitDriver.setGitPath(settings.prefs.gitPath)
         FittedText.enable = settings.prefs.condensedFonts
+
+        if WINDOWS and not APP_TESTMODE:
+            with NonCriticalOperation("Git system-level config search path"):
+                self.syncPygit2SystemLevelConfigSearchPath(qTempDir())
 
     def applyLanguagePref(self):
         from gitfourchette import settings
@@ -835,3 +841,53 @@ class GFApplication(QApplication):
         dialog.messageForClient.connect(forwardResponse)
 
         dialog.show()
+
+    @staticmethod
+    def syncPygit2SystemLevelConfigSearchPath(tempDir: str):  # pragma: no cover
+        """
+        Sync pygit2's system-level config search path to Git's.
+
+        On Windows, if Git was installed via Scoop, pygit2's search_path[SYSTEM]
+        may point to an incorrect location.
+
+        Since the system config file is where "core.autocrlf" is stored in a
+        stock install, it's extremely important that pygit2 picks up this file.
+        Otherwise, apply_filters may never know about autocrlf, causing hash
+        mismatches when reading files from the workdir.
+        """
+
+        from gitfourchette.gitdriver import GitDriver
+        import pygit2
+
+        scratch = Path(tempDir, "configpath.txt")
+        scratch.touch()
+        script = f'#!/usr/bin/env bash\necho "$*" > {shlex.quote(scratch.as_posix())}\n'
+
+        kicker = Path(tempDir, "configpath.sh")
+        kicker.write_text(script, "utf-8")
+        kicker.chmod(0o500)
+
+        GitDriver.runSync("-c", f"core.editor={kicker.as_posix()}", "config", "--system", "--edit", directory=tempDir)
+        configPath = scratch.read_text("utf-8").rstrip()
+
+        if not configPath:
+            logger.debug("System config path came out empty")
+            return
+
+        configPath = str(Path(configPath).parent.as_posix())
+
+        level = pygit2.enums.ConfigLevel.SYSTEM
+        paths = pygit2.settings.search_path[level].split(os.pathsep)
+        if paths == [""]:
+            paths = []
+        if configPath in paths:
+            logger.debug("Don't need to patch system config search path")
+            return
+
+        paths.insert(0, configPath)
+        pygit2.settings.search_path[level] = os.pathsep.join(paths)
+        logger.debug("Patched system config search path: " + pygit2.settings.search_path[level])
+
+        kicker.chmod(0o777)
+        kicker.unlink()
+        scratch.unlink()
