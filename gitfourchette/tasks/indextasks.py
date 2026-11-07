@@ -30,9 +30,13 @@ logger = logging.getLogger(__name__)
 
 def _removeReadOnly(func, path, exc):
     # Windows can't delete read-only files, such as the .pack/.idx files of a nested repo.
-    # Anywhere else, for other operations, or for a link (chmod would change its target),
+    # Anywhere else, for other errors or operations, or for a link (chmod would change its target),
     # keep the original error.
-    if not WINDOWS or func not in (os.unlink, os.rmdir) or os.path.islink(path) or os.path.isjunction(path):
+    if (not WINDOWS
+            or not isinstance(exc, PermissionError)
+            or func not in (os.unlink, os.rmdir)
+            or os.path.islink(path)
+            or os.path.isjunction(path)):
         raise exc
     os.chmod(path, stat.S_IWRITE)
     func(path)
