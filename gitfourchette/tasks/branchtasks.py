@@ -526,10 +526,14 @@ class MergeBranch(RepoTask):
             theirShorthand = reference.shorthand
             assert reference.type == ReferenceType.DIRECT
             assert isinstance(target, Oid)
+            # Pass the shorthand to git for a nicer merge message, unless git would resolve it
+            # to another ref (e.g. a tag or a local branch sharing the name)
+            theirArg = theirShorthand if self.repo.lookup_reference_dwim(theirShorthand).name == them else them
         else:
             assert isinstance(them, Oid)
             target = them
             theirShorthand = shortHash(them)
+            theirArg = theirShorthand
 
         # Run merge analysis on background thread
         yield from self.flowEnterWorkerThread()
@@ -585,7 +589,7 @@ class MergeBranch(RepoTask):
         # -----------------------------------------------------------
         # Actually perform the fast-forward or the merge
 
-        yield from self._withGit(wantMergeCommit, theirShorthand)
+        yield from self._withGit(wantMergeCommit, theirArg)
 
         if wantMergeCommit:
             self.epilog.jumpTo = NavLocator.inWorkdir()
@@ -613,7 +617,7 @@ class MergeBranch(RepoTask):
 
         return result == mergeText
 
-    def _withGit(self, wantMergeCommit: bool, theirShorthand: str):
+    def _withGit(self, wantMergeCommit: bool, theirArg: str):
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
         driver = yield from self.flowCallGit(
@@ -624,7 +628,7 @@ class MergeBranch(RepoTask):
             "--verbose",
             *argsIf(wantMergeCommit, "--no-ff"),
             *argsIf(not wantMergeCommit, "--ff-only"),
-            theirShorthand,
+            theirArg,
             autoFail=False  # don't abort the task if process returns non-0 (= conflicts)
         )
 
