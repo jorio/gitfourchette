@@ -97,8 +97,6 @@ def stockIcon(
         # Fall back to theme icon
         icon = QIcon.fromTheme(iconId)
 
-    assert iconPath.endswith(".svg") or not colorTable, f"can't remap colors in non-SVG icon! {iconId}"
-
     # Cache icon
     _stockIconCache[key] = icon
     return icon

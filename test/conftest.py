@@ -264,6 +264,22 @@ def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     assert not MergeDriver._ongoingMerges, "Unit test has leaked MergeDriver objects"
 
 
+@pytest.fixture(params=["light", "dark"])
+def colorTheme(request, mainWindow) -> str:
+    """
+    Run the test twice: once with the built-in light theme, and once with the
+    built-in dark theme. List this fixture before any fixture that builds UI
+    (except mainWindow, which this fixture depends on because applyPrefs needs
+    it) so that the UI is created with the desired palette already in place.
+    """
+    from gitfourchette.themes import ThemeName
+    from gitfourchette.toolbox import isDarkTheme
+
+    GFApplication.applyPrefs(qtStyle=f"{ThemeName.BuiltIn},{request.param}")
+    assert isDarkTheme() == (request.param == "dark")
+    return request.param
+
+
 def pytest_runtest_setup(item: _pytest.nodes.Node):
     from gitfourchette.qt import WINDOWS
 

@@ -25,14 +25,11 @@ class Duck(Bird):
 """
 
 
-def digestFormatRange(formatRange: QTextLayout.FormatRange):
-    start = formatRange.start
-    length = formatRange.length
-    isStyled = formatRange.format.foreground().color() != QColor(Qt.GlobalColor.black)
-    return (start, length, isStyled)
+def formatRangeAt(block: QTextBlock, column: int) -> QTextLayout.FormatRange:
+    return next(fr for fr in block.layout().formats() if fr.start <= column < fr.start + fr.length)
 
 
-def testDeferredSyntaxHighlighting(tempDir, mainWindow):
+def testDeferredSyntaxHighlighting(tempDir, mainWindow, colorTheme):
     wd = unpackRepo(tempDir)
 
     # Write sample code, with enough tokens to require a round-trip in LexJob
@@ -42,19 +39,26 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
 
     commentLine = rw.diffView.document().findBlockByLineNumber(2)
     importLine = rw.diffView.document().findBlockByLineNumber(6)
+    defLine = rw.diffView.document().findBlockByLineNumber(9)
     assert commentLine.text() == "hello multiline comment"
     assert importLine.text() == "from ark import Bird"
+    assert defLine.text() == "    def __init__(self, *args, **kwargs):"
 
     assert not rw.diffView.highlighter.newLexJob.lexingComplete
 
-    # Check low-quality lexing of comment line
+    # Color of a plain identifier ("args") in the current scheme (varies between light/dark themes)
     QTest.qWait(0)
-    formatRange = commentLine.layout().formats()[0]
-    assert digestFormatRange(formatRange) == (0, len("hello"), False)
+    formatRange = formatRangeAt(defLine, defLine.text().index("args"))
+    nameColor = formatRange.format.foreground().color()
+
+    # Check low-quality lexing of comment line (lexed as plain identifiers)
+    formatRange = formatRangeAt(commentLine, 0)
+    assert formatRange.format.foreground().color() == nameColor
 
     # Low-quality lexing of import line should suffice
-    formatRange = importLine.layout().formats()[0]
-    assert digestFormatRange(formatRange) == (0, len("from"), True)
+    formatRange = formatRangeAt(importLine, 0)
+    assert (formatRange.start, formatRange.length) == (0, len("from"))
+    assert formatRange.format.foreground().color() != nameColor
 
     # Let LexJob finish its high-quality highlighting
     while not rw.diffView.highlighter.newLexJob.lexingComplete:
@@ -63,7 +67,8 @@ def testDeferredSyntaxHighlighting(tempDir, mainWindow):
 
     # Now the inside of the multiline comment should be properly formatted
     formatRange = commentLine.layout().formats()[0]
-    assert digestFormatRange(formatRange) == (0, len("hello multiline comment"), True)
+    assert (formatRange.start, formatRange.length) == (0, len("hello multiline comment"))
+    assert formatRange.format.foreground().color() != nameColor
 
 
 def testLexJobCaching(tempDir, mainWindow):

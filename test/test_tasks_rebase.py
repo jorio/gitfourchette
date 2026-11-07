@@ -762,7 +762,7 @@ def testRebaseUndoRedo(tempDir, mainWindow):
     findWidgetWithText(qmb.buttons(), "discard").click()
 
 
-def testRebaseSequenceDelegatePaintCoverage(tempDir, mainWindow):
+def testRebaseSequenceDelegatePaintCoverage(tempDir, mainWindow, colorTheme):
     """ Coverage test for RebaseSequenceDelegate.paint """
 
     onto = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
