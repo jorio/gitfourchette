@@ -758,6 +758,10 @@ class RepoTask(QObject):
             prereqs = self.prereqs()
         repo = self.repo
 
+        # The index may have changed outside the app (e.g. with auto-refresh disabled)
+        if prereqs & (TaskPrereqs.NoConflicts | TaskPrereqs.NoStagedChanges):
+            repo.refresh_index()
+
         # TODO: Use cached wd deltas?
         if TaskPrereqs.NoConflicts in prereqs and repo.any_conflicts:
             raise AbortTask(_("Fix merge conflicts before performing this action."))
