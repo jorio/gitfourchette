@@ -173,6 +173,44 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
     assert rw.repo.status() == {}
 
 
+@pytest.mark.skipif(WINDOWS or os.geteuid() == 0, reason="needs symlinks without special privileges, and a non-root user")
+def testDiscardUntrackedTreeKeepsSymlinkTargetPermissions(tempDir):
+    # The read-only workaround must not chmod a file outside the tree through a symlink
+    from gitfourchette.tasks.indextasks import _removeReadOnly
+
+    outside = Path(tempDir.name, "outside.txt")
+    outside.write_text("hello")
+    outside.chmod(0o644)
+
+    readOnlyDir = Path(tempDir.name, "tree", "ro")
+    readOnlyDir.mkdir(parents=True)
+    (readOnlyDir / "link").symlink_to(outside)
+    readOnlyDir.chmod(0o555)
+
+    try:
+        with pytest.raises(PermissionError):
+            shutil.rmtree(readOnlyDir.parent, onexc=_removeReadOnly)
+    finally:
+        readOnlyDir.chmod(0o755)
+
+    assert outside.stat().st_mode & 0o777 == 0o644
+
+
+def testDiscardUntrackedTreeKeepsOtherErrors(tempDir, monkeypatch):
+    # On Windows, the read-only workaround must only handle "access denied"
+    from gitfourchette.tasks import indextasks
+    monkeypatch.setattr(indextasks, "WINDOWS", True)
+
+    path = Path(tempDir.name, "file.txt")
+    path.write_text("hello")
+    error = OSError("some other problem")
+
+    with pytest.raises(OSError, match="some other problem"):
+        indextasks._removeReadOnly(os.unlink, str(path), error)
+
+    assert path.exists()
+
+
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
 def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
