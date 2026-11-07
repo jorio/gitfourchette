@@ -193,6 +193,21 @@ def testDiscardUntrackedTreeKeepsSymlinkTargetPermissions(tempDir):
     assert outside.stat().st_mode & 0o777 == 0o644
 
 
+def testDiscardUntrackedTreeKeepsOtherErrors(tempDir, monkeypatch):
+    # On Windows, the read-only workaround must only handle "access denied"
+    from gitfourchette.tasks import indextasks
+    monkeypatch.setattr(indextasks, "WINDOWS", True)
+
+    path = Path(tempDir.name, "file.txt")
+    path.write_text("hello")
+    error = OSError("some other problem")
+
+    with pytest.raises(OSError, match="some other problem"):
+        indextasks._removeReadOnly(os.unlink, str(path), error)
+
+    assert path.exists()
+
+
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
 def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir, "TestEmptyRepository")
