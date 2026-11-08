@@ -203,7 +203,12 @@ def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     waitUntilTrue(app.mainWindow.isActiveWindow)  # for non-offscreen tests
     yield app.mainWindow
 
-    if qt.WINDOWS:  # Give Windows a breather to wrap up
+    if qt.WINDOWS:
+        # Wait until all child processes are gone so they don't get terminated
+        # (which would bring down the test suite under xdist)
+        waitUntilTrue(lambda: not app.remainingProcesses())
+
+        # Also give Windows a breather to wrap up closed dialogs, etc.
         qt.QTest.qWait(0)
 
     assert app.mainWindow is not None, "mainWindow vanished after the test"

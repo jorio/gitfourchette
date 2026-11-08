@@ -11,6 +11,7 @@ import logging
 import os
 import shlex
 import sys
+import warnings
 from pathlib import Path
 from string import Template
 from typing import Any, ClassVar
@@ -897,3 +898,12 @@ class GFApplication(QApplication):
         kicker.chmod(0o777)
         kicker.unlink()
         scratch.unlink()
+
+    def remainingProcesses(self) -> list[QProcess]:
+        processes = self.findChildren(QProcess)
+        for w in self.topLevelWidgets():
+            processes.extend(w.findChildren(QProcess))
+        processes = [p for p in processes if p.state() != QProcess.ProcessState.NotRunning]
+        if processes:
+            warnings.warn(f"{len(processes)} remaining processes")
+        return processes

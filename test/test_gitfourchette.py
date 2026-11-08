@@ -464,14 +464,13 @@ def testCustomRepoIdentity(tempDir, mainWindow, name, email):
 
 @pytest.mark.notParallelizableOnWindows
 @pytest.mark.parametrize("withGC", [True, False])
-@pytest.mark.skipif(WINDOWS, reason="TODO: teardown errors on Windows")
 def testCloseManyReposInQuickSuccession(tempDir, mainWindow, withGC):
     # Simulate user holding down Ctrl+W with a fast key repeat rate.
     # PrimeRepo should be interrupted without crashing!
     # TODO: For exhaustiveness we should make a large repo with tens of thousands of commits
     #       to simulate interrupting the walker loop in PrimeRepo.
 
-    numTabs = 50
+    numTabs = 50 if not WINDOWS else 15  # very slow on Windows, don't overdo it
     sesh = Session()
     for i in range(numTabs):
         wd = unpackRepo(tempDir, renameTo=f"RepoCopy{i:04}")
@@ -693,8 +692,8 @@ def testOpenWorktreeSubdirectoryOfBareRepo(tempDir, mainWindow):
     assert NavLocator.inUnstaged("hello.txt").isSimilarEnoughTo(rw.navLocator)
 
 
+@pytest.mark.notParallelizableOnWindows
 @pytest.mark.skipif(MACOS, reason="TODO: macOS quirks")
-@pytest.mark.skipif(WINDOWS, reason="TODO: Windows quirks")
 def testCloseParentOfExternalProcess(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -718,7 +717,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 #  delete the zombie RepoWidget because its cleanup routine would destroy the
 #  task runner, which is shared with RepoStub. This task runner will be needed
 #  again if the user tries to reload the repo from RepoStub.
-@pytest.mark.skipif(WINDOWS, reason="TODO: tricky teardown, see comment")
+#  *** 11/2026: Works on Windows now. Investigate if the above still holds?
 def testFailedToStartGitProcess(tempDir, mainWindow):
     GFApplication.applyPrefs(gitPath="/tmp/supposedly-a-git-executable-but-it-doesnt-exist")
 
@@ -958,25 +957,29 @@ def testSshAgentSandboxingMatchesGit(tempDir, mainWindow):
     app = GFApplication.instance()
     app.applyPrefs(ownSshAgent=True)
 
-    if not FLATPAK:
+    try:
+        if not FLATPAK:
+            assert not settings.prefs.isGitSandboxed()
+            assert not app.sshAgent.isSandboxed()
+            return
+
+        app.applyPrefs(gitPath="flatpak:/app/bin/git")
+        assert settings.prefs.isGitSandboxed()
+        assert app.sshAgent.isSandboxed()
+
+        # Resetting just ssh-agent should preserve correct sandboxed state
+        app.applyPrefs(ownSshAgent=False)
+        assert app.sshAgent is None
+        app.applyPrefs(ownSshAgent=True)
+        assert app.sshAgent.isSandboxed()
+
+        # Changing the git program setting should reset ssh-agent's sandboxed state
+        app.applyPrefs(gitPath="/usr/bin/git")
         assert not settings.prefs.isGitSandboxed()
         assert not app.sshAgent.isSandboxed()
-        return
-
-    app.applyPrefs(gitPath="flatpak:/app/bin/git")
-    assert settings.prefs.isGitSandboxed()
-    assert app.sshAgent.isSandboxed()
-
-    # Resetting just ssh-agent should preserve correct sandboxed state
-    app.applyPrefs(ownSshAgent=False)
-    assert app.sshAgent is None
-    app.applyPrefs(ownSshAgent=True)
-    assert app.sshAgent.isSandboxed()
-
-    # Changing the git program setting should reset ssh-agent's sandboxed state
-    app.applyPrefs(gitPath="/usr/bin/git")
-    assert not settings.prefs.isGitSandboxed()
-    assert not app.sshAgent.isSandboxed()
+    finally:
+        # Kill ssh-agent before teardown
+        app.applyPrefs(ownSshAgent=False)
 
 
 def testRaiseExistingInstance(tempDir, mainWindow):

@@ -442,8 +442,6 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     revisionPath = getRevisionPath()
     assert readTextFile(revisionPath).strip() == "a1"
 
-    wrapUpWindowsProcessesBeforeTeardown()
-
 
 def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
@@ -459,8 +457,6 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     scratchText = readFile(scratchPath, unlink=True).decode("utf-8")
     assert "[OLD]b2@59706a1.txt" in scratchText
     assert "[NEW]b2@7f82283.txt" in scratchText
-
-    wrapUpWindowsProcessesBeforeTeardown()
 
 
 # Cover all FileList subclasses (unstaged, staged, committed)
@@ -724,9 +720,6 @@ def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
     else:
         raise NotImplementedError(f"unknown action {action}")
 
-    if action == FileListClick.DiffTool:
-        wrapUpWindowsProcessesBeforeTeardown()
-
 
 def testGrayOutStageButtonsAfterDiscardingOnlyFile(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
@@ -844,8 +837,6 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
     # despite errors on the other files
     waitForFile(scratchPath)
     assert "master.txt" in readTextFile(scratchPath)
-
-    wrapUpWindowsProcessesBeforeTeardown()
 
 
 def testFileListNaturalSort(tempDir, mainWindow):

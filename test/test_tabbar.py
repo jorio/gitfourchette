@@ -117,6 +117,3 @@ def testTabSpecialClick(tempDir, mainWindow, click, action):
             raise NotImplementedError(f"unknown action {action}")
 
     assert tabBar.count() == (0 if action == "close" else 2)
-
-    if action == TabBarClick.Terminal:
-        wrapUpWindowsProcessesBeforeTeardown()

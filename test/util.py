@@ -1016,9 +1016,3 @@ def injectFunctionPrefix(monkeypatch, obj, attr, prefix):
         return func(*args, **kwargs)
 
     monkeypatch.setattr(obj, attr, wrapped)
-
-
-def wrapUpWindowsProcessesBeforeTeardown():
-    # TODO: Figure out a cleaner way to do this
-    if WINDOWS:
-        QTest.qWait(DEFAULT_TIMEOUT)

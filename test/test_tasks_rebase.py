@@ -962,7 +962,7 @@ def testRebaseStartedOutsideApp(tempDir, mainWindow):
     pausedTextFilePath = f"{wd}/rebase_paused.txt"
 
     # Start interactive rebase and pause it on the editor
-    driver = GitDriver("rebase", "-i", "master")
+    driver = GitDriver("rebase", "-i", "master", parent=GFApplication.instance())
     ToolCommands.setQProcessEnvironment(driver, {
         "GIT_SEQUENCE_EDITOR": getShimCommand("pause.py", pausedTextFilePath),
     })
@@ -979,8 +979,6 @@ def testRebaseStartedOutsideApp(tempDir, mainWindow):
     assert not findChildWithText(banner, "continue rebase", t=QAbstractButton).isEnabled()
 
     ToolCommands.terminatePlus(driver)
-
-    wrapUpWindowsProcessesBeforeTeardown()
 
 
 def testRebaseHoverAndLeftClickPill(tempDir, mainWindow, qtbot):

@@ -148,7 +148,7 @@ def testHttpsAddRemoteAndFetch(tempDir, mainWindow):
 
 
 @requiresNetwork
-@pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows")
+@pytest.mark.skipif(WINDOWS, reason="TODO: flaky on Windows - fails to start own SshAgent")
 def testSshAddRemoteAndFetchWithPassphrase(tempDir, mainWindow, passphraseProtectedKey):
     GFApplication.applyPrefs(ownSshAgent=True)
 

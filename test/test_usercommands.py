@@ -208,8 +208,6 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
         output = output.replace("\\", "/")
     assert re.search(params.output, output)
 
-    wrapUpWindowsProcessesBeforeTeardown()
-
 
 @pytest.mark.parametrize(["scenario", "menuName", "error"], [
     ("",           "sel commit",       "a commit must be selected"),
@@ -256,8 +254,6 @@ def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile)
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(r"hello world", output)
 
-    wrapUpWindowsProcessesBeforeTeardown()
-
 
 def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
     mainWindow.openRepo(unpackRepo(tempDir))
@@ -270,8 +266,6 @@ def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
         waitForFile(commandsScratchFile, TIMEOUT)
         output = readTextFile(commandsScratchFile, unlink=True).strip()
         assert re.search(name, output)
-
-    wrapUpWindowsProcessesBeforeTeardown()
 
 
 @pytest.mark.skipif(MACOS, reason="no menu accelerator keys on macOS")
@@ -292,8 +286,6 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
 
-    wrapUpWindowsProcessesBeforeTeardown()
-
 
 def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     wd = unpackRepo(tempDir)
@@ -306,8 +298,6 @@ def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     waitForFile(commandsScratchFile, TIMEOUT)
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
-
-    wrapUpWindowsProcessesBeforeTeardown()
 
 
 @pytest.mark.parametrize("hostileFileName", [
@@ -330,5 +320,3 @@ def testUserCommandHostileTokenSubstitution(tempDir, mainWindow, commandsScratch
     output = readTextFile(commandsScratchFile).strip()
     assert output == hostileFileName
     assert not Path(f"{wd}/gotcha").exists()
-
-    wrapUpWindowsProcessesBeforeTeardown()

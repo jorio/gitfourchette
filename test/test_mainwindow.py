@@ -244,8 +244,6 @@ def testTabBarActions(tempDir, mainWindow):
 
         menu.close()
 
-    wrapUpWindowsProcessesBeforeTeardown()
-
 
 def testToolbarCustomization(tempDir, mainWindow):
     tb = mainWindow.mainToolBar
