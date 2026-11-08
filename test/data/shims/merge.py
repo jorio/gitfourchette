@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
+import os
+import stat
 import sys
 
+def atomicWrite(pathStr, text):
+    path = Path(pathStr)
+    temp = Path(pathStr + ".temp")
+    if path.exists() and not (path.lstat().st_mode & stat.S_IWUSR):
+        raise PermissionError("no write perms")
+    assert not temp.exists()
+    temp.write_text(text, encoding="utf-8")
+    os.replace(temp, path)
+
 scratch = sys.argv[1]
-M, L, R, B = sys.argv[2:6]
+merged, left, right, base = sys.argv[2:6]
 
-with open(scratch, "w") as file:
-    file.write("\n".join(sys.argv[2:]))
-
-with open(M, "w") as file:
-    file.write("merge complete!")
+atomicWrite(scratch, "\n".join(sys.argv[2:]))
+atomicWrite(merged, "merge complete!")
