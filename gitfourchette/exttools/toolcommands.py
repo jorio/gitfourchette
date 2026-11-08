@@ -446,7 +446,7 @@ class ToolCommands:
         return os.pathsep.join(paths)
 
     @classmethod
-    def terminatePlus(cls, process: QProcess | None):
+    def terminatePlus(cls, process: QProcess | None, customSignal: int = -1):
         """
         QProcess.terminate() plus Windows console-mode quirks
         """
@@ -456,7 +456,14 @@ class ToolCommands:
         if process.state() == QProcess.ProcessState.NotRunning:
             return
 
-        _logger.info(f"Terminating process {process.program()} (PID {process.processId()})")
+        pid = process.processId()
+
+        _logger.info(f"Terminating process {process.program()} (PID {pid})")
+
+        if not WINDOWS and customSignal > 0 and pid > 0:
+            os.kill(pid, customSignal)
+            return
+
         process.terminate()
 
         if WINDOWS:
@@ -469,7 +476,7 @@ class ToolCommands:
                 sys.modules["pytest"].exit(exitMessage, returncode=1)
 
             tokens, env = ToolCommands.spawnNewInstance(gitfourchette.exttools.win32ctrlc.__name__)
-            tokens.append(str(process.processId()))
+            tokens.append(str(pid))
 
             ctrlC = QProcess(None)
             ctrlC.setObjectName("win32ctrlc")

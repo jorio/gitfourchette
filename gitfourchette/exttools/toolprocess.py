@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import shlex
 from contextlib import suppress
 from pathlib import Path
@@ -177,12 +176,8 @@ class ToolProcess(QProcess):
         self.errorOccurred.disconnect(self.onErrorOccurred)
 
         if not self.detached:
-            pid = self.processId()
-            if pid > 0 and not WINDOWS:
-                # SIGINT works better with non-Flatpak Meld
-                os.kill(pid, SIGINT)
-            else:
-                ToolCommands.terminatePlus(self)
+            # SIGINT works better with non-Flatpak Meld
+            ToolCommands.terminatePlus(self, customSignal=SIGINT)
 
         self.setParent(None)
         self.deleteLater()
