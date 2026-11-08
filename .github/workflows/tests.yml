@@ -3,11 +3,37 @@ name: Tests
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      # Keep names in sync with testmatrix.py
+      "linux-312-pyqt5-old": {type: boolean, default: false}
+      "linux-312-pyqt6-old": {type: boolean, default: false}
+      "linux-313-pyqt6"    : {type: boolean, default: false}
+      "linux-314-pyqt6"    : {type: boolean, default: false}
+      "linux-315-pyqt6-cov": {type: boolean, default: true}
+      "linux-315-pyside6"  : {type: boolean, default: false}
+      "macos-315-pyqt6"    : {type: boolean, default: false}
+      "win32-315-pyqt6"    : {type: boolean, default: false}
   push:
-    branches: ['master', 'next']
-    paths-ignore: ['**.md', '**.po', '**.mo', '**.pot']
+    branches-ignore: ['temp/**']
+    paths-ignore: ['**.md', '**.po', '**.pot']
+
+defaults:
+  run:
+    shell: bash  # for Windows
 
 jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    env:
+      WORKFLOW_INPUTS: ${{ toJson(inputs) }}
+    steps:
+      - uses: actions/checkout@v7
+        with: {sparse-checkout: '.github/'}
+      - id: set
+        run: python .github/workflows/testmatrix.py >> "$GITHUB_OUTPUT"
+
   ruff-mypy:
     runs-on: ubuntu-latest
     steps:
@@ -21,42 +47,20 @@ jobs:
         if: '!cancelled()'  # run mypy even if ruff failed above
 
   tests:
+    needs: prepare-matrix
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix:
-        include:
-        # Legacy config with no optional dependencies, ancient pygit2 and pygments, and old Git
-        - {name: '312-pyqt5-legacy', os: ubuntu-22.04, py: '3.12', qt: pyqt5, downgrade-git: true, skip-fuse: true,
-           pre-pip: 'pip install pygit2==1.14.1 pygments==2.12', post-pip: 'pip uninstall -y mfusepy'}
-        # Legacy config with old PyQt6 and non-cutting-edge Git
-        - {name: '312-pyqt6.5', os: ubuntu-24.04, py: '3.12', qt: pyqt6, downgrade-git: true,
-           pre-pip: 'pip install "pyqt6<6.6" "pyqt6-qt6<6.6" "pyqt6-sip<13.7" pytest-qt==4.3.1'}
-        # Semi-legacy configs
-        - {name: '313-pyqt6', os: ubuntu-latest, py: '3.13', qt: pyqt6, downgrade-git: true}
-        - {name: '314-pyqt6', os: ubuntu-latest, py: '3.14', qt: pyqt6}
-        # Up-to-date configs
-        - {name: '315-pyqt6', os: ubuntu-latest, py: '3.15', qt: pyqt6, coverage: true}
-        - {name: '315-pyside6', os: ubuntu-latest, py: '3.15', qt: pyside6}
-        # Use Intel Mac runner because ARM runners are scarce on GHA at the moment (11/2026)
-        - {name: '315-pyqt6-mac', os: macos-26-intel, py: '3.15', qt: pyqt6, skip-fuse: true}
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Qt dependencies
+    - name: APT
       if: ${{ runner.os == 'Linux' }}
-      run: |
-        sudo apt update
-        sudo apt install ${{ matrix.qt == 'pyqt5' && 'libqt5gui5' || 'libqt6gui6' }}
-
-    - name: Downgrade git
-      if: ${{ matrix.downgrade-git }}
-      run: |
-        sudo apt remove git git-man
-        sudo apt install git
+      run: ${{ matrix.apt-command }}
 
     - name: Git version
       run: |
@@ -71,18 +75,17 @@ jobs:
         python-version: ${{ matrix.py }}
         cache: 'pip'
 
-    - name: pip
-      run: |
-        ${{ matrix.pre-pip }}
-        pip install -e .[${{ matrix.qt }},test,mfusepy]
-        ${{ matrix.post-pip }}
-        pip list --local
+    - run: ${{ matrix.pip-command }}
 
-    - run: ./test.py -v --qt=${{ matrix.qt }} --with-network ${{ matrix.skip-fuse && ' ' || '--with-fuse' }} ${{ matrix.coverage && '--cov' }}
+    - run: ${{ matrix.test-command }} -1 -m notParallelizableOnWindows
+      if: ${{ runner.os == 'Windows' }}
+      shell: pwsh  # win32ctrlc interferes with other shells
+
+    - run: ${{ matrix.test-command }}
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v7
       if: ${{ matrix.coverage }}
       with:
         path: coverage_html_report
-        name: coverage_${{ matrix.name }}_${{ github.sha }}
+        name: coverage_run${{ github.run_number }}_${{ matrix.name }}
