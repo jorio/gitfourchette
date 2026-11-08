@@ -23,6 +23,16 @@ class SingleInstanceSocket(GFIpcServer):
     existing instance of the application instead of starting a new instance.
     """
 
+    BootTimeout = (GFIpcProtocol.FastTimeout if not WINDOWS
+                   else 250 if not CI_TESTMODE
+                   else 20_000)
+    """
+    On Linux/macOS, finding out whether the socket exists is instantaneous as we
+    just look at the socket's path, so leave the IPC timeout alone. However, on
+    Windows, sockets aren't files, so we have to attempt to connect to a socket
+    that might not exist: don't delay app boot for too long.
+    """
+
     restoreSession = Signal(list)
 
     def __init__(self, parent):
@@ -69,7 +79,8 @@ class SingleInstanceSocket(GFIpcServer):
             GFIpcProtocol.simpleBlockingClient(
                 raiseSocketPath,
                 handshake,
-                responseTimeout=GFIpcProtocol.FastTimeout)
+                responseTimeout=GFIpcProtocol.FastTimeout,
+                fastTimeout=cls.BootTimeout)
             return True
         except TimeoutError:
             return False
