@@ -41,14 +41,18 @@ class GFIpcProtocol:
         payloadJson = jsonfriendly.toJson(payloadObj)
         payloadBytes = payloadJson.encode("utf-8", errors="replace")
         assert len(payloadBytes) <= cls.MaxPayloadSize
-        return socket.write(payloadBytes)
+        writeResult = socket.write(payloadBytes)
+        assert writeResult == len(payloadBytes)
+        return writeResult
 
     @classmethod
     def respondAndBail(cls, socket: QLocalSocket, print: str = "", abort: str = "") -> None:
         response = GFIpcProtocol.Response(print, abort)
         cls.writeMessage(socket, response)
         socket.disconnectFromServer()
-        socket.waitForDisconnected(GFIpcProtocol.FastTimeout)
+
+        if socket.state() != QLocalSocket.LocalSocketState.UnconnectedState:
+            socket.waitForDisconnected(GFIpcProtocol.FastTimeout)
 
     @classmethod
     def readMessage(cls, socket: QLocalSocket, t: type[_THandshakeResponse]) -> _THandshakeResponse:
@@ -59,6 +63,7 @@ class GFIpcProtocol:
         """
 
         assert socket.bytesAvailable() > 0, "did you forget to wait for readyRead?"
+        assert socket.state() == QLocalSocket.LocalSocketState.ConnectedState
 
         payloadBytes = socket.read(cls.MaxPayloadSize)
         if PYSIDE6:  # PySide6 returns a QByteArray
@@ -92,15 +97,13 @@ class GFIpcProtocol:
 
         try:
             if not socket.waitForConnected(fastTimeout):
-                raise TimeoutError(f"timed out waiting for connection - {socket.errorString()}")
+                raise TimeoutError(f"{fastTimeout}ms timeout connecting - {socket.errorString()} - {socket.state()!r}")
 
+            # Write handshake, but don't waitForBytesWritten, we'll await the response directly
             cls.writeMessage(socket, handshakeObj)
 
-            if not socket.waitForBytesWritten(fastTimeout):
-                raise TimeoutError(f"timed out waiting for writing - {socket.errorString()}")
-
             if not socket.waitForReadyRead(responseTimeout):
-                raise TimeoutError(f"timed out waiting for server response - {socket.errorString()}")
+                raise TimeoutError(f"{responseTimeout}ms timeout server response - {socket.errorString()} - {socket.state()!r}")
 
             responseObj = cls.readMessage(socket, t=GFIpcProtocol.Response)
         finally:

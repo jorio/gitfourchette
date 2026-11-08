@@ -386,6 +386,12 @@ class ToolCommands:
         # dependencies can be found in the user's site-packages.
         env = {}
 
+        # APP_TESTMODE may be enabled for this process without an env var if we
+        # found pytest. Since pytest won't be in the minimal PYTHONPATH, ensure
+        # the new instance inherits our APP_TESTMODE.
+        if APP_TESTMODE and "APP_TESTMODE" not in os.environ:
+            env["APP_TESTMODE"] = "1"
+
         # -B: Don't write .pyc files on import
         # -P: Don't prepend potentially unsafe path to sys.path (Python 3.11+)
         # -s: Don't add user site directory to sys.path
@@ -409,7 +415,8 @@ class ToolCommands:
         else:
             # Spawn another Python interpreter. Forward a minimal PYTHONPATH so
             # our core dependencies can be found even with -s.
-            env["PYTHONPATH"] = cls._minimalPythonpath(_pythonpathCoreImports + (extraImports or []))
+            minimalImports = _pythonpathCoreImports + (extraImports or [])
+            env["PYTHONPATH"] = cls._minimalPythonpath(minimalImports)
             tokens = [sys.executable, interpreterOptions]
 
         assert tokens

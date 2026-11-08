@@ -51,7 +51,7 @@ class GFIpcServer(QLocalServer):
 
         if startNow:
             isListening = self.listenOnSocketPath()
-            logger.debug(f"IPC server listening on {self.socketPath}: {isListening} -- {self.errorString()} -- {self.fullServerName()}")
+            logger.debug(f"GFIpcServer({self.socketPath}) Listening {isListening} {self.errorString()}")
             assert isListening, self.errorString()
 
     def listenOnSocketPath(self) -> bool:
@@ -60,9 +60,10 @@ class GFIpcServer(QLocalServer):
     def onNewConnection(self):
         socket = self.nextPendingConnection()
         assert socket is not None
-        logger.debug(f"New connection on {socket.fullServerName()} [{socket.serverName()}]")
+        logger.debug(f"GFIpcServer({self.socketPath}) New client")
         assert socket.isValid()
         assert socket.isOpen()
+        assert socket.state() == QLocalSocket.LocalSocketState.ConnectedState, repr(socket.state())
 
         # Single-shot server: Stop listening for any additional connections
         if self.singleShot:
@@ -79,7 +80,7 @@ class GFIpcServer(QLocalServer):
             socket.close()
             return
 
-        logger.debug(f"Got client handshake: {payload}")
+        logger.debug(f"GFIpcServer({self.socketPath}) Client handshake: {payload}")
         self.clientConnected.emit(payload, socket)
 
     def clientCommand(self, askpass: bool = False) -> str:
