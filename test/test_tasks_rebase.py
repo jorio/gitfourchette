@@ -12,6 +12,7 @@ from gitfourchette.forms.rebasedialog import RebaseDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.rebase.rebasemodel import RebaseOp, RebaseOpLetters
+from gitfourchette.rebase.rebasesequencedelegate import RebaseSequenceDelegate
 from gitfourchette.rebase.rebasesequencedropindicator import RebaseSequenceDropIndicator
 from gitfourchette.rebase.rebasesequencemodel import RebaseSequenceModel
 from gitfourchette.rebase.rebasesequenceview import RebaseSequenceView
@@ -438,6 +439,37 @@ def testRebaseBannerCantContinueWithUnstagedChanges(tempDir, mainWindow):
     assert banner.property("heeded") == "true"
     assert banner.findButton("continue rebase").isEnabled()
     banner.findButton("continue rebase").click()
+
+
+def testRebaseAmendCommitWithAutoSquash(tempDir, mainWindow):
+    # With rebase.autoSquash, git turns an "amend!" commit into a "fixup -C" todo line
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config rebase.autoSquash true
+        echo c2 > c2.txt && git add c2.txt && git commit -q -m c2
+        echo amended > c2.txt && git commit -q -a -m 'amend! c2' -m 'c2, amended'
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    onto = rw.repo.head_commit.parents[0].parents[0].id
+    rebaseDialog = _driveRebaseDialog(rw, onto, [])
+    assert [line.op for line in rebaseDialog.ui.sequence.effectiveSequence()] == [RebaseOp.Pick, RebaseOp.FixupC]
+    rebaseDialog.accept()
+
+    assert rw.repo.state() == RepositoryState.NONE
+    assert rw.repo.head_commit.message.strip() == "c2, amended"
+    assert rw.repo.head_commit.parents[0].id == onto
+    assert readFile(f"{wd}/c2.txt") == b"amended\n"
+
+
+def testRebasePillCrampedFixupC(mainWindow):
+    # GraphView draws cramped pills for pending ops; FixupC has no hotkey letter
+    image = QImage(100, 20, QImage.Format.Format_ARGB32)
+    painter = QPainter(image)
+    try:
+        RebaseSequenceDelegate.drawPill(painter, QRect(0, 0, 100, 20), RebaseOp.FixupC, width=30, meldingSeqNum=1)
+    finally:
+        painter.end()
 
 
 def testRebaseDanglingFixup(tempDir, mainWindow):

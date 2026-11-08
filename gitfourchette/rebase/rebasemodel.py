@@ -25,6 +25,7 @@ class RebaseOp(enum.StrEnum):
     Edit        = "edit"
     Squash      = "squash"
     Fixup       = "fixup"
+    FixupC      = "fixup -C"  # rebase.autoSquash makes these from "amend!" commits
     Exec        = "exec"
     Break       = "break"
     Drop        = "drop"
@@ -40,7 +41,7 @@ class RebaseOp(enum.StrEnum):
 
     def isMelding(self) -> bool:
         """True if this operation requires a connection to an older commit."""
-        return self == "fixup" or self == "squash"
+        return self in {"fixup", "fixup -C", "squash"}
 
     def isConcrete(self) -> bool:
         """True if this operation breaks a chain of melding operations."""
@@ -88,6 +89,7 @@ RebaseOpColors: dict[RebaseOp, QColor] = {
     RebaseOp.Reword    : QColor(0xFFD18DE1),
     RebaseOp.Squash    : colors.blue,
     RebaseOp.Fixup     : colors.teal,
+    RebaseOp.FixupC    : colors.teal,
     RebaseOp.Drop      : colors.red,
     RebaseOp.FakeDone  : colors.gray,
     RebaseOp.FakeStop  : colors.black,

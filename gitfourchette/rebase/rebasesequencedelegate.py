@@ -211,7 +211,7 @@ class RebaseSequenceDelegate(QStyledItemDelegate):
             font.setPointSize(min(8, font.pointSize()))
             font.setBold(False)
         else:
-            opText = str(op) if not isCramped else RebaseOpLetters[op]
+            opText = str(op) if not isCramped else RebaseOpLetters.get(op, op[0])
 
         if meldingSeqNum > 0 and op.isMelding():
             opText = f"{opText[:3]}\u2192{meldingSeqNum}"
