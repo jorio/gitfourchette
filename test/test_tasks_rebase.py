@@ -964,7 +964,7 @@ def testRebaseStartedOutsideApp(tempDir, mainWindow):
     # Start interactive rebase and pause it on the editor
     driver = GitDriver("rebase", "-i", "master")
     ToolCommands.setQProcessEnvironment(driver, {
-        "GIT_SEQUENCE_EDITOR": f"{shlex.quote(getTestDataPath('pause.py'))} {shlex.quote(pausedTextFilePath)}",
+        "GIT_SEQUENCE_EDITOR": getShimCommand("pause.py", pausedTextFilePath),
     })
     ToolCommands.wrapFlatpakCommand(driver)
     driver.setWorkingDirectory(wd)

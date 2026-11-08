@@ -72,10 +72,10 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
 def testTabSpecialClick(tempDir, mainWindow, click, action):
     GFApplication.applyPrefs(**{f"{click}ClickTabBar": action})
 
+    scratchPath = f"{tempDir.name}/scratch file.txt"
     if action == "terminal":
-        editorPath = getTestDataPath("editor-shim.py")
-        scratchPath = f"{tempDir.name}/scratch file.txt"
-        GFApplication.applyPrefs(terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND')
+        editorShim = getShimCommand("editor.py", scratchPath, "hello world", "$COMMAND")
+        GFApplication.applyPrefs(terminal=editorShim)
 
     wd0 = unpackRepo(tempDir, renameTo="repo0")
     wd1 = unpackRepo(tempDir, renameTo="repo1")

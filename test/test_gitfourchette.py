@@ -700,10 +700,10 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"))
 
-    editorPath = getTestDataPath("pause.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    editorCommand = getShimCommand("pause.py", scratchPath, "$L", "$R")
 
-    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
+    GFApplication.applyPrefs(externalDiff=editorCommand)
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in pause")
     waitForFile(scratchPath)
     assert readTextFile(scratchPath).strip() == "about to sleep"

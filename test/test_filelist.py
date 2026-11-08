@@ -412,9 +412,9 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0"), "a/a1"), check=True)
 
-    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    GFApplication.applyPrefs(externalEditor=f'"{editorPath}" "{scratchPath}"')
+    editorCommand = getShimCommand("editor.py", scratchPath)
+    GFApplication.applyPrefs(externalEditor=editorCommand)
 
     def getRevisionPath():
         waitForFile(scratchPath)
@@ -422,23 +422,23 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
 
     # Now open the file in our shim
     # Workdir revision
-    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/current")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor.py/current")
     revisionPath = getRevisionPath()
     assert Path(wd, "a/a1").samefile(revisionPath)
 
     # New revision
-    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/before.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor.py/before.+commit")
     acceptQMessageBox(mainWindow, "file did.?n.t exist")
 
     # Old revision
-    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor-shim/as of.+commit")
+    triggerContextMenuAction(rw.committedFiles.viewport(), r"open.+in editor.py/as of.+commit")
     revisionPath = getRevisionPath()
     assert "a1@49322bb" in revisionPath
     assert readTextFile(revisionPath).strip() == "a1"
 
     # HEAD revision (of a file with workdir modifications)
     rw.jump(NavLocator.inUnstaged("a/a1"), check=True)
-    triggerContextMenuAction(rw.dirtyFiles.viewport(), "edit head version in.+editor-shim")
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "edit head version in.+editor.py")
     revisionPath = getRevisionPath()
     assert readTextFile(revisionPath).strip() == "a1"
 
@@ -450,11 +450,11 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(Oid(hex="7f822839a2fe9760f386cbbbcb3f92c5fe81def7"), "b/b2.txt"), check=True)
 
-    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    editorCommand = getShimCommand("editor.py", scratchPath, "$L", "$R")
 
-    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
-    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in editor-shim")
+    GFApplication.applyPrefs(externalDiff=editorCommand)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in editor.py")
     waitForFile(scratchPath)
     scratchText = readFile(scratchPath, unlink=True).decode("utf-8")
     assert "[OLD]b2@59706a1.txt" in scratchText
@@ -691,13 +691,11 @@ def testSpecialClickToStageFile(tempDir, mainWindow, clickType):
 @pytest.mark.parametrize("click", ["middle", "double"])
 @pytest.mark.parametrize("action", [v for v in FileListClick if v != FileListClick.Stage])
 def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
-    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external diff tool scratch file.txt"
+    editorCommand = getShimCommand("editor.py", scratchPath, "$L", "$R")
 
-    GFApplication.applyPrefs(**{
-        f"{click}ClickFileList": action,
-        "externalDiff": f"'{editorPath}' '{scratchPath}' $L $R",
-    })
+    GFApplication.applyPrefs(externalDiff=editorCommand)
+    GFApplication.applyPrefs(**{f"{click}ClickFileList": action})
 
     wd = unpackRepo(tempDir)
     reposcenario.fileWithStagedAndUnstagedChanges(wd)
@@ -815,9 +813,9 @@ def testIgnorePatternValidation(tempDir, mainWindow, userPattern, isValid):
 
 
 def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
-    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    GFApplication.applyPrefs(externalDiff=f'"{editorPath}" "{scratchPath}" $L $R')
+    editorCommand = getShimCommand("editor.py", scratchPath, "$L", "$R")
+    GFApplication.applyPrefs(externalDiff=editorCommand)
 
     wd = unpackRepo(tempDir)
 
@@ -833,10 +831,10 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     rw.diffArea.dirtyFiles.selectAll()
-    triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor-shim")
+    triggerContextMenuAction(rw.diffArea.dirtyFiles.viewport(), "open.+editor.py")
 
     # Accept
-    acceptQMessageBox(rw, "really open.+12 files.+in editor-shim")
+    acceptQMessageBox(rw, "really open.+12 files.+in editor.py")
 
     # Dismiss errors
     acceptQMessageBox(rw, "can.t open external diff tool on a deleted file.+"

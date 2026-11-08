@@ -298,9 +298,10 @@ def testResetIndexWithConflicts(tempDir, mainWindow):
 
 
 def testMergeTool(tempDir, mainWindow):
-    noopMergeToolPath = getTestDataPath("editor-shim.py")
-    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    noopShim = getShimCommand("editor.py", scratchPath, "$M", "$L", "$R", "$B")
+    mergeShim = getShimCommand("merge.py", scratchPath, "$M", "$L", "$R", "$B")
+    missingShim = "BOGUS_PROGRAM_DOES_NOT_EXIST $M $L $R $B"
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     rw = mainWindow.openRepo(wd)
@@ -318,9 +319,9 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Try merging with a tool that doesn't touch the output file
 
-    GFApplication.applyPrefs(externalMerge=f'"{noopMergeToolPath}" "{scratchPath}" $M $L $R $B')
+    GFApplication.applyPrefs(externalMerge=noopShim)
 
-    assert "editor-shim" in cv.ui.mergeButton.text()
+    assert "editor.py" in cv.ui.mergeButton.text()
     assert cv.ui.mergeButton.isVisible()
     cv.ui.mergeButton.click()
 
@@ -338,7 +339,7 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Try merging with a missing command
 
-    GFApplication.applyPrefs(externalMerge=f'"{noopMergeToolPath}-BOGUS" "{scratchPath}" $M $L $R $B')
+    GFApplication.applyPrefs(externalMerge=missingShim)
     assert findTextInWidget(cv.ui.mergeButton, "BOGUS")  # warning: may be elided
     cv.ui.mergeButton.click()
 
@@ -353,9 +354,9 @@ def testMergeTool(tempDir, mainWindow):
     writeFile(scratchPath, "oops, file locked!")
     os.chmod(scratchPath, 0o400)
 
-    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieFoo')
+    GFApplication.applyPrefs(externalMerge=mergeShim + " CookieFoo")
 
-    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert findTextInWidget(cv.ui.mergeButton, "merge.py")
     assert not findTextInWidget(cv.ui.mergeToolStatus, "exit code")
     cv.ui.mergeButton.click()
 
@@ -369,8 +370,8 @@ def testMergeTool(tempDir, mainWindow):
     # ------------------------------
     # Now try merging with a good tool
 
-    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B CookieBar')
-    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    GFApplication.applyPrefs(externalMerge=mergeShim + " CookieBar")
+    assert findTextInWidget(cv.ui.mergeButton, "merge.py")
     cv.ui.mergeButton.click()
 
     assert cv.ui.mergeInProgressPage.isVisible()
@@ -422,9 +423,9 @@ def testMergeTool(tempDir, mainWindow):
 
 
 def testFake3WayMerge(tempDir, mainWindow):
-    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
+    shim = getShimCommand("merge.py", scratchPath, "$M", "$L", "$R", "$B")
+    GFApplication.applyPrefs(externalMerge=shim)
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     shell("git switch i18n", wd)
@@ -441,7 +442,7 @@ def testFake3WayMerge(tempDir, mainWindow):
     assert rw.navLocator.isSimilarEnoughTo(NavLocator.inUnstaged("bye.txt"))
     assert cv.ui.mergePage.isVisible()
 
-    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert findTextInWidget(cv.ui.mergeButton, "merge.py")
     assert not cv.ui.mergeCompletePage.isVisible()
     cv.ui.mergeButton.click()
 
@@ -461,9 +462,9 @@ def testFake3WayMerge(tempDir, mainWindow):
 
 
 def testMergeToolInBackground(tempDir, mainWindow):
-    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
+    shim = getShimCommand("merge.py", scratchPath, "$M", "$L", "$R", "$B")
+    GFApplication.applyPrefs(externalMerge=shim)
 
     wd = unpackRepo(tempDir, "testrepoformerging")
     writeFile(f"{wd}/SomeOtherFile.txt", "hello")
@@ -479,7 +480,7 @@ def testMergeToolInBackground(tempDir, mainWindow):
     assert rw.repo.index.conflicts
     assert cv.isVisible()
 
-    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert findTextInWidget(cv.ui.mergeButton, "merge.py")
     assert cv.ui.mergePage.isVisible()
     cv.ui.mergeButton.click()
     assert cv.ui.mergeInProgressPage.isVisible()
@@ -509,9 +510,9 @@ def testMergeToolInBackground(tempDir, mainWindow):
 
 
 def testDiscardMergeResolution(tempDir, mainWindow):
-    mergeToolPath = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    GFApplication.applyPrefs(externalMerge=f'"{mergeToolPath}" "{scratchPath}" $M $L $R $B')
+    shim = getShimCommand("merge.py", scratchPath, "$M", "$L", "$R", "$B")
+    GFApplication.applyPrefs(externalMerge=shim)
 
     wd = unpackRepo(tempDir, "testrepoformerging")
 
@@ -524,7 +525,7 @@ def testDiscardMergeResolution(tempDir, mainWindow):
     assert ".gitignore" in rw.repo.index.conflicts
     assert cv.isVisible()
 
-    assert findTextInWidget(cv.ui.mergeButton, "merge-shim")
+    assert findTextInWidget(cv.ui.mergeButton, "merge.py")
     assert cv.ui.mergePage.isVisible()
     cv.ui.mergeButton.click()
     assert cv.ui.mergeInProgressPage.isVisible()
@@ -545,12 +546,12 @@ def testDiscardMergeResolution(tempDir, mainWindow):
 
 
 def testMergeToolDelayedWrite(tempDir, mainWindow):
-    detachTool = getTestDataPath("start-detach.py")
-    delayTool = getTestDataPath("delay-cmd.py")
-    mergeTool = getTestDataPath("merge-shim.py")
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
-    command = f'"{detachTool}" "{delayTool}" --delay 2 "{mergeTool}" "{scratchPath}" $M $L $R $B'
-    GFApplication.applyPrefs(externalMerge=command)
+    # Chain detach, delay, merge
+    shim = getShimCommand("merge.py", scratchPath, "$M", "$L", "$R", "$B")
+    shim = getShimCommand("delay.py", "-d2", *ToolCommands.splitCommandTokens(shim))
+    shim = getShimCommand("detach.py", *ToolCommands.splitCommandTokens(shim))
+    GFApplication.applyPrefs(externalMerge=shim)
 
     wd = unpackRepo(tempDir, "testrepoformerging")
 
@@ -563,7 +564,7 @@ def testMergeToolDelayedWrite(tempDir, mainWindow):
     assert ".gitignore" in rw.repo.index.conflicts
     assert cv.isVisible()
     assert cv.ui.mergePage.isVisible()
-    assert findTextInWidget(cv.ui.mergeButton, "start-detach")
+    assert findTextInWidget(cv.ui.mergeButton, "detach.py")
     cv.ui.mergeButton.click()
     waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
     assert findTextInWidget(cv.ui.confirmMergeLabel, "unchanged.+was the merge successful")

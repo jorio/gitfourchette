@@ -18,9 +18,8 @@ TIMEOUT = max(DEFAULT_TIMEOUT, 30_000 if (MACOS or WINDOWS) else 2_500)
 
 @pytest.fixture
 def commandsScratchFile(tempDir, mainWindow):
-    shim = getTestDataPath("editor-shim.py")
     scratch = qTempDir() + "/scratch.txt"
-    wrapper = f"'{shim}' '{scratch}'"
+    wrapper = getShimCommand("editor.py", scratch)
 
     if not WINDOWS:
         terminalShim = "/bin/sh -c $COMMAND"

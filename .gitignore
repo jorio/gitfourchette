@@ -7,9 +7,6 @@ gitfourchette.egg-info/
 venv/
 .venv/
 
-# Automatically-generated wrappers for python helper scripts in unit tests
-test/data/windows_wrappers.tmp/
-
 # PyCharm
 /.idea/*
 !/.idea/icon.svg

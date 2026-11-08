@@ -10,9 +10,9 @@ from .util import *
 
 
 def testTerminal(tempDir, mainWindow):
-    shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    GFApplication.applyPrefs(terminal=f"'{shim}' '{scratch}' 'hello world' $COMMAND")
+    shim = getShimCommand("editor.py", scratch, "hello world", "$COMMAND")
+    GFApplication.applyPrefs(terminal=shim)
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -41,9 +41,9 @@ def testTerminalNotConfiguredYet(tempDir, mainWindow):
 
 
 def testTerminalPlaceholderTokenMissing(tempDir, mainWindow):
-    shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    GFApplication.applyPrefs(terminal=f"'{shim}' '{scratch}' 'hello world'")
+    shim = getShimCommand("editor.py", scratch, "hello world")
+    GFApplication.applyPrefs(terminal=shim)
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
@@ -58,23 +58,28 @@ def testTerminalPlaceholderTokenMissing(tempDir, mainWindow):
 @pytest.mark.skipif(QT5, reason="Qt 5 (deprecated) is finicky with this test, but Qt 6 is fine")
 @pytest.mark.skipif(MACOS and not OFFSCREEN, reason="macOS+non offscreen is finicky with this test")
 def testTerminalCommandNotFound(tempDir, mainWindow):
-    shim = getTestDataPath("editor-shim.py")
     scratch = f"{tempDir.name}/terminal scratch file.txt"
+    shim = getShimCommand("editor.py", scratch, "hello world", "$COMMAND")
+    if WINDOWS:
+        badShim = shim.replace("PYTHON3.EXE", "BOGUS_PROGRAM_DOES_NOT_EXIST")
+    else:
+        badShim = shim.replace("editor.py", "BOGUS.py")
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)
 
     # First, set the editor to an incorrect command to go through the "locate" code path
-    GFApplication.applyPrefs(terminal=f"'{shim}-BOGUSCOMMAND' '{scratch}' 'hello world' $COMMAND")
+    GFApplication.applyPrefs(terminal=badShim)
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
 
-    qmb = waitForQMessageBox(mainWindow, "couldn.t start.+editor-shim.+terminal")
+    qmb = waitForQMessageBox(mainWindow, "couldn.t start.+BOGUS.+terminal")
     locateButton: QPushButton = qmb.button(QMessageBox.StandardButton.Open)
     assert "locate" in locateButton.text().casefold()
     locateButton.click()
 
     # Set correct command; this must retain the arguments from the incorrect command
-    acceptQFileDialog(mainWindow, "where is.+editor-shim", shim)
+    acceptQFileDialog(mainWindow, "where is.+BOGUS",
+                      getTestDataPath("shims/editor.py") if not WINDOWS else shutil.which("PYTHON3.EXE"))
 
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
     waitForFile(scratch)
@@ -87,7 +92,8 @@ def testTerminalCommandNotFound(tempDir, mainWindow):
 @pytest.mark.skipif(WINDOWS, reason="teardown fails on Windows")
 def testKickerScriptTamperProofing(tempDir, mainWindow, qtbot):
     scratch = f"{tempDir.name}/terminal scratch file.txt"
-    GFApplication.applyPrefs(terminal=f"'{shim}' '{scratch}' $COMMAND")
+    shim = getShimCommand("editor.py", scratch, "$COMMAND")
+    GFApplication.applyPrefs(terminal=shim)
 
     wd = unpackRepo(tempDir)
     _rw = mainWindow.openRepo(wd)

@@ -124,46 +124,34 @@ def getTestDataPath(name: str):
     dataDir = Path(__file__).resolve().parent / "data"
     path = dataDir / name
 
-    if not WINDOWS and path.suffix in [".sh", ".py"] and path.exists():
+    if not WINDOWS and path.suffix == ".sh":
         assert path.stat().st_mode & 0o100, f"file is not exectuable: {path}"
-
-    # Windows isn't usually set up to run .py files directly, so wrap those in
-    # a batch script. This isn't necessary on Linux/Mac as long as the scripts
-    # contain the proper shebang.
-    if WINDOWS and path.suffix == ".py" and path.exists():
-        wrappersDir = dataDir / "windows_wrappers.tmp"
-        relPath = path.relative_to(wrappersDir, walk_up=True)
-
-        text = (
-            "@ECHO OFF\n"
-            # Get rid of "Terminate batch job" prompt that blocks the script
-            # when receiving CTRL_C_EVENT - see https://superuser.com/q/35698
-            f"python3 %~dp0\\{relPath} %* &CALL:justbail\n"
-            ":justbail EXIT/B %ERRORLEVEL%\n"
-        )
-        batPath = (wrappersDir / path.name).with_suffix(".bat")
-
-        # Only write the file once - overwriting while another distributed test
-        # is running may cause an access error. (read_text() converts line
-        # endings to LF, so this comparison is fine)
-        if not batPath.exists() or batPath.read_text() != text:
-            batPath.parent.mkdir(parents=True, exist_ok=True)
-            batPath.write_text(text)
-
-        path = batPath
 
     return str(path)
 
 
+def getShimCommand(name: str, *args: str, flatpakSandbox=False) -> str:
+    path = Path(getTestDataPath("shims/" + name))
+    assert path.suffix == ".py", path
+    assert path.is_file()
+
+    if WINDOWS:
+        prefix = ["PYTHON3.EXE"]
+    elif FLATPAK and flatpakSandbox:
+        prefix = [ToolCommands.FlatpakSandboxedCommandPrefix + "python"]
+    else:
+        assert path.stat().st_mode & 0o100, f"file is not executable: {path}"
+        prefix = []
+
+    tokens = prefix + [str(path), *args]
+    return shlex.join(tokens)
+
+
 def delayCommand(*tokens: str, delay=5, block=False) -> str:
-    delayTokens = [getTestDataPath("delay-cmd.py"), f"-d{delay}"]
-    if FLATPAK:
-        delayTokens.insert(0, ToolCommands.FlatpakSandboxedCommandPrefix + "python")
+    tokens = ["delay.py", f"-d{delay}", "--", *tokens]
     if block:
-        delayTokens.append("--block")
-    delayTokens.append("--")
-    delayTokens.extend(tokens)
-    return shlex.join(delayTokens)
+        tokens.insert(1, "-b")
+    return getShimCommand(*tokens, flatpakSandbox=True)
 
 
 class DelayGitCommandContext:

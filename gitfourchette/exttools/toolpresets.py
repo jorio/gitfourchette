@@ -221,6 +221,9 @@ class ToolPresets:
             interestingToken = ToolCommands.isFlatpakRunCommand(tokens)
             assert interestingToken >= 0
 
+        if WINDOWS and APP_TESTMODE and tokens[0] == "PYTHON3.EXE":  # test shims
+            interestingToken = 1
+
         try:
             name = tokens[interestingToken]
         except IndexError:

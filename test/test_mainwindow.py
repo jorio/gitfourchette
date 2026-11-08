@@ -188,11 +188,9 @@ def testMainWindowMenuItems(tempDir, mainWindow):
 
 
 def testTabBarActions(tempDir, mainWindow):
-    editorPath = getTestDataPath("editor-shim.py")
     scratchPath = f"{tempDir.name}/scratch file.txt"
-    GFApplication.applyPrefs(
-        terminal=f'"{editorPath}" "{scratchPath}" "hello world" $COMMAND'
-    )
+    terminalShim = getShimCommand("editor.py", scratchPath, "hello world", "$COMMAND")
+    GFApplication.applyPrefs(terminal=terminalShim)
 
     # Open two repos to test background and foreground tab actions
     wd0 = unpackRepo(tempDir, renameTo="repo0")
@@ -233,19 +231,16 @@ def testTabBarActions(tempDir, mainWindow):
         rejectQMessageBox(mainWindow, r"text editor.+isn.t configured")
 
         # Test open repo in editor, with editor is set
-        GFApplication.applyPrefs(
-            externalEditor=f'"{editorPath}" "{scratchPath}" "hello world"'
-        )
+        editorShim = getShimCommand("editor.py", scratchPath, "hello world")
+        GFApplication.applyPrefs(externalEditor=editorShim)
         menu.close()
         menu = getMenu(tabIndex)  # reload menu, and verify editor changed + is working.
-        triggerMenuAction(menu, "open repo in editor-shim")
+        triggerMenuAction(menu, "open repo in editor.py")
         waitForFile(scratchPath)
         editorShimResult = readTextFile(scratchPath, unlink=True).splitlines()
         assert editorShimResult[0] == "hello world"  # ensure editor opens
         assert Path(wd).samefile(editorShimResult[1])
-        GFApplication.applyPrefs(
-            externalEditor=""
-        )  # revert to no external editor, for the next wd.
+        GFApplication.applyPrefs(externalEditor="")  # revert to no external editor, for the next wd.
 
         menu.close()
 
