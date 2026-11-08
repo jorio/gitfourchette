@@ -260,6 +260,7 @@ def _enumTable() -> dict[type[Enum], dict[Enum, str]]:
         RebaseOp.Edit: _("Stop for amending the commit’s contents"),
         RebaseOp.Squash: _("Meld into older commit, combine messages"),
         RebaseOp.Fixup: _("Meld into older commit, discard message"),
+        RebaseOp.FixupC: _("Meld into older commit, keep this message only"),
         RebaseOp.Drop: _("Remove commit"),
     }
 
