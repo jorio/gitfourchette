@@ -6,6 +6,7 @@
 
 import logging
 import shlex
+import uuid
 from pathlib import Path
 
 from gitfourchette import settings
@@ -36,7 +37,10 @@ class GFIpcServer(QLocalServer):
         GFIpcServer._globalSocketCounter += 1
 
         if not socketPath:
-            socketPath = str(Path(qTempDir(), f"ipc{self.socketNumber}.sock"))
+            if WINDOWS:
+                socketPath = f"{APP_SYSTEM_NAME}-{uuid.uuid4()}"
+            else:
+                socketPath = str(Path(qTempDir(), f"ipc{self.socketNumber}.sock"))
         if len(socketPath) >= 104:  # pragma: no cover
             logger.warning(f"very long socket path may fail on some platforms: {socketPath}")
         self.socketPath = socketPath
@@ -56,7 +60,7 @@ class GFIpcServer(QLocalServer):
     def onNewConnection(self):
         socket = self.nextPendingConnection()
         assert socket is not None
-        logger.debug(f"New connection on {socket.fullServerName()}")
+        logger.debug(f"New connection on {socket.fullServerName()} [{socket.serverName()}]")
         assert socket.isValid()
         assert socket.isOpen()
 

@@ -28,16 +28,21 @@ class SingleInstanceSocket(GFIpcServer):
     def __init__(self, parent):
         socketPath = self.singleInstanceSocketPath()
 
-        # On the very first run, the app config directory may not exist yet.
-        # QLocalServer doesn't create intermediate directories, so bind would
-        # fail with "Name error" if we didn't create it beforehand.
-        socketPath.parent.mkdir(parents=True, exist_ok=True)
+        if not WINDOWS:
+            # On the very first run, the app config directory may not exist yet.
+            # QLocalServer doesn't create intermediate directories, so bind would
+            # fail with "Name error" if we didn't create it beforehand.
+            # (Except on Windows: sockets aren't files)
+            Path(socketPath).parent.mkdir(parents=True, exist_ok=True)
 
         super().__init__(parent, singleShot=False, socketPath=str(socketPath))
         self.clientConnected.connect(self._newConnection)
 
     @classmethod
-    def singleInstanceSocketPath(cls) -> Path:
+    def singleInstanceSocketPath(cls) -> str:
+        if WINDOWS:
+            return f"{APP_SYSTEM_NAME}-instance-{APP_VERSION}"
+
         # Keep it short! Full path cannot exceed 104-1 chars on macOS
         fileName = "instance.sock"
 
@@ -47,20 +52,22 @@ class SingleInstanceSocket(GFIpcServer):
             configPath = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppConfigLocation)
 
         path = Path(configPath, fileName)
-        return path
+        return str(path)
 
     @classmethod
     def connectToExistingInstance(cls, paths: list[str]) -> bool:
         raiseSocketPath = cls.singleInstanceSocketPath()
 
-        if not raiseSocketPath.is_socket():
+        if WINDOWS:
+            pass
+        elif not Path(raiseSocketPath).is_socket():
             return False
 
         handshake = GFIpcProtocol.Handshake(paths)
 
         try:
             GFIpcProtocol.simpleBlockingClient(
-                str(raiseSocketPath),
+                raiseSocketPath,
                 handshake,
                 responseTimeout=GFIpcProtocol.FastTimeout)
             return True

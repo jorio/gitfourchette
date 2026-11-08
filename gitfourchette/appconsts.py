@@ -60,5 +60,8 @@ Testing on CI (allow longer timeouts).
 """
 
 if APP_TESTMODE:
-    APP_SYSTEM_NAME += "testmode"
-    APP_DISPLAY_NAME += "TestMode"
+    # Isolate system name per parallel worker (for any systemwide resources that
+    # we'll create, like single-instance sockets on Windows)
+    _xdistWorker = _os.environ.get("PYTEST_XDIST_WORKER", "")
+    APP_SYSTEM_NAME += "test" + _xdistWorker
+    APP_DISPLAY_NAME += "Test" + _xdistWorker
