@@ -4,8 +4,11 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import functools
 import os.path
 import shutil
+import subprocess
+import tempfile
 import textwrap
 
 import pytest
@@ -93,6 +96,48 @@ def copySshKey(tempPath: str, testKeyName: str) -> str:
     return Path(pubPath).as_posix()
 
 
+@functools.cache
+def probeSshSigning() -> str:
+    """
+    Try to sign a dummy message with ssh-keygen.
+    Return an error message if it fails, or an empty string if it works.
+    """
+    # FLATPAK: ssh-keygen runs on the host, so the probe would be meaningless here
+    if FLATPAK:
+        return ""
+
+    with tempfile.TemporaryDirectory(prefix="gitfixture-sshprobe-") as tempPath:
+        copySshKey(tempPath, "simple")
+        message = f"{tempPath}/message"
+        writeFile(message, "probe")
+        # Don't bother looking up gpg.ssh.program: the host's git config is masked
+        # during tests and no test sets it, so git always uses ssh-keygen from PATH.
+        try:
+            subprocess.run(
+                ["ssh-keygen", "-Y", "sign", "-f", f"{tempPath}/simple", "-n", "git", message],
+                capture_output=True, text=True, check=True, timeout=30)
+        except subprocess.CalledProcessError as exc:
+            return exc.stderr.strip() or f"exit code {exc.returncode}"
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return str(exc)
+
+    return ""
+
+
+@pytest.fixture
+def sshSigning():
+    """
+    Skip the test if ssh-keygen can't sign anything in this environment (e.g. in
+    a sandbox where the current uid has no passwd entry). Otherwise, the SSH tests
+    run into unexpected error dialogs and may cause the rest of the suite to hang.
+
+    List this fixture before mainWindow so that no UI is created if it skips.
+    """
+    error = probeSshSigning()
+    if error:
+        pytest.skip(f"ssh-keygen can't sign in this environment: {error}")
+
+
 def setUpForSshSigning(
         tempPath: str,
         repoWorkdir: str,
@@ -178,7 +223,7 @@ def testCommitWithPgpSignature(tempDir, mainWindow, tempGpgHome, amend):
 @requiresGpg
 @pytest.mark.parametrize("amend", [False, True], ids=["commit", "amend"])
 @pytest.mark.parametrize("passphrase", [False, True], ids=["simple", "passphrase"])
-def testCommitWithSshSignature(tempDir, mainWindow, tempGpgHome, amend, passphrase):
+def testCommitWithSshSignature(sshSigning, tempDir, mainWindow, tempGpgHome, amend, passphrase):
     wd = unpackRepo(tempDir)
 
     keyName = "simple" if not passphrase else "pygit2_empty"
@@ -294,7 +339,7 @@ def testVerifyGoodPgpSignatureWithMissingKey(tempDir, mainWindow, tempGpgHome):
     "criquette@example.com",
     '"Criquette Rockwell <criquette@example.com>"',
 ])
-def testVerifyGoodSshSignature(tempDir, mainWindow, tempGpgHome, principal):
+def testVerifyGoodSshSignature(sshSigning, tempDir, mainWindow, tempGpgHome, principal):
     wd = unpackRepo(tempDir)
     _pubKey, allowedSigners = setUpForSshSigning(tempDir.name, wd, principal=principal)
 
@@ -342,7 +387,7 @@ def testVerifyBadPgpSignature(tempDir, mainWindow, tempGpgHome):
 
 
 @requiresGpg
-def testVerifyBadSshSignature(tempDir, mainWindow, tempGpgHome):
+def testVerifyBadSshSignature(sshSigning, tempDir, mainWindow, tempGpgHome):
     # An allowed signers file is required to verify ssh signatures
     allowedSigners = tempDir.name + "/allowedSigners"
     touchFile(allowedSigners)
