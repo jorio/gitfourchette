@@ -163,7 +163,7 @@ def testSubmoduleDeletedDiff(tempDir, mainWindow):
 
 
 # Note: 2.34.1 fails, and 2.41 passes; I haven't tested any versions in between
-@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason="git too old (refuses to remove embedded .git dir)")
+@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason=f"git {GitDriver.gitVersionTuple()} too old (refuses to remove embedded .git dir)")
 def testDeleteSubmodule(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd)
@@ -313,7 +313,7 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     assert qteFind(rw.specialDiffView, r"to complete the removal.+commit \.gitmodules")
 
 
-@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason="git too old (refuses to remove embedded .git dir)")
+@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason=f"git {GitDriver.gitVersionTuple()} too old (refuses to remove embedded .git dir)")
 def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd, absorb=True)

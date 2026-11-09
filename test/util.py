@@ -32,7 +32,6 @@ TEST_SIGNATURE = Signature("Test Person", "toto@example.com", 1672600000, 0)
 
 HAS_LFS = bool(shutil.which("git-lfs"))
 HAS_GPG = bool(shutil.which("gpg"))
-HAS_FLATPAK = FREEDESKTOP and bool(shutil.which("flatpak"))
 
 # Mac CI can be very slow to start processes
 DEFAULT_TIMEOUT = 5_000 if not CI_TESTMODE else 20_000
@@ -43,7 +42,7 @@ requiresNetwork = pytest.mark.skipif(
     reason="Requires network (test.py --with-network)")
 
 requiresFlatpak = pytest.mark.skipif(
-    not FLATPAK or not HAS_FLATPAK,
+    not FLATPAK,
     reason="Requires flatpak")
 
 requiresLfs = pytest.mark.skipif(

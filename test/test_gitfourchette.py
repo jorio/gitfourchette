@@ -748,7 +748,7 @@ def testFailedToStartGitProcess(tempDir, mainWindow):
     prefsDialog.close()
 
 
-@pytest.mark.skipif(not FLATPAK, reason="must run inside Flatpak environment")
+@requiresFlatpak
 def testFlatpakFindsGit():
     # Note: this test needs Git to be installed on the host.
 

@@ -28,7 +28,7 @@ class Config:
         pip.append(f"pip -q install -e .[{','.join(pipDeps)}]")
         pip.append("pip list --local")
 
-        test = f"python3 test.py -v --qt={self.qt} --with-network --color=yes"
+        test = f"python3 test.py -v --color=yes --report-chars=fswE --qt={self.qt} --with-network"
         if self.fuse:
             test += " --with-fuse"
         if self.coverage:
