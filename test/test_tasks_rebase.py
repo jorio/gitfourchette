@@ -459,7 +459,7 @@ def testRebaseAmendCommitWithAutoSquash(tempDir, mainWindow):
     assert rw.repo.state() == RepositoryState.NONE
     assert rw.repo.head_commit.message.strip() == "c2, amended"
     assert rw.repo.head_commit.parents[0].id == onto
-    assert readFile(f"{wd}/c2.txt") == b"amended\n"
+    assert readTextFile(f"{wd}/c2.txt") == "amended\n"
 
 
 def testRebasePillCrampedFixupC(mainWindow):
