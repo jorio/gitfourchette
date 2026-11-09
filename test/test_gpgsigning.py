@@ -7,7 +7,6 @@
 import functools
 import os.path
 import shutil
-import subprocess
 import tempfile
 import textwrap
 
@@ -113,12 +112,11 @@ def probeSshSigning() -> str:
         # Don't bother looking up gpg.ssh.program: the host's git config is masked
         # during tests and no test sets it, so git always uses ssh-keygen from PATH.
         try:
-            subprocess.run(
-                ["ssh-keygen", "-Y", "sign", "-f", f"{tempPath}/simple", "-n", "git", message],
-                capture_output=True, text=True, check=True, timeout=30)
-        except subprocess.CalledProcessError as exc:
-            return exc.stderr.strip() or f"exit code {exc.returncode}"
-        except (OSError, subprocess.TimeoutExpired) as exc:
+            ToolCommands.runSync(
+                "ssh-keygen", "-Y", "sign", "-f", "simple", "-n", "git", message,
+                directory=tempPath,
+                strict=True)
+        except ChildProcessError as exc:
             return str(exc)
 
     return ""
