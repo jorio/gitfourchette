@@ -1064,7 +1064,6 @@ def testFlatpakBuiltInGitEnvironment(mainWindow, monkeypatch, sandboxedGit):
 
     monkeypatch.setattr(repotask, "FLATPAK", True)
     monkeypatch.setenv("XDG_CONFIG_HOME", "/sandbox/config")  # what Flatpak sets up
-    monkeypatch.delenv("GIT_ASKPASS", raising=False)
     monkeypatch.setattr(settings.prefs, "gitPath", "flatpak:/app/bin/git" if sandboxedGit else "git")
 
     env = repotask.RepoTask(mainWindow).createGitProcess("status").processEnvironment()
@@ -1074,5 +1073,16 @@ def testFlatpakBuiltInGitEnvironment(mainWindow, monkeypatch, sandboxedGit):
 
     # Our askpass takes precedence over core.askPass, which may name a host program
     assert env.value("SSH_ASKPASS")
-    assert env.value("GIT_ASKPASS") == (env.value("SSH_ASKPASS") if sandboxedGit else "")
+    assert env.value("GIT_ASKPASS") == env.value("SSH_ASKPASS")
+
+
+def testOwnAskpassOverridesInheritedGitAskpass(mainWindow, monkeypatch):
+    from gitfourchette.tasks import repotask
+
+    # e.g. launched from a VS Code terminal
+    monkeypatch.setenv("GIT_ASKPASS", "/some/other/askpass")
+
+    env = repotask.RepoTask(mainWindow).createGitProcess("status").processEnvironment()
+    assert env.value("SSH_ASKPASS")
+    assert env.value("GIT_ASKPASS") == env.value("SSH_ASKPASS")
 

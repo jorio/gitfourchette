@@ -556,9 +556,9 @@ class RepoTask(QObject):
             assert askpassServer is not None
             env["SSH_ASKPASS"] = askpassServer.clientCommand(askpass=True)
             env["SSH_ASKPASS_REQUIRE"] = "force"
-            # FLATPAK: core.askPass may name a host program that can't run in the sandbox
-            if sandboxedGit:
-                env["GIT_ASKPASS"] = env["SSH_ASKPASS"]
+            # Git prefers GIT_ASKPASS over core.askPass: override that, or a GIT_ASKPASS
+            # inherited from the environment (e.g. a VS Code terminal)
+            env["GIT_ASKPASS"] = env["SSH_ASKPASS"]
 
         # Use internal ssh-agent
         if settings.prefs.ownSshAgent:
