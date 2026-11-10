@@ -155,7 +155,6 @@ def testUnstageModeChange(tempDir, mainWindow):
     assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Try again on Windows with https://github.com/jorio/gitfourchette/pull/160")
 def testDiscardUntrackedTree(tempDir, mainWindow):
     outerWd = unpackRepo(tempDir, renameTo="outer")
     innerWd = unpackRepo(tempDir, renameTo="inner")
@@ -172,6 +171,45 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
 
     assert not os.path.exists(innerWd)
     assert rw.repo.status() == {}
+
+
+@pytest.mark.skipif(WINDOWS or os.geteuid() == 0, reason="needs symlinks without special privileges, and a non-root user")
+def testDiscardUntrackedTreeKeepsSymlinkTargetPermissions(tempDir, monkeypatch):
+    # The read-only workaround must not chmod a file outside the tree through a symlink
+    from gitfourchette.tasks import indextasks
+    monkeypatch.setattr(indextasks, "WINDOWS", True)
+
+    outside = Path(tempDir.name, "outside.txt")
+    outside.write_text("hello")
+    outside.chmod(0o644)
+
+    readOnlyDir = Path(tempDir.name, "tree", "ro")
+    readOnlyDir.mkdir(parents=True)
+    (readOnlyDir / "link").symlink_to(outside)
+    readOnlyDir.chmod(0o555)
+
+    try:
+        with pytest.raises(PermissionError):
+            shutil.rmtree(readOnlyDir.parent, onexc=indextasks._removeReadOnly)
+    finally:
+        readOnlyDir.chmod(0o755)
+
+    assert outside.stat().st_mode & 0o777 == 0o644
+
+
+def testDiscardUntrackedTreeKeepsOtherErrors(tempDir, monkeypatch):
+    # On Windows, the read-only workaround must only handle "access denied"
+    from gitfourchette.tasks import indextasks
+    monkeypatch.setattr(indextasks, "WINDOWS", True)
+
+    path = Path(tempDir.name, "file.txt")
+    path.write_text("hello")
+    error = OSError("some other problem")
+
+    with pytest.raises(OSError, match="some other problem"):
+        indextasks._removeReadOnly(os.unlink, str(path), error)
+
+    assert path.exists()
 
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
