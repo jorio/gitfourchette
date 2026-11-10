@@ -155,7 +155,6 @@ def testUnstageModeChange(tempDir, mainWindow):
     assert rw.repo.index["a/a1.txt"].mode == FileMode.BLOB
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Try again on Windows with https://github.com/jorio/gitfourchette/pull/160")
 def testDiscardUntrackedTree(tempDir, mainWindow):
     outerWd = unpackRepo(tempDir, renameTo="outer")
     innerWd = unpackRepo(tempDir, renameTo="inner")
