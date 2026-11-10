@@ -54,12 +54,13 @@ class SessionContext:
         app = GFApplication.instance()
         app.mainWindow.close()
         app.mainWindow.deleteLater()
+        if WINDOWS:
+            releaseRepoHandles()
         waitUntilTrue(lambda: not app.mainWindow)
         app.endSession(clearTempDir=False)
         assert app.mainWindow is None
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: Try again on Windows with https://github.com/jorio/gitfourchette/pull/160")
 def testRestoreSession(tempDir, mainWindow):
     # ----------------------------------------------
     # Session 1
@@ -95,7 +96,7 @@ def testRestoreSession(tempDir, mainWindow):
     # ----------------------------------------------
     # Make one of the repos inaccessible
 
-    shutil.rmtree(f"{tempDir.name}/RepoCopy0003")
+    os.rename(f"{tempDir.name}/RepoCopy0003", f"{tempDir.name}/RepoCopy0003-gone")
 
     # ----------------------------------------------
     # Session 2

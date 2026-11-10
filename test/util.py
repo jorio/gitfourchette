@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import gc
 import os
 import re
 import shlex
@@ -673,6 +674,19 @@ def waitForQDialog[T: QDialog](
         except KeyError:
             return None
     return waitUntilTrue(tryFind, timeout=timeout)
+
+
+def releaseRepoHandles():
+    """Windows compat: Flush deferred deletes and GC so repo models let go of their file handles."""
+    app = GFApplication.instance()
+    for _i in range(100):
+        assert QThread.currentThread().loopLevel() == 0
+        app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QTest.qWait(0)
+        if 0 == gc.collect():
+            break
+    else:
+        warnings.warn("GC loop")
 
 
 def waitUntilTrue[T](

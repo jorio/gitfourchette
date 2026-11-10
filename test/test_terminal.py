@@ -89,7 +89,6 @@ def testTerminalCommandNotFound(tempDir, mainWindow):
     assert scratchLines[1].endswith(".sh")
 
 
-@pytest.mark.skipif(WINDOWS, reason="teardown fails on Windows")
 def testKickerScriptTamperProofing(tempDir, mainWindow, qtbot):
     scratch = f"{tempDir.name}/terminal scratch file.txt"
     shim = getShimCommand("editor.py", scratch, "$COMMAND")
