@@ -6,11 +6,10 @@
 
 from __future__ import annotations
 
-import gc
 import logging
 import os
+import sys
 import tempfile
-import warnings
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
@@ -163,10 +162,10 @@ def tempDir() -> Iterator[tempfile.TemporaryDirectory]:
 
 
 @pytest.fixture
-def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
+def mainWindow(request, qtbot: QtBot, caplog: pytest.LogCaptureFixture) -> Iterator[MainWindow]:
     from gitfourchette import qt, trash
     from gitfourchette.appconsts import APP_TESTMODE
-    from .util import waitUntilTrue
+    from .util import releaseRepoHandles, waitUntilTrue
 
     # Turn on test mode: Prevent loading/saving prefs; disable multithreaded work queue
     assert APP_TESTMODE
@@ -232,17 +231,15 @@ def mainWindow(request, qtbot: QtBot) -> Iterator[MainWindow]:
     app.mainWindow.close()
     app.mainWindow.deleteLater()
 
-    # Windows compat: Process deferred deletes now so repo models let go of their file handles
+    # Drop exceptions kept after the test: their frames reference repos, whose
+    # pack files Windows won't let us delete while pygit2 still has them open
+    sys.last_exc = sys.last_type = sys.last_value = sys.last_traceback = None
+    for when in ("setup", "call", "teardown"):
+        for record in caplog.get_records(when):
+            record.exc_info = None  # the formatted traceback stays in record.exc_text
+
     if qt.WINDOWS:
-        for _i in range(100):
-            assert qt.QThread.currentThread().loopLevel() == 0
-            app.sendPostedEvents(None, qt.QEvent.Type.DeferredDelete)
-            qt.QTest.qWait(0)
-            if 0 == gc.collect():
-                # if i > 0: warnings.warn(f"GC iterations: {i+1}")
-                break
-        else:
-            warnings.warn("GC loop")
+        releaseRepoHandles()
 
     # Wait for main window to die
     waitUntilTrue(lambda: not app.mainWindow)

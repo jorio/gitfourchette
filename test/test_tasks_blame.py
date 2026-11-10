@@ -633,8 +633,7 @@ def testBlameRenamedFileInWorkdir(tempDir, mainWindow, method):
         QTest.qWait(0)
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: colorTheme interferes with blameWindow teardown on Windows")
-def testBlameMissingRevisions(colorTheme, blameWindow):
+def testBlameMissingRevisions(tempDir, colorTheme, blameWindow):
     # A BlameLine may reference a commit that is missing from the revlist.
     # This may occur when blaming a workdir file during a merge in progress.
     # Arguably, the revlist building code should handle this case; but, until

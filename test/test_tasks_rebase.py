@@ -640,7 +640,6 @@ def testRebaseJumpToCommit(tempDir, mainWindow):
     rebaseDialog.close()
 
 
-@pytest.mark.skipif(WINDOWS, reason="TODO: teardown fails on Windows")
 def testRebaseCorruptInfo(tempDir, mainWindow):
     onto = Oid(hex="49322bb17d3acc9146f98c97d078513228bbf3c0")
     todo = [
