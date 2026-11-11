@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shlex
 from contextlib import suppress
 from pathlib import Path
@@ -20,6 +21,9 @@ from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.settings import prefs
 from gitfourchette.toolbox import *
+
+if WINDOWS:  # pragma: no cover
+    import ctypes
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +94,51 @@ def onExternalToolProcessError(parent: QWidget, prefKey: str,
         qmb.removeButton(browseButton)
 
     qmb.show()
+
+
+# Types that run when opened, yet AssocIsDangerous (Windows) or the exec bit (macOS) doesn't tell
+if WINDOWS:
+    _ExtraRunnableExtensions = {
+        ".sh", ".py", ".pyw", ".pyz", ".pyzw", ".pyc", ".jar",  # Git for Windows, Python, Java
+        ".application", ".appinstaller", ".appx", ".appxbundle", ".msix", ".msixbundle",  # app installers
+        ".diagcab", ".themepack", ".xbap",
+    }
+elif MACOS:
+    _ExtraRunnableExtensions = {".terminal", ".fileloc", ".jar"}
+else:
+    _ExtraRunnableExtensions = set()
+
+
+def windowsExtension(name: str) -> str:
+    """Extension of a file name as Windows reads it, e.g. ".bat" for "x.BAT ", ".bat" or "x.bat."."""
+    name = name.rstrip(". ")
+    dot = name.rfind(".")
+    return name[dot:].lower() if dot >= 0 else ""
+
+
+def isRunnableFile(path: str) -> bool:
+    """True if the OS would run this file instead of opening it."""
+    if WINDOWS:  # pragma: no cover
+        ext = windowsExtension(Path(path).name)
+        if not ext:  # Windows shows an app picker (but AssocIsDangerous("") says True)
+            return False
+        return ext in _ExtraRunnableExtensions or bool(ctypes.windll.shlwapi.AssocIsDangerous(ext))  # type: ignore[attr-defined]
+    return Path(path).suffix.lower() in _ExtraRunnableExtensions or os.access(path, os.X_OK)
+
+
+def editInSystemTextEditor(path: str) -> bool:
+    """Open a file in the OS's text editor without running it. False if the OS can't."""
+    if WINDOWS:  # pragma: no cover
+        # The "edit" verb opens scripts (.bat, .vbs, .ps1...) in Notepad; executables don't have one
+        return ctypes.windll.shell32.ShellExecuteW(None, "edit", path, None, None, 1) > 32  # type: ignore[attr-defined]
+    if MACOS:  # pragma: no cover
+        pathObj = Path(path)
+        if not pathObj.is_file():  # Not on .app bundles (folders): TextEdit shows an error
+            return False
+        with suppress(ChildProcessError):
+            ToolCommands.runSync("open", "-t", path, directory=str(pathObj.parent), strict=True)
+            return True
+    return False
 
 
 def setUpToolCommand(parent: QWidget, prefKey: str):
@@ -207,9 +256,14 @@ class ToolProcess(QProcess):
 
         command = getattr(prefs, prefKey, "").strip()
 
+        # Opening a file to edit it must never run it
         if not command and allowQDesktopFallback:
             for argument in positional:
-                QDesktopServices.openUrl(QUrl.fromLocalFile(argument))
+                if not isRunnableFile(argument):
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(argument))
+                elif not editInSystemTextEditor(argument):
+                    setUpToolCommand(parent, prefKey)
+                    break
             return None
 
         if not command:

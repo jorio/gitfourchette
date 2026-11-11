@@ -482,6 +482,54 @@ def testOpenFileInQDesktopServices(tempDir, mainWindow, locator):
         assert Path(url.toLocalFile()) == Path(wd, "a/a1.txt")
 
 
+@pytest.mark.parametrize("osCanEdit", [True, False])
+@pytest.mark.parametrize("name", [
+    "build.bat",
+    ".bat",
+    "setup.sh",
+    pytest.param("profile.terminal", marks=pytest.mark.skipif(not MACOS, reason="macOS only")),
+])
+def testDontOpenRunnableFileInQDesktopServices(tempDir, mainWindow, monkeypatch, name, osCanEdit):
+    from gitfourchette.exttools import toolprocess
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/{name}", "echo hello")
+    if not name.endswith(".terminal"):  # Terminal runs .terminal files without the exec bit
+        os.chmod(f"{wd}/{name}", 0o755)  # Windows goes by the extension instead
+
+    edited = []
+    monkeypatch.setattr(toolprocess, "editInSystemTextEditor", lambda path: edited.append(path) or osCanEdit)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(name), check=True)
+
+    with MockDesktopServicesContext() as services:
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), "edit in external editor")
+        assert not services.urls
+        assert [Path(p) for p in edited] == [Path(wd, name)]
+        if osCanEdit:
+            with pytest.raises(KeyError):
+                findQMessageBox(rw, r"text editor.+isn.t configured")
+        else:
+            rejectQMessageBox(rw, r"text editor.+isn.t configured")
+
+
+@pytest.mark.parametrize(["name", "ext"], [
+    ("build.bat", ".bat"),
+    ("BUILD.BAT", ".bat"),
+    (".bat", ".bat"),
+    ("evil.bat ", ".bat"),
+    ("evil.bat.", ".bat"),
+    ("notes.bat.txt", ".txt"),
+    ("evil.txt.bat", ".bat"),
+    ("archive.tar.gz", ".gz"),
+    ("Makefile", ""),
+])
+def testWindowsExtension(name, ext):
+    from gitfourchette.exttools.toolprocess import windowsExtension
+    assert windowsExtension(name) == ext
+
+
 @requiresFlatpak
 def testEditFileInMissingFlatpak(tempDir, mainWindow):
     GFApplication.applyPrefs(externalDiff="flatpak run org.gitfourchette.BogusEditorName $L $R")
