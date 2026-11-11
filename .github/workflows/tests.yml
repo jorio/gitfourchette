@@ -13,6 +13,8 @@ on:
       "linux-315-pyside6"  : {type: boolean, default: false}
       "macos-315-pyqt6"    : {type: boolean, default: false}
       "win32-315-pyqt6"    : {type: boolean, default: false}
+      "flatpak"            : {type: boolean, default: false}
+      "flatpakref"         : {required: false, default: "", description: "Leave blank to run tests in the current public Flatpak's environment, or pass an URL to a flatpakref (https://dl.flathub.org/build-repo/...flatpakref)"}
   push:
     branches-ignore: ['temp/**']
     paths-ignore: ['**.md', '**.po', '**.pot']
@@ -26,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
+      flatpak: ${{ steps.set.outputs.flatpak }}
+      flatpakref: ${{ steps.set.outputs.flatpakref }}
     env:
       WORKFLOW_INPUTS: ${{ toJson(inputs) }}
     steps:
@@ -46,8 +50,9 @@ jobs:
       - run: mypy
         if: '!cancelled()'  # run mypy even if ruff failed above
 
-  tests:
+  test-matrix:
     needs: prepare-matrix
+    if: ${{ needs.prepare-matrix.outputs.matrix != '' }}
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
     timeout-minutes: 30
@@ -89,3 +94,56 @@ jobs:
       with:
         path: coverage_html_report
         name: coverage_run${{ github.run_number }}_${{ matrix.name }}
+
+  flatpak:
+    needs: prepare-matrix
+    if: ${{ needs.prepare-matrix.outputs.flatpak == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      APP_FLATPAK_ID: "org.gitfourchette.gitfourchette"
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - id: get-date
+      run: echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - uses: actions/cache@v6
+      with:
+        path: |
+          ~/.local/share/flatpak
+          ~/.cache/gitfourchette__TEST_AS_FLATPAK_TEMP__/pip-cache
+          apt-cache.tar
+        key: flatpak-test-environment-${{ steps.get-date.outputs.date }}
+
+    - name: Prepare flatpak (APT)
+      run: |
+        # Extract APT cache if found, or enable APT package caching
+        printf 'binary::apt::APT::Keep-Downloaded-Packages "1";\n' | sudo tee -a /etc/apt/apt.conf
+        [ -f apt-cache.tar ] && sudo tar -Pxvf apt-cache.tar
+
+        sudo apt update
+        sudo apt install flatpak dbus-x11
+
+        # Save APT package cache
+        if [ ! -f apt-cache.tar ]; then sudo tar -Pcvf apt-cache.tar /var/cache/apt && sudo chown `whoami` apt-cache.tar; fi
+
+    - name: Install flatpak from last public release
+      if: ${{ needs.prepare-matrix.outputs.flatpakref == '' }}
+      run: |
+        flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak install --noninteractive --user flathub $APP_FLATPAK_ID
+        flatpak list
+
+    - name: Install custom flatpakref
+      if: ${{ needs.prepare-matrix.outputs.flatpakref != '' }}
+      run: |
+        flatpak install --noninteractive --user ${{ needs.prepare-matrix.outputs.flatpakref }}
+        flatpak list
+
+    - run: dbus-launch ./pkg/flatpak/test_as_flatpak.sh -v --color=yes --report-chars=fswE --with-network --with-fuse
+
+    # Uninstall Flatpak before caching
+    - run: flatpak uninstall --noninteractive --no-related --keep-ref --delete-data $APP_FLATPAK_ID || true

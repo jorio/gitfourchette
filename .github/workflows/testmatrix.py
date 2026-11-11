@@ -73,14 +73,24 @@ configMap = {c.name: c for c in configs}
 
 if os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch") != "workflow_dispatch":
     # Keep everything for pull_request, push, etc.
-    pass
+    flatpak = True
+    flatpakref = ""
 else:
     inputs = json.loads(os.environ["WORKFLOW_INPUTS"])
+
+    flatpak = inputs.pop("flatpak", False)
+    flatpakref = inputs.pop("flatpakref", "").strip()
+
     configs = [configMap[name] for name, enabled in inputs.items() if enabled]
 
 configs = [c.compile() for c in configs]
 
-if not configs:
+if not configs and not flatpak:
     raise ValueError("No configs selected in WORKFLOW_INPUTS!")
 
-print(f"matrix={json.dumps({'include': configs})}")
+print(f"flatpak={str(flatpak).lower()}")
+print(f"flatpakref={flatpakref}")
+if configs:
+    print(f"matrix={json.dumps({'include': configs})}")
+else:
+    print("matrix=")
