@@ -503,15 +503,17 @@ def testDontOpenRunnableFileInQDesktopServices(tempDir, mainWindow, monkeypatch,
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged(name), check=True)
 
+    blockedMessage = r"is an executable file.+please set an editor"
+
     with MockDesktopServicesContext() as services:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), "edit in external editor")
         assert not services.urls
         assert [Path(p) for p in edited] == [Path(wd, name)]
         if osCanEdit:
             with pytest.raises(KeyError):
-                findQMessageBox(rw, r"text editor.+isn.t configured")
+                findQMessageBox(rw, blockedMessage)
         else:
-            rejectQMessageBox(rw, r"text editor.+isn.t configured")
+            rejectQMessageBox(rw, blockedMessage)
 
 
 @pytest.mark.parametrize(["name", "ext"], [

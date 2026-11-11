@@ -141,12 +141,12 @@ def editInSystemTextEditor(path: str) -> bool:
     return False
 
 
-def setUpToolCommand(parent: QWidget, prefKey: str):
+def setUpToolCommand(parent: QWidget, prefKey: str, message: str = ""):
     translatedPrefKey = trtables.prefKey(prefKey)
 
     title = translatedPrefKey
 
-    message = _("{tool} isn’t configured in your settings yet.", tool=bquo(translatedPrefKey))
+    message = message or _("{tool} isn’t configured in your settings yet.", tool=bquo(translatedPrefKey))
 
     qmb = asyncMessageBox(parent, 'warning', title, message,
                           QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
@@ -258,12 +258,7 @@ class ToolProcess(QProcess):
 
         # Opening a file to edit it must never run it
         if not command and allowQDesktopFallback:
-            for argument in positional:
-                if not isRunnableFile(argument):
-                    QDesktopServices.openUrl(QUrl.fromLocalFile(argument))
-                elif not editInSystemTextEditor(argument):
-                    setUpToolCommand(parent, prefKey)
-                    break
+            cls._openWithQDesktopUnlessRunnable(parent, prefKey, positional)
             return None
 
         if not command:
@@ -322,3 +317,26 @@ class ToolProcess(QProcess):
             positional=[],
             directory=workdir,
             detached=True)
+
+    @classmethod
+    def _openWithQDesktopUnlessRunnable(cls, parent: QWidget, prefKey: str, paths: list[str]):
+        # Opening a file to edit it must never run it
+
+        for argument in paths:
+            if not isRunnableFile(argument):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(argument))
+                continue
+
+            if editInSystemTextEditor(argument):
+                continue
+
+            message = paragraphs(
+                _("You didn’t set an editor in {settings}, so {app} relies on "
+                  "your system to open files in the correct application."),
+                _("{file} is an executable file. Out of precaution, "
+                  "{app} won’t ask your system to open it. To edit it safely, "
+                  "please set an editor in {settings}."),
+            ).format(file=bquo(Path(argument).name), settings=_("Settings"), app=qAppName())
+            setUpToolCommand(parent, prefKey, message=message)
+            break
+
