@@ -14,7 +14,7 @@ from typing import Literal
 from gitfourchette.localization import *
 from gitfourchette.qt import *
 from gitfourchette.toolbox.excutils import shortenTracebackPath
-from gitfourchette.toolbox.qtutils import onAppThread, MakeNonNativeDialog
+from gitfourchette.toolbox.qtutils import onAppThread
 from gitfourchette.toolbox.textutils import stripHtml, ulify
 
 logger = logging.getLogger(__name__)
@@ -204,10 +204,6 @@ def asyncMessageBox(
 
     if deleteOnClose:
         qmb.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-
-    # macOS hacks to remove "modern" styling
-    if MACOS:
-        MakeNonNativeDialog(qmb)
 
     return qmb
 

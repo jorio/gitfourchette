@@ -301,28 +301,6 @@ class DisableWidgetUpdatesContext:
         return wrapper
 
 
-class MakeNonNativeDialog(QObject):  # pragma: no cover (macOS-specific)
-    """
-    Enables the AA_DontUseNativeDialogs attribute, and disables it when the dialog is shown.
-    Meant to be used to disable the iOS-like styling of dialog boxes on modern macOS.
-    """
-    def __init__(self, parent: QDialog):
-        super().__init__(parent)
-        nonNativeAlready = QCoreApplication.testAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs)
-        if nonNativeAlready:
-            self.deleteLater()
-            return
-        QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, True)
-        parent.installEventFilter(self)
-
-    def eventFilter(self, watched, event: QEvent):
-        if event.type() == QEvent.Type.Show:
-            QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeDialogs, False)
-            watched.removeEventFilter(self)
-            self.deleteLater()
-        return False
-
-
 class QScrollBackupContext:
     def __init__(self, *items: QAbstractScrollArea | QScrollBar):
         self.scrollBars: list[QScrollBar] = []
