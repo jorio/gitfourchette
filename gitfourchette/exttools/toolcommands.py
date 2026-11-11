@@ -461,8 +461,12 @@ class ToolCommands:
         _logger.info(f"Terminating process {process.program()} (PID {pid})")
 
         if not WINDOWS and customSignal > 0 and pid > 0:
-            os.kill(pid, customSignal)
-            return
+            try:
+                os.kill(pid, customSignal)
+                return
+            except ProcessLookupError as ex:
+                # Rarely, the process might have exited on its own just in time.
+                warnings.warn(f"ProcessLookupError while sending signal {customSignal} to {pid}: {ex}")
 
         process.terminate()
 
