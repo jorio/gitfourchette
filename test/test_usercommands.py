@@ -201,8 +201,7 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     action.trigger()
     acceptQMessageBox(rw, "do you want to run.+in a terminal.+shim.+")
 
-    waitForFile(commandsScratchFile)
-    output = readTextFile(commandsScratchFile).strip()
+    output = readTextFile(commandsScratchFile, wait=True).strip()
 
     if WINDOWS and any(x in params.menuName for x in (" dir", " path")):
         output = output.replace("\\", "/")
@@ -250,8 +249,7 @@ def testUserCommandWithoutConfirmation(tempDir, mainWindow, commandsScratchFile)
     QTest.qWait(0)
 
     triggerMenuAction(mainWindow.menuBar(), "commands/hello world")
-    waitForFile(commandsScratchFile, TIMEOUT)
-    output = readTextFile(commandsScratchFile).strip()
+    output = readTextFile(commandsScratchFile, wait=True, timeout=TIMEOUT).strip()
     assert re.search(r"hello world", output)
 
 
@@ -263,8 +261,7 @@ def testUserCommandForceConfirmation(tempDir, mainWindow, commandsScratchFile):
     for name in ["confirm1", "confirm2", "confirm3"]:
         triggerMenuAction(mainWindow.menuBar(), "commands/" + name)
         acceptQMessageBox(mainWindow, "do you want to run")
-        waitForFile(commandsScratchFile, TIMEOUT)
-        output = readTextFile(commandsScratchFile, unlink=True).strip()
+        output = readTextFile(commandsScratchFile, wait=True, unlink=True, timeout=TIMEOUT).strip()
         assert re.search(name, output)
 
 
@@ -282,8 +279,7 @@ def testUserCommandAcceleratorKeys(tempDir, mainWindow, commandsScratchFile):
 
     acceptQMessageBox(mainWindow, "do you want to run")
 
-    waitForFile(commandsScratchFile, TIMEOUT)
-    output = readTextFile(commandsScratchFile).strip()
+    output = readTextFile(commandsScratchFile, wait=True, timeout=TIMEOUT).strip()
     assert re.search(locHead.hash7, output)
 
 
@@ -295,7 +291,7 @@ def testUserCommandLeaderKeyShortcuts(tempDir, mainWindow, commandsScratchFile):
     QTest.keySequence(mainWindow, "Ctrl+K, D")
     acceptQMessageBox(mainWindow, "do you want to run")
 
-    waitForFile(commandsScratchFile, TIMEOUT)
+    readTextFile(commandsScratchFile, wait=True, timeout=TIMEOUT)
     output = readTextFile(commandsScratchFile).strip()
     assert re.search(locHead.hash7, output)
 
@@ -316,7 +312,6 @@ def testUserCommandHostileTokenSubstitution(tempDir, mainWindow, commandsScratch
     triggerMenuAction(mainWindow.menuBar(), "commands/file path")
     acceptQMessageBox(mainWindow, "do you want to run")
 
-    waitForFile(commandsScratchFile, TIMEOUT)
-    output = readTextFile(commandsScratchFile).strip()
+    output = readTextFile(commandsScratchFile, wait=True, timeout=TIMEOUT).strip()
     assert output == hostileFileName
     assert not Path(f"{wd}/gotcha").exists()

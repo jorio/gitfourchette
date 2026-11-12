@@ -221,8 +221,7 @@ def testTabBarActions(tempDir, mainWindow):
             assert services.urls[-1] == QUrl.fromLocalFile(wd)
 
         triggerMenuAction(menu, "open terminal")
-        waitForFile(scratchPath)
-        terminalShimResult = readTextFile(scratchPath, unlink=True).splitlines()
+        terminalShimResult = readTextFile(scratchPath, wait=True, unlink=True).splitlines()
         assert terminalShimResult[0] == "hello world"
         assert terminalShimResult[1].endswith(".sh")  # path to launcher script
 
@@ -236,8 +235,7 @@ def testTabBarActions(tempDir, mainWindow):
         menu.close()
         menu = getMenu(tabIndex)  # reload menu, and verify editor changed + is working.
         triggerMenuAction(menu, "open repo in editor.py")
-        waitForFile(scratchPath)
-        editorShimResult = readTextFile(scratchPath, unlink=True).splitlines()
+        editorShimResult = readTextFile(scratchPath, wait=True, unlink=True).splitlines()
         assert editorShimResult[0] == "hello world"  # ensure editor opens
         assert Path(wd).samefile(editorShimResult[1])
         GFApplication.applyPrefs(externalEditor="")  # revert to no external editor, for the next wd.

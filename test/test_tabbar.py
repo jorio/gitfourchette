@@ -109,8 +109,7 @@ def testTabSpecialClick(tempDir, mainWindow, click, action):
         elif action == TabBarClick.Folder:
             assert Path(wd).samefile(services.lastUrlAsLocalFile())
         elif action == TabBarClick.Terminal:
-            waitForFile(scratchPath)
-            scratchText = readTextFile(scratchPath, unlink=True)
+            scratchText = readTextFile(scratchPath, wait=True, unlink=True)
             assert "hello world" in scratchText
             assert "terminal" in scratchText
         else:

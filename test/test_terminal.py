@@ -18,8 +18,7 @@ def testTerminal(tempDir, mainWindow):
     _rw = mainWindow.openRepo(wd)
 
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
-    waitForFile(scratch)
-    scratchText = readTextFile(scratch)
+    scratchText = readTextFile(scratch, wait=True)
     scratchLines = scratchText.splitlines()
     assert scratchLines[0] == "hello world"
     assert scratchLines[1].endswith(".sh")  # launcher script
@@ -82,8 +81,7 @@ def testTerminalCommandNotFound(tempDir, mainWindow):
                       getTestDataPath("shims/editor.py") if not WINDOWS else shutil.which("PYTHON3.EXE"))
 
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
-    waitForFile(scratch)
-    scratchText = readTextFile(scratch)
+    scratchText = readTextFile(scratch, wait=True)
     scratchLines = scratchText.splitlines()
     assert scratchLines[0] == "hello world"
     assert scratchLines[1].endswith(".sh")
@@ -98,8 +96,7 @@ def testKickerScriptTamperProofing(tempDir, mainWindow, qtbot):
     _rw = mainWindow.openRepo(wd)
 
     triggerMenuAction(mainWindow.menuBar(), "repo/terminal")
-    waitForFile(scratch)
-    scratchText = readTextFile(scratch)
+    scratchText = readTextFile(scratch, wait=True)
     scratchLines = scratchText.splitlines()
 
     scriptPath = Path(scratchLines[0])  # Kicker script

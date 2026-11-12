@@ -518,12 +518,11 @@ def testMergeToolInBackground(tempDir, mainWindow):
     rw.jump(NavLocator.inUnstaged("SomeOtherFile.txt"), check=True)
 
     # Wait for the merge tool to complete in the background
-    waitForFile(scratchPath)
-    scratchLines = readTextFile(scratchPath).strip().splitlines()
+    scratchLines = readTextFile(scratchPath, wait=True).strip().splitlines()
     assert "[MERGED]" in scratchLines[0]
     assert "[OURS]" in scratchLines[1]
     assert "[THEIRS]" in scratchLines[2]
-    assert "merge complete!" == readTextFile(scratchLines[0]).strip()
+    assert "merge complete!" == readTextFile(scratchLines[0], wait=True).strip()
 
     # Switch back to the merge conflict
     rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
