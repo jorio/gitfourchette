@@ -417,8 +417,7 @@ def testOpenRevisionsInExternalEditor(tempDir, mainWindow):
     GFApplication.applyPrefs(externalEditor=editorCommand)
 
     def getRevisionPath():
-        waitForFile(scratchPath)
-        return readTextFile(scratchPath, unlink=True).strip()
+        return readTextFile(scratchPath, wait=True, unlink=True).strip()
 
     # Now open the file in our shim
     # Workdir revision
@@ -453,8 +452,7 @@ def testOpenFileInExternalDiffTool(tempDir, mainWindow):
 
     GFApplication.applyPrefs(externalDiff=editorCommand)
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in editor.py")
-    waitForFile(scratchPath)
-    scratchText = readFile(scratchPath, unlink=True).decode("utf-8")
+    scratchText = readFile(scratchPath, wait=True, unlink=True).decode("utf-8")
     assert "[OLD]b2@59706a1.txt" in scratchText
     assert "[NEW]b2@7f82283.txt" in scratchText
 
@@ -761,8 +759,7 @@ def testFileListSpecialClickActions(tempDir, mainWindow, click, action):
     elif action == FileListClick.Edit:
         assert Path(wd, "a", "a1.txt").samefile(services.lastUrlAsLocalFile())
     elif action == FileListClick.DiffTool:
-        waitForFile(scratchPath)
-        paths = readTextFile(scratchPath).strip().splitlines()
+        paths = readTextFile(scratchPath, wait=True).strip().splitlines()
         assert paths[0].endswith("[HEAD]a1@c9ed7bf.txt")
         assert paths[1].endswith("[STAGED]a1.txt")
     elif action == FileListClick.Folder:
@@ -885,8 +882,7 @@ def testConfirmBatchOperationManyFilesSelected(tempDir, mainWindow):
 
     # Make sure we've been able to open the diff tool on master.txt,
     # despite errors on the other files
-    waitForFile(scratchPath)
-    assert "master.txt" in readTextFile(scratchPath)
+    assert "master.txt" in readTextFile(scratchPath, wait=True)
 
 
 def testFileListNaturalSort(tempDir, mainWindow):

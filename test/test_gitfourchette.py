@@ -704,8 +704,7 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
 
     GFApplication.applyPrefs(externalDiff=editorCommand)
     triggerContextMenuAction(rw.committedFiles.viewport(), "open diff in pause")
-    waitForFile(scratchPath)
-    assert readTextFile(scratchPath).strip() == "about to sleep"
+    assert readTextFile(scratchPath, wait=True).strip() == "about to sleep"
     mainWindow.closeAllTabs()
     pause(3)
     assert readTextFile(scratchPath).strip() == "about to sleep"

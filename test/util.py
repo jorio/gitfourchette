@@ -376,30 +376,36 @@ def writeFile(path: str, text: str):
     pathObj.write_text(text, "utf-8")
 
 
-def readFile(path: str, unlink: bool = False) -> bytes:
+def readFile(
+        path: str,
+        unlink: bool = False,
+        wait: bool = False,
+        timeout: int = DEFAULT_TIMEOUT,
+) -> bytes:
     pathObj = Path(path)
-    data = pathObj.read_bytes()
 
-    if not unlink:
-        pass
-    elif not WINDOWS:
-        pathObj.unlink()
+    if wait:
+        data = waitUntilNoRaise(pathObj.read_bytes, OSError, timeout=timeout)
     else:
-        def tryUnlink():
-            try:
-                pathObj.unlink()
-                return True
-            except PermissionError as ex:  # typically still used by another process
-                warnings.warn(f"postponing unlink because: {ex}")
-                return False
+        data = pathObj.read_bytes()
 
-        waitUntilTrue(tryUnlink)
+    if unlink:
+        if not WINDOWS:
+            pathObj.unlink()
+        else:
+            waitUntilNoRaise(pathObj.unlink, OSError, timeout=timeout)
 
     return data
 
 
-def readTextFile(path: str, unlink: bool = False, convertCRLF: bool = True):
-    data = readFile(path, unlink=unlink)
+def readTextFile(
+        path: str,
+        unlink: bool = False,
+        wait: bool = False,
+        convertCRLF: bool = True,
+        timeout: int = DEFAULT_TIMEOUT,
+) -> str:
+    data = readFile(path, unlink=unlink, wait=wait, timeout=timeout)
     text = data.decode("utf-8")
     if WINDOWS and convertCRLF:
         text = text.replace("\r\n", "\n")
@@ -408,11 +414,6 @@ def readTextFile(path: str, unlink: bool = False, convertCRLF: bool = True):
 
 def readOidFile(path: str) -> Oid:
     return Oid(hex=readTextFile(path).strip())
-
-
-def waitForFile(path: str, timeout: int = DEFAULT_TIMEOUT):
-    pathObj = Path(path)
-    waitUntilTrue(lambda: pathObj.exists(), timeout=timeout)
 
 
 def fileHasUserExecutableBit(path: str) -> bool:
@@ -703,6 +704,27 @@ def waitUntilTrue[T](
             return result
         QTest.qWait(interval)
     raise TimeoutError(f"retry failed after {timeout} ms timeout")
+
+
+def waitUntilNoRaise[T, E](
+        callback: Callable[[], T],
+        exceptionType: type[E],
+        timeout: int = DEFAULT_TIMEOUT,
+        interval: int = 100,
+) -> T:
+    result = []
+
+    def attempt() -> bool:
+        try:
+            result.append(callback())
+            return True
+        except Exception as ex:
+            if isinstance(ex, exceptionType):
+                return False
+            raise ex from ex
+
+    waitUntilTrue(attempt, timeout=timeout, interval=interval)
+    return result[0]
 
 
 def waitForSignal(
