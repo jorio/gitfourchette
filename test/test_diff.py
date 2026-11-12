@@ -1304,3 +1304,63 @@ def testDiffReevaluateSearchTermAcrossDocuments(tempDir, mainWindow):
 
     rw.jump(loc3, check=True)
     waitUntilTrue(lambda: not searchBar.isRed())
+
+
+@pytest.mark.parametrize("patch, pairs", [
+    # Middle of a hunk
+    ("@@ -1,3 +1,3 @@\n ctx\n-old\n+new\n ctx\n", [(2, 3)]),
+    # End of the patch, with no context line after the change
+    ("@@ -1,2 +1,2 @@\n ctx\n-old\n+new\n", [(2, 3)]),
+    # Zero context lines: a hunk header ends a clump
+    ("@@ -1 +1 @@\n-a\n+A\n@@ -5 +5 @@\n-b\n+B\n", [(1, 2), (4, 5)]),
+    ("@@ -1 +1 @@\n-a\n+A\n@@ -5 +4,0 @@\n-b\n", [(1, 2)]),
+    # Two-line clump, then a one-line clump
+    ("@@ -1,4 +1,4 @@\n-a\n-b\n+A\n+B\n ctx\n-c\n+C\n", [(1, 3), (2, 4), (6, 7)]),
+    # Uneven clump, additions only
+    ("@@ -1,2 +1 @@\n-a\n-b\n+A\n", []),
+    ("@@ -1,0 +1 @@\n+new\n", []),
+])
+def testDoppelgangerPairs(mainWindow, patch, pairs):
+    from gitfourchette.diffview.diffdocument import DiffDocument, _doppelgangers
+
+    doc = DiffDocument.fromPatch(patch)
+    index = {id(ld): i for i, ld in enumerate(doc.lineData)}
+    assert [(index[id(a)], index[id(b)]) for a, b in _doppelgangers(doc.lineData)] == pairs
+
+
+@pytest.mark.parametrize("a, b, spansA, spansB", [
+    ("red", "blue", [(0, 1), (2, 3)], [(0, 3)]),
+    ("same", "same", [], []),
+    ("", "new", [], [(0, 3)]),
+    # Offsets count UTF-16 units: the emoji takes 2
+    ("\U0001F600 red", "\U0001F600 blue", [(3, 4), (5, 6)], [(3, 6)]),
+])
+def testChangedSpans(a, b, spansA, spansB):
+    from gitfourchette.diffview.diffdocument import _changedSpans
+    assert _changedSpans(a, b) == (spansA, spansB)
+
+
+@pytest.mark.parametrize("patch, minusHighlights, plusHighlights", [
+    # The last line gains a newline: the highlight stays on "red"/"blue".
+    # Comparing the raw text would make Qt warn "out of range" (see the qtlog check below).
+    ("@@ -1 +1 @@\n-color = red\n\\ No newline at end of file\n+color = blue\n", ["r", "d"], ["blu"]),
+    # Only the line ending changes: nothing is highlighted, not even the <CRLF> marker
+    ("@@ -1,2 +1,2 @@\n-color = red\n+color = red\r\n ctx\n", [], []),
+])
+def testDoppelgangerHighlightsIgnoreLineEndings(mainWindow, qtlog, monkeypatch, patch, minusHighlights, plusHighlights):
+    from gitfourchette.diffview.diffdocument import DiffDocument, DiffTextFormats
+    from gitfourchette.syntax import ColorScheme
+
+    monkeypatch.setattr(settings.prefs, "showStrayCRs", True)
+    DiffTextFormats.refresh(ColorScheme.fallbackScheme, colorblind=False)
+    doc = DiffDocument.fromPatch(patch)
+
+    def highlights(blockNumber, charFormat):
+        block = doc.document.findBlockByNumber(blockNumber)
+        return [block.text()[r.start: r.start + r.length] for r in block.textFormats()
+                if r.format.background() == charFormat.background()]
+
+    assert highlights(1, DiffTextFormats.doppelgangerDelCF) == minusHighlights
+    assert highlights(2, DiffTextFormats.doppelgangerAddCF) == plusHighlights
+    assert not [r for r in qtlog.records if "out of range" in r.message]
+

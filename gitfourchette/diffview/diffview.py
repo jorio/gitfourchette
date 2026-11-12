@@ -488,17 +488,17 @@ class DiffView(CodeView):
             end = i
             while end < len(ldList)-1 and ldList[end+1].hunkPos.hunkID == ld.hunkPos.hunkID:
                 end += 1
-        elif ld.clumpID < 0:
+        elif ld.origin not in ("-", "+"):
             # Context line
             QApplication.beep()
             return
         else:
-            # Get clump boundaries
+            # Get clump boundaries (run of adjacent -/+ lines)
             start = i
             end = i
-            while start > 0 and ldList[start-1].clumpID == ld.clumpID:
+            while start > 0 and ldList[start-1].origin in ("-", "+"):
                 start -= 1
-            while end < len(ldList)-1 and ldList[end+1].clumpID == ld.clumpID:
+            while end < len(ldList)-1 and ldList[end+1].origin in ("-", "+"):
                 end += 1
 
         startPosition = ldList[start].cursorStart

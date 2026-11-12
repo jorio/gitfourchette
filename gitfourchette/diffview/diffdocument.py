@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import difflib
+import itertools
 import re
 from bisect import bisect_left
 from collections.abc import Iterator
@@ -81,12 +82,6 @@ class LineData:
 
     cursorEnd: int = -1
     "Cursor position at end of line in QDocument."
-
-    clumpID: int = -1
-    "Which clump this line pertains to. 'Clumps' are groups of adjacent +/- lines."
-
-    doppelganger: int = -1
-    "Index of the doppelganger LineData in a perfectly even clump."
 
     trailerLength: int = 0
     "Stop highlighting the syntax past this column in the line."
@@ -214,9 +209,6 @@ class DiffDocument:
     def fromPatch(patch: str, maxLineLength=0) -> DiffDocument:
         lineData: list[LineData] = []
 
-        clumpID = 0
-        numLinesInClump = 0
-        perfectClumpTally = 0
         pluses = 0
         minuses = 0
 
@@ -268,23 +260,6 @@ class DiffDocument:
 
             hunkLineNum += 1
 
-            # Any lines that aren't +/- break up the current clump
-            if origin not in "+-" and numLinesInClump != 0:
-                # Process perfect clump (sum of + and - origins is 0)
-                if numLinesInClump > 0 and perfectClumpTally == 0:
-                    assert (numLinesInClump % 2) == 0, "line count should be even in perfect clumps"
-                    clumpStart = len(lineData) - numLinesInClump
-                    halfClump = numLinesInClump // 2
-                    for doppel1 in range(clumpStart, clumpStart + halfClump):
-                        doppel2 = doppel1 + halfClump
-                        lineData[doppel1].doppelganger = doppel2
-                        lineData[doppel2].doppelganger = doppel1
-
-                # Start new clump
-                clumpID += 1
-                numLinesInClump = 0
-                perfectClumpTally = 0
-
             ld = LineData(text=patch[pos+1:endPos],
                           hunkPos=DiffLinePos(hunkID, hunkLineNum),
                           origin=origin,
@@ -295,17 +270,11 @@ class DiffDocument:
                 assert ld.newLineNo == newLine
                 assert ld.oldLineNo == -1
                 newLine += 1
-                ld.clumpID = clumpID
-                numLinesInClump += 1
-                perfectClumpTally += 1
                 pluses += 1
             elif origin == '-':
                 assert ld.newLineNo == -1
                 assert ld.oldLineNo == oldLine
                 oldLine += 1
-                ld.clumpID = clumpID
-                numLinesInClump += 1
-                perfectClumpTally -= 1
                 minuses += 1
             else:
                 assert origin == " ", f"unknown origin: {origin.encode('unicode_escape')!r}"
@@ -373,20 +342,14 @@ class DiffDocument:
                 cf = defaultCF
 
             # Process line ending
-            trailer = ""
-            text = ld.text
-            if text.endswith("\r\n"):
-                text = text[:-2]
-                if showStrayCRs:
-                    trailer = "<CRLF>"
-            elif text.endswith("\n"):
-                text = text[:-1]
-            elif text.endswith("\r"):
-                text = text[:-1]
-                if showStrayCRs:
-                    trailer = "<CR>"
-            else:
+            text = _withoutLineEnding(ld.text)
+            lineEnding = ld.text[len(text):]
+            if not lineEnding:
                 trailer = _("<no newline at end of file>")
+            elif showStrayCRs and lineEnding != "\n":
+                trailer = "<CRLF>" if lineEnding == "\r\n" else "<CR>"
+            else:
+                trailer = ""
 
             # The code assumes there's exactly one QTextBlock for each LineData.
             # Don't let Qt split the line into multiple blocks if it contains
@@ -428,47 +391,11 @@ class DiffDocument:
         if self.pluses == 0 or self.minuses == 0:  # Don't bother if there can't be any doppelgangers
             return
 
-        doppelgangerBlocksQueue = []
-
-        for lineNumber, line in enumerate(self.lineData):
-            if line.doppelganger < 0:  # Skip lines without doppelgangers
-                continue
-
-            assert lineNumber != line.doppelganger, "line cannot be its own doppelganger"
-            assert line.origin in "+-", "line with doppelganger must have origin"
-            aheadOfDoppelganger = lineNumber < line.doppelganger
-
-            if aheadOfDoppelganger:
-                textA = line.text
-                textB = self.lineData[line.doppelganger].text
-                sm = difflib.SequenceMatcher(a=textA, b=textB)
-                blocks = sm.get_matching_blocks()
-                doppelgangerBlocksQueue.append(blocks)  # Set blocks aside for my doppelganger
-            else:
-                blocks = doppelgangerBlocksQueue.pop(0)  # Consume blocks set aside by my doppelganger
-
-            if line.origin == "-":
-                charFormat = DiffTextFormats.doppelgangerDelCF
-            else:
-                charFormat = DiffTextFormats.doppelgangerAddCF
-
-            cursorPos = line.cursorStart
-            oldBlockEnd = 0
-            for blockStart, blockEnd in _invertMatchingBlocks(blocks, useA=aheadOfDoppelganger):
-                assert blockStart >= oldBlockEnd
-
-                # Advance Qt cursor (UTF-16!) to new doppelganger block
-                cursorPos += qstringLength(line.text[oldBlockEnd: blockStart])
-                cursor.setPosition(cursorPos, QTextCursor.MoveMode.MoveAnchor)
-
-                # Move to end of doppelganger block and apply formatting
-                cursorPos += qstringLength(line.text[blockStart: blockEnd])
-                cursor.setPosition(cursorPos, QTextCursor.MoveMode.KeepAnchor)
-                cursor.setCharFormat(charFormat)
-
-                oldBlockEnd = blockEnd
-
-        assert not doppelgangerBlocksQueue, "should've consumed all doppelganger matching blocks!"
+        for minus, plus in _doppelgangers(self.lineData):
+            # Compare the text shown in the document (the last line may gain or lose its newline)
+            minusSpans, plusSpans = _changedSpans(_withoutLineEnding(minus.text), _withoutLineEnding(plus.text))
+            _highlightSpans(cursor, minus, minusSpans, DiffTextFormats.doppelgangerDelCF)
+            _highlightSpans(cursor, plus, plusSpans, DiffTextFormats.doppelgangerAddCF)
 
 
 def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Iterator[tuple[int, int]]:
@@ -482,3 +409,45 @@ def _invertMatchingBlocks(blockList: list[difflib.Match], useA: bool) -> Iterato
             yield px, x1
 
         px = x2
+
+
+def _withoutLineEnding(text: str) -> str:
+    """The part of a diff line that the document shows: no LF, CRLF or CR at the end."""
+    return text.removesuffix("\n").removesuffix("\r")
+
+
+def _doppelgangers(lineData: list[LineData]) -> Iterator[tuple[LineData, LineData]]:
+    """
+    Pair up the - and + lines of each clump (run of adjacent -/+ lines) that has as
+    many - lines as + lines. The n-th - line pairs with the n-th + line.
+    """
+    clumps = itertools.groupby(lineData, key=lambda ld: ld.origin in ("-", "+"))
+    for isClump, lines in clumps:
+        if not isClump:
+            continue
+        clump = list(lines)
+        minusLines = [ld for ld in clump if ld.origin == "-"]
+        plusLines = [ld for ld in clump if ld.origin == "+"]
+        if len(minusLines) == len(plusLines):
+            yield from zip(minusLines, plusLines, strict=True)
+
+
+def _changedSpans(a: str, b: str) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+    """
+    The parts of a and b that differ, as (start, end) offsets in UTF-16 units,
+    which is what QTextCursor counts in.
+    """
+    blocks = difflib.SequenceMatcher(a=a, b=b).get_matching_blocks()
+
+    def utf16Spans(text: str, useA: bool) -> list[tuple[int, int]]:
+        return [(qstringLength(text[:start]), qstringLength(text[:end]))
+                for start, end in _invertMatchingBlocks(blocks, useA)]
+
+    return utf16Spans(a, True), utf16Spans(b, False)
+
+
+def _highlightSpans(cursor: QTextCursor, line: LineData, spans: list[tuple[int, int]], charFormat: QTextCharFormat):
+    for start, end in spans:
+        cursor.setPosition(line.cursorStart + start, QTextCursor.MoveMode.MoveAnchor)
+        cursor.setPosition(line.cursorStart + end, QTextCursor.MoveMode.KeepAnchor)
+        cursor.setCharFormat(charFormat)
