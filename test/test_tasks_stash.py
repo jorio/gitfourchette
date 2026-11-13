@@ -299,6 +299,22 @@ def testApplyStash(tempDir, mainWindow, method):
     assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt"]
 
 
+def testApplyStashSeesChangesStagedOutsideApp(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    reposcenario.stashedChange(wd)
+    rw = mainWindow.openRepo(wd)
+
+    # Stage a change behind the app's back (e.g. from a terminal, with auto-refresh disabled)
+    writeFile(f"{wd}/newfile.txt", "staged outside the app\n")
+    shell("git add newfile.txt", wd)
+
+    menu = rw.sidebar.makeNodeMenu(rw.sidebar.findNodeByRef("stash@{0}"))
+    triggerMenuAction(menu, r"^apply")
+    with pytest.raises(KeyError):  # the prerequisite check must stop the task before the confirmation
+        rejectQMessageBox(rw, "apply the changes stashed")
+    acceptQMessageBox(rw, "you have staged changes")
+
+
 def testCancelApplyStash(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.stashedChange(wd)
