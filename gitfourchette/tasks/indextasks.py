@@ -372,16 +372,10 @@ class HardSolveConflicts(RepoTask):
         nukePaths = [f.path for f in files if f.isId0()]
 
         # Back up nuked files + THEIRS
-        if Trash.enabled():
-            backupList = nukePaths[:]
-            if not keepOurs:
-                backupList += keepPaths
-
-            for path in backupList:
-                try:
-                    Trash.instance().backupFile(self.repo.workdir, path)
-                except Trash.BackupSkipped as ex:
-                    logger.warning(f"Backup skipped: {ex}")
+        backupList = nukePaths[:]
+        if not keepOurs:
+            backupList += keepPaths
+        Trash.backupFiles(self.repo.workdir, backupList)
 
         self.epilog.effects |= TaskEffects.Workdir
 
