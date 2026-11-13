@@ -5,7 +5,6 @@
 # -----------------------------------------------------------------------------
 
 import os.path
-import time
 
 import pytest
 
@@ -336,7 +335,7 @@ def testCommitDatedOnAccept(tempDir, mainWindow):
     # Wait for next second before confirming.
     # The commit should be dated when the dialog is accepted, not when it was opened.
     QTest.qWait(1001)
-    acceptTime = int(time.time())
+    acceptTime = QDateTime.currentSecsSinceEpoch()
     dialog.accept()
 
     headCommit = rw.repo.head_commit
@@ -384,7 +383,7 @@ def testAmendAltersCommitterDate(tempDir, mainWindow):
     dialog: CommitDialog = findQDialog(rw, "amend")
     dialog.ui.summaryEditor.setText("hold on a sec...")
     QTest.qWait(1001)
-    acceptTime = int(time.time())
+    acceptTime = QDateTime.currentSecsSinceEpoch()
     dialog.accept()
 
     amendedHeadCommit = rw.repo.head_commit
@@ -752,6 +751,7 @@ def testCherrypickClearAuthorOverride(tempDir, mainWindow):
     rw.diffArea.commitButton.click()
     dialog = findQDialog(rw, "commit", t=CommitDialog)
     assert dialog.getOverriddenSignatureKind() == SignatureOverride.Author
+    assert dialog.ui.signature.ui.nameEdit.text() == "A U Thor"
     dialog.ui.revealSignature.setChecked(False)
     dialog.accept()
 
