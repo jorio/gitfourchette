@@ -31,6 +31,31 @@ from gitfourchette.toolbox import *
 logger = logging.getLogger(__name__)
 
 
+def readCommentString(task: RepoTask) -> RepoTask.Flow[str]:
+    """
+    The prefix git puts on comment lines in the files it writes for us,
+    such as MERGE_MSG, as set by core.commentChar/commentString.
+    """
+    # git turns an empty line into just the prefix
+    driver = yield from task.flowCallGit("stripspace", "--comment-lines", stdin="\n")
+    return driver.stdoutScrollback().rstrip("\r\n")
+
+
+def loadDraftFromMergeMsg(task: RepoTask, conflicts: bool) -> RepoTask.Flow[None]:
+    """
+    Prefill the commit dialog with the message that git prepared in
+    MERGE_MSG (merge, cherry-pick, revert), minus the hints git appends
+    when there are conflicts.
+    """
+    if conflicts:
+        prefix = yield from readCommentString(task)
+        draft = task.repo.message_without_conflict_comments(prefix)
+    else:
+        draft = task.repo.message.strip()
+    task.repoModel.prefs.draftCommitMessage = draft
+    task.repoModel.prefs.setDirty()
+
+
 class NewCommit(RepoTask):
     def prereqs(self):
         return TaskPrereqs.NoConflicts
@@ -529,7 +554,6 @@ class RevertCommit(RepoTask):
             _("You will have an opportunity to review the affected files in your working directory."))
         yield from self.flowConfirm(text=text)
 
-        repoModel = self.repoModel
         repo = self.repo
 
         self.epilog.effects |= TaskEffects.Workdir
@@ -563,8 +587,7 @@ class RevertCommit(RepoTask):
                      "that the current branch hasn’t already undone.", bquo(shortHash(oid)))
             raise AbortTask(info, "information")
 
-        repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
-        repoModel.prefs.setDirty()
+        yield from loadDraftFromMergeMsg(self, anyConflicts)
 
         self.epilog.jumpTo = NavLocator.inWorkdir()
 
@@ -625,7 +648,7 @@ class CherrypickCommit(RepoTask):
                      "that the current branch doesn’t already have.", bquo(shortHash(oid)))
             raise AbortTask(info, "information")
 
-        self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
+        yield from loadDraftFromMergeMsg(self, anyConflicts)
         self.repoModel.prefs.draftCommitSignature = commit.author
         self.repoModel.prefs.draftCommitSignatureOverride = SignatureOverride.Author
         self.repoModel.prefs.setDirty()

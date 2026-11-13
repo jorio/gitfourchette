@@ -877,14 +877,26 @@ class Repo(_VanillaRepository):
 
         return staged_paths
 
-    @property
-    def message_without_conflict_comments(self) -> str:
-        message = self.message
-        clean_message = ""
-        for line in message.splitlines(keepends=True):
-            if not line.startswith('#'):
-                clean_message += line
-        return clean_message.strip()
+    def message_without_conflict_comments(self, comment_string: str) -> str:
+        """
+        MERGE_MSG without the hints that git appends to it on conflicts
+        (scissors line, "Conflicts:" block). The rest is kept verbatim:
+        the user's own lines may start with the comment string too.
+        """
+        markers = (f"{comment_string} Conflicts:", f"{comment_string} ------------------------ >8 ------------------------")
+        # Not splitlines(), which also breaks on U+2028 etc. (git writes paths as is in the "Conflicts:" block)
+        lines = self.message.rstrip("\n").split("\n")
+
+        # git appends its hints at the very end, so only look among the trailing comment lines
+        # (a picked message's own "Conflicts:" block is kept if a blank line separates it from git's).
+        # shortcut: without a final newline in the picked message, git's block follows the user's
+        # trailing block directly and both are cut; revisit if anyone runs into it.
+        start = len(lines)
+        while start > 0 and lines[start - 1].startswith(comment_string.rstrip()):
+            start -= 1
+
+        end = next((i for i in range(start, len(lines)) if lines[i].rstrip() in markers), len(lines))
+        return "\n".join(lines[:end]).strip()
 
     # -------------------------------------------------------------------------
     # Config parsers ("listall" APIs)

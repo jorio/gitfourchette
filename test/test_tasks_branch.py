@@ -1035,6 +1035,7 @@ def testAbortMerge(tempDir, mainWindow):
     assert re.search(r"all conflicts fixed", rw.mergeBanner.label.text(), re.IGNORECASE)
     assert re.search(r"abort", rw.mergeBanner.buttons[-1].text(), re.IGNORECASE)
     assert rw.repoModel.prefs.draftCommitMessage.startswith("Merge branch 'pep8-fixes'")
+    assert rw.repoModel.prefs.isDirty()
 
     # Abort the merge
     rw.mergeBanner.buttons[-1].click()

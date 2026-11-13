@@ -14,6 +14,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.tasks.committasks import loadDraftFromMergeMsg
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskPrereqs, TaskEffects
 from gitfourchette.toolbox import *
 
@@ -644,7 +645,7 @@ class MergeBranch(RepoTask):
                 raise AbortTask.fromGitError(driver)
 
         if wantMergeCommit:
-            self.repoModel.prefs.draftCommitMessage = self.repo.message_without_conflict_comments
+            yield from loadDraftFromMergeMsg(self, driver.exitCode() != 0)
 
 
 class RecallCommit(RepoTask):

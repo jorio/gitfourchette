@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import shlex
 
 import pytest
 
@@ -13,6 +14,7 @@ from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
@@ -708,6 +710,24 @@ def testRevertCommit(tempDir, mainWindow):
     assert rw.repo.state() == RepositoryState.REVERT
 
 
+@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 37), reason=f"git {GitDriver.gitVersionTuple()} too old (no revert.reference)")
+def testRevertKeepsReferencePlaceholderTitle(tempDir, mainWindow):
+    # With revert.reference, git asks the user to replace this title, and commits it as is otherwise
+    wd = unpackRepo(tempDir)
+    shell("git config revert.reference true", wd)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")))
+    triggerContextMenuAction(rw.graphView.viewport(), "revert")
+    acceptQMessageBox(rw, "do you want to revert")
+    acceptQMessageBox(rw, "reverting.+c9ed7bf.+successful")
+
+    commitDialog: CommitDialog = rw.findChild(CommitDialog)
+    title = commitDialog.ui.summaryEditor.text()
+    commitDialog.reject()  # before asserting, so a failure doesn't leave the dialog open
+    assert title == "# *** SAY WHY WE ARE REVERTING ON THE TITLE LINE ***"
+
+
 def testRevertCommitDud(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -858,6 +878,90 @@ def testCherrypickWithConflicts(tempDir, mainWindow):
     assert rw.repo.head_commit.message.strip() == "commit to provoke a conflict"
     assert rw.repo.head_commit.author.name.startswith("Victor")
     assert rw.repo.head_commit.committer.name == TEST_SIGNATURE.name
+
+
+@pytest.mark.parametrize("conflict, config", [
+    (False, ""),
+    (True, ""),
+    (True, "core.commentChar=;"),
+    (True, "core.commentString=//"),
+    (True, "core.commentString=# "),  # the prefix may end with a space
+    (True, "commit.cleanup=scissors"),  # git cuts at the scissors line instead of "Conflicts:"
+])
+def testCherrypickKeepsHashLinesInMessage(tempDir, mainWindow, conflict, config):
+    # Some tools leave their own "Conflicts:" block in commit messages; only git's block at the end is cut
+    message = "Fix thing\n\n#123 was the root cause\n\n# Conflicts:\n#\tother.txt\n\nSigned-off-by: Somebody <somebody@example.com>"
+    wd = unpackRepo(tempDir)
+    writeFile(f"{tempDir.name}/message.txt", message + "\n")
+    shell(f"""
+        git switch -c side
+        echo side > master.txt
+        git commit -a -F {shlex.quote(tempDir.name + "/message.txt")}
+        git switch -
+    """, wd)
+    if conflict:
+        shell("echo ours > master.txt && git commit -am ours", wd)
+    if config:
+        key, value = config.split("=")
+        shell(f"git config {key} '{value}'", wd)
+
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo.branches.local["side"].target
+    rw.jump(NavLocator.inCommit(oid))
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply")
+    assert rw.repo.state() == RepositoryState.CHERRYPICK
+    assert ("\tmaster.txt" in rw.repo.message) == conflict  # git lists the conflicting file in its own block
+    assert rw.repoModel.prefs.draftCommitMessage == message
+
+    if conflict:
+        rw.diffArea.conflictView.ui.theirsButton.click()
+        acceptQMessageBox(rw, "accept their")
+
+    rw.diffArea.commitButton.click()
+    findQDialog(rw, "commit", t=CommitDialog).accept()
+    assert rw.repo.head_commit.message.strip() == message
+
+
+def testCherrypickWithoutConflictsKeepsTrailingConflictsBlock(tempDir, mainWindow):
+    # git only appends its hints on conflicts, so a block at the end of a clean pick is the user's
+    message = "Fix thing\n\n# Conflicts:\n#\tother.txt"
+    wd = unpackRepo(tempDir)
+    writeFile(f"{tempDir.name}/message.txt", message + "\n")
+    shell(f"""
+        git switch -c side
+        echo side > master.txt
+        git commit -a -F {shlex.quote(tempDir.name + "/message.txt")}
+        git switch -
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.branches.local["side"].target))
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply")
+    assert rw.repo.state() == RepositoryState.CHERRYPICK
+    assert rw.repoModel.prefs.draftCommitMessage == message
+
+
+def testCherrypickConflictInFileWithLineSeparatorInName(tempDir, mainWindow):
+    # git lists the path in MERGE_MSG's "Conflicts:" block as is, and U+2028 is valid in a path,
+    # but str.splitlines() would break that line in two
+    wd = unpackRepo(tempDir)
+    path = f"{wd}/a\u2028b.txt"
+    writeFile(path, "base\n")
+    shell("git add -A && git commit -m base && git switch -c side", wd)
+    writeFile(path, "side\n")
+    shell("git commit -am side && git switch -", wd)
+    writeFile(path, "ours\n")
+    shell("git commit -am ours", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.branches.local["side"].target))
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply")
+    assert rw.repo.state() == RepositoryState.CHERRYPICK
+    assert "\ta\u2028b.txt" in rw.repo.message
+    assert rw.repoModel.prefs.draftCommitMessage == "side"
 
 
 def testCherrypickEditAuthor(tempDir, mainWindow):
