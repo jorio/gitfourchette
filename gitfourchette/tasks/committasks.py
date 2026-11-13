@@ -93,8 +93,8 @@ class NewCommit(RepoTask):
         yield from self.flowDialog(cd, abortTaskIfRejected=False)
 
         message = cd.getFullMessage()
-        author = cd.getOverriddenAuthorSignature() or fallbackSignature
-        committer = cd.getOverriddenCommitterSignature() or fallbackSignature
+        author = cd.getOverriddenAuthorSignature()
+        committer = cd.getOverriddenCommitterSignature()
         overriddenSignatureKind = cd.getOverriddenSignatureKind()
         signatureIsOverridden = overriddenSignatureKind != SignatureOverride.Nothing
         explicitGpgSign = cd.ui.gpg.explicitSign()
@@ -169,9 +169,10 @@ class NewCommit(RepoTask):
                 f"GIT_{infix}_DATE": f"{sig.time}{formatTimeOffset(sig.offset)}",
             }
 
-        # Git ignores GIT_AUTHOR_* when amending or concluding a cherrypick
-        # unless we pass --reset-author.
-        resetAuthor = bool(author and (amend or repositoryState == RepositoryState.CHERRYPICK))
+        # Git keeps the original author when amending or concluding a cherrypick
+        # unless we pass --reset-author. A cherrypick without an author override
+        # is concluded with the user as the author, as CommitDialog shows.
+        resetAuthor = repositoryState == RepositoryState.CHERRYPICK or (amend and author is not None)
 
         args = [
             "-c", "core.abbrev=no",
@@ -251,8 +252,8 @@ class AmendCommit(RepoTask):
         if cd.result() == QDialog.DialogCode.Rejected:
             raise AbortTask()
 
-        author = cd.getOverriddenAuthorSignature()  # no "or fallback" here - leave author intact for amending
-        committer = cd.getOverriddenCommitterSignature() or fallbackSignature
+        author = cd.getOverriddenAuthorSignature()
+        committer = cd.getOverriddenCommitterSignature()
         explicitGpgSign = cd.ui.gpg.explicitSign()
         explicitNoGpgSign = cd.ui.gpg.explicitNoSign()
         explicitNoVerify = cd.ui.hookButton.explicitNoVerify()

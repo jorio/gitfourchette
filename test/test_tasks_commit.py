@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import os.path
+import time
 
 import pytest
 
@@ -16,6 +17,7 @@ from gitfourchette.forms.signatureform import SignatureOverride
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.toolbox import escape, signatureDateFormat
 from . import reposcenario
 from .util import *
 
@@ -320,7 +322,7 @@ def testCommitWithoutUserIdentity(tempDir, mainWindow):
     assert headCommit.author.email == "1e15sabords@example.com"
 
 
-def testCommitStableDate(tempDir, mainWindow):
+def testCommitDatedOnAccept(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
     rw = mainWindow.openRepo(wd)
@@ -332,13 +334,43 @@ def testCommitStableDate(tempDir, mainWindow):
     dialog.ui.summaryEditor.setText("hold on a sec...")
 
     # Wait for next second before confirming.
-    # Commit time should not depend on when the dialog is accepted.
+    # The commit should be dated when the dialog is accepted, not when it was opened.
     QTest.qWait(1001)
+    acceptTime = int(time.time())
     dialog.accept()
 
     headCommit = rw.repo.head_commit
     assert headCommit.message == "hold on a sec...\n"
     assert signatures_equalish(headCommit.author, headCommit.committer)
+    assert headCommit.author.time >= acceptTime
+
+
+def testCommitDialogPreviewOmitsDateSetByGit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    headAuthor = rw.repo.head_commit.author
+
+    rw.diffArea.commitButton.click()
+    acceptQMessageBox(rw, "empty commit")
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    dateText = escape(signatureDateFormat(dialog.originalAuthorSignature))
+    toolTip = dialog.ui.signatureButton.toolTip()
+    assert TEST_SIGNATURE.name in toolTip
+    assert dateText not in toolTip  # git sets the dates when it makes the commit
+
+    # Overriding the author shows the date that will be used (for the author only)
+    dialog.ui.revealSignature.setChecked(True)
+    toolTip = dialog.ui.signatureButton.toolTip()
+    assert toolTip.count(dateText) == 1
+    dialog.reject()
+
+    # Amending keeps the original author date
+    triggerMenuAction(rw.diffArea.commitButton.menu(), "amend")
+    dialog = findQDialog(rw, "amend", t=CommitDialog)
+    toolTip = dialog.ui.signatureButton.toolTip()
+    assert escape(signatureDateFormat(headAuthor)) in toolTip
+    assert escape(signatureDateFormat(dialog.originalCommitterSignature)) not in toolTip
+    dialog.reject()
 
 
 def testAmendAltersCommitterDate(tempDir, mainWindow):
@@ -351,6 +383,8 @@ def testAmendAltersCommitterDate(tempDir, mainWindow):
 
     dialog: CommitDialog = findQDialog(rw, "amend")
     dialog.ui.summaryEditor.setText("hold on a sec...")
+    QTest.qWait(1001)
+    acceptTime = int(time.time())
     dialog.accept()
 
     amendedHeadCommit = rw.repo.head_commit
@@ -360,7 +394,7 @@ def testAmendAltersCommitterDate(tempDir, mainWindow):
     assert not signatures_equalish(amendedHeadCommit.author, amendedHeadCommit.committer)
     assert amendedHeadCommit.author.name != TEST_SIGNATURE.name
     assert amendedHeadCommit.committer.name == TEST_SIGNATURE.name
-    assert amendedHeadCommit.committer.time > amendedHeadCommit.author.time
+    assert amendedHeadCommit.committer.time >= acceptTime
 
 
 def testCommitDialogJumpsToWorkdir(tempDir, mainWindow):
@@ -702,6 +736,28 @@ def testCherrypickEditAuthor(tempDir, mainWindow):
     assert headCommit.author.email == "someone.else@example.com"
     assert headCommit.author.time == QDateTime19991231.toSecsSinceEpoch()
     assert headCommit.committer.name == TEST_SIGNATURE.name
+
+
+def testCherrypickClearAuthorOverride(tempDir, mainWindow):
+    oid = Oid(hex='ac7e7e44c1885efb472ad54a78327d66bfc4ecef')  # "First a/a1"
+
+    wd = unpackRepo(tempDir)
+    shell("git switch no-parent", wd)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(oid))
+    triggerContextMenuAction(rw.graphView.viewport(), "cherry")
+    acceptQMessageBox(rw, "do you want to apply.+changes from.+ac7e7e4")
+
+    rw.diffArea.commitButton.click()
+    dialog = findQDialog(rw, "commit", t=CommitDialog)
+    assert dialog.getOverriddenSignatureKind() == SignatureOverride.Author
+    dialog.ui.revealSignature.setChecked(False)
+    dialog.accept()
+
+    headCommit = rw.repo.head_commit
+    assert headCommit.author.name == TEST_SIGNATURE.name
+    assert signatures_equalish(headCommit.author, headCommit.committer)
 
 
 def testCherrypickDud(tempDir, mainWindow):

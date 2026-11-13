@@ -37,6 +37,7 @@ class CommitDialog(QDialog):
 
         self.originalAuthorSignature = authorSignature
         self.originalCommitterSignature = committerSignature
+        self.isAmending = bool(amendingCommitHash)
 
         self.ui = Ui_CommitDialog()
         self.ui.setupUi(self)
@@ -175,25 +176,34 @@ class CommitDialog(QDialog):
             return None
 
     def refreshSignaturePreview(self):
-        def formatSignatureForToolTip(sig: Signature):
+        def formatSignatureForToolTip(sig: Signature, showDate: bool):
             if sig is None:
                 return "???"
-            dateText = signatureDateFormat(sig)
-            return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
+            text = f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;"
+            if showDate:
+                text += f"<br><small>{escape(signatureDateFormat(sig))}</small>"
+            return text
 
-        author = self.getOverriddenAuthorSignature() or self.originalAuthorSignature
-        committer = self.getOverriddenCommitterSignature() or self.originalCommitterSignature
+        overriddenAuthor = self.getOverriddenAuthorSignature()
+        overriddenCommitter = self.getOverriddenCommitterSignature()
+        author = overriddenAuthor or self.originalAuthorSignature
+        committer = overriddenCommitter or self.originalCommitterSignature
+
+        # Git dates a signature that isn't overridden when it makes the commit,
+        # so we can't show that date yet. Amending keeps the original author date.
+        showAuthorDate = overriddenAuthor is not None or self.isAmending
+        showCommitterDate = overriddenCommitter is not None
 
         muted = mutedToolTipColorHex()
 
         tt = "<p style='white-space: pre'>"
         tt += f"<span style='color: {muted}'>" + _("Authored by:") + "</span> "
-        tt += formatSignatureForToolTip(author)
+        tt += formatSignatureForToolTip(author, showAuthorDate)
         if not signatures_equalish(author, self.originalAuthorSignature):
             tt += "\n<span style='font-weight: bold'>" + _("(overridden manually)") + "</span>"
 
         tt += f"\n\n<span style='color: {muted}'>" + _("Committed by:") + "</span> "
-        tt += formatSignatureForToolTip(committer)
+        tt += formatSignatureForToolTip(committer, showCommitterDate)
         if not signatures_equalish(committer, self.originalCommitterSignature):
             tt += "\n<span style='font-weight: bold'>" + _("(overridden manually)") + "</span>"
 
