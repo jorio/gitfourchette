@@ -61,9 +61,6 @@ class DiffLinePos:
     -1 means the hunk header line itself ("@@ ... @@").
     """
 
-    def isHunkHeaderLine(self) -> bool:
-        return self.hunkLineNum == -1
-
 
 @dataclass
 class LineData:
@@ -73,7 +70,9 @@ class LineData:
     hunkPos: DiffLinePos
     "Which hunk this line pertains to, and its position in the hunk."
 
-    origin: str = ""
+    origin: str
+    "First character of the line in the patch: ' ', '+', '-', or '@' for the hunk header."
+
     oldLineNo: int = -1
     newLineNo: int = -1
 
@@ -105,8 +104,12 @@ class LineData:
     def _hunkIDKey(self) -> int:
         return self.hunkPos.hunkID
 
+    @property
+    def isHunkHeader(self) -> bool:
+        return self.origin == "@"
+
     def parseHunkHeader(self) -> tuple[int, int, int, int, str]:
-        assert self.hunkPos.hunkLineNum == -1
+        assert self.isHunkHeader
         return _parseHunkHeader(self.text)
 
     @property
@@ -243,7 +246,7 @@ class DiffDocument:
 
                 hunkID += 1
                 hunkLineNum = -1
-                hunkHeaderLD = LineData(text=rawLine, hunkPos=DiffLinePos(hunkID, -1),
+                hunkHeaderLD = LineData(text=rawLine, hunkPos=DiffLinePos(hunkID, -1), origin="@",
                                         oldLineNo=oldLine, newLineNo=newLine)
                 lineData.append(hunkHeaderLD)
                 continue
@@ -327,14 +330,13 @@ class DiffDocument:
 
         for ld in self.lineData:
             # Decide block format & character format
-            origin = ld.origin
-            if not origin:
+            if ld.isHunkHeader:
                 bf = DiffTextFormats.hunkBF
                 cf = DiffTextFormats.hunkCF
-            elif origin == '+':
+            elif ld.origin == '+':
                 bf = DiffTextFormats.addBF
                 cf = defaultCF
-            elif origin == '-':
+            elif ld.origin == '-':
                 bf = DiffTextFormats.delBF
                 cf = defaultCF
             else:
@@ -421,7 +423,7 @@ def _doppelgangers(lineData: list[LineData]) -> Iterator[tuple[LineData, LineDat
     Pair up the - and + lines of each clump (run of adjacent -/+ lines) that has as
     many - lines as + lines. The n-th - line pairs with the n-th + line.
     """
-    clumps = itertools.groupby(lineData, key=lambda ld: ld.origin in ("-", "+"))
+    clumps = itertools.groupby(lineData, key=lambda ld: ld.origin in "+-")
     for isClump, lines in clumps:
         if not isClump:
             continue

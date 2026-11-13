@@ -66,7 +66,7 @@ class DiffGutter(CodeGutter):
                 break
 
             ld = diffView.lineData[blockNumber]
-            if ld.origin:
+            if not ld.isHunkHeader:
                 # Draw line numbers
                 old = str(ld.oldLineNo) if ld.oldLineNo > 0 else noOldPlaceholder
                 new = str(ld.newLineNo) if ld.newLineNo > 0 else noNewPlaceholder
