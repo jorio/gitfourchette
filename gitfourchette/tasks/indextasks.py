@@ -848,6 +848,12 @@ class AbortMerge(RepoTask):
         yield from self.flowConfirm(title=title, text=paragraphs(*lines), verb=englishTitleCase(title),
                                     detailList=[escape(f) for f in abortList])
 
+        # Back up conflicted files: they may contain a resolution the user started by hand.
+        # Files merged without conflicts aren't backed up; running the merge again brings them back.
+        conflicts = self.repo.index.conflicts or []
+        conflictPaths = [(ours or theirs or ancestor).path for ancestor, ours, theirs in conflicts]
+        Trash.backupFiles(self.repo.workdir, conflictPaths)
+
         self.epilog.effects |= TaskEffects.DefaultRefresh
 
         yield from self.flowCallGit(*gitCommand)
