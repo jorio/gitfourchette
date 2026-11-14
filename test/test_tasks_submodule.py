@@ -17,6 +17,7 @@ from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
 from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
+from gitfourchette.tasks import repotask
 from . import reposcenario
 from .test_tasks_stage import doStage, doDiscard
 from .util import *
@@ -160,6 +161,20 @@ def testSubmoduleDeletedDiff(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(subDelId, path="submodir"))
     assert rw.specialDiffView.isVisibleTo(rw)
     assert qteFind(rw.specialDiffView, r"submodule.+submo.+(deleted|removed)")
+
+
+def testDiscardSubmodulesExceedingCommandLineLimit(tempDir, mainWindow, monkeypatch):
+    wd = unpackRepo(tempDir)
+    subWd, _ = reposcenario.submodule(wd)
+    writeFile(f"{subWd}/master.txt", "changed\n")
+    # 'git submodule update' can't read pathspecs from stdin, so their length is capped
+    monkeypatch.setattr(repotask, "PATHSPEC_ARGS_MAX_LENGTH", 5)
+
+    rw = mainWindow.openRepo(wd)
+    rw.dirtyFiles.selectAll()
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "select fewer submodules")
+    assert readTextFile(f"{subWd}/master.txt") == "changed\n"
 
 
 # Note: 2.34.1 fails, and 2.41 passes; I haven't tested any versions in between

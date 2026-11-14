@@ -21,7 +21,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
+from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, pathspecsFitCommandLine
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
 
@@ -40,6 +40,18 @@ def _removeReadOnly(func, path, exc):
         raise exc
     os.chmod(path, stat.S_IWRITE)
     func(path)
+
+
+def deleteUntrackedFiles(repo: Repo, paths: list[str]):
+    # Instead of 'git clean', which can't read a long path list from stdin
+    for path in paths:
+        fullPath = repo.in_workdir(path)
+        try:
+            os.unlink(fullPath)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            _removeReadOnly(os.unlink, fullPath, exc)
 
 
 class _BaseStagingTask(RepoTask):
@@ -153,6 +165,10 @@ class DiscardFiles(_BaseStagingTask):
         submoPaths = [d.new.path for d in deltas if d.isSubtreeCommitPatch()]
         numSubmos = len(submoPaths)
 
+        # 'git submodule update' can't read pathspecs from stdin
+        if not pathspecsFitCommandLine(GitDriver.literalPathspecs(submoPaths)):
+            raise AbortTask(_("Please select fewer submodules."))
+
         if len(deltas) == 1:
             delta = deltas[0]
             bpath = bquo(delta.new.path)
@@ -208,8 +224,7 @@ class DiscardFiles(_BaseStagingTask):
             assert os.path.isdir(untrackedTreePath)
             shutil.rmtree(untrackedTreePath, onexc=_removeReadOnly)
 
-        if untrackedFiles:
-            yield from self.flowCallGit("clean", "--force", pathspecs=untrackedFiles)
+        deleteUntrackedFiles(self.repo, untrackedFiles)
         if tracked:
             yield from self.flowCallGit("checkout", pathspecs=tracked)
 

@@ -13,6 +13,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.tasks.indextasks import deleteUntrackedFiles
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, TaskPrereqs
 from gitfourchette.toolbox import *
 from gitfourchette.trash import Trash
@@ -134,8 +135,7 @@ class NewStash(RepoTask):
 
         # Clean untracked files
         cleanPaths = [p for p in paths if status[p] == FileStatus.WT_NEW]
-        if cleanPaths:
-            yield from self.flowCallGit("clean", "--force", pathspecs=cleanPaths)
+        deleteUntrackedFiles(self.repo, cleanPaths)
 
         # Restore other files
         restorePaths = [p for p in paths if p not in cleanPaths]

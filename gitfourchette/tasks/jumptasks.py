@@ -75,7 +75,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
             unstagedTable = {d.new.path: d for d in unstagedDeltas}
 
             checkAttrDriver = yield from task.flowCallGit(
-                "check-attr", "-z", "filter", "--", *unstagedTable.keys())
+                "check-attr", "-z", "--stdin", "filter", stdin="\0".join(unstagedTable.keys()))
 
             # Can't use stdoutTable because all fields are zero-separated.
             tokens = checkAttrDriver.stdoutScrollback().removesuffix("\0").split("\0")

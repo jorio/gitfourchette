@@ -306,6 +306,40 @@ def testBracketsInFileNameMatchOnlyThatFile(tempDir, mainWindow, action):
     assert rw.repo.status() == expected
 
 
+@pytest.mark.parametrize("action", ["stage", "unstage", "discard", "discardUntracked"])
+def testManyFilesExceedingWindowsCommandLineLimit(tempDir, mainWindow, action):
+    # Together, these paths exceed the 32767-character limit of a Windows command line
+    wd = unpackRepo(tempDir)
+    names = [f"some/longish/folder/name/file-{i:04}.txt" for i in range(1000)]
+    for name in names:
+        writeFile(f"{wd}/{name}", "original\n")
+    if action != "discardUntracked":
+        shell("git add -A && git commit -qm many", wd)
+        for name in names:
+            writeFile(f"{wd}/{name}", "changed\n")
+    if action == "unstage":
+        shell("git add -A", wd)
+
+    rw = mainWindow.openRepo(wd)
+    fileList = rw.stagedFiles if action == "unstage" else rw.dirtyFiles
+    fileList.selectAll()
+
+    if action == "stage":
+        doStage(rw, "button")
+        expected = dict.fromkeys(names, FileStatus.INDEX_MODIFIED)
+    elif action == "unstage":
+        doUnstage(rw, "button")
+        expected = dict.fromkeys(names, FileStatus.WT_MODIFIED)
+    elif action in ("discard", "discardUntracked"):
+        doDiscard(rw, "button")
+        acceptQMessageBox(rw, "really discard")
+        expected = {}
+    else:
+        raise NotImplementedError(f"unknown action {action}")
+
+    assert rw.repo.status() == expected
+
+
 def testStageWithLiteralPathspecsEnv(tempDir, mainWindow, monkeypatch):
     # With GIT_LITERAL_PATHSPECS=1, git would read ":(literal)" as part of the file name
     monkeypatch.setenv("GIT_LITERAL_PATHSPECS", "1")

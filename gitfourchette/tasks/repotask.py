@@ -30,6 +30,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Longer pathspec lists go to git on stdin (Windows caps the whole command line at 32767 characters),
+# so commands that get more than one path must support --pathspec-from-file, or check pathspecsFitCommandLine.
+PATHSPEC_ARGS_MAX_LENGTH = 10_000
+
+
+def pathspecsFitCommandLine(pathspecs: list[str]) -> bool:
+    return sum(len(p) for p in pathspecs) <= PATHSPEC_ARGS_MAX_LENGTH
+
 
 def showMultiFileErrorMessage(parent: QWidget, exc: MultiFileError, opName="Operation"):
     details = []
@@ -508,11 +516,18 @@ class RepoTask(QObject):
             env: dict[str, str] | None = None,
             autoFail=True,
             pathspecs: Iterable[str] | None = None,
+            stdin="",
     ) -> Flow[GitDriver]:
         if pathspecs is not None:
-            args = (*args, *GitDriver.pathspecArgs(pathspecs))
+            assert not stdin, "cannot combine pathspecs and stdin"
+            pathspecs = GitDriver.literalPathspecs(pathspecs)
+            if pathspecsFitCommandLine(pathspecs):
+                args = (*args, "--", *pathspecs)
+            else:
+                args = (*args, "--pathspec-from-file=-", "--pathspec-file-nul")
+                stdin = "\0".join(pathspecs)
         process = self.createGitProcess(*args, customKey=customKey, workdir=workdir, env=env)
-        yield from self.flowStartProcess(process, autoFail=autoFail)
+        yield from self.flowStartProcess(process, autoFail=autoFail, stdin=stdin)
         return process
 
     def createGitProcess(
