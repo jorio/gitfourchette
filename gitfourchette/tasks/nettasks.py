@@ -18,7 +18,8 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks import TaskPrereqs, RefreshRepo
+from gitfourchette.tasks.jumptasks import RefreshRepo
+from gitfourchette.tasks.repotask import TaskPrereqs
 from gitfourchette.tasks.branchtasks import MergeBranch
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects
 from gitfourchette.toolbox import *

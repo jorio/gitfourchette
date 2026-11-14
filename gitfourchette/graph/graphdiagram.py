@@ -7,7 +7,7 @@
 import re
 from itertools import zip_longest
 
-from gitfourchette.graph import *
+from gitfourchette.graph.graph import Frame, Graph
 from gitfourchette.graph.graphbuilder import GraphBuildLoop, MockCommit, MockOid, Oid
 
 PADDING = 2

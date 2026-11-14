@@ -9,7 +9,6 @@ Library of widgets and utilities that aren't specifically tied to GitFourchette'
 """
 
 from .actiondef import ActionDef
-from .autohidemenubar import AutoHideMenuBar
 from .benchmark import Benchmark, benchmark
 from .calledfromqthread import calledFromQThread
 from .fittedtext import FittedText
@@ -48,7 +47,6 @@ from .qprocessconnection import QProcessConnection
 from .qsignalconnectcontext import QSignalConnectContext
 from .qsignalblockercontext import QSignalBlockerContext
 from .qstatusbar2 import QStatusBar2
-from .qtabwidget2 import QTabWidget2, QTabBar2
 from .qtutils import (
     enforceComboBoxMaxVisibleItems,
     reevaluateStyleSheet,
