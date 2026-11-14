@@ -10,7 +10,7 @@ import dataclasses
 import enum
 import logging
 import shlex
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from typing import Any, Literal, ClassVar
 
 from gitfourchette.application import GFApplication
@@ -507,7 +507,10 @@ class RepoTask(QObject):
             workdir="",
             env: dict[str, str] | None = None,
             autoFail=True,
+            pathspecs: Iterable[str] | None = None,
     ) -> Flow[GitDriver]:
+        if pathspecs is not None:
+            args = (*args, *GitDriver.pathspecArgs(pathspecs))
         process = self.createGitProcess(*args, customKey=customKey, workdir=workdir, env=env)
         yield from self.flowStartProcess(process, autoFail=autoFail)
         return process

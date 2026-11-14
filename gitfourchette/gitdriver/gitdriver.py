@@ -9,9 +9,11 @@ from __future__ import annotations
 import html
 import io
 import logging
+import os
 import re
 import shlex
 import signal
+from collections.abc import Iterable
 from enum import StrEnum
 from pathlib import Path
 from typing import ClassVar
@@ -345,6 +347,15 @@ class GitDriver(QProcess):
             return ["--ignore-cr-at-eol"]
         raise NotImplementedError(f"unsupported WhitespaceMode {m}")
 
+    @staticmethod
+    def pathspecArgs(paths: Iterable[str]) -> list[str]:
+        """ "--" followed by paths that git matches as-is, not as globs. """
+        # With GIT_LITERAL_PATHSPECS=1 in the user's environment, git already takes paths as-is
+        # and would read ":(literal)" as part of the name. (Not --literal-pathspecs: hooks inherit it.)
+        if os.environ.get("GIT_LITERAL_PATHSPECS", "").strip().lower() not in ("", "0", "false", "no", "off"):
+            return ["--", *paths]
+        return ["--", *(":(literal)" + path for path in paths)]
+
     @classmethod
     def buildDiffCommand(
             cls,
@@ -372,12 +383,13 @@ class GitDriver(QProcess):
 
             # Append paths
             if delta.status == GitStatus.Untracked:  # untracked, compare to nothing
-                # --no-index is mandatory on Windows here
+                # --no-index is mandatory on Windows here.
+                # With --no-index, diff takes straight paths, not pathspecs, so don't use pathspecArgs.
                 tokens += ["--no-index", "--", "/dev/null", delta.new.path]
             elif delta.old.path != delta.new.path:
-                tokens += ["--", delta.old.path, delta.new.path]
+                tokens += cls.pathspecArgs([delta.old.path, delta.new.path])
             else:
-                tokens += ["--", delta.new.path]
+                tokens += cls.pathspecArgs([delta.new.path])
 
         elif isinstance(delta, tuple):
             a, b = delta

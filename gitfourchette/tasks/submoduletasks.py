@@ -77,7 +77,7 @@ class RegisterSubmodule(RepoTask):
         yield from self.flowCallGit("submodule", "add", "--force", "--name", customName, "--", remoteUrl, innerWD)
 
         if absorb:
-            yield from self.flowCallGit("submodule", "absorbgitdirs", "--", innerWD)
+            yield from self.flowCallGit("submodule", "absorbgitdirs", pathspecs=[innerWD])
 
 
 class AbsorbSubmodule(RegisterSubmodule):
@@ -109,9 +109,9 @@ class RemoveSubmodule(RepoTask):
         )
 
         # 1. Unregister from .git/config & remove worktree
-        yield from self.flowCallGit("submodule", "deinit", "--", path)
+        yield from self.flowCallGit("submodule", "deinit", pathspecs=[path])
 
         # 2. Unregister from .gitmodules (& remove worktree again)
-        yield from self.flowCallGit("rm", "--", path)
+        yield from self.flowCallGit("rm", pathspecs=[path])
 
         self.epilog.status = _("Submodule {0} removed.", tquo(submoduleName))

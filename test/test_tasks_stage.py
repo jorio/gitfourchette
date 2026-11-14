@@ -267,3 +267,72 @@ def testStagingBlockedByConflicts(tempDir, mainWindow):
     rw.dirtyFiles.selectAll()
     rw.diffArea.discardButton.click()
     rejectQMessageBox(rw, "there is an unresolved merge conflict among your selection")
+
+
+@pytest.mark.parametrize("action", ["stage", "unstage", "discard", "discardUntracked"])
+def testBracketsInFileNameMatchOnlyThatFile(tempDir, mainWindow, action):
+    # As a glob, "a[1].txt" would also match "a1.txt"
+    wd = unpackRepo(tempDir)
+    names = ["a1.txt", "a[1].txt"]
+    for name in names:
+        writeFile(f"{wd}/{name}", "original\n")
+    if action != "discardUntracked":
+        shell("git add -A && git commit -qm brackets", wd)
+        for name in names:
+            writeFile(f"{wd}/{name}", "changed\n")
+    if action == "unstage":
+        shell("git add -A", wd)
+
+    rw = mainWindow.openRepo(wd)
+    fileList = rw.stagedFiles if action == "unstage" else rw.dirtyFiles
+    assert qlvGetRowData(fileList) == names
+    qlvClickNthRow(fileList, 1)
+
+    if action == "stage":
+        doStage(rw, "button")
+        expected = {"a1.txt": FileStatus.WT_MODIFIED, "a[1].txt": FileStatus.INDEX_MODIFIED}
+    elif action == "unstage":
+        doUnstage(rw, "button")
+        expected = {"a1.txt": FileStatus.INDEX_MODIFIED, "a[1].txt": FileStatus.WT_MODIFIED}
+    elif action == "discard":
+        doDiscard(rw, "button")
+        acceptQMessageBox(rw, "really discard")
+        expected = {"a1.txt": FileStatus.WT_MODIFIED}
+    else:
+        doDiscard(rw, "button")
+        acceptQMessageBox(rw, "really delete")
+        expected = {"a1.txt": FileStatus.WT_NEW}
+
+    assert rw.repo.status() == expected
+
+
+def testStageWithLiteralPathspecsEnv(tempDir, mainWindow, monkeypatch):
+    # With GIT_LITERAL_PATHSPECS=1, git would read ":(literal)" as part of the file name
+    monkeypatch.setenv("GIT_LITERAL_PATHSPECS", "1")
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a1.txt", "new\n")
+    writeFile(f"{wd}/a[1].txt", "new\n")
+    rw = mainWindow.openRepo(wd)
+
+    qlvClickNthRow(rw.dirtyFiles, 1)
+    doStage(rw, "button")
+    assert rw.repo.status() == {"a1.txt": FileStatus.WT_NEW, "a[1].txt": FileStatus.INDEX_NEW}
+
+
+def testHookCanUseGlobPathspecs(tempDir, mainWindow):
+    # Hooks inherit GIT_LITERAL_PATHSPECS from git. GitDriver passes ":(literal)" per path
+    # instead of --literal-pathspecs, so "*.txt" still matches in hooks.
+    wd = unpackRepo(tempDir)
+
+    # printf, not writeFile: on Windows, writeFile would give the hook CRLF line endings
+    shell("""
+        printf '#!/usr/bin/env bash\\ngit diff --cached --name-only -- "*.txt" > .git/hook-ran\\n' > .git/hooks/post-index-change
+        chmod +x .git/hooks/post-index-change
+        echo whatever >> master.txt
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    qlvClickNthRow(rw.dirtyFiles, 0)
+    doStage(rw, "button")
+
+    assert "master.txt" == readTextFile(f"{wd}/.git/hook-ran").strip()

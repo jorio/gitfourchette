@@ -145,8 +145,7 @@ class OpenBlame(RepoTask):
             *argsIf(settings.prefs.chronologicalOrder, "--date-order"),
             *argsIf(upperBound != NULL_OID, str(upperBound)),
             "--format=%H %P",
-            "--",
-            path)
+            pathspecs=[path])
 
         scrollback = driver.stdoutScrollback()
 

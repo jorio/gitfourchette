@@ -322,7 +322,7 @@ class UpdateSubmodule(RepoTask):
     def flow(self, submoduleName: str):
         submodule = self.repo.submodules[submoduleName]
         self.epilog.effects |= TaskEffects.Workdir
-        yield from self.flowCallGit("submodule", "update", "--init", "--", submodule.path)
+        yield from self.flowCallGit("submodule", "update", "--init", pathspecs=[submodule.path])
         self.epilog.status = _("Submodule updated.")
 
 
