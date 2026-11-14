@@ -41,7 +41,7 @@ class DiffHighlighter(CodeHighlighter):
         blockNumber = self.currentBlock().blockNumber()
 
         lineData: LineData = self.diffDocument.lineData[blockNumber]
-        if not lineData.origin:  # Hunk header, etc.
+        if lineData.isHunkHeader:
             return
 
         if lineData.origin != '-':

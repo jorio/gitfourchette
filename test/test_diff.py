@@ -1364,3 +1364,25 @@ def testDoppelgangerHighlightsIgnoreLineEndings(mainWindow, qtlog, monkeypatch, 
     assert highlights(2, DiffTextFormats.doppelgangerAddCF) == plusHighlights
     assert not [r for r in qtlog.records if "out of range" in r.message]
 
+
+@pytest.mark.parametrize("contextLines, newText, clickOrigin, selection", [
+    # Change at the top of a hunk: the hunk header stays out of the selection
+    (3, "A\nx1\nx2\nx3\nb\nx4\n", "+", "a\u2029A"),
+    # No context lines: the selection stays within its hunk
+    (0, "A\nx1\nx2\nx3\nx4\n", "+", "a\u2029A"),
+    # Clicking a hunk header selects the whole hunk, and only that hunk
+    (0, "A\nx1\nx2\nx3\nx4\n", "@", "@@ -1 +1 @@\u2029a\u2029A"),
+])
+def testSelectClumpOfLines(tempDir, mainWindow, contextLines, newText, clickOrigin, selection):
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/clump.txt", "a\nx1\nx2\nx3\nb\nx4\n")
+    shell("git add clump.txt && git commit -qm clump", wd)
+    writeFile(f"{wd}/clump.txt", newText)
+    GFApplication.instance().applyPrefs(contextLines=contextLines)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("clump.txt"), check=True)
+    diffView = rw.diffView
+    clickedLine = next(ld for ld in diffView.lineData if ld.origin == clickOrigin)
+    diffView.selectClumpOfLinesAt(textCursorPosition=clickedLine.cursorStart)
+    assert diffView.textCursor().selectedText() == selection

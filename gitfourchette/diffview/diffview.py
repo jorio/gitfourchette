@@ -274,11 +274,10 @@ class DiffView(CodeView):
         blamePreview = ""
         allowBlameLine = (
                 lineData is not None
-                and bool(lineData.origin)
+                and not lineData.isHunkHeader
                 and not (self.currentDelta.source.isWorkdir() and self.currentDelta.status.isAddedOrUntracked)
         )
         if allowBlameLine:
-            assert not lineData.hunkPos.isHunkHeaderLine(), "line had truthy origin; not expecting hunk header"
             blamePreview = lineData.text.strip()
             if blamePreview:
                 blamePreview = elide(blamePreview, Qt.TextElideMode.ElideRight, 15)
@@ -482,13 +481,13 @@ class DiffView(CodeView):
         i = self.document().findBlock(textCursorPosition).blockNumber()
         ld = ldList[i]
 
-        if ld.hunkPos.hunkLineNum < 0:
+        if ld.isHunkHeader:
             # Hunk header line, select whole hunk
             start = i
             end = i
             while end < len(ldList)-1 and ldList[end+1].hunkPos.hunkID == ld.hunkPos.hunkID:
                 end += 1
-        elif ld.origin not in ("-", "+"):
+        elif ld.origin not in "+-":
             # Context line
             QApplication.beep()
             return
@@ -496,9 +495,9 @@ class DiffView(CodeView):
             # Get clump boundaries (run of adjacent -/+ lines)
             start = i
             end = i
-            while start > 0 and ldList[start-1].origin in ("-", "+"):
+            while start > 0 and ldList[start-1].origin in "+-":
                 start -= 1
-            while end < len(ldList)-1 and ldList[end+1].origin in ("-", "+"):
+            while end < len(ldList)-1 and ldList[end+1].origin in "+-":
                 end += 1
 
         startPosition = ldList[start].cursorStart
