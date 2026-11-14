@@ -49,7 +49,8 @@ class VanillaFetchStatusFlag(StrEnum):
 
 
 class GitDriver(QProcess):
-    _commandStem            : ClassVar[list[str]] = ["/usr/bin/git"]
+    # Until the app applies the prefs (e.g. while pytest evaluates skipif conditions), use the default git path
+    _commandStem            : ClassVar[list[str]] = ToolCommands.splitCommandTokens(settings.prefs.gitPath)
     _cachedGitVersionValid  : ClassVar[bool] = False
     _cachedGitVersion       : ClassVar[str] = ""
     _cachedGitVersionTuple  : ClassVar[tuple[int, ...]] = (0,)
