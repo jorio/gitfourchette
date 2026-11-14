@@ -106,7 +106,7 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
         else:
             # The submodule's head has moved, but we don't know to what commit,
             # because "git status" doesn't give this information if unstaged.
-            subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", delta.new.path)
+            subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", pathspecs=[delta.new.path])
             subDiff = subDiffDriver.stdoutScrollback()
             match = _submoduleIndexLinePattern.search(subDiff)
             assert match

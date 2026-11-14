@@ -135,12 +135,12 @@ class NewStash(RepoTask):
         # Clean untracked files
         cleanPaths = [p for p in paths if status[p] == FileStatus.WT_NEW]
         if cleanPaths:
-            yield from self.flowCallGit("clean", "--force", "--", *cleanPaths)
+            yield from self.flowCallGit("clean", "--force", pathspecs=cleanPaths)
 
         # Restore other files
         restorePaths = [p for p in paths if p not in cleanPaths]
         if restorePaths:
-            yield from self.flowCallGit("restore", "--progress", "--source=HEAD", "--worktree", "--staged", "--", *restorePaths)
+            yield from self.flowCallGit("restore", "--progress", "--source=HEAD", "--worktree", "--staged", pathspecs=restorePaths)
 
 
 class ApplyStash(RepoTask):

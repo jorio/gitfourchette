@@ -89,7 +89,7 @@ class StageFiles(_BaseStagingTask):
         paths = [d.new.path for d in deltas]
 
         self.epilog.effects |= TaskEffects.Workdir
-        yield from self.flowCallGit("add", "--", *paths)
+        yield from self.flowCallGit("add", pathspecs=paths)
 
         yield from self.debriefPostStage(deltas)
 
@@ -209,15 +209,15 @@ class DiscardFiles(_BaseStagingTask):
             shutil.rmtree(untrackedTreePath, onexc=_removeReadOnly)
 
         if untrackedFiles:
-            yield from self.flowCallGit("clean", "--force", "--", *untrackedFiles)
+            yield from self.flowCallGit("clean", "--force", pathspecs=untrackedFiles)
         if tracked:
-            yield from self.flowCallGit("checkout", "--", *tracked)
+            yield from self.flowCallGit("checkout", pathspecs=tracked)
 
         if submoPaths:
             for submo in submoPaths:
                 subWd = os.path.join(self.repo.workdir, submo)
                 yield from self.flowCallGit("clean", "-d", "--force", workdir=subWd)
-            yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", "--", *submoPaths)
+            yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", pathspecs=submoPaths)
 
         self.epilog.status = _n("File discarded.", "{n} files discarded.", len(deltas))
 
@@ -260,7 +260,7 @@ class UnstageFiles(_BaseStagingTask):
 
         self.epilog.effects |= TaskEffects.Workdir
         # Not using 'restore --staged' because it doesn't work in an empty repo
-        yield from self.flowCallGit("reset", "--", *paths)
+        yield from self.flowCallGit("reset", pathspecs=paths)
 
         self.epilog.status = _n("File unstaged.", "{n} files unstaged.", len(deltas))
 
@@ -388,12 +388,12 @@ class HardSolveConflicts(RepoTask):
         # Restore desired sides, then stage the files to resolve the conflict
         if keepPaths:
             sideArg = "--ours" if keepOurs else "--theirs"
-            yield from self.flowCallGit("restore", "--progress", sideArg, "--", *keepPaths)
-            yield from self.flowCallGit("add", "--force", "--", *keepPaths)
+            yield from self.flowCallGit("restore", "--progress", sideArg, pathspecs=keepPaths)
+            yield from self.flowCallGit("add", "--force", pathspecs=keepPaths)
 
         # Stage deletions to resolve the conflict
         if nukePaths:
-            yield from self.flowCallGit("rm", "--", *nukePaths)
+            yield from self.flowCallGit("rm", pathspecs=nukePaths)
 
         # Jump to any staged file after the task
         for path in keepPaths:
@@ -536,7 +536,7 @@ class AcceptMergeConflictResolution(RepoTask):
         path = mergeDriver.conflict.ours.path
         mergeDriver.copyScratchToTarget()
         mergeDriver.deleteNow()
-        yield from self.flowCallGit("add", "--force", "--", path)
+        yield from self.flowCallGit("add", "--force", pathspecs=[path])
 
         # Jump to staged file after confirming conflict resolution
         self.epilog.jumpTo = NavLocator.inStaged(path)
@@ -686,8 +686,7 @@ class RestoreRevisionToWorkdir(RepoTask):
                 "restore",
                 "--progress",
                 f"--source={diffFile.sourceCommit}",
-                "--",
-                diffFile.path)
+                pathspecs=[diffFile.path])
 
         self.epilog.status = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
         self.epilog.jumpTo = NavLocator.inUnstaged(diffFile.path)

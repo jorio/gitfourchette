@@ -735,3 +735,23 @@ def testBlameLine(tempDir, mainWindow):
     messages = [rw.repo[s.commitId].peel(Commit).message.strip()
                 for s in blameWindow.model.revList.sequence]
     assert messages == ["Say hello in Swedish", "Say hello in French", "Say hello in Spanish", "First commit"]
+
+
+def testBlameBracketsInFileName(tempDir, mainWindow):
+    # As a glob, "a[1].txt" would also match "a1.txt"
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a1.txt", "original\n")
+    writeFile(f"{wd}/a[1].txt", "original\n")
+    shell("git add -A && git commit -qm brackets", wd)
+    writeFile(f"{wd}/a1.txt", "changed\n")
+    shell("git commit -qam a1-only", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit.parent_ids[0], "a[1].txt"), check=True)
+    triggerMenuAction(mainWindow.menuBar(), "view/blame")
+    blameWindow = findWindow("blame", BlameWindow)
+
+    with pytest.raises(KeyError):
+        blameWindow.model.revList.revisionForCommit(rw.repo.head_commit_id)
+
+    blameWindow.close()

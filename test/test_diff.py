@@ -1364,3 +1364,18 @@ def testDoppelgangerHighlightsIgnoreLineEndings(mainWindow, qtlog, monkeypatch, 
     assert highlights(2, DiffTextFormats.doppelgangerAddCF) == plusHighlights
     assert not [r for r in qtlog.records if "out of range" in r.message]
 
+
+def testDiffBracketsInFileName(tempDir, mainWindow):
+    # As a glob, "a[1].txt" would also match "a1.txt"
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a1.txt", "original\n")
+    writeFile(f"{wd}/a[1].txt", "original\n")
+    shell("git add -A && git commit -qm brackets", wd)
+    writeFile(f"{wd}/a1.txt", "plain\n")
+    writeFile(f"{wd}/a[1].txt", "bracket\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("a[1].txt"), check=True)
+    text = rw.diffView.toPlainText()
+    assert "bracket" in text
+    assert "plain" not in text
