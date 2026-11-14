@@ -132,22 +132,22 @@ def extractSubpatch(
 
     newHunkStartOffset = 0
 
-    firstLinePos = lines[spanStart].hunkPos
-    lastLinePos = lines[spanEnd].hunkPos
+    firstLine, lastLine = lines[spanStart], lines[spanEnd]
+    firstLinePos, lastLinePos = firstLine.hunkPos, lastLine.hunkPos
 
     for hunkID in range(firstLinePos.hunkID, lastLinePos.hunkID + 1):
         assert hunkID >= 0
 
         hunkStart, hunkLast = LineData.getHunkExtents(lines, hunkID)
         hunkHeader = lines[hunkStart]
-        assert hunkHeader.hunkPos.isHunkHeaderLine()
+        assert hunkHeader.isHunkHeader
         hunkStart += 1  # Skip header line
         hunkStop = hunkLast + 1
 
         # ---------------------------------------------------------------------
         # Compute selection bounds within the hunk
 
-        if hunkID == firstLinePos.hunkID and not firstLinePos.isHunkHeaderLine():
+        if hunkID == firstLinePos.hunkID and not firstLine.isHunkHeader:
             # Start of selection falls inside this hunk: Adjust slice start
             sliceStart = hunkStart + firstLinePos.hunkLineNum
         else:
@@ -155,7 +155,7 @@ def extractSubpatch(
             sliceStart = hunkStart
 
         if hunkID == lastLinePos.hunkID:
-            if lastLinePos.isHunkHeaderLine():
+            if lastLine.isHunkHeader:
                 # End of selection falls inside hunk header: ignore this hunk
                 break
 
