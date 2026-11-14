@@ -110,6 +110,7 @@ class LineData:
 
     def parseHunkHeader(self) -> tuple[int, int, int, int, str]:
         assert self.isHunkHeader
+        assert self.hunkPos.hunkLineNum == -1
         return _parseHunkHeader(self.text)
 
     @property
