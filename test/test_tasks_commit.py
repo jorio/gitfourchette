@@ -922,28 +922,6 @@ def testBypassCommitHooks(tempDir, mainWindow, hookName):
     assert "bypass commit hooks" in headCommit.message
 
 
-def testHookCanUseGlobPathspecs(tempDir, mainWindow):
-    # Hooks inherit GIT_LITERAL_PATHSPECS from git. GitDriver runs git with --no-literal-pathspecs
-    # (and ":(literal)" per path), not --literal-pathspecs, so "*.txt" still matches in hooks.
-    wd = unpackRepo(tempDir)
-
-    shell("""
-        printf '#!/usr/bin/env bash\\ntouch .git/hook-ran\\ntest -n "$(git diff --cached --name-only -- "*.txt")"\\n' > .git/hooks/pre-commit
-        chmod +x .git/hooks/pre-commit
-        echo whatever >> master.txt
-        git add master.txt
-    """, wd)
-
-    rw = mainWindow.openRepo(wd)
-    rw.diffArea.commitButton.click()
-    dialog = findQDialog(rw, "commit", t=CommitDialog)
-    dialog.ui.summaryEditor.setText("hook with glob pathspec")
-    dialog.accept()
-
-    assert os.path.exists(f"{wd}/.git/hook-ran")
-    assert "hook with glob pathspec" in rw.repo.head_commit.message
-
-
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey", "sidebardclick"])
 def testCheckoutTag(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)

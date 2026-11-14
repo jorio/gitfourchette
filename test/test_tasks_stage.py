@@ -310,9 +310,29 @@ def testStageWithLiteralPathspecsEnv(tempDir, mainWindow, monkeypatch):
     # With GIT_LITERAL_PATHSPECS=1, git would read ":(literal)" as part of the file name
     monkeypatch.setenv("GIT_LITERAL_PATHSPECS", "1")
     wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a1.txt", "new\n")
     writeFile(f"{wd}/a[1].txt", "new\n")
     rw = mainWindow.openRepo(wd)
 
+    qlvClickNthRow(rw.dirtyFiles, 1)
+    doStage(rw, "button")
+    assert rw.repo.status() == {"a1.txt": FileStatus.WT_NEW, "a[1].txt": FileStatus.INDEX_NEW}
+
+
+def testHookCanUseGlobPathspecs(tempDir, mainWindow):
+    # Hooks inherit GIT_LITERAL_PATHSPECS from git. GitDriver passes ":(literal)" per path
+    # instead of --literal-pathspecs, so "*.txt" still matches in hooks.
+    wd = unpackRepo(tempDir)
+
+    # printf, not writeFile: on Windows, writeFile would give the hook CRLF line endings
+    shell("""
+        printf '#!/usr/bin/env bash\\ngit diff --cached --name-only -- "*.txt" > .git/hook-ran\\n' > .git/hooks/post-index-change
+        chmod +x .git/hooks/post-index-change
+        echo whatever >> master.txt
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
     qlvClickNthRow(rw.dirtyFiles, 0)
     doStage(rw, "button")
-    assert rw.repo.status() == {"a[1].txt": FileStatus.INDEX_NEW}
+
+    assert "master.txt" == readTextFile(f"{wd}/.git/hook-ran").strip()
