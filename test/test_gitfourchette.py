@@ -6,6 +6,8 @@
 
 import dataclasses
 import os.path
+import subprocess
+import sys
 from contextlib import suppress
 
 from pytestqt.qtbot import QtBot
@@ -708,6 +710,15 @@ def testCloseParentOfExternalProcess(tempDir, mainWindow):
     mainWindow.closeAllTabs()
     pause(3)
     assert readTextFile(scratchPath).strip() == "about to sleep"
+
+
+def testGitVersionKnownBeforeAppSetsGitPath():
+    # pytest evaluates skipif conditions as it imports test modules, before the app sets the git path
+    script = "from gitfourchette.gitdriver import GitDriver; print(GitDriver.gitVersion())"
+    env = os.environ | {"APP_TESTMODE": "1"}
+    projectRoot = os.path.dirname(os.path.dirname(__file__))
+    result = subprocess.run([sys.executable, "-c", script], stdout=subprocess.PIPE, text=True, env=env, cwd=projectRoot, check=True)
+    assert result.stdout.strip()
 
 
 # TODO: Teardown fails on Windows, which is a symptom of a minor leak that
