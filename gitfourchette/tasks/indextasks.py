@@ -371,17 +371,9 @@ class HardSolveConflicts(RepoTask):
         keepPaths = [f.path for f in files if not f.isId0()]
         nukePaths = [f.path for f in files if f.isId0()]
 
-        # Back up nuked files + THEIRS
-        if Trash.enabled():
-            backupList = nukePaths[:]
-            if not keepOurs:
-                backupList += keepPaths
-
-            for path in backupList:
-                try:
-                    Trash.instance().backupFile(self.repo.workdir, path)
-                except Trash.BackupSkipped as ex:
-                    logger.warning(f"Backup skipped: {ex}")
+        # Back up all affected files. Even when keeping OURS, the workdir copy
+        # may contain conflict markers or a partial resolution by the user.
+        Trash.backupFiles(self.repo.workdir, keepPaths + nukePaths)
 
         self.epilog.effects |= TaskEffects.Workdir
 
@@ -534,6 +526,10 @@ class AcceptMergeConflictResolution(RepoTask):
     def flow(self, mergeDriver: MergeDriver):
         self.epilog.effects |= TaskEffects.Workdir
         path = mergeDriver.conflict.ours.path
+
+        # The tool's output may leave out a resolution the user started by hand in the workdir
+        Trash.backupFiles(self.repo.workdir, [path])
+
         mergeDriver.copyScratchToTarget()
         mergeDriver.deleteNow()
         yield from self.flowCallGit("add", "--force", "--", path)
@@ -675,6 +671,12 @@ class RestoreRevisionToWorkdir(RepoTask):
             _("This file will be {processed} in your working directory.", processed=actionVerb))
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
+
+        # Back up the workdir copy if it has uncommitted changes
+        if existsNow and Trash.enabled():
+            driver = yield from self.flowCallGit("status", "--porcelain", "-z", "--ignored", "--untracked-files=all", "--", diffFile.path)
+            if driver.stdoutScrollback():
+                Trash.backupFiles(self.repo.workdir, [diffFile.path])
 
         self.epilog.effects |= TaskEffects.Workdir
 
@@ -845,6 +847,12 @@ class AbortMerge(RepoTask):
 
         yield from self.flowConfirm(title=title, text=paragraphs(*lines), verb=englishTitleCase(title),
                                     detailList=[escape(f) for f in abortList])
+
+        # Back up conflicted files: they may contain a resolution the user started by hand.
+        # Files merged without conflicts aren't backed up; running the merge again brings them back.
+        conflicts = self.repo.index.conflicts or []
+        conflictPaths = [(ours or theirs or ancestor).path for ancestor, ours, theirs in conflicts]
+        Trash.backupFiles(self.repo.workdir, conflictPaths)
 
         self.epilog.effects |= TaskEffects.DefaultRefresh
 
