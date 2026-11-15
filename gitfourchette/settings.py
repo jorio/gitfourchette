@@ -305,7 +305,7 @@ class History(PrefsFile):
         superproject: str = ""
 
     repos: dict[str, JsonRepo] = dataclasses.field(default_factory=dict)
-    cloneHistory: list[str] = dataclasses.field(default_factory=list)
+    cloneHistory: list[str] = dataclasses.field(default_factory=list)  # most recent first
     fileDialogPaths: dict[str, str] = dataclasses.field(default_factory=dict)
     startups: int = 0
 
@@ -377,7 +377,7 @@ class History(PrefsFile):
             self.repos = {path: self.repos[path] for path in topPaths}
 
         if len(self.cloneHistory) > n:
-            self.cloneHistory = self.cloneHistory[-n:]
+            self.cloneHistory = self.cloneHistory[:n]
 
     def addCloneUrl(self, url):
         with suppress(ValueError):
