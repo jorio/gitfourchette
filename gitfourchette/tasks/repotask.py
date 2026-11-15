@@ -36,6 +36,8 @@ PATHSPEC_ARGS_MAX_LENGTH = 10_000
 
 
 def pathspecsFitCommandLine(pathspecs: list[str]) -> bool:
+    # Underestimates the final command line (no separators, quoting or encoding),
+    # but the limit is far below the 32767 characters Windows allows
     return sum(len(p) for p in pathspecs) <= PATHSPEC_ARGS_MAX_LENGTH
 
 
