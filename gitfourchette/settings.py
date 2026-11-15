@@ -193,7 +193,6 @@ class Prefs(PrefsFile):
     _category_hidden            : int                   = 0
     # Hide autoFetch from PrefsDialog because autoFetchMinutes's control includes a checkbox
     autoFetch                   : bool                  = False
-    rememberPassphrases         : bool                  = True
     smoothScroll                : bool                  = True
     toolBarButtonStyle          : Qt.ToolButtonStyle    = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
     toolBarIconSize             : int                   = 16
