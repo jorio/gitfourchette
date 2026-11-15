@@ -63,12 +63,33 @@ class GitDelta:
         sub = self.submoduleStatus
         return "M" in sub or "U" in sub
 
-    def isSubtreeCommitPatch(self) -> bool:
+    @property
+    def involvesGitlink(self) -> bool:
         return (self.old.mode | self.new.mode) & FileMode.COMMIT == FileMode.COMMIT
 
-    def isTreeOrSubmodule(self) -> bool:
+    @property
+    def involvesNestedRepo(self) -> bool:
         assert (FileMode.COMMIT & FileMode.TREE) == FileMode.TREE  # commit must contain tree bit
         return (self.old.mode | self.new.mode) & FileMode.TREE == FileMode.TREE
+
+    def submoduleNames(self, repo: Repo) -> tuple[str, str]:
+        """
+        Names that .gitmodules gives this gitlink before and after the change,
+        or "" where it isn't registered. A gitlink registered on either side is
+        a submodule; otherwise, it's a nested repository. For a change in the
+        workdir or the index, "before" is HEAD and "after" is the workdir.
+        """
+        assert self.involvesGitlink, "a non-gitlink delta cannot ever be a submodule"
+        if self.source.isWorkdir():
+            oldSubmodules = repo.listall_submodules_dict_at_head()
+        elif self.old.sourceCommit:
+            oldSubmodules = repo.listall_submodules_dict_at(self.old.sourceCommit)
+        else:  # root commit
+            oldSubmodules = {}
+        newSubmodules = repo.listall_submodules_dict_at(self.new.sourceCommit)
+        oldName = next((n for n, p in oldSubmodules.items() if p == self.old.path), "")
+        newName = next((n for n, p in newSubmodules.items() if p == self.new.path), "")
+        return oldName, newName
 
     def cacheLfsPointers(self, repo: Repo):
         old = self.old

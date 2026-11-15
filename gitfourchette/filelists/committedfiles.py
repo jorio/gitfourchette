@@ -29,10 +29,10 @@ class CommittedFiles(FileList):
 
         n = len(deltas)
         modeSet = {delta.new.mode for delta in deltas}  # modeDst
-        anySubmodules = FileMode.COMMIT in modeSet
-        onlySubmodules = anySubmodules and len(modeSet) == 1
+        anyGitlinks = FileMode.COMMIT in modeSet
+        onlyGitlinks = anyGitlinks and len(modeSet) == 1
 
-        if not anySubmodules:
+        if not anyGitlinks:
             actions += [
                 self.contextMenuActionBlame(deltas),
 
@@ -80,17 +80,16 @@ class CommittedFiles(FileList):
                 ),
             ]
 
-        elif onlySubmodules:
+        elif onlyGitlinks:
+            if self.areSubmodules(deltas):
+                section = _n("Submodule", "{n} Submodules", n)
+                openText = _n("Open Submodule in New Tab", "Open {n} Submodules in New Tabs", n)
+            else:
+                section = _n("Nested Repository", "{n} Nested Repositories", n)
+                openText = _n("Open Nested Repo in New Tab", "Open {n} Nested Repos in New Tabs", n)
             actions += [
-                ActionDef(
-                    _n("Submodule", "{n} Submodules", n),
-                    kind=ActionDef.Kind.Section,
-                ),
-
-                ActionDef(
-                    _n("Open Submodule in New Tab", "Open {n} Submodules in New Tabs", n),
-                    self.openSubmoduleTabs,
-                ),
+                ActionDef(section, kind=ActionDef.Kind.Section),
+                ActionDef(openText, self.openNestedRepoTabs),
             ]
 
         else:

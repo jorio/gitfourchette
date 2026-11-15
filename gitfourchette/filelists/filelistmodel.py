@@ -35,12 +35,10 @@ def deltaModeText(om: FileMode, nm: FileMode) -> str:
     if nm == FileMode.LINK:
         return _("link")
 
-    if nm == FileMode.TREE:
-        return _("new subtree")
+    if nm == FileMode.TREE:  # Untracked folder with its own .git
+        return _("nested repo")
 
-    if nm == FileMode.COMMIT:
-        return _("commit in subtree")
-
+    # No label for COMMIT (gitlink): the mode alone can't tell a submodule from a nested repo
     return ""
 
 

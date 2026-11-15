@@ -279,8 +279,8 @@ class LoadPatch(RepoTask):
         if delta.conflict is not None:
             return delta.conflict
 
-        if delta.isSubtreeCommitPatch():
-            return SpecialDiffError.submoduleDiff(self.repo, delta, locator)
+        if delta.involvesGitlink:
+            return SpecialDiffError.gitlinkDiff(self.repo, delta, locator)
 
         if delta.similarity == 100:
             return SpecialDiffError.noChange(self.repo, delta)

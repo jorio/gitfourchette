@@ -126,7 +126,7 @@ def testSubmoduleDirty(tempDir, mainWindow, method):
 
     # Attempt to stage the submodule; this shouldn't do anything
     QTest.keyPress(rw.dirtyFiles, Qt.Key.Key_Return)  # attempt to stage it
-    acceptQMessageBox(rw, "can.+t be staged from the parent repo")
+    acceptQMessageBox(rw, "submodule can.+t be staged from the superproject")
     assert rw.repo.status() == {"submodir": FileStatus.WT_MODIFIED}  # shouldn't do anything
 
     if method == "link":
@@ -161,6 +161,103 @@ def testSubmoduleDeletedDiff(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(subDelId, path="submodir"))
     assert rw.specialDiffView.isVisibleTo(rw)
     assert qteFind(rw.specialDiffView, r"submodule.+submo.+(deleted|removed)")
+
+
+def testFileListDoesntCallAddedSubmoduleNestedRepo(tempDir, mainWindow):
+    # The file list only sees the gitlink's mode, which is the same for submodules and nested repos
+    wd = unpackRepo(tempDir)
+    _submoAbsPath, submoCommit = reposcenario.submodule(wd)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(submoCommit, "submodir"))
+
+    assert "submodir" in qlvGetRowData(rw.committedFiles)
+    toolTip = next(t for t in qlvGetRowData(rw.committedFiles, Qt.ItemDataRole.ToolTipRole) if "submodir" in t)
+    assert not re.search("nested", toolTip, re.IGNORECASE)
+
+
+@pytest.mark.parametrize("context", ["staged", "committed"])
+def testGitlinkWithoutGitmodulesIsNestedRepository(tempDir, mainWindow, context):
+    wd = unpackRepo(tempDir)
+    unpackRepo(wd, renameTo="inner")
+    shell("git add inner", wd)  # a gitlink without a .gitmodules entry
+    if context == "committed":
+        shell("git commit -m 'add inner'", wd)
+
+    rw = mainWindow.openRepo(wd)
+    if context == "staged":
+        locator, fileList = NavLocator.inStaged(path="inner"), rw.stagedFiles
+    elif context == "committed":
+        locator, fileList = NavLocator.inCommit(oid=rw.repo.head_commit_id, path="inner"), rw.committedFiles
+    else:
+        raise NotImplementedError(f"unknown context {context}")
+    rw.jump(locator, check=True)
+
+    assert qteFind(rw.specialDiffView, r"added a reference to a commit in nested repository.+inner")
+    triggerContextMenuAction(fileList.viewport(), r"open nested repo.+in new tab")
+    assert mainWindow.currentRepoWidget() is not rw
+
+
+def testGitlinkBeforeFirstCommit(tempDir, mainWindow):
+    wd = f"{tempDir.name}/unborn"
+    shell(f"git init {shlex.quote(wd)}", tempDir.name)
+    unpackRepo(wd, renameTo="inner")
+    shell("git add inner", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inStaged(path="inner"), check=True)
+    assert qteFind(rw.specialDiffView, r"added a reference to a commit in nested repository.+inner")
+
+
+def testStageSubmoduleDeletionRemindsAboutGitmodules(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    reposcenario.submodule(wd, absorb=True)  # its name, submoname, differs from its path, submodir
+    shutil.rmtree(f"{wd}/submodir")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="submodir"), check=True)
+    rw.diffArea.stageButton.click()
+    acceptQMessageBox(rw, r"remove the submodule from .+gitmodules")
+
+
+def testSubmoduleRemovedFromWorkdirGitmodulesIsStillSubmodule(tempDir, mainWindow):
+    # HEAD's .gitmodules still registers it, so the diff, the menu and the stage hint all say "submodule"
+    wd = unpackRepo(tempDir)
+    subWd, _dummy = reposcenario.submodule(wd)
+    writeFile(f"{wd}/.gitmodules", "")
+    writeFile(f"{subWd}/master.txt", "hello tracked")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="submodir"), check=True)
+    assert qteFind(rw.specialDiffView, r"submodule.+submo.+contains changes")
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), r"discard changes in submodule")
+    rejectQMessageBox(rw, r"discard changes in submodule")
+    rw.diffArea.stageButton.click()
+    acceptQMessageBox(rw, r"submodule can.+t be staged from the superproject")
+
+
+def testMovedSubmoduleIsStillSubmodule(tempDir, mainWindow):
+    # Moved without "git mv", so .gitmodules still registers the old path only
+    wd = unpackRepo(tempDir)
+    reposcenario.submodule(wd)
+    shutil.move(f"{wd}/submodir", f"{wd}/moved")
+    shell("git add -A", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inStaged(path="moved"), check=True)
+    assert qteFind(rw.specialDiffView, r"submodule.+submoname")
+
+
+def testStageSubmoduleDeletionAfterGitmodulesEditDoesntRemind(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    reposcenario.submodule(wd, absorb=True)
+    shutil.rmtree(f"{wd}/submodir")
+    writeFile(f"{wd}/.gitmodules", "")  # the user already removed it from .gitmodules
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="submodir"), check=True)
+    rw.diffArea.stageButton.click()
+    with pytest.raises(KeyError):
+        findQMessageBox(rw, r"remove the submodule from .+gitmodules")
 
 
 def testDiscardSubmodulesExceedingCommandLineLimit(tempDir, mainWindow, monkeypatch):
@@ -212,7 +309,7 @@ def testAbsorbSubmodule(tempDir, mainWindow):
     # Select subfolder in dirty files
     rw.jump(NavLocator.inUnstaged("newsubmo"))
     assert rw.specialDiffView.isVisibleTo(rw)
-    assert qteFind(rw.specialDiffView, "root of another git repo")
+    assert qteFind(rw.specialDiffView, "untracked folder is a nested git repository")
 
     # Absorb as submodule - won't work, it has no remotes
     qteClickLink(rw.specialDiffView, r"absorb.+as submodule")
@@ -278,21 +375,25 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     submoUnstagedLoc = NavLocator.inUnstaged("newsubmo")
     rw.jump(submoUnstagedLoc)
     assert rw.navLocator.isSimilarEnoughTo(submoUnstagedLoc)
-    assert qteFind(rw.specialDiffView, r"subtree is.+root of.+git repo")
+    assert qteFind(rw.specialDiffView, r"untracked folder is a nested git repository")
 
     # Stage tree without absorbing it
     rw.diffArea.stageButton.click()
     acceptQMessageBox(rw, "recommended to absorb")
 
     assert rw.navLocator.isSimilarEnoughTo(submoUnstagedLoc)
-    assert qteFind(rw.specialDiffView, r"subtree.+newsubmo.+contains changes")
+    assert qteFind(rw.specialDiffView, r"nested repository.+newsubmo.+contains changes")
+
+    # Its uncommitted changes can't be staged
+    rw.diffArea.stageButton.click()
+    acceptQMessageBox(rw, "nested repository can.+t be staged from the parent repository")
 
     # Absorb tree as submodule
     submoStagedLoc = NavLocator.inStaged("newsubmo")
     rw.jump(submoStagedLoc)
     assert rw.navLocator.isSimilarEnoughTo(submoStagedLoc)
-    assert qteFind(rw.specialDiffView, r"subtree.+newsubmo.+was added")
-    assert qteFind(rw.specialDiffView, r"subtree isn.t a submodule yet")
+    assert qteFind(rw.specialDiffView, r"added a reference to a commit in nested repository.+newsubmo")
+    assert qteFind(rw.specialDiffView, r"nested repository isn.t a submodule yet")
     qteClickLink(rw.specialDiffView, r"absorb")
     findQDialog(rw, "absorb").accept()
 

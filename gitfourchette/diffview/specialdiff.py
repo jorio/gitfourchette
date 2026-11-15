@@ -244,7 +244,7 @@ class SpecialDiffError:
     def treeDiff(repo: Repo, delta: GitDelta):
         from gitfourchette.tasks import AbsorbSubmodule
 
-        message = _("This untracked subtree is the root of another Git repository.")
+        message = _("This untracked folder is a nested Git repository.")
         specialDiff = SpecialDiffError(message)
 
         treePath = os.path.normpath(delta.new.path)
@@ -262,7 +262,7 @@ class SpecialDiffError:
         return specialDiff
 
     @staticmethod
-    def submoduleDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError:
+    def gitlinkDiff(repo: Repo, delta: GitDelta, locator: NavLocator) -> SpecialDiffError:
         from gitfourchette.tasks import AbsorbSubmodule, DiscardFiles, RegisterSubmodule
 
         assert locator.context == NavContext.fromGitDeltaSource(delta.source)
@@ -278,44 +278,35 @@ class SpecialDiffError:
         newId = delta.new.id
         headDidMove = oldId != newId
 
-        try:
-            name = next(n for n, p in repo.listall_submodules_dict().items() if p == path)
-            isRegistered = True
-        except StopIteration:
-            # Name may not be available when viewing a past commit about a deleted submodule,
-            # or a tree that isn't registered as a submodule yet
-            name = path  # Fallback to inner path as the name
-            isRegistered = False
-
-        if delta.source.isWorkdir():
-            wasRegistered = path in repo.listall_submodules_dict_at_head()
-        else:
-            wasRegistered = True
-
+        oldName, newName = delta.submoduleNames(repo)
+        isRegistered = bool(newName)
+        wasRegistered = bool(oldName)
         isSubmodule = isRegistered or wasRegistered
-        isTree = not isSubmodule
+
+        # Name a submodule as .gitmodules does; fall back to its path
+        name = newName or oldName or path
 
         # Compose title.
-        # Explicit permutations of "subtree"/"submodule" text so that translations
+        # Explicit permutations of "nested repository"/"submodule" text so that translations
         # can be grammatically correct (in case of different genders, etc.)
         if isDel:
-            title = _("Subtree {0} was [removed.]") if isTree else _("Submodule {0} was [removed.]")
+            title = _("Submodule {0} was [removed.]") if isSubmodule else _("[Removed] the reference to a commit in nested repository {0}.")
             title = tagify(title, "<del><b>")
         elif isAdd:
-            title = _("Subtree {0} was [added.]") if isTree else _("Submodule {0} was [added.]")
+            title = _("Submodule {0} was [added.]") if isSubmodule else _("[Added] a reference to a commit in nested repository {0}.")
             title = tagify(title, "<add><b>")
         elif headDidMove:
-            title = _("Subtree {0} was updated.") if isTree else _("Submodule {0} was updated.")
+            title = _("Submodule {0} was updated.") if isSubmodule else _("Moved the reference to another commit in nested repository {0}.")
         else:
-            title = _("Subtree {0} contains changes.") if isTree else _("Submodule {0} contains changes.")
+            title = _("Submodule {0} contains changes.") if isSubmodule else _("Nested repository {0} contains changes.")
 
         title = title.format(bquo(name))
 
-        # Add link to open the submodule as a subtitle
+        # Add link to open the nested repository as a subtitle
         subtitle = ""
         openLink = QUrl.fromLocalFile(absPath)
         if stillExists:
-            subtitle = _("Open subtree") if isTree else _("Open submodule")
+            subtitle = _("Open submodule") if isSubmodule else _("Open nested repository")
             if name != path:
                 subtitle += " " + _("(path: {0})", escape(path))
             subtitle = linkify(subtitle, openLink)
@@ -324,15 +315,15 @@ class SpecialDiffError:
         specialDiff = SpecialDiffError(title, subtitle)
         longformParts = []
 
-        # Create old/new table if the submodule's HEAD commit was moved
+        # Create old/new table if the nested repository's HEAD commit was moved
         if headDidMove and not isDel:
             targets = [shortHash(oldId), shortHash(newId)]
             messages = ["", ""]
 
-            # Show additional details about the commits if there's still a workdir for this submo
+            # Show additional details about the commits if there's still a workdir for this nested repository
             if stillExists:
                 try:
-                    with RepoContext(absPath, RepositoryOpenFlag.NO_SEARCH) as subRepo:
+                    with RepoContext(absPath, RepositoryOpenFlag.NO_SEARCH) as nestedRepo:
                         for i, h in enumerate([oldId, newId]):
                             if h == NULL_OID:
                                 continue
@@ -342,18 +333,18 @@ class SpecialDiffError:
 
                             # Get commit summary
                             with suppress(LookupError, GitError):
-                                m = subRepo[h].peel(Commit).message
+                                m = nestedRepo[h].peel(Commit).message
                                 m = messageSummary(m)[0]
                                 m = elide(m, Qt.TextElideMode.ElideRight, 25)
                                 m = hquo(m)
                                 messages[i] = m
                 except GitError:
-                    # RepoContext may fail if the submodule couldn't be opened for any reason.
+                    # RepoContext may fail if the nested repository couldn't be opened for any reason.
                     # Don't show an error for this, show the diff document anyway
                     pass
 
-            intro = (_("The subtree’s <b>HEAD</b> has moved to another commit.") if isTree else
-                     _("The submodule’s <b>HEAD</b> has moved to another commit."))
+            intro = (_("The submodule’s <b>HEAD</b> has moved to another commit.") if isSubmodule else
+                     _("The nested repository’s <b>HEAD</b> has moved to another commit."))
             if delta.source == GitDeltaSource.Dirty:
                 intro += " " + _("You can stage this update:")
             longformParts.append(
@@ -363,7 +354,7 @@ class SpecialDiffError:
                 f"<tr><td><add><b>{_('New:')}</b></add> </td><td><tt>{targets[1]}</tt> {messages[1]}</td></tr>"
                 "</table></p>")
 
-        # Show additional tips if this submodule is in the workdir.
+        # Show additional tips if this nested repository is in the workdir.
         if delta.source.isWorkdir():
             m = ""
             if isDel:
@@ -378,12 +369,12 @@ class SpecialDiffError:
                       "{gitmodules}</b> at the same time as the submodule folder itself.")
 
             elif not isAbsorbed:
-                if isTree:
-                    m = _("<b>This subtree isn’t a submodule yet!</b> "
-                          "You should [absorb this subtree] into the parent repository so it becomes a submodule.")
+                if isSubmodule:
+                    m = _("To add this nested repository as a submodule, "
+                          "you should [absorb it] into the superproject.")
                 else:
-                    m = _("To complete the addition of this submodule, "
-                          "you should [absorb the submodule] into the parent repository.")
+                    m = _("<b>This nested repository isn’t a submodule yet!</b> "
+                          "You should [absorb it] into the parent repository so it becomes a submodule.")
                 m = linkify(m, specialDiff.taskLink(AbsorbSubmodule, path=path))
 
             elif not isRegistered:
@@ -399,14 +390,14 @@ class SpecialDiffError:
             if delta.submoduleWorkdirDirty:
                 discardLink = specialDiff.taskLink(DiscardFiles, [delta])
 
-                if isTree:
-                    uc1 = _("The subtree contains <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:")
-                    uc2 = _("[Open] the subtree and commit the changes.")
-                    uc3 = _("Or, [Reset] the subtree to a clean state.")
-                else:
-                    uc1 = _("The submodule has <b>uncommitted changes</b>. They can’t be committed from the parent repo. You can:")
+                if isSubmodule:
+                    uc1 = _("The submodule has <b>uncommitted changes</b>. They can’t be committed from the superproject. You can:")
                     uc2 = _("[Open] the submodule and commit the changes.")
                     uc3 = _("Or, [Reset] the submodule to a clean state.")
+                else:
+                    uc1 = _("The nested repository contains <b>uncommitted changes</b>. They can’t be committed from the parent repository. You can:")
+                    uc2 = _("[Open] the nested repository and commit the changes.")
+                    uc3 = _("Or, [Reset] the nested repository to a clean state.")
 
                 m = f"{uc1}<ul><li>{uc2}</li><li>{uc3}</li></ul>"
                 m = linkify(m, openLink, discardLink)

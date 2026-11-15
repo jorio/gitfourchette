@@ -150,8 +150,8 @@ def _enumTable() -> dict[type[Enum], dict[Enum, str]]:
         FileMode.BLOB: _p("FileMode", "regular file"),
         FileMode.BLOB_EXECUTABLE: _p("FileMode", "executable file"),
         FileMode.LINK: _p("FileMode", "symbolic link"),
-        FileMode.TREE: _p("FileMode", "subtree"),
-        FileMode.COMMIT: _p("FileMode", "subtree commit"),
+        FileMode.TREE: _p("FileMode", "nested repository"),
+        FileMode.COMMIT: _p("FileMode", "commit in another repository"),  # Submodule or nested repo
     }
 
     table[GitConflictSides] = {

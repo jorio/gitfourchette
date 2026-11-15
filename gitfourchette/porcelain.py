@@ -441,6 +441,7 @@ class Repo(_VanillaRepository):
         self._cached_remote_list = []
         self._cached_upstream_table = {}
         self._cached_submodule_table = {}
+        self._submodule_tables_by_blob: dict[Oid, dict[str, str]] = {}
         self._cached_commondir = ""
 
     def __del__(self):
@@ -969,13 +970,30 @@ class Repo(_VanillaRepository):
         return self._cached_submodule_table
 
     def listall_submodules_dict_at_head(self) -> dict[str, str]:
+        if self.head_is_unborn:
+            return {}
+        return self.listall_submodules_dict_at(self.head_commit_id)
+
+    def listall_submodules_dict_at(self, commit_id: Oid | None) -> dict[str, str]:
+        """
+        Like listall_submodules_dict, but sourced from the .gitmodules file in the given commit.
+        If commit_id is None, use the .gitmodules file in the workdir.
+        """
+        if commit_id is None:
+            return self.listall_submodules_dict()
         try:
-            gitmodules_blob: Blob = self.head_tree[".gitmodules"].peel(Blob)
+            gitmodules_blob: Blob = self.peel_commit(commit_id).tree[DOT_GITMODULES].peel(Blob)
         except (KeyError,  # .gitmodules doesn't exist
                 ValueError):  # .gitmodules not Blob (probably Tree)
             return {}
-        old_gitmodules = gitmodules_blob.data.decode("utf-8")
-        return self.listall_submodules_dict(config_text=old_gitmodules)
+        # A blob never changes, so parse each .gitmodules version once
+        table = self._submodule_tables_by_blob.get(gitmodules_blob.id)
+        if table is None:
+            gitmodules_text = gitmodules_blob.data.decode("utf-8")
+            # Empty config_text would make listall_submodules_dict read the workdir's .gitmodules instead
+            table = self.listall_submodules_dict(config_text=gitmodules_text) if gitmodules_text else {}
+            self._submodule_tables_by_blob[gitmodules_blob.id] = table
+        return table
 
     def _get_cached_config(self, cache_key: str, path: str, strict: bool) -> _configparser.ConfigParser:
         new_stat = _os.stat(path)

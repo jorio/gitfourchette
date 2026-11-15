@@ -129,7 +129,7 @@ class FileList(QListView):
     nothingClicked = Signal()
     """ Only emitted if the widget has focus. """
     selectedCountChanged = Signal(int)
-    openSubRepo = Signal(str)
+    openNestedRepo = Signal(str)
     statusMessage = Signal(str)
 
     repoModel: RepoModel
@@ -604,10 +604,14 @@ class FileList(QListView):
         # To be overridden in DirtyFiles and StagedFiles
         QApplication.beep()
 
-    def openSubmoduleTabs(self):
+    def openNestedRepoTabs(self):
         for delta in self.selectedDeltas():
-            if delta.isSubtreeCommitPatch():
-                self.openSubRepo.emit(delta.new.path)
+            if delta.involvesGitlink:
+                self.openNestedRepo.emit(delta.new.path)
+
+    def areSubmodules(self, deltas: list[GitDelta]) -> bool:
+        """ Whether all these gitlinks are submodules (see GitDelta.submoduleNames). """
+        return all(any(delta.submoduleNames(self.repo)) for delta in deltas)
 
     def backUpSelection(self):
         oldSelected = list(self.selectedPaths())
