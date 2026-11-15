@@ -275,7 +275,7 @@ if QT_BINDING_VERSION_TUPLE < (6, 12) and not TYPE_CHECKING:
         _oldDragInit(self, p, *args, **kwargs)
     QDragEnterEvent.__init__ = _newDragInit  # type: ignore[method-assign]
 
-    _oldMoveInit = QDragEnterEvent.__init__
+    _oldMoveInit = QDragMoveEvent.__init__
     def _newMoveInit(self, point, *args, **kwargs):
         p = point.toPoint() if isinstance(point, QPointF) else point
         _oldMoveInit(self, p, *args, **kwargs)

@@ -471,7 +471,7 @@ class ToolCommands:
             if APP_TESTMODE and os.environ.get("PYTEST_XDIST_WORKER", ""):
                 currentTest = os.environ.get("PYTEST_CURRENT_TEST", "???")
                 exitMessage = (f"!!! '{currentTest}' is trying to kill a subprocess, so it should "
-                               f"be annotated with @pytest.mark.notParellizableOnWindows !!!")
+                               f"be annotated with @pytest.mark.notParallelizableOnWindows !!!")
                 warnings.warn(exitMessage)
                 sys.modules["pytest"].exit(exitMessage, returncode=1)
 
