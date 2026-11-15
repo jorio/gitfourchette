@@ -222,8 +222,9 @@ def _decodeDataclass[T](data: _TJsonFriendly, targetType: type[T]) -> T:
 
         try:
             value = decode(fieldValue, fieldType)
-        except JsonTypeMismatch as ex:
-            ex.fieldName = name
+        except (JsonTypeMismatch, ValueError) as ex:  # ValueError: e.g. stale enum value
+            if isinstance(ex, JsonTypeMismatch):
+                ex.fieldName = name
             if field.default_factory is dataclasses.MISSING and field.default is dataclasses.MISSING:
                 raise
             else:

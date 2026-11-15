@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import enum
 
 import pytest
 from pygit2 import Signature
@@ -119,3 +120,29 @@ def testJsonFriendlyPermissiveDeserializationIfDefaultAvailable():
     assert result.foo == 200
     assert result.bar == 1234
     assert version == ""
+
+
+def testJsonFriendlyPermissiveDeserializationOfUnknownEnumValue():
+    # e.g. a value written by a newer version of the app
+    class Color(enum.StrEnum):
+        Red = "red"
+
+    @dataclasses.dataclass
+    class DeserializeMe:
+        foo: int
+        color: Color = Color.Red
+
+    @dataclasses.dataclass
+    class DeserializeMeStrict:
+        color: Color
+
+    text = '{"foo": 200, "color": "ultraviolet"}'
+
+    # Field has a default value: be permissive
+    result, _version = jsonfriendly.fromJson(text, DeserializeMe)
+    assert result.foo == 200
+    assert result.color == Color.Red
+
+    # No default value to fall back on
+    with pytest.raises(ValueError):
+        jsonfriendly.fromJson(text, DeserializeMeStrict)
