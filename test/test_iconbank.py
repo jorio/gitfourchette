@@ -20,7 +20,7 @@ def testStockIconImgTagDpr(mainWindow):
     # DPR=1 cache miss
     tag = iconbank.stockIconImgTag("git-head", dpr=1)
     src = extractSrc(tag)
-    assert src.startswith("assets:icons/")
+    assert src.startswith(qTempDir())
     pixmap.load(src)
     assert pixmap.size() == QSize(16, 16)
     srcDpr1 = src
@@ -49,3 +49,14 @@ def testStockIconImgTagDpr(mainWindow):
     pixmap.load(src)
     assert pixmap.size() == QSize(24, 24)
 
+
+@pytest.mark.parametrize("dpr", [1, 2])
+def testStockIconImgTagSizeAndStandardIcon(mainWindow, dpr):
+    from gitfourchette.toolbox import iconbank
+
+    tag = iconbank.stockIconImgTag("SP_MessageBoxWarning", dpr=dpr, size=48)
+    assert "width=48 height=48" in tag
+    pixmap = QPixmap(re.search(r"<img src='([^']+)'", tag).group(1))
+    assert not pixmap.isNull()
+    if not QT5:  # Qt 5 can't pass devicePixelRatio to QIcon.pixmap()
+        assert pixmap.size() == QSize(48 * dpr, 48 * dpr)

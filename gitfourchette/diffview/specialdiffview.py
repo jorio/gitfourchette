@@ -9,7 +9,7 @@ from gitfourchette.application import GFApplication
 from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.toolbox import stockIcon, escape, DocumentLinks
+from gitfourchette.toolbox import escape, stockIconImgTag, DocumentLinks
 
 
 class SpecialDiffView(QTextBrowser):
@@ -51,15 +51,11 @@ class SpecialDiffView(QTextBrowser):
         document = QTextDocument(self)
         document.setObjectName("DiffErrorDocument")
 
-        icon = stockIcon(err.icon)
-        pixmap: QPixmap = icon.pixmap(48, 48)
-        document.addResource(QTextDocument.ResourceType.ImageResource, QUrl("icon"), pixmap)
-
         markup = (
             f"{self.htmlHeader}"
             "<table width='100%'>"
             "<tr>"
-            f"<td width='{pixmap.width()}px'><img src='icon'/></td>"
+            f"<td width='48px'>{stockIconImgTag(err.icon, size=48)}</td>"
             "<td width='100%' style='padding-left: 8px; padding-top: 8px;'>"
             f"<big>{err.message}</big>"
             f"<br/>{err.details}"

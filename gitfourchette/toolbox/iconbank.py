@@ -102,10 +102,10 @@ def stockIcon(
     return icon
 
 
-def stockIconImgTag(iconId: str, dpr: float = 0) -> str:
-    # Qt's HTML subset renders <img> tags at devicePixelRatio=1. To avoid ugly
-    # stretching beyond 1x, we'll pre-render the image at the desired dpr. This
-    # makes most sense for SVG images which make up the bulk of our icon bank.
+def stockIconImgTag(iconId: str, dpr: float = 0, size: int = 16) -> str:
+    # Qt's HTML subset renders <img> tags at devicePixelRatio=1, and it can't
+    # load Qt's standard icons (SP_...). So, we'll pre-render the icon at the
+    # desired size and dpr.
     if dpr == 0:
         # devicePixelRatio not specified, figure it out.
         app = QApplication.instance()
@@ -120,28 +120,23 @@ def stockIconImgTag(iconId: str, dpr: float = 0) -> str:
             # system is set up for 1.25 frac scaling)
             dpr = app.devicePixelRatio()  # type: ignore[attr-defined]  # incomplete stubs
 
-    key = hash((iconId, dpr))
+    key = hash((iconId, dpr, size))
 
     try:
         return _stockIconHtmlCache[key]
     except KeyError:
         pass
 
-    size = QSize(16, 16)
-
-    if dpr == 1 or QT5:
-        # Pre-rendering not necessary for dpr=1
-        # (Qt 5: can't pass devicePixelRatio to QIcon.pixmap())
-        src = f"assets:icons/{iconId}"
+    icon = stockIcon(iconId)
+    if QT5:  # Qt 5 can't pass devicePixelRatio to QIcon.pixmap()
+        pixmap = icon.pixmap(size, size)
     else:
-        # Pre-render at the given dpr into a temporary PNG file.
-        icon = stockIcon(iconId)
-        pixmap = icon.pixmap(size, dpr)
-        fileName = f"i{int(dpr*100)}-{key & 0xFFFFFFFF:x}.png"
-        src = f"{qTempDir()}/{fileName}"
-        pixmap.save(src)
+        pixmap = icon.pixmap(QSize(size, size), dpr)
+    fileName = f"i{int(dpr*100)}-{key & 0xFFFFFFFF:x}.png"
+    src = f"{qTempDir()}/{fileName}"
+    pixmap.save(src)
 
-    tag = f"<img src='{src}' width={size.width()} height={size.height()} style='vertical-align: bottom;'/>"
+    tag = f"<img src='{src}' width={size} height={size} style='vertical-align: bottom;'/>"
 
     _stockIconHtmlCache[key] = tag
     return tag
