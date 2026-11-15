@@ -281,6 +281,10 @@ if QT_BINDING_VERSION_TUPLE < (6, 12) and not TYPE_CHECKING:
         _oldMoveInit(self, p, *args, **kwargs)
     QDragMoveEvent.__init__ = _newMoveInit  # type: ignore[method-assign]
 
+# QTextDocument.setDefaultResourceProvider is new in Qt 6.1
+# PySide6 doesn't bind it as of 11/2026 (PYSIDE-3518)
+QT_RESOURCE_PROVIDER_OK = hasattr(QTextDocument, "setDefaultResourceProvider")
+
 # -----------------------------------------------------------------------------
 # Verbose QObject destructors
 

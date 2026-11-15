@@ -4,12 +4,15 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from pathlib import Path
+
 from gitfourchette.qt import *
 from gitfourchette.toolbox.recolorsvgiconengine import RecolorSvgIconEngine
 
+STOCK_ICON_URL_SCHEME = "gitfourchette-stockicon"  # lowercase!
 
 _stockIconCache: dict[int, QIcon] = {}
-_stockIconHtmlCache: dict[int, str] = {}
+_stockIconPixmapCache: dict[int, QPixmap] = {}
 
 # Override some icon IDs depending on desktop environment
 _overrideIconIds: dict[str, str] = {}
@@ -102,46 +105,67 @@ def stockIcon(
     return icon
 
 
-def stockIconImgTag(iconId: str, dpr: float = 0, size: int = 16) -> str:
-    # Qt's HTML subset renders <img> tags at devicePixelRatio=1, and it can't
-    # load Qt's standard icons (SP_...). So, we'll pre-render the icon at the
-    # desired size and dpr.
-    if dpr == 0:
-        # devicePixelRatio not specified, figure it out.
-        app = QApplication.instance()
-        try:
-            # Use mainWindow's dpr
-            window: QMainWindow = app.mainWindow  # type: ignore[attr-defined]
-            dpr = window.devicePixelRatio()
-        except AttributeError:
-            # Too early, no window yet; fall back to highest dpr on the system.
-            # Note: on Wayland, this may be higher than the actual dpr if
-            # fractional scaling is enabled (e.g. this may return 2.0 if your
-            # system is set up for 1.25 frac scaling)
-            dpr = app.devicePixelRatio()  # type: ignore[attr-defined]  # incomplete stubs
+def stockIconResourceProvider(url: QUrl) -> QPixmap | None:
+    if url.scheme() != STOCK_ICON_URL_SCHEME:
+        return None
 
+    # Figure out dpr
+    app = QApplication.instance()
+    try:
+        # Use mainWindow's dpr
+        dpr = app.mainWindow.devicePixelRatio()  # type: ignore[attr-defined]
+    except AttributeError:
+        # Too early, no window yet; fall back to highest dpr on the system.
+        # Note: on Wayland, this may be higher than the actual dpr if fractional
+        # scaling is enabled (e.g. this may return 2.0 if your system is set up
+        # for 1.25 frac scaling)
+        dpr = app.devicePixelRatio()  # type: ignore[attr-defined]  # incomplete stubs
+
+    iconId = url.path()
+    size = int(url.fragment())
     key = hash((iconId, dpr, size))
 
     try:
-        return _stockIconHtmlCache[key]
+        pixmap = _stockIconPixmapCache[key]
     except KeyError:
-        pass
+        icon = stockIcon(iconId)
+        if QT5:  # Qt 5 compat: no devicePixelRatio argument in ctor
+            pixmap = icon.pixmap(QSize(size, size))
+        else:
+            pixmap = icon.pixmap(QSize(size, size), dpr)
+        _stockIconPixmapCache[key] = pixmap
 
-    icon = stockIcon(iconId)
-    if QT5:  # Qt 5 can't pass devicePixelRatio to QIcon.pixmap()
-        pixmap = icon.pixmap(size, size)
-    else:
-        pixmap = icon.pixmap(QSize(size, size), dpr)
-    fileName = f"i{int(dpr*100)}-{key & 0xFFFFFFFF:x}.png"
-    src = f"{qTempDir()}/{fileName}"
-    pixmap.save(src)
+        # print(f"{len(_stockIconPixmapCache)} pixmaps cached, "
+        #       f"{sum(p.toImage().sizeInBytes() for p in _stockIconPixmapCache.values())//1024} KB total")
 
-    tag = f"<img src='{src}' width={size} height={size} style='vertical-align: bottom;'/>"
+    return pixmap
 
-    _stockIconHtmlCache[key] = tag
-    return tag
+
+def stockIconImgTag(iconId: str, size: int = 16) -> str:
+    """
+    Qt's HTML subset renders <img> tags at devicePixelRatio=1, and it can't load
+    Qt's standard icons (SP_...). So, we'll pre-render the icon at the desired
+    size and dpr.
+
+    On PyQt6, pixmaps remain in memory. Before the first use, call
+    QTextDocument.setDefaultResourceProvider(stockIconResourceProvider).
+
+    On PySide6 and PyQt5, pixmaps are written to the temporary directory.
+    """
+
+    src = f"{STOCK_ICON_URL_SCHEME}:{iconId}#{size}"
+
+    # Neither PyQt5 nor PySide6 support QTextDocument.setDefaultResourceProvider(),
+    # so we can't pass our internal URL. Use a PNG file in the temp dir.
+    if not QT_RESOURCE_PROVIDER_OK:  # pragma: no cover
+        internalSrc = src
+        src = f"{qTempDir()}/icon-{hash(internalSrc) & 0xFFFFFFFF:x}.png"
+        if not Path(src).exists():
+            stockIconResourceProvider(QUrl(internalSrc)).save(src)
+
+    return f"<img src='{src}' width={size} height={size} style='vertical-align: bottom;'>"
 
 
 def clearStockIconCache():
     _stockIconCache.clear()
-    _stockIconHtmlCache.clear()
+    _stockIconPixmapCache.clear()

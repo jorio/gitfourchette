@@ -316,7 +316,7 @@ class GFApplication(QApplication):
 
     def bootUi(self):
         from gitfourchette.mainwindow import MainWindow
-        from gitfourchette.toolbox import bquo
+        from gitfourchette.toolbox import bquo, iconbank
         from gitfourchette.settings import QtApiNames
         from gitfourchette.forms.donateprompt import DonatePrompt
         from gitfourchette.mount.mountmanager import MountManager
@@ -325,6 +325,10 @@ class GFApplication(QApplication):
 
         assert self.mainWindow is None, "already have a MainWindow"
         assert self.initialSession is not None, "initial session should have been prepared before bootUi"
+
+        # Install pixmap resource provider (for img tags in text documents)
+        if QT_RESOURCE_PROVIDER_OK:
+            QTextDocument.setDefaultResourceProvider(iconbank.stockIconResourceProvider)
 
         # Initialize mountpoint manager
         self.mountManager = MountManager(self)
