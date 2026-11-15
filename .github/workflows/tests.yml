@@ -28,8 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
-      flatpak: ${{ steps.set.outputs.flatpak }}
       flatpakref: ${{ steps.set.outputs.flatpakref }}
+      flatpakCacheKey: ${{ steps.set.outputs.flatpakCacheKey }}
     env:
       WORKFLOW_INPUTS: ${{ toJson(inputs) }}
     steps:
@@ -97,7 +97,7 @@ jobs:
 
   flatpak:
     needs: prepare-matrix
-    if: ${{ needs.prepare-matrix.outputs.flatpak == 'true' }}
+    if: ${{ needs.prepare-matrix.outputs.flatpakref != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -106,17 +106,13 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - id: get-date
-      run: echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-      shell: bash
-
     - uses: actions/cache@v6
       with:
+        key: ${{ needs.prepare-matrix.outputs.flatpakCacheKey }}
         path: |
           ~/.local/share/flatpak
           ~/.cache/gitfourchette__TEST_AS_FLATPAK_TEMP__/pip-cache
           apt-cache.tar
-        key: flatpak-test-environment-${{ steps.get-date.outputs.date }}
 
     - name: Prepare flatpak (APT)
       run: |
@@ -130,15 +126,7 @@ jobs:
         # Save APT package cache
         if [ ! -f apt-cache.tar ]; then sudo tar -Pcvf apt-cache.tar /var/cache/apt && sudo chown `whoami` apt-cache.tar; fi
 
-    - name: Install flatpak from last public release
-      if: ${{ needs.prepare-matrix.outputs.flatpakref == '' }}
-      run: |
-        flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-        flatpak install --noninteractive --user flathub $APP_FLATPAK_ID
-        flatpak list
-
-    - name: Install custom flatpakref
-      if: ${{ needs.prepare-matrix.outputs.flatpakref != '' }}
+    - name: Install ${{ needs.prepare-matrix.outputs.flatpakref }}
       run: |
         flatpak install --noninteractive --user ${{ needs.prepare-matrix.outputs.flatpakref }}
         flatpak list

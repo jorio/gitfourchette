@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 
+import datetime
 import dataclasses
 import json
 import os
+import subprocess
+
+FLATPAK_APPID = "org.gitfourchette.gitfourchette"
+FLATPAK_DEFAULT_FLATPAKREF = f"https://dl.flathub.org/repo/appstream/{FLATPAK_APPID}.flatpakref"
+FLATPAK_FLATHUB_REPO = f"https://github.com/flathub/{FLATPAK_APPID}"
 
 @dataclasses.dataclass
 class Config:
@@ -73,23 +79,34 @@ configMap = {c.name: c for c in configs}
 
 if os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch") != "workflow_dispatch":
     # Keep everything for pull_request, push, etc.
-    flatpak = True
-    flatpakref = ""
+    flatpakref = FLATPAK_DEFAULT_FLATPAKREF
 else:
     inputs = json.loads(os.environ["WORKFLOW_INPUTS"])
 
-    flatpak = inputs.pop("flatpak", False)
-    flatpakref = inputs.pop("flatpakref", "").strip()
+    wantFlatpak = inputs.pop("flatpak", False)
+    flatpakref = "" if not wantFlatpak else inputs.pop("flatpakref", FLATPAK_DEFAULT_FLATPAKREF).strip()
 
     configs = [configMap[name] for name, enabled in inputs.items() if enabled]
 
 configs = [c.compile() for c in configs]
 
-if not configs and not flatpak:
+if not configs and not flatpakref:
     raise ValueError("No configs selected in WORKFLOW_INPUTS!")
 
-print(f"flatpak={str(flatpak).lower()}")
+# Work out cache key for Flatpak test environment.
+# If using current public release, use current commit on Flathub.
+# Otherwise, use URL to custom flatpakref.
+flatpakCacheKey = flatpakref.removeprefix("https://")
+if flatpakref == FLATPAK_DEFAULT_FLATPAKREF:
+    flathubCommit = subprocess.check_output(["git", "ls-remote", FLATPAK_FLATHUB_REPO, "master"], text=True)[:7]
+    flatpakCacheKey = f"Flathub {flathubCommit}"
+
+# Rotate Flatpak cache monthly to keep it from getting stale
+currentMonth = datetime.datetime.now().strftime("%B")
+flatpakCacheKey = f"Flatpak test environment - {currentMonth} - {flatpakCacheKey}"
+
 print(f"flatpakref={flatpakref}")
+print(f"flatpakCacheKey={flatpakCacheKey}")
 if configs:
     print(f"matrix={json.dumps({'include': configs})}")
 else:
