@@ -904,6 +904,17 @@ def testDiffHeader(tempDir, mainWindow):
         assert findTextInWidget(rw.diffArea.diffHeader, "hello.txt")
 
 
+def testCloneHistoryKeepsMostRecentUrls():
+    history = settings.History()
+    n = settings.prefs.maxRecentRepos
+    for i in range(n + 1):
+        history.addCloneUrl(f"https://example.com/repo{i}.git")
+    history.trim()
+    assert len(history.cloneHistory) == n
+    assert history.cloneHistory[0] == f"https://example.com/repo{n}.git"
+    assert "https://example.com/repo0.git" not in history.cloneHistory
+
+
 def testPrefsFileGenericAliases(tempDir, mainWindow):
     assert settings.prefs.dontShowAgain == []
     settings.prefs.dontShowAgain.append("NoFastForwardNecessary")
