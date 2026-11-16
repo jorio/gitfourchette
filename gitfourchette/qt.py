@@ -220,12 +220,9 @@ if QT5 and not TYPE_CHECKING:
     # Disable "What's this?" in Qt 5 dialog box title bars (Qt 6 sets this off by default.)
     QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_DisableWindowContextHelpButton)
 
-    # QMouseEvent.pos() is deprecated in Qt 6, so we don't use it.
-    # Fill in QMouseEvent.position() for Qt 5.
-    def _QMouseEvent_position(self: QMouseEvent) -> QPointF:
-        return QPointF(self.pos())
-
-    QMouseEvent.position = _QMouseEvent_position
+    # .position()->QPointF (instead of .pos()->QPoint, deprecated in Qt 6)
+    QMouseEvent.position = lambda _self: QPointF(_self.pos())
+    QDropEvent.position = lambda _self: QPointF(_self.pos())  # inherited by QDragEnterEvent, QDragMoveEvent
 
     # Some of these QFontDatabase functions became static in Qt 6, but they weren't in Qt 5.
     _QFontDatabase_families = QFontDatabase.families
@@ -269,17 +266,17 @@ QTextBlock.fragments = _QTextBlock_fragments  # type: ignore[attr-defined]
 
 # Qt 6.12 starts taking a QPointF in QDragEnterEvent/QDragMoveEvent
 if QT_BINDING_VERSION_TUPLE < (6, 12) and not TYPE_CHECKING:
-    _oldDragInit = QDragEnterEvent.__init__
-    def _newDragInit(self, point, *args, **kwargs):
-        p = point.toPoint() if isinstance(point, QPointF) else point
-        _oldDragInit(self, p, *args, **kwargs)
-    QDragEnterEvent.__init__ = _newDragInit  # type: ignore[method-assign]
+    def _wrapInit(oldInit):
+        def newInit(self, *args, **kwargs):
+            if args:  # At runtime, ctor may be called without any arguments
+                p = args[0]
+                p = p.toPoint() if isinstance(p, QPointF) else p
+                args = (p, *args[1:])
+            oldInit(self, *args, **kwargs)
+        return newInit
 
-    _oldMoveInit = QDragMoveEvent.__init__
-    def _newMoveInit(self, point, *args, **kwargs):
-        p = point.toPoint() if isinstance(point, QPointF) else point
-        _oldMoveInit(self, p, *args, **kwargs)
-    QDragMoveEvent.__init__ = _newMoveInit  # type: ignore[method-assign]
+    QDragEnterEvent.__init__ = _wrapInit(QDragEnterEvent.__init__)
+    QDragMoveEvent.__init__ = _wrapInit(QDragMoveEvent.__init__)
 
 # QTextDocument.setDefaultResourceProvider is new in Qt 6.1
 # PySide6 doesn't bind it as of 11/2026 (PYSIDE-3518)

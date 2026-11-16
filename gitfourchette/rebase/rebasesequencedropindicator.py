@@ -13,7 +13,8 @@ class RebaseSequenceDropIndicator(QWidget):
     """
 
     def syncPositionOnDrag(self, event: QDragMoveEvent, itemView: QAbstractItemView):
-        index = itemView.indexAt(event.position().toPoint())
+        pos = event.position().toPoint()
+        index = itemView.indexAt(pos)
 
         if not event.isAccepted() or not index.isValid():
             self.hide()
@@ -21,7 +22,7 @@ class RebaseSequenceDropIndicator(QWidget):
 
         rect = itemView.visualRect(index)
 
-        if event.position().y() >= rect.center().y():
+        if pos.y() >= rect.center().y():
             # Mouse below row center: pin to bottom edge
             y = rect.bottom()
         elif index.row() == 0:
