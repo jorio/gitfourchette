@@ -378,7 +378,7 @@ class PrefsDialog(QDialog):
             return self.enumControl(key, value, valueType, previewCallback=lambda v: abbreviatePerson(SAMPLE_SIGNATURE, v))
         elif key == "shortHashChars":
             return self.boundedIntControl(key, value, 4, 40)
-        elif key == "maxRecentRepos":
+        elif key in ("maxRecentRepos", "maxRecentCommitMessages"):
             return self.boundedIntControl(key, value, 0, 50)
         elif key == "contextLines":  # staging/discarding individual lines is flaky with 0 context lines
             return self.boundedIntControl(key, value, 1, 32)

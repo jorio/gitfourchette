@@ -180,6 +180,7 @@ class Prefs(PrefsFile):
 
     _category_advanced          : int                   = 0
     maxRecentRepos              : int                   = 20
+    maxRecentCommitMessages     : int                   = 10
     shortHashChars              : int                   = 7
     autoRefresh                 : bool                  = True
     autoFetchMinutes            : int                   = 5

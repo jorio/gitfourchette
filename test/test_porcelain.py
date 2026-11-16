@@ -128,3 +128,19 @@ def testInGitdirWithSymlinkedRepo(tempDir):
         # Must not raise ValueError("Won't resolve absolute path outside gitdir")
         config_path = repo.in_gitdir("config", common=True)
     assert config_path.endswith("config")
+
+
+def testRecentCommitMessagesFiltering(tempDir):
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        sig = TEST_SIGNATURE
+        head = repo.head_commit_id
+        for message in ["regular\n", "regular", " \n"]:  # same message twice, then a blank one
+            head = repo.create_commit("HEAD", sig, sig, message, repo.head_tree.id, [head])
+        repo.create_commit("HEAD", sig, sig, "merge\n", repo.head_tree.id, [head, repo.head_commit.parent_ids[0]])
+        assert repo.recent_commit_messages(0) == []
+        assert repo.recent_commit_messages(1) == ["regular"]
+        assert repo.recent_commit_messages(10).count("regular") == 1
+
+        repo.set_head("refs/heads/unborn-branch")
+        assert repo.recent_commit_messages(10) == []

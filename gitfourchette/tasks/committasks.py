@@ -8,6 +8,7 @@ import logging
 from contextlib import suppress
 from pathlib import Path
 
+from gitfourchette import settings
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
@@ -77,6 +78,7 @@ class NewCommit(RepoTask):
             gpgFlag=gpgFlag,
             gpgKey=gpgKey,
             hooks=self.preCommitHookNames(self.repo),
+            recentMessages=self.repo.recent_commit_messages(settings.prefs.maxRecentCommitMessages),
             parent=self.parentWidget())
 
         if uiPrefs.draftCommitSignatureOverride == SignatureOverride.Nothing:
@@ -236,6 +238,7 @@ class AmendCommit(RepoTask):
             gpgFlag=gpgFlag,
             gpgKey=gpgKey,
             hooks=NewCommit.preCommitHookNames(self.repo),
+            recentMessages=[],
             parent=self.parentWidget())
 
         cd.setWindowModality(Qt.WindowModality.WindowModal)
