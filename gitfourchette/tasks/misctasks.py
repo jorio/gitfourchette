@@ -174,7 +174,7 @@ class GetCommitInfo(RepoTask):
                 padding-right: 8px;
                 font-weight: normal;
                 white-space: pre;
-                color: {mutedTextColorHex(self.parentWidget())};
+                color: {mutedTextColorHex()};
             }}
         </style>
         <big>{summary}</big>

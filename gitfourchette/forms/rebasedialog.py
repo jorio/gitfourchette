@@ -180,7 +180,7 @@ class RebaseDialog(QDialog):
     def _makeOptionsMenu(self):
         menu = QRichTextMenu(self)
         dateGroup = QActionGroup(menu)
-        mutedColor = mutedTextColorHex(menu)
+        mutedColor = mutedTextColorHex()
 
         for label, switch in [
             (_("Separate author/committer dates"), ""),

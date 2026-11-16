@@ -52,7 +52,7 @@ class AboutDialog(QDialog):
             <br><a href="{WEBSITE_URL}">{WEBSITE_URL}</a>""")
 
         versionText = dedent(f"""\
-            <span style='color: {mutedTextColorHex(self)}'>
+            <span style='color: {mutedTextColorHex()}'>
                 <b>{_("Version {0}", APP_VERSION)}</b> {buildInfo}
                 <br>Copyright © 2026 Iliyas Jorio
             </span>""")

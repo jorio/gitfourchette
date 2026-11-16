@@ -98,7 +98,7 @@ class NewRepo(RepoTask):
             dp1 = escape(displayPath[: i1])
             dp2 = escape(displayPath[i1: i2])
             dp3 = escape(displayPath[i2:])
-            muted = mutedTextColorHex(self.parentWidget())
+            muted = mutedTextColorHex()
             prettyPath = (f"<div style='white-space: pre;'>"
                           f"<span style='color: {muted};'>{dp1}</span>"
                           f"<b>{dp2}</b>"
