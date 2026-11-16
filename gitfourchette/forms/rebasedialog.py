@@ -81,6 +81,10 @@ class RebaseDialog(QDialog):
         self.ui.buttonBox.addButton(self.warningHint, QDialogButtonBox.ButtonRole.ActionRole)
         self.warningHint.setVisible(False)
 
+        # macOS: Adding warningHint to the buttonBox inexplicably moves focus to
+        # the Cancel button, so focus the sequence instead.
+        self.ui.sequence.setFocus()
+
     def rebaseExtraArgs(self) -> list[str]:
         args = []
         if self.rebaseDateArg:

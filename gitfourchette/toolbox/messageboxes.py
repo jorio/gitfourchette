@@ -205,6 +205,14 @@ def asyncMessageBox(
     if deleteOnClose:
         qmb.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
+    # macOS: If the caller subsequently adds widgets to the QMB, it might move
+    # keyboard focus away from the OK button unless we give it explicit focus.
+    okButton = qmb.button(QMessageBox.StandardButton.Ok)
+    if okButton:
+        assert isinstance(okButton, QPushButton)
+        okButton.setDefault(True)
+        okButton.setFocus()
+
     return qmb
 
 

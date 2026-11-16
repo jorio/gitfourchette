@@ -38,6 +38,7 @@ def _driveRebaseDialog(rw, onto: Oid, todoList: list[_Todo]):
 
     assert sequenceView.sequenceModel.sequence[0].op == RebaseOp.FakeStart
     assert sequenceView.sequenceModel.sequence[0].oid == onto
+    assert not rebaseDialog.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).hasFocus()
 
     # Apply all operations
     for todo in todoList:
