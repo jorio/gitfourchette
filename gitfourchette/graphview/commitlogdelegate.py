@@ -381,6 +381,8 @@ class CommitLogDelegate(QStyledItemDelegate):
     def _paintAuthor(self, painter: QPainter, rect: QRect, commit: Commit):
         assert commit
         author = commit.author
+        author = self.repoModel.mailmap.resolve_signature(author)
+
         authorText = abbreviatePerson(author, settings.prefs.authorDisplayStyle)
 
         if settings.prefs.authorDiffAsterisk and author.email != commit.committer.email:

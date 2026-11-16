@@ -28,6 +28,7 @@ from pygit2 import (
     GitError,
     IndexEntry,
     InvalidSpecError,
+    Mailmap,
     Object as GitObject,
     Oid,
     Remote,

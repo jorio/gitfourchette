@@ -18,6 +18,7 @@ from .fontpicker import FontPicker
 from .gitutils import (
     shortHash, nameValidationMessage,
     AuthorDisplayStyle, abbreviatePerson,
+    formatPerson,
     PatchPurpose,
     remoteUrlProtocol,
     splitRemoteUrl,

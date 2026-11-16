@@ -10,8 +10,11 @@ from contextlib import suppress
 from typing import Literal
 
 from gitfourchette import trtables
+from gitfourchette.localization import _
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.toolbox.qtutils import mutedTextColorHex
+from gitfourchette.toolbox.textutils import *
 
 INITIALS_PATTERN = re.compile(r"(?:^|[\s\-.'‘’\"“”])+([^\s\-.'‘’\"“”])[^\s\-.]*")
 FIRST_NAME_PATTERN = re.compile(r"(\S(\.?-|\.\s?|\s))*\S+")
@@ -91,6 +94,21 @@ def abbreviatePerson(sig: Signature, style: AuthorDisplayStyle = AuthorDisplaySt
                 return emailParts[0]
 
     return sig.email  # type: ignore[unreachable]
+
+
+def formatPerson(sig: Signature, mailmap: Mailmap, bold=True):
+    muted = mutedTextColorHex(.66)
+    mapped = mailmap.resolve_signature(sig)
+
+    nameMarkup1 = (btag if bold else escape)(sig.name)
+    text = f"{nameMarkup1} <span style='color: {muted}'>&lt;{escape(sig.email)}&gt;</span>"
+
+    if mapped.name != sig.name:
+        nameMarkup2 = (btag if bold else hquo)(mapped.name)
+        mailmapText = _("a.k.a. {0} in mailmap", nameMarkup2)
+        text += f"<br>{mailmapText}"
+
+    return text
 
 
 def shortHash(oid: Oid | str, maybe=False) -> str:

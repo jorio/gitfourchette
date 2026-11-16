@@ -104,6 +104,8 @@ class CommitPathspecFilter(QObject):
 class RepoModel:
     repo: Repo
 
+    mailmap: Mailmap
+
     walker: Walker | None
     """Walker used to generate the graph. Call initializeWalker before use.
     Keep it around to speed up ulterior refreshes."""
@@ -181,6 +183,8 @@ class RepoModel:
 
     def __init__(self, repo: Repo):
         assert isinstance(repo, Repo)
+
+        self.mailmap = Mailmap.from_repository(repo)
 
         self.commitSequence = []
         self.truncatedHistory = True

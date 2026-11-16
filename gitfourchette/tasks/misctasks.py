@@ -75,10 +75,10 @@ class EditRepoSettings(RepoTask):
 
 
 class GetCommitInfo(RepoTask):
-    @staticmethod
-    def formatSignature(sig: Signature):
-        dateText = signatureDateFormat(sig)
-        return f"{escape(sig.name)} &lt;{escape(sig.email)}&gt;<br><small>{escape(dateText)}</small>"
+    def formatSignature(self, sig: Signature):
+        person = formatPerson(sig, self.repoModel.mailmap, bold=False)
+        date = signatureDateFormat(sig)
+        return f"{person}<br><small>{date}</small>"
 
     def defaultJumpCallback(self, locator: NavLocator):
         self.epilog.jumpTo = locator

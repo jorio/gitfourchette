@@ -407,7 +407,7 @@ def testCommitInfoJumpToParent(tempDir, mainWindow):
     triggerContextMenuAction(rw.graphView.viewport(), "get info")
     dlg = findQDialog(rw, "commit info.+83834a", t=CommitInfoDialog)
     label = dlg.summaryLabel
-    assert findTextInWidget(dlg.summaryLabel, "Merge branch 'a' into c")
+    assert findTextInWidget(label, "Merge branch 'a' into c")
 
     # Click on a "parent" link; this should close the dialog and jump to another commit
     parentLink = re.search(r'<a href="(.*\S+)">6462e7d.+</a>', label.text(), re.I).group(1)
@@ -536,6 +536,34 @@ def testCommitToolTip(tempDir, mainWindow):
     assert longMessage in toolTip
     assert "(committed)" in toolTip
     assert "(authored)" in toolTip
+
+
+def testMailmapCommitToolTipAndInfo(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+
+    shell("""
+        printf 'Drucilla Fleishman <a.u.thor@example.com>\n' >> .mailmap
+        printf 'Criquette Rockwell <wqt@montgomery.qc.ca>\n' >> .mailmap
+        GIT_COMMITTER_NAME='Animal A. Nocturne' GIT_COMMITTER_EMAIL=wqt@montgomery.qc.ca git commit --amend -m "criquette was here"
+    """, wd)
+
+    mainWindow.resize(1500, 600)
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inRef("HEAD"))
+
+    toolTip = qlvSummonToolTip(rw.graphView, 1, x=-16)
+    assert re.search(
+        r"A U Thor.+a.k.a.+Drucilla Fleishman.+in mailmap.+"
+        r"Animal A. Nocturne.+a.k.a.+Criquette Rockwell.+in mailmap",
+        toolTip)
+
+    triggerContextMenuAction(rw.graphView.viewport(), "get info")
+    dlg = findQDialog(rw, "commit info", t=CommitInfoDialog)
+    assert findTextInWidget(
+        dlg.summaryLabel,
+        r"Author.+A U Thor.+a.k.a.+Drucilla Fleishman.+in mailmap.+"
+        r"Committer.+Animal A. Nocturne.+a.k.a.+Criquette Rockwell.+in mailmap")
+    dlg.accept()
 
 
 def testUnknownRefPrefix(tempDir, mainWindow):

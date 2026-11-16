@@ -166,13 +166,13 @@ class CommitLogModel(QAbstractListModel):
                 elif zone.kind == "message":
                     tip = commitMessageTooltip(commit)
                 elif zone.kind == "author":
-                    tip = commitAuthorTooltip(commit, *self.repoModel.getCachedGpgStatus(commit))
+                    tip = commitAuthorTooltip(commit, self.repoModel.mailmap, *self.repoModel.getCachedGpgStatus(commit))
                 elif zone.kind == "pathspec":
                     tip = _("This commit touches a path that matches your search")
                 break
 
             if self._authorColumnX <= 0:  # author hidden in narrow window
-                tip += commitAuthorTooltip(commit, *self.repoModel.getCachedGpgStatus(commit))
+                tip += commitAuthorTooltip(commit, self.repoModel.mailmap, *self.repoModel.getCachedGpgStatus(commit))
 
             return tip
 
@@ -200,18 +200,15 @@ class CommitLogModel(QAbstractListModel):
         return False
 
 
-def commitAuthorTooltip(commit: CommitTraits, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
+def commitAuthorTooltip(commit: CommitTraits, mailmap: Mailmap, gpgStatus: GpgStatus, gpgKeyInfo: str) -> str:
     def formatTime(sig: Signature):
         return escape(signatureDateFormat(sig))
-
-    def formatPerson(sig: Signature):
-        return f"<b>{escape(sig.name)}</b> &lt;{escape(sig.email)}&gt;"
 
     author = commit.author
     committer = commit.committer
 
     markup = "<p style='white-space: pre'>"
-    markup += formatPerson(author)
+    markup += formatPerson(author, mailmap)
 
     if author == committer:
         markup += f"<small><br>{formatTime(author)}"
@@ -221,7 +218,7 @@ def commitAuthorTooltip(commit: CommitTraits, gpgStatus: GpgStatus, gpgKeyInfo: 
         markup += (f"<small><br>{formatTime(author)} {suffixA}"
                    f"<br>{formatTime(committer)} *{suffixC}")
     else:
-        committedBy = _p("CommitTooltip", "Committed by {0}", formatPerson(committer))
+        committedBy = _p("CommitTooltip", "Committed by {0}", formatPerson(committer, mailmap))
         markup += (f"<small><br>{formatTime(author)}"
                    f"<br><br>* {committedBy}"
                    f"<br><small>{formatTime(committer)}")
