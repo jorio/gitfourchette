@@ -494,6 +494,33 @@ def testSidebarAheadBehind(tempDir, mainWindow):
     assert re.search("up-to-date with upstream", tip, re.IGNORECASE)
 
 
+def testSidebarAheadBehindWithSameNamedTag(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch ahead17 6e14752
+        git branch ahead17 -u origin/no-parent
+        git tag ahead17 6e14752
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/ahead17")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search("17 commits ahead", tip, re.IGNORECASE)
+    assert index.data(SidebarModel.Role.AheadBehind) == (17, 0)
+
+    # Same after a refresh, which recomputes ahead/behind separately
+    shell("""
+        git branch behind3 6e14752
+        git branch behind3 -u origin/master
+        git tag behind3 6e14752
+    """, wd)
+    rw.refreshRepo()
+
+    index = rw.sidebar.indexForRef("refs/heads/behind3")
+    assert index.data(SidebarModel.Role.AheadBehind) == (0, 3)
+
+
 def testSidebarMissingUpstream(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shell("git config branch.master.merge refs/heads/missing-upstream", wd)

@@ -796,7 +796,7 @@ class RefreshRepo(RepoTask):
         if refsChanged or upstreamsChanged:
             # TODO: This bit is duplicated with PrimeRepo
             with Benchmark("ahead-behind"):
-                driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname:short) %(upstream:track)", "refs/heads")
+                driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname) %(upstream:track)", "refs/heads")
                 repoModel.aheadBehind = dict(parseAheadBehind(driver.stdoutScrollback()))
 
         # Schedule a repaint of the entire GraphView if the refs changed

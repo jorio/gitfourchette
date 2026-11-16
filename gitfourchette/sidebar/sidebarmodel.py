@@ -632,7 +632,7 @@ class SidebarModel(QAbstractItemModel):
                 return branchName.rsplit("/", 1)[-1]
             elif role == SidebarModel.Role.AheadBehind:
                 try:
-                    return self.repoModel.aheadBehind[branchName]
+                    return self.repoModel.aheadBehind[refName]
                 except KeyError:
                     return None
             elif role == SidebarModel.Role.MissingUpstream:
@@ -901,7 +901,7 @@ class SidebarModel(QAbstractItemModel):
             parts.append(f" {SYMBOL_UPDOWN} {text}")
         else:
             try:
-                ahead, behind = self.repoModel.aheadBehind[branchName]
+                ahead, behind = self.repoModel.aheadBehind[RefPrefix.HEADS + branchName]
                 if ahead:
                     text = _n("{n} commit ahead", "{n} commits ahead", ahead)
                     parts.append(f" {SYMBOL_AHEAD} {text}")

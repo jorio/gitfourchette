@@ -86,7 +86,7 @@ class PrimeRepo(RepoTask):
 
         # Fill in ahead/behind
         with Benchmark("ahead-behind"):
-            driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname:short) %(upstream:track)", "refs/heads")
+            driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname) %(upstream:track)", "refs/heads")
             repoModel.aheadBehind = dict(parseAheadBehind(driver.stdoutScrollback()))
 
         # ---------------------------------------------------------------------

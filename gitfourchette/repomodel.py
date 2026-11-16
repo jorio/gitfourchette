@@ -143,8 +143,8 @@ class RepoModel:
     "Information about the current rebase (if any)."
 
     aheadBehind: dict[str, tuple[int, int]]
-    """Table of local branch names to the number of commits the branch is
-    ahead/behind of its upstream."""
+    """Table of local branch refnames (refs/heads/...) to the number of commits
+    the branch is ahead/behind of its upstream."""
 
     superproject: str
     "Path of the superproject. Empty string if this isn't a submodule."
