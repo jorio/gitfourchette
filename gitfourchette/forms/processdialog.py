@@ -10,7 +10,18 @@ from gitfourchette.toolbox import QProcessConnection, QSignalBlockerContext
 
 
 class ProcessDialog(QDialog):
-    PopUpDelay = 300 if not WINDOWS else 600
+    PopUpDelay = (700 if WINDOWS
+                  else 600 if MACOS
+                  else 400)
+    """
+    Let the process churn for this many milliseconds before showing the dialog.
+    OS-specific tweaks:
+
+    - Windows is slow to start processes, so wait for a bit longer.
+    - The macOS WM plays a fairly long animation on the UI thread when showing
+      and hiding the dialog. Fast processes are often already done by the time
+      the first animation completes.
+    """
 
     becameVisible = Signal()
 
