@@ -1015,7 +1015,7 @@ def testForceNewTag(tempDir, mainWindow):
 
     rw = mainWindow.openRepo(wd)
     assert newTag in rw.repo.listall_tags()
-    assert rw.repo.commit_id_from_tag_name(newTag) == Oid(hex=firstCommit)
+    assert rw.repo.commit_id_from_refname(f"refs/tags/{newTag}") == Oid(hex=firstCommit)
 
     secondOid = Oid(hex=secondCommit)
 
@@ -1038,7 +1038,7 @@ def testForceNewTag(tempDir, mainWindow):
     assert okButton.isEnabled()
     dlg.accept()
 
-    assert rw.repo.commit_id_from_tag_name(newTag) == secondOid
+    assert rw.repo.commit_id_from_refname(f"refs/tags/{newTag}") == secondOid
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])

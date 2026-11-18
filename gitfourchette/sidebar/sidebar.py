@@ -232,7 +232,7 @@ class Sidebar(QTreeView):
                     self,
                     SwitchBranch,
                     _("&Switch to {0}…", thisBranchDisplay),
-                    taskArgs=branchName,
+                    taskArgs=refName,
                 ).replace(enabled=not isCurrentBranch),
 
                 TaskBook.action(
@@ -293,9 +293,9 @@ class Sidebar(QTreeView):
 
                 ActionDef.SEPARATOR,
 
-                TaskBook.action(self, RenameBranch, _("Re&name…"), taskArgs=branchName),
+                TaskBook.action(self, RenameBranch, _("Re&name…"), taskArgs=refName),
 
-                TaskBook.action(self, DeleteBranch, _("&Delete…"), taskArgs=branchName),
+                TaskBook.action(self, DeleteBranch, _("&Delete…"), taskArgs=refName),
 
                 ActionDef.SEPARATOR,
 
@@ -497,15 +497,13 @@ class Sidebar(QTreeView):
             ]
 
         elif item == SidebarItem.Tag:
-            prefix, shorthand = RefPrefix.split(data)
-            assert prefix == RefPrefix.TAGS
             refspecs = [data]
 
             target = self.sidebarModel.repoModel.refs[data]
 
             actions += [
                 TaskBook.action(self, CheckoutCommit, _("&Check Out Tagged Commit…"), taskArgs=target),
-                TaskBook.action(self, DeleteTag, _("&Delete Tag…"), taskArgs=shorthand),
+                TaskBook.action(self, DeleteTag, _("&Delete Tag…"), taskArgs=data),
                 ActionDef.SEPARATOR,
                 ActionDef(_("Push To"), submenu=self.pushRefspecMenu(refspecs)),
             ]
@@ -637,7 +635,7 @@ class Sidebar(QTreeView):
             pass
 
         elif item == SidebarItem.LocalBranch:
-            SwitchBranch.invoke(self, node.data.removeprefix(RefPrefix.HEADS))
+            SwitchBranch.invoke(self, node.data)
 
         elif item == SidebarItem.Remote:
             EditRemote.invoke(self, node.data)
@@ -689,8 +687,7 @@ class Sidebar(QTreeView):
             pass
 
         elif item == SidebarItem.LocalBranch:
-            assert data.startswith(RefPrefix.HEADS)
-            DeleteBranch.invoke(self, data.removeprefix(RefPrefix.HEADS))
+            DeleteBranch.invoke(self, data)
 
         elif item == SidebarItem.Remote:
             DeleteRemote.invoke(self, data)
@@ -704,8 +701,7 @@ class Sidebar(QTreeView):
             DeleteRemoteBranch.invoke(self, data.removeprefix(RefPrefix.REMOTES))
 
         elif item == SidebarItem.Tag:
-            assert data.startswith(RefPrefix.TAGS)
-            DeleteTag.invoke(self, data.removeprefix(RefPrefix.TAGS))
+            DeleteTag.invoke(self, data)
 
         elif item == SidebarItem.RefFolder:
             prefix, _name = RefPrefix.split(data)
@@ -729,9 +725,7 @@ class Sidebar(QTreeView):
             pass
 
         elif item == SidebarItem.LocalBranch:
-            prefix, name = RefPrefix.split(data)
-            assert prefix == RefPrefix.HEADS
-            RenameBranch.invoke(self, name)
+            RenameBranch.invoke(self, data)
 
         elif item == SidebarItem.Remote:
             EditRemote.invoke(self, data)
@@ -742,7 +736,7 @@ class Sidebar(QTreeView):
             RenameRemoteBranch.invoke(self, name)
 
         elif item == SidebarItem.RefFolder:
-            prefix, name = RefPrefix.split(data)
+            prefix, _name = RefPrefix.split(data)
             if prefix == RefPrefix.HEADS:
                 RenameBranchFolder.invoke(self, data)
             else:

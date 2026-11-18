@@ -22,7 +22,7 @@ class CheckoutCommitDialog(QDialog):
 
         super().__init__(parent)
 
-        localBranches = [r.removeprefix(RefPrefix.HEADS) for r in refs if r.startswith(RefPrefix.HEADS)]
+        localBranches = {r.removeprefix(RefPrefix.HEADS): r for r in refs if r.startswith(RefPrefix.HEADS)}  # Name -> refname
         currentBranchIsHere = currentBranch in localBranches
         currentBranchIsOnlyLocalBranch = currentBranchIsHere and len(localBranches) == 1
         currentBranchIsOnlyRef = currentBranchIsHere and len(refs) == 1
@@ -54,8 +54,9 @@ class CheckoutCommitDialog(QDialog):
         if localBranches and not currentBranchIsOnlyLocalBranch:
             ui.switchRadioButton.click()
 
-            branchChoices = [r for r in localBranches if r != currentBranch]
-            ui.switchComboBox.addItems(branchChoices)
+            branchChoices = [name for name in localBranches if name != currentBranch]
+            for branchName in branchChoices:
+                ui.switchComboBox.addItem(branchName, localBranches[branchName])
 
             # Single branch - remove combobox
             if len(branchChoices) == 1:

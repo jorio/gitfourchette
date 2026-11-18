@@ -700,6 +700,25 @@ def testSwitchToCurrentBranch(tempDir, mainWindow):
     acceptQMessageBox(rw, "already checked.out")
 
 
+def testSwitchBranchPickedInCheckoutDialog(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch pick1 no-parent
+        git branch pick2 no-parent
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inRef("refs/heads/no-parent"))
+    triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
+    checkoutDialog: CheckoutCommitDialog = findQDialog(rw, "check.?out")
+    assert checkoutDialog.ui.switchRadioButton.isChecked()
+    combo = checkoutDialog.ui.switchComboBox
+    combo.setCurrentIndex(combo.findText("pick2"))
+    checkoutDialog.accept()
+
+    assert rw.repo.head_branch_shorthand == "pick2"
+
+
 @pytest.mark.parametrize("method", ["direct", "checkoutdialog"])
 def testResetHeadToCommit(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)

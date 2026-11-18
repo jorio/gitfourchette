@@ -416,8 +416,8 @@ class CheckoutCommit(RepoTask):
             self.epilog.jumpTo = NavLocator.inRef("HEAD")
 
         elif dlg.ui.switchRadioButton.isChecked():
-            branchName = dlg.ui.switchComboBox.currentText()
-            yield from self.flowSubtask(SwitchBranch, branchName, askForConfirmation=False, recurseSubmodules=wantSubmodules)
+            refName = dlg.ui.switchComboBox.currentData()
+            yield from self.flowSubtask(SwitchBranch, refName, askForConfirmation=False, recurseSubmodules=wantSubmodules)
 
         elif dlg.ui.createBranchRadioButton.isChecked():
             yield from self.flowSubtask(NewBranchFromCommit, oid)
@@ -485,10 +485,11 @@ class NewTag(RepoTask):
 
 
 class DeleteTag(RepoTask):
-    def flow(self, tagName: str):
-        assert not tagName.startswith("refs/")
+    def flow(self, refName: str):
+        prefix, tagName = RefPrefix.split(refName)
+        assert prefix == RefPrefix.TAGS
 
-        tagTarget = self.repo.commit_id_from_tag_name(tagName)
+        tagTarget = self.repo.commit_id_from_refname(refName)
         commitMessage = self.repo.get_commit_message(tagTarget)
         commitMessage, _dummy = messageSummary(commitMessage)
 
@@ -514,7 +515,7 @@ class DeleteTag(RepoTask):
         yield from self.flowCallGit("tag", "--delete", "--", tagName)
 
         if pushIt:
-            refspec = f":{RefPrefix.TAGS}{tagName}"
+            refspec = f":{refName}"
             from gitfourchette.tasks import PushRefspecs
             yield from self.flowSubtask(PushRefspecs, pushTo, [refspec])
 
