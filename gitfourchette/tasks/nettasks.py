@@ -66,8 +66,9 @@ def formatUpdatedRefs(
 
 
 class DeleteRemoteBranch(RepoTask):
-    def flow(self, remoteBranchShorthand: str):
-        assert not remoteBranchShorthand.startswith(RefPrefix.REMOTES)
+    def flow(self, refName: str):
+        prefix, remoteBranchShorthand = RefPrefix.split(refName)
+        assert prefix == RefPrefix.REMOTES
 
         remoteName, branchNameOnRemote = split_remote_branch_shorthand(remoteBranchShorthand)
 
@@ -86,14 +87,15 @@ class DeleteRemoteBranch(RepoTask):
             "--delete",
             "--",
             remoteName,
-            branchNameOnRemote)
+            RefPrefix.HEADS + branchNameOnRemote)  # Full name, or Git may pick a tag of the same name
 
         self.epilog.status = _("Remote branch {0} deleted.", tquo(remoteBranchShorthand))
 
 
 class RenameRemoteBranch(RepoTask):
-    def flow(self, remoteBranchShorthand: str):
-        assert not remoteBranchShorthand.startswith(RefPrefix.REMOTES)
+    def flow(self, refName: str):
+        prefix, remoteBranchShorthand = RefPrefix.split(refName)
+        assert prefix == RefPrefix.REMOTES
         remoteName, branchName = split_remote_branch_shorthand(remoteBranchShorthand)
         newBranchName = branchName  # naked name, NOT prefixed with the name of the remote
 
@@ -116,32 +118,25 @@ class RenameRemoteBranch(RepoTask):
         # Naked name, NOT prefixed with the name of the remote
         newBranchName = dlg.lineEdit.text()
 
-        oldShorthand = remoteBranchShorthand
-
-        repo = self.repo
-        _remoteName, oldBranchName = split_remote_branch_shorthand(oldShorthand)
-        oldRemoteRef = RefPrefix.REMOTES + oldShorthand
-
         # Find local branches using this upstream
         adjustUpstreams: list[str] = []
-        for lb in repo.branches.local:
-            with suppress(KeyError):  # KeyError if upstream branch doesn't exist
-                if repo.branches.local[lb].upstream_name == oldRemoteRef:
-                    adjustUpstreams.append(lb)
+        for localRef, upstreamRef in self.repoModel.trackedUpstreams.items():
+            if upstreamRef == refName:
+                adjustUpstreams.append(localRef)
 
-        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
+        self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs | TaskEffects.Upstreams
 
         # First, make a new branch pointing to the same ref as the old one
-        refspec1 = f"{RefPrefix.REMOTES}{oldShorthand}:{RefPrefix.HEADS}{newBranchName}"
+        refspec1 = f"{refName}:{RefPrefix.HEADS}{newBranchName}"
 
         # Next, delete the old branch
-        refspec2 = f":{RefPrefix.HEADS}{oldBranchName}"
+        refspec2 = f":{RefPrefix.HEADS}{branchName}"
 
         logger.info(f"Rename remote branch: remote: {remoteName}; refspec: {[refspec1, refspec2]}; "
                     f"adjust upstreams: {adjustUpstreams}")
 
         # For safety, make sure we're up to date on this branch
-        yield from self.flowSubtask(FetchRemoteBranch, oldShorthand)
+        yield from self.flowSubtask(FetchRemoteBranch, refName)
 
         # Then go ahead with the push
         yield from self.flowCallGit(
@@ -154,9 +149,11 @@ class RenameRemoteBranch(RepoTask):
             refspec1,
             refspec2)
 
-        new_remote_branch = repo.branches.remote[remoteName + "/" + newBranchName]
-        for lb in adjustUpstreams:
-            repo.branches.local[lb].upstream = new_remote_branch
+        # Full refname: "remote/branch" would be ambiguous if a local branch had that name
+        newRemoteRef = f"{RefPrefix.REMOTES}{remoteName}/{newBranchName}"
+        for localRef in adjustUpstreams:
+            _prefix, localName = RefPrefix.split(localRef)
+            yield from self.flowCallGit("branch", "--set-upstream-to", newRemoteRef, localName)
 
         self.epilog.status = _("Remote branch {0} renamed to {1}.", tquo(remoteBranchShorthand), tquo(newBranchName))
 
@@ -234,14 +231,15 @@ class AutoFetchRemotes(RepoTask):
 
 
 class FetchRemoteBranch(RepoTask):
-    def flow(self, remoteBranchName: str = "", debrief: bool = True):
-        shorthand = remoteBranchName
-        if not shorthand:
-            upstream = autoDetectUpstream(self.repo)
-            shorthand = upstream.shorthand
+    def flow(self, refName: str = "", debrief: bool = True):
+        if not refName:
+            refName = autoDetectUpstream(self.repo).name
+            if refName.startswith(RefPrefix.HEADS):
+                return  # The upstream is a local branch (branch.<name>.remote = "."): nothing to fetch
 
+        prefix, shorthand = RefPrefix.split(refName)
+        assert prefix == RefPrefix.REMOTES
         remoteName, remoteBranch = split_remote_branch_shorthand(shorthand)
-        fullRemoteRef = RefPrefix.REMOTES + shorthand
 
         self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
 
@@ -252,14 +250,14 @@ class FetchRemoteBranch(RepoTask):
             *argsIf(GitDriver.supportsFetchPorcelain(), "--porcelain", "--verbose"),
             "--",
             remoteName,
-            remoteBranch)
+            RefPrefix.HEADS + remoteBranch)  # Full name, or Git may fetch a tag of the same name
 
         # Old git: no --porcelain support, don't attempt to parse the ref table
         if not GitDriver.supportsFetchPorcelain():  # pragma: no cover
             return
 
         updatedRefs = driver.readFetchPorcelainUpdatedRefs()
-        flag, _oldTarget, newTarget = updatedRefs[fullRemoteRef]
+        flag, _oldTarget, newTarget = updatedRefs[refName]
 
         self.epilog.status = formatUpdatedRefs(
             updatedRefs,

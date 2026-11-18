@@ -168,6 +168,22 @@ def testDeleteRemoteBranch(tempDir, mainWindow, method):
         rw.sidebar.findNodeByRef("refs/remotes/localfs/no-parent")
 
 
+def testDeleteRemoteBranchShadowedByTag(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+    shell("git tag no-parent master", barePath)  # The remote has a tag named like the branch
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/remotes/localfs/no-parent")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "delete")
+    acceptQMessageBox(rw, "really delete.+from.+remote repository")
+
+    assert "localfs/no-parent" not in rw.repo.branches.remote
+    with RepoContext(barePath) as bareRepo:
+        assert "refs/heads/no-parent" not in bareRepo.references
+        assert "refs/tags/no-parent" in bareRepo.references
+
+
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testRenameRemoteBranch(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)
@@ -212,6 +228,21 @@ def testRenameRemoteBranch(tempDir, mainWindow, method):
     assert rw.repo.branches.local["no-parent"].upstream_name == "refs/remotes/localfs/new-name"
 
     assert rw.repo.branches.remote["localfs/new-name"].target == unknownCommitId
+
+
+def testRenameRemoteBranchShadowedByLocalBranch(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+    shell("git branch localfs/new-name master", wd)  # A local branch named like the renamed remote branch
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/remotes/localfs/no-parent")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "rename")
+    dlg = findQDialog(rw, "rename")
+    dlg.findChild(QLineEdit).setText("new-name")
+    dlg.accept()
+
+    assert rw.repo.branches.local["no-parent"].upstream_name == "refs/remotes/localfs/new-name"
 
 
 @pytest.mark.parametrize("method", ["sidebar", "toolbar"])
@@ -299,6 +330,63 @@ def testFetchRemoteBranch(tempDir, mainWindow):
         warnings.warn("git too old")
 
 
+def testPullFromLocalUpstream(tempDir, mainWindow):
+    # Like git pull with branch.feat.remote = ".": nothing to fetch, then fast-forward
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch --track feat master
+        git switch feat
+        git reset --hard HEAD~1
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/feat")
+    menu = rw.sidebar.makeNodeMenu(node)
+    assert not findMenuAction(menu, "fetch").isEnabled()
+    triggerMenuAction(menu, "pull")
+
+    assert rw.repo.head_commit_id == rw.repo.references["refs/heads/master"].target
+
+
+def testFetchRemoteBranchShadowedByTag(tempDir, mainWindow):
+    oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
+    newHead = Oid(hex="6e1475206e57110fcef4b92320436c1e9872a322")
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="localfs", preFetch=True, deleteOtherRemotes=True)
+    shell(f"""
+        git update-ref refs/heads/master {newHead}
+        git tag master {oldHead}
+    """, barePath)  # The remote has a tag named like the branch
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.branches.remote["localfs/master"].target == oldHead
+
+    node = rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "fetch")
+
+    assert rw.repo.branches.remote["localfs/master"].target == newHead
+
+
+def testFetchUpstreamThatNoRefTracks(tempDir, mainWindow):
+    """
+    After "git clone --single-branch", the config of another branch can name
+    an upstream that no fetch refspec maps to a local ref. Fetching it only
+    updates FETCH_HEAD, so there's no upstream to show new commits on:
+    Fetch is disabled for that branch.
+    """
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config remote.origin.fetch +refs/heads/master:refs/remotes/origin/master
+        git config branch.no-parent.remote origin
+        git config branch.no-parent.merge refs/heads/no-parent
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+    menu = rw.sidebar.makeNodeMenu(node)
+    assert not findMenuAction(menu, "fetch").isEnabled()
+
+
 @pytest.mark.parametrize("pull", [False, True])
 def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
     oldHead = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
@@ -334,7 +422,7 @@ def testFetchRemoteBranchVanishes(tempDir, mainWindow, pull):
     #     with pytest.raises(KeyError):
     #         rw.sidebar.findNodeByRef("refs/remotes/localfs/master")
 
-    acceptQMessageBox(rw, "couldn.+t find remote ref master")
+    acceptQMessageBox(rw, "couldn.+t find remote ref (refs/heads/)?master")
     # TODO: Should we automatically prune the branch in this case?
 
 
