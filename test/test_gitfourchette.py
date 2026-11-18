@@ -808,6 +808,12 @@ def testGitProcessStuck(tempDir, mainWindow, needSigkill):
         waitForQMessageBox(rw, r"git.+exited.+with code.+" + code).reject()
 
 
+def testConfigGetRegexpWithOldGit(monkeypatch):
+    monkeypatch.setattr(GitDriver, "supportsConfigSubcommands", staticmethod(lambda: False))  # git <= 2.45
+    tokens = GitDriver.commandTokens("config", "get", "-z", "--all", "--show-names", "--regexp", r"^branch\.")
+    assert tokens[-4:] == ["config", "--get-regexp", "-z", r"^branch\."]
+
+
 def testGitExitCodeNotMistakenForSignal(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
