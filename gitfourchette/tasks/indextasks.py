@@ -151,6 +151,16 @@ class StageFiles(_BaseStagingTask):
 
 
 class DiscardFiles(_BaseStagingTask):
+    @staticmethod
+    def submodulePathsAfterDiscard(repo: Repo, deltas: list[GitDelta]) -> set[str]:
+        """
+        Paths that `git submodule update` will find in .gitmodules once these deltas are
+        discarded. Discarding can only reset these gitlinks. Discarding .gitmodules
+        restores the index's copy, or deletes it if it's untracked.
+        """
+        discardingGitmodules = any(d.new.path == DOT_GITMODULES for d in deltas)
+        return set(repo.listall_submodules_dict_for_git(skip_workdir=discardingGitmodules).values())
+
     def flow(self, deltas: list[GitDelta]):
         assert all(d.source == GitDeltaSource.Dirty for d in deltas)
 
@@ -164,8 +174,39 @@ class DiscardFiles(_BaseStagingTask):
 
         self.denyConflicts(deltas, PatchPurpose.Discard)
 
-        # Filter on submodules
-        submoPaths = [d.new.path for d in deltas if d.involvesGitlink]
+        # Refuse gitlinks that can't be reset before touching anything. A deleted
+        # gitlink is restored like a file, so only refuse those that still exist.
+        registeredPaths = self.submodulePathsAfterDiscard(self.repo, deltas)
+        unresettable = [d for d in deltas if d.new.mode == FileMode.COMMIT and d.new.path not in registeredPaths]
+        # Name them as the rest of the UI does (GitDelta.submoduleNames)
+        nestedRepos = [d.new.path for d in unresettable if not any(d.submoduleNames(self.repo))]
+        submodules = [d.new.path for d in unresettable if any(d.submoduleNames(self.repo))]
+        if len(nestedRepos) == 1:
+            raise AbortTask(_(
+                "Can’t discard changes in nested repository {0} because it isn’t a submodule. "
+                "Open it to discard the changes there, or absorb it as a submodule first.",
+                bquo(nestedRepos[0])))
+        elif nestedRepos:
+            raise AbortTask(_n(
+                "Can’t discard changes in {n} nested repository because it isn’t a submodule. "
+                "Open it to discard the changes there, or absorb it as a submodule first.",
+                "Can’t discard changes in {n} nested repositories because they aren’t submodules. "
+                "Open them to discard the changes there, or absorb them as submodules first.",
+                len(nestedRepos)))
+        elif len(submodules) == 1:
+            raise AbortTask(_(
+                "Can’t discard changes in submodule {0} because {1} won’t register it after discarding. "
+                "Make sure {1} registers it, then try again.",
+                bquo(submodules[0]), tquo(DOT_GITMODULES)))
+        elif submodules:
+            raise AbortTask(_n(
+                "Can’t discard changes in {n} submodule because {gm} won’t register it after discarding. "
+                "Make sure {gm} registers it, then try again.",
+                "Can’t discard changes in {n} submodules because {gm} won’t register them after discarding. "
+                "Make sure {gm} registers them, then try again.",
+                len(submodules), gm=tquo(DOT_GITMODULES)))
+
+        submoPaths = [d.new.path for d in deltas if d.involvesGitlink and d.new.path in registeredPaths]
         numSubmos = len(submoPaths)
 
         # Untracked trees are nested repositories: deleting them also deletes their history
@@ -251,10 +292,11 @@ class DiscardFiles(_BaseStagingTask):
             yield from self.flowCallGit("checkout", pathspecs=tracked)
 
         if submoPaths:
+            # Update first: if git can't (e.g. no url), it stops before we clean anything
+            yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", pathspecs=submoPaths)
             for submo in submoPaths:
                 subWd = os.path.join(self.repo.workdir, submo)
                 yield from self.flowCallGit("clean", "-d", "--force", workdir=subWd)
-            yield from self.flowCallGit("submodule", "update", "--force", "--init", "--recursive", "--checkout", pathspecs=submoPaths)
 
         self.epilog.status = _n("File discarded.", "{n} files discarded.", len(deltas))
 
