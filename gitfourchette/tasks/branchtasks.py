@@ -526,14 +526,19 @@ class MergeBranch(RepoTask):
             theirShorthand = reference.shorthand
             assert reference.type == ReferenceType.DIRECT
             assert isinstance(target, Oid)
-            # Pass the shorthand to git for a nicer merge message, unless git would resolve it
-            # to another ref (e.g. a tag or a local branch sharing the name)
-            theirArg = theirShorthand if self.repo.lookup_reference_dwim(theirShorthand).name == them else them
+            revParseArgs, unambiguousArg = ["--symbolic-full-name", theirShorthand], them
         else:
             assert isinstance(them, Oid)
             target = them
             theirShorthand = shortHash(them)
-            theirArg = theirShorthand
+            # Bare, as git merge gets it: "<hash>^{commit}" would ignore a blob sharing the prefix
+            revParseArgs, unambiguousArg = [theirShorthand], str(target)
+
+        # Pass the short name to git for a nicer merge message, unless git would resolve it
+        # to something else (e.g. a tag or local branch sharing a ref's name, a ref named
+        # like a short hash, or another object whose hash starts the same way)
+        driver = yield from self.flowCallGit("rev-parse", "--verify", "--quiet", *revParseArgs, autoFail=False)
+        theirArg = theirShorthand if driver.stdoutScrollback().strip() == unambiguousArg else unambiguousArg
 
         # Run merge analysis on background thread
         yield from self.flowEnterWorkerThread()

@@ -4,17 +4,20 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import itertools
 import re
 
+import pygit2
 import pytest
 
+from gitfourchette import settings
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.commitdialog import CommitDialog
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
-from gitfourchette.toolbox import QHintButton
+from gitfourchette.toolbox import QHintButton, shortHash
 from . import reposcenario
 from .util import *
 
@@ -1156,7 +1159,8 @@ def testMergeNonTipCommit(tempDir, mainWindow):
 
     rw.diffArea.commitButton.click()
     findQDialog(rw, "commit").accept()
-    assert re.search("merge commit.+e97b4c", rw.repo.head_commit_message, re.IGNORECASE)
+    # The short hash is unambiguous here, so git puts it in the message as is
+    assert rw.repo.head_commit_message.startswith("Merge commit 'e97b4cf'")
 
 
 @pytest.mark.parametrize(["theirRef", "decoy"], [
@@ -1181,6 +1185,35 @@ def testMergeRefWithAmbiguousShorthand(tempDir, mainWindow, theirRef, decoy):
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "merge into.+master")
     acceptQMessageBox(rw, "can .*fast.forward")
     assert rw.repo.head_commit_id == theirTip
+
+
+@pytest.mark.parametrize("decoy", ["branch", "blob"])
+def testMergeCommitWithAmbiguousShortHash(tempDir, mainWindow, decoy):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git switch -c side
+        git commit --allow-empty -m 'commit to merge'
+        git commit --allow-empty -m 'side tip'
+        git switch master
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    theirCommit = rw.repo.revparse_single("side~1").id
+    if decoy == "branch":
+        # git merges a ref named like the short hash instead of the commit
+        shell(f"git branch {shortHash(theirCommit)} side", wd)
+    else:
+        # git refuses a short hash that also starts a blob's hash
+        settings.prefs.shortHashChars = 4
+        prefix = shortHash(theirCommit)
+        blobs = (f"{i}\n".encode() for i in itertools.count())
+        rw.repo.create_blob(next(b for b in blobs if str(pygit2.hash(b)).startswith(prefix)))
+    rw.refreshRepo()
+
+    rw.jump(NavLocator.inCommit(theirCommit), check=True)
+    triggerContextMenuAction(rw.graphView.viewport(), "merge into.+master")
+    acceptQMessageBox(rw, "can .*fast.forward")
+    assert rw.repo.head_commit_id == theirCommit
 
 
 @pytest.mark.parametrize("method", ["switchbranch", "newbranch", "checkout"])
