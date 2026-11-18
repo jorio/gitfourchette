@@ -1199,15 +1199,21 @@ def testMergeCommitWithAmbiguousShortHash(tempDir, mainWindow, decoy):
 
     rw = mainWindow.openRepo(wd)
     theirCommit = rw.repo.revparse_single("side~1").id
+
     if decoy == "branch":
         # git merges a ref named like the short hash instead of the commit
         shell(f"git branch {shortHash(theirCommit)} side", wd)
-    else:
+    elif decoy == "blob":
         # git refuses a short hash that also starts a blob's hash
         settings.prefs.shortHashChars = 4
         prefix = shortHash(theirCommit)
-        blobs = (f"{i}\n".encode() for i in itertools.count())
-        rw.repo.create_blob(next(b for b in blobs if str(pygit2.hash(b)).startswith(prefix)))
+        # Generate a blob whose hash collides with the prefix
+        blobs = (f"{i}".encode() for i in itertools.count())
+        collidingBlob = next(b for b in blobs if str(pygit2.hash(b)).startswith(prefix))
+        rw.repo.create_blob(collidingBlob)
+    else:
+        raise NotImplementedError(f"unknown decoy {decoy}")
+
     rw.refreshRepo()
 
     rw.jump(NavLocator.inCommit(theirCommit), check=True)
