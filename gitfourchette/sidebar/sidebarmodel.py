@@ -195,13 +195,6 @@ class SidebarModel(QAbstractItemModel):
     repoModel: RepoModel
     rootNode: SidebarNode
     nodesByRef: dict[str, SidebarNode]
-    _unbornHead: str
-
-    _checkedOut: str
-    "Shorthand of checked-out local branch"
-
-    _checkedOutUpstreamRef: str
-    "Full refname of the checked-out branch's upstream"
 
     _cachedToolTipIndex: QModelIndex
     _cachedToolTipText: str
@@ -262,8 +255,6 @@ class SidebarModel(QAbstractItemModel):
         self.repoModel = None
         self.rootNode = SidebarNode(SidebarItem.Root)
         self.nodesByRef = {}
-        self._checkedOut = ""
-        self._checkedOutUpstreamRef = ""
         self.clearCachedTooltip()
 
         if emitSignals:
@@ -360,34 +351,14 @@ class SidebarModel(QAbstractItemModel):
         # -----------------------------
         # HEAD
         # -----------------------------
-        try:
-            # Try to get the name of the checked-out branch
-            checkedOut = repo.head.name
-
-        except GitError:
-            # Unborn HEAD - Get name of unborn branch
-            assert repo.head_is_unborn
-            target = repo.lookup_reference("HEAD").target
-            assert isinstance(target, str), "Unborn HEAD isn't a symbolic reference!"
-            target = target.removeprefix(RefPrefix.HEADS)
-            node = SidebarNode(SidebarItem.UnbornHead, target)
+        if repo.head_is_unborn:
+            node = SidebarNode(SidebarItem.UnbornHead, repoModel.homeBranchName)
             branchRoot.appendChild(node)
             self.nodesByRef["HEAD"] = node
-
-        else:
-            # It's not unborn
-            if checkedOut == 'HEAD':
-                # Detached head, leave self._checkedOut blank
-                assert repo.head_is_detached
-                node = SidebarNode(SidebarItem.DetachedHead, str(repo.head.target))
-                branchRoot.appendChild(node)
-                self.nodesByRef["HEAD"] = node
-
-            else:
-                # We're on a branch
-                assert checkedOut.startswith(RefPrefix.HEADS)
-                self._checkedOutUpstreamRef = self.repoModel.trackedUpstreams.get(checkedOut, "")
-                self._checkedOut = checkedOut.removeprefix(RefPrefix.HEADS)
+        elif repo.head_is_detached:
+            node = SidebarNode(SidebarItem.DetachedHead, str(repo.head.target))
+            branchRoot.appendChild(node)
+            self.nodesByRef["HEAD"] = node
 
         # -----------------------------
         # Remotes
@@ -637,16 +608,16 @@ class SidebarModel(QAbstractItemModel):
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (local branch)", btag(branchName))
                 text += "\n" + self.upstreamToolTip(refName)
-                if branchName == self._checkedOut:
+                if refName == self.repoModel.homeBranch:
                     checkedOutText = _("(this is the checked-out branch)")
                     text += f"\n{stockIconImgTag('git-head')} HEAD {checkedOutText}"
                 text += self.visibilityToolTip(node)
                 self.cacheToolTip(index, text)
                 return text
             elif iconKeyRole:
-                return "git-branch" if branchName != self._checkedOut else "git-head"
+                return "git-branch" if refName != self.repoModel.homeBranch else "git-head"
             elif fontRole:
-                if branchName == self._checkedOut:
+                if refName == self.repoModel.homeBranch:
                     font = QFont(self._parentWidget.font())
                     font.setBold(True)
                     return font
@@ -709,13 +680,13 @@ class SidebarModel(QAbstractItemModel):
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (remote-tracking branch)", btag(shorthand))
-                if self._checkedOutUpstreamRef == refName:
-                    text += "<br><i>" + _("Upstream for the checked-out branch ({0})", hquoe(self._checkedOut)) + "</i>"
+                if self.repoModel.homeUpstream == refName:
+                    text += "<br><i>" + _("Upstream for the checked-out branch ({0})", hquoe(self.repoModel.homeBranchName)) + "</i>"
                 text += self.visibilityToolTip(node)
                 self.cacheToolTip(index, text)
                 return text
             elif fontRole:
-                if self._checkedOutUpstreamRef == refName:
+                if self.repoModel.homeUpstream == refName:
                     font = QFont(self._parentWidget.font())
                     font.setBold(True)
                     return font

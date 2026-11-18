@@ -198,11 +198,10 @@ class Sidebar(QTreeView):
             refName = data
             prefix, branchName = RefPrefix.split(data)
             assert prefix == RefPrefix.HEADS
-            branch = repo.branches.local[branchName]
             targetOid = model.repoModel.refs[refName]
 
-            activeBranchName = model.repoModel.homeBranch
-            isCurrentBranch = branch and branch.is_checked_out()
+            activeBranchName = model.repoModel.homeBranchName
+            isCurrentBranch = refName == model.repoModel.homeBranch
             upstreamBranchName = model.repoModel.upstreamName(refName)
             hasUpstream = bool(upstreamBranchName)
             upstreamMissing = model.repoModel.isUpstreamMissing(refName)
@@ -316,7 +315,7 @@ class Sidebar(QTreeView):
             actions += [TaskBook.action(self, NewBranchFromHead, _("New &Branch Here…")), ]
 
         elif item == SidebarItem.RemoteBranch:
-            activeBranchName = model.repoModel.homeBranch
+            activeBranchName = model.repoModel.homeBranchName
             activeBranchDisplay = lquoe(activeBranchName) if activeBranchName else "HEAD"
 
             refName = data
@@ -920,8 +919,9 @@ class Sidebar(QTreeView):
         # the checked-out branch first (or its upstream, if any)
         model = self.sidebarModel
         refCandidates: Iterable[str]
-        if model._checkedOut:
-            favorRefs = [RefPrefix.HEADS + model._checkedOut, model._checkedOutUpstreamRef]
+        homeBranch = model.repoModel.homeBranch
+        if homeBranch:
+            favorRefs = [homeBranch, model.repoModel.homeUpstream]
             refCandidates = sorted(refs, key=favorRefs.__contains__, reverse=True)
         else:
             refCandidates = refs

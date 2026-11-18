@@ -424,7 +424,7 @@ class CommitLogDelegate(QStyledItemDelegate):
 
     def _paintRefboxes(self, painter: QPainter, rect: QRect, refs: list[str]):
         repoModel = self.repoModel
-        homeBranch = RefPrefix.HEADS + repoModel.homeBranch
+        homeBranch = repoModel.homeBranch
         xMax = painter.clipBoundingRect().right()
 
         # Group refs in clusters (branches with same upstream)

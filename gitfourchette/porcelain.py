@@ -486,11 +486,27 @@ class Repo(_VanillaRepository):
 
     @property
     def head_branch_shorthand(self) -> str:
-        return self.head.shorthand
+        """ Short name of checked_out_branch, or "HEAD" if HEAD is detached. """
+        return RefPrefix.split(self.checked_out_branch)[1] or "HEAD"
 
     @property
     def head_branch_fullname(self) -> str:
-        return self.head.name
+        """ checked_out_branch, or "HEAD" if HEAD is detached. """
+        return self.checked_out_branch or "HEAD"
+
+    @property
+    def checked_out_branch(self) -> str:
+        """
+        Refname (refs/heads/...) of the branch checked out in this worktree,
+        or "" if HEAD is detached. Like "git branch --show-current", this
+        includes a branch with no commits yet (unborn HEAD). Unlike
+        Branch.is_checked_out(), this ignores other worktrees.
+        """
+        if self.head_is_detached:
+            return ""
+        target = self.lookup_reference("HEAD").target
+        assert isinstance(target, str), "attached HEAD is a symbolic ref"
+        return target
 
     def peel_commit(self, commit_id: Oid | str) -> Commit:
         return self[commit_id].peel(Commit)
