@@ -112,6 +112,48 @@ def testEditRemote(tempDir, mainWindow, method):
     assert not any("/origin/" in n.data for n in rw.sidebar.findNodesByKind(SidebarItem.RemoteBranch))
 
 
+def testNewRemoteSkipFetchAll(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    barePath = makeBareCopy(wd, addAsRemote="", preFetch=False)
+
+    triggerMenuAction(mainWindow.menuBar(), "repo/add remote")
+    dlg: RemoteDialog = findQDialog(rw, "add remote")
+    dlg.ui.nameEdit.setText("otherremote")
+    dlg.ui.urlEdit.setText(barePath)
+    dlg.ui.fetchAfterAddCheckBox.setChecked(False)
+    dlg.ui.skipFetchAllCheckBox.setChecked(True)
+    dlg.accept()
+
+    assert rw.repo.get_remote_skipfetchall("otherremote")
+    assert not rw.repo.get_remote_skipfetchall("origin")
+
+
+@pytest.mark.parametrize(["before", "after"], [(True, True), (True, False), (False, True), ("global", True), ("duplicate", False)])
+def testEditRemoteSkipFetchAll(tempDir, mainWindow, before, after):
+    wd = unpackRepo(tempDir)
+    if before == "global":  # "git remote rename" doesn't move this one
+        shell("git config --global remote.origin.skipFetchAll true", wd)
+    elif before == "duplicate":  # Hand-edited config
+        shell("git config --add remote.origin.skipFetchAll true", wd)
+        shell("git config --add remote.origin.skipFetchAll true", wd)
+    elif before:
+        shell("git config remote.origin.skipFetchAll true", wd)  # Old syntax: CI also runs git 2.34
+    rw = mainWindow.openRepo(wd)
+
+    node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "edit remote")
+    dialog: RemoteDialog = findQDialog(rw, "edit remote")
+    assert dialog.ui.skipFetchAllCheckBox.isChecked() == bool(before)
+    dialog.ui.nameEdit.setText("renamed")
+    dialog.ui.skipFetchAllCheckBox.setChecked(after)
+    dialog.accept()
+
+    config = readTextFile(f"{wd}/.git/config")
+    assert "skipFetchAll" not in config.split('[remote "renamed"]')[0]  # Nothing left under the old name
+    assert rw.repo.get_remote_skipfetchall("renamed") == after
+
+
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])
 def testDeleteRemote(tempDir, mainWindow, method):
     wd = unpackRepo(tempDir)

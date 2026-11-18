@@ -52,15 +52,9 @@ class EditRepoSettings(RepoTask):
         customKeyFile = dlg.ui.keyFilePicker.privateKeyPath()
         dlg.deleteLater()
 
-        for key, value in [("user.name", localName), ("user.email", localEmail)]:
-            if value:
-                yield from self.flowCallGit("config", "set", "--", key, value)
-            else:
-                driver = yield from self.flowCallGit("config", "unset", key, autoFail=False)
-                # 0: OK
-                # 5: "unset an option which does not exist" (man git-config, DESCRIPTION)
-                if driver.exitCode() not in [0, 5]:
-                    raise AbortTask.fromGitError(driver)
+        # An empty field means no local identity
+        yield from self.flowSetGitConfig("user.name", localName or None)
+        yield from self.flowSetGitConfig("user.email", localEmail or None)
 
         if customKeyFile != repoPrefs.customKeyFile:
             repoPrefs.customKeyFile = customKeyFile

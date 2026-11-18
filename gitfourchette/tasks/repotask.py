@@ -532,6 +532,18 @@ class RepoTask(QObject):
         yield from self.flowStartProcess(process, autoFail=autoFail, stdin=stdin)
         return process
 
+    def flowSetGitConfig(self, key: str, value: str | None) -> Flow[None]:
+        """ Set a key in the repo config, or remove it if value is None. """
+        if value is not None:
+            yield from self.flowCallGit("config", "set", "--", key, value)
+            return
+        # --all: without it, a key set more than once also fails with code 5
+        driver = yield from self.flowCallGit("config", "unset", "--all", key, autoFail=False)
+        # 0: OK
+        # 5: "unset an option which does not exist" (man git-config, DESCRIPTION)
+        if driver.exitCode() not in [0, 5]:
+            raise AbortTask.fromGitError(driver)
+
     def createGitProcess(
             self,
             *args: str,

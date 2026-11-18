@@ -647,16 +647,6 @@ class Repo(_VanillaRepository):
         except KeyError:
             return False
 
-    def set_remote_skipfetchall(self, remote_name: str, value: bool):
-        key = GitConfigHelper.sanitize_key(("remote", remote_name, "skipFetchAll"))
-
-        # Set skipFetchAll only if it's True, otherwise delete it
-        if value:
-            self.config[key] = value
-        else:
-            with _suppress(KeyError):
-                del self.config[key]
-
     def get_commit_message(self, commit_id: Oid) -> str:
         commit = self.peel_commit(commit_id)
         return commit.message

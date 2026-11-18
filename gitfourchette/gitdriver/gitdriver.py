@@ -179,6 +179,8 @@ class GitDriver(QProcess):
         if tokens[0] == "config" and not self.supportsConfigSubcommands():
             if tokens[1] in ["get", "set"]:
                 tokens.pop(1)
+            elif tokens[1:3] == ["unset", "--all"]:
+                tokens[1:3] = ["--unset-all"]
             elif tokens[1] in ["unset", "edit", "rename-section", "remove-section", "list"]:
                 tokens[1] = f"--{tokens[1]}"
             else:
