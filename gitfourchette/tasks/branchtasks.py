@@ -27,11 +27,12 @@ class SwitchBranch(RepoTask):
 
     def flow(
             self,
-            newBranch: str,
+            refName: str,
             askForConfirmation: bool = True,
             recurseSubmodules: bool = False,
             refreshUnderDetachedWarning: bool = False):
-        assert not newBranch.startswith(RefPrefix.HEADS)
+        prefix, newBranch = RefPrefix.split(refName)
+        assert prefix == RefPrefix.HEADS
 
         branchObj: Branch = self.repo.branches.local[newBranch]
 
@@ -78,8 +79,9 @@ class SwitchBranch(RepoTask):
 
 
 class RenameBranch(RepoTask):
-    def flow(self, oldBranchName: str):
-        assert not oldBranchName.startswith(RefPrefix.HEADS)
+    def flow(self, refName: str):
+        prefix, oldBranchName = RefPrefix.split(refName)
+        assert prefix == RefPrefix.HEADS
 
         forbiddenBranchNames = self.repo.listall_branches(BranchType.LOCAL)
         forbiddenBranchNames.remove(oldBranchName)
@@ -186,10 +188,11 @@ class RenameBranchFolder(RepoTask):
 
 
 class DeleteBranch(RepoTask):
-    def flow(self, localBranchName: str):
-        assert not localBranchName.startswith(RefPrefix.HEADS)
+    def flow(self, refName: str):
+        prefix, localBranchName = RefPrefix.split(refName)
+        assert prefix == RefPrefix.HEADS
 
-        if localBranchName == self.repo.head_branch_shorthand:
+        if refName == self.repo.head_branch_fullname:
             text = paragraphs(
                 _("Cannot delete {0} because it is the current branch.", bquo(localBranchName)),
                 _("Before you try again, switch to another branch."))
@@ -203,7 +206,7 @@ class DeleteBranch(RepoTask):
             verb=_("Delete branch"),
             buttonIcon="SP_DialogDiscardButton")
 
-        target = self.repo.branches[localBranchName].target
+        target = self.repo.references[refName].target
         self.epilog.effects |= TaskEffects.Refs
 
         yield from self.flowCallGit("branch", "-D", localBranchName)
@@ -337,7 +340,7 @@ class NewBranchFromCommit(RepoTask):
             self.epilog.effects |= TaskEffects.Head
             yield from self.flowSubtask(
                 SwitchBranch,
-                localName,
+                RefPrefix.HEADS + localName,
                 askForConfirmation=False,
                 recurseSubmodules=recurseSubmodules,
                 refreshUnderDetachedWarning=True)

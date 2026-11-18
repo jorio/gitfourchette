@@ -665,10 +665,6 @@ class Repo(_VanillaRepository):
         commit: Commit = reference.peel(Commit)
         return commit.id
 
-    def commit_id_from_tag_name(self, tagname: str) -> Oid:
-        assert not tagname.startswith("refs/")
-        return self.commit_id_from_refname(RefPrefix.TAGS + tagname)
-
     def map_refs_to_ids(self, include_stashes=False) -> dict[str, Oid]:
         """
         Return commit oids at the tip of all branches, tags, etc. in the repository.
