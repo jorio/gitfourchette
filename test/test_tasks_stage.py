@@ -166,8 +166,38 @@ def testDiscardUntrackedTree(tempDir, mainWindow):
     assert os.path.exists(innerWd)
     assert qlvGetRowData(rw.dirtyFiles) == ["[nested repo] inner"]
     qlvClickNthRow(rw.dirtyFiles, 0)
-    triggerContextMenuAction(rw.dirtyFiles.viewport(), "delete")
-    acceptQMessageBox(rw, "really delete.+inner")
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "delete nested repo…")
+    acceptQMessageBox(rw, "really delete nested repository.+inner.+history.+unpushed commits")
+
+    assert not os.path.exists(innerWd)
+    assert rw.repo.status() == {}
+
+
+def testDiscardOnlyUntrackedNestedRepos(tempDir, mainWindow):
+    outerWd = unpackRepo(tempDir, renameTo="outer")
+    innerWds = [shutil.move(unpackRepo(tempDir, renameTo=name), outerWd) for name in ("inner1", "inner2")]
+
+    rw = mainWindow.openRepo(outerWd)
+    rw.dirtyFiles.setFocus()
+    rw.dirtyFiles.selectAll()
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "delete 2 nested repos…")
+    acceptQMessageBox(rw, r"really delete 2 nested repositories\?.+their history, including any unpushed commits, will be deleted too")
+
+    assert not any(os.path.exists(wd) for wd in innerWds)
+    assert rw.repo.status() == {}
+
+
+def testDiscardFilesAndUntrackedNestedRepo(tempDir, mainWindow):
+    outerWd = unpackRepo(tempDir, renameTo="outer")
+    innerWd = unpackRepo(tempDir, renameTo="inner")
+    innerWd = shutil.move(innerWd, outerWd)
+    writeFile(f"{outerWd}/a/a1.txt", "changed\n")
+
+    rw = mainWindow.openRepo(outerWd)
+    rw.dirtyFiles.setFocus()
+    rw.dirtyFiles.selectAll()
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "discard")
+    acceptQMessageBox(rw, r"discard changes to 1 file\?.+1 nested repository will be deleted.+history.+unpushed commits")
 
     assert not os.path.exists(innerWd)
     assert rw.repo.status() == {}

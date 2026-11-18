@@ -168,6 +168,10 @@ class DiscardFiles(_BaseStagingTask):
         submoPaths = [d.new.path for d in deltas if d.involvesGitlink]
         numSubmos = len(submoPaths)
 
+        # Untracked trees are nested repositories: deleting them also deletes their history
+        untrackedTrees = [d.new.path for d in deltas if d.status == GitStatus.Untracked and d.new.mode == FileMode.TREE]
+        numNestedRepos = len(untrackedTrees)
+
         # 'git submodule update' can't read pathspecs from stdin
         if not pathspecsFitCommandLine(GitDriver.literalPathspecs(submoPaths)):
             raise AbortTask(_("Please select fewer submodules."))
@@ -175,7 +179,10 @@ class DiscardFiles(_BaseStagingTask):
         if len(deltas) == 1:
             delta = deltas[0]
             bpath = bquo(delta.new.path)
-            if delta.status == GitStatus.Untracked:
+            if untrackedTrees:
+                really = _("Really delete nested repository {0}?", bpath)
+                verb = _("Delete")
+            elif delta.status == GitStatus.Untracked:
                 really = _("Really delete {0}?", bpath)
                 really += " " + _("Git isn’t tracking this file, so you may not be able to recover it from older commits.")
                 verb = _("Delete")
@@ -184,13 +191,16 @@ class DiscardFiles(_BaseStagingTask):
             else:
                 really = _("Really discard changes to {0}?", bpath)
         else:
-            numFiles = len(deltas) - numSubmos
+            numFiles = len(deltas) - numSubmos - numNestedRepos
             if numSubmos and numFiles:
                 really = _("Really discard changes to {nf} files and in {ns} submodules?", nf=numFiles, ns=numSubmos)
             elif numSubmos:
-                really = _("Really discard changes in {n} submodules?", n=numSubmos)
+                really = _n("Really discard changes in {n} submodule?", "Really discard changes in {n} submodules?", numSubmos)
+            elif numFiles:
+                really = _n("Really discard changes to {n} file?", "Really discard changes to {n} files?", numFiles)
             else:
-                really = _("Really discard changes to {n} files?", n=numFiles)
+                really = _n("Really delete {n} nested repository?", "Really delete {n} nested repositories?", numNestedRepos)
+                verb = _("Delete")
 
         textPara.append(really)
         if numSubmos:
@@ -199,6 +209,16 @@ class DiscardFiles(_BaseStagingTask):
                 "Any uncommitted changes in {n} submodules will be <b>cleared</b> and the submodules’ HEAD will be reset.",
                 numSubmos)
             textPara.append(submoPostamble)
+        if numNestedRepos == len(deltas):
+            textPara.append(_n(
+                "Its history, including any unpushed commits, will be deleted too.",
+                "Their history, including any unpushed commits, will be deleted too.",
+                numNestedRepos))
+        elif numNestedRepos:
+            textPara.append(_n(
+                "{n} nested repository will be deleted, with its history, including any unpushed commits.",
+                "{n} nested repositories will be deleted, with their history, including any unpushed commits.",
+                numNestedRepos))
 
         textPara.append(_("This cannot be undone!"))
 
@@ -218,7 +238,6 @@ class DiscardFiles(_BaseStagingTask):
 
         tracked = [d.new.path for d in deltas if d.status != GitStatus.Untracked]
         untrackedFiles = [d.new.path for d in deltas if d.status == GitStatus.Untracked and d.new.mode != FileMode.TREE]
-        untrackedTrees = [d.new.path for d in deltas if d.status == GitStatus.Untracked and d.new.mode == FileMode.TREE]
 
         # Discard untracked trees. They have already been backed up above,
         # but restore_files_from_index isn't capable of removing trees.
