@@ -158,3 +158,23 @@ def testShallowBoundaries(tempDir, mainWindow):
     shell(f"git clone -q --depth 1 --no-single-branch --no-tags {Path(upstream).as_uri()} shallow", tempDir.name)
     with RepoContext(f"{tempDir.name}/shallow") as repo:
         assert repo.shallow_boundaries == expected
+
+
+def testPollFileChangeIgnoresAccessTime(tempDir):
+    # Reading a file may update its atime, which mustn't count as a change
+    wd = unpackRepo(tempDir)
+    with RepoContext(wd) as repo:
+        path = repo.in_gitdir("config", common=True)
+        assert repo.poll_file_change("test", path)  # first poll
+        assert not repo.poll_file_change("test", path)
+
+        st = os.stat(path)
+        os.utime(path, ns=(st.st_atime_ns + 5_000_000_000, st.st_mtime_ns))
+        assert not repo.poll_file_change("test", path)
+
+        repo.config["core.gfTest"] = "1"
+        assert repo.poll_file_change("test", path)
+
+        missingPath = f"{wd}/no-such-file"
+        assert repo.poll_file_change("missing", missingPath)  # first poll
+        assert not repo.poll_file_change("missing", missingPath)

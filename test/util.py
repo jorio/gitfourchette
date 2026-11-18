@@ -992,7 +992,7 @@ def shell(script: str, directory: str, authorSig=TEST_SIGNATURE, committerSig=TE
     lines.append(script)
 
     scriptPath = Path(qTempDir(), "scenario.sh")
-    scriptPath.write_text("\n".join(lines))
+    scriptPath.write_text("\n".join(lines), encoding="utf-8")
     scriptPath.chmod(0o700)
     scriptPath = str(scriptPath)
 

@@ -7,6 +7,7 @@
 import pytest
 import re
 
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarModel
@@ -494,6 +495,21 @@ def testSidebarAheadBehind(tempDir, mainWindow):
     assert re.search("up-to-date with upstream", tip, re.IGNORECASE)
 
 
+def testSidebarAheadBehindWithLineSeparatorInBranchName(tempDir, mainWindow):
+    # U+2028 is valid in a branch name, but str.splitlines() would break the line there
+    name = "ahead17\u2028x"
+    wd = unpackRepo(tempDir)
+    shell(f"""
+        git branch {name} 6e14752
+        git branch {name} -u origin/no-parent
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef(f"refs/heads/{name}")
+    assert index.data(SidebarModel.Role.AheadBehind) == (17, 0)
+
+
 def testSidebarAheadBehindWithSameNamedTag(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shell("""
@@ -538,6 +554,106 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
 
     # If we ever choose to not disable this action, the action callback should be tested as well.
     assert not missingUpstreamAction.isEnabled()
+
+
+@pytest.mark.parametrize("oldConfigSyntax", [False, True])
+def testSidebarUpstreamNotTrackedByAnyRef(tempDir, mainWindow, monkeypatch, oldConfigSyntax):
+    # Like "git clone --single-branch", then "git push -u origin feature":
+    # no fetch refspec maps the upstream to a local ref, so git doesn't track it
+    if oldConfigSyntax:  # git <= 2.45
+        monkeypatch.setattr(GitDriver, "supportsConfigSubcommands", staticmethod(lambda: False))
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config remote.origin.fetch +refs/heads/master:refs/remotes/origin/master
+        git branch feature master
+        git config branch.feature.remote origin
+        git config branch.feature.merge refs/heads/feature
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/feature")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search(r"upstream missing \(origin/feature\)", tip, re.IGNORECASE)
+    assert index.data(SidebarModel.Role.MissingUpstream)
+
+    menu = rw.sidebar.makeNodeMenu(rw.sidebar.findNodeByRef("refs/heads/feature"))
+    missingUpstreamAction = findMenuAction(menu, r"upstream.+\(missing\)/origin.feature \(missing\)")
+    assert missingUpstreamAction.isChecked()
+    assert not missingUpstreamAction.isEnabled()
+    assert not findMenuAction(menu, r"upstream.+\(missing\)/stop tracking").isChecked()
+
+
+def testSidebarPullRequestUpstreamWithoutRefspec(tempDir, mainWindow):
+    # "gh pr checkout" sets branch.<name>.merge to refs/pull/N/head, which no fetch refspec maps
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch pr master
+        git config branch.pr.remote origin
+        git config branch.pr.merge refs/pull/1/head
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/pr")
+    assert re.search("no upstream branch", index.data(Qt.ItemDataRole.ToolTipRole), re.IGNORECASE)
+    assert not index.data(SidebarModel.Role.MissingUpstream)
+
+
+def testSidebarPullRequestUpstreamWithRefspec(tempDir, mainWindow):
+    # A refspec maps refs/pull/*/head, so git tracks it; GitFourchette's old config parser didn't
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config --add remote.origin.fetch +refs/pull/*/head:refs/remotes/origin/pr/*
+        git update-ref refs/remotes/origin/pr/7 master
+        git branch pr master
+        git config branch.pr.remote origin
+        git config branch.pr.merge refs/pull/7/head
+        git config branch.unfetched.remote origin
+        git config branch.unfetched.merge refs/pull/8/head
+        git branch unfetched master
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/pr")
+    assert re.search(r"upstream: origin/pr/7\b", index.data(Qt.ItemDataRole.ToolTipRole), re.IGNORECASE)
+    assert not index.data(SidebarModel.Role.MissingUpstream)
+
+    index = rw.sidebar.indexForRef("refs/heads/unfetched")
+    assert re.search(r"upstream missing \(origin/pr/8\)", index.data(Qt.ItemDataRole.ToolTipRole), re.IGNORECASE)
+
+
+def testSidebarLocalUpstreamIsNotMissing(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("git branch --track feat master", wd)
+
+    rw = mainWindow.openRepo(wd)
+
+    index = rw.sidebar.indexForRef("refs/heads/feat")
+    tip = index.data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search(r"upstream: master\b", tip, re.IGNORECASE)
+    assert not re.search("missing", tip, re.IGNORECASE)
+    assert not index.data(SidebarModel.Role.MissingUpstream)
+
+    menu = rw.sidebar.makeNodeMenu(rw.sidebar.findNodeByRef("refs/heads/feat"))
+    assert not re.search("missing", findMenuAction(menu, "upstream branch").text(), re.IGNORECASE)
+    assert findMenuAction(menu, "fast.forward").isEnabled()
+
+
+def testSidebarUpstreamChangedOutsideApp(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    tip = rw.sidebar.indexForRef("refs/heads/master").data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search(r"upstream: origin/master\b", tip, re.IGNORECASE)
+
+    # Only the config changes, no refs move
+    shell("git config branch.master.merge refs/heads/no-parent", wd)
+    rw.refreshRepo()
+
+    tip = rw.sidebar.indexForRef("refs/heads/master").data(Qt.ItemDataRole.ToolTipRole)
+    assert re.search(r"upstream: origin/no-parent\b", tip, re.IGNORECASE)
 
 
 def testSidebarFilterPersistsAcrossRefresh(tempDir, mainWindow):

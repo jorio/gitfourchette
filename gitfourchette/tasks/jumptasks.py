@@ -20,7 +20,6 @@ from gitfourchette import settings
 from gitfourchette.diffview.diffdocument import DiffDocument
 from gitfourchette.diffview.specialdiff import SpecialDiffError, ImageDelta
 from gitfourchette.gitdriver import GitConflict, GitDelta, GitStatus, GitDriver, argsIf
-from gitfourchette.gitdriver.parsers import parseAheadBehind
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
@@ -28,7 +27,7 @@ from gitfourchette.porcelain import NULL_OID, Oid, commit_diff_pair
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF, UC_FAKEID
 from gitfourchette.tasks import TaskPrereqs
-from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument
+from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument, loadUpstreams
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError
 from gitfourchette.toolbox import *
 
@@ -759,6 +758,7 @@ class RefreshRepo(RepoTask):
         submodulesChanged = False
         remotesChanged = False
         upstreamsChanged = False
+        upstreamConfigChanged = False
         homeBranchChanged = False
 
         if effectFlags & TaskEffects.Head:
@@ -773,7 +773,7 @@ class RefreshRepo(RepoTask):
             remotesChanged = repoModel.syncRemotes()
 
         if effectFlags & (TaskEffects.Refs | TaskEffects.Upstreams):
-            upstreamsChanged = repoModel.syncUpstreams()
+            upstreamConfigChanged = repoModel.pollUpstreamConfig()
 
         if effectFlags & (TaskEffects.Refs | TaskEffects.Remotes | TaskEffects.Head):
             # Refresh ref cache
@@ -790,14 +790,10 @@ class RefreshRepo(RepoTask):
             if refsChanged:
                 self.syncTopOfGraph(oldRefs)
 
-        # Refresh ahead/behind. Although Repository.ahead_behind exists, it's
-        # slower than "git --for-each-ref" in complex graphs.
-        # TODO: Would it be faster to calc this with our pre-cached graph?
-        if refsChanged or upstreamsChanged:
-            # TODO: This bit is duplicated with PrimeRepo
-            with Benchmark("ahead-behind"):
-                driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname) %(upstream:track)", "refs/heads")
-                repoModel.aheadBehind = dict(parseAheadBehind(driver.stdoutScrollback()))
+        # Refresh upstreams and ahead/behind
+        if refsChanged or upstreamConfigChanged:
+            with Benchmark("upstreams"):
+                upstreamsChanged = yield from loadUpstreams(self, upstreamConfigChanged)
 
         # Schedule a repaint of the entire GraphView if the refs changed
         if effectFlags & (TaskEffects.Head | TaskEffects.Refs):

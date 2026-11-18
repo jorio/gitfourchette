@@ -13,7 +13,7 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
 from gitfourchette.gitdriver.gitdeltafile import WorkdirHashMismatch
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
-from gitfourchette.gitdriver.parsers import parseAheadBehind
+from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_REGEX, UPSTREAMS_FORMAT, parseUpstreamConfig, parseUpstreams
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -31,6 +31,28 @@ logger = logging.getLogger(__name__)
 LONG_LINE_THRESHOLD = 10_000
 
 type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
+
+
+def loadUpstreams(task: RepoTask, configChanged: bool) -> RepoTask.Flow[bool]:
+    """
+    Refresh the RepoModel's upstream tables from git: what branch.<name>.remote and .merge
+    configure (only if the config changed), then which local refs track the upstreams and
+    how far ahead/behind the branches are. Return True if the upstreams changed.
+    """
+    repoModel = task.repoModel
+    changed = False
+    if configChanged:
+        # GitDriver turns this into "git config --get-regexp" for git <= 2.45
+        driver = yield from task.flowCallGit(
+            "config", "get", "-z", "--all", "--show-names", "--regexp", UPSTREAM_CONFIG_REGEX, autoFail=False)
+        # 1: no key matches (man git-config, get), i.e. no branch has an upstream
+        if driver.exitCode() not in [0, 1]:
+            raise AbortTask.fromGitError(driver)
+        changed |= repoModel.syncUpstreamConfig(parseUpstreamConfig(driver.stdoutScrollback()))
+    # Although Repository.ahead_behind exists, it's slower than "git for-each-ref" in complex graphs
+    driver = yield from task.flowCallGit("for-each-ref", UPSTREAMS_FORMAT, "refs/heads")
+    changed |= repoModel.syncUpstreams(parseUpstreams(driver.stdoutScrollback()))
+    return changed
 
 
 class PrimeRepo(RepoTask):
@@ -84,10 +106,10 @@ class PrimeRepo(RepoTask):
             driver = yield from self.flowCallGit("rev-parse", "--show-superproject-working-tree", workdir=path)
             repoModel.superproject = driver.stdoutScrollback().rstrip()
 
-        # Fill in ahead/behind
-        with Benchmark("ahead-behind"):
-            driver = yield from self.flowCallGit("for-each-ref", "--format=%(refname) %(upstream:track)", "refs/heads")
-            repoModel.aheadBehind = dict(parseAheadBehind(driver.stdoutScrollback()))
+        # Fill in upstreams and ahead/behind
+        with Benchmark("upstreams"):
+            repoModel.pollUpstreamConfig()  # First poll; RefreshRepo reacts to later changes
+            yield from loadUpstreams(self, configChanged=True)
 
         # ---------------------------------------------------------------------
         # EXIT UI THREAD
