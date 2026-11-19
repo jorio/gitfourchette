@@ -24,6 +24,11 @@ class PrefsFile:
     _dirty = False
     _fileVersion = ""
 
+    @property
+    def fileVersion(self) -> str:
+        """ App version that last wrote the file ("" if it isn't loaded or has no version). """
+        return self._fileVersion
+
     def getParentDir(self) -> str:
         if APP_TESTMODE:
             return os.path.join(qTempDir(), "testmode-config")
