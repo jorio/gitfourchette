@@ -351,7 +351,7 @@ def makeBareCopy(
 
         if deleteOtherRemotes:
             assert not keepOldUpstream, "mutually exclusive"
-            remoteNames = repo.listall_remotes_fast()[:]
+            remoteNames = list(repo.remotes.names())
             remoteNames.remove(addAsRemote)
             for remoteName in remoteNames:
                 repo.remotes.delete(remoteName)
