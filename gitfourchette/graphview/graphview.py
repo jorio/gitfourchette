@@ -353,6 +353,15 @@ class GraphView(QListView):
         except GraphView.SelectCommitError:
             return False
 
+    def isLocatorGone(self, locator: NavLocator) -> bool:
+        """ Whether the locator has no row in the graph at all (as opposed to a hidden row). """
+        assert locator
+        try:
+            self.getFilterIndexForLocator(locator)
+            return False
+        except GraphView.SelectCommitError as exc:
+            return not exc.foundButHidden
+
     def scrollToRowForLocator(self, locator: NavLocator, scrollHint=QAbstractItemView.ScrollHint.EnsureVisible):
         with suppress(GraphView.SelectCommitError):
             filterIndex = self.getFilterIndexForLocator(locator)

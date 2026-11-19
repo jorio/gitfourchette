@@ -10,7 +10,7 @@ from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
 from gitfourchette.graphview.commitlogmodel import SpecialRow
 from gitfourchette.graphview.graphview import GraphView
-from gitfourchette.nav import NavLocator
+from gitfourchette.nav import NavContext, NavLocator
 from gitfourchette.tasks import QueryCommitsTouchingPath
 from .util import *
 
@@ -936,3 +936,56 @@ def testRefreshKeepsSelectionOfRowsThatCannotBeCompared(tempDir, mainWindow, fir
     assert sorted(i.row() for i in gv.selectedIndexes()) == sorted([rows[first], rows[last]])
     assert gv.currentIndex().row() == rows[last]
     assert rw.navLocator.path == str(SpecialRow.CannotCompareRows)
+
+
+def testRefreshAwayFromMultiSelectionOfVanishedCommit(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    # Select 5 commits, ending on HEAD (the main row of the selection)
+    qlvClickNthRow(rw.graphView, 5)
+    qlvClickNthRow(rw.graphView, 1, modifier=Qt.KeyboardModifier.ShiftModifier)
+    assert rw.navLocator.context == NavContext.SPECIAL
+    assert rw.navLocator.commit == rw.repo.head_commit_id
+
+    shell("git commit --amend --allow-empty -m 'amended'", wd)
+    rw.refreshRepo()
+
+    # Land on the amended HEAD, as with a single selected commit
+    assert rw.navLocator.context == NavContext.COMMITTED
+    assert rw.navLocator.commit == rw.repo.head_commit_id
+    assert not rw.diffBanner.isVisible()
+
+
+def testRefreshKeepsMultiSelectionOfHiddenCommits(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    qlvClickNthRow(rw.graphView, 1)
+    qlvClickNthRow(rw.graphView, 5, modifier=Qt.KeyboardModifier.ShiftModifier)
+    assert rw.navLocator.context == NavContext.SPECIAL
+    selectionLocator = rw.navLocator
+
+    # Hide the selected commits; the page stays, with a "hidden branch" banner
+    rw.toggleHideRefPattern("refs/heads/no-parent", allButThis=True)
+    assert rw.navLocator == selectionLocator
+    assert not rw.graphView.isLocatorVisible(selectionLocator)
+
+    rw.refreshRepo()
+    assert rw.navLocator == selectionLocator
+
+
+def testRefreshAwayFromVanishedCommitWithUnbornHead(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    qlvClickNthRow(rw.graphView, 3)
+    assert rw.navLocator.context == NavContext.COMMITTED
+
+    # Delete every ref and leave HEAD unborn
+    shell("git checkout -q --orphan empty", wd)
+    for ref in rw.repo.listall_references():
+        shell(f"git update-ref -d {ref}", wd)
+    rw.refreshRepo()
+
+    assert rw.navLocator.context.isWorkdir()
+    assert rw.graphView.currentRowKind == SpecialRow.UncommittedChanges
