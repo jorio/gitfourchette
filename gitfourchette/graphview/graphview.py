@@ -317,10 +317,9 @@ class GraphView(QListView):
                 return self.getFilterIndexForCommit(locator.commit)
 
             # Last row
-            if self.clModel._extraRow != special:
-                raise GraphView.SelectCommitError(None, False, False)
             index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
-            assert index.data(CommitLogModel.Role.SpecialRow) == special
+            if index.data(CommitLogModel.Role.SpecialRow) != special:
+                raise GraphView.SelectCommitError(None, False, False)
             return index
 
         raise NotImplementedError(f"unsupported locator context {locator.context}")

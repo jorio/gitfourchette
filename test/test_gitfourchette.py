@@ -252,7 +252,8 @@ def testTruncatedHistory(tempDir, mainWindow, method, action):
     assert rw.graphView.clFilter.rowCount() > 7
 
     # Truncated history row must be gone.
-    assert rw.graphView.clModel._extraRow == SpecialRow.Invalid
+    lastRow = rw.graphView.clFilter.index(rw.graphView.clFilter.rowCount() - 1, 0)
+    assert lastRow.data(CommitLogModel.Role.SpecialRow) == SpecialRow.Commit
 
     # Bottom commit should work now
     rw.jump(NavLocator.inCommit(bottomCommit, "c/c1.txt"), check=True)
