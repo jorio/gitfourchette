@@ -729,10 +729,6 @@ class Graph:
 
         return player
 
-    def getCommitFrame(self, commit: Oid, unsafe=False) -> Frame:
-        row = self.getCommitRow(commit)
-        return self.getFrame(row, unsafe)
-
     def getFrame(self, row: int = 0, unsafe=False) -> Frame:
         assert row >= 0
 

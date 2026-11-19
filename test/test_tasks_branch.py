@@ -1311,6 +1311,45 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
     assert looseOid not in rw.repoModel.graph.commitRows
 
 
+@pytest.mark.parametrize("keptBy", ["branchBeyondLoadedCommits", "stash", "customRef"])
+def testNoLostCommitWarningWhenARefKeepsDetachedHead(tempDir, mainWindow, keptBy):
+    wd = unpackRepo(tempDir)
+    if keptBy == "branchBeyondLoadedCommits":
+        GFApplication.applyPrefs(maxCommits=5)
+        shell("git switch --detach $(git rev-list master | tail -1)", wd)  # Oldest commit
+    else:
+        shell("git switch --detach master\ngit commit --allow-empty -m 'kept'", wd)
+        if keptBy == "stash":
+            shell("echo change >> a/a1.txt\ngit stash", wd)  # The stash's parent is HEAD
+        else:
+            shell("git update-ref refs/custom/keep HEAD", wd)
+
+    rw = mainWindow.openRepo(wd)
+    if keptBy == "branchBeyondLoadedCommits":
+        assert rw.repo.head_commit_id not in rw.repoModel.graph.commitRows
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to")  # No "lose track" warning follows
+    assert rw.repo.head_branch_shorthand == "master"
+
+
+def testLostCommitWarningIgnoresOtherWorktreesHead(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git switch --detach master
+        git commit --allow-empty -m 'lost commit'
+        git worktree add --detach ../otherworktree HEAD
+    """, wd)  # Like git checkout, only count this worktree's refs
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to")
+    acceptQMessageBox(rw, "lose track of this commit")
+    assert rw.repo.head_branch_shorthand == "master"
+
+
 def testCreateBranchOnDetachedHead(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 

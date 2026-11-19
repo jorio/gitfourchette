@@ -421,7 +421,7 @@ class CheckoutCommit(RepoTask):
 
         if dlg.ui.detachHeadRadioButton.isChecked():
             headId = self.repoModel.headCommitId
-            if self.repoModel.dangerouslyDetachedHead() and oid != headId:
+            if (yield from self.flowCommitsLeftBehind(str(oid))):
                 text = paragraphs(
                     _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
                     _("You might lose track of this commit "

@@ -544,6 +544,18 @@ class RepoTask(QObject):
         if driver.exitCode() not in [0, 5]:
             raise AbortTask.fromGitError(driver)
 
+    def flowCommitsLeftBehind(self, target: str) -> Flow[bool]:
+        """
+        Whether moving a detached HEAD to `target` would leave commits that no ref
+        reaches, which `git checkout` warns about ("you are leaving N commits behind").
+        """
+        if not self.repo.head_is_detached:
+            return False
+        # Like git checkout: this worktree's refs, not HEAD or other worktrees' HEADs
+        driver = yield from self.flowCallGit(
+            "rev-list", "-n1", "HEAD", f"^{target}", "--single-worktree", "--exclude=HEAD", "--not", "--all", "--")
+        return bool(driver.stdoutScrollback().strip())
+
     def createGitProcess(
             self,
             *args: str,

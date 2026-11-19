@@ -54,7 +54,7 @@ class SwitchBranch(RepoTask):
             recurseSubmodules = recurseCheckbox is not None and recurseCheckbox.isChecked()
 
         headId = self.repoModel.headCommitId
-        if self.repoModel.dangerouslyDetachedHead() and branchObj.target != headId:
+        if (yield from self.flowCommitsLeftBehind(refName)):
             if refreshUnderDetachedWarning:  # Refresh GraphView underneath dialog
                 from gitfourchette.tasks import RefreshRepo
                 yield from self.flowSubtask(RefreshRepo)
