@@ -97,9 +97,6 @@ class PrimeRepo(RepoTask):
         # Get a locale to format numbers on the worker thread
         locale = QLocale()
 
-        # Prime the walker (this might take a while)
-        walker = repoModel.primeWalker()
-
         # Retrieve the number of commits that we loaded last time we opened this repo
         # so we can estimate how long it'll take to load it again
         numCommitsBallpark = settings.history.getRepo(repo.workdir).length
@@ -110,20 +107,18 @@ class PrimeRepo(RepoTask):
         # ---------------------------------------------------------------------
         # Build commit sequence
 
-        truncatedHistory = False
         if maxCommits < 0:  # -1 means take maxCommits from prefs. Warning, pref value can be 0, meaning infinity!
             maxCommits = settings.prefs.maxCommits
-        if maxCommits == 0:  # 0 means infinity
-            maxCommits = 2**63  # ought to be enough
         progressInterval = 1000
 
         commitSequence = [repoModel.uncommittedChangesMockCommit()]
 
-        for i, commit in enumerate(walker):
+        # Walking the commits sets repoModel.truncatedHistory
+        for i, commit in enumerate(repoModel.walkCommits(maxCommits or None)):
             commitSequence.append(commit)
 
-            if i + 1 >= maxCommits or (i + 1 >= progressInterval and repoStub.didAbort):
-                truncatedHistory = True
+            if i + 1 >= progressInterval and repoStub.didAbort:
+                repoModel.truncatedHistory = True
                 break
 
             # Report progress, not too often
@@ -140,7 +135,7 @@ class PrimeRepo(RepoTask):
 
         numCommits = len(commitSequence) - 1
         logger.info(f"{repoModel.shortName}: loaded {numCommits} commits")
-        if truncatedHistory:
+        if repoModel.truncatedHistory:
             message = _("{0} commits loaded (truncated log).", locale.toString(numCommits))
         else:
             message = _("{0} commits total.", locale.toString(numCommits))
@@ -168,7 +163,6 @@ class PrimeRepo(RepoTask):
         repoModel.hiddenCommits = buildLoop.hiddenCommits
         repoModel.foreignCommits = buildLoop.foreignCommits
         repoModel.commitSequence = commitSequence
-        repoModel.truncatedHistory = truncatedHistory
         repoModel.graph = graph
         repoModel.hideSeeds = hideSeeds
         repoModel.localSeeds = localSeeds
@@ -182,7 +176,7 @@ class PrimeRepo(RepoTask):
         # Bump repo in history
         historyRepo = settings.history.addRepo(repo.workdir)
         historyRepo.superproject = repoModel.superproject
-        if not truncatedHistory:  # Save commit count
+        if not repoModel.truncatedHistory:  # Save commit count
             historyRepo.length = numCommits
         settings.history.write()
 

@@ -403,3 +403,19 @@ def testGraphSplicing(scenarioKey):
                            newHeads=heads1, keyframeInterval=KF_INTERVAL_TEST)
     gsl2.sendAll(sequence1)
     g.testConsistency()
+
+
+def testSpliceDeletedHeadPastTruncatedGraph():
+    # Only the first 3 commits of "a-b-c-d-e" are loaded; z is a head deeper down.
+    truncatedSequence, heads = GraphDiagram.parseDefinition("a-b-c")
+    deepHead = MockOid.encodeAll(["z"])[0]
+
+    g = GraphBuildLoop(keyframeInterval=KF_INTERVAL_TEST).sendAll(truncatedSequence).graph
+
+    # Delete head z: the loaded part of the graph doesn't change
+    spliceLoop = GraphSpliceLoop(g, truncatedSequence, heads | {deepHead}, heads, keyframeInterval=KF_INTERVAL_TEST)
+    spliceLoop.sendAll(truncatedSequence)
+
+    assert spliceLoop.splicer.foundEquilibrium
+    assert spliceLoop.numRowsRemoved == 0
+    assert spliceLoop.numRowsAdded == 0

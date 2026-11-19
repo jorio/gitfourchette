@@ -7,7 +7,7 @@
 import enum
 import itertools
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 
 from gitfourchette import settings
 from gitfourchette.appconsts import *
@@ -107,13 +107,13 @@ class RepoModel:
     mailmap: Mailmap
 
     walker: Walker | None
-    """Walker used to generate the graph. Call initializeWalker before use.
-    Keep it around to speed up ulterior refreshes."""
+    """Walker behind walkCommits. Keep it around to speed up ulterior refreshes."""
 
     commitSequence: list[CommitTraits]
     "Ordered list of commits."
 
     truncatedHistory: bool
+    "Whether commitSequence stops short of the full history (see walkCommits)."
 
     graph: Graph
 
@@ -414,7 +414,7 @@ class RepoModel:
         return bool(new - old) or any(oid in self.graph.commitRows for oid in old - new)
 
     @benchmark
-    def primeWalker(self) -> Walker:
+    def _primeWalker(self) -> Walker:
         tipIds = self.refs.values()
         sorting = SortMode.TOPOLOGICAL
 
@@ -441,6 +441,24 @@ class RepoModel:
             self.walker.push(tip)
 
         return self.walker
+
+    def walkCommits(self, limit: int | None) -> Iterator[Commit]:
+        """
+        Walk the commits from all refs in graph order, stopping after `limit`
+        commits (None: walk the full history). Reaching the limit sets
+        truncatedHistory; reaching the end of the history clears it. If the
+        caller stops iterating before either, truncatedHistory doesn't change.
+
+        The first use of `walkCommits` initializes a libgit2 walker, which
+        might take a moment in a large repo. Subsequent uses recycle the same
+        walker for performance.
+        """
+        for numCommits, commit in enumerate(self._primeWalker(), 1):
+            yield commit
+            if numCommits == limit:
+                self.truncatedHistory = True
+                return
+        self.truncatedHistory = False
 
     def uncommittedChangesMockCommit(self):
         try:
@@ -474,8 +492,10 @@ class RepoModel:
             # e.g. switching from a branch to Detached HEAD on the same commit as the branch
             pass
         else:
-            walker = self.primeWalker()
-            for commit in walker:
+            # Don't walk past a truncated history. Without an equilibrium
+            # within it, the graph is rebuilt with as many commits as before.
+            limit = self.numRealCommits if self.truncatedHistory else None
+            for commit in self.walkCommits(limit):
                 try:
                     coSplice.send(commit)
                 except StopIteration:

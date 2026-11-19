@@ -8,9 +8,10 @@ import pytest
 
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.graphview.commitlogdelegate import CommitLogDelegate
-from gitfourchette.graphview.commitlogmodel import SpecialRow
+from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.graphview.graphview import GraphView
 from gitfourchette.nav import NavContext, NavLocator
+from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.tasks import QueryCommitsTouchingPath
 from .util import *
 
@@ -989,3 +990,120 @@ def testRefreshAwayFromVanishedCommitWithUnbornHead(tempDir, mainWindow):
 
     assert rw.navLocator.context.isWorkdir()
     assert rw.graphView.currentRowKind == SpecialRow.UncommittedChanges
+
+
+@pytest.mark.parametrize("change", [
+    "1 new commit on top",
+    "4 new commits on top",  # equilibrium on the last loaded commit
+    "5 new commits on top",  # as many as loaded
+    "new branch beyond the loaded commits",
+    "delete branch beyond the loaded commits",
+    "detach HEAD beyond the loaded commits",
+    "history shrinks below the limit",
+])
+def testRefreshTruncatedHistory(tempDir, mainWindow, change):
+    """
+    Refreshing a truncated graph keeps the loaded commits if it can splice the
+    changes on top of them. Otherwise, it rebuilds the graph with as many
+    commits as were loaded: here, the same graph as reloading the repo.
+    """
+    deepCommit = "6c8b137"  # "On master", beyond the 5 loaded commits
+
+    GFApplication.applyPrefs(maxCommits=5)
+    wd = unpackRepo(tempDir)
+    if change == "delete branch beyond the loaded commits":
+        shell(f"git branch deep {deepCommit}", wd)
+    rw = mainWindow.openRepo(wd)
+    assert rw.repoModel.truncatedHistory
+
+    loadedCommits = [commit.id for commit in rw.repoModel.commitSequence]
+
+    numNewCommits = int(change.split()[0]) if change.endswith("on top") else 0
+
+    if numNewCommits:
+        for i in range(numNewCommits):
+            shell(f"git commit --allow-empty -m 'new commit {i}'", wd)
+    elif change == "new branch beyond the loaded commits":
+        shell(f"git branch deep {deepCommit}", wd)
+    elif change == "delete branch beyond the loaded commits":
+        shell("git branch -D deep", wd)
+    elif change == "detach HEAD beyond the loaded commits":
+        shell(f"git checkout -q --detach {deepCommit}", wd)
+    elif change == "history shrinks below the limit":
+        shell("git checkout -q no-parent", wd)
+        for ref in rw.repo.listall_references():
+            if ref != "refs/heads/no-parent":
+                shell(f"git update-ref -d {ref}", wd)
+    else:
+        raise NotImplementedError(change)
+
+    def snapshot(rw):
+        clFilter = rw.graphView.clFilter
+        lastRow = clFilter.index(clFilter.rowCount() - 1, 0)
+        return ([commit.id for commit in rw.repoModel.commitSequence],
+                rw.repoModel.truncatedHistory,
+                lastRow.data(CommitLogModel.Role.SpecialRow),
+                clFilter.rowCount())
+
+    rw.refreshRepo()
+    refreshed = snapshot(rw)
+
+    if 0 < numNewCommits < len(loadedCommits) - 1:
+        # Spliced on top of the loaded commits
+        newCommits = [rw.repo.head_commit_id]
+        while len(newCommits) < numNewCommits:
+            newCommits.append(rw.repo[newCommits[-1]].peel(Commit).parent_ids[0])
+        sequence = [UC_FAKEID] + newCommits + loadedCommits[1:]
+        assert refreshed == (sequence, True, SpecialRow.TruncatedHistory, len(sequence) + 1)
+        return
+
+    mainWindow.closeCurrentTab()
+    rw = mainWindow.openRepo(wd)
+    assert refreshed == snapshot(rw)
+
+
+@pytest.mark.parametrize("unbornHead", [False, True])
+def testRefreshAwayFromVanishedTruncatedHistoryRow(tempDir, mainWindow, unbornHead):
+    GFApplication.applyPrefs(maxCommits=5)
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inSpecial(SpecialRow.TruncatedHistory), check=True)
+    assert rw.graphView.currentRowKind == SpecialRow.TruncatedHistory
+
+    # Shrink the history below the limit: the "truncated history" row goes away
+    if unbornHead:
+        shell("git checkout -q --orphan empty", wd)
+    else:
+        shell("git checkout -q no-parent", wd)
+    for ref in rw.repo.listall_references():
+        if ref != "refs/heads/no-parent" or unbornHead:
+            shell(f"git update-ref -d {ref}", wd)
+    rw.refreshRepo()
+
+    # Land on HEAD, or on the workdir if HEAD is unborn
+    if unbornHead:
+        assert rw.navLocator.context.isWorkdir()
+        assert rw.graphView.currentRowKind == SpecialRow.UncommittedChanges
+    else:
+        assert rw.navLocator.commit == rw.repo.head_commit_id
+        assert rw.graphView.currentRowKind == SpecialRow.Commit
+    assert not rw.diffBanner.isVisible()
+
+
+def testRefreshRebuildDropsSelectedCommitFromWindow(tempDir, mainWindow):
+    GFApplication.applyPrefs(maxCommits=5)
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    qlvClickNthRow(rw.graphView, 3)
+    selectedCommit = rw.navLocator.commit
+    assert selectedCommit in rw.repoModel.graph.commitRows
+
+    # As many new commits as loaded: the graph is rebuilt with the newest ones
+    for i in range(5):
+        shell(f"git commit --allow-empty -m 'new commit {i}'", wd)
+    rw.refreshRepo()
+
+    assert selectedCommit not in rw.repoModel.graph.commitRows
+    assert rw.navLocator.commit == rw.repo.head_commit_id
