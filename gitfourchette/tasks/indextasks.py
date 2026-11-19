@@ -501,12 +501,7 @@ class OpenMergeTool(RepoTask):
             scratch=str(scratchPath),
             target=targetPath)
 
-        mergeDriver = MergeDriver(self.parentWidget(), conflict, paths)
-
-        # Keep a reference to temp dir so it doesn't vanish
-        mergeDriver._keepAroundMergeTempDir = mergeTempDir  # type: ignore[attr-defined]
-
-        return mergeDriver
+        return MergeDriver(self.parentWidget(), conflict, paths, mergeTempDir)
 
 
 class PreviewDeltaFile(RepoTask):

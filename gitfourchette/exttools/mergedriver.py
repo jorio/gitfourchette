@@ -45,17 +45,24 @@ class MergeDriver(QObject):
 
     conflict: GitConflict
     paths: MergeFiles
+    tempDir: QTemporaryDir
+    """
+    Holds every file in `paths` except `target`. No code reads this attribute; it only keeps
+    the QTemporaryDir alive. Without it, garbage collection would delete the directory
+    before MergeDriver is done with the files.
+    """
     process: QProcess | None
     processName: str
     state: State
     debrief: str
 
-    def __init__(self, parent: QObject, conflict: GitConflict, paths: MergeFiles):
+    def __init__(self, parent: QObject, conflict: GitConflict, paths: MergeFiles, tempDir: QTemporaryDir):
         super().__init__(parent)
 
         logger.info(f"Initialize MergeDriver: {conflict}")
         self.conflict = conflict
         self.paths = paths
+        self.tempDir = tempDir
         self.process = None
         self.processName = "?"
         self.state = MergeDriver.State.Idle
