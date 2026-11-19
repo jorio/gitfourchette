@@ -349,6 +349,15 @@ class GitDriver(QProcess):
         raise NotImplementedError(f"unsupported WhitespaceMode {m}")
 
     @staticmethod
+    def commitArg(oid: Oid) -> str:
+        """
+        A commit as a revision argument that no ref can shadow. Some commands
+        (git branch, git checkout --detach, git restore --source) take a ref
+        named like a full hash over the hash itself.
+        """
+        return f"{oid}^{{commit}}"
+
+    @staticmethod
     def literalPathspecs(paths: Iterable[str]) -> list[str]:
         """ Pathspecs that git matches as-is, not as globs. """
         # With GIT_LITERAL_PATHSPECS=1 in the user's environment, git already takes paths as-is

@@ -703,7 +703,7 @@ class RestoreRevisionToWorkdir(RepoTask):
             yield from self.flowCallGit(
                 "restore",
                 "--progress",
-                f"--source={diffFile.sourceCommit}",
+                f"--source={GitDriver.commitArg(diffFile.sourceCommit)}",
                 pathspecs=[diffFile.path])
 
         self.epilog.status = _("File {path} {processed}.", path=tquoe(diffFile.path), processed=actionVerb)
@@ -718,7 +718,7 @@ class SaveDeltaFileAs(RepoTask):
         if file.source == GitDeltaSource.Commit:
             assert file.sourceCommit not in [None, NULL_OID]
             suggStem += f"@{shortHash(file.sourceCommit)}"
-            catFileArgs = ["--filters", f"{file.sourceCommit}:{file.path}"]  # --filters for LFS awareness
+            catFileArgs = ["--filters", f"{GitDriver.commitArg(file.sourceCommit)}:{file.path}"]  # --filters for LFS awareness
         elif file.source == GitDeltaSource.Index:
             catFileArgs = ["--filters", f":{file.path}"]  # --filters for LFS awareness
         elif file.source == GitDeltaSource.Unknown:  # Most likely from GitConflict

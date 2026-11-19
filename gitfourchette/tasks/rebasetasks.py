@@ -58,7 +58,7 @@ class InteractiveRebase(RepoTask):
 
         driver = yield from self.flowCallGit(
             "-c", "core.abbrev=no",
-            "rebase", "-i", str(ontoCommit),
+            "rebase", "-i", GitDriver.commitArg(ontoCommit),
             env={
                 "GIT_SEQUENCE_EDITOR": sequenceServer.clientCommand(),
             },
@@ -140,7 +140,7 @@ class InteractiveRebase(RepoTask):
         if self.repo.head_branch_shorthand != headName or self.repo.head_commit_id != headCommit:
             raise AbortTask(_toctouErrorText(headName, headCommit))
 
-        driver = yield from self.flowCallGit("rebase", str(ontoCommit))
+        driver = yield from self.flowCallGit("rebase", GitDriver.commitArg(ontoCommit))
         _debriefRebase(self, driver, headName, headCommit, ontoCommit)
 
 
@@ -159,7 +159,7 @@ class ExecuteRebase(RepoTask):
         self.epilog.effects |= _StandardRebaseTaskEffects
         driver = yield from self.flowCallGit(
             "-c", "core.abbrev=no",
-            "rebase", "-i", str(newPlan.onto),
+            "rebase", "-i", GitDriver.commitArg(newPlan.onto),
             *extraArgs,
             env={
                 "GIT_SEQUENCE_EDITOR": sequenceServer.clientCommand(),

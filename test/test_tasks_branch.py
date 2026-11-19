@@ -1209,6 +1209,35 @@ def testMergeRefWithAmbiguousShorthand(tempDir, mainWindow, theirRef, decoy):
     assert rw.repo.head_commit_id == theirTip
 
 
+@pytest.mark.parametrize("method", ["newbranch", "checkout", "restore"])
+def testCommitHashShadowedByBranchName(tempDir, mainWindow, method):
+    wd = unpackRepo(tempDir)
+    oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")  # master~1
+    shell(f"git update-ref refs/heads/{oid} master", wd)  # Named like oid, points elsewhere
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(oid))
+    if method == "newbranch":
+        triggerContextMenuAction(rw.graphView.viewport(), "new branch")
+        dlg: NewBranchDialog = findQDialog(rw, "new branch")
+        dlg.ui.nameEdit.setText("newbranch")
+        dlg.ui.switchToBranchCheckBox.setChecked(False)
+        dlg.accept()
+        assert rw.repo.branches.local["newbranch"].target == oid
+    elif method == "checkout":
+        triggerContextMenuAction(rw.graphView.viewport(), "check out")
+        dlg: CheckoutCommitDialog = findQDialog(rw, "check out")
+        dlg.ui.detachHeadRadioButton.setChecked(True)
+        dlg.accept()
+        assert rw.repo.head_is_detached
+        assert rw.repo.head_commit_id == oid
+    else:  # oid renames c/c2.txt to c/c2-2.txt, which master deletes
+        rw.jump(NavLocator.inCommit(oid, "c/c2-2.txt"), check=True)
+        triggerContextMenuAction(rw.committedFiles.viewport(), "restore.+revision/as of.+commit")
+        acceptQMessageBox(rw, "do you want to restore.+c2-2.txt")
+        assert os.path.isfile(f"{wd}/c/c2-2.txt")
+
+
 @pytest.mark.parametrize("decoy", ["branch", "blob"])
 def testMergeCommitWithAmbiguousShortHash(tempDir, mainWindow, decoy):
     wd = unpackRepo(tempDir)
