@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
-import urllib
+import urllib.parse
 
 from gitfourchette.toolbox import *
 
