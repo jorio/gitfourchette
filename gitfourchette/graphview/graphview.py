@@ -223,19 +223,11 @@ class GraphView(QListView):
             current = indexes[-1]
         assert current.isValid()
 
-        special = current.data(CommitLogModel.Role.SpecialRow)
-        if special == SpecialRow.UncommittedChanges:
-            locator = NavLocator.inWorkdir()
-        elif special == SpecialRow.Commit:
-            oid = current.data(CommitLogModel.Role.Oid)
-            locator = NavLocator.inCommit(oid)
-        else:
-            locator = NavLocator.inSpecial(special)
+        currentKey = self.rowKey(current)
+        locator = self.locatorForRowKey(currentKey)
 
         # Handle multiple selected rows
         if len(indexes) > 1:
-            originalCommit = locator.commit
-
             # A/B diffing only allowed if exactly two commits are selected
             twoSelected = len(indexes) == 2
 
@@ -244,17 +236,16 @@ class GraphView(QListView):
             if twoSelected:
                 indexes.sort(key=lambda i: i.row(), reverse=True)
 
-            # Get commit oids
-            oids = tuple(i.data(CommitLogModel.Role.Oid) for i in indexes)
+            keys = tuple(self.rowKey(i) for i in indexes)
 
-            if not twoSelected:
-                locator = NavLocator.inSpecial(SpecialRow.TooManyRowsSelected)
-            elif any(o in (UC_FAKEID, None) for o in oids):
-                # Both oids must be valid commit oids
-                locator = NavLocator.inSpecial(SpecialRow.CannotCompareRows)
-
-            # Keep track of selected/current rows
-            locator = locator.replace(selectedCommits=oids, commit=originalCommit)
+            if twoSelected and all(isinstance(k, Oid) for k in keys):
+                # A/B diff between two commits; the current one is the locator's commit
+                locator = locator.replace(selectedCommits=keys)
+            else:
+                # The current row goes first; `commit` stays the current row's commit, if any
+                page = SpecialRow.CannotCompareRows if twoSelected else SpecialRow.TooManyRowsSelected
+                keys = (currentKey, *(k for k in keys if k != currentKey))
+                locator = NavLocator.inSpecial(page).replace(selectedCommits=keys, commit=locator.commit)
 
         return locator
 
@@ -284,9 +275,9 @@ class GraphView(QListView):
             sm = self.selectionModel()
             sm.clear()
 
-            # Multiple selected commits
-            for sc in locator.selectedCommits:
-                fi = self.getFilterIndexForCommit(sc)
+            # Multiple selected rows
+            for key in locator.selectedCommits:
+                fi = self.getFilterIndexForLocator(self.locatorForRowKey(key))
                 sm.select(fi, QItemSelectionModel.SelectionFlag.Select)
 
             # Set current index (i.e. keyboard focus) on main selected row.
@@ -312,9 +303,9 @@ class GraphView(QListView):
         if locator.context == NavContext.SPECIAL:
             special = SpecialRow.fromString(locator.path)
 
-            # Multi-selection error pages: use main commit row
+            # Multi-selection error pages: the current row comes first
             if special in (SpecialRow.CannotCompareRows, SpecialRow.TooManyRowsSelected):
-                return self.getFilterIndexForCommit(locator.commit)
+                return self.getFilterIndexForLocator(self.locatorForRowKey(locator.selectedCommits[0]))
 
             # Last row
             index = self.clFilter.index(self.clFilter.rowCount()-1, 0)
@@ -337,6 +328,23 @@ class GraphView(QListView):
             raise GraphView.SelectCommitError(oid, foundButHidden=True)
 
         return newFilterIndex
+
+    @staticmethod
+    def rowKey(index: QModelIndex) -> Oid | SpecialRow:
+        """ How NavLocator.selectedCommits names a row: its commit, or else its kind. """
+        special = index.data(CommitLogModel.Role.SpecialRow)
+        if special == SpecialRow.Commit:
+            return index.data(CommitLogModel.Role.Oid)
+        return special
+
+    @staticmethod
+    def locatorForRowKey(key: Oid | SpecialRow) -> NavLocator:
+        """ What selecting that row alone shows; getFilterIndexForLocator finds the row again. """
+        if not isinstance(key, SpecialRow):
+            return NavLocator.inCommit(key)
+        if key == SpecialRow.UncommittedChanges:
+            return NavLocator.inWorkdir()
+        return NavLocator.inSpecial(key)
 
     def isLocatorVisible(self, locator: NavLocator) -> bool:
         try:

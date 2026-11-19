@@ -907,3 +907,27 @@ def testLocatorForSpecialRowAtBottom(tempDir, mainWindow, maxCommits):
     # Not a shallow clone
     with pytest.raises(GraphView.SelectCommitError):
         gv.getFilterIndexForLocator(NavLocator.inSpecial(SpecialRow.EndOfShallowHistory))
+
+
+@pytest.mark.parametrize("first, last", [
+    ("commit", "truncated"),
+    ("truncated", "commit"),
+    ("workdir", "commit"),
+    ("commit", "workdir"),
+    ("workdir", "truncated"),
+])
+def testRefreshKeepsSelectionOfRowsThatCannotBeCompared(tempDir, mainWindow, first, last):
+    GFApplication.applyPrefs(maxCommits=5)
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    gv = rw.graphView
+    rows = {"workdir": 0, "commit": 2, "truncated": gv.clFilter.rowCount() - 1}
+
+    qlvClickNthRow(gv, rows[first])
+    qlvClickNthRow(gv, rows[last], modifier=Qt.KeyboardModifier.ControlModifier)
+    assert rw.navLocator.path == str(SpecialRow.CannotCompareRows)
+
+    rw.refreshRepo()
+    assert sorted(i.row() for i in gv.selectedIndexes()) == sorted([rows[first], rows[last]])
+    assert gv.currentIndex().row() == rows[last]
+    assert rw.navLocator.path == str(SpecialRow.CannotCompareRows)
