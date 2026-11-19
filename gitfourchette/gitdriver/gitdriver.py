@@ -177,10 +177,12 @@ class GitDriver(QProcess):
 
         # Patch "git config" commands for the older syntax of git <= 2.45
         if tokens[0] == "config" and not self.supportsConfigSubcommands():
-            if tokens[1] in ["get", "set"]:
-                tokens.pop(1)
+            if tokens[1:3] == ["set", "--all"]:
+                tokens[1:3] = ["--replace-all"]
             elif tokens[1:3] == ["unset", "--all"]:
                 tokens[1:3] = ["--unset-all"]
+            elif tokens[1] in ["get", "set"]:
+                tokens.pop(1)
             elif tokens[1] in ["unset", "edit", "rename-section", "remove-section", "list"]:
                 tokens[1] = f"--{tokens[1]}"
             else:

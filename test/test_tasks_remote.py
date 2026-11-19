@@ -112,8 +112,12 @@ def testEditRemote(tempDir, mainWindow, method):
     assert not any("/origin/" in n.data for n in rw.sidebar.findNodesByKind(SidebarItem.RemoteBranch))
 
 
-def testNewRemoteSkipFetchAll(tempDir, mainWindow):
+@pytest.mark.parametrize("globalSkip", [False, True])
+@pytest.mark.parametrize("skip", [False, True])
+def testNewRemoteSkipFetchAll(tempDir, mainWindow, skip, globalSkip):
     wd = unpackRepo(tempDir)
+    if globalSkip:
+        shell("git config --global remote.otherremote.skipFetchAll true", wd)
     rw = mainWindow.openRepo(wd)
     barePath = makeBareCopy(wd, addAsRemote="", preFetch=False)
 
@@ -122,21 +126,29 @@ def testNewRemoteSkipFetchAll(tempDir, mainWindow):
     dlg.ui.nameEdit.setText("otherremote")
     dlg.ui.urlEdit.setText(barePath)
     dlg.ui.fetchAfterAddCheckBox.setChecked(False)
-    dlg.ui.skipFetchAllCheckBox.setChecked(True)
+    dlg.ui.skipFetchAllCheckBox.setChecked(skip)
     dlg.accept()
 
-    assert rw.repo.get_remote_skipfetchall("otherremote")
+    assert rw.repo.get_remote_skipfetchall("otherremote") == skip
     assert not rw.repo.get_remote_skipfetchall("origin")
 
 
-@pytest.mark.parametrize(["before", "after"], [(True, True), (True, False), (False, True), ("global", True), ("duplicate", False)])
-def testEditRemoteSkipFetchAll(tempDir, mainWindow, before, after):
+@pytest.mark.parametrize(["before", "after"], [
+    (True, True), (True, False), (False, True),
+    ("global", True), ("global", False),
+    ("duplicate", True), ("duplicate", False),
+    ("skipDefaultUpdate", True), ("skipDefaultUpdate", False),
+])
+@pytest.mark.parametrize("newName", ["origin", "renamed"])
+def testEditRemoteSkipFetchAll(tempDir, mainWindow, before, after, newName):
     wd = unpackRepo(tempDir)
     if before == "global":  # "git remote rename" doesn't move this one
         shell("git config --global remote.origin.skipFetchAll true", wd)
-    elif before == "duplicate":  # Hand-edited config
+    elif before == "duplicate":  # Hand-edited config: the last value counts
+        shell("git config --add remote.origin.skipFetchAll false", wd)
         shell("git config --add remote.origin.skipFetchAll true", wd)
-        shell("git config --add remote.origin.skipFetchAll true", wd)
+    elif before == "skipDefaultUpdate":  # Deprecated synonym of skipFetchAll
+        shell("git config remote.origin.skipDefaultUpdate true", wd)
     elif before:
         shell("git config remote.origin.skipFetchAll true", wd)  # Old syntax: CI also runs git 2.34
     rw = mainWindow.openRepo(wd)
@@ -145,13 +157,14 @@ def testEditRemoteSkipFetchAll(tempDir, mainWindow, before, after):
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "edit remote")
     dialog: RemoteDialog = findQDialog(rw, "edit remote")
     assert dialog.ui.skipFetchAllCheckBox.isChecked() == bool(before)
-    dialog.ui.nameEdit.setText("renamed")
+    dialog.ui.nameEdit.setText(newName)
     dialog.ui.skipFetchAllCheckBox.setChecked(after)
     dialog.accept()
 
     config = readTextFile(f"{wd}/.git/config")
-    assert "skipFetchAll" not in config.split('[remote "renamed"]')[0]  # Nothing left under the old name
-    assert rw.repo.get_remote_skipfetchall("renamed") == after
+    assert "skipFetchAll" not in config.split(f'[remote "{newName}"]')[0]  # Nothing left under the old name
+    assert "skipDefaultUpdate" not in config
+    assert rw.repo.get_remote_skipfetchall(newName) == after
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])

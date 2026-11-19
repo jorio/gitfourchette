@@ -640,12 +640,20 @@ class Repo(_VanillaRepository):
             if name.startswith(RefPrefix.TAGS)
         ]
 
-    def get_remote_skipfetchall(self, remote_name: str) -> bool:
-        key = GitConfigHelper.sanitize_key(("remote", remote_name, "skipFetchAll"))
-        try:
-            return self.config.get_bool(key)
-        except KeyError:
-            return False
+    def get_remote_skipfetchall(self, remote_name: str, below_level: GitConfigLevel | None = None) -> bool:
+        """
+        Whether `git fetch --all` skips this remote. Like git, take the last value of
+        remote.<name>.skipFetchAll or of its deprecated synonym skipDefaultUpdate.
+        With below_level, only look at the config levels below it.
+        """
+        prefix = f"remote.{remote_name}."
+        skip = False
+        for entry in self.config:  # In the order git reads them
+            if below_level is not None and entry.level >= below_level:
+                continue
+            if entry.name.startswith(prefix) and entry.name[len(prefix):] in ("skipfetchall", "skipdefaultupdate"):
+                skip = GitConfig.parse_bool(entry.value)
+        return skip
 
     def get_commit_message(self, commit_id: Oid) -> str:
         commit = self.peel_commit(commit_id)

@@ -11,9 +11,18 @@ Remote management tasks.
 from gitfourchette.forms.remotedialog import RemoteDialog
 from gitfourchette.gitdriver import GitDriver, argsIf
 from gitfourchette.localization import *
+from gitfourchette.porcelain import GitConfigLevel
 from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import RepoTask, TaskEffects
 from gitfourchette.toolbox import *
+
+
+def setSkipFetchAll(task: RepoTask, remoteName: str, skip: bool) -> RepoTask.Flow[None]:
+    """ Make `git fetch --all` skip the remote or not, with a value in the repo config only if needed. """
+    inherited = task.repo.get_remote_skipfetchall(remoteName, below_level=GitConfigLevel.LOCAL)
+    yield from task.flowSetGitConfig(f"remote.{remoteName}.skipDefaultUpdate", None)
+    # shortcut: a value in config.worktree, or in a file included after our value, still wins over ours
+    yield from task.flowSetGitConfig(f"remote.{remoteName}.skipFetchAll", None if skip == inherited else str(skip).lower())
 
 
 class NewRemote(RepoTask):
@@ -41,8 +50,7 @@ class NewRemote(RepoTask):
 
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Remotes
         yield from self.flowCallGit("remote", "add", "--", newRemoteName, newRemoteUrl)
-        if newSkipFetchAll:
-            yield from self.flowSetGitConfig(f"remote.{newRemoteName}.skipFetchAll", "true")
+        yield from setSkipFetchAll(self, newRemoteName, newSkipFetchAll)
 
         self.epilog.status = _("Remote {0} added.", tquo(newRemoteName))
 
@@ -95,8 +103,7 @@ class EditRemote(RepoTask):
                 newRemoteName,
                 newRemoteUrl)
 
-        # Always write it: "git remote rename" doesn't carry over a value from the global config
-        yield from self.flowSetGitConfig(f"remote.{newRemoteName}.skipFetchAll", "true" if newSkipFetchAll else None)
+        yield from setSkipFetchAll(self, newRemoteName, newSkipFetchAll)
 
         self.epilog.status = _("Remote {0} modified.", tquo(newRemoteName))
 
