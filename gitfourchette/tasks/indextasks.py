@@ -111,19 +111,22 @@ class StageFiles(_BaseStagingTask):
         debrief = {}
 
         for delta in deltas:
-            # Staging a tree that isn't registered as a submodule
+            # Staging a nested repository that isn't registered as a submodule
             if delta.new.mode == FileMode.TREE:
-                m = _("You’ve added another Git repo inside your current repo. "
+                m = _("You’ve added a nested Git repository. "
                       "It is STRONGLY RECOMMENDED to absorb it as a submodule before committing.")
 
-            # Staging a submodule with uncommitted changes within
+            # Staging a submodule or nested repository with uncommitted changes within
             elif delta.new.mode == FileMode.COMMIT and delta.submoduleWorkdirDirty:
-                m = _("Uncommitted changes in the submodule can’t be staged from the parent repository.")
+                if any(delta.submoduleNames(self.repo)):
+                    m = _("Uncommitted changes in the submodule can’t be staged from the superproject.")
+                else:
+                    m = _("Uncommitted changes in the nested repository can’t be staged from the parent repository.")
 
-            # Staging a submodule deletion, and the submodule is still in .gitmodules
+            # Staging a submodule deletion, and .gitmodules still registers the submodule
             elif (delta.status == GitStatus.Deleted
                   and delta.old.mode == FileMode.COMMIT
-                  and delta.old.path in self.repo.listall_submodules_dict_at_head()):
+                  and delta.submoduleNames(self.repo)[1]):
                 m = _("Don’t forget to remove the submodule from {0} to complete its deletion.", tquo(DOT_GITMODULES))
 
             # Otherwise, no special message
@@ -162,7 +165,7 @@ class DiscardFiles(_BaseStagingTask):
         self.denyConflicts(deltas, PatchPurpose.Discard)
 
         # Filter on submodules
-        submoPaths = [d.new.path for d in deltas if d.isSubtreeCommitPatch()]
+        submoPaths = [d.new.path for d in deltas if d.involvesGitlink]
         numSubmos = len(submoPaths)
 
         # 'git submodule update' can't read pathspecs from stdin

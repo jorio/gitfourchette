@@ -35,7 +35,7 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
 
     wd = unpackRepo(tempDir)
 
-    # Init subtrees
+    # Init nested repositories
     # (with empty template so that hook sample files don't trip largeFileThreshold)
     shell("git init --template= SmallTree", wd)
     shell("git init --template= LargeTree", wd)
@@ -56,8 +56,8 @@ def testBackupDiscardedPatches(tempDir, mainWindow):
         "MassiveFile.txt",
         "SomeNewFile.txt",
         "[link] symlink",
-        "[new subtree] LargeTree",
-        "[new subtree] SmallTree",
+        "[nested repo] LargeTree",
+        "[nested repo] SmallTree",
     }
 
     GFApplication.applyPrefs(maxTrashFileKB=largeFileThreshold // 1024)

@@ -176,12 +176,11 @@ def testNewStashNothingToStash(tempDir, mainWindow):
     acceptQMessageBox(rw, "no.+changes to stash")
 
 
-def testNewStashCantStashSubmoduleOrSubtree(tempDir, mainWindow):
+def testNewStashCantStashNestedRepo(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
 
-    # Create untracked subtree
+    # Create untracked nested repository
     shell("git init new_untracked_tree", wd)
-    # pygit2.init_repository(f"{wd}new_untracked_tree")
 
     # Create tracked submodule + a pending change within
     submoAbsPath, _submoCommit = reposcenario.submodule(wd)

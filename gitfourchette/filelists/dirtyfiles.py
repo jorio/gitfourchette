@@ -34,12 +34,12 @@ class DirtyFiles(FileList):
         modeSet = {delta.new.mode for delta in deltas}  # mode in worktree
 
         anyConflicts = "U" in statusSet  # DeltaStatus.CONFLICTED in statusSet
-        anySubmodules = FileMode.COMMIT in modeSet
+        anyGitlinks = FileMode.COMMIT in modeSet
         onlyConflicts = anyConflicts and len(statusSet) == 1
-        onlySubmodules = anySubmodules and len(modeSet) == 1
+        onlyGitlinks = anyGitlinks and len(modeSet) == 1
         onlyUntracked = statusSet == {"?"}  # {DeltaStatus.UNTRACKED}
 
-        if not anyConflicts and not anySubmodules:
+        if not anyConflicts and not anyGitlinks:
             contextMenuActionStage = ActionDef(
                 _n("&Stage File", "&Stage {n} Files", n),
                 self.stage,
@@ -82,29 +82,27 @@ class DirtyFiles(FileList):
                 ActionDef(_("Accept THEIR version") + "\u2026", lambda: self.hardSolve(False)),
             ]
 
-        elif onlySubmodules:
+        elif onlyGitlinks:
+            if self.areSubmodules(deltas):
+                section = _n("Submodule", "{n} Submodules", n)
+                stageText = _n("Stage Submodule", "Stage {n} Submodules", n)
+                discardText = _n("Discard Changes in Submodule", "Discard Changes in {n} Submodules", n)
+                openText = _n("Open Submodule in New Tab", "Open {n} Submodules in New Tabs", n)
+            else:
+                section = _n("Nested Repository", "{n} Nested Repositories", n)
+                stageText = _n("Stage Nested Repo", "Stage {n} Nested Repos", n)
+                discardText = _n("Discard Changes in Nested Repo", "Discard Changes in {n} Nested Repos", n)
+                openText = _n("Open Nested Repo in New Tab", "Open {n} Nested Repos in New Tabs", n)
             actions += [
-                ActionDef(
-                    _n("Submodule", "{n} Submodules", n),
-                    kind=ActionDef.Kind.Section,
-                ),
-                ActionDef(
-                    _n("Stage Submodule", "Stage {n} Submodules", n),
-                    self.stage,
-                ),
-                ActionDef(
-                    _n("Discard Changes in Submodule", "Discard Changes in {n} Submodules", n),
-                    self.discard,
-                ),
-                ActionDef(
-                    _n("Open Submodule in New Tab", "Open {n} Submodules in New Tabs", n),
-                    self.openSubmoduleTabs,
-                ),
+                ActionDef(section, kind=ActionDef.Kind.Section),
+                ActionDef(stageText, self.stage),
+                ActionDef(discardText, self.discard),
+                ActionDef(openText, self.openNestedRepoTabs),
             ]
 
         else:
             # Conflicted + non-conflicted files selected
-            # or Submodules + non-submodules selected
+            # or nested repositories + other files selected
             sorry = _("Can’t stage this selection in bulk.") + "\n" + _("Please review the files individually.")
             actions += [
                 ActionDef(sorry, enabled=False),
@@ -113,7 +111,7 @@ class DirtyFiles(FileList):
         if actions:
             actions.append(ActionDef.SEPARATOR)
 
-        if not onlySubmodules:
+        if not onlyGitlinks:
             actions += [
                 *self.contextMenuActionsEdit(deltas),
                 ActionDef.SEPARATOR,

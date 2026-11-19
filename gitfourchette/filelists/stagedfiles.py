@@ -29,10 +29,10 @@ class StagedFiles(FileList):
 
         n = len(deltas)
         modeSet = {delta.new.mode for delta in deltas}  # mode in worktree
-        anySubmodules = FileMode.COMMIT in modeSet
-        onlySubmodules = anySubmodules and len(modeSet) == 1
+        anyGitlinks = FileMode.COMMIT in modeSet
+        onlyGitlinks = anyGitlinks and len(modeSet) == 1
 
-        if not anySubmodules:
+        if not anyGitlinks:
             contextMenuActionUnstage = ActionDef(
                 _n("&Unstage File", "&Unstage {n} Files", n),
                 self.unstage,
@@ -50,22 +50,19 @@ class StagedFiles(FileList):
                 *self.contextMenuActionsEdit(deltas),
             ]
 
-        elif onlySubmodules:
+        elif onlyGitlinks:
+            if self.areSubmodules(deltas):
+                section = _n("Submodule", "{n} Submodules", n)
+                unstageText = _n("Unstage Submodule", "Unstage {n} Submodules", n)
+                openText = _n("Open Submodule in New Tab", "Open {n} Submodules in New Tabs", n)
+            else:
+                section = _n("Nested Repository", "{n} Nested Repositories", n)
+                unstageText = _n("Unstage Nested Repo", "Unstage {n} Nested Repos", n)
+                openText = _n("Open Nested Repo in New Tab", "Open {n} Nested Repos in New Tabs", n)
             actions += [
-                ActionDef(
-                    _n("Submodule", "{n} Submodules", n),
-                    kind=ActionDef.Kind.Section,
-                ),
-
-                ActionDef(
-                    _n("Unstage Submodule", "Unstage {n} Submodules", n),
-                    self.unstage,
-                ),
-
-                ActionDef(
-                    _n("Open Submodule in New Tab", "Open {n} Submodules in New Tabs", n),
-                    self.openSubmoduleTabs,
-                ),
+                ActionDef(section, kind=ActionDef.Kind.Section),
+                ActionDef(unstageText, self.unstage),
+                ActionDef(openText, self.openNestedRepoTabs),
             ]
 
         else:

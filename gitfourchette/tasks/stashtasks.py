@@ -89,13 +89,13 @@ class NewStash(RepoTask):
         if not numEntries:
             raise AbortTask(_("There are no uncommitted changes to stash."), "information")
 
-        # Filter out any submodules or trees
-        stagedDeltas   = [d for d in stagedDeltas   if not d.isTreeOrSubmodule()]
-        unstagedDeltas = [d for d in unstagedDeltas if not d.isTreeOrSubmodule()]
+        # Filter out any nested repositories (submodules or not)
+        stagedDeltas   = [d for d in stagedDeltas   if not d.involvesNestedRepo]
+        unstagedDeltas = [d for d in unstagedDeltas if not d.involvesNestedRepo]
 
-        # If the selection only contained submodules, bail here
+        # If the selection only contained nested repositories, bail here
         if not stagedDeltas and not unstagedDeltas:
-            raise AbortTask(_("Cannot stash submodules or subtrees."), "information")
+            raise AbortTask(_("Cannot stash submodules or nested repositories."), "information")
 
         # Convert to libgit2 status flags for StashDialog
         status: dict[str, FileStatus] = {}
