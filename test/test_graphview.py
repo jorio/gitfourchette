@@ -887,3 +887,23 @@ def testHideCommitHashes(tempDir, mainWindow, monkeypatch):
     n3 = paintHashSpy.completeCalls
 
     assert n3 >= n2 == n1 >= 1
+
+
+@pytest.mark.parametrize("maxCommits", [0, 5])
+def testLocatorForSpecialRowAtBottom(tempDir, mainWindow, maxCommits):
+    GFApplication.applyPrefs(maxCommits=maxCommits)
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    gv = rw.graphView
+    lastRow = gv.clFilter.rowCount() - 1
+
+    truncatedLocator = NavLocator.inSpecial(SpecialRow.TruncatedHistory)
+    if maxCommits:
+        assert gv.getFilterIndexForLocator(truncatedLocator).row() == lastRow
+    else:
+        with pytest.raises(GraphView.SelectCommitError):
+            gv.getFilterIndexForLocator(truncatedLocator)
+
+    # Not a shallow clone
+    with pytest.raises(GraphView.SelectCommitError):
+        gv.getFilterIndexForLocator(NavLocator.inSpecial(SpecialRow.EndOfShallowHistory))
