@@ -1186,6 +1186,8 @@ def testMergeNonTipCommit(tempDir, mainWindow):
 @pytest.mark.parametrize(["theirRef", "decoy"], [
     ("refs/heads/side", "git tag side master"),
     ("refs/remotes/origin/side", "git branch origin/side master"),
+    # git reads a 40-hex name as a hash (here, of master~1) before trying refs
+    ("refs/heads/ce112d052bcf42442aa8563f1e2b7a8aabbf4d17", "git update-ref refs/heads/ce112d052bcf42442aa8563f1e2b7a8aabbf4d17 side"),
 ])
 def testMergeRefWithAmbiguousShorthand(tempDir, mainWindow, theirRef, decoy):
     wd = unpackRepo(tempDir)

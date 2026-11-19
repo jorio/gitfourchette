@@ -530,19 +530,22 @@ class MergeBranch(RepoTask):
             theirShorthand = reference.shorthand
             assert reference.type == ReferenceType.DIRECT
             assert isinstance(target, Oid)
-            revParseArgs, unambiguousArg = ["--symbolic-full-name", theirShorthand], them
+            # The commit git merges, then the ref it names in the merge message
+            revParseArgs = [theirShorthand, "--symbolic-full-name", theirShorthand]
+            expected, unambiguousArg = [str(target), them], them
         else:
             assert isinstance(them, Oid)
             target = them
             theirShorthand = shortHash(them)
             # Bare, as git merge gets it: "<hash>^{commit}" would ignore a blob sharing the prefix
-            revParseArgs, unambiguousArg = [theirShorthand], str(target)
+            revParseArgs = [theirShorthand]
+            expected, unambiguousArg = [str(target)], str(target)
 
         # Pass the short name to git for a nicer merge message, unless git would resolve it
         # to something else (e.g. a tag or local branch sharing a ref's name, a ref named
-        # like a short hash, or another object whose hash starts the same way)
-        driver = yield from self.flowCallGit("rev-parse", "--verify", "--quiet", *revParseArgs, autoFail=False)
-        theirArg = theirShorthand if driver.stdoutScrollback().strip() == unambiguousArg else unambiguousArg
+        # like a short or full hash, or another object whose hash starts the same way)
+        driver = yield from self.flowCallGit("rev-parse", *revParseArgs, autoFail=False)
+        theirArg = theirShorthand if driver.stdoutScrollback().split() == expected else unambiguousArg
 
         # Run merge analysis on background thread
         yield from self.flowEnterWorkerThread()
