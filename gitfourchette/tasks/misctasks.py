@@ -15,6 +15,7 @@ from gitfourchette import settings
 from gitfourchette.forms.commitinfodialog import CommitInfoDialog
 from gitfourchette.forms.ignorepatterndialog import IgnorePatternDialog
 from gitfourchette.forms.reposettingsdialog import RepoSettingsDialog
+from gitfourchette.gitdriver import GitDriver
 from gitfourchette.gitdriver.parsers import iterateLines
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
@@ -213,7 +214,7 @@ class VerifyGpgSignature(RepoTask):
 
         isSsh = gpgSignature.startswith(BEGIN_SSH_SIGNATURE)
 
-        driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+        driver = yield from self.flowCallGit("verify-commit", "--raw", GitDriver.commitArg(oid), autoFail=False)
         fail = driver.exitCode() != 0
         stderr = driver.stderrScrollback()
 
@@ -348,7 +349,7 @@ class VerifyGpgQueue(RepoTask):
                 continue
 
             try:
-                driver = yield from self.flowCallGit("verify-commit", "--raw", str(oid), autoFail=False)
+                driver = yield from self.flowCallGit("verify-commit", "--raw", GitDriver.commitArg(oid), autoFail=False)
             except AbortTask:
                 # This task may be issued repeatedly.
                 # Don't let AbortTask spam dialog boxes if git failed to start.

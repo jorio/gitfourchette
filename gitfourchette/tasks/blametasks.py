@@ -71,7 +71,7 @@ class OpenBlame(RepoTask):
             driver = yield from self.flowCallGit(
                 "merge-base",
                 "--is-ancestor",
-                str(seed),
+                GitDriver.commitArg(seed),
                 "HEAD",
                 autoFail=False)
             if driver.exitCode() not in [0, 1]:
@@ -85,7 +85,7 @@ class OpenBlame(RepoTask):
             driver = yield from self.flowCallGit(
                 "for-each-ref",
                 "--count=1",
-                f"--contains={seed}",
+                f"--contains={GitDriver.commitArg(seed)}",
                 "--format=%(objectname)")
             hashStr = driver.stdoutScrollback().strip()
             newSeed = Oid(hex=hashStr)
@@ -143,7 +143,7 @@ class OpenBlame(RepoTask):
             "--parents",
             "--topo-order",
             *argsIf(settings.prefs.chronologicalOrder, "--date-order"),
-            *argsIf(upperBound != NULL_OID, str(upperBound)),
+            *argsIf(upperBound != NULL_OID, GitDriver.commitArg(upperBound)),
             "--format=%H %P",
             pathspecs=[path])
 
@@ -225,7 +225,7 @@ class OpenBlameToLine(RepoTask):
             "blame",
             "--porcelain",
             f"-L{line},{line}",
-            *argsIf(seed != NULL_OID, str(seed)),
+            *argsIf(seed != NULL_OID, GitDriver.commitArg(seed)),
             "--",
             file.path)
 
@@ -396,7 +396,7 @@ class BlameRevision(RepoTask):
         driver = yield from self.flowCallGit(
             "blame",
             "--porcelain",
-            *argsIf(revision.commitId != UC_FAKEID, str(revision.commitId)),
+            *argsIf(revision.commitId != UC_FAKEID, GitDriver.commitArg(revision.commitId)),
             "-S", blameModel.revsFile.fileName(),
             "--",
             revision.path)

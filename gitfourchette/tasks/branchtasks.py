@@ -9,7 +9,7 @@ import logging
 from gitfourchette.forms.newbranchdialog import NewBranchDialog
 from gitfourchette.forms.resetheaddialog import ResetHeadDialog
 from gitfourchette.forms.textinputdialog import TextInputDialog
-from gitfourchette.gitdriver import argsIf
+from gitfourchette.gitdriver import argsIf, GitDriver
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -328,7 +328,7 @@ class NewBranchFromCommit(RepoTask):
 
         # Create local branch
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Upstreams
-        yield from self.flowCallGit("branch", localName, str(tip))
+        yield from self.flowCallGit("branch", localName, GitDriver.commitArg(tip))
         self.epilog.status = _("Branch {0} created on commit {1}.", tquo(localName), tquo(shortHash(tip)))
 
         # Optionally make it track a remote branch
@@ -427,7 +427,7 @@ class ResetHead(RepoTask):
             "reset",
             modeArg,
             *argsIf(recurseSubmodules, "--recurse-submodules"),
-            str(onto))
+            GitDriver.commitArg(onto))
 
         self.epilog.status = _("Branch {0} was reset to {1} ({mode}).",
                                tquo(branchName), tquo(shortHash(onto)), mode=modeArg)
@@ -539,6 +539,8 @@ class MergeBranch(RepoTask):
             theirShorthand = shortHash(them)
             # Bare, as git merge gets it: "<hash>^{commit}" would ignore a blob sharing the prefix
             revParseArgs = [theirShorthand]
+            # Unlike GitDriver.commitArg: git merge reads a full hash as a hash first,
+            # and "^{commit}" would show up in the merge message
             expected, unambiguousArg = [str(target)], str(target)
 
         # Pass the short name to git for a nicer merge message, unless git would resolve it
@@ -677,5 +679,5 @@ class RecallCommit(RepoTask):
         commit: Commit = obj.peel(Commit)
         branchName = f"recall-{shortHash(commit.id)}"
         branchName = withUniqueSuffix(branchName, self.repo.listall_branches())
-        yield from self.flowCallGit("branch", branchName, str(commit.id))
+        yield from self.flowCallGit("branch", branchName, GitDriver.commitArg(commit.id))
         self.epilog.jumpTo = NavLocator.inCommit(commit.id)

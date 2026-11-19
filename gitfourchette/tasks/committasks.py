@@ -16,7 +16,7 @@ from gitfourchette.forms.deletetagdialog import DeleteTagDialog
 from gitfourchette.forms.identitydialog import IdentityDialog
 from gitfourchette.forms.newtagdialog import NewTagDialog
 from gitfourchette.forms.signatureform import SignatureOverride
-from gitfourchette.gitdriver import argsIf
+from gitfourchette.gitdriver import argsIf, GitDriver
 from gitfourchette.ipc.ipcprotocol import GFIpcProtocol
 from gitfourchette.ipc.ipcserver import GFIpcServer
 from gitfourchette.localization import *
@@ -433,7 +433,7 @@ class CheckoutCommit(RepoTask):
                 "--progress",
                 "--detach",
                 *argsIf(wantSubmodules, "--recurse-submodules"),
-                str(oid))
+                GitDriver.commitArg(oid))
 
             self.epilog.status = _("Entered detached HEAD on {0}.", lquo(shortHash(oid)))
 
@@ -499,7 +499,7 @@ class NewTag(RepoTask):
                 *argsIf(forceCreate, "--force"),
                 "--",
                 tagName,
-                str(oid))
+                GitDriver.commitArg(oid))
 
         self.epilog.status = _("Tag {0} created on commit {1}.", tquo(tagName), tquo(shortHash(oid)))
 
@@ -559,7 +559,7 @@ class RevertCommit(RepoTask):
 
         self.epilog.effects |= TaskEffects.Workdir
 
-        driver = yield from self.flowCallGit("revert", "--no-commit", "--no-edit", str(oid), autoFail=False)
+        driver = yield from self.flowCallGit("revert", "--no-commit", "--no-edit", GitDriver.commitArg(oid), autoFail=False)
 
         # 0: Successful (or dud)
         # 1: Conflicts
@@ -612,7 +612,7 @@ class CherrypickCommit(RepoTask):
         commit = self.repo.peel_commit(oid)
 
         self.epilog.effects |= TaskEffects.Workdir
-        driver = yield from self.flowCallGit("cherry-pick", "--no-commit", str(oid), autoFail=False)
+        driver = yield from self.flowCallGit("cherry-pick", "--no-commit", GitDriver.commitArg(oid), autoFail=False)
 
         exitCode = driver.exitCode()
         if exitCode not in [0, 1]:
