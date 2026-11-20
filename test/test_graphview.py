@@ -921,7 +921,12 @@ def testRefreshKeepsSelectionOfRowsThatCannotBeCompared(tempDir, mainWindow, fir
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
     gv = rw.graphView
-    rows = {"workdir": 0, "commit": 2, "truncated": gv.clFilter.rowCount() - 1}
+    locators = {
+        "workdir": NavLocator.inWorkdir(),
+        "commit": NavLocator.inCommit(rw.repo.head_commit_id),
+        "truncated": NavLocator.inSpecial(SpecialRow.TruncatedHistory),
+    }
+    rows = {name: gv.getFilterIndexForLocator(locator).row() for name, locator in locators.items()}
 
     qlvClickNthRow(gv, rows[first])
     qlvClickNthRow(gv, rows[last], modifier=Qt.KeyboardModifier.ControlModifier)

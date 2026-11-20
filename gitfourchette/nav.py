@@ -130,12 +130,19 @@ class NavLocator:
 
     selectedCommits: tuple[Oid | SpecialRow, ...] = ()
     """
-    Currently selected rows in GraphView (see GraphView.rowKey): a commit, or
-    the kind of a special row. Can be used to diff two commits.
-    If empty and `context` is COMMITTED, `commit` is assumed to be the sole
-    selected commit.
-    On the SPECIAL pages for multiple rows, the current row comes first.
+    Currently selected rows in GraphView (see GraphView.rowKey): a commit Oid,
+    or the kind of a non-commit row (SpecialRow.UncommittedChanges, etc.).
     This is a tuple to enforce immutability.
+
+    If this tuple is empty and `context` is COMMITTED, `commit` is assumed to
+    be the sole selected commit.
+
+    If this is a pair of two Oids, this NavLocator represents an A/B diff
+    between two commits. Order is significant: the first item in the tuple is
+    the A-side of the comparison.
+
+    On the CannotCompareRows and TooManyRowsSelected pages, the current row
+    comes first. As elsewhere, `commit` is the current row's commit, if any.
     """
 
     URL_AUTHORITY: ClassVar[str] = "jump"
