@@ -59,7 +59,7 @@ class SwitchBranch(RepoTask):
                 from gitfourchette.tasks import RefreshRepo
                 yield from self.flowSubtask(RefreshRepo)
 
-            branch, head = hquo(newBranch), shortHash(self.repoModel.headCommitId)
+            branch, head = hquo(newBranch), tquo(shortHash(self.repoModel.headCommitId))
             if numLost == 1:
                 text = _("If you switch to {0}, you might lose track of the <b>detached HEAD {1}</b> "
                          "because it isn’t reachable from any other branch.", branch, head)

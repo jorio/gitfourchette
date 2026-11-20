@@ -435,7 +435,7 @@ class CheckoutCommit(RepoTask):
         if dlg.ui.detachHeadRadioButton.isChecked():
             numLost = yield from commitsLeftBehind(self, str(oid))
             if numLost:
-                commit, head = shortHash(oid), shortHash(self.repoModel.headCommitId)
+                commit, head = tquo(shortHash(oid)), tquo(shortHash(self.repoModel.headCommitId))
                 if numLost == 1:
                     text = _("If you check out {0}, you might lose track of the <b>detached HEAD {1}</b> "
                              "because it isn’t reachable from any other branch.", commit, head)
@@ -445,7 +445,9 @@ class CheckoutCommit(RepoTask):
                               "If you check out {0}, you might lose track of the <b>detached HEAD {1} and {n} more commits</b> "
                               "that aren’t reachable from any other branch.",
                               numLost - 1, commit, head)
-                yield from self.flowConfirm(text=text, icon='warning')
+                yesText = _("Check Out {0}", commit)
+                noText = _("Don’t Check Out")
+                yield from self.flowConfirm(text=text, icon='warning', verb=yesText, cancelText=noText)
 
             yield from self.flowCallGit(
                 "checkout",

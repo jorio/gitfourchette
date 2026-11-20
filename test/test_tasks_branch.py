@@ -1364,19 +1364,21 @@ def testLostCommitWarningCountsCommits(tempDir, mainWindow, method, numLost):
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
         acceptQMessageBox(rw, "switch to")
         intro = r"switch to \W*master\W*"  # Quoted branch name
-    else:
+    elif method == "checkout":
         oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
         rw.jump(NavLocator.inCommit(oid))
         triggerContextMenuAction(rw.graphView.viewport(), "check out")
         dlg: CheckoutCommitDialog = findQDialog(rw, "check out")
         dlg.ui.detachHeadRadioButton.setChecked(True)
         dlg.accept()
-        intro = "check out ce112d0"
+        intro = "check out .?ce112d0.?"
+    else:
+        raise NotImplementedError(f"unsupported method {method}")
     if numLost == 1:
-        lost = "detached HEAD [0-9a-f]+ because"
+        lost = "detached HEAD .?[0-9a-f]+.? because it isn.t reachable"
     else:
         more = "1 more commit" if numLost == 2 else f"{numLost - 1} more commits"
-        lost = f"detached HEAD [0-9a-f]+ and {more} that"
+        lost = f"detached HEAD .?[0-9a-f]+.? and {more} that aren.t reachable"
     acceptQMessageBox(rw, f"if you {intro}, you might lose track of the {lost}")
 
 
