@@ -7,6 +7,7 @@
 import pytest
 
 from gitfourchette.diffview.diffdocument import DiffDocument
+from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from .util import *
 
@@ -230,3 +231,42 @@ def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow
         rw.diffArea.stageButton.click()
 
     assert rw.repo.status() == {}
+
+
+@pytest.mark.parametrize("fetchArg, stillShallow", [("--unshallow", False), ("--deepen=2", True)])
+def testExternalUnshallowReloadsHistory(tempDir, mainWindow, fetchArg, stillShallow):
+    upstream = unpackRepo(tempDir)
+    with RepoContext(upstream) as repo:
+        deepCommit = repo.revparse_single("master~2").id
+    shell(f"git clone -q --depth 1 {Path(upstream).as_uri()} shallow", tempDir.name)
+
+    rw = mainWindow.openRepo(f"{tempDir.name}/shallow")
+    assert deepCommit not in rw.repoModel.graph.commitRows
+
+    # Unchanged shallow file: plain refresh, no reload
+    rw.refreshRepo()
+    assert mainWindow.currentRepoWidget() is rw
+
+    shell(f"git fetch -q {fetchArg}", rw.workdir)
+    rw.refreshRepo()
+    rw = waitForRepoWidget(mainWindow)
+    assert deepCommit in rw.repoModel.graph.commitRows
+    lastRow = rw.graphView.clModel.index(rw.graphView.clModel.rowCount() - 1, 0)
+    assert (lastRow.data(CommitLogModel.Role.SpecialRow) == SpecialRow.EndOfShallowHistory) == stillShallow
+
+
+def testExternalUnshallowInBackgroundTab(tempDir, mainWindow):
+    upstream = unpackRepo(tempDir)
+    with RepoContext(upstream) as repo:
+        deepCommit = repo.revparse_single("master~2").id
+    shell(f"git clone -q --depth 1 {Path(upstream).as_uri()} shallow", tempDir.name)
+
+    shallowRw = mainWindow.openRepo(f"{tempDir.name}/shallow")
+    mainWindow.openRepo(upstream)
+    assert mainWindow.tabs.widget(0) is shallowRw  # still loaded in the background
+
+    shell("git fetch -q --unshallow", shallowRw.workdir)
+    mainWindow.tabs.setCurrentIndex(0)
+    rw = waitForRepoWidget(mainWindow)
+    assert rw is not shallowRw
+    assert deepCommit in rw.repoModel.graph.commitRows

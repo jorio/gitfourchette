@@ -8,6 +8,7 @@ import enum
 import itertools
 import logging
 from collections.abc import Iterable
+from pathlib import Path
 
 from gitfourchette import settings
 from gitfourchette.appconsts import *
@@ -225,6 +226,7 @@ class RepoModel:
         self.gpgVerifyQueue = set()
 
         self.repo = repo
+        self.shallowFileAtOpen = self.readShallowFile()
 
         self.prefs = RepoPrefs.initForRepo(repo)
 
@@ -400,6 +402,13 @@ class RepoModel:
             prefix = superprojectNickname + ": "
 
         return prefix + settings.history.getRepoNickname(self.repo.workdir)
+
+    def readShallowFile(self) -> bytes | None:
+        """ Where a shallow clone's history stops, as git last wrote it. """
+        try:
+            return Path(self.repo.commondir, "shallow").read_bytes()
+        except FileNotFoundError:
+            return None
 
     @benchmark
     def primeWalker(self) -> Walker:
