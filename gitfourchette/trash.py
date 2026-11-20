@@ -145,6 +145,16 @@ class Trash:
         shutil.copyfile(fullPath, trashPath, follow_symlinks=False)
         return trashPath
 
+    @classmethod
+    def backupFiles(cls, workdir: str, paths: list[str]):
+        if not cls.enabled():
+            return
+        for path in paths:
+            try:
+                cls.instance().backupFile(workdir, path)
+            except Trash.BackupSkipped as ex:
+                logger.warning(f"Backup skipped: {ex}")
+
     def backupPatch(self, workdir: str, text: str, originalPath: str = "") -> Path:
         trashFile = self.newFile(workdir, ext=".patch", originalPath=originalPath)
         trashFile.write_text(text, encoding="utf-8", newline="\n")

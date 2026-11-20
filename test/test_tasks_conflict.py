@@ -8,6 +8,7 @@ from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.gitdriver import GitConflictSides
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
+from gitfourchette.trash import Trash
 from . import reposcenario
 from .util import *
 
@@ -185,6 +186,32 @@ def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContex
 
 
 @pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
+def testHardSolveConflictBacksUpWorkdirFile(tempDir, mainWindow, keepOurs):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    shell("git merge branch-conflicts || true", wd)
+    writeFile(f"{wd}/.gitignore", "partial resolution by hand\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
+
+    if keepOurs:
+        rw.conflictView.ui.oursButton.click()
+        acceptQMessageBox(rw, "keep our")
+    else:
+        rw.conflictView.ui.theirsButton.click()
+        acceptQMessageBox(rw, "accept their")
+
+    assert not rw.repo.index.conflicts
+    assert "partial resolution by hand" not in readTextFile(f"{wd}/.gitignore")
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].name.endswith("---.gitignore")
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "partial resolution by hand\n"
+
+
+@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
 def testHardSolveSubmoduleConflict(tempDir, mainWindow, keepOurs):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd)
@@ -326,6 +353,28 @@ def testResetIndexWithConflicts(tempDir, mainWindow):
     assert not rw.mergeBanner.isVisible()
 
 
+def testAbortMergeBacksUpConflictedFile(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    # Give the merge a file without conflicts too
+    shell("git switch -q branch-conflicts && echo clean > clean.txt && git add clean.txt && git commit -qm clean && git switch -q -", wd)
+    shell("git merge branch-conflicts || true", wd)
+    assert os.path.exists(f"{wd}/clean.txt")
+    writeFile(f"{wd}/.gitignore", "partial resolution by hand\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.mergeBanner.buttons[-1].click()
+    acceptQMessageBox(rw, "abort.+merge")
+    assert rw.repo.state() == RepositoryState.NONE
+    assert "partial resolution by hand" not in readTextFile(f"{wd}/.gitignore")
+
+    # Only the conflicted file goes to the trash
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].name.endswith("---.gitignore")
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "partial resolution by hand\n"
+
+
 def testMergeTool(tempDir, mainWindow):
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
     noopShim = getShimCommand("editor.py", scratchPath, "$M", "$L", "$R", "$B")
@@ -449,6 +498,33 @@ def testMergeTool(tempDir, mainWindow):
     assert rw.mergeBanner.isVisible()
     assert findTextInWidget(rw.mergeBanner.label, "all conflicts fixed")
     assert not rw.repo.index.conflicts
+
+
+def testMergeToolBacksUpWorkdirFile(tempDir, mainWindow):
+    scratchPath = f"{tempDir.name}/external editor scratch file.txt"
+    GFApplication.applyPrefs(externalMerge=getShimCommand("merge.py", scratchPath, "$M", "$L", "$R", "$B"))
+
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    shell("git merge branch-conflicts || true", wd)
+    writeFile(f"{wd}/.gitignore", "partial resolution by hand\n")
+
+    rw = mainWindow.openRepo(wd)
+    cv = rw.conflictView
+    rw.jump(NavLocator.inUnstaged(".gitignore"), check=True)
+
+    cv.ui.mergeButton.click()
+    waitUntilTrue(cv.ui.mergeCompletePage.isVisible)
+    os.unlink(scratchPath)
+    cv.ui.confirmMergeButton.click()
+
+    assert not rw.repo.index.conflicts
+    assert readTextFile(f"{wd}/.gitignore") == "merge complete!"
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].name.endswith("---.gitignore")
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "partial resolution by hand\n"
 
 
 def testFake3WayMerge(tempDir, mainWindow):
