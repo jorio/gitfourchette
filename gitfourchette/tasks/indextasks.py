@@ -830,18 +830,40 @@ class RestoreRevisionToWorkdir(RepoTask):
                         path=bquo(diffFile.path), preposition=preposition)
             raise AbortTask(message, icon="information")
 
+        # Restoring rewrites the working copy but leaves the index alone,
+        # so only unstaged changes (including untracked or ignored files) are lost.
+        # Something else may now occupy the path, e.g. a folder with untracked files.
+        lostPaths = []
+        if pathObj.exists(follow_symlinks=False):
+            gitStatus = yield from self.flowCallGit(
+                "--no-optional-locks",
+                "status",
+                "--porcelain=v2",
+                "-z",
+                "--untracked-files=all",
+                "--ignored",
+                pathspecs=[diffFile.path])
+            _numEntries, _stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z(None)
+            lostPaths = [d.new.path for d in unstagedDeltas]
+
         if not existsNow:
             actionVerb = _("recreated")
         elif delete:
             actionVerb = _("deleted")
         else:
             actionVerb = _("overwritten")
-        prompt = paragraphs(
-            _("Do you want to restore {path} as it was {preposition} this commit?",
-              path=bquo(diffFile.path), preposition=preposition),
-            _("This file will be {processed} in your working directory.", processed=actionVerb))
+
+        lines = [_("Do you want to restore {path} as it was {preposition} this commit?",
+                   path=bquo(diffFile.path), preposition=preposition)]
+        if lostPaths:
+            lines.append(_("This file has uncommitted changes."))
+        lines.append(_("This file will be {processed} in your working directory.", processed=actionVerb))
+        prompt = paragraphs(*lines)
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
+
+        if lostPaths:
+            Trash.backupFiles(self.repo.workdir, lostPaths)
 
         self.epilog.effects |= TaskEffects.Workdir
 

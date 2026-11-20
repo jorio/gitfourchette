@@ -12,6 +12,7 @@ from gitfourchette.forms.searchbar import SearchBar
 from gitfourchette.globalshortcuts import GlobalShortcuts
 from gitfourchette.nav import NavLocator, NavContext
 from gitfourchette.settings import FileListClick
+from gitfourchette.trash import Trash
 
 from .util import *
 from . import reposcenario
@@ -127,6 +128,111 @@ def testRestoreRevisionAtCommit(tempDir, mainWindow, commit, side, path, result)
     assert result.encode() == readFile(f"{wd}/{path}")
     mode = pathObj.stat().st_mode
     assert bool(mode & 0o100) == executable
+
+
+@pytest.mark.parametrize(
+    "commit,side,dirty,result",
+    [
+        ("bab66b4", "as of", "unstaged", "c1\nc1\n"),
+        ("bab66b4", "before", "unstaged", "c1\n"),
+        ("42e4e7c", "before", "unstaged", "[DEL]"),
+        ("bab66b4", "before", "", "c1\n"),
+        ("bab66b4", "before", "staged", "c1\n"),  # kept in the index, so nothing is lost
+    ])
+def testRestoreRevisionBacksUpUncommittedChanges(tempDir, mainWindow, commit, side, dirty, result):
+    wd = unpackRepo(tempDir)
+    if dirty:
+        writeFile(f"{wd}/c/c1.txt", "uncommitted change\n")
+    if dirty == "staged":
+        shell("git add c/c1.txt", wd)
+
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo[commit].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
+
+    triggerContextMenuAction(rw.committedFiles.viewport(), f"restore/{side}.+commit")
+    qmb = findQMessageBox(rw, "restore")
+    assert ("uncommitted changes" in qmb.text()) == (dirty == "unstaged")
+    qmb.accept()
+    if result == "[DEL]":
+        assert not os.path.exists(f"{wd}/c/c1.txt")
+    else:
+        assert readTextFile(f"{wd}/c/c1.txt") == result
+    if dirty == "staged":
+        assert rw.repo.index["c/c1.txt"].id == pygit2.hash(b"uncommitted change\n")
+
+    # Only uncommitted changes go to the trash
+    trash = Trash.instance()
+    trash.refreshFiles()
+    if dirty != "unstaged":
+        assert trash.trashFiles == []
+    else:
+        assert len(trash.trashFiles) == 1
+        assert trash.trashFiles[0].name.endswith("---c1.txt")
+        assert trash.trashFiles[0].read_text(encoding="utf-8") == "uncommitted change\n"
+
+
+@pytest.mark.parametrize("hideWith", ["showUntrackedFiles", "exclude"])
+def testRestoreRevisionBacksUpHiddenUntrackedFile(tempDir, mainWindow, hideWith):
+    wd = unpackRepo(tempDir)
+    shell("git rm -q c/c1.txt && git commit -qm 'delete c1'", wd)
+    if hideWith == "showUntrackedFiles":
+        shell("git config status.showUntrackedFiles no", wd)
+    else:
+        writeFile(f"{wd}/.git/info/exclude", "c1.txt\n")  # ignored
+    writeFile(f"{wd}/c/c1.txt", "untracked\n")
+
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo["bab66b4"].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "restore/as of.+commit")
+    acceptQMessageBox(rw, "restore.+uncommitted changes")
+    assert readTextFile(f"{wd}/c/c1.txt") == "c1\nc1\n"
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "untracked\n"
+
+
+def testRestoreRevisionBacksUpFolderInTheWay(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("git rm -q c/c1.txt && git commit -qm 'delete c1'", wd)
+    os.makedirs(f"{wd}/c/c1.txt")
+    writeFile(f"{wd}/c/c1.txt/untracked.txt", "untracked\n")
+
+    rw = mainWindow.openRepo(wd)
+    oid = rw.repo["bab66b4"].peel(Commit).id
+    rw.jump(NavLocator.inCommit(oid, "c/c1.txt"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "restore/as of.+commit")
+    acceptQMessageBox(rw, "restore.+uncommitted changes")
+    assert readTextFile(f"{wd}/c/c1.txt") == "c1\nc1\n"
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "untracked\n"
+
+
+@pytest.mark.skipif(WINDOWS, reason="':' isn't allowed in Windows file names")
+def testRestoreRevisionBacksUpFileNamedLikePathspecMagic(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    # As a pathspec, ":/x" would mean "x at the top level"
+    os.mkdir(f"{wd}/:")
+    writeFile(f"{wd}/:/x", "v1\n")
+    shell("git add -A && git commit -qm v1", wd)
+    writeFile(f"{wd}/:/x", "uncommitted change\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inCommit(rw.repo.head_commit_id, ":/x"), check=True)
+    triggerContextMenuAction(rw.committedFiles.viewport(), "restore/as of.+commit")
+    acceptQMessageBox(rw, "restore.+uncommitted changes")
+    assert readTextFile(f"{wd}/:/x") == "v1\n"
+
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "uncommitted change\n"
 
 
 def testRevertCommittedFile(tempDir, mainWindow):
