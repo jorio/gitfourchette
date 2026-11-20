@@ -531,6 +531,18 @@ class Repo(_VanillaRepository):
             self._cached_commondir = path
         return self._cached_commondir
 
+    @property
+    def shallow_boundaries(self) -> frozenset[Oid]:
+        """
+        The commits where a shallow clone's history stops, as git last wrote
+        them. Empty if the repo isn't shallow.
+        """
+        try:
+            text = _Path(self.commondir, "shallow").read_text()
+        except FileNotFoundError:
+            return frozenset()
+        return frozenset(Oid(hex=line) for line in text.split())
+
     def in_gitdir(self, path: str, common: bool = True) -> str:
         """
         Return an absolutized version of `path` within this repo's .git directory.

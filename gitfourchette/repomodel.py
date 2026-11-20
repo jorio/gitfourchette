@@ -225,6 +225,7 @@ class RepoModel:
         self.gpgVerifyQueue = set()
 
         self.repo = repo
+        self.shallowBoundariesAtOpen = repo.shallow_boundaries
 
         self.prefs = RepoPrefs.initForRepo(repo)
 
@@ -400,6 +401,17 @@ class RepoModel:
             prefix = superprojectNickname + ": "
 
         return prefix + settings.history.getRepoNickname(self.repo.workdir)
+
+    def shallowHistoryChanged(self) -> bool:
+        """
+        Whether the shallow boundaries changed since the repo was opened in a way
+        that the graph shows: any new boundary (e.g. `git fetch --depth`), or a
+        boundary removed from a commit in the graph (`--unshallow`, `--deepen`).
+        """
+        new = self.repo.shallow_boundaries
+        old = self.shallowBoundariesAtOpen
+        # gc drops the lines of the commits it prunes, which aren't in the graph
+        return bool(new - old) or any(oid in self.graph.commitRows for oid in old - new)
 
     @benchmark
     def primeWalker(self) -> Walker:

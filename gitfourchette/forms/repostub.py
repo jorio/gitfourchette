@@ -55,7 +55,6 @@ class RepoStub(QWidget):
 
         tweakWidgetFont(self.ui.promptNameLabel, bold=True)
         self.ui.promptNameLabel.setText(tquo(self.getTitle()))
-        self.ui.promptIcon.setPixmap(stockIcon("image-missing").pixmap(96))
         self.ui.progressAbortButton.setIcon(stockIcon("SP_BrowserStop"))
 
         # Initialize labels, etc.
@@ -93,13 +92,15 @@ class RepoStub(QWidget):
         self.ui.progressAbortButton.setEnabled(True)
         self.setProgress(0)
 
-    def disableAutoLoad(self, message=""):
+    def disableAutoLoad(self, message="", isError=True):
         self.ui.stackedWidget.setCurrentWidget(self.ui.promptPage)
 
         if message:
+            icon = "image-missing" if isError else "SP_MessageBoxInformation"
             self.ui.promptReadyLabel.setText(message)
+            self.ui.promptIcon.setPixmap(stockIcon(icon).pixmap(96))
             self.ui.promptIcon.setVisible(True)
-            self.ui.promptLoadButton.setText(_("Try to reload"))
+            self.ui.promptLoadButton.setText(_("Try to reload") if isError else _("&Reload"))
 
     def willAutoLoad(self):
         return self.ui.stackedWidget.currentWidget() is self.ui.progressPage
