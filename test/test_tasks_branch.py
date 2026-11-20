@@ -1292,19 +1292,19 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
         node = rw.sidebar.findNodeByRef("refs/heads/master")
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
         acceptQMessageBox(rw, "switch to")
-        acceptQMessageBox(rw, "lose track of this commit")
+        acceptQMessageBox(rw, "lose track of the detached HEAD")
     elif method == "newbranch":
         oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
         rw.jump(NavLocator.inCommit(oid))
         triggerContextMenuAction(rw.graphView.viewport(), "new branch")
         findQDialog(rw, "new branch").accept()
-        acceptQMessageBox(rw, "lose track of this commit")
+        acceptQMessageBox(rw, "lose track of the detached HEAD")
     elif method == "checkout":
         oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
         rw.jump(NavLocator.inCommit(oid))
         triggerContextMenuAction(rw.graphView.viewport(), "check out")
         findQDialog(rw, "check out").accept()
-        acceptQMessageBox(rw, "lose track of this commit")
+        acceptQMessageBox(rw, "lose track of the detached HEAD")
     else:
         raise NotImplementedError(f"unknown method {method}")
 
@@ -1346,8 +1346,38 @@ def testLostCommitWarningIgnoresOtherWorktreesHead(tempDir, mainWindow):
     node = rw.sidebar.findNodeByRef("refs/heads/master")
     triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
     acceptQMessageBox(rw, "switch to")
-    acceptQMessageBox(rw, "lose track of this commit")
+    acceptQMessageBox(rw, "lose track of the detached HEAD")
     assert rw.repo.head_branch_shorthand == "master"
+
+
+@pytest.mark.parametrize("numLost", [1, 2, 3])
+@pytest.mark.parametrize("method", ["switchbranch", "checkout"])
+def testLostCommitWarningCountsCommits(tempDir, mainWindow, method, numLost):
+    wd = unpackRepo(tempDir)
+    shell("git switch --detach master", wd)
+    for i in range(numLost):
+        shell(f"git commit --allow-empty -m 'lost commit {i}'", wd)
+
+    rw = mainWindow.openRepo(wd)
+    if method == "switchbranch":
+        node = rw.sidebar.findNodeByRef("refs/heads/master")
+        triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+        acceptQMessageBox(rw, "switch to")
+        intro = r"switch to \W*master\W*"  # Quoted branch name
+    else:
+        oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+        rw.jump(NavLocator.inCommit(oid))
+        triggerContextMenuAction(rw.graphView.viewport(), "check out")
+        dlg: CheckoutCommitDialog = findQDialog(rw, "check out")
+        dlg.ui.detachHeadRadioButton.setChecked(True)
+        dlg.accept()
+        intro = "check out ce112d0"
+    if numLost == 1:
+        lost = "detached HEAD [0-9a-f]+ because"
+    else:
+        more = "1 more commit" if numLost == 2 else f"{numLost - 1} more commits"
+        lost = f"detached HEAD [0-9a-f]+ and {more} that"
+    acceptQMessageBox(rw, f"if you {intro}, you might lose track of the {lost}")
 
 
 def testCreateBranchOnDetachedHead(tempDir, mainWindow):

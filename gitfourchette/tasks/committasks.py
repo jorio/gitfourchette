@@ -41,6 +41,19 @@ def readCommentString(task: RepoTask) -> RepoTask.Flow[str]:
     return driver.stdoutScrollback().rstrip("\r\n")
 
 
+def commitsLeftBehind(task: RepoTask, target: str) -> RepoTask.Flow[int]:
+    """
+    How many commits moving a detached HEAD to `target` would leave that no ref
+    reaches, which `git checkout` warns about ("you are leaving N commits behind").
+    """
+    if not task.repo.head_is_detached:
+        return 0
+    # Like git checkout: this worktree's refs, not HEAD or other worktrees' HEADs
+    driver = yield from task.flowCallGit(
+        "rev-list", "--count", "HEAD", f"^{target}", "--single-worktree", "--exclude=HEAD", "--not", "--all", "--")
+    return int(driver.stdoutScrollback())
+
+
 def loadDraftFromMergeMsg(task: RepoTask, conflicts: bool) -> RepoTask.Flow[None]:
     """
     Prefill the commit dialog with the message that git prepared in
@@ -420,12 +433,18 @@ class CheckoutCommit(RepoTask):
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Head
 
         if dlg.ui.detachHeadRadioButton.isChecked():
-            headId = self.repoModel.headCommitId
-            if (yield from self.flowCommitsLeftBehind(str(oid))):
-                text = paragraphs(
-                    _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
-                    _("You might lose track of this commit "
-                      "if you carry on checking out another commit ({0}).", shortHash(oid)))
+            numLost = yield from commitsLeftBehind(self, str(oid))
+            if numLost:
+                commit, head = shortHash(oid), shortHash(self.repoModel.headCommitId)
+                if numLost == 1:
+                    text = _("If you check out {0}, you might lose track of the <b>detached HEAD {1}</b> "
+                             "because it isn’t reachable from any other branch.", commit, head)
+                else:
+                    text = _n("If you check out {0}, you might lose track of the <b>detached HEAD {1} and {n} more commit</b> "
+                              "that aren’t reachable from any other branch.",
+                              "If you check out {0}, you might lose track of the <b>detached HEAD {1} and {n} more commits</b> "
+                              "that aren’t reachable from any other branch.",
+                              numLost - 1, commit, head)
                 yield from self.flowConfirm(text=text, icon='warning')
 
             yield from self.flowCallGit(
