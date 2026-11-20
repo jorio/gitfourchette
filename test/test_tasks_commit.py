@@ -475,6 +475,27 @@ def testCommitWithoutUserIdentity(tempDir, mainWindow):
     assert headCommit.author.email == "1e15sabords@example.com"
 
 
+def testSetUpIdentityReplacesDuplicateGlobalValues(tempDir, mainWindow):
+    globalConfig = pygit2.Config.get_global_config()
+    globalConfig.set_multivar("user.name", "^$", "Duplicate Name")  # adds a second value
+    globalConfig.set_multivar("user.email", "^$", "duplicate@example.com")
+    assert len(list(globalConfig.get_multivar("user.name"))) == 2
+    assert len(list(globalConfig.get_multivar("user.email"))) == 2
+
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+    triggerMenuAction(mainWindow.menuBar(), "file/git identity")
+
+    identityDialog = findQDialog(rw, "identity", t=IdentityDialog)
+    identityDialog.ui.nameEdit.setText("Archibald Haddock")
+    identityDialog.ui.emailEdit.setText("1e15sabords@example.com")
+    identityDialog.accept()
+
+    globalConfig = pygit2.Config.get_global_config()
+    assert list(globalConfig.get_multivar("user.name")) == ["Archibald Haddock"]
+    assert list(globalConfig.get_multivar("user.email")) == ["1e15sabords@example.com"]
+
+
 def testCommitDatedOnAccept(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     writeFile(F"{wd}/a/a1.txt", "a1\nPENDING CHANGE\n")  # unstaged change
