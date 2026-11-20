@@ -1322,6 +1322,7 @@ def testNoLostCommitWarningWhenARefKeepsDetachedHead(tempDir, mainWindow, keptBy
         if keptBy == "stash":
             shell("echo change >> a/a1.txt\ngit stash", wd)  # The stash's parent is HEAD
         else:
+            assert keptBy == "customRef"
             shell("git update-ref refs/custom/keep HEAD", wd)
 
     rw = mainWindow.openRepo(wd)
