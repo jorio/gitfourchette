@@ -353,6 +353,28 @@ def testResetIndexWithConflicts(tempDir, mainWindow):
     assert not rw.mergeBanner.isVisible()
 
 
+def testAbortMergeBacksUpConflictedFile(tempDir, mainWindow):
+    wd = unpackRepo(tempDir, "testrepoformerging")
+    # Give the merge a file without conflicts too
+    shell("git switch -q branch-conflicts && echo clean > clean.txt && git add clean.txt && git commit -qm clean && git switch -q -", wd)
+    shell("git merge branch-conflicts || true", wd)
+    assert os.path.exists(f"{wd}/clean.txt")
+    writeFile(f"{wd}/.gitignore", "partial resolution by hand\n")
+
+    rw = mainWindow.openRepo(wd)
+    rw.mergeBanner.buttons[-1].click()
+    acceptQMessageBox(rw, "abort.+merge")
+    assert rw.repo.state() == RepositoryState.NONE
+    assert "partial resolution by hand" not in readTextFile(f"{wd}/.gitignore")
+
+    # Only the conflicted file goes to the trash
+    trash = Trash.instance()
+    trash.refreshFiles()
+    assert len(trash.trashFiles) == 1
+    assert trash.trashFiles[0].name.endswith("---.gitignore")
+    assert trash.trashFiles[0].read_text(encoding="utf-8") == "partial resolution by hand\n"
+
+
 def testMergeTool(tempDir, mainWindow):
     scratchPath = f"{tempDir.name}/external editor scratch file.txt"
     noopShim = getShimCommand("editor.py", scratchPath, "$M", "$L", "$R", "$B")
