@@ -73,18 +73,22 @@ class CommitLogModel(QAbstractListModel):
         self._authorColumnX = -1
         self._toolTipZones = {}
         self.commitDiffAB: tuple[Oid, Oid] | None = None
+        self._extraRow = self._getExtraRow()
 
-        if repoModel.truncatedHistory:
-            self._extraRow = SpecialRow.TruncatedHistory
-        elif repoModel.repo.is_shallow:
-            self._extraRow = SpecialRow.EndOfShallowHistory
+    def _getExtraRow(self) -> SpecialRow:
+        if self.repoModel.truncatedHistory:
+            return SpecialRow.TruncatedHistory
+        elif self.repoModel.repo.is_shallow:
+            return SpecialRow.EndOfShallowHistory
         else:
-            self._extraRow = SpecialRow.Invalid
+            return SpecialRow.Invalid
 
     def resetCommitSequence(self, nRemovedRows: int = -1, nAddedRows: int = 0):
         if nRemovedRows < 0:
             # Replace log wholesale
             self.beginResetModel()
+            # truncatedHistory may only change when the graph is rebuilt wholesale
+            self._extraRow = self._getExtraRow()
             self.endResetModel()
             return
 
