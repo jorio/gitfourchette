@@ -71,7 +71,7 @@ configs = [
     Config("linux-314-pyqt6",     "ubuntu-26.04",   "3.14", "pyqt6"),
     Config("linux-315-pyqt6-cov", "ubuntu-26.04",   "3.15", "pyqt6", coverage=True),
     Config("linux-315-pyside6",   "ubuntu-26.04",   "3.15", "pyside6"),
-    Config("macos-315-pyqt6",     "macos-26-intel", "3.15", "pyqt6", fuse=False),
+    Config("macos-315-pyqt6",     "macos-26",       "3.15", "pyqt6", fuse=False),
     Config("win32-315-pyqt6",     "windows-latest", "3.15", "pyqt6", fuse=False),
 ]
 
