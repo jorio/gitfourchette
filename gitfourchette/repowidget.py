@@ -567,7 +567,7 @@ class RepoWidget(QWidget):
             return
 
         effects, jumpTo = self.taskRunner.consumePendingEffectsAndLocator()
-        if effects and self.repoModel.readShallowFile() != self.repoModel.shallowFileAtOpen:
+        if effects and self.repo.shallow_boundaries != self.repoModel.shallowBoundariesAtOpen:
             # Workaround: libgit2 keeps the old shallow boundaries until the repo
             # is reopened (libgit2/libgit2#7487). Once that's fixed, reloading
             # the graph will do; a refresh alone won't, as no ref has moved.

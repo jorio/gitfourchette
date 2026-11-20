@@ -144,3 +144,17 @@ def testRecentCommitMessagesFiltering(tempDir):
 
         repo.set_head("refs/heads/unborn-branch")
         assert repo.recent_commit_messages(10) == []
+
+
+def testShallowBoundaries(tempDir, mainWindow):
+    upstream = unpackRepo(tempDir)
+    shell("git branch second master~1", upstream)
+    with RepoContext(upstream) as repo:
+        assert repo.shallow_boundaries == frozenset()
+        # With --depth 1, git records every branch tip as a boundary
+        expected = {repo.branches.local[name].target for name in repo.branches.local}
+    assert len(expected) == 3
+
+    shell(f"git clone -q --depth 1 --no-single-branch --no-tags {Path(upstream).as_uri()} shallow", tempDir.name)
+    with RepoContext(f"{tempDir.name}/shallow") as repo:
+        assert repo.shallow_boundaries == expected
