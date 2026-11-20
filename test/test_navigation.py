@@ -278,7 +278,10 @@ def testNavigationWithMultipleSelectedCommits(tempDir, mainWindow):
     qlvClickNthRow(rw.graphView, row3, modifier=Qt.KeyboardModifier.ShiftModifier)
 
     # Check step 3
+    assert rw.navLocator.path == str(SpecialRow.TooManyRowsSelected)
     assert rw.navLocator.commit == oid3
+    assert rw.navLocator.selectedCommits[0] == oid3
+    assert rw.graphView.currentIndex().row() == row3
     assert set(rw.navLocator.selectedCommits) == {oid1, oid2, oid3, implicitOid1, implicitOid2}
 
     # Return to step 2
@@ -300,7 +303,10 @@ def testNavigationWithMultipleSelectedCommits(tempDir, mainWindow):
     rw.navigateForward()
     rw.navigateForward()
     rw.navigateForward()
+    assert rw.navLocator.path == str(SpecialRow.TooManyRowsSelected)
     assert rw.navLocator.commit == oid3
+    assert rw.navLocator.selectedCommits[0] == oid3
+    assert rw.graphView.currentIndex().row() == row3
     assert set(rw.navLocator.selectedCommits) == {oid1, oid2, oid3, implicitOid1, implicitOid2}
 
 

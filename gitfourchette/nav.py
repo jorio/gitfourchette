@@ -128,12 +128,21 @@ class NavLocator:
     Transient flags, not saved in NavHistory.
     """
 
-    selectedCommits: tuple[Oid, ...] = ()
+    selectedCommits: tuple[Oid | SpecialRow, ...] = ()
     """
-    Currently selected commits in GraphView. Can be used to diff two commits.
-    If empty and `context` is COMMITTED, `commit` is assumed to be the sole
-    selected commit.
+    Currently selected rows in GraphView (see GraphView.rowKey): a commit Oid,
+    or the kind of a non-commit row (SpecialRow.UncommittedChanges, etc.).
     This is a tuple to enforce immutability.
+
+    If this tuple is empty and `context` is COMMITTED, `commit` is assumed to
+    be the sole selected commit.
+
+    If this is a pair of two Oids, this NavLocator represents an A/B diff
+    between two commits. Order is significant: the first item in the tuple is
+    the A-side of the comparison.
+
+    On the CannotCompareRows and TooManyRowsSelected pages, the current row
+    comes first. As elsewhere, `commit` is the current row's commit, if any.
     """
 
     URL_AUTHORITY: ClassVar[str] = "jump"
@@ -271,7 +280,9 @@ class NavLocator:
 
         assert isinstance(self.selectedCommits, tuple)
         assert self.commit in self.selectedCommits
-        return self.selectedCommits
+        a, b = self.selectedCommits
+        assert isinstance(a, Oid) and isinstance(b, Oid)
+        return a, b
 
     def swapABCommits(self) -> NavLocator:
         """
