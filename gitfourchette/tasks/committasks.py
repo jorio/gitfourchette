@@ -433,7 +433,7 @@ class CheckoutCommit(RepoTask):
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Head
 
         if dlg.ui.detachHeadRadioButton.isChecked():
-            numLost = yield from commitsLeftBehind(self, str(oid))
+            numLost = yield from commitsLeftBehind(self, GitDriver.commitArg(oid))
             if numLost:
                 commit, head = tquo(shortHash(oid)), tquo(shortHash(self.repoModel.headCommitId))
                 if numLost == 1:
