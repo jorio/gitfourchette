@@ -14,7 +14,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.committasks import loadDraftFromMergeMsg
+from gitfourchette.tasks.committasks import commitsLeftBehind, loadDraftFromMergeMsg
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskPrereqs, TaskEffects
 from gitfourchette.toolbox import *
 
@@ -53,15 +53,22 @@ class SwitchBranch(RepoTask):
             yield from self.flowConfirm(text=text, verb=verb, checkbox=recurseCheckbox)
             recurseSubmodules = recurseCheckbox is not None and recurseCheckbox.isChecked()
 
-        headId = self.repoModel.headCommitId
-        if self.repoModel.dangerouslyDetachedHead() and branchObj.target != headId:
+        numLost = yield from commitsLeftBehind(self, refName)
+        if numLost:
             if refreshUnderDetachedWarning:  # Refresh GraphView underneath dialog
                 from gitfourchette.tasks import RefreshRepo
                 yield from self.flowSubtask(RefreshRepo)
 
-            text = paragraphs(
-                _("You are in <b>Detached HEAD</b> mode at commit {0}.", btag(shortHash(headId))),
-                _("You might lose track of this commit if you switch to {0}.", hquo(newBranch)))
+            branch, head = hquo(newBranch), tquo(shortHash(self.repoModel.headCommitId))
+            if numLost == 1:
+                text = _("If you switch to {0}, you might lose track of the <b>detached HEAD {1}</b> "
+                         "because it isn’t reachable from any other branch.", branch, head)
+            else:
+                text = _n("If you switch to {0}, you might lose track of the <b>detached HEAD {1} and {n} more commit</b> "
+                          "that aren’t reachable from any other branch.",
+                          "If you switch to {0}, you might lose track of the <b>detached HEAD {1} and {n} more commits</b> "
+                          "that aren’t reachable from any other branch.",
+                          numLost - 1, branch, head)
             yesText = _("Switch to {0}", lquoe(newBranch))
             noText = _("Don’t Switch")
             yield from self.flowConfirm(text=text, icon='warning', verb=yesText, cancelText=noText)

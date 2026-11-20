@@ -445,34 +445,6 @@ class RepoModel:
         n -= n % -1000  # round up to next thousand
         return max(n, settings.prefs.maxCommits)
 
-    def dangerouslyDetachedHead(self):
-        if not self.headIsDetached:
-            return False
-
-        try:
-            headTips = self.refsAt[self.headCommitId]
-        except KeyError:
-            return False
-
-        if headTips != ["HEAD"]:
-            return False
-
-        try:
-            frame = self.graph.getCommitFrame(self.headCommitId)
-        except KeyError:
-            # Head commit not in graph, cannot determine if dangerous, err on side of caution
-            return True
-
-        arcs = list(frame.arcsClosedByCommit())
-
-        if len(arcs) == 0:
-            return True
-
-        if len(arcs) != 1:
-            return False
-
-        return arcs[0].openedBy == UC_FAKEID
-
     @benchmark
     def syncTopOfGraph(self, oldRefs: dict[str, Oid]) -> GraphSpliceLoop:
         # DO NOT call processEvents() here. While splicing a large amount of

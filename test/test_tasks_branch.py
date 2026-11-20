@@ -1292,23 +1292,95 @@ def testMightLoseDetachedHead(tempDir, mainWindow, method):
         node = rw.sidebar.findNodeByRef("refs/heads/master")
         triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
         acceptQMessageBox(rw, "switch to")
-        acceptQMessageBox(rw, "lose track of this commit")
+        acceptQMessageBox(rw, "lose track of the detached HEAD")
     elif method == "newbranch":
         oid = Oid(hex="c9ed7bf12c73de26422b7c5a44d74cfce5a8993b")
         rw.jump(NavLocator.inCommit(oid))
         triggerContextMenuAction(rw.graphView.viewport(), "new branch")
         findQDialog(rw, "new branch").accept()
-        acceptQMessageBox(rw, "lose track of this commit")
+        acceptQMessageBox(rw, "lose track of the detached HEAD")
     elif method == "checkout":
         oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
         rw.jump(NavLocator.inCommit(oid))
         triggerContextMenuAction(rw.graphView.viewport(), "check out")
         findQDialog(rw, "check out").accept()
-        acceptQMessageBox(rw, "lose track of this commit")
+        acceptQMessageBox(rw, "lose track of the detached HEAD")
     else:
         raise NotImplementedError(f"unknown method {method}")
 
     assert looseOid not in rw.repoModel.graph.commitRows
+
+
+@pytest.mark.parametrize("keptBy", ["branchBeyondLoadedCommits", "stash", "customRef"])
+def testNoLostCommitWarningWhenARefKeepsDetachedHead(tempDir, mainWindow, keptBy):
+    wd = unpackRepo(tempDir)
+    if keptBy == "branchBeyondLoadedCommits":
+        GFApplication.applyPrefs(maxCommits=5)
+        shell("git switch --detach $(git rev-list master | tail -1)", wd)  # Oldest commit
+    else:
+        shell("git switch --detach master\ngit commit --allow-empty -m 'kept'", wd)
+        if keptBy == "stash":
+            shell("echo change >> a/a1.txt\ngit stash", wd)  # The stash's parent is HEAD
+        else:
+            assert keptBy == "customRef"
+            shell("git update-ref refs/custom/keep HEAD", wd)
+
+    rw = mainWindow.openRepo(wd)
+    if keptBy == "branchBeyondLoadedCommits":
+        assert rw.repo.head_commit_id not in rw.repoModel.graph.commitRows
+
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to")  # No "lose track" warning follows
+    assert rw.repo.head_branch_shorthand == "master"
+
+
+def testLostCommitWarningIgnoresOtherWorktreesHead(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git switch --detach master
+        git commit --allow-empty -m 'lost commit'
+        git worktree add --detach ../otherworktree HEAD
+    """, wd)  # Like git checkout, only count this worktree's refs
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("refs/heads/master")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+    acceptQMessageBox(rw, "switch to")
+    acceptQMessageBox(rw, "lose track of the detached HEAD")
+    assert rw.repo.head_branch_shorthand == "master"
+
+
+@pytest.mark.parametrize("numLost", [1, 2, 3])
+@pytest.mark.parametrize("method", ["switchbranch", "checkout"])
+def testLostCommitWarningCountsCommits(tempDir, mainWindow, method, numLost):
+    wd = unpackRepo(tempDir)
+    shell("git switch --detach master", wd)
+    for i in range(numLost):
+        shell(f"git commit --allow-empty -m 'lost commit {i}'", wd)
+
+    rw = mainWindow.openRepo(wd)
+    if method == "switchbranch":
+        node = rw.sidebar.findNodeByRef("refs/heads/master")
+        triggerMenuAction(rw.sidebar.makeNodeMenu(node), "switch to")
+        acceptQMessageBox(rw, "switch to")
+        intro = r"switch to \W*master\W*"  # Quoted branch name
+    elif method == "checkout":
+        oid = Oid(hex="ce112d052bcf42442aa8563f1e2b7a8aabbf4d17")
+        rw.jump(NavLocator.inCommit(oid))
+        triggerContextMenuAction(rw.graphView.viewport(), "check out")
+        dlg: CheckoutCommitDialog = findQDialog(rw, "check out")
+        dlg.ui.detachHeadRadioButton.setChecked(True)
+        dlg.accept()
+        intro = "check out .?ce112d0.?"
+    else:
+        raise NotImplementedError(f"unsupported method {method}")
+    if numLost == 1:
+        lost = "detached HEAD .?[0-9a-f]+.? because it isn.t reachable"
+    else:
+        more = "1 more commit" if numLost == 2 else f"{numLost - 1} more commits"
+        lost = f"detached HEAD .?[0-9a-f]+.? and {more} that aren.t reachable"
+    acceptQMessageBox(rw, f"if you {intro}, you might lose track of the {lost}")
 
 
 def testCreateBranchOnDetachedHead(tempDir, mainWindow):
