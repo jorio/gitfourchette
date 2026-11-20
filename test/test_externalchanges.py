@@ -7,6 +7,7 @@
 import pytest
 
 from gitfourchette.diffview.diffdocument import DiffDocument
+from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.graphview.commitlogmodel import CommitLogModel, SpecialRow
 from gitfourchette.nav import NavLocator
 from .util import *
@@ -233,6 +234,15 @@ def testStableDeltasAfterLineEndingsChangedWithAutocrlfInput(tempDir, mainWindow
     assert rw.repo.status() == {}
 
 
+def reloadFromShallowHistoryPrompt(mainWindow):
+    stub = mainWindow.tabs.currentWidget()
+    assert isinstance(stub, RepoStub)
+    assert "shallow history" in stub.ui.promptReadyLabel.text()
+    assert stub.ui.promptLoadButton.text() == "&Reload"
+    stub.ui.promptLoadButton.click()
+    return waitForRepoWidget(mainWindow)
+
+
 @pytest.mark.parametrize("fetchArg, stillShallow", [("--unshallow", False), ("--deepen=2", True)])
 def testExternalUnshallowReloadsHistory(tempDir, mainWindow, fetchArg, stillShallow):
     upstream = unpackRepo(tempDir)
@@ -249,10 +259,26 @@ def testExternalUnshallowReloadsHistory(tempDir, mainWindow, fetchArg, stillShal
 
     shell(f"git fetch -q {fetchArg}", rw.workdir)
     rw.refreshRepo()
-    rw = waitForRepoWidget(mainWindow)
+    rw = reloadFromShallowHistoryPrompt(mainWindow)
     assert deepCommit in rw.repoModel.graph.commitRows
     lastRow = rw.graphView.clModel.index(rw.graphView.clModel.rowCount() - 1, 0)
     assert (lastRow.data(CommitLogModel.Role.SpecialRow) == SpecialRow.EndOfShallowHistory) == stillShallow
+
+
+def testExternalShallowFetchOfNewCommits(tempDir, mainWindow):
+    upstream = unpackRepo(tempDir)
+    shell(f"git clone -q --depth 1 {Path(upstream).as_uri()} shallow", tempDir.name)
+    rw = mainWindow.openRepo(f"{tempDir.name}/shallow")
+
+    # Upstream moves on; fetching at depth 1 adds a boundary for its new tip
+    shell("git commit -q --allow-empty -m new1 && git commit -q --allow-empty -m new2", upstream)
+    with RepoContext(upstream) as repo:
+        newTip = repo.head_commit_id
+    shell("git fetch -q --depth=1", rw.workdir)
+
+    rw.refreshRepo()
+    rw = reloadFromShallowHistoryPrompt(mainWindow)
+    assert newTip in rw.repoModel.graph.commitRows
 
 
 def testExternalUnshallowInBackgroundTab(tempDir, mainWindow):
@@ -267,6 +293,24 @@ def testExternalUnshallowInBackgroundTab(tempDir, mainWindow):
 
     shell("git fetch -q --unshallow", shallowRw.workdir)
     mainWindow.tabs.setCurrentIndex(0)
-    rw = waitForRepoWidget(mainWindow)
+    rw = reloadFromShallowHistoryPrompt(mainWindow)
     assert rw is not shallowRw
     assert deepCommit in rw.repoModel.graph.commitRows
+
+
+def testPrunedShallowBoundaryDoesNotPromptReload(tempDir, mainWindow):
+    upstream = unpackRepo(tempDir)
+    shell("git branch second master~1", upstream)
+    shell(f"git clone -q --depth 1 --no-single-branch --no-tags {Path(upstream).as_uri()} shallow", tempDir.name)
+
+    rw = mainWindow.openRepo(f"{tempDir.name}/shallow")
+    numBoundaries = len(rw.repo.shallow_boundaries)
+
+    # Drop a branch, then let gc prune its commit along with its shallow line
+    shell("git update-ref -d refs/remotes/origin/second", rw.workdir)
+    rw.refreshRepo()
+    shell("git reflog expire --expire=now --all && git gc -q --prune=now", rw.workdir)
+    assert len(rw.repo.shallow_boundaries) == numBoundaries - 1
+
+    rw.refreshRepo()
+    assert mainWindow.currentRepoWidget() is rw
