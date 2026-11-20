@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import dataclasses
-import os
 
 from gitfourchette.gitdriver import GitStatus
 from gitfourchette.graph import Graph, GraphWeaver
@@ -15,6 +14,7 @@ from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.repomodel import RepoModel, UC_FAKEID
 from gitfourchette.qt import *
+from gitfourchette.toolbox.qtutils import writeTemporaryFile
 
 
 class BlameModel:
@@ -44,11 +44,7 @@ class BlameModel:
 
         # Dump revs file to speed up calls to 'git blame'
         # (and to make sure it won't return commits outside the trace)
-        revsFileTemplate = os.path.join(qTempDir(), "blamerevs-XXXXXX.txt")
-        self.revsFile = QTemporaryFile(revsFileTemplate, None)
-        self.revsFile.open()
-        self.revsFile.write(revList.serializeRevisionList().encode("utf-8"))
-        self.revsFile.close()
+        self.revsFile = writeTemporaryFile(revList.serializeRevisionList(), "blamerevs")
 
     def prepareForDeletion(self):
         del self.repoModel

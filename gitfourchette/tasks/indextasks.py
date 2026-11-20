@@ -640,11 +640,7 @@ class ApplyPatchData(RepoTask):
         if not patchData:
             raise AbortTask(_("There’s nothing to apply in the selection."))
 
-        template = os.path.join(qTempDir(), self.__class__.__name__ + "-XXXXXX.patch")
-        tempPatch = QTemporaryFile(template, self)
-        tempPatch.open()
-        tempPatch.write(patchData.encode("utf-8"))
-        tempPatch.close()
+        tempPatch = writeTemporaryFile(patchData, "apply", ".patch", parent=self)
         path = tempPatch.fileName()
 
         yield from ApplyPatchFile.do(

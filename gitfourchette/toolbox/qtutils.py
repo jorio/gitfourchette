@@ -467,6 +467,30 @@ def packDialog(dialog: QDialog, widthHint=550, lockHeight=False):
         dialog.setFixedHeight(dialog.height())
 
 
+def writeTemporaryFile(
+        data: bytes | str,
+        prefix: str = "",
+        suffix: str = ".tmp",
+        parent: QObject | None = None,
+) -> QTemporaryFile:
+    """
+    Write a temporary file to the application's temporary directory. The file is
+    deleted when GC collects the QTemporaryFile. To prevent premature deletion,
+    either pass a parent so the file survives until the parent is destroyed, or
+    keep track of the returned QTemporaryFile object.
+    """
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    if prefix:
+        prefix += "-"
+    template = Path(qTempDir(), f"{prefix}XXXXXX{suffix}")
+    f = QTemporaryFile(str(template), parent)
+    f.open()
+    f.write(data)
+    f.close()
+    return f
+
+
 class DocumentLinks:
     """
     Bundle of ad-hoc links bound to callback functions.
