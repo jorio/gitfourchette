@@ -230,7 +230,7 @@ def testSubmoduleRemovedFromWorkdirGitmodulesIsStillSubmodule(tempDir, mainWindo
     rw.jump(NavLocator.inUnstaged(path="submodir"), check=True)
     assert qteFind(rw.specialDiffView, r"submodule.+submo.+contains changes")
     triggerContextMenuAction(rw.dirtyFiles.viewport(), r"discard changes in submodule")
-    rejectQMessageBox(rw, r"discard changes in submodule")
+    acceptQMessageBox(rw, r"can.t discard changes in submodule.+submodir.+won.t register it")
     rw.diffArea.stageButton.click()
     acceptQMessageBox(rw, r"submodule can.+t be staged from the superproject")
 
@@ -258,6 +258,75 @@ def testStageSubmoduleDeletionAfterGitmodulesEditDoesntRemind(tempDir, mainWindo
     rw.diffArea.stageButton.click()
     with pytest.raises(KeyError):
         findQMessageBox(rw, r"remove the submodule from .+gitmodules")
+
+
+def testDiscardRefusesNestedRepoThatIsntSubmodule(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    innerWd = unpackRepo(wd, renameTo="inner")
+    shell("git add inner", wd)  # a gitlink without a .gitmodules entry
+    writeFile(f"{innerWd}/untracked.txt", "keep me")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="inner"), check=True)
+
+    # The diff suggests absorbing it, not resetting it
+    assert qteFind(rw.specialDiffView, r"absorb")
+    with pytest.raises(KeyError):
+        qteFind(rw.specialDiffView, r"reset the nested repository")
+
+    triggerContextMenuAction(rw.dirtyFiles.viewport(), "discard changes in nested repo")
+    acceptQMessageBox(rw, "can.t discard changes in nested repository.+inner.+absorb")
+    assert os.path.exists(f"{innerWd}/untracked.txt")
+
+
+def testDiscardRefusesSubmoduleWhenDiscardingItsGitmodulesEntry(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    innerWd = unpackRepo(wd, renameTo="inner")
+    shell("git add inner", wd)  # a gitlink without a .gitmodules entry...
+    shell("git config -f .gitmodules submodule.inner.path inner", wd)  # ...but with an uncommitted one
+    writeFile(f"{innerWd}/untracked.txt", "keep me")
+
+    rw = mainWindow.openRepo(wd)
+    rw.dirtyFiles.setFocus()
+    rw.dirtyFiles.selectAll()
+    rw.dirtyFiles.discard()  # discarding .gitmodules too, so 'inner' won't be a submodule anymore
+    acceptQMessageBox(rw, "can.t discard changes in submodule.+inner.+won.t register it")
+    assert os.path.exists(f"{innerWd}/untracked.txt")
+    assert os.path.exists(f"{wd}/.gitmodules")  # Refused before touching anything
+
+
+def testDiscardRestoresDeletedNestedRepo(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    unpackRepo(wd, renameTo="inner")
+    shell("git add inner\ngit commit -m 'add inner'", wd)  # a gitlink without a .gitmodules entry
+    shell("rm -rf inner", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="inner"), check=True)
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "discard changes to.+inner")
+    assert rw.repo.status() == {}
+
+
+def testDiscardRefusesSubmoduleRemovedFromGitmodules(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    subWd, _dummy = reposcenario.submodule(wd)
+    writeFile(f"{subWd}/untracked.txt", "keep me")
+    shell("git config -f .gitmodules --remove-section submodule.submoname", wd)
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="submodir"), check=True)
+    with pytest.raises(KeyError):  # the diff doesn't offer a reset that discarding would refuse
+        qteFind(rw.specialDiffView, r"reset the submodule")
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "can.t discard changes in submodule.+submodir.+won.t register it")
+    assert os.path.exists(f"{subWd}/untracked.txt")
+
+    # Discarding .gitmodules too registers it again, so it can be reset
+    rw.dirtyFiles.selectAll()
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "really discard changes")
+    assert rw.repo.status() == {}
 
 
 def testDiscardSubmodulesExceedingCommandLineLimit(tempDir, mainWindow, monkeypatch):
@@ -658,3 +727,48 @@ def testDetachHeadBeforeFirstSubmodule(tempDir, mainWindow):
     dlg.accept()
 
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
+
+
+def testDiscardSubmoduleWhenWorkdirGitmodulesIsDeleted(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    subWd, _dummy = reposcenario.submodule(wd)
+    writeFile(f"{subWd}/untracked.txt", "discard me")
+    os.unlink(f"{wd}/.gitmodules")  # git then reads .gitmodules from the index
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="submodir"), check=True)
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "really discard changes")
+    assert not os.path.exists(f"{subWd}/untracked.txt")
+
+
+def testDiscardSubmoduleWithoutUrlKeepsItsUntrackedFiles(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    innerWd = unpackRepo(wd, renameTo="inner")
+    shell("git add inner\n"
+          "git config -f .gitmodules submodule.inner.path inner\n"  # Hand-written entry without a url
+          "git add .gitmodules\n"
+          "git commit -m 'add inner'", wd)
+    writeFile(f"{innerWd}/untracked.txt", "keep me")
+    writeFile(f"{innerWd}/a/a1.txt", "modified")  # Make the gitlink dirty
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged(path="inner"), check=True)
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "really discard changes")
+    acceptQMessageBox(rw, "no url found")  # git refuses before anything is cleaned
+    assert os.path.exists(f"{innerWd}/untracked.txt")
+
+
+def testDiscardRefusesSeveralNestedRepos(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    for name in ["inner1", "inner2"]:
+        innerWd = unpackRepo(wd, renameTo=name)
+        writeFile(f"{innerWd}/untracked.txt", "keep me")
+    shell("git add inner1 inner2", wd)  # gitlinks without .gitmodules entries
+
+    rw = mainWindow.openRepo(wd)
+    rw.dirtyFiles.setFocus()
+    rw.dirtyFiles.selectAll()
+    rw.dirtyFiles.discard()
+    acceptQMessageBox(rw, "can.t discard changes in 2 nested repositories")

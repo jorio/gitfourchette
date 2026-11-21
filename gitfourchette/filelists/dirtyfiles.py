@@ -51,7 +51,9 @@ class DirtyFiles(FileList):
                 self.ignoreSelection,
                 enabled=n == 1 and onlyUntracked)
 
-            if onlyUntracked:
+            if onlyUntracked and modeSet == {FileMode.TREE}:
+                discardText = _n("&Delete Nested Repo…", "&Delete {n} Nested Repos…", n)
+            elif onlyUntracked:
                 discardText = _n("&Delete File…", "&Delete {n} Files…", n)
             else:
                 discardText = _n("&Discard Changes in File…", "&Discard Changes in {n} Files…", n)

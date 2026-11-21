@@ -388,19 +388,20 @@ class SpecialDiffError:
 
             # Tell about any uncommitted changes
             if delta.submoduleWorkdirDirty:
-                discardLink = specialDiff.taskLink(DiscardFiles, [delta])
-
                 if isSubmodule:
-                    uc1 = _("The submodule has <b>uncommitted changes</b>. They can’t be committed from the superproject. You can:")
-                    uc2 = _("[Open] the submodule and commit the changes.")
-                    uc3 = _("Or, [Reset] the submodule to a clean state.")
+                    intro = _("The submodule has <b>uncommitted changes</b>. They can’t be committed from the superproject. You can:")
+                    options = [_("[Open] the submodule and commit the changes.")]
+                    links: list[str | QUrl] = [openLink]
+                    if path in DiscardFiles.submodulePathsAfterDiscard(repo, [delta]):
+                        options.append(_("Or, [Reset] the submodule to a clean state."))
+                        links.append(specialDiff.taskLink(DiscardFiles, [delta]))
                 else:
-                    uc1 = _("The nested repository contains <b>uncommitted changes</b>. They can’t be committed from the parent repository. You can:")
-                    uc2 = _("[Open] the nested repository and commit the changes.")
-                    uc3 = _("Or, [Reset] the nested repository to a clean state.")
+                    intro = _("The nested repository contains <b>uncommitted changes</b>. They can’t be committed from the parent repository. You can:")
+                    options = [_("[Open] the nested repository and commit the changes.")]
+                    links = [openLink]
 
-                m = f"{uc1}<ul><li>{uc2}</li><li>{uc3}</li></ul>"
-                m = linkify(m, openLink, discardLink)
+                m = intro + "<ul>" + "".join(f"<li>{option}</li>" for option in options) + "</ul>"
+                m = linkify(m, *links)
                 longformParts.append(m)
 
         # Compile longform parts into an unordered list

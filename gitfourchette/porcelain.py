@@ -1004,6 +1004,25 @@ class Repo(_VanillaRepository):
         except (KeyError,  # .gitmodules doesn't exist
                 ValueError):  # .gitmodules not Blob (probably Tree)
             return {}
+        return self._listall_submodules_dict_from_blob(gitmodules_blob)
+
+    def listall_submodules_dict_for_git(self, skip_workdir=False) -> dict[str, str]:
+        """
+        Like listall_submodules_dict, but sourced from the .gitmodules file that git
+        commands such as `git submodule update` read: the workdir's if it exists, else
+        the index's, else HEAD's. With skip_workdir, act as if the workdir's didn't exist.
+        """
+        if not skip_workdir and _os.path.lexists(self.in_workdir(DOT_GITMODULES)):  # Even if it isn't a file, like git
+            return self.listall_submodules_dict()
+        self.refresh_index()  # in case an external program modified the staging area
+        try:
+            gitmodules_blob: Blob = self[self.index[DOT_GITMODULES].id].peel(Blob)
+        except (KeyError,  # .gitmodules isn't in the index
+                ValueError):  # .gitmodules not Blob
+            return self.listall_submodules_dict_at_head()
+        return self._listall_submodules_dict_from_blob(gitmodules_blob)
+
+    def _listall_submodules_dict_from_blob(self, gitmodules_blob: Blob) -> dict[str, str]:
         # A blob never changes, so parse each .gitmodules version once
         table = self._submodule_tables_by_blob.get(gitmodules_blob.id)
         if table is None:
