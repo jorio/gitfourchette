@@ -6,12 +6,13 @@
 
 import pytest
 
-from gitfourchette.gitdriver import GitConflict, GitConflictSides, GitDelta, GitDeltaSource, GitStatus
+from gitfourchette.gitdriver import GitConflict, GitConflictSides, GitDelta, GitDeltaSource, GitDriver, GitStatus
+from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_COMMAND, parseUpstreamConfig
 from gitfourchette.porcelain import FileMode, Signature
 from gitfourchette.toolbox import abbreviatePerson, AuthorDisplayStyle
 from gitfourchette.webhost import WebHost
 
-from .util import pygit2OlderThan
+from .util import pygit2OlderThan, shell, unpackRepo
 
 EXAMPLE_REMOTE_URLS = [
     "https://example.com/user/repo",
@@ -279,3 +280,28 @@ def testBadGitStatusPatterns(tempDir):
     for s in badStatus:
         with pytest.raises(ValueError):
             _dummy = list(parseGitStatus(s, tempDir.name))
+
+
+def testParseUpstreamConfig(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config branch.a.b.remote origin
+        git config branch.a.b.merge refs/heads/a.b
+        git config --add branch.a.b.merge refs/heads/second
+        git config branch.Mixed.remote "."
+        git config branch.Mixed.merge refs/heads/master
+        git config branch.noremote.merge refs/heads/noremote
+        git config branch.nomerge.remote origin
+        git config branch.pr.remote origin
+        git config branch.pr.merge refs/pull/1/head
+    """, wd)
+
+    stdout = GitDriver.runSync(*UPSTREAM_CONFIG_COMMAND, directory=wd, strict=True)
+    table = parseUpstreamConfig(stdout)
+
+    assert table["refs/heads/a.b"] == ("origin", "refs/heads/a.b")  # first merge wins, like git
+    assert table["refs/heads/Mixed"] == (".", "refs/heads/master")
+    assert "refs/heads/noremote" not in table
+    assert "refs/heads/nomerge" not in table
+    assert table["refs/heads/pr"] == ("origin", "refs/pull/1/head")
+    assert table["refs/heads/master"] == ("origin", "refs/heads/master")  # from the test repo

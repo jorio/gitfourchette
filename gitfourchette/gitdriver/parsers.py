@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import dataclasses
 import logging
 import re
 from pathlib import Path
@@ -12,6 +13,7 @@ from collections.abc import Iterator
 from gitfourchette.gitdriver.gitdelta import GitDelta, GitStatus
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile, GitDeltaSource, FileMode, HexHash0000, HexHashFFFF
 from gitfourchette.gitdriver.gitconflict import GitConflict, GitConflictSides
+from gitfourchette.porcelain import RefPrefix
 
 _logger = logging.getLogger(__name__)
 
@@ -37,7 +39,25 @@ _gitSimplifiedModes = [
     FileMode.BLOB,              # 0o100644
 ]
 
-_aheadBehindPattern = re.compile(r"(.+) \[(?:behind (\d+)|ahead (\d+), behind (\d+)|ahead (\d+))]")
+UPSTREAMS_FORMAT = "--format=%(refname)%00%(upstream)%00%(upstream:track,nobracket)"
+"Format for `git for-each-ref refs/heads` that parseUpstreams expects."
+
+UPSTREAM_CONFIG_COMMAND = ["config", "get", "-z", "--all", "--show-names", "--regexp", r"^branch\..+\.(remote|merge)$"]
+"Git command whose output parseUpstreamConfig expects."
+
+@dataclasses.dataclass(frozen=True)
+class UpstreamEntry:
+    """ One local branch from UPSTREAMS_FORMAT. """
+
+    refName: str
+    "Local branch refname (refs/heads/...)"
+
+    upstreamRef: str
+    """Local ref that tracks the upstream as git maps it.
+    Empty string if there's no upstream or no refspec maps it."""
+
+    aheadBehind: tuple[int, int]
+    "Number of commits the branch is ahead/behind of its upstream"
 
 
 def distillMode(realMode: int) -> FileMode:
@@ -254,15 +274,40 @@ def parseGitBlame(stdout: str) -> Iterator[tuple[str, int, str]]:
             pass
 
 
-def parseAheadBehind(stdout: str) -> Iterator[tuple[str, tuple[int, int]]]:
-    for pos, endPos in iterateLines(stdout):
-        match = _aheadBehindPattern.match(stdout, pos, endPos)
-        if not match:
+def parseUpstreams(stdout: str) -> Iterator[UpstreamEntry]:
+    """
+    Parse the output of `git for-each-ref UPSTREAMS_FORMAT refs/heads`,
+    one UpstreamEntry per local branch.
+    """
+    for pos, endPos in iterateLines(stdout):  # Not splitlines(), which also breaks on U+2028 etc.
+        refName, upstreamRef, track = stdout[pos:endPos].rstrip("\n").split("\0")
+        ahead = behind = 0
+        for part in track.split(", "):  # e.g. "ahead 2, behind 1", "behind 3", "gone", or empty
+            kind, _sep, count = part.partition(" ")
+            if kind == "ahead":
+                ahead = int(count)
+            elif kind == "behind":
+                behind = int(count)
+        yield UpstreamEntry(refName, upstreamRef, (ahead, behind))
+
+
+def parseUpstreamConfig(stdout: str) -> dict[str, tuple[str, str]]:
+    """
+    Parse the output of UPSTREAM_CONFIG_COMMAND
+    into a table of local branch refnames to their configured upstream: (branch.<name>.remote,
+    branch.<name>.merge). Like git, skip branches that lack either key, let the last
+    remote win, and take the first merge if there are several.
+    """
+    remotes: dict[str, str] = {}
+    merges: dict[str, str] = {}
+    for record in stdout.split("\0"):
+        if not record:
             continue
-        ref, behindOnly, dualAhead, dualBehind, aheadOnly = match.groups()
-        if behindOnly:
-            yield ref, (0, int(behindOnly))
-        elif aheadOnly:
-            yield ref, (int(aheadOnly), 0)
+        key, _newline, value = record.partition("\n")
+        branchName, _dot, variable = key.removeprefix("branch.").rpartition(".")
+        refName = RefPrefix.HEADS + branchName
+        if variable == "remote":
+            remotes[refName] = value
         else:
-            yield ref, (int(dualAhead), int(dualBehind))
+            merges.setdefault(refName, value)
+    return {refName: (remote, merges[refName]) for refName, remote in remotes.items() if refName in merges}

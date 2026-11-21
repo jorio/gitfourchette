@@ -438,14 +438,11 @@ class CommitLogDelegate(QStyledItemDelegate):
             # Look for local branches
             if not refName.startswith(RefPrefix.HEADS):
                 continue
-            localName = refName.removeprefix(RefPrefix.HEADS)
 
             # Find the upstream for this local branch
-            try:
-                upstreamShorthand = repoModel.upstreams[localName]
-                assert not upstreamShorthand.startswith(RefPrefix.REMOTES)
-                upstreamRef = RefPrefix.REMOTES + upstreamShorthand
-            except KeyError:
+            upstreamRef = repoModel.trackedUpstreams.get(refName, "")
+            # A cluster pairs a branch with its remote-tracking branch, not with a local upstream
+            if not upstreamRef.startswith(RefPrefix.REMOTES):
                 continue
 
             # Don't create a cluster if the upstream isn't on the same row

@@ -200,8 +200,8 @@ class SidebarModel(QAbstractItemModel):
     _checkedOut: str
     "Shorthand of checked-out local branch"
 
-    _checkedOutUpstream: str
-    "Shorthand of the checked-out branch's upstream"
+    _checkedOutUpstreamRef: str
+    "Full refname of the checked-out branch's upstream"
 
     _cachedToolTipIndex: QModelIndex
     _cachedToolTipText: str
@@ -263,7 +263,7 @@ class SidebarModel(QAbstractItemModel):
         self.rootNode = SidebarNode(SidebarItem.Root)
         self.nodesByRef = {}
         self._checkedOut = ""
-        self._checkedOutUpstream = ""
+        self._checkedOutUpstreamRef = ""
         self.clearCachedTooltip()
 
         if emitSignals:
@@ -386,15 +386,8 @@ class SidebarModel(QAbstractItemModel):
             else:
                 # We're on a branch
                 assert checkedOut.startswith(RefPrefix.HEADS)
-                checkedOut = checkedOut.removeprefix(RefPrefix.HEADS)
-                self._checkedOut = checkedOut
-
-                # Try to get the upstream
-                try:
-                    upstream = self.repoModel.upstreams[checkedOut]
-                except KeyError:
-                    upstream = ""
-                self._checkedOutUpstream = upstream
+                self._checkedOutUpstreamRef = self.repoModel.trackedUpstreams.get(checkedOut, "")
+                self._checkedOut = checkedOut.removeprefix(RefPrefix.HEADS)
 
         # -----------------------------
         # Remotes
@@ -412,7 +405,6 @@ class SidebarModel(QAbstractItemModel):
 
             if prefix == RefPrefix.HEADS:
                 localBranches.append(shorthand)
-                # We're not caching upstreams because it's very expensive to do
 
             elif prefix == RefPrefix.REMOTES:
                 remote, branchName = split_remote_branch_shorthand(shorthand)
@@ -636,19 +628,15 @@ class SidebarModel(QAbstractItemModel):
                 except KeyError:
                     return None
             elif role == SidebarModel.Role.MissingUpstream:
-                try:
-                    upstream = self.repoModel.upstreams[branchName]
-                    if upstream and (RefPrefix.REMOTES + upstream) not in self.repoModel.refs:
-                        return upstream
-                except KeyError:
-                    pass
+                if self.repoModel.isUpstreamMissing(refName):
+                    return self.repoModel.upstreamName(refName)
                 return None
             elif refRole:
                 return refName
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (local branch)", btag(branchName))
-                text += "\n" + self.upstreamToolTip(branchName)
+                text += "\n" + self.upstreamToolTip(refName)
                 if branchName == self._checkedOut:
                     checkedOutText = _("(this is the checked-out branch)")
                     text += f"\n{stockIconImgTag('git-head')} HEAD {checkedOutText}"
@@ -721,13 +709,13 @@ class SidebarModel(QAbstractItemModel):
             elif toolTipRole:
                 text = "<p style='white-space: pre'>"
                 text += _("{0} (remote-tracking branch)", btag(shorthand))
-                if self._checkedOutUpstream == shorthand:
+                if self._checkedOutUpstreamRef == refName:
                     text += "<br><i>" + _("Upstream for the checked-out branch ({0})", hquoe(self._checkedOut)) + "</i>"
                 text += self.visibilityToolTip(node)
                 self.cacheToolTip(index, text)
                 return text
             elif fontRole:
-                if self._checkedOutUpstream == shorthand:
+                if self._checkedOutUpstreamRef == refName:
                     font = QFont(self._parentWidget.font())
                     font.setBold(True)
                     return font
@@ -880,28 +868,27 @@ class SidebarModel(QAbstractItemModel):
             return ""
         return f"<br>{stockIconImgTag(icon)} {text}"
 
-    def upstreamToolTip(self, branchName: str):
+    def upstreamToolTip(self, refName: str):
         parts = []
 
-        try:
-            upstream = self.repoModel.upstreams[branchName]
-            parts.append(_("Upstream: {0}", escape(upstream)))
-        except KeyError:
+        upstreamName = self.repoModel.upstreamName(refName)
+        if not upstreamName:
             return _("No upstream branch")
 
-        try:
-            upstreamTarget = self.repoModel.refs[RefPrefix.REMOTES + upstream]
-        except KeyError:
+        if self.repoModel.isUpstreamMissing(refName):
             icon = stockIconImgTag('git-upstream-missing')
-            text = _("Upstream missing ({0})", escape(upstream))
+            text = _("Upstream missing ({0})", escape(upstreamName))
             return f"{icon} {text}"
 
-        if upstreamTarget == self.repoModel.refs[RefPrefix.HEADS + branchName]:
+        parts.append(_("Upstream: {0}", escape(upstreamName)))
+        upstreamTarget = self.repoModel.refs[self.repoModel.trackedUpstreams[refName]]
+
+        if upstreamTarget == self.repoModel.refs[refName]:
             text = _("Up-to-date with upstream")
             parts.append(f" {SYMBOL_UPDOWN} {text}")
         else:
             try:
-                ahead, behind = self.repoModel.aheadBehind[RefPrefix.HEADS + branchName]
+                ahead, behind = self.repoModel.aheadBehind[refName]
                 if ahead:
                     text = _n("{n} commit ahead", "{n} commits ahead", ahead)
                     parts.append(f" {SYMBOL_AHEAD} {text}")
