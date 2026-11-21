@@ -214,7 +214,7 @@ def testDiscardUntrackedTreeKeepsOtherErrors(tempDir, monkeypatch):
 
 @pytest.mark.parametrize("method", ["key", "menu", "button"])
 def testUnstageChangeInEmptyRepo(tempDir, mainWindow, method):
-    wd = unpackRepo(tempDir, "TestEmptyRepository")
+    wd = initEmptyRepo(tempDir)
     reposcenario.stagedNewEmptyFile(wd)
     rw = mainWindow.openRepo(wd)
 

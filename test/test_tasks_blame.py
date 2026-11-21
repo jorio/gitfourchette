@@ -350,7 +350,7 @@ def testBlameNewFile(tempDir, mainWindow):
 
 
 def testBlameUnborn(tempDir, mainWindow):
-    wd = unpackRepo(tempDir, "TestEmptyRepository")
+    wd = initEmptyRepo(tempDir)
 
     writeFile(f"{wd}/SomeNewFile.txt", "hello")
     rw = mainWindow.openRepo(wd)

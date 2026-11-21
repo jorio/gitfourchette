@@ -70,7 +70,7 @@ def testCommit(tempDir, mainWindow):
 
 
 def testCommitUntrackedFileInEmptyRepo(tempDir, mainWindow):
-    wd = unpackRepo(tempDir, "TestEmptyRepository")
+    wd = initEmptyRepo(tempDir)
     touchFile(F"{wd}/SomeNewFile.txt")
     rw = mainWindow.openRepo(wd)
 

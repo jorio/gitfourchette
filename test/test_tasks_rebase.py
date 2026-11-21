@@ -332,13 +332,8 @@ def testRebaseCausesConflicts(tempDir, mainWindow):
 
 
 def testRebaseNoopDud(tempDir, mainWindow):
-    shell("""
-        git init repo -b master
-        cd repo
-        git commit --allow-empty -m 'root commit'
-    """, tempDir.name)
-
-    wd = f"{tempDir.name}/repo"
+    wd = initEmptyRepo(tempDir)
+    shell("git commit --allow-empty -m 'root commit'", wd)
     onto = readOidFile(f"{wd}/.git/refs/heads/master")
 
     rw = mainWindow.openRepo(wd)
@@ -350,9 +345,8 @@ def testRebaseNoopDud(tempDir, mainWindow):
 
 
 def testRebaseNoopReset(tempDir, mainWindow):
+    wd = initEmptyRepo(tempDir)
     shell("""
-        git init -b master repo
-        cd repo
         touch hello.txt
         git add hello.txt
         git commit -m 'root commit'
@@ -360,9 +354,8 @@ def testRebaseNoopReset(tempDir, mainWindow):
         git commit -am 'add some text'
         git branch rebase-onto-here
         git commit --amend -m 'add exact same text with a different commit message'
-    """, tempDir.name)
+    """, wd)
 
-    wd = f"{tempDir.name}/repo"
     onto = readOidFile(f"{wd}/.git/refs/heads/rebase-onto-here")
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inCommit(onto, "hello.txt"), check=True)

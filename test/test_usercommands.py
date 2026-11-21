@@ -225,11 +225,10 @@ def testUserCommandTokens(tempDir, mainWindow, commandsScratchFile, params):
     ("noupstream", "head upstream",    "current branch has no upstream"),
 ])
 def testUserCommandTokenPrerequisitesNotMet(tempDir, mainWindow, commandsScratchFile, scenario, menuName, error):
-    testRepoName = "TestGitRepository"
     if scenario == "unborn":
-        testRepoName = "TestEmptyRepository"
-
-    wd = unpackRepo(tempDir, testRepoName)
+        wd = initEmptyRepo(tempDir)
+    else:
+        wd = unpackRepo(tempDir)
 
     if scenario == "noupstream":
         shell("git branch --unset-upstream master", wd)

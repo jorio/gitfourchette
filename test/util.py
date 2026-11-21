@@ -282,6 +282,19 @@ class ZipFileFixModes(zipfile.ZipFile):
         return path
 
 
+def initEmptyRepo(
+        tempDir: tempfile.TemporaryDirectory | str,
+        name="repo",
+        branch="master",
+):
+    tempDirPath = tempDir if isinstance(tempDir, str) else tempDir.name
+    tempDirPath = Path(tempDirPath)
+    tempDirPath = tempDirPath.resolve()
+
+    shell(f"git init -b {branch} {name}", tempDirPath.as_posix())
+    return str(tempDirPath / name)
+
+
 def unpackRepo(
         tempDir: tempfile.TemporaryDirectory | str,
         testRepoName="TestGitRepository",

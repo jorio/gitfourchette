@@ -402,11 +402,11 @@ def testFetchRemoteBranchNoUpstream(tempDir, mainWindow):
 
 
 def testFetchRemoteBranchUnbornHead(tempDir, mainWindow):
-    wd = unpackRepo(tempDir, "TestEmptyRepository")
+    wd = initEmptyRepo(tempDir)
     upstreamWd = unpackRepo(tempDir)
 
     shell(f"""
-        git remote set-url origin {shlex.quote(upstreamWd)}
+        git remote add origin {shlex.quote(upstreamWd)}
         git fetch origin
 
         # Save tip of origin/master

@@ -198,8 +198,7 @@ def testGitlinkWithoutGitmodulesIsNestedRepository(tempDir, mainWindow, context)
 
 
 def testGitlinkBeforeFirstCommit(tempDir, mainWindow):
-    wd = f"{tempDir.name}/unborn"
-    shell(f"git init {shlex.quote(wd)}", tempDir.name)
+    wd = initEmptyRepo(tempDir)
     unpackRepo(wd, renameTo="inner")
     shell("git add inner", wd)
 

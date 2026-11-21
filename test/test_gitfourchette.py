@@ -40,7 +40,7 @@ def bringUpRepoSettings(rw):
 
 
 def testEmptyRepo(tempDir, mainWindow):
-    wd = unpackRepo(tempDir, "TestEmptyRepository")
+    wd = initEmptyRepo(tempDir)
     assert mainWindow.openRepo(wd)
     assert mainWindow.tabs.count() == 1
     mainWindow.closeCurrentTab()  # mustn't crash
