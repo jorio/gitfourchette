@@ -18,6 +18,7 @@ from typing import Literal
 from gitfourchette import settings
 from gitfourchette import tasks
 from gitfourchette.application import GFApplication
+from gitfourchette.autohidemenubar import AutoHideMenuBar
 from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.dropzone import DropAction, DropZone
 from gitfourchette.exttools.toolprocess import ToolProcess, setUpToolCommand
@@ -36,6 +37,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
+from gitfourchette.qtabwidget2 import QTabWidget2
 from gitfourchette.repowidget import RepoWidget
 from gitfourchette.settings import PrefEffects, TabBarClick, getExternalEditorName
 from gitfourchette.syntax import LexJobCache

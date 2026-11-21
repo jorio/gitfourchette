@@ -27,7 +27,7 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import NULL_OID, Oid, commit_diff_pair
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF, UC_FAKEID
-from gitfourchette.tasks import TaskPrereqs
+from gitfourchette.tasks.repotask import TaskPrereqs
 from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError
 from gitfourchette.toolbox import *
