@@ -386,7 +386,7 @@ class SidebarModel(QAbstractItemModel):
             else:
                 # We're on a branch
                 assert checkedOut.startswith(RefPrefix.HEADS)
-                self._checkedOutUpstreamRef = self.repoModel.upstreams.get(checkedOut, "")
+                self._checkedOutUpstreamRef = self.repoModel.trackedUpstreams.get(checkedOut, "")
                 self._checkedOut = checkedOut.removeprefix(RefPrefix.HEADS)
 
         # -----------------------------
@@ -881,7 +881,7 @@ class SidebarModel(QAbstractItemModel):
             return f"{icon} {text}"
 
         parts.append(_("Upstream: {0}", escape(upstreamName)))
-        upstreamTarget = self.repoModel.refs[self.repoModel.upstreams[refName]]
+        upstreamTarget = self.repoModel.refs[self.repoModel.trackedUpstreams[refName]]
 
         if upstreamTarget == self.repoModel.refs[refName]:
             text = _("Up-to-date with upstream")

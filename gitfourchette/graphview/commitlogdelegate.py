@@ -440,7 +440,7 @@ class CommitLogDelegate(QStyledItemDelegate):
                 continue
 
             # Find the upstream for this local branch
-            upstreamRef = repoModel.upstreams.get(refName, "")
+            upstreamRef = repoModel.trackedUpstreams.get(refName, "")
             # A cluster pairs a branch with its remote-tracking branch, not with a local upstream
             if not upstreamRef.startswith(RefPrefix.REMOTES):
                 continue

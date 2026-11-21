@@ -13,7 +13,7 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
 from gitfourchette.gitdriver.gitdeltafile import WorkdirHashMismatch
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
-from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_REGEX, UPSTREAMS_FORMAT, parseUpstreamConfig, parseUpstreams
+from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_COMMAND, UPSTREAMS_FORMAT, parseUpstreamConfig, parseUpstreams
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -35,23 +35,33 @@ type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDi
 
 def loadUpstreams(task: RepoTask, configChanged: bool) -> RepoTask.Flow[bool]:
     """
-    Refresh the RepoModel's upstream tables from git: what branch.<name>.remote and .merge
-    configure (only if the config changed), then which local refs track the upstreams and
-    how far ahead/behind the branches are. Return True if the upstreams changed.
+    Refresh branch upstreams and ahead/behind in RepoModel.
+    Return True if upstreams changed.
     """
     repoModel = task.repoModel
     changed = False
+
+    # Config file changed: reload upstream config from branch.*.remote and
+    # branch.*.merge.
     if configChanged:
-        # GitDriver turns this into "git config --get-regexp" for git <= 2.45
-        driver = yield from task.flowCallGit(
-            "config", "get", "-z", "--all", "--show-names", "--regexp", UPSTREAM_CONFIG_REGEX, autoFail=False)
+        driver = yield from task.flowCallGit(*UPSTREAM_CONFIG_COMMAND, autoFail=False)
+
         # 1: no key matches (man git-config, get), i.e. no branch has an upstream
         if driver.exitCode() not in [0, 1]:
             raise AbortTask.fromGitError(driver)
-        changed |= repoModel.syncUpstreamConfig(parseUpstreamConfig(driver.stdoutScrollback()))
-    # Although Repository.ahead_behind exists, it's slower than "git for-each-ref" in complex graphs
+
+        upstreamConfig = parseUpstreamConfig(driver.stdoutScrollback())
+        changed |= repoModel.syncUpstreamConfig(upstreamConfig)
+
+    # Always update ahead/behind, whether the config file changed or not. Don't
+    # use libgit2's ahead_behind because it's slower than Git in complex graphs.
+    # This same command also returns upstreams that are local refs that we track
+    # in this repo. Note that our repo might not track some of the upstreams,
+    # which is why we also looked at the config above.
     driver = yield from task.flowCallGit("for-each-ref", UPSTREAMS_FORMAT, "refs/heads")
-    changed |= repoModel.syncUpstreams(parseUpstreams(driver.stdoutScrollback()))
+    upstreams = parseUpstreams(driver.stdoutScrollback())
+    changed |= repoModel.syncUpstreams(upstreams)
+
     return changed
 
 

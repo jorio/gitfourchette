@@ -7,7 +7,6 @@
 import pytest
 import re
 
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.sidebar.sidebarmodel import SidebarItem, SidebarModel
@@ -556,19 +555,13 @@ def testSidebarMissingUpstream(tempDir, mainWindow):
     assert not missingUpstreamAction.isEnabled()
 
 
-@pytest.mark.parametrize("oldConfigSyntax", [False, True])
-def testSidebarUpstreamNotTrackedByAnyRef(tempDir, mainWindow, monkeypatch, oldConfigSyntax):
-    # Like "git clone --single-branch", then "git push -u origin feature":
+def testSidebarUpstreamNotTrackedByAnyRef(tempDir, mainWindow):
+    # "git clone --single-branch", then "git push -u origin feature":
     # no fetch refspec maps the upstream to a local ref, so git doesn't track it
-    if oldConfigSyntax:  # git <= 2.45
-        monkeypatch.setattr(GitDriver, "supportsConfigSubcommands", staticmethod(lambda: False))
-    wd = unpackRepo(tempDir)
-    shell("""
-        git config remote.origin.fetch +refs/heads/master:refs/remotes/origin/master
-        git branch feature master
-        git config branch.feature.remote origin
-        git config branch.feature.merge refs/heads/feature
-    """, wd)
+    upstream = unpackRepo(tempDir)
+    shell(f"git clone -q --single-branch {Path(upstream).name} clone", tempDir.name)
+    wd = f"{tempDir.name}/clone"
+    shell("git switch -q -c feature && git push -q -u origin feature", wd)
 
     rw = mainWindow.openRepo(wd)
 
@@ -601,7 +594,7 @@ def testSidebarPullRequestUpstreamWithoutRefspec(tempDir, mainWindow):
 
 
 def testSidebarPullRequestUpstreamWithRefspec(tempDir, mainWindow):
-    # A refspec maps refs/pull/*/head, so git tracks it; GitFourchette's old config parser didn't
+    # A refspec maps refs/pull/*/head, so git tracks it.
     wd = unpackRepo(tempDir)
     shell("""
         git config --add remote.origin.fetch +refs/pull/*/head:refs/remotes/origin/pr/*

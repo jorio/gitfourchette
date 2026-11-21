@@ -7,7 +7,7 @@
 import pytest
 
 from gitfourchette.gitdriver import GitConflict, GitConflictSides, GitDelta, GitDeltaSource, GitDriver, GitStatus
-from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_REGEX, parseUpstreamConfig
+from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_COMMAND, parseUpstreamConfig
 from gitfourchette.porcelain import FileMode, Signature
 from gitfourchette.toolbox import abbreviatePerson, AuthorDisplayStyle
 from gitfourchette.webhost import WebHost
@@ -282,10 +282,7 @@ def testBadGitStatusPatterns(tempDir):
             _dummy = list(parseGitStatus(s, tempDir.name))
 
 
-@pytest.mark.parametrize("oldConfigSyntax", [False, True])
-def testParseUpstreamConfig(tempDir, mainWindow, monkeypatch, oldConfigSyntax):
-    if oldConfigSyntax:  # git <= 2.45
-        monkeypatch.setattr(GitDriver, "supportsConfigSubcommands", staticmethod(lambda: False))
+def testParseUpstreamConfig(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shell("""
         git config branch.a.b.remote origin
@@ -299,8 +296,7 @@ def testParseUpstreamConfig(tempDir, mainWindow, monkeypatch, oldConfigSyntax):
         git config branch.pr.merge refs/pull/1/head
     """, wd)
 
-    stdout = GitDriver.runSync(
-        "config", "get", "-z", "--all", "--show-names", "--regexp", UPSTREAM_CONFIG_REGEX, directory=wd, strict=True)
+    stdout = GitDriver.runSync(*UPSTREAM_CONFIG_COMMAND, directory=wd, strict=True)
     table = parseUpstreamConfig(stdout)
 
     assert table["refs/heads/a.b"] == ("origin", "refs/heads/a.b")  # first merge wins, like git

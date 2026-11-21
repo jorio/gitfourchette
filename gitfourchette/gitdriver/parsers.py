@@ -42,8 +42,8 @@ _gitSimplifiedModes = [
 UPSTREAMS_FORMAT = "--format=%(refname)%00%(upstream)%00%(upstream:track,nobracket)"
 "Format for `git for-each-ref refs/heads` that parseUpstreams expects."
 
-UPSTREAM_CONFIG_REGEX = r"^branch\..+\.(remote|merge)$"
-"Key pattern for `git config get -z --all --show-names --regexp` that parseUpstreamConfig expects."
+UPSTREAM_CONFIG_COMMAND = ["config", "get", "-z", "--all", "--show-names", "--regexp", r"^branch\..+\.(remote|merge)$"]
+"Git command whose output parseUpstreamConfig expects."
 
 @dataclasses.dataclass(frozen=True)
 class UpstreamEntry:
@@ -53,7 +53,8 @@ class UpstreamEntry:
     "Local branch refname (refs/heads/...)"
 
     upstreamRef: str
-    "Local ref that tracks the upstream as git maps it, or \"\" if there is none or no refspec maps it"
+    """Local ref that tracks the upstream as git maps it.
+    Empty string if there's no upstream or no refspec maps it."""
 
     aheadBehind: tuple[int, int]
     "Number of commits the branch is ahead/behind of its upstream"
@@ -292,7 +293,7 @@ def parseUpstreams(stdout: str) -> Iterator[UpstreamEntry]:
 
 def parseUpstreamConfig(stdout: str) -> dict[str, tuple[str, str]]:
     """
-    Parse the output of `git config get -z --all --show-names --regexp UPSTREAM_CONFIG_REGEX`
+    Parse the output of UPSTREAM_CONFIG_COMMAND
     into a table of local branch refnames to their configured upstream: (branch.<name>.remote,
     branch.<name>.merge). Like git, skip branches that lack either key, let the last
     remote win, and take the first merge if there are several.
