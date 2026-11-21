@@ -6,8 +6,6 @@
 
 import weakref
 
-from gitfourchette import settings
-from gitfourchette.application import GFApplication
 from gitfourchette.qt import *
 
 
@@ -19,6 +17,7 @@ class AutoHideMenuBar(QObject):
 
         self.menuBar = menuBar
         self.defaultMaximumHeight = self.menuBar.maximumHeight()
+        self.enabled = False
         self.sticky = False
 
         self.hideScheduler = QTimer(self)
@@ -28,10 +27,12 @@ class AutoHideMenuBar(QObject):
 
         self.menusConnected: list[weakref.ReferenceType[QMenu]] = []
 
-        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
-        self.refreshPrefs()
-
-    def refreshPrefs(self):
+    def refreshPrefs(self, enabled: bool):
+        """
+        Turn auto-hide on or off. Call this whenever the prefs change, even if
+        `enabled` stays the same: it also reconnects to the menus.
+        """
+        self.enabled = enabled
         self.hideScheduler.stop()
 
         # Show the menu bar if auto-hide is turned off, OR if the sticky bit
@@ -66,10 +67,6 @@ class AutoHideMenuBar(QObject):
                 menu.aboutToHide.disconnect(self.onMenuAboutToHide)
 
         self.menusConnected = newConnections
-
-    @property
-    def enabled(self):
-        return not settings.prefs.showMenuBar
 
     @property
     def isHidden(self):

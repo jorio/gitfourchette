@@ -49,6 +49,8 @@ jobs:
       - run: ruff check
       - run: mypy
         if: '!cancelled()'  # run mypy even if ruff failed above
+      - run: python check_imports.py
+        if: '!cancelled()'
 
   test-matrix:
     needs: prepare-matrix

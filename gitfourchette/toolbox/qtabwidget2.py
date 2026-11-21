@@ -6,11 +6,9 @@
 
 import weakref
 
-from gitfourchette import settings
-from gitfourchette.application import GFApplication
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.toolbox import stockIcon
+from gitfourchette.toolbox.iconbank import stockIcon
 from gitfourchette.toolbox.qtutils import CallbackAccumulator, reevaluateStyleSheet
 
 
@@ -276,18 +274,15 @@ class QTabWidget2(QWidget):
         self.overflowMenu.setToolTipsVisible(True)
         self.overflowMenu.aboutToHide.connect(lambda: self.overflowButton.setChecked(False))
 
-        GFApplication.instance().prefsChanged.connect(self.refreshPrefs)
-        self.refreshPrefs()
-
     def __len__(self):
         return self.tabs.count()
 
-    def refreshPrefs(self):
-        mustReevaluateStyleSheet = settings.prefs.expandingTabs != self.tabs.expanding()
+    def refreshPrefs(self, expanding: bool, autoHide: bool, closeButtons: bool):
+        mustReevaluateStyleSheet = expanding != self.tabs.expanding()
 
-        self.tabs.setExpanding(settings.prefs.expandingTabs)
-        self.tabs.setAutoHide(settings.prefs.autoHideTabs)
-        self.tabs.setTabsClosable(settings.prefs.tabCloseButton)
+        self.tabs.setExpanding(expanding)
+        self.tabs.setAutoHide(autoHide)
+        self.tabs.setTabsClosable(closeButtons)
         self.tabs.update()
         self.syncBarSize()
         self.onResize()

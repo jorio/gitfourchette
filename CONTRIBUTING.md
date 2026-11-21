@@ -14,7 +14,7 @@ If you want to contribute translations, please take a look at https://gitfourche
 
 ## Linting & code style
 
-Please run `mypy` and `ruff check` before each commit.
+Please run `mypy`, `ruff check` and `python check_imports.py` before each commit.
 
 Please use camelCase. Most of the codebase follows PyQt6/PySide6 naming conventions and so uses camelCase.
 
