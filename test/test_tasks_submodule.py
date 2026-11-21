@@ -350,8 +350,7 @@ def testAbsorbSubmodule(tempDir, mainWindow):
 
     # Open superproject from tab context menu
     tabBar = mainWindow.tabs.tabs
-    tabMenu = summonContextMenu(tabBar, tabBar.tabRect(1).center())
-    triggerMenuAction(tabMenu, r"open superproject")
+    triggerContextMenuAction(tabBar, "open superproject", tabBar.tabRect(1).center())
     assert 0 == mainWindow.tabs.currentIndex()  # back to first tab
     assert rw is mainWindow.tabs.currentWidget()  # back to first tab
 

@@ -202,6 +202,8 @@ def mainWindow(request, qtbot: QtBot, caplog: pytest.LogCaptureFixture) -> Itera
     waitUntilTrue(app.mainWindow.isActiveWindow)  # for non-offscreen tests
     yield app.mainWindow
 
+    testFailed = request.session.testsfailed > failCount
+
     if qt.WINDOWS:
         # Wait until all child processes are gone so they don't get terminated
         # (which would bring down the test suite under xdist)
@@ -220,12 +222,17 @@ def mainWindow(request, qtbot: QtBot, caplog: pytest.LogCaptureFixture) -> Itera
         qt.QTest.keyRelease(app.mainWindow, getattr(qt.Qt.Key, f"Key_{keyName}"))
     assert app.keyboardModifiers() == qt.Qt.KeyboardModifier.NoModifier
 
-    # Look for any unclosed dialogs after the test
+    # Don't leak tooltips
+    qt.QToolTip.hideText()
+
+    # Purge leaked windows (that includes unclosed modal dialogs)
     leakedWindows = []
-    for dialog in app.mainWindow.findChildren(qt.QDialog):
-        if dialog.isVisible():
-            leakedWindows.append(dialog.windowTitle() + "(unclosed dialog)")
-    dialog = None  # don't hamper GC
+    for window in app.topLevelWindows():
+        if window.isVisible() and int(window.winId()) != int(app.mainWindow.winId()):
+            leakedWindows.append(f"{window.objectName()} \"{window.title()}\"")
+            window.close()
+            window.deleteLater()
+    window = None  # don't hamper GC
 
     # Kill the main window
     app.mainWindow.close()
@@ -251,23 +258,14 @@ def mainWindow(request, qtbot: QtBot, caplog: pytest.LogCaptureFixture) -> Itera
     # This will reset the temp settings folder.
     app.endSession()
 
-    # Purge leaked windows
-    for window in app.topLevelWindows():
-        if window.isVisible():
-            leakedWindows.append(window.title() + "(top-level window)")
-            window.deleteLater()
-    window = None  # don't hamper GC
+    # Fail a successful test if it leaked a window or a merge
+    if not testFailed:
+        if leakedWindows:
+            pytest.fail(f"Unit test has leaked {len(leakedWindows)} windows: {'; '.join(leakedWindows)}")
 
-    # Skip cleanup asserts if the test itself failed
-    if request.session.testsfailed > failCount:
-        return
-
-    # Die here if any windows are still visible after the unit test
-    assert not leakedWindows, \
-        f"Unit test has leaked {len(leakedWindows)} windows: {'; '.join(leakedWindows)}"
-
-    from gitfourchette.exttools.mergedriver import MergeDriver
-    assert not MergeDriver._ongoingMerges, "Unit test has leaked MergeDriver objects"
+        from gitfourchette.exttools.mergedriver import MergeDriver
+        if MergeDriver._ongoingMerges:
+            pytest.fail(f"Unit test has leaked {len(MergeDriver._ongoingMerges)} MergeDriver objects")
 
 
 @pytest.fixture(params=["light", "dark"])

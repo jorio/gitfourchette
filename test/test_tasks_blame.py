@@ -78,9 +78,6 @@ def blameWindow(tempDir, mainWindow) -> Iterator[BlameWindow]:
         if blameWindow.isVisible():  # Only close if the test hasn't closed the window itself (Qt 5 compat)
             blameWindow.close()
 
-    if QT5 or WINDOWS:  # Qt 5 needs a breather here to actually close window
-        QTest.qWait(0)
-
 
 def testOpenBlameCorrectTrace(blameWindow):
     blameModel = blameWindow.model
@@ -124,14 +121,13 @@ def testOpenBlameFromFileListContextMenu(tempDir, mainWindow, closeKey):
 
     blameWindow = findWindow("blame", BlameWindow)
     assert isinstance(blameWindow, BlameWindow)
+    blameWindow.activateWindow()
+    waitUntilTrue(blameWindow.isActiveWindow)
 
     if not closeKey:
         blameWindow.close()
     else:
         QTest.keySequence(blameWindow.textEdit, closeKey)
-
-    if QT5 or WINDOWS:  # Qt 5 needs a breather here to actually close window
-        QTest.qWait(0)
 
 
 def testOpenBlameJumpAround(blameWindow):
@@ -306,6 +302,7 @@ def testBlameContextMenu(blameWindow):
     # Right-click beyond last line
     menu = summonContextMenu(viewport, QPoint(5, viewport.height() - 5))
     assert findMenuAction(menu, "blame file at.+4ec4389")
+    menu.close()
 
 
 def testBlameGutterToolTips(blameWindow):
@@ -456,6 +453,8 @@ def testBlameTransposeScrollPositionsAcrossRevisions(tempDir, mainWindow):
     assert blameWindow.textEdit.toPlainText() == fileHistory[3]
     assert blameWindow.textEdit.firstVisibleBlock().text() == "int bar=2;"
 
+    blameWindow.close()
+
 
 @pytest.mark.notParallelizableOnWindows
 def testInterruptLongBlame(blameWindow):
@@ -588,8 +587,6 @@ def testBlameLineByLine(tempDir, mainWindow, scenarioKey):
         assert str(line.commitId).startswith(expectedOid)
 
     blameWindow.close()
-    if QT5:  # Qt 5 needs a breather here to actually close window
-        QTest.qWait(0)
 
 
 def testBlameDeletedFileInWorkdir(tempDir, mainWindow):
@@ -605,8 +602,6 @@ def testBlameDeletedFileInWorkdir(tempDir, mainWindow):
     qteFind(blameWindow.textEdit, "file deleted in working directory", plainText=True)
 
     blameWindow.close()
-    if QT5:  # Qt 5 needs a breather here to actually close window
-        QTest.qWait(0)
 
 
 @pytest.mark.parametrize("method", ["menubar", "context"])
@@ -629,8 +624,6 @@ def testBlameRenamedFileInWorkdir(tempDir, mainWindow, method):
     assert qteFind(blameWindow.textEdit, "On master\nOn master", plainText=True)
 
     blameWindow.close()
-    if QT5:  # Qt 5 needs a breather here to actually close window
-        QTest.qWait(0)
 
 
 def testBlameMissingRevisions(tempDir, colorTheme, blameWindow):
@@ -664,6 +657,7 @@ def testBlameMissingRevisions(tempDir, colorTheme, blameWindow):
 
     menu = summonContextMenu(blameWindow.textEdit.viewport(), QPoint(4, 4))
     assert not findMenuAction(menu, f"blame file at.+{shortMissingId}").isEnabled()
+    menu.close()
 
 
 def testBlameDiscoverUpperBoundOnOtherBranch(tempDir, mainWindow):
@@ -735,6 +729,8 @@ def testBlameLine(tempDir, mainWindow):
     messages = [rw.repo[s.commitId].peel(Commit).message.strip()
                 for s in blameWindow.model.revList.sequence]
     assert messages == ["Say hello in Swedish", "Say hello in French", "Say hello in Spanish", "First commit"]
+
+    blameWindow.close()
 
 
 def testBlameBracketsInFileName(tempDir, mainWindow):
