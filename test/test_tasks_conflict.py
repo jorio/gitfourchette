@@ -4,6 +4,7 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+from gitfourchette import trtables
 from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.gitdriver import GitConflictSides
 from gitfourchette.nav import NavLocator
@@ -12,130 +13,174 @@ from . import reposcenario
 from .util import *
 
 
-@pytest.mark.parametrize("viaContextMenu", [False, True])
-def testConflictDeletedByUs(tempDir, mainWindow, viaContextMenu):
-    scenario = """
-        # Prepare "their" modification (modify a1.txt and a2.txt)
-        git checkout -b THEIR-BRANCH
-        echo 'they modified 1' > a/a1.txt
-        echo 'they modified 2' > a/a2.txt
-        git commit -a -m 'they modified 2 files'
+# These are C files to exercise syntax highlighting in CodeWindow
+_conflictScenarios = {
+    GitConflictSides.BothDeleted: """
+        echo 'int dontCare;' > conflict.c
+        git add conflict.c && git commit -m 'initial commit'
 
-        # no-parent has no a1.txt, a2.txt; create a conflict on those
-        git checkout no-parent
+        git switch -c THEIR-BRANCH
+        git mv conflict.c dummy-theirs.c
+        git commit -m 'they renamed'
+
+        git switch master
+        git mv conflict.c dummy-ours.c
+        git commit -m 'we renamed'
         git cherry-pick THEIR-BRANCH || true
-    """
 
-    wd = unpackRepo(tempDir)
-    shell(scenario, directory=wd)
+        # Clean up dummy files
+        git add dummy-ours.c
+        git rm dummy-theirs.c
+    """,
+
+    GitConflictSides.AddedByUs: """
+        echo 'int ours;' > dummy.c
+        git add dummy.c && git commit -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        git mv dummy.c dummy-theirs.c  # dummy.c goes BothDeleted, dummy-theirs.c goes AddedByThem
+        git commit -m 'they renamed'
+
+        git switch master
+        git mv dummy.c conflict.c
+        git commit -m 'we renamed'
+        git cherry-pick THEIR-BRANCH || true
+        git rm 'dummy*.c'  # clean up dummy files
+    """,
+
+    GitConflictSides.AddedByThem: """
+        echo 'int theirs;' > dummy.c
+        git add dummy.c && git commit -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        git mv dummy.c conflict.c
+        git commit -m 'they renamed'
+
+        git switch master
+        git mv dummy.c dummy-ours.c  # dummy.c goes BothDeleted, dummy-theirs.c goes AddedByUs
+        git commit -m 'we renamed'
+        git cherry-pick THEIR-BRANCH || true
+        git add 'dummy*.c'  # clean up dummy files
+    """,
+
+    GitConflictSides.DeletedByUs: """
+        echo 'int dontCare;' > conflict.c
+        git add conflict.c && git commit -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        echo 'int theirs;' > conflict.c
+        git commit -a -m 'they modified'
+
+        git switch master
+        git rm conflict.c
+        git commit -m 'we deleted'
+        git cherry-pick THEIR-BRANCH || true
+    """,
+
+    GitConflictSides.DeletedByThem: """
+        echo 'int dontCare;' > conflict.c
+        git add conflict.c && git commit -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        git rm conflict.c
+        git commit -a -m 'they deleted'
+
+        git switch master
+        echo 'int ours;' > conflict.c
+        git commit -a -m 'we modified'
+        git cherry-pick THEIR-BRANCH || true
+    """,
+
+    GitConflictSides.BothAdded: """
+        git commit --allow-empty -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        echo 'int theirs;' > conflict.c
+        git add conflict.c && git commit -m 'they added'
+
+        git switch master
+        echo 'int ours;' > conflict.c
+        git add conflict.c && git commit -m 'we added'
+        git cherry-pick THEIR-BRANCH || true
+    """,
+
+    GitConflictSides.BothModified: """
+        echo 'int dontCare;' > conflict.c
+        git add conflict.c && git commit -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        echo 'int theirs;' > conflict.c
+        git commit -a -m 'they modified'
+
+        git switch master
+        echo 'int ours;' > conflict.c
+        git commit -a -m 'we modified'
+        git cherry-pick THEIR-BRANCH || true
+    """,
+}
+
+
+@pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "menu"])
+@pytest.mark.parametrize("keepOurs", [True, False], ids=["ours", "theirs"])
+@pytest.mark.parametrize("conflictSides", GitConflictSides)
+def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu, keepOurs):
+    wd = initEmptyRepo(tempDir)
+    shell(_conflictScenarios[conflictSides], directory=wd)
+
+    conflictPath = Path(wd, "conflict.c")
+    hasBothSides = conflictSides.hasOurs() and conflictSides.hasTheirs()
+    bothDeleted = conflictSides == GitConflictSides.BothDeleted
 
     rw = mainWindow.openRepo(wd)
+    cv = rw.conflictView
 
     assert rw.repo.any_conflicts
-    assert "a/a1.txt" in rw.repo.index.conflicts
-    assert "a/a2.txt" in rw.repo.index.conflicts
-
-    # -------------------------
-    # Keep our deletion of a1.txt
-
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "a/a2.txt"]
+    assert conflictPath.name in rw.repo.index.conflicts
+    assert qlvGetRowData(rw.dirtyFiles) == [conflictPath.name]
     assert qlvGetRowData(rw.stagedFiles) == []
-    rw.jump(NavLocator.inUnstaged("a/a1.txt"))
-    assert rw.conflictView.currentConflict.sides == GitConflictSides.DeletedByUs
-    assert rw.conflictView.ui.oursButton.isVisible()
-    assert not rw.conflictView.ui.mergeToolButton.isVisible()
-    assert "deleted by us" in rw.conflictView.ui.explainer.text().lower()
 
-    if not viaContextMenu:
-        rw.conflictView.ui.oursButton.click()
+    if bothDeleted:
+        assert not conflictPath.exists()
+        button = cv.ui.confirmDeletionButton
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our")
+        assert (">>>>>>>" in readTextFile(str(conflictPath))) == hasBothSides
+        button = cv.ui.oursButton if keepOurs else cv.ui.theirsButton
 
-    acceptQMessageBox(rw, "keep our")
-    assert not Path(wd, "a/a1.txt").exists()
+    cmLabel = "keep our" if keepOurs else "accept their"
+    qmbLabel = "confirm deletion" if bothDeleted else cmLabel
 
-    # -------------------------
-    # Take their a2.txt
+    # Jump to conflict
+    rw.jump(NavLocator.inUnstaged(conflictPath.name), check=True)
+    assert cv.currentConflict.sides == conflictSides
+    assert cv.ui.mergeToolButton.isVisible() == hasBothSides
+    assert trtables.enum(conflictSides) in rw.conflictView.ui.explainer.text().lower()
+    assert button.isVisible()
 
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a2.txt"]
-    assert qlvGetRowData(rw.stagedFiles) == []
-    rw.jump(NavLocator.inUnstaged("a/a2.txt"))
-    assert rw.conflictView.currentConflict.sides == GitConflictSides.DeletedByUs
-    assert rw.conflictView.ui.theirsButton.isVisible()
-    assert not rw.conflictView.ui.mergeToolButton.isVisible()
-
+    # Resolve conflict
     if not viaContextMenu:
-        rw.conflictView.ui.theirsButton.click()
+        button.click()
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "accept their")
+        triggerContextMenuAction(rw.dirtyFiles.viewport(), cmLabel)
+    acceptQMessageBox(rw, qmbLabel)
 
-    acceptQMessageBox(rw, "accept their")
-    assert not rw.repo.index.conflicts
-    assert not rw.conflictView.isVisible()
-    assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_NEW}
-    assert readTextFile(f"{wd}/a/a2.txt").strip() == "they modified 2"
-
-
-@pytest.mark.parametrize("viaContextMenu", [False, True])
-def testConflictDeletedByThem(tempDir, mainWindow, viaContextMenu):
-    scenario = """
-        git checkout -b THEIR-BRANCH
-        git rm a/a1.txt a/a2.txt
-        git commit -m 'they deleted 2 files'
-
-        git checkout no-parent
-        mkdir -p a
-        echo 'we modified' > a/a1.txt
-        echo 'we modified' > a/a2.txt
-        git add a/a1.txt a/a2.txt
-        git commit -m 'we touched 2 files'
-        git cherry-pick THEIR-BRANCH || true
-    """
-
-    wd = unpackRepo(tempDir)
-    shell(scenario, directory=wd)
-
-    rw = mainWindow.openRepo(wd)
-
-    assert rw.repo.any_conflicts
-    assert "a/a1.txt" in rw.repo.index.conflicts
-    assert "a/a2.txt" in rw.repo.index.conflicts
-
-    # -------------------------
-    # Keep our a1.txt
-
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "a/a2.txt"]
-    assert qlvGetRowData(rw.stagedFiles) == []
-    rw.jump(NavLocator.inUnstaged("a/a1.txt"))
-    assert rw.conflictView.currentConflict.sides == GitConflictSides.DeletedByThem
-    assert rw.conflictView.ui.oursButton.isVisible()
-    assert not rw.conflictView.ui.mergeToolButton.isVisible()
-    assert "deleted by them" in rw.conflictView.ui.explainer.text().lower()
-
-    if not viaContextMenu:
-        rw.conflictView.ui.oursButton.click()
+    # Check outcome
+    if keepOurs:
+        expectedContents = "int ours;" if conflictSides.hasOurs() else None
+        expectedStatus = None
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our")
-    acceptQMessageBox(rw, "keep our")
+        expectedContents = "int theirs;" if conflictSides.hasTheirs() else None
+        expectedStatus = (FileStatus.INDEX_MODIFIED if hasBothSides
+                          else FileStatus.INDEX_NEW if conflictSides.hasTheirs()
+                          else FileStatus.INDEX_DELETED if not bothDeleted
+                          else None)
 
-    # -------------------------
-    # Take their deletion of a2.txt
-
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a2.txt"]
-    assert qlvGetRowData(rw.stagedFiles) == []
-    rw.jump(NavLocator.inUnstaged("a/a2.txt"))
-    assert rw.conflictView.currentConflict.sides == GitConflictSides.DeletedByThem
-    assert rw.conflictView.ui.theirsButton.isVisible()
-    assert not rw.conflictView.ui.mergeToolButton.isVisible()
-    if not viaContextMenu:
-        rw.conflictView.ui.theirsButton.click()
+    if expectedContents is not None:
+        assert readTextFile(str(conflictPath)).strip() == expectedContents
     else:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "accept their")
+        assert not conflictPath.exists()
+    assert rw.repo.status().get(conflictPath.name, None) == expectedStatus
 
-    acceptQMessageBox(rw, "accept their")
-    assert not rw.repo.index.conflicts
-    assert not rw.conflictView.isVisible()
-    assert rw.repo.status() == {"a/a2.txt": FileStatus.INDEX_DELETED}
+    assert rw.repo.index.conflicts is None
 
 
 @requiresSymlinks
@@ -248,52 +293,41 @@ def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLab
 
     if not viaContextMenuLabel:
         solveButton.click()
-        acceptQMessageBox(rw, "keep our")
     else:
         # The context menu presents two options (accept theirs, keep ours)
         # because it doesn't have a special case for Deleted By Both.
         # Both options should yield the same outcome for Deleted By Both.
         triggerContextMenuAction(rw.dirtyFiles.viewport(), viaContextMenuLabel)
-        acceptQMessageBox(rw, viaContextMenuLabel)
+    acceptQMessageBox(rw, "confirm deletion")
 
     assert not Path(wd, "xxx/zzz").exists()
     assert "xxx/zzz" not in rw.repo.index.conflicts
 
 
 def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
-    scenario = """
-        git checkout -b THEIR-BRANCH
-        echo 'they modified' > a/a1.txt
-        git commit -a -m 'they modified'
-
-        # no-parent has no a1.txt; create a conflict on a1.txt
-        git checkout no-parent
-        git cherry-pick THEIR-BRANCH || true
-    """
-
-    wd = unpackRepo(tempDir)
-    shell(scenario, directory=wd)
+    wd = initEmptyRepo(tempDir)
+    shell(_conflictScenarios[GitConflictSides.DeletedByUs], directory=wd)
 
     rw = mainWindow.openRepo(wd)
-    assert "a/a1.txt" in rw.repo.index.conflicts
+    assert "conflict.c" in rw.repo.index.conflicts
 
     # Modify some other file with both staged and unstaged changes
-    writeFile(f"{wd}/b/b1.txt", "b1\nb1\nstaged change\n")
+    writeFile(f"{wd}/other.txt", "b1\nb1\nstaged change\n")
     rw.refreshRepo()
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "b/b1.txt"]
+    assert qlvGetRowData(rw.dirtyFiles) == ["conflict.c", "other.txt"]
     assert qlvGetRowData(rw.stagedFiles) == []
-    rw.jump(NavLocator.inUnstaged("b/b1.txt"), check=True)
+    rw.jump(NavLocator.inUnstaged("other.txt"), check=True)
     rw.diffArea.stageButton.click()
-    assert qlvGetRowData(rw.stagedFiles) == ["b/b1.txt"]
+    assert qlvGetRowData(rw.stagedFiles) == ["other.txt"]
 
-    writeFile(f"{wd}/b/b1.txt", "b1\nb1\nunstaged change\nstaged change\n")
+    writeFile(f"{wd}/other.txt", "b1\nb1\nunstaged change\nstaged change\n")
     rw.refreshRepo()
-    assert qlvGetRowData(rw.dirtyFiles) == ["a/a1.txt", "b/b1.txt"]
-    rw.jump(NavLocator.inUnstaged("b/b1.txt"), check=True)
+    assert qlvGetRowData(rw.dirtyFiles) == ["conflict.c", "other.txt"]
+    rw.jump(NavLocator.inUnstaged("other.txt"), check=True)
     rw.diffArea.discardButton.click()
-    acceptQMessageBox(rw, r"really discard changes.+b1\.txt")
+    acceptQMessageBox(rw, r"really discard changes.+other.txt")
 
-    assert readTextFile(f"{wd}/b/b1.txt") == "b1\nb1\nstaged change\n"
+    assert readTextFile(f"{wd}/other.txt") == "b1\nb1\nstaged change\n"
 
 
 def testShowConflictInBannerEvenIfNotViewingWorkdir(tempDir, mainWindow):
@@ -609,28 +643,11 @@ def testMergeToolDelayedWrite(tempDir, mainWindow):
 
 
 def testConflictSidePreview(tempDir, mainWindow):
-    wd = f"{tempDir.name}/myrepo"
-    Path(wd).mkdir()
-
-    # Create a conflict on file.c
-    # (It's a C file to exercise syntax highlighting in CodeWindow)
-    shell("""
-        git init -b master .
-        git commit --allow-empty -m 'root commit'
-        git switch -c they-modified
-
-        echo 'int hello = 1;' > file.c
-        git add file.c
-        git commit -m 'add file.c'
-        echo 'int hello = 2;' > file.c
-        git commit -am 'modify file.c'
-
-        git switch master
-        git cherry-pick they-modified || true
-    """, directory=wd)
+    wd = initEmptyRepo(tempDir)
+    shell(_conflictScenarios[GitConflictSides.DeletedByUs], wd)
 
     rw = mainWindow.openRepo(wd)
-    assert "file.c" in rw.repo.index.conflicts
+    assert "conflict.c" in rw.repo.index.conflicts
 
     assert not CodeWindow._liveWindows
 
@@ -639,9 +656,9 @@ def testConflictSidePreview(tempDir, mainWindow):
     assert cv.ui.theirsPreviewButton.isEnabled()
     cv.ui.theirsPreviewButton.click()
 
-    window = findWindow("their.+file.c", t=CodeWindow)
+    window = findWindow("their.+conflict.c", t=CodeWindow)
     waitUntilTrue(lambda: QApplication.activeWindow() is window)
-    assert window.codeView.toPlainText().strip() == 'int hello = 2;'
+    assert window.codeView.toPlainText().strip() == 'int theirs;'
 
     # Ensure that clicking the button again re-raises the existing window.
     # Bring mainWindow back to the foreground first.
@@ -652,7 +669,7 @@ def testConflictSidePreview(tempDir, mainWindow):
     # Click the button - no new window must be created
     cv.ui.theirsPreviewButton.click()
     with pytest.raises(KeyError):
-        findWindow("their.+file.c", t=CodeWindow)
+        findWindow("their.+conflict.c", t=CodeWindow)
     # Clicking the button should have raised the existing window
     waitUntilTrue(lambda: QApplication.activeWindow() is window)
 

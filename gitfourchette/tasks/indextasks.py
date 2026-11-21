@@ -429,10 +429,13 @@ class HardSolveConflicts(RepoTask):
         sidesSet = {c.sides for c in conflicts}
         if len(sidesSet) == 1:
             from gitfourchette.forms.conflictview import GitConflictSidesLocalization
-            strings = GitConflictSidesLocalization.getStrings(conflicts[0].sides)
+            sides = conflicts[0].sides
+            strings = GitConflictSidesLocalization.getStrings(sides)
             a = _("Reject incoming changes") if keepOurs else _("Accept incoming changes")
             b = strings.ours2 if keepOurs else strings.theirs2
             promptSuffix = f"<p>\u2192 {a}.<br>\u2192 {b}."
+            if sides == GitConflictSides.BothDeleted:
+                verb = _p("ConflictView", "Confirm deletion")
 
         if len(conflicts) == 1:
             if keepOurs:
