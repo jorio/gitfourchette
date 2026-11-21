@@ -16,7 +16,7 @@ from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEID
 from gitfourchette.syntax import LexJobCache, LexerCache, LexJob
-from gitfourchette.tasks import RepoTask, TaskPrereqs
+from gitfourchette.tasks.repotask import RepoTask, TaskPrereqs
 from gitfourchette.tasks.repotask import AbortTask
 from gitfourchette.toolbox import *
 

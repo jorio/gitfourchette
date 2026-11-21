@@ -22,9 +22,11 @@ from gitfourchette.nav import NavLocator, NavContext, NavFlags
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
 from gitfourchette.settings import WhitespaceMode
-from gitfourchette.tasks import RepoTask
 from gitfourchette.toolbox import *
 from gitfourchette import trtables
+
+if TYPE_CHECKING:
+    from gitfourchette.tasks.repotask import RepoTask
 
 
 # convert.c, since Git 2.37.0

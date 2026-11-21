@@ -12,7 +12,7 @@ from typing import Any, ClassVar
 from gitfourchette import tasks
 from gitfourchette.localization import *
 from gitfourchette.qt import *
-from gitfourchette.tasks import RepoTask
+from gitfourchette.tasks.repotask import RepoTask
 from gitfourchette.toolbox import MultiShortcut, makeMultiShortcut, ActionDef, englishTitleCase
 
 

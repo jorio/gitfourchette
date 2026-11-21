@@ -19,7 +19,7 @@ from gitfourchette.ipc.ipcserver import GFIpcServer
 from gitfourchette.qt import *
 from gitfourchette.rebase.editmsgautofillserver import EditmsgAutoFillServer
 from gitfourchette.rebase.rebasemodel import RebaseInfo, RebaseLine, RebaseOp, RebasePlan
-from gitfourchette.tasks import TaskPrereqs, TaskEffects
+from gitfourchette.tasks.repotask import TaskPrereqs, TaskEffects
 from gitfourchette.tasks.repotask import RepoTask, AbortTask
 from gitfourchette.toolbox import *
 
