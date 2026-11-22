@@ -67,7 +67,36 @@ class GitDriver(QProcess):
             directory: str = "",
             strict: bool = False
     ):
-        return ToolCommands.runSync(*cls._commandStem, *args, directory=directory, strict=strict)
+        return ToolCommands.runSync(*cls.commandTokens(*args), directory=directory, strict=strict)
+
+    @classmethod
+    def commandTokens(cls, *args: str) -> list[str]:
+        """
+        Command line that runs `git <args>` with the configured Git program,
+        before any Flatpak wrapping. With Git <= 2.45, "git config" subcommands
+        are translated to the older syntax.
+        """
+        tokens = list(args)
+
+        # Patch "git config" commands for the older syntax of git <= 2.45
+        if tokens[0] == "config" and not cls.supportsConfigSubcommands():  # pragma: no cover
+            if tokens[1] == "get" and {"--all", "--show-names", "--regexp"} <= set(tokens):
+                # git <= 2.45 only has the old syntax "--get-regexp" for "get --all --show-names --regexp"
+                # (man git-config, DEPRECATED MODES)
+                tokens = [t for t in tokens if t not in ["--all", "--show-names", "--regexp"]]
+                tokens[1] = "--get-regexp"
+            elif tokens[1:3] == ["set", "--all"]:
+                tokens[1:3] = ["--replace-all"]
+            elif tokens[1:3] == ["unset", "--all"]:
+                tokens[1:3] = ["--unset-all"]
+            elif tokens[1] in ["get", "set"]:
+                tokens.pop(1)
+            elif tokens[1] in ["unset", "edit", "rename-section", "remove-section", "list"]:
+                tokens[1] = f"--{tokens[1]}"
+            else:
+                raise NotImplementedError(f"unsupported git config subcommand {tokens[1]}")
+
+        return cls._commandStem + tokens
 
     @classmethod
     def setGitPath(cls, gitPath: str):
@@ -173,22 +202,7 @@ class GitDriver(QProcess):
 
         self.setObjectName("GitDriver")
 
-        tokens = list(args)
-
-        # Patch "git config" commands for the older syntax of git <= 2.45
-        if tokens[0] == "config" and not self.supportsConfigSubcommands():
-            if tokens[1:3] == ["set", "--all"]:
-                tokens[1:3] = ["--replace-all"]
-            elif tokens[1:3] == ["unset", "--all"]:
-                tokens[1:3] = ["--unset-all"]
-            elif tokens[1] in ["get", "set"]:
-                tokens.pop(1)
-            elif tokens[1] in ["unset", "edit", "rename-section", "remove-section", "list"]:
-                tokens[1] = f"--{tokens[1]}"
-            else:
-                raise NotImplementedError(f"unsupported git config subcommand {tokens[1]}")
-
-        tokens = GitDriver._commandStem + tokens
+        tokens = self.commandTokens(*args)
         self.setProgram(tokens[0])
         self.setArguments(tokens[1:])
 

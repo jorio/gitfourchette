@@ -133,8 +133,16 @@ class MultiFileError(Exception):
         return bool(self.file_exceptions)
 
 
-class _UnchangedConfigFile(Exception):
-    pass
+type _MiniStat = tuple[int, int, int]
+
+
+def _mini_stat(path: str) -> _MiniStat:
+    """
+    Identify a version of a file without reading it: inode, size, mtime in ns.
+    Not the whole stat, whose atime can change when the file is only read.
+    """
+    st = _os.stat(path)
+    return st.st_ino, st.st_size, st.st_mtime_ns
 
 
 def fast_blob_sha1(data: bytes) -> Oid:
@@ -346,7 +354,6 @@ class GitConfigHelper:
     class SectionPatterns:
         SUBMODULE = _re.compile(r'^submodule "(.+)"$')
         REMOTE = _re.compile(r'^remote "(.+)"$')
-        BRANCH = _re.compile(r'^branch "(.+)"$')
 
     @staticmethod
     def sanitize_key(key: str | tuple[str, ...]) -> str:
@@ -435,11 +442,8 @@ class Repo(_VanillaRepository):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._cached_config_stats = {}
-        self._cached_config_stats_for_key = {}
-        self._cached_config_parsers = {}
+        self._poll_stamps: dict[str, _MiniStat | None] = {}
         self._cached_remote_list = []
-        self._cached_upstream_table = {}
         self._cached_submodule_table = {}
         self._submodule_tables_by_blob: dict[Oid, dict[str, str]] = {}
         self._cached_commondir = ""
@@ -913,34 +917,27 @@ class Repo(_VanillaRepository):
         Faster alternative to `list(repo.remotes.names())`.
         """
         config_path = self.in_gitdir("config", common=True)
-        try:
-            # strict=False to bypass DuplicateSectionError
-            config = self._get_cached_config("listall_remotes_fast", config_path, strict=False)
-        except OSError:
-            self._cached_remote_list = []
-        except _UnchangedConfigFile:
-            pass
-        else:
+        if self.poll_file_change("listall_remotes_fast", config_path):
+            config = _configparser.ConfigParser(strict=False)  # strict=False to bypass DuplicateSectionError
+            config.read(config_path)  # A missing file reads as empty
             self._cached_remote_list = Repo._listall_remotes_from_config(config)
 
         return self._cached_remote_list
 
-    def listall_upstreams_fast(self) -> dict[str, str]:
+    def poll_file_change(self, poller: str, path: str) -> bool:
         """
-        Much faster alternative to looking up `Branch.upstream_name` in every branch.
+        Return True if the file at path has changed since this poller last
+        polled it (or if this is its first poll). Several pollers may watch
+        the same file. Only looks at the file's stat, without reading it.
         """
-        config_path = self.in_gitdir("config", common=True)
         try:
-            # strict=False to bypass DuplicateSectionError
-            config = self._get_cached_config("listall_upstreams", config_path, strict=False)
+            stamp = _mini_stat(path)
         except OSError:
-            self._cached_upstream_table = {}
-        except _UnchangedConfigFile:
-            pass
-        else:
-            self._cached_upstream_table = Repo._listall_upstreams_from_config(config)
-
-        return self._cached_upstream_table
+            stamp = None  # No such file
+        stamps = self._poll_stamps
+        changed = poller not in stamps or stamps[poller] != stamp
+        stamps[poller] = stamp
+        return changed
 
     def listall_submodules(self):  # pragma: no cover
         """
@@ -977,13 +974,9 @@ class Repo(_VanillaRepository):
             return Repo._listall_submodules_from_config(config)
 
         config_path = self.in_workdir(DOT_GITMODULES)
-        try:
-            config = self._get_cached_config("listall_submodules_dict", config_path, strict=True)
-        except OSError:
-            self._cached_submodule_table = {}
-        except _UnchangedConfigFile:
-            pass
-        else:
+        if self.poll_file_change("listall_submodules_dict", config_path):
+            config = _configparser.ConfigParser()
+            config.read(config_path)  # A missing file reads as empty
             self._cached_submodule_table = Repo._listall_submodules_from_config(config)
         return self._cached_submodule_table
 
@@ -1013,27 +1006,6 @@ class Repo(_VanillaRepository):
             self._submodule_tables_by_blob[gitmodules_blob.id] = table
         return table
 
-    def _get_cached_config(self, cache_key: str, path: str, strict: bool) -> _configparser.ConfigParser:
-        new_stat = _os.stat(path)
-
-        with _suppress(KeyError):
-            key_stat = self._cached_config_stats_for_key[cache_key]
-            if key_stat == new_stat:
-                raise _UnchangedConfigFile()
-
-        self._cached_config_stats_for_key[cache_key] = new_stat
-
-        with _suppress(KeyError):
-            known_stat = self._cached_config_stats[path]
-            if new_stat == known_stat:
-                return self._cached_config_parsers[path]
-
-        config = _configparser.ConfigParser(strict=strict)
-        config.read(path)
-        self._cached_config_stats[path] = new_stat
-        self._cached_config_parsers[path] = config
-        return config
-
     @staticmethod
     def _listall_remotes_from_config(config: _configparser.ConfigParser):
         remotes = []
@@ -1044,29 +1016,6 @@ class Repo(_VanillaRepository):
             remotes.append(remote_name)
 
         return remotes
-
-    @staticmethod
-    def _listall_upstreams_from_config(config: _configparser.ConfigParser):
-        upstreams = {}
-
-        for branch_name, section in GitConfigHelper.walk_sections(config, GitConfigHelper.SectionPatterns.BRANCH):
-            try:
-                remote_name = section["remote"]
-                remote_ref = section["merge"]
-            except KeyError:
-                continue
-
-            remote_ref_prefix, remote_branch = RefPrefix.split(remote_ref)
-            if remote_ref_prefix != RefPrefix.HEADS:
-                _logger.warning(f"unexpected prefix in config value {section}.merge: '{remote_branch}'")
-                continue
-
-            remote_branch = GitConfigHelper.unescape(remote_branch)
-            remote_name = GitConfigHelper.unescape(remote_name)
-
-            upstreams[branch_name] = f"{remote_name}/{remote_branch}"
-
-        return upstreams
 
     @staticmethod
     def _listall_submodules_from_config(config: _configparser.ConfigParser):
