@@ -409,9 +409,13 @@ class RepoModel:
         return False
 
     def pollUpstreamConfig(self) -> bool:
-        """ Return True if the repo config changed since the last poll, so
-        `syncUpstreamConfig` and `syncUpstreams` should run again even if no refs moved. """
-        return self.repo.poll_file_change("upstreams", self.repo.in_gitdir("config", common=True))
+        """
+        Return True if the repo config changed since the last poll. If it did,
+        `syncUpstreamConfig` and `syncUpstreams` should run again even if no
+        refs have moved.
+        """
+        configPath = self.repo.in_gitdir("config", common=True)
+        return self.repo.poll_file_change("upstreams", configPath)
 
     def syncUpstreamConfig(self, upstreamConfig: dict[str, tuple[str, str]]) -> bool:
         """ Replace `_upstreamConfig`. Return True if it changed. """
@@ -421,34 +425,46 @@ class RepoModel:
         return False
 
     def upstreamName(self, refName: str) -> str:
-        """ Short name of the upstream of a local branch, e.g. "origin/main", or "" if it
-        has none. If no local ref tracks the upstream, name it after the config, provided
-        the config points to a branch on the remote. """
+        """
+        Shorthand of the upstream of a local branch, e.g. "origin/main", or the
+        empty string if it has no upstream.
+
+        If we don't have a local ref that tracks the upstream, name it from the
+        config, provided that the config points to a branch on the remote.
+        """
 
         # See if the upstream is among the refs tracked in this repo
         upstreamRef = self.trackedUpstreams.get(refName, "")
         if upstreamRef:
             return RefPrefix.split(upstreamRef)[1]
 
-        # There's no upstream that's tracked by a local ref.
+        # The upstream isn't tracked by a local ref in this repo.
         # The config may still define a remote name (branch.*.remote) and
         # the name of the ref on that remote (branch.*.merge).
-        # Piece together a shorthand from this config.
         remoteName, remoteRef = self._upstreamConfig.get(refName, ("", ""))
-        if remoteRef.startswith(RefPrefix.HEADS):  # Not e.g. refs/pull/1/head from "gh pr checkout"
-            return f"{remoteName}/{RefPrefix.split(remoteRef)[1]}"
+
+        # Piece together a shorthand from this config, but only if the ref
+        # points to a branch in that remote (e.g., not "refs/pull/1/head" from
+        # "gh pr checkout")
+        remoteRefPrefix, remoteRefName = RefPrefix.split(remoteRef)
+        if remoteRefPrefix == RefPrefix.HEADS:
+            return f"{remoteName}/{remoteRefName}"
+
         return ""
 
     def isUpstreamMissing(self, refName: str) -> bool:
-        """ Whether a local branch has an upstream that isn't here locally: the ref
-        that tracks it doesn't exist, or no fetch refspec maps it to a local ref. """
+        """
+        Whether a local branch has an upstream that isn't here locally: the ref
+        that tracks it doesn't exist, or no fetch refspec maps it to a local ref.
+        """
         upstreamRef = self.trackedUpstreams.get(refName, "")
         if upstreamRef:
             return upstreamRef not in self.refs
         return bool(self.upstreamName(refName))  # Configured, but no local ref tracks it
 
     def syncUpstreams(self, entries: Iterable[UpstreamEntry]) -> bool:
-        """ Refresh `trackedUpstreams` and `aheadBehind` from one entry per local branch.
+        """
+        Refresh `trackedUpstreams` and `aheadBehind` from one entry per local branch.
 
         Return True if the upstreams changed. A change in aheadBehind alone doesn't
         count: it only follows a ref moving, which already refreshes the sidebar,

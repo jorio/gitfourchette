@@ -72,14 +72,14 @@ class GitDriver(QProcess):
     @classmethod
     def commandTokens(cls, *args: str) -> list[str]:
         """
-        Command line that runs `git <args>`, with git config's subcommand syntax
-        translated for git <= 2.45, before any Flatpak wrapping. GitDriver and
-        runSync both use it.
+        Command line that runs `git <args>` with the configured Git program,
+        before any Flatpak wrapping. With Git <= 2.45, "git config" subcommands
+        are translated to the older syntax.
         """
         tokens = list(args)
 
         # Patch "git config" commands for the older syntax of git <= 2.45
-        if tokens[0] == "config" and not cls.supportsConfigSubcommands():
+        if tokens[0] == "config" and not cls.supportsConfigSubcommands():  # pragma: no cover
             if tokens[1] == "get" and {"--all", "--show-names", "--regexp"} <= set(tokens):
                 # git <= 2.45 only has the old syntax "--get-regexp" for "get --all --show-names --regexp"
                 # (man git-config, DEPRECATED MODES)

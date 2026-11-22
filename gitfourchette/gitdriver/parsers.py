@@ -45,6 +45,7 @@ UPSTREAMS_FORMAT = "--format=%(refname)%00%(upstream)%00%(upstream:track,nobrack
 UPSTREAM_CONFIG_COMMAND = ["config", "get", "-z", "--all", "--show-names", "--regexp", r"^branch\..+\.(remote|merge)$"]
 "Git command whose output parseUpstreamConfig expects."
 
+
 @dataclasses.dataclass(frozen=True)
 class UpstreamEntry:
     """ One local branch from UPSTREAMS_FORMAT. """
@@ -293,21 +294,27 @@ def parseUpstreams(stdout: str) -> Iterator[UpstreamEntry]:
 
 def parseUpstreamConfig(stdout: str) -> dict[str, tuple[str, str]]:
     """
-    Parse the output of UPSTREAM_CONFIG_COMMAND
-    into a table of local branch refnames to their configured upstream: (branch.<name>.remote,
-    branch.<name>.merge). Like git, skip branches that lack either key, let the last
-    remote win, and take the first merge if there are several.
+    Parse the output of UPSTREAM_CONFIG_COMMAND into a table of local branch
+    refnames to their configured upstream: (branch.*.remote, branch.*.merge).
+    Like Git, skip branches that lack either key, let the last remote win, and
+    take the first merge if there are several.
     """
     remotes: dict[str, str] = {}
     merges: dict[str, str] = {}
+
     for record in stdout.split("\0"):
         if not record:
             continue
+
         key, _newline, value = record.partition("\n")
         branchName, _dot, variable = key.removeprefix("branch.").rpartition(".")
         refName = RefPrefix.HEADS + branchName
+
         if variable == "remote":
             remotes[refName] = value
         else:
             merges.setdefault(refName, value)
-    return {refName: (remote, merges[refName]) for refName, remote in remotes.items() if refName in merges}
+
+    return {refName: (remote, merges[refName])
+            for refName, remote in remotes.items()
+            if refName in merges}
