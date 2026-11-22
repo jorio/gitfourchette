@@ -13,10 +13,24 @@ from . import reposcenario
 from .util import *
 
 
+_conflictScenarioTokensBlob = {
+    "initBase": "echo 'int base;' >",
+    "initOurs": "echo 'int ours;' >",
+    "initTheirs": "echo 'int theirs;' >",
+}
+
+
+_conflictScenarioTokensSymlink = {
+    "initBase": "ln -s base.c",
+    "initOurs": "ln -s ours.c",
+    "initTheirs": "ln -s theirs.c",
+}
+
+
 # These are C files to exercise syntax highlighting in CodeWindow
 _conflictScenarios = {
     GitConflictSides.BothDeleted: """
-        echo 'int dontCare;' > conflict.c
+        {initBase} conflict.c
         git add conflict.c && git commit -m 'initial commit'
 
         git switch -c THEIR-BRANCH
@@ -34,7 +48,7 @@ _conflictScenarios = {
     """,
 
     GitConflictSides.AddedByUs: """
-        echo 'int ours;' > dummy.c
+        {initOurs} dummy.c
         git add dummy.c && git commit -m 'initial commit'
 
         git switch -c THEIR-BRANCH
@@ -49,7 +63,7 @@ _conflictScenarios = {
     """,
 
     GitConflictSides.AddedByThem: """
-        echo 'int theirs;' > dummy.c
+        {initTheirs} dummy.c
         git add dummy.c && git commit -m 'initial commit'
 
         git switch -c THEIR-BRANCH
@@ -64,11 +78,11 @@ _conflictScenarios = {
     """,
 
     GitConflictSides.DeletedByUs: """
-        echo 'int dontCare;' > conflict.c
+        {initBase} conflict.c
         git add conflict.c && git commit -m 'initial commit'
 
         git switch -c THEIR-BRANCH
-        echo 'int theirs;' > conflict.c
+        rm conflict.c && {initTheirs} conflict.c
         git commit -a -m 'they modified'
 
         git switch master
@@ -78,7 +92,7 @@ _conflictScenarios = {
     """,
 
     GitConflictSides.DeletedByThem: """
-        echo 'int dontCare;' > conflict.c
+        {initBase} conflict.c
         git add conflict.c && git commit -m 'initial commit'
 
         git switch -c THEIR-BRANCH
@@ -86,7 +100,7 @@ _conflictScenarios = {
         git commit -a -m 'they deleted'
 
         git switch master
-        echo 'int ours;' > conflict.c
+        rm conflict.c && {initOurs} conflict.c
         git commit -a -m 'we modified'
         git cherry-pick THEIR-BRANCH || true
     """,
@@ -95,25 +109,25 @@ _conflictScenarios = {
         git commit --allow-empty -m 'initial commit'
 
         git switch -c THEIR-BRANCH
-        echo 'int theirs;' > conflict.c
+        {initTheirs} conflict.c
         git add conflict.c && git commit -m 'they added'
 
         git switch master
-        echo 'int ours;' > conflict.c
+        {initOurs} conflict.c
         git add conflict.c && git commit -m 'we added'
         git cherry-pick THEIR-BRANCH || true
     """,
 
     GitConflictSides.BothModified: """
-        echo 'int dontCare;' > conflict.c
+        {initBase} conflict.c
         git add conflict.c && git commit -m 'initial commit'
 
         git switch -c THEIR-BRANCH
-        echo 'int theirs;' > conflict.c
+        rm conflict.c && {initTheirs} conflict.c
         git commit -a -m 'they modified'
 
         git switch master
-        echo 'int ours;' > conflict.c
+        rm conflict.c && {initOurs} conflict.c
         git commit -a -m 'we modified'
         git cherry-pick THEIR-BRANCH || true
     """,
@@ -124,8 +138,9 @@ _conflictScenarios = {
 @pytest.mark.parametrize("keep", ["oursWD", "ours", "theirs"])
 @pytest.mark.parametrize("conflictSides", GitConflictSides)
 def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu, keep):
+    scenario = _conflictScenarios[conflictSides].format(**_conflictScenarioTokensBlob)
     wd = initEmptyRepo(tempDir)
-    shell(_conflictScenarios[conflictSides], directory=wd)
+    shell(scenario, directory=wd)
 
     assert keep in ("oursWD", "ours", "theirs")
     keepOurs = keep in ("oursWD", "ours")
@@ -200,48 +215,76 @@ def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu
 
 
 @requiresSymlinks
-@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
-@pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "context"])
-def testConflictAddedByBothWithSymlinks(tempDir, mainWindow, keepOurs, viaContextMenu):
-    scenario = """
-        git branch OUR-BRANCH
-        git checkout -b THEIR-BRANCH
-        ln -s a added_by_both
-        git add added_by_both
-        git commit -m 'Their Commit'
-
-        git checkout OUR-BRANCH
-        ln -s b added_by_both
-        git add added_by_both
-        git commit -m 'Our Commit'
-
-        git merge THEIR-BRANCH || true
+@pytest.mark.parametrize("keep", ["oursWD", "ours", "theirs"])
+@pytest.mark.parametrize("conflictSides", GitConflictSides)
+def testHardSolveConflictSymlink(tempDir, mainWindow, keep, conflictSides):
+    preamble = """
+        echo 'int base;' > base.c
+        echo 'int ours;' > ours.c
+        echo 'int theirs;' > theirs.c
+        echo 'int workdir;' > workdir.c
+        git add *.c && git commit -m 'initial commit'
     """
+    scenario = preamble + _conflictScenarios[conflictSides].format(**_conflictScenarioTokensSymlink)
 
-    wd = unpackRepo(tempDir)
+    wd = initEmptyRepo(tempDir)
     shell(scenario, directory=wd)
 
-    rw = mainWindow.openRepo(wd)
+    assert keep in ("oursWD", "ours", "theirs")
+    keepOurs = keep in ("oursWD", "ours")
+    keepOursWd = keep == "oursWD"
+    bothDeleted = conflictSides == GitConflictSides.BothDeleted
+    hasBothSides = conflictSides.hasOurs() and conflictSides.hasTheirs()
 
-    symlinkPath = Path(wd, "added_by_both")
-    assert symlinkPath.is_symlink()
-    assert symlinkPath.resolve().samefile(Path(wd, "b"))
-    assert "added_by_both" in rw.repo.index.conflicts
+    rw = mainWindow.openRepo(wd)
+    cv = rw.conflictView
+
+    conflictPath    = Path(wd, "conflict.c")
+    targetTheirs    = Path(wd, "theirs.c")
+    targetOurs      = Path(wd, "ours.c")
+    targetWorkdir   = Path(wd, "workdir.c")
+
+    assert conflictPath.name in rw.repo.index.conflicts
+    if conflictSides.hasOurs():
+        assert conflictPath.is_symlink()
+        assert conflictPath.resolve().samefile(targetOurs)
+
+    if keepOursWd:
+        shell("rm -f conflict.c && ln -s workdir.c conflict.c", wd)
+        rw.refreshRepo()
+
+    assert cv.currentConflict.sides == conflictSides
+    solveButton = (cv.ui.confirmDeletionButton if bothDeleted
+                   else cv.ui.oursButton if keepOurs
+                   else cv.ui.theirsButton)
+    assert solveButton.isVisible()
+    solveButton.click()
+
+    if keepOursWd:
+        qmb = findQMessageBox(rw, "keep our")
+        findWidgetWithText(qmb.buttons(), "keep your edit").click()
+    else:
+        acceptQMessageBox(rw, "confirm deletion" if bothDeleted else "keep our" if keepOurs else "accept their")
 
     if keepOurs:
-        solveButton = rw.conflictView.ui.oursButton
+        expectedTarget = targetWorkdir if keepOursWd else targetOurs if conflictSides.hasOurs() else None
+        expectedStatus = (None if not keepOursWd
+                          else FileStatus.INDEX_MODIFIED if conflictSides.hasOurs()
+                          else FileStatus.INDEX_NEW)
     else:
-        solveButton = rw.conflictView.ui.theirsButton
-    assert solveButton.isVisible()
+        expectedTarget = targetTheirs if conflictSides.hasTheirs() else None
+        expectedStatus = (FileStatus.INDEX_MODIFIED if hasBothSides
+                          else FileStatus.INDEX_NEW if conflictSides.hasTheirs()
+                          else FileStatus.INDEX_DELETED if not bothDeleted
+                          else None)
 
-    if viaContextMenu:
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), "keep our" if keepOurs else "accept their")
+    if expectedTarget is None:
+        assert not conflictPath.exists(follow_symlinks=False)
     else:
-        solveButton.click()
-    acceptQMessageBox(rw, "keep our" if keepOurs else "accept their")
+        assert conflictPath.is_symlink()
+        assert conflictPath.readlink() == expectedTarget.relative_to(wd)
 
-    assert symlinkPath.is_symlink()
-    assert symlinkPath.resolve().samefile(Path(wd, "b" if keepOurs else "a"))
+    assert rw.repo.status().get(conflictPath.name, None) == expectedStatus
     assert rw.repo.index.conflicts is None
 
 
@@ -274,55 +317,9 @@ def testHardSolveSubmoduleConflict(tempDir, mainWindow, keepOurs):
     assert not rw.repo.index.conflicts
 
 
-@pytest.mark.parametrize("viaContextMenuLabel", ["", "keep our", "accept their"])
-def testConflictDeletedByBothWithSymlinks(tempDir, mainWindow, viaContextMenuLabel):
-    scenario = """
-        mkdir -p xxx
-        echo 'hello world' > xxx/zzz
-        git add xxx/zzz
-        git commit -m 'Fork Point'
-
-        git branch OUR-BRANCH
-        git checkout -b THEIR-BRANCH
-        git mv xxx/zzz whateverA
-        git commit -m 'Their Commit'
-
-        git checkout OUR-BRANCH
-        git mv xxx/zzz whateverB
-        rmdir xxx
-        ln -s master.txt xxx  # 'xxx' isn't a directory anymore
-        git commit -m 'Our Commit'
-
-        git merge THEIR-BRANCH || true
-    """
-
-    wd = unpackRepo(tempDir)
-    shell(scenario, directory=wd)
-
-    rw = mainWindow.openRepo(wd)
-    rw.jump(NavLocator.inUnstaged("xxx/zzz"), check=True)
-
-    assert "xxx/zzz" in rw.repo.index.conflicts
-
-    solveButton = rw.conflictView.ui.confirmDeletionButton
-    assert solveButton.isVisible()
-
-    if not viaContextMenuLabel:
-        solveButton.click()
-    else:
-        # The context menu presents two options (accept theirs, keep ours)
-        # because it doesn't have a special case for Deleted By Both.
-        # Both options should yield the same outcome for Deleted By Both.
-        triggerContextMenuAction(rw.dirtyFiles.viewport(), viaContextMenuLabel)
-    acceptQMessageBox(rw, "confirm deletion")
-
-    assert not Path(wd, "xxx/zzz").exists()
-    assert "xxx/zzz" not in rw.repo.index.conflicts
-
-
 def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):
     wd = initEmptyRepo(tempDir)
-    shell(_conflictScenarios[GitConflictSides.DeletedByUs], directory=wd)
+    shell(_conflictScenarios[GitConflictSides.DeletedByUs].format(**_conflictScenarioTokensBlob), directory=wd)
 
     rw = mainWindow.openRepo(wd)
     assert "conflict.c" in rw.repo.index.conflicts
@@ -660,7 +657,7 @@ def testMergeToolDelayedWrite(tempDir, mainWindow):
 
 def testConflictSidePreview(tempDir, mainWindow):
     wd = initEmptyRepo(tempDir)
-    shell(_conflictScenarios[GitConflictSides.DeletedByUs], wd)
+    shell(_conflictScenarios[GitConflictSides.DeletedByUs].format(**_conflictScenarioTokensBlob), wd)
 
     rw = mainWindow.openRepo(wd)
     assert "conflict.c" in rw.repo.index.conflicts

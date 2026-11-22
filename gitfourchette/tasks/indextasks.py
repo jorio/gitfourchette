@@ -485,10 +485,22 @@ class HardSolveConflicts(RepoTask):
             exists = Path(wdAbsPath).exists(follow_symlinks=False)
             return not exists
 
-        # Assume safe if it's not a blob for now (TODO: ?)
-        if ourFile.mode not in (FileMode.UNREADABLE, FileMode.BLOB, FileMode.BLOB_EXECUTABLE):
+        # Assume safe if it's a tree/commit for now (TODO: ?)
+        if ourFile.mode in (FileMode.TREE, FileMode.COMMIT):
             return True
 
+        # Past this point, the file should exist in the workdir. Either it
+        # existed already, or Git created it so we can resolve the conflict.
+        assert Path(wdAbsPath).exists(follow_symlinks=False)
+
+        # Symlink: We're safe if target paths are identical in workdir and appropriate stage
+        if ourFile.mode == FileMode.LINK or (ourFile.mode == FileMode.UNREADABLE and conflict.theirs.mode == FileMode.LINK):
+            stageCompare = conflict.sides.oneSidedStage(fallback=GitConflictStage.Ours)
+            stageData = yield from self._readConflictStage(conflict, stageCompare)
+            wdData = Path(wdAbsPath).readlink().as_posix().encode("utf-8")
+            return wdData == stageData
+
+        # Read data from workdir, with filters (no LFS, though: compare pointers!)
         wdData = self.repo.apply_filters_to_workdir(wdPath)
 
         # File exists on only one side of the conflict:

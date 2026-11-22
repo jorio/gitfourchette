@@ -10,6 +10,7 @@ import re
 import shlex
 import shutil
 import tempfile
+import textwrap
 import warnings
 import zipfile
 from collections.abc import Callable
@@ -997,15 +998,17 @@ def shell(script: str, directory: str, authorSig=TEST_SIGNATURE, committerSig=TE
     assert os.environ.get("GIT_CONFIG_GLOBAL", ""), "fixture didn't set GIT_CONFIG_GLOBAL"
     assert os.environ.get("GIT_CONFIG_SYSTEM", ""), "fixture didn't set GIT_CONFIG_SYSTEM"
 
-    lines = [
+    script = "\n".join([
         "#!/usr/bin/env bash",
         "set -eu",
-    ]
-    lines.extend(f"export {k}={shlex.quote(v)}" for k, v in env.items())
-    lines.append(script)
+        *(f"export {k}={shlex.quote(v)}" for k, v in env.items()),
+        "",
+        "# ---- BEGIN TEST SCENARIO ----",
+        textwrap.dedent(script),
+    ])
 
-    scriptPath = Path(qTempDir(), "scenario.sh")
-    scriptPath.write_text("\n".join(lines), encoding="utf-8")
+    scriptPath = Path(qTempDir(), f"scenario-{hashlib.sha1(script.encode("utf-8")).hexdigest()[:7]}.sh")
+    scriptPath.write_text(script, encoding="utf-8")
     scriptPath.chmod(0o700)
     scriptPath = str(scriptPath)
 
