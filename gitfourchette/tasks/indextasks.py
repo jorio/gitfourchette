@@ -416,8 +416,12 @@ class HardSolveConflicts(RepoTask):
 
         # Restore desired sides, then stage the files to resolve the conflict
         if keepPaths and not keepWd:
-            sideArg = "--ours" if keepOurs else "--theirs"
-            yield from self.flowCallGit("restore", "--progress", sideArg, pathspecs=keepPaths)
+            yield from self.flowCallGit(
+                "restore",
+                "--progress",
+                "--ours" if keepOurs else "--theirs",
+                "--recurse-submodules",
+                pathspecs=keepPaths)
             yield from self.flowCallGit("add", "--force", pathspecs=keepPaths)
         elif keepPaths and keepWd:
             yield from self.flowCallGit("add", pathspecs=keepPaths)
@@ -485,10 +489,6 @@ class HardSolveConflicts(RepoTask):
             exists = Path(wdAbsPath).exists(follow_symlinks=False)
             return not exists
 
-        # Assume safe if it's a tree/commit for now (TODO: ?)
-        if ourFile.mode in (FileMode.TREE, FileMode.COMMIT):
-            return True
-
         # Past this point, the file should exist in the workdir. Either it
         # existed already, or Git created it so we can resolve the conflict.
         assert Path(wdAbsPath).exists(follow_symlinks=False)
@@ -499,6 +499,16 @@ class HardSolveConflicts(RepoTask):
             stageData = yield from self._readConflictStage(conflict, stageCompare)
             wdData = Path(wdAbsPath).readlink().as_posix().encode("utf-8")
             return wdData == stageData
+
+        # Commit: We're safe if target oids are identical in workdir and HEAD
+        # TODO: COMMIT makes sense, but can TREE actually ever conflict?
+        if ourFile.mode in (FileMode.COMMIT, FileMode.TREE):
+            revParse = yield from self.flowCallGit("rev-parse", "HEAD", workdir=wdAbsPath)
+            wdIdHex = revParse.stdoutScrollback().strip()
+            return conflict.ours.id == wdIdHex
+
+        # Past this point, it's a conflict on a regular blob
+        assert ourFile.mode in (FileMode.UNREADABLE, FileMode.BLOB, FileMode.BLOB_EXECUTABLE)
 
         # Read data from workdir, with filters (no LFS, though: compare pointers!)
         wdData = self.repo.apply_filters_to_workdir(wdPath)
@@ -513,6 +523,7 @@ class HardSolveConflicts(RepoTask):
         # Git dumped a WIP merge conflict file in the workdir.
         # Make a dummy merge, and make sure it matches that file in the workdir.
         assert conflict.sides in (GitConflictSides.BothModified, GitConflictSides.BothAdded)
+        assert ourFile.mode in (FileMode.BLOB, FileMode.BLOB_EXECUTABLE)
 
         def dumpSide(stageNumber: GitConflictStage) -> RepoTask.Flow[str]:
             if not conflict.fileFromStageNumber(stageNumber):

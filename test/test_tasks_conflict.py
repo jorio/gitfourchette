@@ -134,6 +134,29 @@ _conflictScenarios = {
 }
 
 
+_conflictScenariosSubmodules = {
+    GitConflictSides.BothModified: """
+        git switch --recurse-submodules -c THEIR-BRANCH
+        git -C submodir commit --allow-empty -m 'their submodule commit'
+        git commit -am 'their submodule bump'
+        git switch --recurse-submodules master
+        git -C submodir commit --allow-empty -m 'our submodule commit'
+        git commit -am 'our submodule bump'
+        git cherry-pick THEIR-BRANCH || true
+    """,
+
+    GitConflictSides.DeletedByThem: """
+        git switch --recurse-submodules -c THEIR-BRANCH
+        git rm -r submodir .gitmodules
+        git commit -m 'they deleted'
+        git switch --recurse-submodules master
+        git -C submodir commit --allow-empty -m 'our submodule commit'
+        git commit -am 'our submodule bump'
+        git cherry-pick THEIR-BRANCH || true
+    """,
+}
+
+
 @pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "menu"])
 @pytest.mark.parametrize("keep", ["oursWD", "ours", "theirs"])
 @pytest.mark.parametrize("conflictSides", GitConflictSides)
@@ -288,33 +311,53 @@ def testHardSolveConflictSymlink(tempDir, mainWindow, keep, conflictSides):
     assert rw.repo.index.conflicts is None
 
 
-@pytest.mark.parametrize("keepOurs", [False, True], ids=["theirs", "ours"])
-def testHardSolveSubmoduleConflict(tempDir, mainWindow, keepOurs):
-    wd = unpackRepo(tempDir)
-    reposcenario.submodule(wd)
-    shell("""
-        git checkout -b THEIR-BRANCH
-        git -C submodir commit --allow-empty -m 'their submodule commit'
-        git commit -am 'their submodule bump'
-        git checkout master
-        git submodule update
-        git -C submodir commit --allow-empty -m 'our submodule commit'
-        git commit -am 'our submodule bump'
-        git merge THEIR-BRANCH || true
-    """, wd)
+@pytest.mark.parametrize("keep", ["oursWD", "ours", "theirs"])
+@pytest.mark.parametrize("conflictSides", [
+    GitConflictSides.BothModified,
+    GitConflictSides.DeletedByThem,
+])
+def testHardSolveConflictSubmodule(tempDir, mainWindow, keep, conflictSides):
+    wd = initEmptyRepo(tempDir)
+    shell("git commit --allow-empty -m 'initial commit'", wd)
+    submoPath, _dummy = reposcenario.submodule(wd, absorb=True)
+    shell(_conflictScenariosSubmodules[conflictSides], wd)
+
+    assert keep in ("oursWD", "ours", "theirs")
+    keepOurs = keep in ("oursWD", "ours")
+    keepOursWd = keep == "oursWD"
 
     rw = mainWindow.openRepo(wd)
     rw.jump(NavLocator.inUnstaged("submodir"), check=True)
     assert "submodir" in rw.repo.index.conflicts
 
-    if keepOurs:
-        rw.conflictView.ui.oursButton.click()
-        acceptQMessageBox(rw, "keep our")
+    if keep == "oursWD":
+        shell("git commit --allow-empty -m 'our submodule commit 2'", submoPath)
+        rw.refreshRepo()
+
+    solveButton = rw.conflictView.ui.oursButton if keepOurs else rw.conflictView.ui.theirsButton
+    assert solveButton.isVisible()
+    assert rw.conflictView.currentConflict.sides == conflictSides
+    solveButton.click()
+
+    if keepOursWd:
+        qmb = findQMessageBox(rw, "keep our")
+        findWidgetWithText(qmb.buttons(), "keep your edit").click()
     else:
-        rw.conflictView.ui.theirsButton.click()
-        acceptQMessageBox(rw, "accept their")
+        acceptQMessageBox(rw, "keep our" if keepOurs else "accept their")
 
     assert not rw.repo.index.conflicts
+
+    if (keepOurs and not conflictSides.hasOurs()) or (not keepOurs and not conflictSides.hasTheirs()):
+        assert not Path(submoPath).exists()
+        return
+
+    finalMessage = {
+        "oursWD": "our submodule commit 2",
+        "ours": "our submodule commit",
+        "theirs": "their submodule commit",
+    }
+    with RepoContext(submoPath) as submoRepo:
+        assert submoRepo.head_commit_message.strip() == finalMessage[keep]
 
 
 def testConflictDoesntPreventManipulatingIndexOnOtherFile(tempDir, mainWindow):

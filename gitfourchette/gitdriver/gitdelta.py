@@ -54,6 +54,9 @@ class GitDelta:
         if self.submoduleStatus == "N...":
             self.submoduleStatus = ""
 
+        if self.conflict:
+            assert self.old.isId0(), "old (stage 0) should be left blank in a conflict"
+
     @property
     def source(self) -> GitDeltaSource:
         return self.new.source

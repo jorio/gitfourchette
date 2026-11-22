@@ -62,60 +62,17 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
     if APP_DEBUG:
         assert not any(d.submoduleStatus.startswith("S") for d in stagedDeltas), "only expecting full submo status in unstaged deltas"
 
-    # Pre-cache LFS state for unstaged files via `git check-attr` if
-    # .gitattributes has any unstaged changes.
-    # LFS state is usually queried via libgit2's git_get_attr. However, it's
-    # unreliable when .gitattributes has unstaged changes, because it falls back
-    # to the indexed revision of .gitattributes when an attr was deleted from
-    # the file but still exists in the index. Ideally, libgit2 should offer a
-    # GIT_ATTR_CHECK_FILE_ONLY flag so we don't have to do this.
-    with Benchmark("check-attr unstaged"):
-        if any(d.new.path.endswith(".gitattributes") for d in unstagedDeltas):
-            unstagedTable = {d.new.path: d for d in unstagedDeltas}
+    # Pre-cache LFS pointers for unstaged files if .gitattributes has any unstaged changes.
+    with Benchmark("check-attr with unstaged .gitattributes"):
+        yield from _loadWorkdirCacheUnstagedLfsPointers(task, unstagedDeltas)
 
-            checkAttrDriver = yield from task.flowCallGit(
-                "check-attr", "-z", "--stdin", "filter", stdin="\0".join(unstagedTable.keys()))
-
-            # Can't use stdoutTable because all fields are zero-separated.
-            tokens = checkAttrDriver.stdoutScrollback().removesuffix("\0").split("\0")
-            for i in range(0, len(tokens), 3):
-                # (filename, attribute, unspecified/unset/set/value) triplets
-                fileName = tokens[i]
-                value = tokens[i + 2]
-                delta = unstagedTable[fileName]
-                delta.new.cacheLfsPointer(task.repo, value)
-
-    # Fill in submodule commit hashes.
+    # Fill in submodule commit hashes from unstaged deltas.
     # (This might be parallelizable if we've got tons of modified submodules)
-    for delta in unstagedDeltas:
-        # Scan for submodules with changes that the superproject isn't tracking yet
-        submoduleUpdated = delta.submoduleStatus.startswith("S")
-        if not submoduleUpdated:
-            continue
+    with Benchmark("unstaged submodule commit hashes"):
+        for delta in unstagedDeltas:
+            yield from _loadWorkdirFillInUnstagedSubmoduleHash(task, delta)
 
-        if delta.status == GitStatus.Deleted:
-            assert delta.new.isId0()
-            continue
-
-        # Work out head commit for this submodule
-        headDidMove = "C" in delta.submoduleStatus
-        if not headDidMove:
-            # The submodule's head hasn't moved.
-            submoduleCommitHash = delta.old.id
-        else:
-            # The submodule's head has moved, but we don't know to what commit,
-            # because "git status" doesn't give this information if unstaged.
-            subDiffDriver = yield from task.flowCallGit("diff", "--submodule=short", "--full-index", pathspecs=[delta.new.path])
-            subDiff = subDiffDriver.stdoutScrollback()
-            match = _submoduleIndexLinePattern.search(subDiff)
-            assert match
-            assert delta.old.id == match.group(1)
-            submoduleCommitHash = match.group(2)
-
-        # Fill in worktree hash
-        assert not delta.new.isIdValid(), f"not expecting id to be filled in right after git status: {delta.new.id}"
-        delta.new.id = submoduleCommitHash
-
+    # Update RepoModel
     repoModel = task.repoModel
     repoModel.workdirUnstagedDeltas = unstagedDeltas
     repoModel.workdirStagedDeltas = stagedDeltas
@@ -137,6 +94,74 @@ def loadWorkdir(task: RepoTask, allowWriteIndex: bool):
 
     # Refresh libgit2 index after git status is complete
     repoModel.repo.refresh_index()
+
+
+def _loadWorkdirCacheUnstagedLfsPointers(task: RepoTask, unstagedDeltas):
+    """
+    Pre-cache LFS pointers for unstaged files via `git check-attr`, only if
+    `.gitattributes` has any unstaged changes.
+
+    LFS state is usually queried via libgit2's git_get_attr. However, it's
+    unreliable when .gitattributes has unstaged changes: libgit2 falls back
+    to the indexed revision of .gitattributes when an attr was deleted from
+    the file but still exists in the index. Ideally, libgit2 should offer a
+    GIT_ATTR_CHECK_FILE_ONLY flag so we don't have to do this.
+    """
+    if not any(d.new.path.endswith(".gitattributes") for d in unstagedDeltas):
+        return
+
+    unstagedTable = {d.new.path: d for d in unstagedDeltas}
+    stdin = "\0".join(unstagedTable.keys())
+    driver = yield from task.flowCallGit("check-attr", "-z", "--stdin", "filter", stdin=stdin)
+
+    # Can't use stdoutTable because all fields are zero-separated.
+    tokens = driver.stdoutScrollback().removesuffix("\0").split("\0")
+    for i in range(0, len(tokens), 3):
+        # (filename, attribute, unspecified/unset/set/value) triplets
+        fileName = tokens[i]
+        value = tokens[i + 2]
+        delta = unstagedTable[fileName]
+        delta.new.cacheLfsPointer(task.repo, value)
+
+
+def _loadWorkdirFillInUnstagedSubmoduleHash(task: RepoTask, delta: GitDelta):
+    # Scan for submodules with changes that the superproject isn't tracking yet
+    submoduleUpdated = delta.submoduleStatus.startswith("S")
+    if not submoduleUpdated:
+        return
+
+    if delta.status == GitStatus.Deleted:
+        assert delta.new.isId0()
+        return
+
+    # Work out head commit for this submodule
+    headDidMove = "C" in delta.submoduleStatus
+    if not headDidMove:
+        # The submodule's head hasn't moved.
+        submoduleCommitHash = delta.old.id
+    else:
+        # The submodule's head has moved, but we don't know to what commit,
+        # because "git status" doesn't give this information if unstaged.
+        driver = yield from task.flowCallGit(
+            "diff",
+            "--submodule=short",
+            "--full-index",
+            *argsIf(bool(delta.conflict), "--ours"),  # don't produce conflict diff
+            pathspecs=[delta.new.path])
+
+        subDiff = driver.stdoutScrollback()
+        match = _submoduleIndexLinePattern.search(subDiff)
+        hashA, hashB = match.groups()
+        submoduleCommitHash = hashB
+
+        if delta.conflict:  # delta.old (stage 0) is blank in a conflict
+            assert hashA == delta.conflict.ours.id
+        else:
+            assert hashA == delta.old.id
+
+    # Fill in worktree hash
+    assert not delta.new.isIdValid(), f"not expecting id to be filled in right after git status: {delta.new.id}"
+    delta.new.id = submoduleCommitHash
 
 
 class Jump(RepoTask):

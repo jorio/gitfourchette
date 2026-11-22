@@ -44,25 +44,25 @@ def statelessConflictingChange(path):
     """, path)
 
 
-def submodule(path, absorb=False):
+def submodule(path: str, absorb=False) -> tuple[str, Oid]:
     subPath = os.path.join(path, "submodir")
     shutil.copytree(path, subPath)
 
     # Make bare copy of submodule so that we can use it as a remote and test UpdateSubmodule
-    makeBareCopy(subPath, "submo-localfs", preFetch=True, barePath=f"{path}/../submodule-bare-copy.git")
+    subRemotePath = makeBareCopy(subPath, "submo-localfs", preFetch=True, barePath=f"{path}/../submodule-bare-copy.git")
 
-    with RepoContext(subPath) as subRepo:
-        subRepo.remotes.delete("origin")  # nuke origin remote to prevent net access in UpdateSubmodule
-        subRepo.branches.local["master"].upstream = subRepo.branches.remote["submo-localfs/master"]
-        subRemoteUrl = subRepo.remotes["submo-localfs"].url
+    shell("""
+        git remote remove origin || true  # nuke origin remote to prevent net access in UpdateSubmodule
+        git branch --set-upstream-to=submo-localfs/master master
+    """, subPath)
 
-    script = [
+    shell(f"""
         # Give submodule a custom name that is different from the path to reveal edge cases
-        f"git submodule add --name submoname -- {shlex.quote(subRemoteUrl)} submodir",
-        "git submodule absorbgitdirs -- submodir" if absorb else "",
-        "git commit -m 'Add Submodule for Test Purposes'",
-    ]
-    shell("\n".join(script), path)
+        git submodule add --name submoname -- {shlex.quote(subRemotePath)} submodir
+        # Absorb (commented out if absorb=False)
+        {"#" if not absorb else ""} git submodule absorbgitdirs -- submodir
+        git commit -m 'Add Submodule for Test Purposes'
+    """, path)
 
     with RepoContext(path) as repo:
         subAddCommit = repo.head_commit_id

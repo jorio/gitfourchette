@@ -184,7 +184,7 @@ def _parseStatus2(x, y, sub, mh, mi, mw, hh, hi, score, newPath, origPath):
 
 
 def _parseStatusConflict(xy, sub, m1, m2, m3, mw, h1, h2, h3, path):
-    indexFile = GitDeltaFile(path=path, source=GitDeltaSource.Index)
+    indexFile = GitDeltaFile(path=path, source=GitDeltaSource.Index)  # no stage 0 in a conflict
     worktreeFile = GitDeltaFile(path=path, id=HexHashFFFF, mode=parseMode(mw), source=GitDeltaSource.Dirty)
 
     sides = GitConflictSides(xy)
