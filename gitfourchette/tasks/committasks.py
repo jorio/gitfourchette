@@ -351,8 +351,8 @@ class SetUpGitIdentity(RepoTask):
         name, email = dlg.identity()
         dlg.deleteLater()
 
-        yield from self.flowCallGit("config", "set", "--global", "--", "user.name", name)
-        yield from self.flowCallGit("config", "set", "--global", "--", "user.email", email)
+        yield from self.flowSetGitConfig("user.name", name, "--global")
+        yield from self.flowSetGitConfig("user.email", email, "--global")
 
         # An existing repo will automatically pick up the new GLOBAL config file,
         # but apparently not the XDG config file... So add it to be sure.
