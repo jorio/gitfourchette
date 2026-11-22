@@ -1042,8 +1042,10 @@ def testFastForwardPossibleCreateMergeCommitAnyway(tempDir, mainWindow):
     commitDialog.reject()
 
 
-def testAbortMerge(tempDir, mainWindow):
+@pytest.mark.parametrize("interfere", ["no", "mixed", "unstage"])
+def testAbortMerge(tempDir, mainWindow, interfere):
     wd = unpackRepo(tempDir, "testrepoformerging")
+
     rw = mainWindow.openRepo(wd)
     assert rw.repo.state() == RepositoryState.NONE
 
@@ -1059,13 +1061,34 @@ def testAbortMerge(tempDir, mainWindow):
     assert rw.repoModel.prefs.draftCommitMessage.startswith("Merge branch 'pep8-fixes'")
     assert rw.repoModel.prefs.isDirty()
 
+    if interfere == "mixed":
+        # Try to abort the merge with a partially-staged file
+        writeFile(f"{wd}/bye.txt", "unstaged change")
+        rw.refreshRepo()
+        rw.mergeBanner.buttons[-1].click()
+        acceptQMessageBox(rw, "cannot abort.+merge.+because a file contains both staged and unstaged")
+        # Undo the partial stage before we try again
+        shell("git checkout bye.txt", wd)
+        assert readTextFile(f"{wd}/bye.txt").strip() == "bye world"
+        rw.refreshRepo()
+    elif interfere == "unstage":
+        shell("git reset bye.txt", wd)
+        rw.refreshRepo()
+    else:
+        assert interfere == "no"
+
     # Abort the merge
     rw.mergeBanner.buttons[-1].click()
     acceptQMessageBox(rw, "abort.+merge")
     assert not rw.mergeBanner.isVisible()
     assert rw.repo.state() == RepositoryState.NONE
-    assert rw.repo.status() == {}
     assert not rw.repoModel.prefs.draftCommitMessage
+
+    if interfere == "unstage":
+        assert rw.repo.status() == {"bye.txt": FileStatus.WT_NEW}
+        assert readTextFile(f"{wd}/bye.txt").strip() == "bye world"
+    else:
+        assert rw.repo.status() == {}
 
 
 def testMergeConcludedByCommit(tempDir, mainWindow):

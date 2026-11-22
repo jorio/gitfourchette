@@ -41,8 +41,9 @@ def _removeReadOnly(func, path, exc):
             or os.path.islink(path)
             or os.path.isjunction(path)):
         raise exc
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
+    else:  # pragma: no cover - Windows only
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
 
 
 def deleteUntrackedFiles(repo: Repo, paths: list[str]):
@@ -288,12 +289,9 @@ class UnstageFiles(_BaseStagingTask):
 
 class DiscardModeChanges(_BaseStagingTask):
     def flow(self, deltas: list[GitDelta]):
+        assert deltas  # not callable from hotkey, so selection shouldn't be empty
         paths = [delta.new.path for delta in deltas]
         numFiles = len(paths)
-
-        if numFiles == 0:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
-            QApplication.beep()
-            raise AbortTask()
 
         text = paragraphs(
             (_("Really discard mode change in {0}?", bquo(paths[0]))
@@ -310,10 +308,7 @@ class DiscardModeChanges(_BaseStagingTask):
 
 class UnstageModeChanges(_BaseStagingTask):
     def flow(self, deltas: list[GitDelta]):
-        if not deltas:  # Nothing to unstage (may happen if user keeps pressing Delete in file list view)
-            QApplication.beep()
-            raise AbortTask()
-
+        assert deltas  # not callable from hotkey, so selection shouldn't be empty
         yield from self.flowEnterWorkerThread()
         self.epilog.effects |= TaskEffects.Workdir
 
@@ -679,6 +674,13 @@ class OpenMergeTool(RepoTask):
 
 class PreviewDeltaFile(RepoTask):
     def flow(self, df: GitDeltaFile, prefix: str, registerCallback: Callable[[CodeWindow], None]):
+        assert df.isIdValid()
+        ident = hash(df.id) ^ hash(df.path)
+
+        # Raise existing window, if any
+        if CodeWindow.activateExistingWindow(ident):
+            return
+
         # Don't load large files
         maxFileSize = settings.prefs.largeFileThresholdKB * 1024
         if maxFileSize != 0 and GitDeltaFile.SupportsFastSizeBallpark:
@@ -694,12 +696,6 @@ class PreviewDeltaFile(RepoTask):
         pathObj = Path(path)
         text = pathObj.read_text("utf-8")
         pathObj.unlink()
-
-        ident = hash(text) ^ hash(df.path)
-
-        # Raise existing window, if any
-        if CodeWindow.activateExistingWindow(ident):
-            return
 
         codeWindow = CodeWindow(uniqueIdentifier=ident)
         codeWindow.setPlainText(text, df.path)

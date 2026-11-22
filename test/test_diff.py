@@ -1012,6 +1012,27 @@ def testRevertLineSelection(tempDir, mainWindow,
 
 
 @pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
+def testRevertLineSelectionContextLinesOnly(tempDir, mainWindow):
+    wd = initEmptyRepo(tempDir)
+
+    shell("""
+        printf 'Criquette\nAshley\nBrett\nBrad\nBrenda\n' > rockwell.txt
+        git add rockwell.txt && git commit -m 'initial commit'
+
+        printf 'Criquette\nAshley\nMadge\nBrad\nBrenda\n' > rockwell.txt
+        git commit -am 'swap out middle line'
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    dv = rw.diffView
+    rw.jump(NavLocator.inRef("HEAD", "rockwell.txt"))
+    qteSelectBlocks(dv, 1, 2)
+    assert dv.textCursor().selectedText().splitlines() == ["Criquette", "Ashley"]
+    triggerContextMenuAction(dv.gutter, "revert lines")
+    acceptQMessageBox(rw, "nothing to apply in the selection")
+
+
+@pytest.mark.skipif(QT5, reason="qteSelectBlocks finicky in Qt 5")
 def testRevertLineSelectionDontUseTooMuchContext(tempDir, mainWindow):
     rev1 = textwrap.dedent("""\
         1

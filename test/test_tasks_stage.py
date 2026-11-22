@@ -370,3 +370,49 @@ def testHookCanUseGlobPathspecs(tempDir, mainWindow):
     doStage(rw, "button")
 
     assert "master.txt" == readTextFile(f"{wd}/.git/hook-ran").strip()
+
+
+def testStageNothingBeep(tempDir, mainWindow, monkeypatch):
+    wd = unpackRepo(tempDir)
+    rw = mainWindow.openRepo(wd)
+
+    beepSpy = CallSpy(monkeypatch, QApplication, "beep")
+
+    doStage(rw, "key")
+    doUnstage(rw, "key")
+    doDiscard(rw, "key")
+
+    assert beepSpy.completeCalls == 3
+
+
+def testStageHotkeySpamming(tempDir, mainWindow, monkeypatch):
+    wd = unpackRepo(tempDir)
+
+    writeFile(f"{wd}/spam0", "spam")
+    writeFile(f"{wd}/spam1", "spam")
+    writeFile(f"{wd}/spam2", "spam")
+
+    rw = mainWindow.openRepo(wd)
+
+    from gitfourchette.tasks import StageFiles
+    spy = CallSpy(monkeypatch, StageFiles, "canKill")
+
+    rw.dirtyFiles.setFocus()
+    waitUntilTrue(rw.dirtyFiles.hasFocus)
+
+    with (
+        AsynchronousTaskContext(rw.taskRunner),
+        DelayGitCommandContext(delay=1),
+    ):
+        QTest.keyClick(rw.dirtyFiles, Qt.Key.Key_Return)  # Stage spam0
+        QTest.keyClick(rw.dirtyFiles, Qt.Key.Key_Down)    # Select spam1 (queue up Jump)
+        QTest.keyClick(rw.dirtyFiles, Qt.Key.Key_Return)  # Queue up stage spam1 (kill Jump)
+
+    assert spy.completeCalls == 1  # canKill should have been called
+
+    assert rw.repo.status() == {
+        "spam0": FileStatus.INDEX_NEW,
+        "spam1": FileStatus.INDEX_NEW,
+        "spam2": FileStatus.WT_NEW,
+    }
+

@@ -4,19 +4,24 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import textwrap
+
 from gitfourchette import trtables
 from gitfourchette.codeview.codewindow import CodeWindow
-from gitfourchette.gitdriver import GitConflictSides
+from gitfourchette.gitdriver import GitConflictSides, GitDeltaFile
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from . import reposcenario
 from .util import *
 
 
+_largeFileFiller = "".join(f"\n// filler {i}" for i in range(100))
+
+
 _conflictScenarioTokensBlob = {
-    "initBase": "echo 'int base;' >",
-    "initOurs": "echo 'int ours;' >",
-    "initTheirs": "echo 'int theirs;' >",
+    "initBase": f"echo 'int base;{_largeFileFiller}' >",
+    "initOurs": f"echo 'int ours;{_largeFileFiller}' >",
+    "initTheirs": f"echo 'int theirs;{_largeFileFiller}' >",
 }
 
 
@@ -227,7 +232,7 @@ def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu
                           else None)
 
     if expectedContents is not None:
-        assert readTextFile(str(conflictPath)).strip() == expectedContents
+        assert readTextFile(str(conflictPath)).startswith(expectedContents)
     else:
         assert not conflictPath.exists()
 
@@ -309,6 +314,65 @@ def testHardSolveConflictSymlink(tempDir, mainWindow, keep, conflictSides):
 
     assert rw.repo.status().get(conflictPath.name, None) == expectedStatus
     assert rw.repo.index.conflicts is None
+
+
+def testHardSolveConflictBulkSelection(tempDir, mainWindow):
+    N = 6
+    wd = initEmptyRepo(tempDir)
+    shell(f"""
+        {"\n".join(f"echo 'base' > conflict{i}" for i in range(N))}
+        git add conflict* && git commit -m 'initial commit'
+
+        git switch -c THEIR-BRANCH
+        {"\n".join(f"echo 'theirs' > conflict{i}" for i in range(N))}
+        git commit -a -m 'they modified'
+
+        git switch master
+        {"\n".join(f"echo 'ours' > conflict{i}" for i in range(N))}
+        git commit -a -m 'we modified'
+        git cherry-pick THEIR-BRANCH || true
+
+        echo 'workdir' > conflict0
+        echo 'workdir' > conflict1
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    flv = rw.dirtyFiles
+
+    def select(*rows: int):
+        mod = Qt.KeyboardModifier.NoModifier
+        for row in rows:
+            qlvClickNthRow(flv, row, mod)
+            mod = Qt.KeyboardModifier.ControlModifier
+
+    # Keep OURS blocked for bulk selection if any of the files was changed in the workdir
+    select(0, 1)  # only wd modified files
+    triggerContextMenuAction(flv.viewport(), "keep our")
+    acceptQMessageBox(rw, "conflict.+was modified in the work.+please review")
+    select(0, 3, 4)  # 1 wd modified file + some other files
+    triggerContextMenuAction(flv.viewport(), "keep our")
+    acceptQMessageBox(rw, "conflict.+was modified in the work.+please review")
+
+    # Keep OURS 4-5
+    select(4, 5)
+    triggerContextMenuAction(flv.viewport(), "keep our")
+    acceptQMessageBox(rw, "resolve conflicts on 2 files")
+
+    # Accept THEIRS 2-3
+    select(2, 3)
+    triggerContextMenuAction(flv.viewport(), "accept their")
+    acceptQMessageBox(rw, "resolve conflicts on 2 files")
+
+    # Check result
+    contents = [readTextFile(f"{wd}/conflict{i}").strip() for i in range(N)]
+    assert contents == ["workdir"]*2 + ["theirs"]*2 + ["ours"]*2
+
+    # Accept THEIRS 0-1 (THEIRS not blocked by workdir change)
+    select(0, 1)
+    triggerContextMenuAction(flv.viewport(), "accept their")
+    acceptQMessageBox(rw, "resolve conflicts on 2 files")
+    contents = [readTextFile(f"{wd}/conflict{i}").strip() for i in range(N)]
+    assert contents == ["theirs"]*4 + ["ours"]*2
 
 
 @pytest.mark.parametrize("keep", ["oursWD", "ours", "theirs"])
@@ -699,6 +763,8 @@ def testMergeToolDelayedWrite(tempDir, mainWindow):
 
 
 def testConflictSidePreview(tempDir, mainWindow):
+    GFApplication.applyPrefs(largeFileThresholdKB=1)
+
     wd = initEmptyRepo(tempDir)
     shell(_conflictScenarios[GitConflictSides.DeletedByUs].format(**_conflictScenarioTokensBlob), wd)
 
@@ -710,11 +776,16 @@ def testConflictSidePreview(tempDir, mainWindow):
     cv = rw.conflictView
     assert not cv.ui.oursPreviewButton.isEnabled()
     assert cv.ui.theirsPreviewButton.isEnabled()
+
     cv.ui.theirsPreviewButton.click()
+
+    # Cover large-file detection
+    if GitDeltaFile.SupportsFastSizeBallpark:  # only available in pygit2 1.19.2+
+        acceptQMessageBox(rw, "this file is very large")
 
     window = findWindow("their.+conflict.c", t=CodeWindow)
     waitUntilTrue(lambda: QApplication.activeWindow() is window)
-    assert window.codeView.toPlainText().strip() == 'int theirs;'
+    assert window.codeView.toPlainText().startswith('int theirs;')
 
     # Ensure that clicking the button again re-raises the existing window.
     # Bring mainWindow back to the foreground first.
@@ -751,3 +822,106 @@ def testConflictSidesHasOursHasTheirs():
     assert get(GitConflictSides.DeletedByUs) == (False, True)
     assert get(GitConflictSides.BothAdded) == (True, True)
     assert get(GitConflictSides.BothModified) == (True, True)
+
+
+def testWorkdirSafetyCheckDummyMergeEdgeCases():
+    original = """\
+        <<<<<<< HEAD
+        ours
+        =======
+        theirs
+        >>>>>>> their-branch
+    """
+
+    passCases = [
+        # Unchanged file
+        original,
+
+        # Only change the conflict markers
+        """\
+        <<<<<<< DUMMYMARKER
+        ours
+        =======
+        theirs
+        >>>>>>> DUMMYMARKER
+        """,
+    ]
+
+    failCases = [
+        # Solved manually with keep OURS, accept THEIRS, or something else
+        "ours\n",
+        "theirs\n",
+        "yoink\n",
+        "",
+
+        # Change in line endings
+        original.replace("\n", "\r"),
+        original.replace("\n", "\r\n"),
+
+        # Deleted line (line count check should bail early)
+        """\
+        <<<<<<< HEAD
+        ours
+        =======
+        >>>>>>> their-branch
+        """,
+
+        # Added line (line count check should bail early)
+        """\
+        <<<<<<< HEAD
+        ours
+        =======
+        theirs
+        theirs
+        >>>>>>> their-branch
+        """,
+
+        # Same line count, changed one
+        """\
+        <<<<<<< HEAD
+        ours
+        =======
+        yoink
+        >>>>>>> their-branch
+        """,
+
+        # Same line count, foreign markers
+        """\
+        <<<<<<< FOREIGNMARKER
+        ours
+        =======
+        theirs
+        >>>>>>> FOREIGNMARKER
+        """,
+
+        # Same line count, shift existing line down (cover b2-b1 != a2-a1)
+        """\
+        <<<<<<< HEAD
+        yoink
+        yoink
+        =======
+        >>>>>>> their-branch
+        """,
+
+        # Same line count, trigger 'delete' + 'insert' opcodes
+        """\
+        <<<<<<< HEAD
+        =======
+        >>>>>>> their-branch
+        yoink
+        yoink
+        """,
+    ]
+
+    def compare(x, y):
+        from gitfourchette.tasks import HardSolveConflicts
+        return HardSolveConflicts._workdirSafetyCheckCompareToDummyMerge(
+            textwrap.dedent(x).encode("utf-8"),
+            textwrap.dedent(y).encode("utf-8"),
+            b"DUMMYMARKER")
+
+    for case in passCases:
+        assert compare(original, case)
+
+    for case in failCases:
+        assert not compare(original, case)
