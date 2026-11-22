@@ -121,15 +121,18 @@ _conflictScenarios = {
 
 
 @pytest.mark.parametrize("viaContextMenu", [False, True], ids=["button", "menu"])
-@pytest.mark.parametrize("keepOurs", [True, False], ids=["ours", "theirs"])
+@pytest.mark.parametrize("keep", ["oursWD", "ours", "theirs"])
 @pytest.mark.parametrize("conflictSides", GitConflictSides)
-def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu, keepOurs):
+def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu, keep):
     wd = initEmptyRepo(tempDir)
     shell(_conflictScenarios[conflictSides], directory=wd)
 
-    conflictPath = Path(wd, "conflict.c")
-    hasBothSides = conflictSides.hasOurs() and conflictSides.hasTheirs()
+    assert keep in ("oursWD", "ours", "theirs")
+    keepOurs = keep in ("oursWD", "ours")
+    keepOursWd = keep == "oursWD"
     bothDeleted = conflictSides == GitConflictSides.BothDeleted
+    hasBothSides = conflictSides.hasOurs() and conflictSides.hasTheirs()
+    conflictPath = Path(wd, "conflict.c")
 
     rw = mainWindow.openRepo(wd)
     cv = rw.conflictView
@@ -146,8 +149,12 @@ def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu
         assert (">>>>>>>" in readTextFile(str(conflictPath))) == hasBothSides
         button = cv.ui.oursButton if keepOurs else cv.ui.theirsButton
 
+    if keepOursWd:
+        writeFile(str(conflictPath), "int workdir;")
+        rw.refreshRepo()
+
     cmLabel = "keep our" if keepOurs else "accept their"
-    qmbLabel = "confirm deletion" if bothDeleted else cmLabel
+    qmbLabel = "keep your edit" if keepOursWd else "confirm deletion" if bothDeleted else cmLabel
 
     # Jump to conflict
     rw.jump(NavLocator.inUnstaged(conflictPath.name), check=True)
@@ -161,12 +168,19 @@ def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu
         button.click()
     else:
         triggerContextMenuAction(rw.dirtyFiles.viewport(), cmLabel)
-    acceptQMessageBox(rw, qmbLabel)
+
+    qmb = findQMessageBox(rw, qmbLabel)
+    if keepOursWd:
+        findWidgetWithText(qmb.buttons(), "keep your edit").click()
+    else:
+        qmb.accept()
 
     # Check outcome
     if keepOurs:
-        expectedContents = "int ours;" if conflictSides.hasOurs() else None
-        expectedStatus = None
+        expectedContents = "int workdir;" if keepOursWd else "int ours;" if conflictSides.hasOurs() else None
+        expectedStatus = (None if not keepOursWd
+                          else FileStatus.INDEX_MODIFIED if conflictSides.hasOurs()
+                          else FileStatus.INDEX_NEW)
     else:
         expectedContents = "int theirs;" if conflictSides.hasTheirs() else None
         expectedStatus = (FileStatus.INDEX_MODIFIED if hasBothSides
@@ -178,7 +192,9 @@ def testHardSolveConflictBlob(tempDir, mainWindow, conflictSides, viaContextMenu
         assert readTextFile(str(conflictPath)).strip() == expectedContents
     else:
         assert not conflictPath.exists()
+
     assert rw.repo.status().get(conflictPath.name, None) == expectedStatus
+    assert rw.repo.index.conflicts is None
 
     assert rw.repo.index.conflicts is None
 

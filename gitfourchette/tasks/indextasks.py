@@ -4,12 +4,14 @@
 # For full terms, see the included LICENSE file.
 # -----------------------------------------------------------------------------
 
+import difflib
 import logging
 import os
 import shutil
 import stat
 from pathlib import Path
 from collections.abc import Callable
+import uuid
 
 from gitfourchette import trtables
 from gitfourchette import settings
@@ -17,6 +19,7 @@ from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.gitdriver import *
+from gitfourchette.gitdriver.gitconflict import GitConflictStage
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
@@ -381,13 +384,21 @@ class ApplyPatch(RepoTask):
 
 class HardSolveConflicts(RepoTask):
     def flow(self, conflicts: list[GitConflict], keepOurs: bool):
-        # First ask for confirmation
-        yield from self._confirm(conflicts, keepOurs)
+        keepWd, confirm = False, True
+        if keepOurs:
+            keepWd, confirm = yield from self._oursSafetyCheck(conflicts)
+
+        if confirm:
+            yield from self._confirm(conflicts, keepOurs)
 
         # Sort files in 'keep' and 'nuke' buckets
         files = [c.ours if keepOurs else c.theirs for c in conflicts]
-        keepPaths = [f.path for f in files if not f.isId0()]
-        nukePaths = [f.path for f in files if f.isId0()]
+        if not keepWd:
+            keepPaths = [f.path for f in files if not f.isId0()]
+            nukePaths = [f.path for f in files if f.isId0()]
+        else:
+            keepPaths = [f.path for f in files]
+            nukePaths = []
 
         # Back up nuked files + THEIRS
         if Trash.enabled():
@@ -404,10 +415,12 @@ class HardSolveConflicts(RepoTask):
         self.epilog.effects |= TaskEffects.Workdir
 
         # Restore desired sides, then stage the files to resolve the conflict
-        if keepPaths:
+        if keepPaths and not keepWd:
             sideArg = "--ours" if keepOurs else "--theirs"
             yield from self.flowCallGit("restore", "--progress", sideArg, pathspecs=keepPaths)
             yield from self.flowCallGit("add", "--force", pathspecs=keepPaths)
+        elif keepPaths and keepWd:
+            yield from self.flowCallGit("add", pathspecs=keepPaths)
 
         # Stage deletions to resolve the conflict
         if nukePaths:
@@ -420,6 +433,140 @@ class HardSolveConflicts(RepoTask):
                 break
 
         self.epilog.status = _n("Conflict resolved.", "{n} conflicts resolved.", len(conflicts))
+
+    def _oursSafetyCheck(self, conflicts: list[GitConflict]) -> RepoTask.Flow[tuple[bool, bool]]:
+        unsafeConflicts: list[GitConflict] = []
+
+        def fileEditedMessage() -> str:
+            return _("{0} was modified in the working directory since the conflict was detected.",
+                     bquo(Path(unsafeConflicts[0].ours.path).name))
+
+        for conflict in conflicts:
+            workdirMatch = yield from self._workdirSafetyCheck(conflict)
+            if workdirMatch:
+                continue
+            unsafeConflicts.append(conflict)
+            if len(conflicts) > 1:
+                sorry = paragraphs(fileEditedMessage(), _("Please review the files individually."))
+                raise AbortTask(sorry)
+
+        if not unsafeConflicts:
+            return False, True
+
+        keepEdit = _p("keep edited version of a file", "Keep Your Edit")
+        keepHead = _p("keep head version of a file", "Restore From HEAD")
+
+        message = paragraphs(
+            fileEditedMessage(),
+            _("Which version do you want to keep?"),
+            toRoomyUL([
+                f"{btag(keepEdit + _(':'))} " + _("Keep your manual edit as it is in the working directory."),
+                f"{btag(keepHead + _(':'))} " + _("Restore the file from the tip of your branch. "
+                                                  "Your manual edit will be lost."),
+            ]),
+            _("Either way, THEIR version will be rejected, "
+              "and the conflict will be marked as resolved."))
+
+        choice = yield from self.flowConfirm(_("Keep OUR version"), message, verb=keepEdit, actionButton=keepHead)
+
+        return choice == keepEdit, False
+
+    def _workdirSafetyCheck(self, conflict: GitConflict) -> RepoTask.Flow[bool]:
+        """Return True if the file in an "ours" conflict resolution is safe to
+        restore from HEAD, i.e. the user has NOT modified it in the workdir."""
+
+        ourFile = conflict.ours
+        wdPath = ourFile.path
+        wdAbsPath = self.repo.in_workdir(wdPath)
+
+        # File doesn't exist on either side of the conflict:
+        # We're safe if the user didn't recreate the file in the workdir
+        if conflict.sides == GitConflictSides.BothDeleted:
+            exists = Path(wdAbsPath).exists(follow_symlinks=False)
+            return not exists
+
+        # Assume safe if it's not a blob for now (TODO: ?)
+        if ourFile.mode not in (FileMode.UNREADABLE, FileMode.BLOB, FileMode.BLOB_EXECUTABLE):
+            return True
+
+        wdData = self.repo.apply_filters_to_workdir(wdPath)
+
+        # File exists on only one side of the conflict:
+        # We're safe if the workdir contains that side verbatim
+        if (stageCompare := conflict.sides.oneSidedStage()) != GitConflictStage.Unknown:
+            stageData = yield from self._readConflictStage(conflict, stageCompare)
+            return wdData == stageData
+
+        # File exists on both sides of the conflict (AA or UU):
+        # Git dumped a WIP merge conflict file in the workdir.
+        # Make a dummy merge, and make sure it matches that file in the workdir.
+        assert conflict.sides in (GitConflictSides.BothModified, GitConflictSides.BothAdded)
+
+        def dumpSide(stageNumber: GitConflictStage) -> RepoTask.Flow[str]:
+            if not conflict.fileFromStageNumber(stageNumber):
+                return "/dev/null"
+            # If side missing, git show exits with 128. Should have been caught above.
+            data = yield from self._readConflictStage(conflict, stageNumber)
+            tempFile = writeTemporaryFile(data, f"wdcheck{stageNumber}", parent=self)
+            return tempFile.fileName()
+
+        tempOurs = yield from dumpSide(GitConflictStage.Ours)
+        tempTheirs = yield from dumpSide(GitConflictStage.Theirs)
+        tempAncestor = yield from dumpSide(GitConflictStage.Ancestor)
+
+        # Tag conflict markers with a random string that's unlikely to be in the file
+        dummyMarker = f"{APP_SYSTEM_NAME}-wdcheck-{uuid.uuid4().hex}"
+        assert dummyMarker.encode() not in wdData, "terrible luck, wd data contains dummy marker!"
+
+        driver = yield from self.flowCallGit(
+            "merge-file",
+            "--stdout",
+            "-L", dummyMarker,  # ours (typically HEAD)
+            "-L", dummyMarker,  # ancestor
+            "-L", dummyMarker,  # theirs
+            tempOurs,
+            tempAncestor,
+            tempTheirs,
+            autoFail=False)
+
+        if driver.exitCode() not in (0, 1):
+            raise AbortTask.fromGitError(driver, message="workdir safety check failed")
+
+        mergeText = driver.stdoutScrollback()  # TODO: stdout scrollback as bytes
+        mergeData = mergeText.encode("utf-8")
+
+        # We're safe if mergeData only differs from wdData in the conflict markers
+        return self._workdirSafetyCheckCompareToDummyMerge(wdData, mergeData, dummyMarker.encode())
+
+    @staticmethod
+    def _workdirSafetyCheckCompareToDummyMerge(dataA: bytes, dataB: bytes, dummyMarkerB: bytes) -> bool:
+        linesA = dataA.splitlines(keepends=True)
+        linesB = dataB.splitlines(keepends=True)
+
+        if len(linesA) != len(linesB):
+            return False
+
+        matcher = difflib.SequenceMatcher(None, linesA, linesB)
+
+        for tag, a1, a2, b1, b2 in matcher.get_opcodes():
+            if tag == "replace":
+                n = b2 - b1
+                if n != a2 - a1:
+                    return False
+                for i in range(b1, b1 + n):
+                    if not linesB[i].rstrip().endswith(dummyMarkerB):
+                        return False
+            elif tag != "equal":
+                return False
+
+        return True
+
+    def _readConflictStage(self, conflict: GitConflict, stage: GitConflictStage) -> RepoTask.Flow[bytes]:
+        # Not using file.read(repo), that'd unpack an LFS ptr
+        file = conflict.fileFromStageNumber(stage)
+        driver = yield from self.flowCallGit("show", f":{stage}:{file.path}")
+        # TODO: Get stdout binary data from GitDriver and skip the encode
+        return driver.stdoutScrollback().encode("utf-8")
 
     def _confirm(self, conflicts: list[GitConflict], keepOurs: bool):
         title = _n("Resolve conflict", "Resolve {n} conflicts", len(conflicts))
