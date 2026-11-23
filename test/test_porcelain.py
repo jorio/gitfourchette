@@ -178,3 +178,27 @@ def testPollFileChangeIgnoresAccessTime(tempDir):
         missingPath = f"{wd}/no-such-file"
         assert repo.poll_file_change("missing", missingPath)  # first poll
         assert not repo.poll_file_change("missing", missingPath)
+
+
+def testSubmoduleGitdirConflict(tempDir):
+    from gitfourchette.porcelain import submodule_gitdir_conflict
+
+    modules = Path(tempDir.name, "modules")
+    (modules / "gone").mkdir(parents=True)
+    (modules / "gone" / "HEAD").write_text("ref: refs/heads/master\n")
+    (modules / "libs" / "foo").mkdir(parents=True)
+    (modules / "libs" / "foo" / "HEAD").write_text("ref: refs/heads/master\n")
+    (modules / "empty").mkdir()
+
+    def conflict(name):
+        found = submodule_gitdir_conflict(str(modules), name)
+        return Path(found).relative_to(modules).as_posix() if found else ""
+
+    assert conflict("new") == ""
+    assert conflict("empty") == ""  # Git moves the repository into an empty directory
+    assert conflict("gone") == "gone"  # Left over from a removed submodule
+    assert conflict("/gone") == "gone"  # Git ignores the leading slash
+    assert conflict("libs") == "libs"  # Not a repository, but not empty either
+    assert conflict("gone/hooks") == "gone"  # Inside another submodule's repository
+    assert conflict("gone/new/deeper") == "gone"
+    assert conflict(".") == "."

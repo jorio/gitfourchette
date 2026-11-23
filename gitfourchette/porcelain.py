@@ -216,6 +216,35 @@ def split_remote_branch_shorthand(remote_branch_name: str) -> tuple[str, str]:
         return remote_branch_name, ""
 
 
+def submodule_gitdir_conflict(modules_dir: str, name: str) -> str:
+    """
+    Return the directory that keeps Git from storing submodule `name`'s
+    repository in `modules_dir`, or an empty string if there's none.
+
+    Like Git's submodule_name_to_gitdir and validate_submodule_git_dir: the
+    repository goes in <modules_dir>/<name>, which must not be inside another
+    submodule's repository (e.g. "foo/hooks" would land in foo's hooks), nor
+    be a file or a non-empty directory (a removed submodule leaves its
+    repository there).
+    """
+    # Join like Git's "modules/%s": a leading "/" in the name doesn't make it absolute
+    modules = _Path(modules_dir)
+    gitdir = _Path(f"{modules_dir}/{name}")
+    if gitdir == modules or not gitdir.is_relative_to(modules):
+        return str(gitdir)
+
+    for parent in gitdir.parents:
+        if parent == modules:
+            break
+        if (parent / "HEAD").is_file():
+            return str(parent)
+
+    if gitdir.is_file() or (gitdir.is_dir() and any(gitdir.iterdir())):
+        return str(gitdir)
+
+    return ""
+
+
 def validate_refname(name: str, reserved_names: list[str], allow_dash_prefix: bool = False):
     """
     Checks the validity of a ref name according to `man git-check-ref-format`.
