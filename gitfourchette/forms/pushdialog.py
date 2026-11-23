@@ -203,11 +203,11 @@ class PushDialog(QDialog):
         with QSignalBlockerContext(comboBox):
             comboBox.clear()
 
-            for remoteName, branchNames in self.repo.listall_remote_branches(value_style="shorthand").items():
+            for remoteName, branchNames in self.repo.listall_remote_branches(self.repoModel.remotes, value_style="shorthand").items():
                 if comboBox.count() != 0:
                     comboBox.insertSeparator(comboBox.count())
 
-                remoteUrl = self.repo.remotes[remoteName].url
+                remoteUrl = self.repoModel.remotes[remoteName]
                 for shorthand in sorted(branchNames, key=naturalSort):
                     isTracked = shorthand == currentUpstream
                     caption = shorthand
@@ -227,7 +227,7 @@ class PushDialog(QDialog):
         super().__init__(parent)
         repo = repoModel.repo
         self.repoModel = repoModel
-        self.reservedRemoteBranchNames = repo.listall_remote_branches()
+        self.reservedRemoteBranchNames = repo.listall_remote_branches(repoModel.remotes)
         self.widgetsWereEnabled: list[bool] = []
 
         self.ui = Ui_PushDialog()

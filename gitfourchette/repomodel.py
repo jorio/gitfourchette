@@ -134,8 +134,8 @@ class RepoModel:
     initializedSubmodules: set[str]
     "Set of submodule names that are registered in .gitmodules."
 
-    remotes: list[str]
-    "List of remote names."
+    remotes: dict[str, str]
+    "Remote names, with the URL that Git fetches from (see parseRemotes)."
 
     trackedUpstreams: dict[str, str]
     """
@@ -232,7 +232,7 @@ class RepoModel:
         self.stashes = []
         self.submodules = {}
         self.initializedSubmodules = set()
-        self.remotes = []
+        self.remotes = {}  # filled in by PrimeRepo via syncRemotes (needs git call)
         self.trackedUpstreams = {}  # filled in by PrimeRepo via syncUpstreams (needs git call)
         self._upstreamConfig = {}  # filled in by PrimeRepo via syncUpstreamConfig (needs git call)
         self.rebase = None
@@ -261,7 +261,6 @@ class RepoModel:
         self.syncMergeheads()
         self.syncStashes()
         self.syncSubmodules()
-        self.syncRemotes()
         self.syncRebaseInfo()
 
     def __del__(self):
@@ -397,25 +396,21 @@ class RepoModel:
 
         return False
 
-    @benchmark
-    def syncRemotes(self):
-        # We could infer remote names from refCache, but we don't want
-        # to miss any "blank" remotes that don't have any branches yet.
-        # RemoteCollection.names() is much faster than iterating on RemoteCollection itself
-        remotes = self.repo.listall_remotes_fast()
+    def syncRemotes(self, remotes: dict[str, str]) -> bool:
+        """ Replace `remotes`. Return True if they changed. """
         if remotes != self.remotes:
             self.remotes = remotes
             return True
         return False
 
-    def pollUpstreamConfig(self) -> bool:
+    def pollConfig(self) -> bool:
         """
         Return True if the repo config changed since the last poll. If it did,
-        `syncUpstreamConfig` and `syncUpstreams` should run again even if no
-        refs have moved.
+        `syncRemotes`, `syncUpstreamConfig` and `syncUpstreams` should run again
+        even if no refs have moved.
         """
         configPath = self.repo.in_gitdir("config", common=True)
-        return self.repo.poll_file_change("upstreams", configPath)
+        return self.repo.poll_file_change("config", configPath)
 
     def syncUpstreamConfig(self, upstreamConfig: dict[str, tuple[str, str]]) -> bool:
         """ Replace `_upstreamConfig`. Return True if it changed. """

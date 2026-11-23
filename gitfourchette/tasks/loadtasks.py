@@ -13,7 +13,8 @@ from gitfourchette.forms.repostub import RepoStub
 from gitfourchette.gitdriver import GitDelta, GitDeltaFile, GitStatus, GitConflict, GitDriver
 from gitfourchette.gitdriver.gitdeltafile import WorkdirHashMismatch
 from gitfourchette.gitdriver.lfspointer import LfsObjectCacheMissingError
-from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_COMMAND, UPSTREAMS_FORMAT, parseUpstreamConfig, parseUpstreams
+from gitfourchette.gitdriver.parsers import (
+    REMOTES_COMMAND, UPSTREAM_CONFIG_COMMAND, UPSTREAMS_FORMAT, parseRemotes, parseUpstreamConfig, parseUpstreams)
 from gitfourchette.syntax.lexercache import LexerCache
 from gitfourchette.syntax.lexjob import LexJob
 from gitfourchette.syntax.lexjobcache import LexJobCache
@@ -31,6 +32,16 @@ logger = logging.getLogger(__name__)
 LONG_LINE_THRESHOLD = 10_000
 
 type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDiffError
+
+
+def loadRemotes(task: RepoTask) -> RepoTask.Flow[bool]:
+    """
+    Refresh the remotes in RepoModel from Git, which also sees remotes defined
+    outside .git/config and applies url.<base>.insteadOf.
+    Return True if the remotes changed.
+    """
+    driver = yield from task.flowCallGit(*REMOTES_COMMAND)
+    return task.repoModel.syncRemotes(parseRemotes(driver.stdoutScrollback()))
 
 
 def loadUpstreams(task: RepoTask, configChanged: bool) -> RepoTask.Flow[bool]:
@@ -116,9 +127,10 @@ class PrimeRepo(RepoTask):
             driver = yield from self.flowCallGit("rev-parse", "--show-superproject-working-tree", workdir=path)
             repoModel.superproject = driver.stdoutScrollback().rstrip()
 
-        # Fill in upstreams and ahead/behind
-        with Benchmark("upstreams"):
-            repoModel.pollUpstreamConfig()  # First poll; RefreshRepo reacts to later changes
+        # Fill in remotes, upstreams and ahead/behind
+        with Benchmark("remotes and upstreams"):
+            repoModel.pollConfig()  # First poll; RefreshRepo reacts to later changes
+            yield from loadRemotes(self)
             yield from loadUpstreams(self, configChanged=True)
 
         # ---------------------------------------------------------------------

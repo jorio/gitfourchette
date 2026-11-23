@@ -325,7 +325,7 @@ class Sidebar(QTreeView):
             targetOid = model.repoModel.refs[refName]
 
             remoteName, remoteBranchName = porcelain.split_remote_branch_shorthand(shorthand)
-            remoteUrl = self.sidebarModel.repo.remotes[remoteName].url
+            remoteUrl = model.repoModel.remotes.get(remoteName, "")
             webUrl, webHost = WebHost.makeLink(remoteUrl, remoteBranchName)
             webActions = []
             if webUrl:
@@ -376,7 +376,7 @@ class Sidebar(QTreeView):
             ]
 
         elif item == SidebarItem.Remote:
-            remoteUrl = model.repo.remotes[data].url
+            remoteUrl = model.repoModel.remotes[data]
             webUrl, webHost = WebHost.makeLink(remoteUrl)
 
             collapseActions = []
@@ -1046,7 +1046,7 @@ class Sidebar(QTreeView):
             radioGroup=radioGroup))
 
         # All remote branches
-        for remoteBranches in repo.listall_remote_branches(value_style="shorthand").values():
+        for remoteBranches in repo.listall_remote_branches(self.sidebarModel.repoModel.remotes, value_style="shorthand").values():
             if not remoteBranches:
                 continue
             menu.append(ActionDef.SEPARATOR)
@@ -1059,7 +1059,7 @@ class Sidebar(QTreeView):
 
         # "No remotes" label
         if len(menu) <= 1:
-            if not repo.remotes:
+            if not self.sidebarModel.repoModel.remotes:
                 explainer = _("No remotes.")
             else:
                 explainer = _("No remote branches found. Try fetching the remotes.")
