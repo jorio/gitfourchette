@@ -440,13 +440,14 @@ def testVerifyGpgQueue(tempDir, mainWindow, tempGpgHome):
     assert not gpgStatusCache
     assert not gpgVerifyQueue
 
-    waitUntilTrue(lambda: topSignedOid in gpgVerifyQueue)
-    assert gpgStatusCache[topSignedOid] == (GpgStatus.Pending, "")
-    assert topSignedOid in gpgVerifyQueue
+    # Wait for the graph to paint the top commit. Don't look for it in the
+    # queue itself: VerifyGpgQueue may empty the queue before we look, e.g.
+    # if painting takes longer than the delay before VerifyGpgQueue starts.
+    waitUntilTrue(lambda: topSignedOid in gpgStatusCache)
     assert bottomSignedOid not in gpgStatusCache
     assert bottomSignedOid not in gpgVerifyQueue
 
-    waitUntilTrue(lambda: topSignedOid not in gpgVerifyQueue)
+    waitUntilTrue(lambda: gpgStatusCache[topSignedOid][0] != GpgStatus.Pending)
     assert gpgStatusCache[topSignedOid] == (GpgStatus.GoodUntrusted, f"{aliceKeyId} Alice Lovelace <alice@openpgp.example>")
 
 
