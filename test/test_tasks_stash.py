@@ -432,3 +432,18 @@ def testRevealStashParent(tempDir, mainWindow):
     triggerMenuAction(menu, r"^reveal.+parent")
 
     assert rw.navLocator.commit == rw.repo.head_commit_id
+
+
+def testRefreshStaysOnStash(tempDir, mainWindow):
+    """ A stash isn't in the graph, but a refresh mustn't treat it as a vanished row. """
+    wd = unpackRepo(tempDir)
+    reposcenario.stashedChange(wd)
+    rw = mainWindow.openRepo(wd)
+
+    rw.sidebar.selectNode(rw.sidebar.findNodeByRef("stash@{0}"))
+    stashLocator = rw.navLocator
+    assert stashLocator.commit == rw.repoModel.stashes[0]
+
+    shell("git commit --allow-empty -m 'new commit'", wd)
+    rw.refreshRepo()
+    assert rw.navLocator.commit == stashLocator.commit

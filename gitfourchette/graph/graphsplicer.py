@@ -43,7 +43,9 @@ class GraphSplicer:
         oldHeads = set(oldHeads)
         self.newHeads = newHeads
         self.requiredNewCommits = (newHeads - oldHeads)  # heads that appeared
-        self.requiredOldCommits = (oldHeads - newHeads)  # heads that disappeared
+        # Heads that disappeared. Skip the ones that aren't in the old graph
+        # (past the end of a truncated history): playback will never reach them.
+        self.requiredOldCommits = {h for h in oldHeads - newHeads if h in oldGraph.commitRows}
 
     def spliceNewCommit(
             self,

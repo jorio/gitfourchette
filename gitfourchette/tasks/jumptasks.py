@@ -767,7 +767,7 @@ class RefreshRepo(RepoTask):
         initialLocator = rw.navLocator
         initialGraphScroll = rw.graphView.verticalScrollBar().value()
         restoringInitialLocator = jumpTo.context == NavContext.EMPTY
-        wasExploringDetachedCommit = initialLocator.commit and initialLocator.commit not in repoModel.graph.commitRows
+        wasExploringOutsideGraph = rw.graphView.isLocatorGone(initialLocator)
 
         jumpTo = jumpTo or initialLocator
         pNumUncommittedChanges = repoModel.numUncommittedChanges
@@ -834,6 +834,16 @@ class RefreshRepo(RepoTask):
         # Now jump to where we should be after the refresh
         assert rw.navLocator == initialLocator, "locator has changed"
 
+        # Resetting the graph's model drops its selection, so we restore it from
+        # the locator. But the row we were looking at may be gone, not just
+        # hidden (e.g. a commit amended away). Go to HEAD then, or to the
+        # workdir if HEAD is unborn.
+        if (jumpTo == initialLocator
+                and not wasExploringOutsideGraph
+                and rw.graphView.isLocatorGone(initialLocator)):
+            headId = repoModel.headCommitId
+            jumpTo = NavLocator.inCommit(headId) if headId != NULL_OID else NavLocator.inWorkdir()
+
         jumpToWorkdir = jumpTo.context.isWorkdir() or (jumpTo.context == NavContext.EMPTY and initialLocator.context.isWorkdir())
 
         if jumpToWorkdir:
@@ -850,12 +860,6 @@ class RefreshRepo(RepoTask):
             # the selected row may jump around. Try to restore the initial
             # locator to ensure the previously selected commit stays selected.
             rw.graphView.verticalScrollBar().setValue(initialGraphScroll)
-            if (jumpTo == initialLocator
-                    and jumpTo.commit not in repoModel.graph.commitRows
-                    and not wasExploringDetachedCommit):
-                # We were looking at a commit that is not in the graph anymore.
-                # Probably refreshing after amending. Jump to HEAD commit.
-                jumpTo = NavLocator.inCommit(repoModel.headCommitId)
 
         # Jump
         yield from self.flowSubtask(Jump, jumpTo)
