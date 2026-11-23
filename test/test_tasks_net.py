@@ -1059,6 +1059,48 @@ def testAutoFetchFailure(tempDir, mainWindow):
     assert re.search("couldn.t auto-fetch", mainWindow.statusBar2.currentMessage(), re.IGNORECASE)
 
 
+@pytest.mark.parametrize("source", [
+    "GIT_SSH_COMMAND",
+    pytest.param("PATH", marks=pytest.mark.skipif(WINDOWS, reason="Git for Windows runs its own ssh")),
+])
+def testCustomKeyUsesSameSshAsGit(tempDir, mainWindow, monkeypatch, source):
+    """
+    Git picks its ssh from GIT_SSH_COMMAND, then core.sshCommand, then 'ssh'
+    on PATH. Adding our own ssh options must not change that choice.
+    """
+    shim = getTestDataPath("shims/sshlog.py")
+    logPath = Path(tempDir.name, "ssh.log")
+    monkeypatch.setenv("SSH_SHIM_LOG", str(logPath))
+
+    if source == "GIT_SSH_COMMAND":
+        # Takes precedence over core.sshCommand, which the test config sets
+        monkeypatch.setenv("GIT_SSH_COMMAND", getShimCommand("sshlog.py"))
+    else:
+        # core.sshCommand would take precedence over PATH
+        del pygit2.Config.get_global_config()["core.sshCommand"]
+
+        binDir = Path(tempDir.name, "bin")
+        binDir.mkdir()
+        (binDir / "ssh").symlink_to(shim)
+        monkeypatch.setenv("PATH", f"{binDir}{os.pathsep}{os.environ['PATH']}")
+
+    wd = unpackRepo(tempDir)
+    shell("git remote set-url origin ssh://git@example.invalid/whatever.git", wd)
+    GFApplication.applyPrefs(autoFetch=True, autoFetchMinutes=1)
+    rw = mainWindow.openRepo(wd)
+    rw.repoModel.prefs.customKeyFile = getTestDataPath("keys/simple")
+
+    rw.lastAutoFetchTime = 0
+    rw.onAutoFetchTimerTimeout()
+    assert re.search("couldn.t auto-fetch", mainWindow.statusBar2.currentMessage(), re.IGNORECASE)
+
+    # Our shim ran, with our options
+    sshArgs = readTextFile(logPath)
+    assert "-i " in sshArgs
+    assert "keys" in sshArgs and "simple" in sshArgs
+    assert "example.invalid" in sshArgs
+
+
 @pytest.mark.notParallelizableOnWindows
 def testOngoingAutoFetchDoesntBlockOtherTasks(tempDir, mainWindow):
     from gitfourchette import settings
