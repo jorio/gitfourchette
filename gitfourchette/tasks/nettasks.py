@@ -164,7 +164,7 @@ class RenameRemoteBranch(RepoTask):
 class FetchRemotes(RepoTask):
     def flow(self, singleRemoteName: str = ""):
         # Bail now if we don't have any remotes
-        if not self.repo.listall_remotes_fast():
+        if len(self.repo.remotes) == 0:
             text = paragraphs(
                 _("To fetch remote branches, you must first add a remote to your repo."),
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))
@@ -197,7 +197,7 @@ class AutoFetchRemotes(RepoTask):
 
     def flow(self):
         # Bail now if we don't have any remotes
-        if not self.repo.listall_remotes_fast():
+        if len(self.repo.remotes) == 0:
             return
 
         self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs

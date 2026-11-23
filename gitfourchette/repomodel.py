@@ -401,8 +401,12 @@ class RepoModel:
     def syncRemotes(self):
         # We could infer remote names from refCache, but we don't want
         # to miss any "blank" remotes that don't have any branches yet.
-        # RemoteCollection.names() is much faster than iterating on RemoteCollection itself
-        remotes = self.repo.listall_remotes_fast()
+        # RemoteCollection.names() is much faster than iterating on RemoteCollection itself.
+        # libgit2 reads every config level and the files they include, and re-reads
+        # whichever changed, so there's nothing to poll here (see #199). Known gaps:
+        # it skips includeIf "worktree:" and "hasconfig:", and it doesn't
+        # re-evaluate "onbranch:" after a checkout.
+        remotes = list(self.repo.remotes.names())
         if remotes != self.remotes:
             self.remotes = remotes
             return True

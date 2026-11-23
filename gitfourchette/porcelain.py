@@ -353,7 +353,6 @@ class GitConfigHelper:
 
     class SectionPatterns:
         SUBMODULE = _re.compile(r'^submodule "(.+)"$')
-        REMOTE = _re.compile(r'^remote "(.+)"$')
 
     @staticmethod
     def sanitize_key(key: str | tuple[str, ...]) -> str:
@@ -443,7 +442,6 @@ class Repo(_VanillaRepository):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._poll_stamps: dict[str, _MiniStat | None] = {}
-        self._cached_remote_list = []
         self._cached_submodule_table = {}
         self._submodule_tables_by_blob: dict[Oid, dict[str, str]] = {}
         self._cached_commondir = ""
@@ -912,18 +910,6 @@ class Repo(_VanillaRepository):
     # -------------------------------------------------------------------------
     # Config parsers ("listall" APIs)
 
-    def listall_remotes_fast(self):
-        """
-        Faster alternative to `list(repo.remotes.names())`.
-        """
-        config_path = self.in_gitdir("config", common=True)
-        if self.poll_file_change("listall_remotes_fast", config_path):
-            config = _configparser.ConfigParser(strict=False)  # strict=False to bypass DuplicateSectionError
-            config.read(config_path)  # A missing file reads as empty
-            self._cached_remote_list = Repo._listall_remotes_from_config(config)
-
-        return self._cached_remote_list
-
     def poll_file_change(self, poller: str, path: str) -> bool:
         """
         Return True if the file at path has changed since this poller last
@@ -1005,17 +991,6 @@ class Repo(_VanillaRepository):
             table = self.listall_submodules_dict(config_text=gitmodules_text) if gitmodules_text else {}
             self._submodule_tables_by_blob[gitmodules_blob.id] = table
         return table
-
-    @staticmethod
-    def _listall_remotes_from_config(config: _configparser.ConfigParser):
-        remotes = []
-
-        for remote_name, section in GitConfigHelper.walk_sections(config, GitConfigHelper.SectionPatterns.REMOTE):
-            if not section.items():  # Skip empty sections
-                continue
-            remotes.append(remote_name)
-
-        return remotes
 
     @staticmethod
     def _listall_submodules_from_config(config: _configparser.ConfigParser):

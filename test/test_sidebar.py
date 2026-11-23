@@ -190,6 +190,66 @@ def testNewEmptyRemoteShowsUpInSidebar(tempDir, mainWindow):
     assert 2 == sb.countNodesByKind(SidebarItem.Remote)
 
 
+@pytest.mark.parametrize("where", ["include", "keywordCase", "global"])
+def testRemoteFromAnyConfigFileShowsUpInSidebar(tempDir, mainWindow, where):
+    wd = unpackRepo(tempDir)
+    section = '[remote "other"]\n\turl = https://example.com/other\n\tfetch = +refs/heads/*:refs/remotes/other/*\n'
+    if where == "include":
+        writeFile(f"{wd}/.git/other.cfg", section)
+        shell("git config --add include.path other.cfg", wd)
+    elif where == "keywordCase":  # Section names are case-insensitive
+        config = readTextFile(f"{wd}/.git/config")
+        config += section.replace("[remote", "[Remote")
+        writeFile(f"{wd}/.git/config", config)
+    else:
+        shell("git config --global remote.other.url https://example.com/other", wd)
+    shell("git update-ref refs/remotes/other/master HEAD", wd)
+
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    assert {n.data for n in sb.findNodesByKind(SidebarItem.Remote)} == {"origin", "other"}
+    assert sb.findNode(lambda n: n.kind == SidebarItem.RemoteBranch and n.data == "refs/remotes/other/master")
+
+
+def testRemotesListedLikeGitRemote(tempDir, mainWindow):
+    """
+    Remotes appear in alphabetical order, like "git remote" lists them,
+    not in the order of the config. A remote with no url or pushurl isn't
+    listed, although "git remote" lists it: git can't fetch from it. Neither
+    are its remote branches.
+    """
+    wd = unpackRepo(tempDir)
+    shell("git config remote.zeta.url https://example.com/zeta", wd)
+    shell("git config remote.alpha.url https://example.com/alpha", wd)
+    shell("git config remote.nourl.fetch +refs/heads/*:refs/remotes/nourl/*", wd)
+    shell("git update-ref refs/remotes/nourl/master HEAD", wd)
+
+    with pytest.warns(UserWarning, match="missing remote: nourl"):
+        rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+
+    remoteNodes = sb.findNodesByKind(SidebarItem.Remote)
+    assert [node.data for node in remoteNodes] == ["alpha", "origin", "zeta"]
+
+    remoteBranchRefs = [node.data for node in sb.findNodesByKind(SidebarItem.RemoteBranch)]
+    assert "refs/remotes/nourl/master" not in remoteBranchRefs
+
+
+def testRemoteFromIncludedFileShowsUpOnRefresh(tempDir, mainWindow):
+    """ The included file changes while the repo is open; .git/config doesn't. """
+    wd = unpackRepo(tempDir)
+    shell("git config --add include.path other.cfg", wd)  # Doesn't exist yet
+    rw = mainWindow.openRepo(wd)
+    sb = rw.sidebar
+    assert {n.data for n in sb.findNodesByKind(SidebarItem.Remote)} == {"origin"}
+
+    writeFile(f"{wd}/.git/other.cfg", '[remote "other"]\n\turl = https://example.com/other\n')
+    shell("git update-ref refs/remotes/other/master HEAD", wd)
+    rw.refreshRepo()
+    assert {n.data for n in sb.findNodesByKind(SidebarItem.Remote)} == {"origin", "other"}
+    assert sb.findNode(lambda n: n.kind == SidebarItem.RemoteBranch and n.data == "refs/remotes/other/master")
+
+
 @pytest.mark.parametrize("headerKind,leafKind", [
     (SidebarItem.LocalBranchesHeader, SidebarItem.LocalBranch),
     (SidebarItem.RemotesHeader, SidebarItem.RemoteBranch),

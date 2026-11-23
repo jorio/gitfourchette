@@ -659,6 +659,28 @@ def testPushNoBranch(tempDir, mainWindow):
     acceptQMessageBox(rw, "switch to.+local branch")
 
 
+def testFetchRemoteFromIncludedFile(tempDir, mainWindow):
+    """
+    Fetch finds a remote that only an included config file defines,
+    instead of asking to add a remote.
+    """
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="", preFetch=False)
+    shell("git remote remove origin", wd)
+
+    includedConfig = GitConfig(f"{wd}/.git/other.cfg")
+    includedConfig["remote.localfs.url"] = barePath
+    includedConfig["remote.localfs.fetch"] = "+refs/heads/*:refs/remotes/localfs/*"
+    del includedConfig
+    shell("git config --add include.path other.cfg", wd)
+
+    rw = mainWindow.openRepo(wd)
+    assert "refs/remotes/localfs/master" not in rw.repo.references
+
+    findChildWithText(mainWindow.mainToolBar, "fetch", QToolButton).click()
+    assert "refs/remotes/localfs/master" in rw.repo.references
+
+
 def testPushNoRemotes(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     shell("git remote remove origin", wd)
