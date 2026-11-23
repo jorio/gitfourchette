@@ -1016,6 +1016,12 @@ def testOwnSshAgentRemovesSocketWhenStopped(tempDir, mainWindow, gitUsesItsOwnSs
     app = GFApplication.instance()
     app.applyPrefs(ownSshAgent=True)
 
+    # ssh-agent prints its socket before it handles SIGTERM. Wait until it
+    # answers, or stopping it right away could kill it before it cleans up.
+    sshAdd = Path(app.sshAgent.program()).with_name("ssh-add.exe") if WINDOWS else "ssh-add"
+    subprocess.run([sshAdd, "-l"], env=os.environ | app.sshAgent.environment,
+                   capture_output=True, timeout=10, check=False)
+
     socketPath = app.sshAgent.environment["SSH_AUTH_SOCK"]
     if WINDOWS:
         # Git for Windows' ssh-agent prints an MSYS path, e.g. /c/Users/...
