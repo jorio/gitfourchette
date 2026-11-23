@@ -101,6 +101,8 @@ class SshAgent(QProcess):
         if not tokens or not os.path.dirname(tokens[0]):
             return False
 
+        # ssh -V prints its version to stderr, not stdout. Don't use runSync()
+        # here: it only returns stdout.
         process = QProcess()
         process.setProgram(tokens[0])
         process.setArguments(tokens[1:] + ["-V"])
