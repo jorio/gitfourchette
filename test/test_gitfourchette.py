@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import json
 import os.path
 import subprocess
 import sys
@@ -720,6 +721,44 @@ def testGitVersionKnownBeforeAppSetsGitPath():
     projectRoot = os.path.dirname(os.path.dirname(__file__))
     result = subprocess.run([sys.executable, "-c", script], stdout=subprocess.PIPE, text=True, env=env, cwd=projectRoot, check=True)
     assert result.stdout.strip()
+
+
+def testRepoEnvironmentFromParentGitIsDropped(tempDir):
+    """
+    Git passes its repo to the commands it runs, e.g. GIT_DIR to
+    `git rebase --exec` in a worktree. GitFourchette must drop it, or its git
+    commands would act on that repo. Options from `git -c` stay.
+    """
+    script = "import json, os, gitfourchette.qt; print(json.dumps(dict(os.environ)))"
+    env = os.environ | {
+        "APP_TESTMODE": "1",
+        "GIT_DIR": f"{tempDir.name}/elsewhere/.git",
+        "GIT_INDEX_FILE": f"{tempDir.name}/elsewhere/.git/index",
+        "GIT_CONFIG_PARAMETERS": "'user.name'='Somebody'",
+    }
+    projectRoot = os.path.dirname(os.path.dirname(__file__))
+    result = subprocess.run([sys.executable, "-c", script], stdout=subprocess.PIPE, text=True, env=env, cwd=projectRoot, check=True)
+    childEnv = json.loads(result.stdout)
+
+    assert "GIT_DIR" not in childEnv
+    assert "GIT_INDEX_FILE" not in childEnv
+    assert childEnv["GIT_CONFIG_PARAMETERS"] == "'user.name'='Somebody'"
+
+
+def testRepoEnvironmentVariablesMatchGit():
+    """
+    The variables that GitFourchette drops are Git's own list, except for the
+    `git -c` options, which Git keeps too. Older Git versions list one more.
+    """
+    from gitfourchette.gitdriver import GitDriver
+    from gitfourchette.qt import GIT_REPO_ENVIRONMENT_VARIABLES
+
+    gitList = set(GitDriver.runSync("rev-parse", "--local-env-vars", strict=True).split())
+    gitList -= {"GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"}
+    ours = set(GIT_REPO_ENVIRONMENT_VARIABLES)
+
+    assert gitList <= ours
+    assert ours - gitList <= {"GIT_INTERNAL_SUPER_PREFIX"}
 
 
 # TODO: Teardown fails on Windows, which is a symptom of a minor leak that
