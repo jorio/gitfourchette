@@ -235,7 +235,9 @@ class FetchRemoteBranch(RepoTask):
         if not refName:
             refName = autoDetectUpstream(self.repo).name
             if refName.startswith(RefPrefix.HEADS):
-                return  # The upstream is a local branch (branch.<name>.remote = "."): nothing to fetch
+                # The upstream is a local branch (branch.<name>.remote = "."): nothing to fetch
+                assert not debrief, "should not allow fetching local upstream as standalone task"
+                return
 
         prefix, shorthand = RefPrefix.split(refName)
         assert prefix == RefPrefix.REMOTES
