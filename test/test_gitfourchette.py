@@ -747,18 +747,30 @@ def testRepoEnvironmentFromParentGitIsDropped(tempDir):
 
 def testRepoEnvironmentVariablesMatchGit():
     """
-    The variables that GitFourchette drops are Git's own list, except for the
-    `git -c` options, which Git keeps too. Older Git versions list one more.
+    Ensure `git rev-parse --local-env-vars` still matches our hardcoded list of
+    env vars that we don't want to inherit from a parent Git process.
     """
     from gitfourchette.gitdriver import GitDriver
     from gitfourchette.qt import GIT_REPO_ENVIRONMENT_VARIABLES
 
-    gitList = set(GitDriver.runSync("rev-parse", "--local-env-vars", strict=True).split())
-    gitList -= {"GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"}
-    ours = set(GIT_REPO_ENVIRONMENT_VARIABLES)
+    # Variables that we DON'T ignore
+    keepVars = {"GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"}
 
-    assert gitList <= ours
-    assert ours - gitList <= {"GIT_INTERNAL_SUPER_PREFIX"}
+    # Tolerate these in our list if Git doesn't have them
+    # (deprecated variables that new Git versions don't set anymore)
+    deprecatedVars = {"GIT_INTERNAL_SUPER_PREFIX"}
+
+    gitList = set(GitDriver.runSync("rev-parse", "--local-env-vars", strict=True).split())
+    gitList -= keepVars
+
+    ours = set(GIT_REPO_ENVIRONMENT_VARIABLES)
+    assert deprecatedVars <= ours
+
+    message = ("New Git version we don't support yet? Run `git rev-parse --local-env-vars` "
+               "and update GIT_REPO_ENVIRONMENT_VARIABLES.")
+
+    assert gitList <= ours, message
+    assert ours - gitList <= deprecatedVars, message
 
 
 # TODO: Teardown fails on Windows, which is a symptom of a minor leak that

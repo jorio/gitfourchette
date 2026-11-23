@@ -343,17 +343,26 @@ if MACOS and (PYINSTALLER_MEIPASS or APP_DEBUG):  # pragma: no cover
 
 
 # -----------------------------------------------------------------------------
-# Drop the repository that a parent Git process may have passed down
-
+# Patch environment variables to ignore the repo that a parent Git process may
+# pass down to us. For example, `git gf` passes us GIT_DIR in a linked worktree
+# (assuming the config has "alias.gf=!gitfourchette").
+#
 # Git sets these when it runs a command for a repo: a hook, `git rebase --exec`
-# in a worktree, a difftool... GitFourchette picks each repo itself, so these
-# would only send git commands, editors and terminals to the wrong repo.
+# in a worktree, a difftool, etc. We pick each repo ourselves, so these would
+# only send git commands, editors and terminals to the wrong repo.
+#
 # This is `git rev-parse --local-env-vars` minus GIT_CONFIG_PARAMETERS and
 # GIT_CONFIG_COUNT, which Git keeps too when it runs a command in another repo
 # (sanitize_repo_env), so that `git -c` options still apply.
+#
+# List last updated with Git 2.56.1 (10/2026). A forward-compat test will fail
+# if a new Git version changes these (testRepoEnvironmentVariablesMatchGit).
+
 GIT_REPO_ENVIRONMENT_VARIABLES = (
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
     "GIT_CONFIG",
+    # "GIT_CONFIG_PARAMETERS" - keep this one!
+    # "GIT_CONFIG_COUNT" - keep this one!
     "GIT_OBJECT_DIRECTORY",
     "GIT_DIR",
     "GIT_WORK_TREE",
