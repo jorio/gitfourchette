@@ -17,5 +17,6 @@ def atomicWrite(pathStr, text):
 scratch = sys.argv[1]
 merged, left, right, base = sys.argv[2:6]
 
-atomicWrite(scratch, "\n".join(sys.argv[2:]))
+# Write the scratch file last: tests wait for it, then read the merged file
 atomicWrite(merged, "merge complete!")
+atomicWrite(scratch, "\n".join(sys.argv[2:]))
