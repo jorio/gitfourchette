@@ -357,6 +357,45 @@ def testAbsorbSubmodule(tempDir, mainWindow):
     assert rw is mainWindow.tabs.currentWidget()  # back to first tab
 
 
+def testSubmoduleNameRejectedIfGitWouldRefuseIt(tempDir, mainWindow):
+    """
+    Git keeps a submodule's repository in .git/modules/<name>, even after the
+    submodule is removed, and won't put a new one there or inside another
+    submodule's repository. Absorbing with such a name failed halfway.
+    """
+    wd = unpackRepo(tempDir, "submoroot")
+    subWd = unpackRepo(wd, renameTo="newsubmo")
+
+    # Remove a submodule named "gone": its repository stays in .git/modules
+    shell(f"""
+        git submodule add --name gone -- {shlex.quote(subWd)} gonepath
+        git commit -m 'add gone'
+        git rm gonepath
+        git commit -m 'remove gone'
+    """, wd)
+    assert os.path.isdir(f"{wd}/.git/modules/gone")
+
+    rw = mainWindow.openRepo(wd)
+    rw.jump(NavLocator.inUnstaged("newsubmo"))
+    qteClickLink(rw.specialDiffView, r"absorb.+as submodule")
+    dlg: RegisterSubmoduleDialog = findQDialog(rw, "absorb.+submodule")
+
+    for badName, reason in [
+        ("gone", "removed submodule"),
+        ("/gone", "removed submodule"),  # Git ignores the leading slash
+        ("submosub/hooks", "inside another submodule"),
+        ("submosub/x", "inside another submodule"),
+        ("a\\..\\b", "doesn’t accept"),
+    ]:
+        dlg.ui.nameEdit.setText(badName)
+        assert not dlg.okButton.isEnabled(), badName
+        assert reason in dlg.validateSubmoduleName(badName), badName
+
+    dlg.ui.nameEdit.setText("newsubmo")
+    assert dlg.okButton.isEnabled()
+    dlg.reject()
+
+
 def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
     subWd = unpackRepo(wd, renameTo="newsubmo")

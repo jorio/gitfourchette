@@ -50,12 +50,19 @@ class RegisterSubmodule(RepoTask):
             raise AbortTask(message)
 
         reservedNames = set(self.repo.listall_submodules_dict().keys())
+
+        # Where Git keeps submodule repositories (in a linked worktree, that's
+        # the worktree's own git directory)
+        driver = yield from self.flowCallGit("rev-parse", "--git-path", "modules")
+        modulesDir = str(thisWD / driver.stdoutScrollback().rstrip("\n"))
+
         dlg = RegisterSubmoduleDialog(
             workdirPath=path,
             superprojectName=thisName,
             remotes=subRemotes,
             absorb=absorb,
             reservedNames=reservedNames,
+            modulesDir=modulesDir,
             parent=self.parentWidget())
 
         if preferredRemote:
