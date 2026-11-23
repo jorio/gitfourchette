@@ -5,16 +5,9 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
-from enum import StrEnum, IntEnum
+from enum import StrEnum
 
 from gitfourchette.gitdriver.gitdeltafile import GitDeltaFile
-
-
-class GitConflictStage(IntEnum):
-    Unknown = 0
-    Ancestor = 1
-    Ours = 2
-    Theirs = 3
 
 
 class GitConflictSides(StrEnum):
@@ -34,17 +27,6 @@ class GitConflictSides(StrEnum):
         """ Return True if the file exists on their side of the conflict. """
         return self[1] != "D" and self != GitConflictSides.AddedByUs
 
-    def oneSidedStage(self, fallback=GitConflictStage.Unknown) -> GitConflictStage:
-        """
-        In a one-sided conflict, return the stage that still contains the file.
-        In a two-sided conflict (i.e. file exists in both or neither sides),
-        return fallback, by default GitConflictStage.Unknown.
-        """
-        hasOurs = self.hasOurs()
-        return (fallback if hasOurs == self.hasTheirs()  # two-sided
-                else GitConflictStage.Ours if hasOurs
-                else GitConflictStage.Theirs)
-
 
 @dataclasses.dataclass
 class GitConflict:
@@ -53,9 +35,13 @@ class GitConflict:
     ours: GitDeltaFile
     theirs: GitDeltaFile
 
-    def fileFromStageNumber(self, stage: GitConflictStage) -> GitDeltaFile:
-        return {
-            GitConflictStage.Ancestor: self.ancestor,
-            GitConflictStage.Ours: self.ours,
-            GitConflictStage.Theirs: self.theirs,
-        }[stage]
+    def oneSidedStage(self) -> GitDeltaFile | None:
+        """
+        In a one-sided conflict, return the GitDeltaFile that still exists among
+        ours or theirs. Return None in a two-sided conflict, i.e. both ours and
+        theirs have the file, or neither do.
+        """
+        hasOurs = self.sides.hasOurs()
+        if hasOurs == self.sides.hasTheirs():  # not one-sided
+            return None
+        return self.ours if hasOurs else self.theirs

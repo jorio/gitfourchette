@@ -19,10 +19,10 @@ from gitfourchette.codeview.codewindow import CodeWindow
 from gitfourchette.exttools.mergedriver import MergeDriver
 from gitfourchette.exttools.toolprocess import ToolProcess
 from gitfourchette.gitdriver import *
-from gitfourchette.gitdriver.gitconflict import GitConflictStage
 from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
+from gitfourchette.porcelain import Repo
 from gitfourchette.qt import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, pathspecsFitCommandLine
 from gitfourchette.toolbox import *
@@ -474,9 +474,10 @@ class HardSolveConflicts(RepoTask):
         """Return True if the file in an "ours" conflict resolution is safe to
         restore from HEAD, i.e. the user has NOT modified it in the workdir."""
 
+        repo = self.repo
         ourFile = conflict.ours
         wdPath = ourFile.path
-        wdAbsPath = self.repo.in_workdir(wdPath)
+        wdAbsPath = repo.in_workdir(wdPath)
 
         # File doesn't exist on either side of the conflict:
         # We're safe if the user didn't recreate the file in the workdir
@@ -490,8 +491,9 @@ class HardSolveConflicts(RepoTask):
 
         # Symlink: We're safe if target paths are identical in workdir and appropriate stage
         if ourFile.mode == FileMode.LINK or (ourFile.mode == FileMode.UNREADABLE and conflict.theirs.mode == FileMode.LINK):
-            stageCompare = conflict.sides.oneSidedStage(fallback=GitConflictStage.Ours)
-            stageData = yield from self._readConflictStage(conflict, stageCompare)
+            if (stageCompare := conflict.oneSidedStage()) is None:
+                stageCompare = ourFile
+            stageData = repo.peel_blob(stageCompare.id).data
             wdData = Path(wdAbsPath).readlink().as_posix().encode("utf-8")
             return wdData == stageData
 
@@ -506,12 +508,12 @@ class HardSolveConflicts(RepoTask):
         assert ourFile.mode in (FileMode.UNREADABLE, FileMode.BLOB, FileMode.BLOB_EXECUTABLE)
 
         # Read data from workdir, with filters (no LFS, though: compare pointers!)
-        wdData = self.repo.apply_filters_to_workdir(wdPath)
+        wdData = repo.apply_filters_to_workdir(wdPath)
 
         # File exists on only one side of the conflict:
         # We're safe if the workdir contains that side verbatim
-        if (stageCompare := conflict.sides.oneSidedStage()) != GitConflictStage.Unknown:
-            stageData = yield from self._readConflictStage(conflict, stageCompare)
+        if (stageCompare := conflict.oneSidedStage()) is not None:
+            stageData = repo.peel_blob(stageCompare.id).data
             return wdData == stageData
 
         # File exists on both sides of the conflict (AA or UU):
@@ -520,31 +522,31 @@ class HardSolveConflicts(RepoTask):
         assert conflict.sides in (GitConflictSides.BothModified, GitConflictSides.BothAdded)
         assert ourFile.mode in (FileMode.BLOB, FileMode.BLOB_EXECUTABLE)
 
-        def dumpSide(stageNumber: GitConflictStage) -> RepoTask.Flow[str]:
-            if not conflict.fileFromStageNumber(stageNumber):
-                return "/dev/null"
-            # If side missing, git show exits with 128. Should have been caught above.
-            data = yield from self._readConflictStage(conflict, stageNumber)
-            tempFile = writeTemporaryFile(data, f"wdcheck{stageNumber}", parent=self)
-            return tempFile.fileName()
-
-        tempOurs = yield from dumpSide(GitConflictStage.Ours)
-        tempTheirs = yield from dumpSide(GitConflictStage.Theirs)
-        tempAncestor = yield from dumpSide(GitConflictStage.Ancestor)
-
         # Tag conflict markers with a random string that's unlikely to be in the file
         dummyMarker = f"{APP_SYSTEM_NAME}-wdcheck-{uuid.uuid4().hex}"
         assert dummyMarker.encode() not in wdData, "terrible luck, wd data contains dummy marker!"
 
+        # Stages in the order merge-file takes them
+        # Note: merge-file --object-id accepts 0000... for a blob hash if any of the sides are missing
+        stages = [conflict.ours, conflict.ancestor, conflict.theirs]
+        stageArgs = ["--object-id"] + [f.id for f in stages]
+
+        # Git<2.43 doesn't support merge-file --object-id. Dump blobs to temp files.
+        if not GitDriver.supportsMergeFileObjectId():  # pragma: no cover
+            # Write empty file for a missing stage (can't pass /dev/null on Windows)
+            stageArgs = [
+                writeTemporaryFile(repo.peel_blob(f.id).data if f else b"", parent=self).fileName()
+                for f in stages
+            ]
+
         driver = yield from self.flowCallGit(
             "merge-file",
-            "--stdout",
+            "--stdout",         # don't write to object DB
+            "--quiet",          # don't complain on conflicts (still returns 1)
             "-L", dummyMarker,  # ours (typically HEAD)
             "-L", dummyMarker,  # ancestor
             "-L", dummyMarker,  # theirs
-            tempOurs,
-            tempAncestor,
-            tempTheirs,
+            *stageArgs,
             autoFail=False)
 
         if driver.exitCode() not in (0, 1):
@@ -578,13 +580,6 @@ class HardSolveConflicts(RepoTask):
                 return False
 
         return True
-
-    def _readConflictStage(self, conflict: GitConflict, stage: GitConflictStage) -> RepoTask.Flow[bytes]:
-        # Not using file.read(repo), that'd unpack an LFS ptr
-        file = conflict.fileFromStageNumber(stage)
-        driver = yield from self.flowCallGit("show", f":{stage}:{file.path}")
-        # TODO: Get stdout binary data from GitDriver and skip the encode
-        return driver.stdoutScrollback().encode("utf-8")
 
     def _confirm(self, conflicts: list[GitConflict], keepOurs: bool):
         title = _n("Resolve conflict", "Resolve {n} conflicts", len(conflicts))

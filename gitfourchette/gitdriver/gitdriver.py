@@ -179,6 +179,14 @@ class GitDriver(QProcess):
         return cls.gitVersionTuple() >= (2, 46)
 
     @classmethod
+    def supportsMergeFileObjectId(cls) -> bool:
+        """
+        merge-tree --object-id appeared in git 2.43.0 (November 2023)
+        Source: look for "merge-file" in https://gitlab.com/git-scm/git/-/blob/HEAD/Documentation/RelNotes/2.43.0.adoc
+        """
+        return cls.gitVersionTuple() >= (2, 43)
+
+    @classmethod
     def parseTable(cls, pattern: str, stdout: str, linesep="\n", strict=True) -> list:
         table = []
 
