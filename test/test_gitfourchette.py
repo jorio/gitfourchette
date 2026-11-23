@@ -972,8 +972,18 @@ def testWindowSizeUnaffectedByLongRepoNames(tempDir, mainWindow):
     assert mainWindow.size() == desiredSize
 
 
-@pytest.mark.skipif(WINDOWS and CI_TESTMODE, reason="can't start ssh-agent on GitHub Actions")
-def testSshAgentSandboxingMatchesGit(tempDir, mainWindow):
+@pytest.fixture
+def gitUsesItsOwnSsh(monkeypatch):
+    """
+    On Windows, the test suite's isolated-ssh.bat runs Windows' OpenSSH, which
+    can't use our ssh-agent. Pretend that Git uses its own ssh, as it does by
+    default.
+    """
+    from gitfourchette.sshagent import SshAgent
+    monkeypatch.setattr(SshAgent, "isWindowsOpenSsh", staticmethod(lambda sshCommand: False))
+
+
+def testSshAgentSandboxingMatchesGit(tempDir, mainWindow, gitUsesItsOwnSsh):
     app = GFApplication.instance()
     app.applyPrefs(ownSshAgent=True)
 
@@ -1000,6 +1010,40 @@ def testSshAgentSandboxingMatchesGit(tempDir, mainWindow):
     finally:
         # Kill ssh-agent before teardown
         app.applyPrefs(ownSshAgent=False)
+
+
+def testOwnSshAgentRemovesSocketWhenStopped(tempDir, mainWindow, gitUsesItsOwnSsh):
+    app = GFApplication.instance()
+    app.applyPrefs(ownSshAgent=True)
+
+    socketPath = app.sshAgent.environment["SSH_AUTH_SOCK"]
+    if WINDOWS:
+        # Git for Windows' ssh-agent prints an MSYS path, e.g. /c/Users/...
+        socketPath = re.sub(r"^/(\w)/", r"\1:/", socketPath)
+    assert os.path.exists(socketPath)
+
+    app.applyPrefs(ownSshAgent=False)
+    assert not os.path.exists(socketPath)
+
+
+def testOwnSshAgentTurnsOffWithWindowsOpenSsh(tempDir, mainWindow, monkeypatch):
+    from gitfourchette import sshagent
+    monkeypatch.setattr(sshagent, "WINDOWS", True)
+
+    # Windows' OpenSSH can't use the ssh-agent that ships with Git for Windows
+    python = Path(sys.executable).as_posix()
+    shim = Path(getTestDataPath("shims/winssh.py")).as_posix()
+    globalConfig = pygit2.Config.get_global_config()
+    globalConfig["core.sshCommand"] = f'"{python}" "{shim}"'
+
+    try:
+        GFApplication.applyPrefs(ownSshAgent=True)
+        acceptQMessageBox(mainWindow, "couldn.t start ssh-agent.+OpenSSH for Windows")
+    finally:
+        del globalConfig["core.sshCommand"]
+
+    assert not settings.prefs.ownSshAgent
+    assert GFApplication.instance().sshAgent is None
 
 
 def testRaiseExistingInstance(tempDir, mainWindow):
