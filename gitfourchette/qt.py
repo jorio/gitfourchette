@@ -343,6 +343,48 @@ if MACOS and (PYINSTALLER_MEIPASS or APP_DEBUG):  # pragma: no cover
 
 
 # -----------------------------------------------------------------------------
+# Patch environment variables to ignore the repo that a parent Git process may
+# pass down to us. For example, `git gf` passes us GIT_DIR in a linked worktree
+# (assuming the config has "alias.gf=!gitfourchette").
+#
+# Git sets these when it runs a command for a repo: a hook, `git rebase --exec`
+# in a worktree, a difftool, etc. We pick each repo ourselves, so these would
+# only send git commands, editors and terminals to the wrong repo.
+#
+# This is `git rev-parse --local-env-vars` minus GIT_CONFIG_PARAMETERS and
+# GIT_CONFIG_COUNT, which Git keeps too when it runs a command in another repo
+# (sanitize_repo_env), so that `git -c` options still apply.
+#
+# List last updated with Git 2.56.1 (10/2026). A forward-compat test will fail
+# if a new Git version changes these (testRepoEnvironmentVariablesMatchGit).
+
+GIT_REPO_ENVIRONMENT_VARIABLES = (
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CONFIG",
+    # "GIT_CONFIG_PARAMETERS" - keep this one!
+    # "GIT_CONFIG_COUNT" - keep this one!
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_GRAFT_FILE",
+    "GIT_INDEX_FILE",
+    "GIT_NO_REPLACE_OBJECTS",
+    "GIT_REPLACE_REF_BASE",
+    "GIT_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_COMMON_DIR",
+    "GIT_INTERNAL_SUPER_PREFIX",  # Only listed by Git <= 2.39
+)
+
+for _var in GIT_REPO_ENVIRONMENT_VARIABLES:
+    if _var in _os.environ:
+        _logger.info(f"Ignoring {_var} from the environment")
+        del _os.environ[_var]
+        INITIAL_ENVIRONMENT.pop(_var, None)
+
+
+# -----------------------------------------------------------------------------
 # Utility functions
 
 def qAppName() -> str:

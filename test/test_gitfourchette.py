@@ -5,6 +5,7 @@
 # -----------------------------------------------------------------------------
 
 import dataclasses
+import json
 import os.path
 import subprocess
 import sys
@@ -720,6 +721,56 @@ def testGitVersionKnownBeforeAppSetsGitPath():
     projectRoot = os.path.dirname(os.path.dirname(__file__))
     result = subprocess.run([sys.executable, "-c", script], stdout=subprocess.PIPE, text=True, env=env, cwd=projectRoot, check=True)
     assert result.stdout.strip()
+
+
+def testRepoEnvironmentFromParentGitIsDropped(tempDir):
+    """
+    Git passes its repo to the commands it runs, e.g. GIT_DIR to
+    `git rebase --exec` in a worktree. GitFourchette must drop it, or its git
+    commands would act on that repo. Options from `git -c` stay.
+    """
+    script = "import json, os, gitfourchette.qt; print(json.dumps(dict(os.environ)))"
+    env = os.environ | {
+        "APP_TESTMODE": "1",
+        "GIT_DIR": f"{tempDir.name}/elsewhere/.git",
+        "GIT_INDEX_FILE": f"{tempDir.name}/elsewhere/.git/index",
+        "GIT_CONFIG_PARAMETERS": "'user.name'='Somebody'",
+    }
+    projectRoot = os.path.dirname(os.path.dirname(__file__))
+    result = subprocess.run([sys.executable, "-c", script], stdout=subprocess.PIPE, text=True, env=env, cwd=projectRoot, check=True)
+    childEnv = json.loads(result.stdout)
+
+    assert "GIT_DIR" not in childEnv
+    assert "GIT_INDEX_FILE" not in childEnv
+    assert childEnv["GIT_CONFIG_PARAMETERS"] == "'user.name'='Somebody'"
+
+
+def testRepoEnvironmentVariablesMatchGit():
+    """
+    Ensure `git rev-parse --local-env-vars` still matches our hardcoded list of
+    env vars that we don't want to inherit from a parent Git process.
+    """
+    from gitfourchette.gitdriver import GitDriver
+    from gitfourchette.qt import GIT_REPO_ENVIRONMENT_VARIABLES
+
+    # Variables that we DON'T ignore
+    keepVars = {"GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"}
+
+    # Tolerate these in our list if Git doesn't have them
+    # (deprecated variables that new Git versions don't set anymore)
+    deprecatedVars = {"GIT_INTERNAL_SUPER_PREFIX"}
+
+    gitList = set(GitDriver.runSync("rev-parse", "--local-env-vars", strict=True).split())
+    gitList -= keepVars
+
+    ours = set(GIT_REPO_ENVIRONMENT_VARIABLES)
+    assert deprecatedVars <= ours
+
+    message = ("New Git version we don't support yet? Run `git rev-parse --local-env-vars` "
+               "and update GIT_REPO_ENVIRONMENT_VARIABLES.")
+
+    assert gitList <= ours, message
+    assert ours - gitList <= deprecatedVars, message
 
 
 # TODO: Teardown fails on Windows, which is a symptom of a minor leak that
