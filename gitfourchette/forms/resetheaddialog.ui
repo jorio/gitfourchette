@@ -84,8 +84,8 @@
    <item row="2" column="1">
     <widget class="QLabel" name="hardHelp">
      <property name="text">
-      <string>&lt;b&gt;Wipe&lt;/b&gt; all your changes.
-&lt;br&gt;End result identical to a fresh checkout of {commit}.</string>
+      <string>&lt;b&gt;Overwrite&lt;/b&gt; your files with {commit}.
+&lt;br&gt;&lt;b&gt;Wipe&lt;/b&gt; uncommitted changes, unless you keep them below.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -103,6 +103,16 @@
     </widget>
    </item>
    <item row="3" column="0" colspan="2">
+    <widget class="QCheckBox" name="keepCheckBox">
+     <property name="text">
+      <string>&amp;Keep uncommitted changes</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
     <widget class="QCheckBox" name="recurseCheckBox">
      <property name="text">
       <string>&amp;Reset submodules recursively</string>
@@ -118,6 +128,8 @@
   <tabstop>softButton</tabstop>
   <tabstop>mixedButton</tabstop>
   <tabstop>hardButton</tabstop>
+  <tabstop>keepCheckBox</tabstop>
+  <tabstop>recurseCheckBox</tabstop>
  </tabstops>
  <resources/>
  <connections>

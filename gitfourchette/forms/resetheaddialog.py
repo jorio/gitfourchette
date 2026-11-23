@@ -19,13 +19,25 @@ class ResetHeadDialog(QDialog):
 
     def setActiveMode(self, mode: ResetMode):
         self.activeMode = mode
+        self.ui.keepCheckBox.setEnabled(mode == ResetMode.HARD)
+        self.ui.recurseCheckBox.setEnabled(self.hasSubmodules and mode == ResetMode.HARD)
+        self.updateOkButton()
+
+    def updateOkButton(self):
         okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         okButton.setIcon(self.defaultOkIcon)
         okButton.setToolTip("")
-        if mode == ResetMode.HARD:
+        if self.activeMode == ResetMode.HARD and not self.keepChanges():
             okButton.setIcon(stockIcon("achtung"))
             okButton.setToolTip(_("Hard reset: Destructive action!"))
-        self.ui.recurseCheckBox.setEnabled(self.hasSubmodules and mode == ResetMode.HARD)
+
+    def keepChanges(self):
+        """
+        True if a hard reset should keep uncommitted changes (git reset --keep).
+        Git then cancels the whole reset if a change is in the way.
+        """
+        checkBox = self.ui.keepCheckBox
+        return checkBox.isEnabled() and checkBox.isChecked()
 
     def recurseSubmodules(self):
         checkBox = self.ui.recurseCheckBox
@@ -43,6 +55,7 @@ class ResetHeadDialog(QDialog):
 
         okButton = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Ok)
         self.defaultOkIcon = okButton.icon() or QIcon()
+        self.ui.keepCheckBox.toggled.connect(self.updateOkButton)
 
         self.modeButtons = {
             ResetMode.SOFT: self.ui.softButton,

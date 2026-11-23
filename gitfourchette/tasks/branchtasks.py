@@ -427,8 +427,11 @@ class ResetHead(RepoTask):
 
         self.epilog.effects |= TaskEffects.Refs | TaskEffects.Workdir
 
-        modeArg = "--" + resetMode.name.lower()
-        assert modeArg in ["--hard", "--mixed", "--soft"]
+        if dlg.keepChanges():
+            modeArg = "--keep"  # hard reset that keeps uncommitted changes
+        else:
+            modeArg = "--" + resetMode.name.lower()
+            assert modeArg in ["--hard", "--mixed", "--soft"]
 
         yield from self.flowCallGit(
             "reset",

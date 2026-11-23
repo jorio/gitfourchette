@@ -56,16 +56,22 @@ class Ui_ResetHeadDialog(object):
         self.mixedButton.setText("&Mixed")
         self.mixedButton.setObjectName("mixedButton")
         self.gridLayout.addWidget(self.mixedButton, 1, 0, 1, 1, Qt.AlignmentFlag.AlignTop)
+        self.keepCheckBox = QCheckBox(parent=ResetHeadDialog)
+        self.keepCheckBox.setChecked(True)
+        self.keepCheckBox.setObjectName("keepCheckBox")
+        self.gridLayout.addWidget(self.keepCheckBox, 3, 0, 1, 2)
         self.recurseCheckBox = QCheckBox(parent=ResetHeadDialog)
         self.recurseCheckBox.setChecked(True)
         self.recurseCheckBox.setObjectName("recurseCheckBox")
-        self.gridLayout.addWidget(self.recurseCheckBox, 3, 0, 1, 2)
+        self.gridLayout.addWidget(self.recurseCheckBox, 4, 0, 1, 2)
 
         self.retranslateUi(ResetHeadDialog)
         self.buttonBox.accepted.connect(ResetHeadDialog.accept)
         self.buttonBox.rejected.connect(ResetHeadDialog.reject)
         ResetHeadDialog.setTabOrder(self.softButton, self.mixedButton)
         ResetHeadDialog.setTabOrder(self.mixedButton, self.hardButton)
+        ResetHeadDialog.setTabOrder(self.hardButton, self.keepCheckBox)
+        ResetHeadDialog.setTabOrder(self.keepCheckBox, self.recurseCheckBox)
 
     def retranslateUi(self, ResetHeadDialog):
         ResetHeadDialog.setWindowTitle(_p("ResetHeadDialog", "Reset HEAD"))
@@ -73,6 +79,7 @@ class Ui_ResetHeadDialog(object):
 "<br><b>Stage</b> any differences between your files and {commit}."))
         self.mixedHelp.setText(_p("ResetHeadDialog", "<b>Keep</b> all your files intact.\n"
 "<br><b>Unstage</b> any differences between your files and {commit}."))
-        self.hardHelp.setText(_p("ResetHeadDialog", "<b>Wipe</b> all your changes.\n"
-"<br>End result identical to a fresh checkout of {commit}."))
+        self.hardHelp.setText(_p("ResetHeadDialog", "<b>Overwrite</b> your files with {commit}.\n"
+"<br><b>Wipe</b> uncommitted changes, unless you keep them below."))
+        self.keepCheckBox.setText(_p("ResetHeadDialog", "&Keep uncommitted changes"))
         self.recurseCheckBox.setText(_p("ResetHeadDialog", "&Reset submodules recursively"))
