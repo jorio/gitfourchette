@@ -199,7 +199,7 @@ class DeleteBranch(RepoTask):
         prefix, localBranchName = RefPrefix.split(refName)
         assert prefix == RefPrefix.HEADS
 
-        if refName == self.repo.head_branch_fullname:
+        if refName == self.repo.checked_out_branch:
             text = paragraphs(
                 _("Cannot delete {0} because it is the current branch.", bquo(localBranchName)),
                 _("Before you try again, switch to another branch."))
@@ -229,7 +229,7 @@ class DeleteBranchFolder(RepoTask):
         assert not folderName.endswith("/")
         folderNameSlash = folderName + "/"
 
-        currentBranch = self.repo.head_branch_shorthand
+        _prefix, currentBranch = RefPrefix.split(self.repo.checked_out_branch)
         if currentBranch.startswith(folderNameSlash):
             text = paragraphs(
                 _("Cannot delete folder {0} because it contains the current branch {1}.", bquo(folderName), bquo(currentBranch)),
@@ -273,7 +273,7 @@ class NewBranchFromCommit(RepoTask):
 
             # Default to the current branch's name (if no name given)
             if not localName:
-                localName = repo.head.shorthand
+                localName = repo.head_branch_shorthand
 
         # Collect upstream names and set initial localName (if we haven't been able to set it above).
         refsPointingHere = repo.listall_refs_pointing_at(tip)
@@ -454,7 +454,10 @@ class FastForwardBranch(RepoTask):
 
         remoteBranchName = upstream.shorthand
 
-        upToDate = yield from self._withGit(branch)
+        # Not branch.is_checked_out(): that's also true if another worktree uses it
+        isCurrentBranch = branch.name == self.repo.checked_out_branch
+
+        upToDate = yield from self._withGit(branch, isCurrentBranch)
 
         ahead = False
         if upToDate:
@@ -471,7 +474,7 @@ class FastForwardBranch(RepoTask):
             self.epilog.status = stripHtml(message)
             yield from self.flowConfirm(text=message, canCancel=False, dontShowAgainKey="NoFastForwardingNecessary")
 
-    def _withGit(self, branch: Branch):
+    def _withGit(self, branch: Branch, isCurrentBranch: bool):
         # Perform merge analysis with libgit2 first
         yield from self.flowEnterWorkerThread()
         analysis, _mergePref = self.repo.merge_analysis(branch.upstream.target, branch.name)
@@ -485,28 +488,26 @@ class FastForwardBranch(RepoTask):
             pass
         elif analysis == MergeAnalysis.NORMAL:
             # Can't FF. Divergent branches?
-            self._onDivergentBranches(branch)  # this will abort
+            self._onDivergentBranches(branch, isCurrentBranch)  # this will abort
             raise AssertionError("unreachable")
         else:
             # Unborn or something...
             raise NotImplementedError(f"Cannot fast-forward with {analysis!r}.")
 
         self.epilog.effects |= TaskEffects.Refs
-        if branch.is_checked_out():
+        if isCurrentBranch:
             self.epilog.effects |= TaskEffects.Head
             args = ["merge", "--ff-only", "--progress", branch.upstream_name]
         else:
+            # Git refuses this if another worktree uses the branch
             args = ["push", ".", f"{branch.upstream_name}:{branch.name}"]
 
-        driver = yield from self.flowCallGit(*args, autoFail=False)
-
-        if driver.exitCode() != 0:
-            self._onDivergentBranches(branch)  # this will abort
-            raise AssertionError("unreachable")
+        # The analysis says we can fast-forward, so if Git fails, show why
+        yield from self.flowCallGit(*args)
 
         return False
 
-    def _onDivergentBranches(self, lb: Branch):
+    def _onDivergentBranches(self, lb: Branch, isCurrentBranch: bool):
         parentWidget = self.parentWidget()
         rb = lb.upstream
 
@@ -516,7 +517,7 @@ class FastForwardBranch(RepoTask):
         qmb = showWarning(parentWidget, self.name(), text)
 
         # If it's the checked-out branch, suggest merging
-        if lb.is_checked_out():
+        if isCurrentBranch:
             mergeCaption = _("Merge into {0}", lquoe(lb.shorthand))
             mergeButton = qmb.addButton(mergeCaption, QMessageBox.ButtonRole.ActionRole)
             mergeButton.clicked.connect(lambda: MergeBranch.invoke(parentWidget, rb.name))

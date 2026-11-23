@@ -962,6 +962,68 @@ def testFastForwardDivergent(tempDir, mainWindow):
     acceptQMessageBox(rw, "can.+t fast.forward.+branches are divergent")
 
 
+@pytest.mark.parametrize("rebasing", [False, True])
+def testFastForwardBranchCheckedOutInOtherWorktree(tempDir, mainWindow, rebasing):
+    """
+    Fast-forwarding a branch that another worktree uses must not touch this
+    worktree's branch. Git refuses to update it, also while the other
+    worktree is rebasing it (its HEAD is then detached); show Git's error.
+    """
+    wd = unpackRepo(tempDir)
+    shell("""
+        git switch no-parent
+        git branch elsewhere origin/master~1
+        git branch -u origin/master elsewhere
+        git worktree add ../elsewhere-wt elsewhere
+    """, wd)
+    if rebasing:
+        shell("git rebase --exec false HEAD~1 || true", f"{wd}/../elsewhere-wt")
+
+    with RepoContext(wd) as repo:
+        noParentTip = repo.branches.local["no-parent"].target
+        elsewhereTip = repo.branches.local["elsewhere"].target
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("refs/heads/elsewhere")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "fast.forward")
+
+    qmb = findQMessageBox(rw, "refusing to update checked out branch")
+    assert not [button for button in qmb.buttons() if "merge" in button.text().lower()]
+    qmb.accept()
+
+    assert rw.repo.branches.local["no-parent"].target == noParentTip
+    assert rw.repo.branches.local["elsewhere"].target == elsewhereTip
+    assert rw.repo.head_branch_shorthand == "no-parent"
+
+
+def testFastForwardCurrentBranchBlockedByWorkdir(tempDir, mainWindow):
+    """
+    The branches aren't divergent: Git refuses to overwrite a file in the
+    workdir. Show Git's reason, not "divergent" and a Merge button.
+    """
+    wd = unpackRepo(tempDir)
+    shell("""
+        git switch no-parent
+        git branch no-parent -u origin/master
+    """, wd)
+    writeFile(f"{wd}/a/a1", "untracked file that the upstream adds\n")
+
+    with RepoContext(wd) as repo:
+        noParentTip = repo.branches.local["no-parent"].target
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+    menu = rw.sidebar.makeNodeMenu(node)
+    triggerMenuAction(menu, "fast.forward")
+
+    qmb = findQMessageBox(rw, "would be overwritten")
+    assert not [button for button in qmb.buttons() if "merge" in button.text().lower()]
+    qmb.accept()
+
+    assert rw.repo.branches.local["no-parent"].target == noParentTip
+
+
 def testMergeUpToDate(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)
@@ -1446,3 +1508,35 @@ def testRefreshLibgit2IndexAfterTaskAffectsHead(tempDir, mainWindow):
     rw.jump(NavLocator.inCommit(cherrypickOid, "a/a1"), check=True)
     triggerContextMenuAction(rw.graphView.viewport(), "cherry.?pick")
     acceptQMessageBox(rw, "do you want to apply.+changes.+f73b956")
+
+
+@pytest.mark.parametrize("what", ["branch", "folder", "checkout"])
+def testBranchTasksWithUnbornHead(tempDir, mainWindow, what):
+    # repo.head raises on an unborn HEAD, e.g. right after "git switch --orphan"
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch folder/leaf master
+        git switch --orphan fresh
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+
+    if what == "branch":
+        node = rw.sidebar.findNodeByRef("refs/heads/no-parent")
+        menu = rw.sidebar.makeNodeMenu(node)
+        triggerMenuAction(menu, "delete")
+        acceptQMessageBox(rw, "really delete")
+        assert "no-parent" not in rw.repo.branches.local
+    elif what == "folder":
+        node = rw.sidebar.findNode(lambda n: n.data == "refs/heads/folder")
+        menu = rw.sidebar.makeNodeMenu(node)
+        triggerMenuAction(menu, "delete")
+        acceptQMessageBox(rw, "really delete")
+        assert "folder/leaf" not in rw.repo.branches.local
+    else:
+        rw.jump(NavLocator.inRef("refs/heads/master"))
+        triggerContextMenuAction(rw.graphView.viewport(), "check.?out")
+        dlg: CheckoutCommitDialog = findQDialog(rw, "check.?out")
+        assert "fresh" in dlg.ui.resetHeadRadioButton.text()  # HEAD isn't detached, it's on an unborn branch
+        dlg.ui.detachHeadRadioButton.setChecked(True)
+        dlg.accept()
+        assert rw.repo.head_is_detached

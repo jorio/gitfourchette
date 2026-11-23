@@ -200,7 +200,12 @@ class RepoModel:
     workdirStagedDeltas: list[GitDelta]
 
     headIsDetached: bool
+
     homeBranch: str
+    """
+    Refname (refs/heads/...) of the branch checked out in this worktree,
+    even if it has no commits yet. Empty string if HEAD is detached.
+    """
 
     prefs: RepoPrefs
 
@@ -286,6 +291,16 @@ class RepoModel:
         return self.refs.get("HEAD", NULL_OID)
 
     @property
+    def homeBranchName(self) -> str:
+        """ Short name of `homeBranch` (e.g. "main"), or "" if HEAD is detached. """
+        return RefPrefix.split(self.homeBranch)[1]
+
+    @property
+    def homeUpstream(self) -> str:
+        """ Local ref that tracks the upstream of `homeBranch`, or "" if there is none. """
+        return self.trackedUpstreams.get(self.homeBranch, "")
+
+    @property
     def singleRemote(self) -> bool:
         return len(self.remotes) == 1
 
@@ -300,10 +315,7 @@ class RepoModel:
         headWasDetached = self.headIsDetached
         self.headIsDetached = self.repo.head_is_detached
 
-        if self.headIsDetached or self.repo.head_is_unborn:
-            self.homeBranch = ""
-        else:
-            self.homeBranch = self.repo.head_branch_shorthand
+        self.homeBranch = self.repo.checked_out_branch
 
         refs = self.repo.map_refs_to_ids(include_stashes=False)
         refs[UC_FAKEREF] = UC_FAKEID

@@ -596,8 +596,7 @@ class RepoWidget(QWidget):
             oid = repo.head_commit_id
             brackets.append(shortHash(oid))
         else:
-            with suppress(GitError):
-                brackets.append(repo.head_branch_shorthand)
+            brackets.append(repo.head_branch_shorthand)
 
         if state != RepositoryState.NONE:
             brackets.append(trtables.enum(state).upper())

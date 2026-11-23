@@ -1122,3 +1122,13 @@ def testTaskTerminationTerminatesProcess(tempDir, mainWindow):
 
         # Check that the branch was not fetched
         assert "localfs/new-remote-branch" not in rw.repo.branches.remote
+
+
+def testPushWithUnbornHead(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("git switch --orphan fresh", wd)
+    rw = mainWindow.openRepo(wd)
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    # Not "switch to a local branch": we're on one. Not "no commits in this
+    # repository" either: other branches have commits.
+    acceptQMessageBox(rw, "branch.+fresh.+no commits")

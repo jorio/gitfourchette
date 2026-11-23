@@ -800,6 +800,12 @@ class RepoTask(QObject):
             raise AbortTask(_("Fix merge conflicts before performing this action."))
 
         if TaskPrereqs.NoUnborn in prereqs and repo.head_is_unborn:
+            if repo.listall_branches():
+                # Other local branches have commits, e.g. after "git switch --orphan"
+                raise AbortTask(paragraphs(
+                    _("Branch {0} has no commits yet.", bquo(repo.head_branch_shorthand)),
+                    _("Commit to it or switch to another branch before performing this action.")))
+
             raise AbortTask(paragraphs(
                 _("There are no commits in this repository yet."),
                 _("Create the initial commit in this repository before performing this action.")))

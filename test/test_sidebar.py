@@ -869,3 +869,39 @@ def testSidebarHideSubmoduleSectionWithoutSubmodules(tempDir, mainWindow):
     rw.refreshRepo()
 
     assert sb.findNodeByKind(SidebarItem.Submodule)
+
+
+def testSidebarBranchCheckedOutInOtherWorktreeIsNotCurrent(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch elsewhere no-parent
+        git branch -u origin/master elsewhere
+        git worktree add ../elsewhere-wt elsewhere
+    """, wd)
+    rw = mainWindow.openRepo(wd)
+    assert rw.repo.head_branch_shorthand == "master"
+
+    # $HEADBRANCH names master, so its commands only belong on master's menu
+    GFApplication.applyPrefs(commands="echo $HEADBRANCH")
+    QTest.qWait(0)
+
+    masterNode = rw.sidebar.findNodeByRef("refs/heads/master")
+    masterMenu = rw.sidebar.makeNodeMenu(masterNode)
+    assert findMenuAction(masterMenu, r"\(command\) echo")
+
+    node = rw.sidebar.findNodeByRef("refs/heads/elsewhere")
+    menu = rw.sidebar.makeNodeMenu(node)
+    assert not findMenuAction(menu, "pull").isEnabled()  # Pull would act on master
+    for verb in ["switch", "merge into", "rebase", "reset"]:
+        assert findMenuAction(menu, verb).isEnabled()
+    with pytest.raises(KeyError):
+        findMenuAction(menu, r"\(command\) echo")
+
+    index = rw.sidebar.nodeToFilterIndex(node)
+    font = index.data(Qt.ItemDataRole.FontRole)
+    assert not font or not font.bold()
+
+    # Git won't switch to a branch that another worktree uses
+    triggerMenuAction(menu, "switch")
+    acceptQMessageBox(rw, "elsewhere.+already checked out")
+    assert rw.repo.head_branch_shorthand == "master"

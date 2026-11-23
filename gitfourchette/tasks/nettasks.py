@@ -361,12 +361,10 @@ class PushBranch(RepoTask):
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))
             raise AbortTask(text)
 
-        try:
-            if not branchName:
-                branchName = self.repo.head_branch_shorthand
-            branch = self.repo.branches.local[branchName]
-        except (GitError, KeyError) as exc:
-            raise AbortTask(_("Please switch to a local branch before performing this action.")) from exc
+        if not branchName:
+            self.checkPrereqs(TaskPrereqs.NoUnborn | TaskPrereqs.NoDetached)
+            _prefix, branchName = RefPrefix.split(self.repo.checked_out_branch)
+        branch = self.repo.branches.local[branchName]
 
         dialog = PushDialog(self.repoModel, branch, self.parentWidget())
         dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
