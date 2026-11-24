@@ -853,12 +853,16 @@ class RestoreRevisionToWorkdir(RepoTask):
         else:
             actionVerb = _("overwritten")
 
-        lines = [_("Do you want to restore {path} as it was {preposition} this commit?",
-                   path=bquo(diffFile.path), preposition=preposition)]
+        question = _("Do you want to restore {path} as it was {preposition} this commit?",
+                     path=bquo(diffFile.path), preposition=preposition)
         if lostPaths:
-            lines.append(_("This file has uncommitted changes."))
-        lines.append(_("This file will be {processed} in your working directory.", processed=actionVerb))
-        prompt = paragraphs(*lines)
+            consequence = stockIconImgTag("achtung") + " " + _(
+                "<b>This file has uncommitted changes!</b> "
+                "It will be {processed} in your working directory.",
+                processed=actionVerb)
+        else:
+            consequence = _("This file will be {processed} in your working directory.", processed=actionVerb)
+        prompt = paragraphs(question, consequence)
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
 
