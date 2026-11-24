@@ -15,13 +15,14 @@ from . import reposcenario
 from .util import *
 
 
-_largeFileFiller = "".join(f"\n// filler {i}" for i in range(100))
+_largeFileFiller = "".join(f"// filler {i}\n" for i in range(100))
 
 
+# Cause two conflicts in the file (one at the top, one at the bottom)
 _conflictScenarioTokensBlob = {
-    "initBase": f"echo 'int base;{_largeFileFiller}' >",
-    "initOurs": f"echo 'int ours;{_largeFileFiller}' >",
-    "initTheirs": f"echo 'int theirs;{_largeFileFiller}' >",
+    "initBase": f"echo 'int base;\n{_largeFileFiller}// bye from base\n' >",
+    "initOurs": f"echo 'int ours;\n{_largeFileFiller}// bye from ours\n' >",
+    "initTheirs": f"echo 'int theirs;\n{_largeFileFiller}// bye from theirs\n' >",
 }
 
 
