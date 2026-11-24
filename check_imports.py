@@ -58,20 +58,25 @@ def main():
     sys.path.insert(0, str(REPO_DIR))
 
     failures = 0
+    modules = listModules()
 
-    for module in listModules():
+    for i, module in enumerate(modules, start=1):
+        print(f"\r{100*i//len(modules):3}% ", end="")
+
         dependency = OPTIONAL_DEPENDENCIES.get(module)
         if dependency and importlib.util.find_spec(dependency) is None:
             continue
 
         error = importFirst(module)
         if error:
-            print(f"{module}: {error}")
+            print(f"\r{module}: {error}")
             failures += 1
 
     if failures:
-        print(f"{failures} modules can't be imported first.")
+        print(f"\n{failures} modules can't be imported first.")
         sys.exit(1)
+
+    print("OK")
 
 
 if __name__ == "__main__":

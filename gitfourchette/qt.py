@@ -84,7 +84,7 @@ def _bail(message: str):
 for _tentative in _qtBindingOrder:
     assert _tentative.islower()
 
-    with _suppress(ImportError):
+    try:
         if _tentative == "pyside6" and not TYPE_CHECKING:
             from PySide6.QtCore import *
             from PySide6.QtWidgets import *
@@ -111,6 +111,8 @@ for _tentative in _qtBindingOrder:
             QT5 = PYQT5 = True
         else:
             _logger.warning(f"Unsupported Qt binding {_tentative}")
+    except ImportError as _importError:
+        print(_importError)
 
     if QT_BINDING:
         break  # We've successfully imported a binding, stop looking at candidates
