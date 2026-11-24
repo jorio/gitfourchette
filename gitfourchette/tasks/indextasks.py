@@ -549,7 +549,10 @@ class HardSolveConflicts(RepoTask):
             *stageArgs,
             autoFail=False)
 
-        if driver.exitCode() not in (0, 1):
+        # Per "man git-merge-file", the exit code is "negative on error, and the
+        # number of conflicts otherwise (truncated to 127 if there are more than
+        # that many conflicts)."
+        if not (0 <= driver.exitCode() <= 127):
             raise AbortTask.fromGitError(driver, message="workdir safety check failed")
 
         mergeText = driver.stdoutScrollback()  # TODO: stdout scrollback as bytes
