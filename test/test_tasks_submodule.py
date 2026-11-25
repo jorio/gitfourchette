@@ -14,7 +14,6 @@ from pygit2.enums import SubmoduleStatus
 
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from gitfourchette.tasks import repotask
@@ -273,8 +272,6 @@ def testDiscardSubmodulesExceedingCommandLineLimit(tempDir, mainWindow, monkeypa
     assert readTextFile(f"{subWd}/master.txt") == "changed\n"
 
 
-# Note: 2.34.1 fails, and 2.41 passes; I haven't tested any versions in between
-@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason=f"git {GitDriver.gitVersionTuple()} too old (refuses to remove embedded .git dir)")
 def testDeleteSubmodule(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd)
@@ -288,6 +285,52 @@ def testDeleteSubmodule(tempDir, mainWindow):
     acceptQMessageBox(rw, r"remove submodule")
     assert 0 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
     assert set(qlvGetRowData(rw.stagedFiles)) == {"submodir", ".gitmodules"}
+
+
+@pytest.mark.parametrize("state", ["new", "newDirty", "newIgnoreAll", "unborn", "stagedUpdate", "committedDirty"])
+def testRemoveSubmoduleOnlyWhenItHasNoLocalChanges(tempDir, mainWindow, state):
+    """
+    Git's own check (git submodule deinit, git rm) refuses a submodule whose
+    entry in the index differs from HEAD, as if that entry held data. It
+    doesn't: the commit it points to stays in the submodule's repository.
+    Changes inside the submodule's work tree must still stop the removal.
+    """
+    if state == "unborn":
+        # On a branch with no commits yet, no submodule can be committed
+        subWd = unpackRepo(tempDir)
+        wd = f"{tempDir.name}/unborn"
+        pygit2.init_repository(wd)
+    else:
+        wd = unpackRepo(tempDir)
+        subWd = f"{tempDir.name}/subsource"
+        shutil.copytree(wd, subWd)
+
+    if state.startswith("new") or state == "unborn":
+        shell(f"git submodule add --name submoname -- {shlex.quote(subWd)} submodir", wd)
+    else:
+        reposcenario.submodule(wd)
+
+    if state == "newIgnoreAll":
+        # Must not hide the submodule from the check
+        shell("git config -f .gitmodules submodule.submoname.ignore all && git add .gitmodules", wd)
+    elif state in ["newDirty", "committedDirty"]:
+        writeFile(f"{wd}/submodir/master.txt", "local change\n")
+    elif state == "stagedUpdate":
+        shell("git -C submodir commit --allow-empty -m bump && git add submodir", wd)
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNodeByKind(SidebarItem.Submodule)
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "remove submodule")
+    acceptQMessageBox(rw, "remove submodule")
+
+    if state.endswith("Dirty"):
+        acceptQMessageBox(rw, "local modifications")
+        assert readTextFile(f"{wd}/submodir/master.txt") == "local change\n"
+        assert 1 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
+    else:
+        assert 0 == rw.sidebar.countNodesByKind(SidebarItem.Submodule)
+        assert not os.path.exists(f"{wd}/submodir/master.txt")
+        assert "submodule" not in readTextFile(f"{wd}/.gitmodules")
 
 
 def testAbsorbSubmodule(tempDir, mainWindow):
@@ -427,7 +470,6 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     assert qteFind(rw.specialDiffView, r"to complete the removal.+commit \.gitmodules")
 
 
-@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason=f"git {GitDriver.gitVersionTuple()} too old (refuses to remove embedded .git dir)")
 def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd, absorb=True)

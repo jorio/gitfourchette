@@ -13,6 +13,7 @@ from pathlib import Path
 
 from gitfourchette.forms.brandeddialog import convertToBrandedDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
+from gitfourchette.gitdriver import argsIf
 from gitfourchette.localization import *
 from gitfourchette.porcelain import *
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskPrereqs, TaskEffects
@@ -87,7 +88,7 @@ class AbsorbSubmodule(RegisterSubmodule):
 
 class RemoveSubmodule(RepoTask):
     def prereqs(self) -> TaskPrereqs:
-        return TaskPrereqs.NoUnborn | TaskPrereqs.NoConflicts
+        return TaskPrereqs.NoConflicts
 
     def flow(self, submoduleName: str):
         submodule = self.repo.submodules[submoduleName]
@@ -108,10 +109,29 @@ class RemoveSubmodule(RepoTask):
                 | TaskEffects.Head  # also force refresh libgit2 index TODO: better naming
         )
 
-        # 1. Unregister from .git/config & remove worktree
-        yield from self.flowCallGit("submodule", "deinit", pathspecs=[path])
+        # Check for local changes the way deinit does: move an embedded .git
+        # directory into .git/modules, then ask "git rm -n". Except that Git
+        # also refuses an index entry that differs from HEAD (e.g. a submodule
+        # that isn't committed yet), although that entry only points to a
+        # commit kept in the submodule's repository. In that case, check the
+        # submodule's work tree alone with "git rm -n --cached".
+        yield from self.flowCallGit("submodule", "absorbgitdirs", pathspecs=[path])
+
+        driver = yield from self.flowCallGit(
+            "diff", "--cached", "--raw", "--no-renames", "--ignore-submodules=none", pathspecs=[path])
+        # Raw diff line: ":<HEAD mode> <index mode> <HEAD id> <index id> <status>\t<path>"
+        rawDiff = driver.stdoutScrollback().split()
+        newGitlinkInIndex = len(rawDiff) >= 2 and rawDiff[1] == "160000"
+
+        driver = yield from self.flowCallGit(
+            "rm", "-n", *argsIf(newGitlinkInIndex, "--cached"), pathspecs=[path], autoFail=False)
+        if driver.exitCode() != 0:
+            raise AbortTask.fromGitError(driver, _("Submodule {0} contains local modifications.", bquo(submoduleName)))
+
+        # 1. Unregister from .git/config & remove worktree (-f: we've just run the check)
+        yield from self.flowCallGit("submodule", "deinit", "-f", pathspecs=[path])
 
         # 2. Unregister from .gitmodules (& remove worktree again)
-        yield from self.flowCallGit("rm", pathspecs=[path])
+        yield from self.flowCallGit("rm", "-f", pathspecs=[path])
 
         self.epilog.status = _("Submodule {0} removed.", tquo(submoduleName))
