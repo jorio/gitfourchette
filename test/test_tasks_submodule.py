@@ -14,7 +14,6 @@ from pygit2.enums import SubmoduleStatus
 
 from gitfourchette.forms.checkoutcommitdialog import CheckoutCommitDialog
 from gitfourchette.forms.registersubmoduledialog import RegisterSubmoduleDialog
-from gitfourchette.gitdriver import GitDriver
 from gitfourchette.nav import NavLocator
 from gitfourchette.sidebar.sidebarmodel import SidebarItem
 from gitfourchette.tasks import repotask
@@ -473,7 +472,6 @@ def testSubmoduleStagingSuggestions(tempDir, mainWindow):
     assert qteFind(rw.specialDiffView, r"to complete the removal.+commit \.gitmodules")
 
 
-@pytest.mark.skipif(GitDriver.gitVersionTuple() < (2, 41), reason=f"git {GitDriver.gitVersionTuple()} too old (refuses to remove embedded .git dir)")
 def testDeleteAbsorbedSubmoduleThenRestoreIt(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     reposcenario.submodule(wd, absorb=True)
