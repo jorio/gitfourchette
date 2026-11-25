@@ -790,6 +790,76 @@ def testResetDetachedHead(tempDir, mainWindow):
     assert rw.repo.head.target == oid1
 
 
+def testResetHeadKeepsUncommittedChanges(tempDir, mainWindow):
+    oid1 = Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6")
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/master.txt", "uncommitted change")  # same in HEAD and oid1
+    shell("git add master.txt", wd)
+    rw = mainWindow.openRepo(wd)
+
+    rw.jump(NavLocator.inCommit(oid1))
+    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
+    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+0966a4", t=ResetHeadDialog)
+    assert not dlg.ui.keepCheckBox.isEnabled()
+    dlg.modeButtons[ResetMode.HARD].click()
+    assert dlg.ui.keepCheckBox.isEnabled()
+    assert dlg.ui.keepCheckBox.isChecked()
+    dlg.accept()
+
+    assert rw.repo.head.target == oid1
+    assert readFile(f"{wd}/master.txt") == b"uncommitted change"
+    assert rw.repo.status() == {"master.txt": FileStatus.WT_MODIFIED}  # unstaged; other files match oid1
+
+
+def testResetHeadKeepRefusesIfChangesAreInTheWay(tempDir, mainWindow):
+    oid1 = Oid(hex="0966a434eb1a025db6b71485ab63a3bfbea520b6")
+
+    wd = unpackRepo(tempDir)
+    writeFile(f"{wd}/a/a1.txt", "uncommitted change")  # differs between HEAD and oid1
+    rw = mainWindow.openRepo(wd)
+    headId = rw.repo.head.target
+
+    rw.jump(NavLocator.inCommit(oid1))
+    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
+    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+0966a4", t=ResetHeadDialog)
+    dlg.modeButtons[ResetMode.HARD].click()
+    dlg.accept()
+    acceptQMessageBox(rw, "a1.txt")
+
+    assert rw.repo.head.target == headId
+    assert readFile(f"{wd}/a/a1.txt") == b"uncommitted change"
+
+    # Without "keep", a hard reset wipes the change
+    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
+    dlg = findQDialog(rw, "reset.+master.+to.+0966a4", t=ResetHeadDialog)
+    dlg.modeButtons[ResetMode.HARD].click()
+    dlg.ui.keepCheckBox.setChecked(False)
+    dlg.accept()
+
+    assert rw.repo.head.target == oid1
+    assert readFile(f"{wd}/a/a1.txt") != b"uncommitted change"
+
+
+def testResetHeadKeepRefusesIfUntrackedFileIsInTheWay(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("git rm -q master.txt && git commit -q -m 'remove master.txt'", wd)
+    writeFile(f"{wd}/master.txt", "untracked")
+    rw = mainWindow.openRepo(wd)
+    headId = rw.repo.head.target
+    parentId = rw.repo.head_commit.parent_ids[0]
+
+    rw.jump(NavLocator.inCommit(parentId))
+    triggerContextMenuAction(rw.graphView.viewport(), "reset.+here")
+    dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+" + id7(parentId), t=ResetHeadDialog)
+    dlg.modeButtons[ResetMode.HARD].click()
+    dlg.accept()
+    acceptQMessageBox(rw, "master.txt")
+
+    assert rw.repo.head.target == headId
+    assert readFile(f"{wd}/master.txt") == b"untracked"
+
+
 def testResetHeadRecurseSubmodules(tempDir, mainWindow):
     wd = unpackRepo(tempDir, "submoroot")
     uncommittedPath = f"{wd}/submosub/subhello.txt"
@@ -811,6 +881,7 @@ def testResetHeadRecurseSubmodules(tempDir, mainWindow):
 
     dlg: ResetHeadDialog = findQDialog(rw, "reset.+master.+to.+" + id7(rootId2))
     dlg.modeButtons[ResetMode.HARD].click()
+    dlg.ui.keepCheckBox.setChecked(False)
     assert dlg.ui.recurseCheckBox.isVisible()
     dlg.ui.recurseCheckBox.setChecked(True)
     dlg.accept()
