@@ -54,6 +54,17 @@ def commitsLeftBehind(task: RepoTask, target: str) -> RepoTask.Flow[int]:
     return int(driver.stdoutScrollback())
 
 
+def commitsOnlyOn(task: RepoTask, refNames: list[str]) -> RepoTask.Flow[int]:
+    """
+    How many commits only these refs reach. Deleting the refs would leave those
+    commits unreachable from any other ref or worktree HEAD.
+    """
+    # Ref names can't contain glob characters, so each --exclude matches one ref
+    excludes = [f"--exclude={refName}" for refName in refNames]
+    driver = yield from task.flowCallGit("rev-list", "--count", *refNames, "--not", *excludes, "--all", "--")
+    return int(driver.stdoutScrollback())
+
+
 def loadDraftFromMergeMsg(task: RepoTask, conflicts: bool) -> RepoTask.Flow[None]:
     """
     Prefill the commit dialog with the message that git prepared in
