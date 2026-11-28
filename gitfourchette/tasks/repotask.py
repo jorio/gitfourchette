@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 import enum
 import logging
+import os
 import shlex
 from collections.abc import Generator, Iterable
 from typing import Any, Literal, ClassVar
@@ -607,12 +608,16 @@ class RepoTask(QObject):
 
         # Apply any custom OpenSSH options
         if sshOptions:
-            # Get original ssh command
-            if repo is not None:
-                sshCommand = repo.get_config_value("core.sshCommand")
-            else:
-                sshCommand = GitConfigHelper.get_default_value("core.sshCommand")
-            sshCommand = sshCommand or "/usr/bin/ssh"
+            # Start from the ssh command that Git would pick: GIT_SSH_COMMAND,
+            # then core.sshCommand, then 'ssh'. (Skip GIT_SSH: Git for Windows
+            # sets it to Plink, which wouldn't take our OpenSSH options.)
+            sshCommand = os.environ.get("GIT_SSH_COMMAND", "")
+            if not sshCommand:
+                if repo is not None:
+                    sshCommand = repo.get_config_value("core.sshCommand")
+                else:
+                    sshCommand = GitConfigHelper.get_default_value("core.sshCommand")
+            sshCommand = sshCommand or "ssh"
             sshCommandTokens = ToolCommands.splitCommandTokens(sshCommand)
             # Add custom options and join back into a string
             sshCommand = shlex.join(sshCommandTokens + sshOptions)
