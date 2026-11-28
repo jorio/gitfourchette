@@ -382,8 +382,59 @@ def testDeleteBranch(tempDir, mainWindow, method):
     else:
         raise NotImplementedError(f"unknown method {method}")
 
-    acceptQMessageBox(rw, "really delete.+branch")
+    qmb = findQMessageBox(rw, "really delete.+branch")
+    assert "reachable" not in qmb.text()  # 6e14752 is also on master
+    qmb.accept()
     assert "somebranch" not in repo.branches.local
+
+
+@pytest.mark.parametrize("keptBy", ["", "tag", "worktree"])
+def testDeleteBranchSaysHowManyCommitsBecomeUnreachable(tempDir, mainWindow, keptBy):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch topic master
+        git switch -q topic
+        git commit -q --allow-empty -m one
+        git commit -q --allow-empty -m two
+        git switch -q master
+    """, wd)
+    if keptBy == "tag":
+        shell("git tag keep topic~1", wd)  # keeps "one" reachable
+    elif keptBy == "worktree":
+        shell(f"git worktree add -q --detach {tempDir.name}/otherworktree topic", wd)  # keeps both
+
+    rw = mainWindow.openRepo(wd)
+    triggerMenuAction(rw.sidebar.makeNodeMenu(rw.sidebar.findNodeByRef("refs/heads/topic")), "delete")
+
+    qmb = findQMessageBox(rw, "really delete.+branch")
+    if keptBy == "worktree":
+        assert "reachable" not in qmb.text()
+    elif keptBy == "tag":
+        assert re.search(r"\b1 commit\b.+isn’t reachable", stripHtml(qmb.text()))
+    else:
+        assert re.search(r"\b2 commits\b.+aren’t reachable", stripHtml(qmb.text()))
+    qmb.accept()
+    assert "topic" not in rw.repo.branches.local
+
+
+def testDeleteBranchFolderSaysHowManyCommitsBecomeUnreachable(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git branch folder/a master
+        git switch -q folder/a
+        git commit -q --allow-empty -m a
+        git branch folder/b
+        git commit -q --allow-empty -m a2
+        git switch -q master
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNode(lambda n: n.data == "refs/heads/folder")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "delete folder")
+
+    # "a" is on both branches: count it once
+    acceptQMessageBox(rw, r"really delete.+branch folder.+2 commits\b.+reachable")
+    assert "folder/a" not in rw.repo.branches.local
 
 
 @pytest.mark.parametrize("method", ["sidebarmenu", "sidebarkey"])

@@ -14,7 +14,7 @@ from gitfourchette.localization import *
 from gitfourchette.nav import NavLocator
 from gitfourchette.porcelain import *
 from gitfourchette.qt import *
-from gitfourchette.tasks.committasks import commitsLeftBehind, loadDraftFromMergeMsg
+from gitfourchette.tasks.committasks import commitsLeftBehind, commitsOnlyOn, loadDraftFromMergeMsg
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskPrereqs, TaskEffects
 from gitfourchette.toolbox import *
 
@@ -205,11 +205,20 @@ class DeleteBranch(RepoTask):
                 _("Before you try again, switch to another branch."))
             raise AbortTask(text)
 
-        text = paragraphs(_("Really delete local branch {0}?", bquo(localBranchName)),
-                          _("This cannot be undone!"))
+        numLost = yield from commitsOnlyOn(self, [refName])
+
+        lines = [_("Really delete local branch {0}?", bquo(localBranchName))]
+        if numLost:
+            lines.append(_n("<b>{n} commit</b> on this branch isn’t reachable from any other branch, "
+                            "so you might lose track of it.",
+                            "<b>{n} commits</b> on this branch aren’t reachable from any other branch, "
+                            "so you might lose track of them.",
+                            n=numLost))
+        lines.append(_("This cannot be undone!"))
 
         yield from self.flowConfirm(
-            text=text,
+            text=paragraphs(*lines),
+            icon="warning" if numLost else "",
             verb=_("Delete branch"),
             buttonIcon="SP_DialogDiscardButton")
 
@@ -239,15 +248,24 @@ class DeleteBranchFolder(RepoTask):
         folderBranches = [b for b in self.repo.listall_branches(BranchType.LOCAL)
                           if b.startswith(folderNameSlash)]
 
-        text = paragraphs(
+        numLost = yield from commitsOnlyOn(self, [RefPrefix.HEADS + b for b in folderBranches])
+
+        lines = [
             _("Really delete local branch folder {0}?", bquo(folderName)),
             _n("<b>{n}</b> branch will be deleted.", "<b>{n}</b> branches will be deleted.", n=len(folderBranches)
-               ) + " " + _("This cannot be undone!"))
+               ) + " " + _("This cannot be undone!")]
+        if numLost:
+            lines.insert(1, _n("<b>{n} commit</b> on these branches isn’t reachable from any other branch, "
+                               "so you might lose track of it.",
+                               "<b>{n} commits</b> on these branches aren’t reachable from any other branch, "
+                               "so you might lose track of them.",
+                               n=numLost))
 
         yield from self.flowConfirm(
             _("Delete branch folder"),
-            text,
+            paragraphs(*lines),
             detailList=folderBranches,
+            icon="warning" if numLost else "",
             verb=_("Delete folder"),
             buttonIcon="SP_DialogDiscardButton")
 
