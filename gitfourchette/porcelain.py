@@ -602,13 +602,17 @@ class Repo(_VanillaRepository):
 
     def listall_remote_branches(
             self,
-            remote_names: _typing.Iterable[str],
+            remote_names: _typing.Iterable[str] | None = None,
             value_style: _typing.Literal["strip", "shorthand", "refname"] = "strip"
     ) -> dict[str, list[str]]:
         """
         Remote branches grouped by remote. `remote_names` lists every remote,
-        including branchless ones, e.g. RepoModel.remotes.
+        including branchless ones, e.g. RepoModel.remotes. If omitted, take
+        the remote names from libgit2 (handy in simple tests).
         """
+        if remote_names is None:
+            remote_names = self.remotes.names()
+
         names: dict[str, list[str]] = {name: [] for name in remote_names}
 
         for ref in self.references.iterator():

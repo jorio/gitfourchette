@@ -195,8 +195,7 @@ def testDeleteRemote(tempDir, mainWindow, method):
 
 def testRemoteFromGlobalConfig(tempDir, mainWindow):
     """
-    Git also reads remotes from the global config. GF listed remotes from
-    .git/config alone, so it hid such a remote and wouldn't fetch it.
+    Like Git, ensure we can list remotes from the global config in addition to .git/config.
     """
     wd = unpackRepo(tempDir)
     barePath = makeBareCopy(wd, addAsRemote="", preFetch=False)

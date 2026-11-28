@@ -36,9 +36,10 @@ type TAbstractDiffDocument = DiffDocument | GitConflict | ImageDelta | SpecialDi
 
 def loadRemotes(task: RepoTask) -> RepoTask.Flow[bool]:
     """
-    Refresh the remotes in RepoModel from Git, which also sees remotes defined
-    outside .git/config and applies url.<base>.insteadOf.
+    Refresh the remotes and their fetch URLs in RepoModel.
     Return True if the remotes changed.
+    This uses Git instead of libgit2 to get remotes included outside .git/config,
+    and to apply url.<base>.insteadOf.
     """
     driver = yield from task.flowCallGit(*REMOTES_COMMAND)
     return task.repoModel.syncRemotes(parseRemotes(driver.stdoutScrollback()))

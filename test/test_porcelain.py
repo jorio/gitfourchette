@@ -28,7 +28,7 @@ def testListallRemoteBranchesWithSymbolicRef(tempDir):
 
     with RepoContext(wd) as repo:
         # Must not raise KeyError or similar
-        result = repo.listall_remote_branches(repo.remotes.names())
+        result = repo.listall_remote_branches()
     assert "origin" in result
     assert "master" in result["origin"]
 
@@ -44,8 +44,8 @@ def testListallRemoteBranchesSymbolicRefToOriginMasterNoDuplicate(tempDir):
     (refs_m_dir / "master").write_text("ref: refs/remotes/origin/master\n")
 
     with RepoContext(wd) as repo:
-        result = repo.listall_remote_branches(repo.remotes.names())
-        result_shorthand = repo.listall_remote_branches(repo.remotes.names(), value_style="shorthand")
+        result = repo.listall_remote_branches()
+        result_shorthand = repo.listall_remote_branches(value_style="shorthand")
     assert result["origin"].count("master") == 1
     assert result_shorthand["origin"].count("origin/master") == 1
 
@@ -61,7 +61,7 @@ def testListallRemoteBranchesWithStaleSymbolicRef(tempDir):
     (refs_m_dir / "master").write_text("ref: refs/remotes/origin/nonexistent\n")
 
     with RepoContext(wd) as repo:
-        result = repo.listall_remote_branches(repo.remotes.names())
+        result = repo.listall_remote_branches()
     # Should still have origin's branches; stale symref is skipped
     assert set(result.keys()) == {"origin"}
     assert "master" in result["origin"]
@@ -81,7 +81,7 @@ def testListallRemoteBranchesSkipsRefWithoutBranchName(tempDir):
     (git_dir / "refs" / "remotes" / "git-svn").write_text(oid + "\n")
 
     with RepoContext(wd) as repo:
-        result = repo.listall_remote_branches(repo.remotes.names())
+        result = repo.listall_remote_branches()
     # git-svn is not a known remote; even if it were, it has no branch name.
     # We must still see origin's branches and must not include git-svn.
     assert "origin" in result
@@ -104,7 +104,7 @@ def testListallRemoteBranchesSkipsStaleRefsFromDeletedRemote(tempDir):
     (deleted_dir / "master").write_text(oid + "\n")
 
     with RepoContext(wd) as repo:
-        result = repo.listall_remote_branches(repo.remotes.names())
+        result = repo.listall_remote_branches()
     # Only configured remotes (origin) appear; deletedremote is skipped
     assert set(result.keys()) == {"origin"}
     assert "deletedremote" not in result
