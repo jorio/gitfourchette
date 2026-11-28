@@ -98,7 +98,7 @@ class RenameRemoteBranch(RepoTask):
         remoteName, branchName = split_remote_branch_shorthand(remoteBranchShorthand)
         newBranchName = branchName  # naked name, NOT prefixed with the name of the remote
 
-        reservedNames = self.repo.listall_remote_branches().get(remoteName, [])
+        reservedNames = self.repo.listall_remote_branches(self.repoModel.remotes).get(remoteName, [])
         with suppress(ValueError):
             reservedNames.remove(branchName)
         nameTaken = _("This name is already taken by another branch on this remote.")
@@ -164,8 +164,9 @@ class RenameRemoteBranch(RepoTask):
 
 class FetchRemotes(RepoTask):
     def flow(self, singleRemoteName: str = ""):
-        # Bail now if we don't have any remotes
-        if not self.repo.listall_remotes_fast():
+        # Bail now if there's no remote to fetch all from. (RepoModel.remotes
+        # may not list a remote that a parent task has just added.)
+        if not singleRemoteName and not self.repoModel.remotes:
             text = paragraphs(
                 _("To fetch remote branches, you must first add a remote to your repo."),
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))
@@ -198,7 +199,7 @@ class AutoFetchRemotes(RepoTask):
 
     def flow(self):
         # Bail now if we don't have any remotes
-        if not self.repo.listall_remotes_fast():
+        if not self.repoModel.remotes:
             return
 
         self.epilog.effects |= TaskEffects.Remotes | TaskEffects.Refs
@@ -341,14 +342,14 @@ class PushRefspecs(RepoTask):
         assert type(refspecs) is list
 
         if remoteName == "*":
-            remotes = list(self.repo.remotes)
+            remoteNames = list(self.repoModel.remotes)
         else:
-            remotes = [self.repo.remotes[remoteName]]
+            remoteNames = [remoteName]
 
         self.epilog.effects |= TaskEffects.Refs
 
-        for remote in remotes:
-            yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", remote.name, *refspecs)
+        for name in remoteNames:
+            yield from self.flowCallGit("push", "--porcelain", "--progress", "--atomic", name, *refspecs)
 
 
 class PushBranch(RepoTask):
@@ -356,7 +357,7 @@ class PushBranch(RepoTask):
         return False
 
     def flow(self, branchName: str = ""):
-        if len(self.repo.remotes) == 0:
+        if not self.repoModel.remotes:
             text = paragraphs(
                 _("To push a local branch to a remote, you must first add a remote to your repo."),
                 _("You can do so via <i>“Repo &rarr; Add Remote”</i>."))

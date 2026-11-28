@@ -27,7 +27,7 @@ from gitfourchette.porcelain import NULL_OID, Oid, commit_diff_pair
 from gitfourchette.qt import *
 from gitfourchette.repomodel import UC_FAKEREF, UC_FAKEID
 from gitfourchette.tasks.repotask import TaskPrereqs
-from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument, loadUpstreams
+from gitfourchette.tasks.loadtasks import LoadPatch, TAbstractDiffDocument, loadRemotes, loadUpstreams
 from gitfourchette.tasks.repotask import AbortTask, RepoTask, TaskEffects, RepoGoneError
 from gitfourchette.toolbox import *
 
@@ -783,7 +783,7 @@ class RefreshRepo(RepoTask):
         submodulesChanged = False
         remotesChanged = False
         upstreamsChanged = False
-        upstreamConfigChanged = False
+        configChanged = False
         homeBranchChanged = False
 
         if effectFlags & TaskEffects.Head:
@@ -794,11 +794,11 @@ class RefreshRepo(RepoTask):
         if effectFlags & (TaskEffects.Head | TaskEffects.Workdir):
             submodulesChanged = repoModel.syncSubmodules()
 
-        if effectFlags & (TaskEffects.Refs | TaskEffects.Remotes):
-            remotesChanged = repoModel.syncRemotes()
+        if effectFlags & (TaskEffects.Refs | TaskEffects.Remotes | TaskEffects.Upstreams):
+            configChanged = repoModel.pollConfig()
 
-        if effectFlags & (TaskEffects.Refs | TaskEffects.Upstreams):
-            upstreamConfigChanged = repoModel.pollUpstreamConfig()
+        if configChanged:
+            remotesChanged = yield from loadRemotes(self)
 
         if effectFlags & (TaskEffects.Refs | TaskEffects.Remotes | TaskEffects.Head):
             # Refresh ref cache
@@ -816,9 +816,9 @@ class RefreshRepo(RepoTask):
                 self.syncTopOfGraph(oldRefs)
 
         # Refresh upstreams and ahead/behind
-        if refsChanged or upstreamConfigChanged:
+        if refsChanged or configChanged:
             with Benchmark("upstreams"):
-                upstreamsChanged = yield from loadUpstreams(self, upstreamConfigChanged)
+                upstreamsChanged = yield from loadUpstreams(self, configChanged)
 
         # Schedule a repaint of the entire GraphView if the refs changed
         if effectFlags & (TaskEffects.Head | TaskEffects.Refs):

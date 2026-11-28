@@ -7,7 +7,7 @@
 import pytest
 
 from gitfourchette.gitdriver import GitConflict, GitConflictSides, GitDelta, GitDeltaSource, GitDriver, GitStatus
-from gitfourchette.gitdriver.parsers import UPSTREAM_CONFIG_COMMAND, parseUpstreamConfig
+from gitfourchette.gitdriver.parsers import REMOTES_COMMAND, UPSTREAM_CONFIG_COMMAND, parseRemotes, parseUpstreamConfig
 from gitfourchette.porcelain import FileMode, Signature
 from gitfourchette.toolbox import abbreviatePerson, AuthorDisplayStyle
 from gitfourchette.webhost import WebHost
@@ -280,6 +280,24 @@ def testBadGitStatusPatterns(tempDir):
     for s in badStatus:
         with pytest.raises(ValueError):
             _dummy = list(parseGitStatus(s, tempDir.name))
+
+
+def testParseRemotes(tempDir, mainWindow):
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config remote.origin.partialclonefilter blob:none
+        git remote add spaced "https://example.com/with space.git"
+        git config remote.pushonly.pushurl https://example.com/push.git
+        git config remote.nourl.prune true
+    """, wd)
+
+    stdout = GitDriver.runSync(*REMOTES_COMMAND, directory=wd, strict=True)
+    remotes = parseRemotes(stdout)
+
+    assert remotes["origin"].endswith("TestGitRepository")  # despite " [blob:none]" after "(fetch)"
+    assert remotes["spaced"] == "https://example.com/with space.git"
+    assert remotes["pushonly"] == ""
+    assert "nourl" not in remotes
 
 
 def testParseUpstreamConfig(tempDir, mainWindow):

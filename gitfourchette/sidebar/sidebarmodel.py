@@ -685,7 +685,7 @@ class SidebarModel(QAbstractItemModel):
             if displayRole:
                 return remoteName
             elif toolTipRole:
-                url = self.repo.remotes[remoteName].url
+                url = self.repoModel.remotes[remoteName]
                 skipFetchAll = self.repo.get_remote_skipfetchall(remoteName)
                 text = "<p style='white-space: pre'>" + escape(url)
                 text += self.visibilityToolTip(node)

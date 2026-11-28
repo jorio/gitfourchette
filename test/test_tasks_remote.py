@@ -193,6 +193,81 @@ def testDeleteRemote(tempDir, mainWindow, method):
     assert not any("/origin/" in n.data for n in rw.sidebar.findNodesByKind(SidebarItem.RemoteBranch))
 
 
+def testRemoteFromGlobalConfig(tempDir, mainWindow):
+    """
+    Like Git, ensure we can list remotes from the global config in addition to .git/config.
+    """
+    wd = unpackRepo(tempDir)
+    barePath = makeBareCopy(wd, addAsRemote="", preFetch=False)
+    shell("git remote remove origin", wd)
+
+    globalConfig = pygit2.Config.get_global_config()
+    globalConfig["remote.globalremote.url"] = barePath
+    globalConfig["remote.globalremote.fetch"] = "+refs/heads/*:refs/remotes/globalremote/*"
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "globalremote")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "fetch")
+    assert "refs/remotes/globalremote/master" in rw.repo.references
+
+    # Not "add a remote first"
+    triggerMenuAction(mainWindow.menuBar(), "repo/push")
+    findQDialog(rw, "push.+branch").reject()
+
+
+def testRemoteUrlIsTheOneGitUses(tempDir, mainWindow):
+    """
+    With several url values and url.<base>.insteadOf, Git uses the first url,
+    rewritten. libgit2 returned the last one as written.
+    """
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config url.https://example.com/.insteadOf ex:
+        git remote set-url origin ex:first.git
+        git config --add remote.origin.url https://example.com/second.git
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
+    toolTip = rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
+
+    assert "https://example.com/first.git" in toolTip
+
+
+def testEditRemoteShowsUrlAsWritten(tempDir, mainWindow):
+    """
+    Saving the dialog writes its URL to the config, so it must be the URL as
+    written there, not the one after url.<base>.insteadOf.
+    """
+    wd = unpackRepo(tempDir)
+    shell("""
+        git config url.https://example.com/.insteadOf ex:
+        git remote set-url origin ex:first.git
+    """, wd)
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
+    triggerMenuAction(rw.sidebar.makeNodeMenu(node), "edit remote")
+    dialog: RemoteDialog = findQDialog(rw, "edit remote")
+
+    assert dialog.ui.urlEdit.text() == "ex:first.git"
+    dialog.reject()
+
+
+def testRemoteWithNegativeRefspec(tempDir, mainWindow):
+    """
+    pygit2 1.14.1 couldn't load a remote with a negative refspec (Git 2.29+),
+    so its tooltip raised.
+    """
+    wd = unpackRepo(tempDir)
+    shell("git config --add remote.origin.fetch ^refs/heads/no-parent", wd)
+
+    rw = mainWindow.openRepo(wd)
+    node = rw.sidebar.findNode(lambda n: n.kind == SidebarItem.Remote and n.data == "origin")
+    toolTip = rw.sidebar.nodeToFilterIndex(node).data(Qt.ItemDataRole.ToolTipRole)
+    assert "TestGitRepository" in toolTip  # origin's URL
+
+
 def testCustomKeyUI(tempDir, mainWindow):
     wd = unpackRepo(tempDir)
     rw = mainWindow.openRepo(wd)

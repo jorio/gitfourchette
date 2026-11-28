@@ -495,7 +495,7 @@ class NewTag(RepoTask):
         commitMessage, _dummy = messageSummary(commitMessage)
 
         dlg = NewTagDialog(shortHash(oid), commitMessage, reservedNames,
-                           remotes=self.repoModel.remotes,
+                           remotes=list(self.repoModel.remotes),
                            parent=self.parentWidget())
 
         yield from self.flowDialog(dlg)
@@ -543,7 +543,7 @@ class DeleteTag(RepoTask):
             tagName,
             shortHash(tagTarget),
             commitMessage,
-            self.repoModel.remotes,
+            list(self.repoModel.remotes),
             parent=self.parentWidget())
 
         yield from self.flowDialog(dlg)

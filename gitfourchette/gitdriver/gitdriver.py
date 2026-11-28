@@ -85,6 +85,8 @@ class GitDriver(QProcess):
                 # (man git-config, DEPRECATED MODES)
                 tokens = [t for t in tokens if t not in ["--all", "--show-names", "--regexp"]]
                 tokens[1] = "--get-regexp"
+            elif tokens[1:3] == ["get", "--all"]:
+                tokens[1:3] = ["--get-all"]
             elif tokens[1:3] == ["set", "--all"]:
                 tokens[1:3] = ["--replace-all"]
             elif tokens[1:3] == ["unset", "--all"]:

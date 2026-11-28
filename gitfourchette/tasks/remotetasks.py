@@ -27,7 +27,7 @@ def setSkipFetchAll(task: RepoTask, remoteName: str, skip: bool) -> RepoTask.Flo
 
 class NewRemote(RepoTask):
     def flow(self):
-        existingRemotes = [r.name for r in self.repo.remotes]
+        existingRemotes = list(self.repoModel.remotes)
 
         dlg = RemoteDialog(
             editExistingRemote=False,
@@ -61,10 +61,13 @@ class NewRemote(RepoTask):
 
 class EditRemote(RepoTask):
     def flow(self, oldRemoteName: str):
-        oldRemoteUrl = self.repo.remotes[oldRemoteName].url
+        # Edit the URL as written in the config: RepoModel.remotes has it after
+        # url.<base>.insteadOf. Like Git, take the first one if there are several.
+        driver = yield from self.flowCallGit("config", "get", "--all", f"remote.{oldRemoteName}.url", autoFail=False)
+        urlLines = driver.stdoutScrollback().splitlines()
+        oldRemoteUrl = urlLines[0] if urlLines else ""
 
-        existingRemotes = [r.name for r in self.repo.remotes]
-        existingRemotes.remove(oldRemoteName)
+        existingRemotes = [name for name in self.repoModel.remotes if name != oldRemoteName]
 
         skipFetchAll = self.repo.get_remote_skipfetchall(oldRemoteName)
 

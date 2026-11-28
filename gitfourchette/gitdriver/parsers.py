@@ -42,6 +42,9 @@ _gitSimplifiedModes = [
 UPSTREAMS_FORMAT = "--format=%(refname)%00%(upstream)%00%(upstream:track,nobracket)"
 "Format for `git for-each-ref refs/heads` that parseUpstreams expects."
 
+REMOTES_COMMAND = ["remote", "-v"]
+"Git command whose output parseRemotes expects."
+
 UPSTREAM_CONFIG_COMMAND = ["config", "get", "-z", "--all", "--show-names", "--regexp", r"^branch\..+\.(remote|merge)$"]
 "Git command whose output parseUpstreamConfig expects."
 
@@ -290,6 +293,33 @@ def parseUpstreams(stdout: str) -> Iterator[UpstreamEntry]:
             elif kind == "behind":
                 behind = int(count)
         yield UpstreamEntry(refName, upstreamRef, (ahead, behind))
+
+
+def parseRemotes(stdout: str) -> dict[str, str]:
+    """
+    Parse the output of REMOTES_COMMAND into a table of remote names to the
+    URL that Git fetches from (after url.<base>.insteadOf), or an empty string
+    if the remote only has a pushurl.
+
+    `git remote` lists a remote for any remote.<name>.* key, at any config
+    level (e.g. a global remote.origin.prune). Skip the remotes that have
+    neither url nor pushurl: Git can't fetch or push them.
+    """
+    remotes: dict[str, str] = {}
+
+    for line in stdout.splitlines():
+        name, _tab, urlAndKind = line.partition("\t")
+
+        if urlAndKind.endswith(" (push)"):
+            remotes.setdefault(name, "")
+            continue
+
+        # A partial clone adds its filter after the kind: "(fetch) [blob:none]"
+        fetchUrl, isFetchLine, _filter = urlAndKind.rpartition(" (fetch)")
+        if isFetchLine:
+            remotes[name] = fetchUrl
+
+    return remotes
 
 
 def parseUpstreamConfig(stdout: str) -> dict[str, tuple[str, str]]:
