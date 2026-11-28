@@ -396,16 +396,10 @@ class HardSolveConflicts(RepoTask):
             nukePaths = []
 
         # Back up nuked files + THEIRS
-        if Trash.enabled():
-            backupList = nukePaths[:]
-            if not keepOurs:
-                backupList += keepPaths
-
-            for path in backupList:
-                try:
-                    Trash.instance().backupFile(self.repo.workdir, path)
-                except Trash.BackupSkipped as ex:
-                    logger.warning(f"Backup skipped: {ex}")
+        backupList = nukePaths[:]
+        if not keepOurs:
+            backupList += keepPaths
+        Trash.backupFiles(self.repo.workdir, backupList)
 
         self.epilog.effects |= TaskEffects.Workdir
 
@@ -839,18 +833,44 @@ class RestoreRevisionToWorkdir(RepoTask):
                         path=bquo(diffFile.path), preposition=preposition)
             raise AbortTask(message, icon="information")
 
+        # Restoring rewrites the working copy but leaves the index alone,
+        # so only unstaged changes (including untracked or ignored files) are lost.
+        # Something else may now occupy the path, e.g. a folder with untracked files.
+        lostPaths = []
+        if pathObj.exists(follow_symlinks=False):
+            gitStatus = yield from self.flowCallGit(
+                "--no-optional-locks",
+                "status",
+                "--porcelain=v2",
+                "-z",
+                "--untracked-files=all",
+                "--ignored",
+                pathspecs=[diffFile.path])
+            _numEntries, _stagedDeltas, unstagedDeltas = gitStatus.readStatusPorcelainV2Z(None)
+            lostPaths = [d.new.path for d in unstagedDeltas]
+
         if not existsNow:
             actionVerb = _("recreated")
         elif delete:
             actionVerb = _("deleted")
         else:
             actionVerb = _("overwritten")
-        prompt = paragraphs(
-            _("Do you want to restore {path} as it was {preposition} this commit?",
-              path=bquo(diffFile.path), preposition=preposition),
-            _("This file will be {processed} in your working directory.", processed=actionVerb))
+
+        question = _("Do you want to restore {path} as it was {preposition} this commit?",
+                     path=bquo(diffFile.path), preposition=preposition)
+        if lostPaths:
+            consequence = stockIconImgTag("achtung") + " " + _(
+                "<b>This file has uncommitted changes!</b> "
+                "It will be {processed} in your working directory.",
+                processed=actionVerb)
+        else:
+            consequence = _("This file will be {processed} in your working directory.", processed=actionVerb)
+        prompt = paragraphs(question, consequence)
 
         yield from self.flowConfirm(text=prompt, verb=_("Restore"))
+
+        if lostPaths:
+            Trash.backupFiles(self.repo.workdir, lostPaths)
 
         self.epilog.effects |= TaskEffects.Workdir
 
