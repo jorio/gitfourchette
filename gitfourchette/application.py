@@ -673,7 +673,7 @@ class GFApplication(QApplication):
 
     def applySshAgentPref(self):
         from gitfourchette import settings
-        from gitfourchette.sshagent import SshAgent
+        from gitfourchette.sshagent import SshAgent, WindowsOpenSshError
         from gitfourchette.toolbox import showWarning, paragraphs
 
         wantAgent = settings.prefs.ownSshAgent
@@ -693,6 +693,17 @@ class GFApplication(QApplication):
 
         try:
             self.sshAgent = SshAgent(self, sandbox=sandbox)
+        except WindowsOpenSshError:
+            # Turn our agent off, so that we don't complain every time the app starts
+            settings.prefs.ownSshAgent = False
+            settings.prefs.setDirty()
+
+            message = paragraphs(
+                _("Couldn’t start {0}.", "ssh-agent"),
+                _("Your {0} setting makes Git use OpenSSH for Windows, which can’t use GitFourchette’s ssh-agent. "
+                  "Please use the ssh-agent service that comes with Windows instead.", "core.sshCommand"),
+                _("GitFourchette’s own ssh-agent is now turned off."))
+            showWarning(self.mainWindow, _("SSH agent"), message)
         except Exception as exc:
             message = paragraphs(
                 _("Couldn’t start {0} ({1}).", "ssh-agent", str(exc)),
