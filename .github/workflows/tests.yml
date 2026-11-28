@@ -44,11 +44,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: {python-version: 3.15, cache: 'pip'}
+      - run: sudo apt -q update && sudo apt -q install libegl1  # minimal dependency to import qt.py from checkimports.py
       - run: pip install 'pyqt6<6.12'  # QtGui.pyi from PyQt6 6.12 causes mypy errors as of 10/2026
       - run: pip install -e .[lint,pyqt6]
       - run: ruff check
       - run: mypy
         if: '!cancelled()'  # run mypy even if ruff failed above
+      - run: python .github/workflows/checkimports.py
+        if: '!cancelled()'
 
   test-matrix:
     needs: prepare-matrix

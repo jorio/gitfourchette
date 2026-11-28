@@ -67,6 +67,25 @@ def testTabOverflowSingleTab(tempDir, mainWindow):
     assert not mainWindow.tabs.overflowButton.isVisible()
 
 
+def testTabBarFollowsPrefs(mainWindow):
+    tabBar = mainWindow.tabs.tabs
+
+    # Default prefs
+    assert tabBar.expanding()
+    assert not tabBar.autoHide()
+    assert tabBar.tabsClosable()
+
+    GFApplication.applyPrefs(expandingTabs=False, autoHideTabs=True, tabCloseButton=True)
+    assert not tabBar.expanding()
+    assert tabBar.autoHide()
+    assert tabBar.tabsClosable()
+
+    GFApplication.applyPrefs(expandingTabs=True, autoHideTabs=False, tabCloseButton=False)
+    assert tabBar.expanding()
+    assert not tabBar.autoHide()
+    assert not tabBar.tabsClosable()
+
+
 @pytest.mark.parametrize("click", ["middle", "double"])
 @pytest.mark.parametrize("action", TabBarClick)
 def testTabSpecialClick(tempDir, mainWindow, click, action):

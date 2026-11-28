@@ -1142,6 +1142,12 @@ class MainWindow(QMainWindow):
     # Prefs
 
     def refreshPrefs(self) -> None:
+        self.tabs.refreshPrefs(
+            expanding=settings.prefs.expandingTabs,
+            autoHide=settings.prefs.autoHideTabs,
+            closeButtons=settings.prefs.tabCloseButton)
+        self.autoHideMenuBar.refreshPrefs(enabled=not settings.prefs.showMenuBar)
+
         self.statusBar2.setVisible(settings.prefs.showStatusBar)
         self.statusBar2.enableMemoryIndicator(APP_DEBUG)
         self.mainToolBar.setVisible(settings.prefs.showToolBar)
